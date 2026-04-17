@@ -457,7 +457,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -564,7 +564,7 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -697,7 +697,7 @@ A return argument to include in the trace output.
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -908,7 +908,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1497,7 +1497,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1900,7 +1900,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -2007,7 +2007,7 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -2140,7 +2140,7 @@ A return argument to include in the trace output.
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -2351,7 +2351,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -2940,7 +2940,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3269,7 +3269,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -3480,7 +3480,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4069,7 +4069,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4505,7 +4505,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5094,7 +5094,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5381,7 +5381,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -5592,7 +5592,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6181,7 +6181,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6512,7 +6512,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -6619,7 +6619,7 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -6726,7 +6726,7 @@ A return argument to include in the trace output.
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -6937,7 +6937,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7526,7 +7526,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7820,7 +7820,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -8031,7 +8031,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8620,7 +8620,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -9224,7 +9224,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -9331,7 +9331,7 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -9464,7 +9464,7 @@ A return argument to include in the trace output.
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -9675,7 +9675,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10264,7 +10264,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10667,7 +10667,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -10774,7 +10774,7 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -10907,7 +10907,7 @@ A return argument to include in the trace output.
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -11118,7 +11118,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -11707,7 +11707,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12036,7 +12036,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -12247,7 +12247,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12836,7 +12836,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13272,7 +13272,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13861,7 +13861,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14148,7 +14148,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -14359,7 +14359,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14948,7 +14948,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -15279,7 +15279,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -15386,7 +15386,7 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -15493,7 +15493,7 @@ A return argument to include in the trace output.
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -15704,7 +15704,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -16293,7 +16293,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -16587,7 +16587,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog, go_string<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -16798,7 +16798,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -17387,7 +17387,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>

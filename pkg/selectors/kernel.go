@@ -66,6 +66,7 @@ var actionTypeTable = map[string]uint32{
 	"notifyenforcer":              ActionTypeNotifyEnforcer,
 	"cleanupenforcernotification": ActionTypeCleanupEnforcerNotification,
 	"set":                         ActionTypeSet,
+	"cleargostring":               ActionTypeOverride,
 }
 
 var actionTypeStringTable = map[uint32]string{
@@ -987,7 +988,7 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpSubStringIgnCase, SelectorOpSubString:
 		switch ty {
-		case gt.GenericStringType, gt.GenericCharBuffer:
+		case gt.GenericStringType, gt.GenericCharBuffer, gt.GenericGoStringType:
 			if err := writeMatchSubString(k, arg.Values); err != nil {
 				return fmt.Errorf("writeMatchSubString error: %w", err)
 			}

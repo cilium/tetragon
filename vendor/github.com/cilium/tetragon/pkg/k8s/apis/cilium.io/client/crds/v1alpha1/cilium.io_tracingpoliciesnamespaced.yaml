@@ -226,6 +226,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - go_string
                             type: string
                         required:
                         - index
@@ -340,6 +341,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - go_string
                             type: string
                         required:
                         - index
@@ -467,6 +469,7 @@ spec:
                           - bpf_cmd
                           - dentry
                           - bpf_prog
+                          - go_string
                           type: string
                       required:
                       - index
@@ -518,6 +521,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -971,6 +975,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1302,6 +1307,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - go_string
                             type: string
                         required:
                         - index
@@ -1416,6 +1422,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - go_string
                             type: string
                         required:
                         - index
@@ -1543,6 +1550,7 @@ spec:
                           - bpf_cmd
                           - dentry
                           - bpf_prog
+                          - go_string
                           type: string
                       required:
                       - index
@@ -1594,6 +1602,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2047,6 +2056,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2351,6 +2361,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - go_string
                             type: string
                         required:
                         - index
@@ -2406,6 +2417,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2859,6 +2871,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -3127,6 +3140,7 @@ spec:
                             - NotifyEnforcer
                             - CleanupEnforcerNotification
                             - Set
+                            - ClearGoString
                             type: string
                           argError:
                             description: error value for override action
@@ -3573,6 +3587,7 @@ spec:
                             - NotifyEnforcer
                             - CleanupEnforcerNotification
                             - Set
+                            - ClearGoString
                             type: string
                           argError:
                             description: error value for override action
@@ -3829,6 +3844,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - go_string
                             type: string
                         required:
                         - index
@@ -3887,6 +3903,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -4340,6 +4357,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -4618,6 +4636,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - go_string
                             type: string
                         required:
                         - index
@@ -4732,6 +4751,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - go_string
                             type: string
                         required:
                         - index
@@ -4867,6 +4887,7 @@ spec:
                           - bpf_cmd
                           - dentry
                           - bpf_prog
+                          - go_string
                           type: string
                       required:
                       - index
@@ -4913,6 +4934,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -5366,6 +5388,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -5639,6 +5662,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - go_string
                             type: string
                         required:
                         - index
@@ -5703,6 +5727,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -6156,6 +6181,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - ClearGoString
                                   type: string
                                 argError:
                                   description: error value for override action
