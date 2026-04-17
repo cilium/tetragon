@@ -28,16 +28,6 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*progr
 				return m.Update(index, selBuff[:], ebpf.UpdateAny)
 			},
 		}, {
-			Name: "workloads_map",
-			Load: func(m *ebpf.Map, _ string) error {
-				for selId, polId := range ks.MatchWorkloadIDs() {
-					if err := m.Update(uint32(selId), polId, ebpf.UpdateAny); err != nil {
-						return err
-					}
-				}
-				return nil
-			},
-		}, {
 			Name: "argfilter_maps",
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 				return populateArgFilterMaps(ks, pinPathPrefix, outerMap)
@@ -118,6 +108,19 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*progr
 				return populateSubStringMap(outerMap, ks)
 			},
 		},
+	}
+	if len(ks.MatchWorkloadIDs()) > 0 {
+		maps = append(maps, &program.MapLoad{
+			Name: "workloads_map",
+			Load: func(m *ebpf.Map, _ string) error {
+				for selID, polID := range ks.MatchWorkloadIDs() {
+					if err := m.Update(uint32(selID), polID, ebpf.UpdateAny); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+		})
 	}
 	if kernels.MinKernelVersion("5.11") {
 		maps = append(maps, []*program.MapLoad{

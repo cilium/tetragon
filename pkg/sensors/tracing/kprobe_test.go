@@ -4814,7 +4814,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 			{Name: "config_map", Progs: []uint{0, 1, 2, 5}},
 
 			// generic_kprobe_event
-			{Name: "tg_conf_map", Progs: []uint{0, 2, 6, 10}},
+			{Name: "tg_conf_map", Progs: []uint{0, 2, 4, 6, 10}},
 
 			// shared with base sensor
 			{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}},
@@ -4883,10 +4883,10 @@ func TestLoadKprobeSensor(t *testing.T) {
 				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_rb_events", Progs: []uint{2, 6, 11}})
 
 				// generic_kprobe_event
-				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2, 6, 11}})
+				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2, 4, 6, 11}})
 			} else {
 				// generic_kprobe_event
-				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
+				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 4}})
 			}
 		} else {
 			sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_kprobe_process_event_2", Type: ebpf.Kprobe})
@@ -4909,7 +4909,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 11}})
 
 			// generic_kprobe_event
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 4}})
 
 			// generic_retkprobe_event
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{8, 9, 10, 14}})
