@@ -92,7 +92,7 @@ libtester.so: tester-lib.c
 	$(GCC) -Wall -fPIC $< -o $@ -shared
 
 uprobe-test-1: uprobe-test.c tester-lib.h libuprobe.so libtester.so
-	$(GCC) -Wall $< -o $@ $(CURDIR)/libuprobe.so $(CURDIR)/libtester.so
+	$(GCC) -Wall $< -o $@ -L . -luprobe -ltester -Wl,-rpath,'$$ORIGIN'
 
 uprobe-test-2: uprobe-test-1
 	cp uprobe-test-1 uprobe-test-2
