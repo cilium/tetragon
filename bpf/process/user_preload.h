@@ -140,7 +140,7 @@ try_preload_arg(int idx, struct preload_arg_data *data)
 {
 	asm volatile("%[idx] &= %1 ;\n"
 		     : [idx] "+r"(idx)
-		     : "i"(MAX_POSSIBLE_ARGS));
+		     : "i"(MAX_POSSIBLE_ARGS_MASK));
 
 	if (data->config->arm[idx] & ARGM_PRELOAD) {
 		if (data->config->arm[idx] & ARGM_PT_REGS)
