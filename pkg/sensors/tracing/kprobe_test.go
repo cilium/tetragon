@@ -8348,3 +8348,7 @@ spec:
 func TestKprobeNotEqualMultipleValues(t *testing.T) {
 	testKprobeNotEqualMultipleValues(t, false)
 }
+
+func TestKprobeNULLStringAndReturnArg(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-null-string", nil)
+}
