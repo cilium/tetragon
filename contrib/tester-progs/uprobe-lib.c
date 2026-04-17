@@ -48,6 +48,12 @@ int uprobe_test_lib_string_arg_empty(char *str)
 	return 0;
 }
 
+int uprobe_test_lib_string_arg_null(char *str)
+{
+	printf("uprobe_test_lib_string_arg_null called\n");
+	return 0;
+}
+
 int uprobe_test_lib_string_arg_substring(char *str)
 {
 	printf("uprobe_test_lib_string_arg_substring called\n");
