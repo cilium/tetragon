@@ -30,7 +30,10 @@ message ListSensorsResponse {
   repeated SensorStatus sensors = 1;
 }
 
-message ListTracingPoliciesRequest {}
+message ListTracingPoliciesRequest {
+  // domain to be listed; empty to list all domains
+  string domain = 1;
+}
 
 enum TracingPolicyState {
   // unknown state
@@ -106,6 +109,8 @@ message TracingPolicyStatus {
   TracingPolicyMode mode = 11;
   // stats of the tracing policy
   optional TracingPolicyStats stats = 12;
+  // domain of the policy
+  string domain = 13;
 }
 
 message ListTracingPoliciesResponse {
@@ -114,24 +119,28 @@ message ListTracingPoliciesResponse {
 
 message AddTracingPolicyRequest {
   string yaml = 1;
+  string domain = 2;
 }
 message AddTracingPolicyResponse {}
 
 message DeleteTracingPolicyRequest {
   string name = 1;
   string namespace = 2;
+  string domain = 3;
 }
 message DeleteTracingPolicyResponse {}
 
 message EnableTracingPolicyRequest {
   string name = 1;
   string namespace = 2;
+  string domain = 3;
 }
 message EnableTracingPolicyResponse {}
 
 message DisableTracingPolicyRequest {
   string name = 1;
   string namespace = 2;
+  string domain = 3;
 }
 message DisableTracingPolicyResponse {}
 
@@ -141,6 +150,8 @@ message ConfigureTracingPolicyRequest {
 
   optional bool enable = 3;
   optional TracingPolicyMode mode = 4;
+
+  string domain = 5;
 }
 
 message ConfigureTracingPolicyResponse {}
