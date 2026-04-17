@@ -54,6 +54,6 @@ func StatsFromBPFMap(fname string) (*PolicyStats, error) {
 }
 
 func GetPolicyStats(tp tracingpolicy.TracingPolicy) (*PolicyStats, error) {
-	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tracingpolicy.Namespace(tp), tp.TpName()), PolicyStatsMapName)
+	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tp.TpNamespace(), tp.TpName()), PolicyStatsMapName)
 	return StatsFromBPFMap(fname)
 }

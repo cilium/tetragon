@@ -98,7 +98,7 @@ func (pft *Tester) AddPolicy(t *testing.T, ctx context.Context, tp *tracingpolic
 	require.NoError(t, err)
 	err = pft.Pfstate.AddPodContainer(
 		policyfilter.PodID(uuid.New()),
-		tracingpolicy.Namespace(tp), nil,
+		tp.TpNamespace(), nil,
 		"pod-container", policyfilter.CgroupID(pft.CgID), podhelpers.ContainerInfo{Name: "container-name", Repo: "container-repo"})
 	require.NoError(t, err)
 
@@ -113,6 +113,6 @@ func (pft *Tester) AddPolicy(t *testing.T, ctx context.Context, tp *tracingpolic
 	}
 
 	t.Cleanup(func() {
-		pft.SensorMgr.DeleteTracingPolicy(ctx, tp.TpName(), tracingpolicy.Namespace(tp))
+		pft.SensorMgr.DeleteTracingPolicy(ctx, tp.TpName(), tp.TpNamespace())
 	})
 }

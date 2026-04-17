@@ -9,14 +9,6 @@ import (
 	"strings"
 )
 
-// Namespace returns the namespace of a policy, or "" if the poilcy is not namespaced
-func Namespace(tp TracingPolicy) string {
-	if tpNs, ok := tp.(TracingPolicyNamespaced); ok {
-		return tpNs.TpNamespace()
-	}
-	return ""
-}
-
 func sanitize(name string) string {
 	return strings.ReplaceAll(name, "/", "_")
 }

@@ -89,8 +89,7 @@ func TestYamlNamespaced(t *testing.T) {
 	build.SkipIfK8sDisabled(t)
 	tp, err := FromYAML(tpNamespaced)
 	require.NoError(t, err)
-	_, ok := tp.(TracingPolicyNamespaced)
-	require.True(t, ok)
+	require.Equal(t, tp.TpNamespace(), "default")
 }
 
 func TestEmptyTracingPolicy(t *testing.T) {

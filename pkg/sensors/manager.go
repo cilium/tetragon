@@ -117,14 +117,8 @@ type TracingPolicy interface {
 }
 
 // AddTracingPolicy adds a new sensor based on a tracing policy
-// NB: if tp implements tracingpolicy.TracingPolicyNamespaced, it will be
-// treated as a namespaced policy
 func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error {
-	var namespace string
-	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
-		namespace = tpNs.TpNamespace()
-	}
-	ck := collectionKey{tp.TpName(), namespace}
+	ck := collectionKey{tp.TpName(), tp.TpNamespace()}
 	op := &tracingPolicyAdd{
 		ctx: ctx,
 		ck:  ck,
