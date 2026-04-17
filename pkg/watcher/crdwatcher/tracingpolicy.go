@@ -97,10 +97,7 @@ func updateTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors
 	oldObj any, newObj any) {
 
 	update := func(oldTp, newTp tracingpolicy.TracingPolicy) {
-		var namespace string
-		if oldTpNs, ok := oldTp.(tracingpolicy.TracingPolicyNamespaced); ok {
-			namespace = oldTpNs.TpNamespace()
-		}
+		namespace := oldTp.TpNamespace()
 
 		if err := s.DeleteTracingPolicy(ctx, oldTp.TpName(), namespace); err != nil {
 			log.Warn("updateTracingPolicy: failed to remove old policy", "old-name", oldTp.TpName(), logfields.Error, err)

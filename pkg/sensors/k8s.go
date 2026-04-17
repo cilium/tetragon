@@ -22,11 +22,6 @@ import (
 //	policyfilter.PolicyID(tpID), nil if filtering is needed and policyfilter has been successfully set up
 //	_, err if an error occurred
 func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64) (policyfilter.PolicyID, error) {
-	var namespace string
-	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
-		namespace = tpNs.TpNamespace()
-	}
-
 	// matches nothing           | tp.TpSpec().PodSelector == nil
 	// matches everything        | tp.TpSpec().PodSelector != nil && (len(ps.MatchLabels) + len(ps.MatchExpressions) == 0)
 	// matches based on selector | tp.TpSpec().PodSelector != nil && (len(ps.MatchLabels) + len(ps.MatchExpressions) != 0)
@@ -64,11 +59,11 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 	// means that if policyfilter is disabled
 	// (option.Config.EnablePolicyFilter is false) then loading the policy
 	// will only fail if filtering is required.
-	if namespace == "" && (globalSelectorsMatchAll || globalSelectorsMatchNothing) {
+	if tp.TpNamespace() == "" && (globalSelectorsMatchAll || globalSelectorsMatchNothing) {
 		return policyfilter.NoFilterID, nil
 	}
 	filterID := policyfilter.PolicyID(tpID)
-	if err := h.pfState.AddPolicy(filterID, namespace, podSelector, containerSelector, hostSelector); err != nil {
+	if err := h.pfState.AddPolicy(filterID, tp.TpNamespace(), podSelector, containerSelector, hostSelector); err != nil {
 		return policyfilter.NoFilterID, err
 	}
 	return filterID, nil

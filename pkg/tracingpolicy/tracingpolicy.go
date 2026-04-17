@@ -18,18 +18,8 @@ type TracingPolicy interface {
 	TpSpec() *v1alpha1.TracingPolicySpec
 	// TpInfo returns a description of the policy
 	TpInfo() string
-}
-
-// revive:disable:exported
-
-// TracingPolicyNamespaced is an interface for tracing policy applied on a specific namespace
-type TracingPolicyNamespaced interface {
-	TracingPolicy
-	// TpNamespace returns the namespace of the policy
 	TpNamespace() string
 }
-
-// revive:enable:exported
 
 type PolicyInfo struct {
 	Name string
@@ -44,8 +34,8 @@ type PolicyEvent interface {
 // name if the policy is not namespaced, or namespace/name if it is
 func TpLongname(tp TracingPolicy) string {
 	name := tp.TpName()
-	if tpns, ok := tp.(TracingPolicyNamespaced); ok {
-		name = tpns.TpNamespace() + "/" + name
+	if tp.TpNamespace() != "" {
+		name = tp.TpNamespace() + "/" + name
 	}
 	return name
 }

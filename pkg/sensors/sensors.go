@@ -186,16 +186,12 @@ func SensorCombine(tp tracingpolicy.TracingPolicy, name string, sensors ...*Sens
 }
 
 func SensorBuilder(tp tracingpolicy.TracingPolicy, name string, p []*program.Program, m []*program.Map) *Sensor {
-	namespace := ""
-	if tpn, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
-		namespace = tpn.TpNamespace()
-	}
 	return &Sensor{
 		Name:      name,
 		Progs:     p,
 		Maps:      m,
 		Policy:    tp.TpName(),
-		Namespace: namespace,
+		Namespace: tp.TpNamespace(),
 	}
 }
 

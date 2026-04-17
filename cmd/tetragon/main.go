@@ -585,14 +585,9 @@ func addTracingPolicy(ctx context.Context, file string) error {
 		return err
 	}
 
-	namespace := ""
-	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
-		namespace = tpNs.TpNamespace()
-	}
-
 	logger.GetLogger().Info("Added TracingPolicy with success",
 		"TracingPolicy", file,
-		"metadata.namespace", namespace,
+		"metadata.namespace", tp.TpNamespace(),
 		"metadata.name", tp.TpName())
 
 	return nil

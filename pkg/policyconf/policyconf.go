@@ -59,7 +59,7 @@ func ModeFromBPFMap(fname string) (Mode, error) {
 }
 
 func PolicyMode(tp tracingpolicy.TracingPolicy) (Mode, error) {
-	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tracingpolicy.Namespace(tp), tp.TpName()), PolicyConfMapName)
+	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tp.TpNamespace(), tp.TpName()), PolicyConfMapName)
 	return ModeFromBPFMap(fname)
 }
 
@@ -97,6 +97,6 @@ func SetPolicyMode(tp tracingpolicy.TracingPolicy, m Mode) error {
 		return errors.New("cannot set policy mode on a policy that is monitor only")
 	}
 
-	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tracingpolicy.Namespace(tp), tp.TpName()), PolicyConfMapName)
+	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tp.TpNamespace(), tp.TpName()), PolicyConfMapName)
 	return SetModeInBPFMap(fname, m)
 }

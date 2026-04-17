@@ -229,19 +229,15 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 		logger.GetLogger().Warn("Server AddTracingPolicy request failed", logfields.Error, err)
 		return nil, err
 	}
-	namespace := ""
-	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
-		namespace = tpNs.TpNamespace()
-	}
 
 	logger.GetLogger().Debug("Received an AddTracingPolicy request",
-		"metadata.namespace", namespace,
+		"metadata.namespace", tp.TpNamespace(),
 		"metadata.name", tp.TpName())
 
 	if err := s.observer.AddTracingPolicy(ctx, tp); err != nil {
 		logger.GetLogger().Warn("Server AddTracingPolicy request failed",
 			logfields.Error, err,
-			"metadata.namespace", namespace,
+			"metadata.namespace", tp.TpNamespace(),
 			"metadata.name", tp.TpName())
 		return nil, err
 	}
