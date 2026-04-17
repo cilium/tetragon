@@ -183,22 +183,24 @@ int ProcessMonitor(process_md_t *ctx)
 	} else if (ctx->operation == PROCESS_OPERATION_DELETE) {
 		struct process_exit_info_t process_exit_info;
 		int size = sizeof(process_exit_info);
-		uint32_t *pid = NULL;
+		uint32_t pid = 0;
 
-		if ((ctx) && ctx->process_id)
-			*pid = ctx->process_id;
-		else
-			return 0;
+		if (ctx->process_id != 0) {
+			pid = ctx->process_id;
+		} else {
+			uint64_t pid_tgid = bpf_get_current_pid_tgid();
 
+			pid = pid_tgid >> 32;
+		}
 		memset(&process_exit_info, 0, size);
-		process_exit_info.process_id = ctx->process_id;
+		process_exit_info.process_id = pid;
 		process_exit_info.common.op = MSG_OP_EXIT;
 		process_exit_info.common.ktime = ctx->exit_time;
 		process_exit_info.common.size = size;
 		process_exit_info.exit_time = ctx->exit_time;
 		process_exit_info.process_exit_code = ctx->process_exit_code;
-		bpf_map_delete_elem(&process_map, pid);
-		bpf_map_delete_elem(&command_map, pid);
+		bpf_map_delete_elem(&process_map, &pid);
+		bpf_map_delete_elem(&command_map, &pid);
 		bpf_ringbuf_output(&process_ringbuf, &process_exit_info, sizeof(process_exit_info), 0);
 	}
 	return 0;
