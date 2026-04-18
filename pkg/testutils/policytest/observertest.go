@@ -63,7 +63,7 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 		t.Fatalf("failed to generate policy: %s", err)
 	}
 
-	policyFile, err := os.CreateTemp("", "teragon-policy-"+t.Name()+"-*.txt")
+	policyFile, err := os.CreateTemp("", "tetragon-policy-"+t.Name()+"-*.txt")
 	if err != nil {
 		t.Fatalf("failed to create polcy file: %s", err)
 	}

@@ -126,7 +126,7 @@ install_containerd() {
 install_crio() {
 	echo "Installing CRIO OCI hook"
 	$SETUPBIN print-config --interface=oci-hooks --binary=$HOOKNAME > $xdir/hook.json
-	minikube cp $xdir/hook.json /usr/share/containers/oci/hooks.d/teragon-oci-hook.json
+	minikube cp $xdir/hook.json /usr/share/containers/oci/hooks.d/tetragon-oci-hook.json
 }
 
 

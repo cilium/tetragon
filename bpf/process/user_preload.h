@@ -41,9 +41,14 @@ preload_string_type(struct pt_regs *ctx, struct event_config *config, unsigned l
 	if (!data)
 		return 0;
 
+	if (!status) {
+		if (bpf_copy_from_user_str(data->data, sizeof(data->data), (const void *)val, 0) < 0) {
+			data->status = -1;
+			return 0;
+		}
+	}
+
 	data->status = status;
-	if (!status)
-		bpf_copy_from_user_str(data->data, sizeof(data->data), (const void *)val, 0);
 	return 0;
 }
 
@@ -135,7 +140,7 @@ try_preload_arg(int idx, struct preload_arg_data *data)
 {
 	asm volatile("%[idx] &= %1 ;\n"
 		     : [idx] "+r"(idx)
-		     : "i"(MAX_POSSIBLE_ARGS));
+		     : "i"(MAX_POSSIBLE_ARGS_MASK));
 
 	if (data->config->arm[idx] & ARGM_PRELOAD) {
 		if (data->config->arm[idx] & ARGM_PT_REGS)

@@ -42,7 +42,8 @@ PROGS = sigkill-tester \
 	uprobe-null \
 	uprobe-simple \
 	pclntab-unstripped \
-	pclntab-stripped
+	pclntab-stripped \
+	null-mount
 
 LIBS =	libuprobe.so \
 	libtester.so

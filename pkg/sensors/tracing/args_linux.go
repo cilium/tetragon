@@ -112,7 +112,11 @@ func getArgStatus(r *bytes.Reader) (*api.MsgGenericKprobeArgError, error) {
 	}
 
 	if status != 0 {
-		arg.Message = strconv.FormatUint(uint64(status), 10)
+		if status == ^uint32(0) {
+			arg.Message = "Bad address"
+		} else {
+			arg.Message = strconv.FormatUint(uint64(status), 10)
+		}
 		return &arg, nil
 	}
 	return nil, nil
