@@ -343,6 +343,10 @@ Number of policy filter operations.
 
 The capacity of the process cache. Expected to be constant.
 
+### `tetragon_process_cache_early_deletions_total`
+
+Number of times the GC attempted to delete a process already marked as deleted. May indicate the GC is deleting processes too early.
+
 ### `tetragon_process_cache_evictions_total`
 
 Number of process cache LRU evictions. This includes all evictions: both explicit and capacity (implicit).

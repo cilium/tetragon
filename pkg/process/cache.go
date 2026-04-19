@@ -89,6 +89,13 @@ func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 				}
 				deleteQueue = newQueue
 			case p := <-pc.deleteChan:
+				// The object has already been deleted let if fall of
+				// the edge of the world. Hitting this could mean our
+				// GC logic deleted a process too early.
+				if p.color == deleted {
+					processCacheEarlyDeletions.Inc()
+					continue
+				}
 				// duplicate deletes can happen, if they do reset
 				// color to pending and move along. This will cause
 				// the GC to keep it alive for at least another pass.
@@ -97,13 +104,6 @@ func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 				// and assume its visible everywhere.
 				if p.color != inUse {
 					p.color = deletePending
-					continue
-				}
-				// The object has already been deleted let if fall of
-				// the edge of the world. Hitting this could mean our
-				// GC logic deleted a process too early.
-				// TBD add a counter around this to alert on it.
-				if p.color == deleted {
 					continue
 				}
 				p.color = deletePending
