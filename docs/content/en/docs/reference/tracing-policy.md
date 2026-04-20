@@ -231,6 +231,15 @@ Currently, only the "name" field is supported.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>empty</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeccontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
         <td>[]object</td>
         <td>
@@ -1700,6 +1709,15 @@ For now only ~ (none) and {} (all) is supported.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>empty</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspechostselectormatchexpressionsindex">matchExpressions</a></b></td>
         <td>[]object</td>
         <td>
@@ -4304,6 +4322,15 @@ PodSelector selects pods that this policy applies to
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>empty</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecpodselectormatchexpressionsindex">matchExpressions</a></b></td>
         <td>[]object</td>
         <td>
@@ -8998,6 +9025,15 @@ Currently, only the "name" field is supported.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>empty</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeccontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
         <td>[]object</td>
         <td>
@@ -10467,6 +10503,15 @@ For now only ~ (none) and {} (all) is supported.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>empty</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspechostselectormatchexpressionsindex">matchExpressions</a></b></td>
         <td>[]object</td>
         <td>
@@ -13071,6 +13116,15 @@ PodSelector selects pods that this policy applies to
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>empty</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecpodselectormatchexpressionsindex">matchExpressions</a></b></td>
         <td>[]object</td>
         <td>
