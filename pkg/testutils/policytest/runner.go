@@ -165,9 +165,17 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 		}
 	}
 
+	var cleanup func()
+	if test.Setup != nil {
+		cleanup = test.Setup()
+	}
+
 	// set and clear run configuration after we are done
 	r.conf.TestConf = testConf
 	defer func() {
+		if cleanup != nil {
+			cleanup()
+		}
 		r.conf.TestConf = nil
 	}()
 
