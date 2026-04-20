@@ -98,3 +98,26 @@ func TestEmptyTracingPolicy(t *testing.T) {
 	_, err := FromFile(path)
 	require.Error(t, err)
 }
+
+const tpLabels = `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tracepoint-lseek"
+  labels:
+    best-food: pizza
+spec:
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+`
+
+func TestYamlLabels(t *testing.T) {
+	tp, err := FromYAML(tpLabels)
+	require.NoError(t, err)
+	gtp, ok := tp.(*GenericTracingPolicy)
+	require.True(t, ok, "FromYAML should return a GenericTracingPolicy")
+	val, ok := gtp.Metadata.Labels["best-food"]
+	require.True(t, ok, "key should exist in labels")
+	require.Equal(t, "pizza", val, "best food should be pizza")
+}
