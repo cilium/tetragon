@@ -1834,6 +1834,15 @@ func HasFDInstall(sel []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+func HasMatchParentBinaries(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
+		if len(s.MatchParentBinaries) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func HasRateLimit(selectors []v1alpha1.KProbeSelector) bool {
 	for _, selector := range selectors {
 		for _, matchAction := range selector.MatchActions {

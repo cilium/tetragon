@@ -422,6 +422,7 @@ type uprobeHas struct {
 	sleepableOffload bool
 	sleepablePreload bool
 	substring        bool
+	parentBinaries   bool
 }
 
 func createGenericUprobeSensor(
@@ -480,9 +481,7 @@ func createGenericUprobeSensor(
 		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
 	}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
-	}
+	maps = setParentsMap(progs, maps, has.parentBinaries)
 
 	return &sensors.Sensor{
 		Name:      name,
@@ -548,6 +547,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		}
 		has.sleepableOffload = true
 	}
+
+	has.parentBinaries = has.parentBinaries || selectors.HasMatchParentBinaries(spec.Selectors)
 
 	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubString) {
 		if !bpf.HasKfunc("bpf_strnstr") {

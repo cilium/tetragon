@@ -19,7 +19,10 @@ import (
 	conf "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/selectors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
 // Takes arg.Resolve as input and return the path in []string
@@ -277,4 +280,16 @@ func useMacro[T any](filters []T, macrosFilters []T) ([]T, error) {
 		return nil, fmt.Errorf("%T: field is defined in multiple macros and/or policy selectors", filters[0])
 	}
 	return append(filters, macrosFilters...), nil
+}
+
+func setParentsMap(progs []*program.Program, maps []*program.Map, hasSelector bool) []*program.Map {
+	if option.Config.ParentsMapEnabled {
+		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		if hasSelector {
+			for _, p := range progs {
+				p.RewriteConstants["PARENTS_MAP_ENABLED"] = uint8(1)
+			}
+		}
+	}
+	return maps
 }
