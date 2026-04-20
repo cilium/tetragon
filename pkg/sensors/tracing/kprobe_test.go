@@ -4202,6 +4202,10 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 	testKprobeMatchParentBinaries(t, false)
 }
 
+func TestKprobeMatchParentBinariesCombined(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-match-parent-binaries-combined", nil)
+}
+
 func TestMatchParentBinariesSetParentsMap(t *testing.T) {
 	specDisabled := &v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
