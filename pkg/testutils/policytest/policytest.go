@@ -52,6 +52,10 @@ type T struct {
 	// In that case, the string contains the reason that the test was skipped.
 	ShouldSkip func(info *SkipInfo) string
 
+	// Setup is called before the observer is loaded. The returned function, if
+	// non-nil, is called as a cleanup after the test completes.
+	Setup func() func()
+
 	// Policy generates a policy for this test
 	Policy func(c *Conf) (Policy, error)
 
