@@ -421,6 +421,7 @@ func createGenericLsmSensor(
 	var maps []*program.Map
 	var ids []idtable.EntryID
 	var selMaps *selectors.KernelSelectorMaps
+	var hasParentBinaries bool
 
 	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
 		return nil, errors.New("does you kernel support the bpf LSM? You can enable LSM BPF by modifying" +
@@ -446,6 +447,8 @@ func createGenericLsmSensor(
 		in.selectorStatsBase = selectorStatsBase
 		selectorStatsBase += uint32(len(hook.Selectors))
 
+		hasParentBinaries = hasParentBinaries || selectors.HasMatchParentBinaries(hook.Selectors)
+
 		id, err := addLsm(&hook, dups.GetID(hook.Hook), &in)
 		if err != nil {
 			return nil, err
@@ -466,9 +469,7 @@ func createGenericLsmSensor(
 		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
 	}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
-	}
+	maps = setParentsMap(progs, maps, hasParentBinaries)
 
 	return &sensors.Sensor{
 		Name:  name,

@@ -456,6 +456,7 @@ type uprobeHas struct {
 	substring               bool
 	sleepablePreloadSize    int
 	disableNotAllowedReason string
+	parentBinaries          bool
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -588,6 +589,8 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 		}
 		has.sleepableOffload = true
 	}
+
+	has.parentBinaries = has.parentBinaries || selectors.HasMatchParentBinaries(spec.Selectors)
 
 	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubString) {
 		if !bpf.HasKfunc("bpf_strnstr") {
@@ -950,9 +953,7 @@ func createGenericUprobeSensor(
 		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
 	}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
-	}
+	maps = setParentsMap(progs, maps, has.parentBinaries)
 
 	return &sensors.Sensor{
 		Name:                    name,
