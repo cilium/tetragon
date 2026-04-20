@@ -19,6 +19,7 @@ type TypeMeta struct {
 type ObjectMeta struct {
 	Name        string            `json:"name,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
 }
 
 // GenericTracingPolicy represents TracingPolicy CRD.
