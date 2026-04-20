@@ -5,9 +5,9 @@ package tracingpolicy
 
 import (
 	_ "embed"
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/build"
@@ -20,7 +20,7 @@ import (
 var lseekExample string
 
 func TestYamlLseek(t *testing.T) {
-
+	build.SkipIfK8sDisabled(t)
 	expected := GenericTracingPolicy{
 		TypeMeta: TypeMeta{
 			APIVersion: "cilium.io/v1alpha1",
@@ -68,8 +68,8 @@ func TestYamlLseek(t *testing.T) {
 		t.Errorf("ReadConfigYaml failed: %s", err)
 	}
 
-	if reflect.DeepEqual(expected, *k) != true {
-		t.Errorf("\ngot:\n%+v\nexpected:\n%+v", *k, expected)
+	if diff := cmp.Diff(expected, *k); diff != "" {
+		t.Errorf("mismatch (-expected, +got): %s", diff)
 	}
 }
 
