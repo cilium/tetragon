@@ -52,6 +52,17 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
+	var cleanup func()
+
+	if pt.Setup != nil {
+		cleanup = pt.Setup()
+	}
+	defer func() {
+		if cleanup != nil {
+			cleanup()
+		}
+	}()
+
 	conf := &Conf{
 		BinsDir: testutils.RepoRootPath("contrib/tester-progs"),
 		TestConf: &TestConf{
