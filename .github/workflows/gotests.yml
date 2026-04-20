@@ -73,6 +73,12 @@ jobs:
         export TETRAGON_LIB=$(realpath "bpf/objs/")
         make test GO_TEST_TIMEOUT=40m
 
+    # Run some somple nok8s tests in packages where there is meaningful differentiation
+    - name: Run nok8s go tests
+      run: |
+        cd go/src/github.com/cilium/tetragon/
+        go test -tags nok8s ./pkg/tracingpolicy
+
     - name: Upload Tetragon logs
       if: failure()
       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
