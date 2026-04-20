@@ -4202,6 +4202,80 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 	testKprobeMatchParentBinaries(t, false)
 }
 
+func TestMatchParentBinariesSetParentsMap(t *testing.T) {
+	specDisabled := &v1alpha1.TracingPolicySpec{
+		KProbes: []v1alpha1.KProbeSpec{
+			{
+				Call:    "test_symbol",
+				Syscall: false,
+			},
+		},
+	}
+	specEnabled := &v1alpha1.TracingPolicySpec{
+		KProbes: []v1alpha1.KProbeSpec{
+			{
+				Call:    "test_symbol",
+				Syscall: false,
+				Selectors: []v1alpha1.KProbeSelector{
+					{
+						MatchParentBinaries: []v1alpha1.BinarySelector{
+							{
+								Operator: "In",
+								Values:   []string{"test"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	createSensor := func(t *testing.T, spec *v1alpha1.TracingPolicySpec) *sensors.Sensor {
+		policyInfo, err := newPolicyInfoFromSpec("", "test_policy", policyfilter.NoFilterID, spec, nil)
+		require.NoError(t, err)
+		sensor, err := createGenericKprobeSensor(spec, "test_sensor", policyInfo, simpleValidateInfo(spec.KProbes), kprobe)
+		require.NoError(t, err)
+		t.Cleanup(func() { sensor.Destroy(true) })
+		return sensor
+	}
+
+	hasParentsMap := func(sensor *sensors.Sensor) bool {
+		for _, m := range sensor.Maps {
+			if m.Name == base.ParentBinariesMap.Name {
+				return true
+			}
+		}
+		return false
+	}
+
+	t.Run("disabled", func(t *testing.T) {
+		option.Config.ParentsMapEnabled = false
+		t.Cleanup(func() { option.Config.ParentsMapEnabled = false })
+
+		sensor := createSensor(t, specDisabled)
+
+		for _, p := range sensor.Progs {
+			_, ok := p.RewriteConstants["PARENTS_MAP_ENABLED"]
+			assert.False(t, ok, "PARENTS_MAP_ENABLED should not be set for prog %s", p.Name)
+		}
+		assert.False(t, hasParentsMap(sensor), "ParentBinariesMap should not be in sensor maps")
+	})
+
+	t.Run("enabled", func(t *testing.T) {
+		option.Config.ParentsMapEnabled = true
+		t.Cleanup(func() { option.Config.ParentsMapEnabled = false })
+
+		sensor := createSensor(t, specEnabled)
+
+		for _, p := range sensor.Progs {
+			val, ok := p.RewriteConstants["PARENTS_MAP_ENABLED"]
+			require.True(t, ok, "PARENTS_MAP_ENABLED should be set for prog %s", p.Name)
+			assert.Equal(t, uint8(1), val, "PARENTS_MAP_ENABLED should be 1 for prog %s", p.Name)
+		}
+		assert.True(t, hasParentsMap(sensor), "ParentBinariesMap should be in sensor maps")
+	})
+}
+
 func getMatchBinariesCrd(opStr string, vals []string) string {
 	var configHook strings.Builder
 	configHook.WriteString(`apiVersion: cilium.io/v1alpha1
