@@ -82,7 +82,12 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 
-	for _, s := range pt.Scenarios {
+	for i, s := range pt.Scenarios {
+		if i > 0 {
+			if err := testutils.TruncateExportFile(t); err != nil {
+				t.Fatalf("failed to truncate export file before scenario %d: %s", i, err)
+			}
+		}
 		observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 		readyWG.Wait()
 
