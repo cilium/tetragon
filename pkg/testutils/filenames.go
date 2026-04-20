@@ -114,6 +114,23 @@ func DoneWithExportFile(t testing.TB) error {
 	return nil
 }
 
+// TruncateExportFile truncates the export file so that the next scenario
+// starts with a clean event stream.
+func TruncateExportFile(t testing.TB) error {
+	exportFilesLock.Lock()
+	defer exportFilesLock.Unlock()
+	testName := fixupTestName(t)
+	ef, ok := lookupExportFilename(testName)
+	if !ok {
+		return fmt.Errorf("file for test %s does not exist", testName)
+	}
+	if err := ef.Truncate(0); err != nil {
+		return fmt.Errorf("failed to truncate export file: %w", err)
+	}
+	_, err := ef.Seek(0, 0)
+	return err
+}
+
 // KeepExportFile: marks the export file to be kept
 func KeepExportFile(t testing.TB) error {
 	exportFilesLock.Lock()
