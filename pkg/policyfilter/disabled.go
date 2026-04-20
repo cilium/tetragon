@@ -9,7 +9,7 @@ package policyfilter
 import (
 	"errors"
 
-	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 )
@@ -21,8 +21,8 @@ func DisabledState() State {
 type disabled struct {
 }
 
-func (s *disabled) AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector,
-	containerSelector *slimv1.LabelSelector, hostSelector *slimv1.LabelSelector) error {
+func (s *disabled) AddPolicy(polID PolicyID, namespace string, podSelector *v1alpha1.LabelSelector,
+	containerSelector *v1alpha1.LabelSelector, hostSelector *v1alpha1.LabelSelector) error {
 	return errors.New("policyfilter is disabled")
 }
 

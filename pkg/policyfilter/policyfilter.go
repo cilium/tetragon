@@ -8,7 +8,7 @@ package policyfilter
 import (
 	"testing"
 
-	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/podhelpers"
@@ -39,8 +39,8 @@ type State interface {
 	//  - namespace for namespaced pilicies (if namespace == "", then policy is not namespaced)
 	//  - label selector
 	//  - container field selector
-	AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector,
-		containerSelector *slimv1.LabelSelector, hostSelector *slimv1.LabelSelector) error
+	AddPolicy(polID PolicyID, namespace string, podSelector *v1alpha1.LabelSelector,
+		containerSelector *v1alpha1.LabelSelector, hostSelector *v1alpha1.LabelSelector) error
 
 	// DelPolicy removes a policy from the state
 	DelPolicy(polID PolicyID) error

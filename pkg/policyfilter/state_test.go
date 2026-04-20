@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 )
@@ -22,11 +23,11 @@ func TestState(t *testing.T) {
 	}
 	defer s.Close()
 
-	err = s.AddPolicy(PolicyID(2), "ns1", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
+	err = s.AddPolicy(PolicyID(2), "ns1", &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{}, nil)
 	require.NoError(t, err)
-	err = s.AddPolicy(PolicyID(3), "ns2", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
+	err = s.AddPolicy(PolicyID(3), "ns2", &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{}, nil)
 	require.NoError(t, err)
-	err = s.AddPolicy(PolicyID(4), "ns3", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
+	err = s.AddPolicy(PolicyID(4), "ns3", &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{}, nil)
 	require.NoError(t, err)
 
 	pod1 := PodID(uuid.New())
@@ -140,7 +141,7 @@ func TestStateAllPodsPolicyEntry(t *testing.T) {
 		uint64(AllPodsID): {4001, 4002},
 	})
 
-	err = s.AddPolicy(PolicyID(2), "ns2", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
+	err = s.AddPolicy(PolicyID(2), "ns2", &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{}, nil)
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
 		2:                 {4002},
@@ -221,7 +222,7 @@ func TestStateHostSelector(t *testing.T) {
 		uint64(AllPodsID): {4001, 4002},
 	})
 
-	err = s.AddPolicy(PolicyID(2), "", nil, nil, &slimv1.LabelSelector{})
+	err = s.AddPolicy(PolicyID(2), "", nil, nil, &v1alpha1.LabelSelector{})
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
 		2:                 {HostSelectorMode},
@@ -230,7 +231,7 @@ func TestStateHostSelector(t *testing.T) {
 
 	// Pod namespace and hostSelector (with NamespacedPolicy)
 	// If podSelector or containerSelector is nil no pods will match.
-	err = s.AddPolicy(PolicyID(3), "ns1", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, &slimv1.LabelSelector{})
+	err = s.AddPolicy(PolicyID(3), "ns1", &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{})
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
 		2:                 {HostSelectorMode},
@@ -240,13 +241,15 @@ func TestStateHostSelector(t *testing.T) {
 
 	// Pod namespace and hostSelector (with podSelector)
 	// If podSelector or containerSelector is nil no pods will match.
-	err = s.AddPolicy(PolicyID(4), "", &slimv1.LabelSelector{
-		MatchExpressions: []slimv1.LabelSelectorRequirement{{
-			Key:      "k8s:io.kubernetes.pod.namespace",
-			Operator: slimv1.LabelSelectorOpIn,
-			Values:   []string{"ns1"},
-		}},
-	}, &slimv1.LabelSelector{}, &slimv1.LabelSelector{})
+	err = s.AddPolicy(PolicyID(4), "", &v1alpha1.LabelSelector{
+		LabelSelector: slimv1.LabelSelector{
+			MatchExpressions: []slimv1.LabelSelectorRequirement{{
+				Key:      "k8s:io.kubernetes.pod.namespace",
+				Operator: slimv1.LabelSelectorOpIn,
+				Values:   []string{"ns1"},
+			}},
+		},
+	}, &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{})
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
 		2:                 {HostSelectorMode},
@@ -257,7 +260,7 @@ func TestStateHostSelector(t *testing.T) {
 
 	// Pod namespace and hostSelector (with NamespacedPolicy) but with nil podSelector
 	// This will not match any pods/containers.
-	err = s.AddPolicy(PolicyID(5), "ns1", nil, &slimv1.LabelSelector{}, &slimv1.LabelSelector{})
+	err = s.AddPolicy(PolicyID(5), "ns1", nil, &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{})
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
 		2:                 {HostSelectorMode},
@@ -269,13 +272,15 @@ func TestStateHostSelector(t *testing.T) {
 
 	// Pod namespace and hostSelector (with podSelector) but with nil containerSelector
 	// This will not match any pods/containers.
-	err = s.AddPolicy(PolicyID(6), "ns1", &slimv1.LabelSelector{
-		MatchExpressions: []slimv1.LabelSelectorRequirement{{
-			Key:      "k8s:io.kubernetes.pod.namespace",
-			Operator: slimv1.LabelSelectorOpIn,
-			Values:   []string{"ns1"},
-		}},
-	}, nil, &slimv1.LabelSelector{})
+	err = s.AddPolicy(PolicyID(6), "ns1", &v1alpha1.LabelSelector{
+		LabelSelector: slimv1.LabelSelector{
+			MatchExpressions: []slimv1.LabelSelectorRequirement{{
+				Key:      "k8s:io.kubernetes.pod.namespace",
+				Operator: slimv1.LabelSelectorOpIn,
+				Values:   []string{"ns1"},
+			}},
+		},
+	}, nil, &v1alpha1.LabelSelector{})
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
 		2:                 {HostSelectorMode},

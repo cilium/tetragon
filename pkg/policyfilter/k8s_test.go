@@ -26,6 +26,7 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -343,9 +344,9 @@ func (ts *testState) containersCgroupIDs(t *testing.T, podContainerMap map[strin
 }
 
 func testNamespacePods(t *testing.T, st *state, ts *testState) {
-	err := st.AddPolicy(PolicyID(2), "ns1", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
+	err := st.AddPolicy(PolicyID(2), "ns1", &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{}, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(3), "ns2", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
+	err = st.AddPolicy(PolicyID(3), "ns2", &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{}, nil)
 	require.NoError(t, err)
 
 	emptyLabels := labels.Labels{}
@@ -417,22 +418,26 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	matchesAllID := uint32(2)
 	matchesWebID := uint32(3)
 	matchesAppsID := uint32(4)
-	err := st.AddPolicy(PolicyID(matchesAllID), "", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
+	err := st.AddPolicy(PolicyID(matchesAllID), "", &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{}, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(matchesWebID), "", &slimv1.LabelSelector{
-		MatchExpressions: []slimv1.LabelSelectorRequirement{{
-			Key:      "app",
-			Operator: slimv1.LabelSelectorOpIn,
-			Values:   []string{"web"},
-		}},
-	}, &slimv1.LabelSelector{}, nil)
+	err = st.AddPolicy(PolicyID(matchesWebID), "", &v1alpha1.LabelSelector{
+		LabelSelector: slimv1.LabelSelector{
+			MatchExpressions: []slimv1.LabelSelectorRequirement{{
+				Key:      "app",
+				Operator: slimv1.LabelSelectorOpIn,
+				Values:   []string{"web"},
+			}},
+		},
+	}, &v1alpha1.LabelSelector{}, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(matchesAppsID), "", &slimv1.LabelSelector{
-		MatchExpressions: []slimv1.LabelSelectorRequirement{{
-			Key:      "app",
-			Operator: slimv1.LabelSelectorOpExists,
-		}},
-	}, &slimv1.LabelSelector{}, nil)
+	err = st.AddPolicy(PolicyID(matchesAppsID), "", &v1alpha1.LabelSelector{
+		LabelSelector: slimv1.LabelSelector{
+			MatchExpressions: []slimv1.LabelSelectorRequirement{{
+				Key:      "app",
+				Operator: slimv1.LabelSelectorOpExists,
+			}},
+		},
+	}, &v1alpha1.LabelSelector{}, nil)
 	require.NoError(t, err)
 
 	// create pods
@@ -521,29 +526,35 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	matchesAllContainers := uint32(2)
 	matchesWebContainers := uint32(3)
 	matchesNotInitContainers := uint32(4)
-	err := st.AddPolicy(PolicyID(matchesAllContainers), "", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
+	err := st.AddPolicy(PolicyID(matchesAllContainers), "", &v1alpha1.LabelSelector{}, &v1alpha1.LabelSelector{}, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(matchesWebContainers), "", &slimv1.LabelSelector{},
-		&slimv1.LabelSelector{
-			MatchExpressions: []slimv1.LabelSelectorRequirement{{
-				Key:      "name",
-				Operator: slimv1.LabelSelectorOpIn,
-				Values:   []string{"web-c1", "web-c2", "web-c3"},
-			}},
+	err = st.AddPolicy(PolicyID(matchesWebContainers), "", &v1alpha1.LabelSelector{},
+		&v1alpha1.LabelSelector{
+			LabelSelector: slimv1.LabelSelector{
+				MatchExpressions: []slimv1.LabelSelectorRequirement{{
+					Key:      "name",
+					Operator: slimv1.LabelSelectorOpIn,
+					Values:   []string{"web-c1", "web-c2", "web-c3"},
+				}},
+			},
 		}, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(matchesNotInitContainers), "", &slimv1.LabelSelector{
-		MatchExpressions: []slimv1.LabelSelectorRequirement{{
-			Key:      "app",
-			Operator: slimv1.LabelSelectorOpIn,
-			Values:   []string{"web", "db", "log"},
-		}},
-	}, &slimv1.LabelSelector{
-		MatchExpressions: []slimv1.LabelSelectorRequirement{{
-			Key:      "name",
-			Operator: slimv1.LabelSelectorOpNotIn,
-			Values:   []string{"init"},
-		}},
+	err = st.AddPolicy(PolicyID(matchesNotInitContainers), "", &v1alpha1.LabelSelector{
+		LabelSelector: slimv1.LabelSelector{
+			MatchExpressions: []slimv1.LabelSelectorRequirement{{
+				Key:      "app",
+				Operator: slimv1.LabelSelectorOpIn,
+				Values:   []string{"web", "db", "log"},
+			}},
+		},
+	}, &v1alpha1.LabelSelector{
+		LabelSelector: slimv1.LabelSelector{
+			MatchExpressions: []slimv1.LabelSelectorRequirement{{
+				Key:      "name",
+				Operator: slimv1.LabelSelectorOpNotIn,
+				Values:   []string{"init"},
+			}},
+		},
 	}, nil)
 	require.NoError(t, err)
 
@@ -680,13 +691,15 @@ func testPreExistingPods(t *testing.T, st *state, ts *testState) {
 
 	// create policy
 	matchesWebID := uint32(2)
-	err := st.AddPolicy(PolicyID(matchesWebID), "", &slimv1.LabelSelector{
-		MatchExpressions: []slimv1.LabelSelectorRequirement{{
-			Key:      "app",
-			Operator: slimv1.LabelSelectorOpIn,
-			Values:   []string{"web"},
-		}},
-	}, &slimv1.LabelSelector{}, nil)
+	err := st.AddPolicy(PolicyID(matchesWebID), "", &v1alpha1.LabelSelector{
+		LabelSelector: slimv1.LabelSelector{
+			MatchExpressions: []slimv1.LabelSelectorRequirement{{
+				Key:      "app",
+				Operator: slimv1.LabelSelectorOpIn,
+				Values:   []string{"web"},
+			}},
+		},
+	}, &v1alpha1.LabelSelector{}, nil)
 	require.NoError(t, err)
 
 	c1 := ts.podsCgroupIDs(t, "web")
@@ -720,14 +733,16 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 
 	// create policy
 	policyID := uint32(2)
-	err := st.AddPolicy(PolicyID(policyID), "", &slimv1.LabelSelector{},
-		&slimv1.LabelSelector{
-			MatchExpressions: []slimv1.LabelSelectorRequirement{
-				{
-					Key:      "name",
-					Operator: slimv1.LabelSelectorOpNotIn,
-					Values:   []string{"log-c1"},
-				}},
+	err := st.AddPolicy(PolicyID(policyID), "", &v1alpha1.LabelSelector{},
+		&v1alpha1.LabelSelector{
+			LabelSelector: slimv1.LabelSelector{
+				MatchExpressions: []slimv1.LabelSelectorRequirement{
+					{
+						Key:      "name",
+						Operator: slimv1.LabelSelectorOpNotIn,
+						Values:   []string{"log-c1"},
+					}},
+			},
 		}, nil)
 	require.NoError(t, err)
 

@@ -12,7 +12,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/build"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/testutils/tempfile"
 )
 
@@ -28,9 +27,9 @@ func TestYamlLseek(t *testing.T) {
 		},
 		Metadata: ObjectMeta{Name: "tracepoint-lseek"},
 		Spec: v1alpha1.TracingPolicySpec{
-			PodSelector:       &slimv1.LabelSelector{},
-			ContainerSelector: &slimv1.LabelSelector{},
-			HostSelector:      &slimv1.LabelSelector{},
+			PodSelector:       &v1alpha1.LabelSelector{},
+			ContainerSelector: &v1alpha1.LabelSelector{},
+			HostSelector:      &v1alpha1.LabelSelector{},
 			Tracepoints: []v1alpha1.TracepointSpec{{
 				Subsystem: "syscalls",
 				Event:     "sys_enter_lseek",

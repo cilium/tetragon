@@ -51,6 +51,9 @@ spec:
                   Currently, only the "name" field is supported.
                 nullable: true
                 properties:
+                  empty:
+                    default: false
+                    type: boolean
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
                       The requirements are ANDed.
@@ -1140,6 +1143,9 @@ spec:
                   For now only ~ (none) and {} (all) is supported.
                 nullable: true
                 properties:
+                  empty:
+                    default: false
+                    type: boolean
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
                       The requirements are ANDed.
@@ -3036,6 +3042,9 @@ spec:
                 description: PodSelector selects pods that this policy applies to
                 nullable: true
                 properties:
+                  empty:
+                    default: false
+                    type: boolean
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
                       The requirements are ANDed.

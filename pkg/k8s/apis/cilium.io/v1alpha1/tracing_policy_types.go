@@ -73,6 +73,14 @@ func (tp *TracingPolicyNamespaced) TpNamespace() string {
 	return tp.ObjectMeta.Namespace
 }
 
+type LabelSelector struct {
+	// +kubebuilder:validation:Optional
+	slimv1.LabelSelector `json:",inline"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	Empty bool `json:"empty,omitempty"`
+}
+
 type TracingPolicySpec struct {
 	// +kubebuilder:validation:Optional
 	// A list of kprobe specs.
@@ -100,7 +108,7 @@ type TracingPolicySpec struct {
 	// +kubebuilder:default={}
 	// +nullable
 	// PodSelector selects pods that this policy applies to
-	PodSelector *slimv1.LabelSelector `json:"podSelector,omitempty"`
+	PodSelector *LabelSelector `json:"podSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default={}
@@ -109,14 +117,14 @@ type TracingPolicySpec struct {
 	// A map of container fields will be constructed in the same way as a map of labels.
 	// The name of the field represents the label "key", and the value of the field - label "value".
 	// Currently, only the "name" field is supported.
-	ContainerSelector *slimv1.LabelSelector `json:"containerSelector,omitempty"`
+	ContainerSelector *LabelSelector `json:"containerSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default={}
 	// +nullable
 	// HostSelector selects hosts that this policy applies to.
 	// For now only ~ (none) and {} (all) is supported.
-	HostSelector *slimv1.LabelSelector `json:"hostSelector,omitempty"`
+	HostSelector *LabelSelector `json:"hostSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// A list of list specs.

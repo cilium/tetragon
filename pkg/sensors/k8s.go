@@ -7,8 +7,9 @@ package sensors
 
 import (
 	"errors"
+	"fmt"
 
-	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -45,18 +46,22 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 		return policyfilter.NoFilterID, errors.New("spec.hostSelector does not support arbitrary labels. Only ~ (empty) and {} (all) is supported for now")
 	}
 
+	fmt.Println("global PodSelector:", tp.TpSpec().PodSelector)
+	fmt.Println("global ContainerSelector:", tp.TpSpec().ContainerSelector)
+	fmt.Println("global HostSelector:", tp.TpSpec().HostSelector)
+
 	// This is the case where all of PodSelector, ContainerSelector, HostSelector are {}.
 	// In that case we match everything so no need to apply a policyfilter as well.
-	matchAll := func(s *slimv1.LabelSelector) bool {
-		return (s != nil && (len(s.MatchLabels)+len(s.MatchExpressions) == 0))
+	matchAll := func(s *v1alpha1.LabelSelector) bool {
+		return (s != nil && (len(s.MatchLabels)+len(s.MatchExpressions) == 0) && !s.Empty)
 	}
 	globalSelectorsMatchAll := matchAll(podSelector) && matchAll(containerSelector) && matchAll(hostSelector)
 
 	// This covers the case where all of PodSelector, ContainerSelector, HostSelector are nil.
 	// This is not intended to be used by the end users but it reduces the boilerplate code
 	// in our non-k8s testing by a large factor.
-	matchNothing := func(s *slimv1.LabelSelector) bool {
-		return s == nil
+	matchNothing := func(s *v1alpha1.LabelSelector) bool {
+		return s == nil || (s != nil && s.Empty)
 	}
 	globalSelectorsMatchNothing := matchNothing(podSelector) && matchNothing(containerSelector) && matchNothing(hostSelector)
 

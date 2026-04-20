@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 )
 
@@ -79,7 +80,7 @@ type Selector interface {
 	Match(labels Labels) bool
 }
 
-func SelectorFromLabelSelector(ls *slimv1.LabelSelector) (Selector, error) {
+func SelectorFromLabelSelector(ls *v1alpha1.LabelSelector) (Selector, error) {
 	if ls == nil {
 		return SelectorAllOrNothing{false}, nil
 	}

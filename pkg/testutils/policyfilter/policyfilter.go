@@ -8,7 +8,7 @@ package policyfilter
 import (
 	"k8s.io/client-go/tools/cache"
 
-	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/podhelpers"
@@ -21,8 +21,8 @@ import (
 // a namespaced policy must be loaded, but the policyfilter doesn't matter.
 type DummyPF struct{}
 
-func (s *DummyPF) AddPolicy(_ policyfilter.PolicyID, _ string, _ *slimv1.LabelSelector,
-	_ *slimv1.LabelSelector, _ *slimv1.LabelSelector) error {
+func (s *DummyPF) AddPolicy(_ policyfilter.PolicyID, _ string, _ *v1alpha1.LabelSelector,
+	_ *v1alpha1.LabelSelector, _ *v1alpha1.LabelSelector) error {
 	return nil
 }
 

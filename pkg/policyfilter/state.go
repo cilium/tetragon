@@ -10,7 +10,7 @@ import (
 	"log/slog"
 	"sync"
 
-	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
@@ -400,8 +400,8 @@ func (m *state) delPod(id PodID) *podInfo {
 }
 
 // AddPolicy adds a policy
-func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *slimv1.LabelSelector,
-	containerLabelSelector *slimv1.LabelSelector, hostLabelSelector *slimv1.LabelSelector) error {
+func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *v1alpha1.LabelSelector,
+	containerLabelSelector *v1alpha1.LabelSelector, hostLabelSelector *v1alpha1.LabelSelector) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

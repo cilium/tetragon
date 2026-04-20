@@ -164,11 +164,13 @@ func TestPolicyFilterDisabled(t *testing.T) {
 	require.Error(t, err)
 
 	// policy with pod selector should fail
-	policy.Spec.PodSelector = &slimv1.LabelSelector{
-		MatchExpressions: []slimv1.LabelSelectorRequirement{{
-			Key:      "app",
-			Operator: slimv1.LabelSelectorOpExists,
-		}},
+	policy.Spec.PodSelector = &v1alpha1.LabelSelector{
+		LabelSelector: slimv1.LabelSelector{
+			MatchExpressions: []slimv1.LabelSelectorRequirement{{
+				Key:      "app",
+				Operator: slimv1.LabelSelectorOpExists,
+			}},
+		},
 	}
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	require.Error(t, err)

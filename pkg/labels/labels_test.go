@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 )
 
@@ -20,7 +21,7 @@ type testLabel struct {
 }
 
 type testCase struct {
-	labelSelector *slimv1.LabelSelector
+	labelSelector *v1alpha1.LabelSelector
 	tests         []testLabel
 }
 
@@ -28,15 +29,17 @@ func TestLabels(t *testing.T) {
 	testCases := []testCase{
 		{
 			// empty label selector should match everything
-			labelSelector: &slimv1.LabelSelector{},
+			labelSelector: &v1alpha1.LabelSelector{},
 			tests: []testLabel{
 				{map[string]string{"app": "tetragon"}, true, "default"},
 				{Labels{}, true, "default"},
 			},
 		}, {
-			labelSelector: &slimv1.LabelSelector{
-				MatchLabels: map[string]slimv1.MatchLabelsValue{
-					"app": "tetragon",
+			labelSelector: &v1alpha1.LabelSelector{
+				LabelSelector: slimv1.LabelSelector{
+					MatchLabels: map[string]slimv1.MatchLabelsValue{
+						"app": "tetragon",
+					},
 				},
 			},
 			tests: []testLabel{
@@ -44,12 +47,14 @@ func TestLabels(t *testing.T) {
 				{map[string]string{"app": "cilium"}, false, "default"},
 			},
 		}, {
-			labelSelector: &slimv1.LabelSelector{
-				MatchExpressions: []slimv1.LabelSelectorRequirement{{
-					Key:      "app",
-					Operator: "In",
-					Values:   []string{"tetragon", "cilium"},
-				}},
+			labelSelector: &v1alpha1.LabelSelector{
+				LabelSelector: slimv1.LabelSelector{
+					MatchExpressions: []slimv1.LabelSelectorRequirement{{
+						Key:      "app",
+						Operator: "In",
+						Values:   []string{"tetragon", "cilium"},
+					}},
+				},
 			},
 			tests: []testLabel{
 				{map[string]string{"app": "tetragon"}, true, "default"},
@@ -57,12 +62,14 @@ func TestLabels(t *testing.T) {
 				{map[string]string{"app": "hubble"}, false, "default"},
 			},
 		}, {
-			labelSelector: &slimv1.LabelSelector{
-				MatchExpressions: []slimv1.LabelSelectorRequirement{{
-					Key:      "app",
-					Operator: "NotIn",
-					Values:   []string{"tetragon", "cilium"},
-				}},
+			labelSelector: &v1alpha1.LabelSelector{
+				LabelSelector: slimv1.LabelSelector{
+					MatchExpressions: []slimv1.LabelSelectorRequirement{{
+						Key:      "app",
+						Operator: "NotIn",
+						Values:   []string{"tetragon", "cilium"},
+					}},
+				},
 			},
 			tests: []testLabel{
 				{map[string]string{"app": "tetragon"}, false, "default"},
@@ -70,11 +77,13 @@ func TestLabels(t *testing.T) {
 				{map[string]string{"app": "hubble"}, true, "default"},
 			},
 		}, {
-			labelSelector: &slimv1.LabelSelector{
-				MatchExpressions: []slimv1.LabelSelectorRequirement{{
-					Key:      "app",
-					Operator: "Exists",
-				}},
+			labelSelector: &v1alpha1.LabelSelector{
+				LabelSelector: slimv1.LabelSelector{
+					MatchExpressions: []slimv1.LabelSelectorRequirement{{
+						Key:      "app",
+						Operator: "Exists",
+					}},
+				},
 			},
 			tests: []testLabel{
 				{map[string]string{"app": "tetragon"}, true, "default"},
@@ -82,11 +91,13 @@ func TestLabels(t *testing.T) {
 				{map[string]string{"app": "hubble"}, true, "default"},
 			},
 		}, {
-			labelSelector: &slimv1.LabelSelector{
-				MatchExpressions: []slimv1.LabelSelectorRequirement{{
-					Key:      "app",
-					Operator: "DoesNotExist",
-				}},
+			labelSelector: &v1alpha1.LabelSelector{
+				LabelSelector: slimv1.LabelSelector{
+					MatchExpressions: []slimv1.LabelSelectorRequirement{{
+						Key:      "app",
+						Operator: "DoesNotExist",
+					}},
+				},
 			},
 			tests: []testLabel{
 				{map[string]string{"app": "tetragon"}, false, "default"},
@@ -94,13 +105,15 @@ func TestLabels(t *testing.T) {
 				{map[string]string{"app": "hubble"}, false, "default"},
 			},
 		}, {
-			labelSelector: &slimv1.LabelSelector{
-				MatchExpressions: []slimv1.LabelSelectorRequirement{{
-					Key:      "application",
-					Operator: "DoesNotExist",
-				}},
-				MatchLabels: map[string]slimv1.MatchLabelsValue{
-					"app": "tetragon",
+			labelSelector: &v1alpha1.LabelSelector{
+				LabelSelector: slimv1.LabelSelector{
+					MatchExpressions: []slimv1.LabelSelectorRequirement{{
+						Key:      "application",
+						Operator: "DoesNotExist",
+					}},
+					MatchLabels: map[string]slimv1.MatchLabelsValue{
+						"app": "tetragon",
+					},
 				},
 			},
 			tests: []testLabel{
@@ -110,24 +123,28 @@ func TestLabels(t *testing.T) {
 				{map[string]string{"app": "tetragon", "pizza": "yes"}, true, "default"},
 			},
 		}, {
-			labelSelector: &slimv1.LabelSelector{
-				MatchExpressions: []slimv1.LabelSelectorRequirement{{
-					Key:      K8sPodNamespace,
-					Operator: "In",
-					Values:   []string{"tetragon"},
-				}},
+			labelSelector: &v1alpha1.LabelSelector{
+				LabelSelector: slimv1.LabelSelector{
+					MatchExpressions: []slimv1.LabelSelectorRequirement{{
+						Key:      K8sPodNamespace,
+						Operator: "In",
+						Values:   []string{"tetragon"},
+					}},
+				},
 			},
 			tests: []testLabel{
 				{map[string]string{K8sPodNamespace: "tetragon"}, true, "tetragon"},
 				{map[string]string{K8sPodNamespace: "test"}, false, "default"},
 			},
 		}, {
-			labelSelector: &slimv1.LabelSelector{
-				MatchExpressions: []slimv1.LabelSelectorRequirement{{
-					Key:      K8sPodNamespace,
-					Operator: "In",
-					Values:   []string{"cilium", "tetragon"},
-				}},
+			labelSelector: &v1alpha1.LabelSelector{
+				LabelSelector: slimv1.LabelSelector{
+					MatchExpressions: []slimv1.LabelSelectorRequirement{{
+						Key:      K8sPodNamespace,
+						Operator: "In",
+						Values:   []string{"cilium", "tetragon"},
+					}},
+				},
 			},
 			tests: []testLabel{
 				{map[string]string{"app": "tetragon"}, true, "cilium"},
@@ -135,12 +152,14 @@ func TestLabels(t *testing.T) {
 				{map[string]string{"app": "hubble"}, false, "default"},
 			},
 		}, {
-			labelSelector: &slimv1.LabelSelector{
-				MatchExpressions: []slimv1.LabelSelectorRequirement{{
-					Key:      K8sPodNamespace,
-					Operator: "NotIn",
-					Values:   []string{"cilium", "tetragon"},
-				}},
+			labelSelector: &v1alpha1.LabelSelector{
+				LabelSelector: slimv1.LabelSelector{
+					MatchExpressions: []slimv1.LabelSelectorRequirement{{
+						Key:      K8sPodNamespace,
+						Operator: "NotIn",
+						Values:   []string{"cilium", "tetragon"},
+					}},
+				},
 			},
 			tests: []testLabel{
 				{map[string]string{"app": "tetragon"}, false, "cilium"},
@@ -148,23 +167,27 @@ func TestLabels(t *testing.T) {
 				{map[string]string{"app": "hubble"}, true, "default"},
 			},
 		}, {
-			labelSelector: &slimv1.LabelSelector{
-				MatchExpressions: []slimv1.LabelSelectorRequirement{{
-					Key:      K8sPodNamespace,
-					Operator: "Exists",
-				}},
+			labelSelector: &v1alpha1.LabelSelector{
+				LabelSelector: slimv1.LabelSelector{
+					MatchExpressions: []slimv1.LabelSelectorRequirement{{
+						Key:      K8sPodNamespace,
+						Operator: "Exists",
+					}},
+				},
 			},
 			tests: []testLabel{
 				{map[string]string{K8sPodNamespace: "tetragon"}, true, "tetragon"},
 				{map[string]string{}, true, ""},
 			},
 		}, {
-			labelSelector: &slimv1.LabelSelector{
-				MatchExpressions: []slimv1.LabelSelectorRequirement{{
-					Key:      "name",
-					Operator: "In",
-					Values:   []string{"main", "secondary"},
-				}},
+			labelSelector: &v1alpha1.LabelSelector{
+				LabelSelector: slimv1.LabelSelector{
+					MatchExpressions: []slimv1.LabelSelectorRequirement{{
+						Key:      "name",
+						Operator: "In",
+						Values:   []string{"main", "secondary"},
+					}},
+				},
 			},
 			tests: []testLabel{
 				{map[string]string{"name": "main"}, true, ""},
