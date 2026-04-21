@@ -7,9 +7,11 @@ package tracing
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log/slog"
 	"path"
 	"strconv"
 	"strings"
@@ -96,6 +98,16 @@ func (g *genericUprobe) SetID(id idtable.EntryID) {
 	g.tableId = id
 }
 
+func (g *genericUprobe) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
+	attrs = append(attrs,
+		slog.Attr{Key: "policy_name", Value: slog.StringValue(g.policyName)},
+		slog.Attr{Key: "path", Value: slog.StringValue(g.path)},
+		slog.Attr{Key: "symbol", Value: slog.StringValue(g.symbol)},
+		slog.Attr{Key: "address", Value: slog.Uint64Value(g.address)},
+	)
+	logger.GetLogger().LogAttrs(context.Background(), level, msg, attrs...)
+}
+
 func init() {
 	uprobe := &observerUprobeSensor{
 		name: "uprobe sensor",
@@ -158,7 +170,7 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 
 	// Get argument objects for specific printers/types
 	for _, a := range printers {
-		arg := getArg(r, a)
+		arg := getArg(uprobeEntry, r, a)
 		// nop or unknown type (already logged)
 		if arg == nil {
 			continue

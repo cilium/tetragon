@@ -7,9 +7,11 @@ package tracing
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log/slog"
 	"path"
 
 	"github.com/cilium/ebpf"
@@ -68,6 +70,14 @@ type genericUsdt struct {
 
 func (g *genericUsdt) SetID(id idtable.EntryID) {
 	g.tableId = id
+}
+
+func (g *genericUsdt) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
+	attrs = append(attrs,
+		slog.Attr{Key: "policy_name", Value: slog.StringValue(g.policyName)},
+		slog.Attr{Key: "path", Value: slog.StringValue(g.path)},
+	)
+	logger.GetLogger().LogAttrs(context.Background(), level, msg, attrs...)
 }
 
 func init() {
@@ -585,7 +595,7 @@ func handleGenericUsdt(r *bytes.Reader) ([]observer.Event, error) {
 
 	// Get argument objects for specific printers/types
 	for _, a := range uprobeUsdt.argPrinters {
-		arg := getArg(r, a)
+		arg := getArg(uprobeUsdt, r, a)
 		// nop or unknown type (already logged)
 		if arg == nil {
 			continue

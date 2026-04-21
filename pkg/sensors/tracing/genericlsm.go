@@ -154,7 +154,7 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 
 	// Get argument objects for specific printers/types
 	for _, a := range printers {
-		arg := getArg(r, a)
+		arg := getArg(gl, r, a)
 		// nop or unknown type (already logged)
 		if arg == nil {
 			continue
