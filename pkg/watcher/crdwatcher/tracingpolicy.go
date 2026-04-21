@@ -55,9 +55,11 @@ func addTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors.Ma
 	var err error
 	switch tp := obj.(type) {
 	case *v1alpha1.TracingPolicy:
+		tp = restoreNullSelectors(tp)
 		log.Info("adding tracing policy", "name", tp.TpName(), "info", tp.TpInfo())
 		err = s.AddTracingPolicy(ctx, tp)
 	case *v1alpha1.TracingPolicyNamespaced:
+		tp = restoreNullSelectors(tp)
 		log.Info("adding namespaced tracing policy", "name", tp.TpName(), "info", tp.TpInfo(), "namespace", tp.TpNamespace())
 		err = s.AddTracingPolicy(ctx, tp)
 	default:
@@ -128,7 +130,7 @@ func updateTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors
 		}
 
 		log.Info("updating tracing policy", "old", oldTp.TpName(), "new", newTp.TpName())
-		update(oldTp, newTp)
+		update(oldTp, restoreNullSelectors(newTp))
 
 	case *v1alpha1.TracingPolicyNamespaced:
 		newTp, ok := newObj.(*v1alpha1.TracingPolicyNamespaced)
@@ -144,7 +146,7 @@ func updateTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors
 		}
 
 		log.Info("updating namespaced tracing policy", "old", oldTp.TpName(), "new", newTp.TpName())
-		update(oldTp, newTp)
+		update(oldTp, restoreNullSelectors(newTp))
 	}
 
 	if err != nil {
