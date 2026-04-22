@@ -10,12 +10,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/testutils"
 )
 
 func TestUprobeValidationMultiplePreloadArguments(t *testing.T) {
 
 	// Using multiple preload arguments
+
+	if bpf.DetectSleepableTailCalls() {
+		t.Skip("sleepable uprobes are enabled, preload is not available")
+	}
 
 	uprobe := testutils.RepoRootPath("contrib/tester-progs/usdt-override")
 	crd := `
