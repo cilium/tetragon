@@ -25,6 +25,7 @@ import (
 	"github.com/cilium/tetragon/tests/e2e/checker"
 	"github.com/cilium/tetragon/tests/e2e/helpers"
 	"github.com/cilium/tetragon/tests/e2e/helpers/grpc"
+	e2e "github.com/cilium/tetragon/tests/e2e/install/tetragon"
 	"github.com/cilium/tetragon/tests/e2e/runners"
 )
 
@@ -62,11 +63,23 @@ var (
 	//  - check that we only receive events from the matching container
 	containerSelectorNamespace = "nsfield"
 
-	testNamespaces = []string{otherNamespace, policyNamespace, podlblNamespace, containerSelectorNamespace}
+	// for the matchWorkloads test, we:
+	//  - create a namespaces
+	//  - start a pod with 2 containers: one is named passwd and reads /etc/passwd and one is named shadow and reads /etc/shadow
+	//  - install a policy for monitoring file operations with two selectors, one for each of the containers
+	//  - check that we get events from both containers on different files
+	fileNamespace = "file-ns"
+
+	testNamespaces = []string{otherNamespace, policyNamespace, podlblNamespace, containerSelectorNamespace, fileNamespace}
 )
 
 func TestMain(m *testing.M) {
-	runner = runners.NewRunner().Init()
+	runner = runners.NewRunner().WithInstallTetragon(e2e.WithHelmOptions(map[string]string{
+		"tetragon.exportAllowList":    "",
+		"tetragon.enablePolicyFilter": "true",
+		"tetragon.rthooks.enabled":    "true",
+		"tetragon.rthooks.interface":  "nri-hook",
+	})).Init()
 
 	// Here we ensure our test namespace doesn't already exist then create it.
 	runner.Setup(func(ctx context.Context, c *envconf.Config) (context.Context, error) {
@@ -631,4 +644,213 @@ func (cfc *containerFieldRepoChecker) FinalCheck(_ *slog.Logger) error {
 func TestContainerFieldRepoFilters(t *testing.T) {
 	checker := containerSelectorRepoChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
 	testContainerFieldFilters(t, checker, containerSelectorRepoPolicy, "debian-container-syscalls", ubuntuPodL4)
+}
+
+const matchWorkloadsPolicy = `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "file-match-workloads"
+spec:
+  kprobes:
+  - call: "security_file_permission"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file" # (struct file *) used for getting the path
+    - index: 1
+      type: "int" # 0x04 is MAY_READ, 0x02 is MAY_WRITE
+    returnArg:
+      index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "/etc/passwd"
+      - index: 1
+        operator: "Equal"
+        values:
+        - "4" # MAY_READ
+      matchWorkloads:
+      - containerSelector:
+          matchExpressions:
+          - key: "name"
+            operator: In
+            values:
+            - "passwd"
+    - matchArgs:
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "/etc/shadow"
+      - index: 1
+        operator: "Equal"
+        values:
+        - "4" # MAY_READ
+      matchWorkloads:
+      - containerSelector:
+          matchExpressions:
+          - key: "name"
+            operator: In
+            values:
+            - "shadow"
+`
+
+const ubuntuFilePod = `
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ubuntu-file
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "ubuntu-file"
+  template:
+    metadata:
+      labels:
+        app: "ubuntu-file"
+    spec:
+      containers:
+      - name: passwd
+        image: ubuntu:20.04
+        imagePullPolicy: IfNotPresent
+        command: ["bash"]
+        args: ["-c", "while sleep 1; do cat /etc/passwd; done"]
+      - name: shadow
+        image: ubuntu:20.04
+        imagePullPolicy: IfNotPresent
+        command: ["bash"]
+        args: ["-c", "while sleep 1; do cat /etc/shadow; done"]
+`
+
+func matchWorkloadsChecker() *checker.RPCChecker {
+	return checker.NewRPCChecker(&matchWorkloadsFileChecker{}, "policyfilter-match-workloads-checker")
+}
+
+type matchWorkloadsFileChecker struct {
+	matchesShadow int
+	matchesPasswd int
+}
+
+func (cfc *matchWorkloadsFileChecker) Done() bool {
+	return cfc.matchesPasswd > 0 && cfc.matchesShadow > 0
+}
+
+func (cfc *matchWorkloadsFileChecker) NextEventCheck(event ec.Event, _ *slog.Logger) (bool, error) {
+	// ignore non-trace point events
+	ev, ok := event.(*tetragon.ProcessKprobe)
+	if !ok {
+		return false, errors.New("not a kprobe")
+	}
+
+	// ignore other kprobes
+	if ev.GetFunctionName() != "security_file_permission" {
+		return false, fmt.Errorf("not security_file_permission kprobe (%s instead)", ev.GetFunctionName())
+	}
+
+	// ignore other tracing policies
+	if ev.GetPolicyName() != "file-match-workloads" {
+		return false, fmt.Errorf("not file-match-workloads (%s instead)", ev.GetPolicyName())
+	}
+
+	// check that we have the correct number of args
+	args := ev.GetArgs()
+	if len(args) == 0 {
+		return true, fmt.Errorf("unexpected event %+v withn not arguments", ev)
+	}
+
+	arg := args[0].GetFileArg()
+	container := ev.GetProcess().GetPod().GetContainer()
+
+	switch arg.Path {
+	case "/etc/passwd":
+		if container.Name == "passwd" {
+			cfc.matchesPasswd++
+			return cfc.Done(), nil
+		}
+		return true, fmt.Errorf("unexpected event %+v for /etc/passwd from a container with a different name than passwd", ev)
+	case "/etc/shadow":
+		if container.Name == "shadow" {
+			cfc.matchesShadow++
+			return cfc.Done(), nil
+		}
+		return true, fmt.Errorf("unexpected event %+v for /etc/shadow from a container with a different name than shadow", ev)
+	default:
+		return false, nil
+	}
+}
+
+func (cfc *matchWorkloadsFileChecker) FinalCheck(_ *slog.Logger) error {
+	if cfc.Done() {
+		return nil
+	}
+	return fmt.Errorf("match-workloads checker failed, had %d matches for /etc/passwd and %d matches for /etc/shadow", cfc.matchesPasswd, cfc.matchesShadow)
+}
+
+func TestMatchWorkloadsSelector(t *testing.T) {
+	checker := matchWorkloadsChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
+	testMatchWorkloadsSelector(t, checker)
+}
+
+func testMatchWorkloadsSelector(t *testing.T, checker *checker.RPCChecker) {
+	runEventChecker := features.New("Run Event Checks").
+		Assess("Run Event Checks", checker.CheckWithFilters(
+			30*time.Second,
+			// allow list
+			[]*tetragon.Filter{{
+				EventSet:  []tetragon.EventType{tetragon.EventType_PROCESS_KPROBE},
+				Namespace: []string{fileNamespace},
+			}},
+			// deny list
+			[]*tetragon.Filter{},
+		)).Feature()
+
+	runWorkload := features.New("Match workloads test").
+		Assess("Install policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+			ctx, err := helpers.LoadCRDString("", matchWorkloadsPolicy, false)(ctx, c)
+			if err != nil {
+				klog.ErrorS(err, "failed to install policy")
+				t.Fail()
+			}
+			return ctx
+		}).
+		Assess("Wait for policy", func(ctx context.Context, _ *testing.T, _ *envconf.Config) context.Context {
+			if err := grpc.WaitForTracingPolicy(ctx, "file-match-workloads"); err != nil {
+				klog.ErrorS(err, "failed to wait for policy")
+				t.Fail()
+			}
+			return ctx
+		}).
+		Assess("Wait for Checker", checker.Wait(30*time.Second)).
+		Assess("Start pods", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+			ctx, err := helpers.LoadCRDString(fileNamespace, ubuntuFilePod, true)(ctx, c)
+			if err != nil {
+				klog.ErrorS(err, "failed to load pod")
+				t.Fail()
+			}
+			return ctx
+		}).
+		Assess("Uninstall policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+			ctx, err := helpers.UnloadCRDString("", matchWorkloadsPolicy, false)(ctx, c)
+			if err != nil {
+				klog.ErrorS(err, "failed to uninstall policy")
+				t.Fail()
+			}
+			return ctx
+		}).
+		Assess("Stop pods", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+			ctx, err := helpers.UnloadCRDString(fileNamespace, ubuntuFilePod, true)(ctx, c)
+			if err != nil {
+				klog.ErrorS(err, "failed to uninstall pod")
+				t.Fail()
+			}
+			return ctx
+		}).
+		Feature()
+
+	runner.TestInParallel(t, runWorkload, runEventChecker)
 }
