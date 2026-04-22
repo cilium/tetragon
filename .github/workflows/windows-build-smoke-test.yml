@@ -272,8 +272,9 @@ jobs:
             -RedirectStandardOutput "C:\Program Files\Tetragon\tetragon.log" `
             -NoNewWindow `
             -PassThru
-            
-          Start-Sleep -Seconds 5
+          
+          # Wait for tetragon to be up and running  
+          Start-Sleep -Seconds 10
 
           if(Get-Process -id $tetragonBackgroundProcess.Id) {
             Write-Output "✓ Tetragon is Running"
@@ -286,6 +287,9 @@ jobs:
           $notepad = Start-Process -FilePath "C:\Windows\System32\notepad.exe" -PassThru
           $notepadPID = $notepad.Id
           Write-Host "Process launched with PID: $notepadPID"
+          
+          # Give some time for the event to pop up in the event log
+          Start-Sleep -Seconds 2
 
           $searchString = "\{\""process_exec\""\:\{\""process\""\:\{\""exec_id\""\:\"".{16,30}\""\,.{0,1}\""pid\""\:$notepadPID\,.{0,1}\""uid\""\:[0-9]{0,9}\,.{0,1}\""binary\""\:\""C:\\\\Windows\\\\system32\\\\notepad.exe\"""
           Write-Host "Looking for regex: $searchString"
