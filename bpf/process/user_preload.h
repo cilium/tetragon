@@ -79,7 +79,8 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 
 	switch (ty) {
 	case string_type:
-		return preload_string_type(ctx, config, val, status);
+		if (bpf_ksym_exists(bpf_copy_from_user_str))
+			return preload_string_type(ctx, config, val, status);
 	}
 
 	return 0;
@@ -124,7 +125,8 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 
 	switch (ty) {
 	case string_type:
-		return preload_string_type(ctx, config, a, status);
+		if (bpf_ksym_exists(bpf_copy_from_user_str))
+			return preload_string_type(ctx, config, a, status);
 	}
 
 	return 0;
