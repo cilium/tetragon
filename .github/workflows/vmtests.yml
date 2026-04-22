@@ -96,6 +96,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+    - name: Remove slow Azure apt mirrors
+      run: |
+        # The default 'azure.archive.ubuntu.com' mirrors can be really slow.
+        # Removing azure.archive will pioritize the official Ubuntu mirrors.
+        if [ -f /etc/apt/apt-mirrors.txt ]; then
+          sudo sed -i '/azure.archive.ubuntu.com/d' /etc/apt/apt-mirrors.txt
+          echo "Using mirrors:"
+          cat /etc/apt/apt-mirrors.txt
+        fi
+
     - name: Install VM test dependencies
       run: |
         sudo apt-get update
