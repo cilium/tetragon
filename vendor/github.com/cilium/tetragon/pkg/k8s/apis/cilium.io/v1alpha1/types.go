@@ -7,6 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ciliumio "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io"
+	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 )
 
 const (
@@ -169,6 +170,9 @@ type KProbeSelector struct {
 	// IDs for capabilities changes
 	MatchCapabilityChanges []CapabilitiesSelector `json:"matchCapabilityChanges,omitempty"`
 	// +kubebuilder:validation:Optional
+	// Workloads to match
+	MatchWorkloads []WorkloadsSelector `json:"matchWorkloads,omitempty"`
+	// +kubebuilder:validation:Optional
 	// A list of macros names, defined in spec.selectorsMacros.
 	// Filters specified in macros will be appended to corresponding filters of the selector.
 	Macros []string `json:"macros,omitempty"`
@@ -208,6 +212,23 @@ type CapabilitiesSelector struct {
 	IsNamespaceCapability bool `json:"isNamespaceCapability"`
 	// Capabilities to match.
 	Values []string `json:"values"`
+}
+
+type WorkloadsSelector struct {
+	// +kubebuilder:validation:Optional
+	// PodSelector selects pods that this policy applies to
+	PodSelector *slimv1.LabelSelector `json:"podSelector"`
+	// +kubebuilder:validation:Optional
+	// ContainerSelector selects containers that this policy applies to.
+	// A map of container fields will be constructed in the same way as a map of labels.
+	// The name of the field represents the label "key", and the value of the field - label "value".
+	// Currently, only the "name" field is supported.
+	ContainerSelector *slimv1.LabelSelector `json:"containerSelector"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="!has(self.matchLabels) && !has(self.matchExpressions)",message="The hostSelector should be either null or {}."
+	// HostSelector selects hosts that this policy applies to.
+	// For now only ~ (none) and {} (all) is supported.
+	HostSelector *slimv1.LabelSelector `json:"hostSelector"`
 }
 
 type PIDSelector struct {
