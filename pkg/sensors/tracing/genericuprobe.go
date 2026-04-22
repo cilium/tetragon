@@ -1142,7 +1142,21 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 	var preloadArgsCounter int
 
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
-		var preloadArg bool
+		var preloadArg, user bool
+
+		setStringRead := func() error {
+			if !bpf.HasKfunc("bpf_copy_from_user_str") {
+				return fmt.Errorf("can't read string for argument %d: missing bpf_copy_from_user_str", i)
+			}
+			if !has.sleepable {
+				preloadArg = true
+				preloadArgsCounter++
+				return nil
+			}
+			user = true
+			return nil
+		}
+
 		argType := gt.GenericTypeFromString(a.Type)
 
 		if data {
@@ -1156,13 +1170,12 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 				}
 
 				// If we are getting string type from pt_regs register we can safely assume
-				// it's from user address, so we need to read it through preload.
+				// it's from user address; in sleepable context we read it directly,
+				// otherwise we need to read it through preload.
 				if argType == gt.GenericStringType {
-					if !bpf.HasKfunc("bpf_copy_from_user_str") {
-						return fmt.Errorf("can't preload string for argument %d", i)
+					if err := setStringRead(); err != nil {
+						return err
 					}
-					preloadArg = true
-					preloadArgsCounter++
 				}
 			} else if hasCurrentTaskSource(a) {
 				if !bpf.HasProgramLargeSize() {
@@ -1188,11 +1201,9 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 			}
 
 			if argType == gt.GenericStringType {
-				if !bpf.HasKfunc("bpf_copy_from_user_str") {
-					return fmt.Errorf("can't preload string for argument %d", i)
+				if err := setStringRead(); err != nil {
+					return err
 				}
-				preloadArg = true
-				preloadArgsCounter++
 			}
 		}
 
@@ -1203,7 +1214,7 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 		if argType == gt.GenericInvalidType {
 			return fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
-		argMValue, err := getUserMetaValue(a, preloadArg)
+		argMValue, err := getUserMetaValue(a, preloadArg, user)
 		if err != nil {
 			return err
 		}
