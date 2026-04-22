@@ -84,6 +84,13 @@ func (b *Builder) WithSetup(fn func() func()) *Builder {
 	return b
 }
 
+// WithAllEvents makes the observer test to receive all events,
+// otherwise they are filtered with observertesthelper.WithMyPid
+func (b *Builder) WithAllEvents() *Builder {
+	b.policytest.AllEvents = true
+	return b
+}
+
 // Add a scenario to the builder
 func (b *Builder) AddScenario(fn func(c *Conf) *Scenario) *Builder {
 	b.policytest.Scenarios = append(b.policytest.Scenarios, fn)

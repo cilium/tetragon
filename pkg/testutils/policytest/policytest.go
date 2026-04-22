@@ -63,6 +63,9 @@ type T struct {
 
 	// Scenarios returns a list of scenarios to test the generated policy
 	Scenarios []func(c *Conf) *Scenario
+
+	// Do not limit events to observer's pid
+	AllEvents bool
 }
 
 type ScenarioRes struct {

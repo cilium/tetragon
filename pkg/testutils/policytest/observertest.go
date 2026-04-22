@@ -77,7 +77,14 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 	policyFile.Close()
 	policyFname := policyFile.Name()
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, policyFname, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	opts := []observertesthelper.TestOption{
+		observertesthelper.WithConfig(policyFname),
+	}
+	if !pt.AllEvents {
+		opts = append(opts, observertesthelper.WithMyPid())
+	}
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, opts...)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
