@@ -289,10 +289,14 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 
 		probe_read(&file, sizeof(file), &arg);
 		probe_read(&arg, sizeof(arg), &file->name);
-	}
-		fallthrough;
-	case string_type:
 		size = copy_strings(args, (char *)arg, MAX_STRING);
+		break;
+	}
+	case string_type:
+		if (argm & ARGM_USER)
+			size = copy_strings_user(args, (char *)arg, MAX_STRING);
+		else
+			size = copy_strings(args, (char *)arg, MAX_STRING);
 		break;
 	case net_dev_ty: {
 		struct net_device *dev = (struct net_device *)arg;
@@ -575,6 +579,14 @@ FUNC_INLINE long get_preload_arg(struct pt_regs *ctx, long ty, arg_status_t *sta
 }
 #endif
 
+__maybe_unused static bool get_can_sleep(void)
+{
+#ifdef __SLEEPABLE
+	return true;
+#endif
+	return false;
+}
+
 FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals,
 				  int process)
 {
@@ -633,6 +645,12 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	if (am & ARGM_PRELOAD) {
 		a = get_preload_arg(ctx, ty, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	} else {
+		/*
+		 * can_sleep is true if the sensor can sleep and reliably read data
+		 * from user space.
+		 */
+		bool can_sleep = get_can_sleep();
+
 		asm volatile("%[index] &= %1 ;\n"
 			     : [index] "+r"(index)
 			     : "i"(MAX_POSSIBLE_ARGS_MASK));
@@ -640,11 +658,16 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 			a = get_pt_regs_arg(ctx, config, index);
 		} else if (am & ARGM_CURRENT_TASK) {
 			a = get_current_task();
+			/*
+			 * We are getting data from kernel current object, we don't
+			 * need to sleep and need to use bpf_probe_read.
+			 */
+			can_sleep = false;
 		} else {
 			arg_index = config->idx[index & MAX_POSSIBLE_ARGS_MASK];
 			a = (&e->a0)[arg_index & MAX_ACCESSIBLE_ARGS_MASK];
 		}
-		extract_arg(config, index, &a, false, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
+		extract_arg(config, index, &a, can_sleep, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	}
 
 	if (should_offload_path(ty))

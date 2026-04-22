@@ -379,6 +379,28 @@ FUNC_INLINE long copy_strings(char *args, char *arg, int max_size)
 	return size + 4;
 }
 
+#ifdef __SLEEPABLE
+FUNC_INLINE long copy_strings_user(char *args, char *arg, int max_size)
+{
+	int *s = (int *)args;
+	long size;
+
+	size = bpf_copy_from_user_str(&args[4], max_size + 1, (const void *)arg, 0);
+	if (size <= 0)
+		return invalid_ty;
+	// Remove the nul character from end.
+	size--;
+	*s = size;
+	// Initial 4 bytes hold string length
+	return size + 4;
+}
+#else
+FUNC_INLINE long copy_strings_user(char *args, char *arg, int max_size)
+{
+	return 0;
+}
+#endif
+
 FUNC_INLINE long copy_skb(char *args, unsigned long arg)
 {
 	struct sk_buff *skb = (struct sk_buff *)arg;
@@ -548,6 +570,7 @@ FUNC_INLINE long copy_kernel_module(char *args, unsigned long arg)
 #define ARGM_CURRENT_TASK BIT(6)
 #define ARGM_PT_REGS	  BIT(7)
 #define ARGM_PRELOAD	  BIT(8)
+#define ARGM_USER	  BIT(9)
 
 FUNC_INLINE bool has_return_copy(unsigned long argm)
 {
