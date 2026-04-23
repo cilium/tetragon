@@ -14,14 +14,16 @@ struct preload_data {
 	unsigned char data[4096];
 };
 
+#ifndef __NO_PRELOAD
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 1); // will be resized by agent when needed
 	__type(key, __u64);
 	__type(value, struct preload_data);
 } sleepable_preload SEC(".maps");
+#endif /* __NO_PRELOAD */
 
-#if defined(GENERIC_UPROBE) || defined(GENERIC_USDT)
+#if !defined(__NO_PRELOAD) && (defined(GENERIC_UPROBE) || defined(GENERIC_USDT))
 
 FUNC_INLINE int
 preload_string_type(struct pt_regs *ctx, struct event_config *config, unsigned long val,
@@ -183,8 +185,9 @@ user_preload(struct pt_regs *ctx)
 	return 0;
 }
 
-#endif /* GENERIC_UPROBE || GENERIC_USDT*/
+#endif /* !__NO_PRELOAD && (GENERIC_UPROBE || GENERIC_USDT) */
 
+#ifndef __NO_PRELOAD
 FUNC_INLINE int
 user_preload_cleanup(struct pt_regs *ctx)
 {
@@ -193,5 +196,6 @@ user_preload_cleanup(struct pt_regs *ctx)
 	map_delete_elem(&sleepable_preload, &id);
 	return 0;
 }
+#endif /* __NO_PRELOAD */
 
 #endif /* __USER_PRELOAD_H__ */
