@@ -6,6 +6,7 @@
 package btf
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -301,6 +302,15 @@ func ResolveBTFPath(
 	}
 }
 
+type resolveError struct {
+	idx int
+	str string
+}
+
+func (e *resolveError) Error() string {
+	return e.str
+}
+
 func processMembers(
 	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
 	currentType btf.Type,
@@ -308,7 +318,7 @@ func processMembers(
 	pathToFound []string,
 	i int,
 ) (*btf.Type, error) {
-	var lastError error
+	var lastError *resolveError
 	memberWasFound := false
 	for _, member := range members {
 		if len(member.Name) == 0 { // If anonymous struct, fallthrough
@@ -316,14 +326,14 @@ func processMembers(
 			btfArgs[i].IsInitialized = uint16(1)
 			lastTy, err := ResolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
 			if err != nil {
-				if lastError != nil {
-					idx := i + 1
-					// If the error raised originates from a depth greater than the current one, we stop the search.
-					if idx < len(pathToFound) && strings.Contains(lastError.Error(), pathToFound[idx]) {
-						break
+				// Propagate the deepest error for both resolve and non-resolve error.
+				if err2, ok := errors.AsType[*resolveError](err); ok {
+					if lastError == nil || lastError.idx < err2.idx {
+						lastError = err2
 					}
+				} else if lastError == nil || lastError.idx <= i {
+					lastError = &resolveError{i, err.Error()}
 				}
-				lastError = err
 				continue
 			}
 			return lastTy, nil
@@ -344,12 +354,12 @@ func processMembers(
 		if lastError != nil {
 			return nil, lastError
 		}
-		return nil, fmt.Errorf(
+		return nil, &resolveError{i, fmt.Sprintf(
 			"attribute %q not found in structure %q found %v",
 			pathToFound[i],
 			currentType.TypeName(),
 			members,
-		)
+		)}
 	}
 	switch t := currentType.(type) {
 	case *btf.Pointer:
