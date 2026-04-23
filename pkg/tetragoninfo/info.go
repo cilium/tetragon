@@ -124,8 +124,7 @@ func encodeConf(conf map[string]any) ([]*tetragon.GetInfoResponse_ConfVal, error
 		}
 
 		if err != nil {
-			err := fmt.Errorf("failed to wrap type key %s (with value type %T): %w", key, val, err)
-			errors.Join(retErr, err)
+			retErr = errors.Join(retErr, fmt.Errorf("failed to wrap type key %s (with value type %T): %w", key, val, err))
 		}
 		ret = append(ret, &tetragon.GetInfoResponse_ConfVal{
 			Key:   key,
