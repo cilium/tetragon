@@ -789,6 +789,96 @@ func TestUprobeArgsWithAddress(t *testing.T) {
 	testUprobeArgs(t, checkers, tp)
 }
 
+func uprobePreloadArgs(t *testing.T, arg_idx int, arg_value string) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+
+	symbol := "uprobe_test_lib_string_arg" + strconv.Itoa(arg_idx)
+
+	uprobeTest1 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+
+	var pathHook strings.Builder
+	pathHook.WriteString(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + libUprobe + `"
+    symbols:
+    - "` + symbol + `"
+    args:`)
+
+	for i := range 5 {
+		arg_type := "int"
+		if i == arg_idx {
+			arg_type = "string"
+		}
+		pathHook.WriteString(`
+    - index: ` + strconv.Itoa(i) + `
+      type: "` + arg_type + `"`)
+	}
+
+	createCrdFile(t, pathHook.String())
+
+	values := []*ec.KprobeArgumentChecker{ec.NewKprobeArgumentChecker().WithIntArg(1),
+		ec.NewKprobeArgumentChecker().WithIntArg(2),
+		ec.NewKprobeArgumentChecker().WithIntArg(3),
+		ec.NewKprobeArgumentChecker().WithIntArg(4),
+		ec.NewKprobeArgumentChecker().WithIntArg(5),
+	}
+
+	values[arg_idx] = ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(arg_value))
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_PRELOAD_ARGS").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobeTest1))).
+		WithSymbol(sm.Full(symbol)).WithArgs(ec.NewKprobeArgumentListMatcher().
+		WithOperator(lc.Ordered).
+		WithValues(values...))
+
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(uprobeTest1).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUprobePreloadArg0(t *testing.T) {
+	uprobePreloadArgs(t, 0, "one")
+}
+func TestUprobePreloadArg1(t *testing.T) {
+	uprobePreloadArgs(t, 1, "two")
+}
+func TestUprobePreloadArg2(t *testing.T) {
+	uprobePreloadArgs(t, 2, "three")
+}
+func TestUprobePreloadArg3(t *testing.T) {
+	uprobePreloadArgs(t, 3, "four")
+}
+func TestUprobePreloadArg4(t *testing.T) {
+	uprobePreloadArgs(t, 4, "five")
+}
+
 func uprobeArgsMatch(t *testing.T, symbol string, arg_type string, op string, values []string, expectCheckerFailure bool) error {
 	uprobeTest1 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
 	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
