@@ -630,6 +630,15 @@ func detectKfunc(name string) bool {
 }
 
 func HasKfunc(name string) bool {
+
+	// If we are using an external BTF file, the loader might poison the kfunc calls,
+	// even if the kernel supports them.
+	// The kfunc fixup logic in the loader ignores the BTF file that tetragon passes
+	// to it and only uses BTF files located at hard-coded paths.
+	if btfFilePath := btf.GetCachedBTFFile(); btfFilePath != "/sys/kernel/btf/vmlinux" {
+		return false
+	}
+
 	kfuncs.mu.Lock()
 	defer kfuncs.mu.Unlock()
 
