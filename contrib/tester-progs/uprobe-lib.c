@@ -42,6 +42,36 @@ int uprobe_test_lib_string_arg(char *str)
 	return 0;
 }
 
+int uprobe_test_lib_string_arg0(char *str, int two, int three, int four, int five)
+{
+	printf("uprobe_test_lib_string_arg0 called\n");
+	return 0;
+}
+
+int uprobe_test_lib_string_arg1(int one, char *str, int three, int four, int five)
+{
+	printf("uprobe_test_lib_string_arg1 called\n");
+	return 0;
+}
+
+int uprobe_test_lib_string_arg2(int one, int two, char *str, int four, int five)
+{
+	printf("uprobe_test_lib_string_arg2 called\n");
+	return 0;
+}
+
+int uprobe_test_lib_string_arg3(int one, int two, int three, char *str, int five)
+{
+	printf("uprobe_test_lib_string_arg3 called\n");
+	return 0;
+}
+
+int uprobe_test_lib_string_arg4(int one, int two, int three, int four, char *str)
+{
+	printf("uprobe_test_lib_string_arg4 called\n");
+	return 0;
+}
+
 int uprobe_test_lib_string_arg_empty(char *str)
 {
 	printf("uprobe_test_lib_string_arg_empty called\n");
