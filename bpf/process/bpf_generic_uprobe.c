@@ -155,6 +155,7 @@ generic_uprobe_path(void *ctx)
 }
 #endif
 
+#ifndef __NO_PRELOAD
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_preload(struct pt_regs *ctx)
 {
@@ -166,6 +167,7 @@ generic_sleepable_preload_cleanup(struct pt_regs *ctx)
 {
 	return user_preload_cleanup(ctx);
 }
+#endif /* __NO_PRELOAD */
 
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_offload(struct pt_regs *ctx)
