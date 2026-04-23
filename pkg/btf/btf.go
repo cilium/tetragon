@@ -263,6 +263,7 @@ func ResolveBTFPath(
 	pathToFound []string,
 	i int,
 ) (*btf.Type, error) {
+	currentType = ResolveNestedTypes(currentType)
 	switch t := currentType.(type) {
 	case *btf.Struct:
 		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)
@@ -277,9 +278,9 @@ func ResolveBTFPath(
 		if idx, err := parseArrayIdxStr(pathToFound[i]); err == nil {
 			// To stay ahead on the dereferecing, we mark the current btfArg as pointer
 			btfArgs[i].IsPointer = uint16(1)
-			return processArray(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i, idx)
+			return processArray(btfArgs, t.Target, pathToFound, i, idx)
 		}
-		return ResolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i)
+		return ResolveBTFPath(btfArgs, t.Target, pathToFound, i)
 	case *btf.Array:
 		idx, err := parseArrayIdxStr(pathToFound[i])
 		if err != nil {
@@ -288,7 +289,7 @@ func ResolveBTFPath(
 		if idx >= t.Nelems {
 			return nil, fmt.Errorf("array index out of bound. Nelems=%d, got=%d", t.Nelems, idx)
 		}
-		return processArray(btfArgs, ResolveNestedTypes(t.Type), pathToFound, i, idx)
+		return processArray(btfArgs, t.Type, pathToFound, i, idx)
 	default:
 		ty := currentType.TypeName()
 		if len(ty) == 0 {
@@ -324,7 +325,7 @@ func processMembers(
 		if len(member.Name) == 0 { // If anonymous struct, fallthrough
 			btfArgs[i].Offset = member.Offset.Bytes()
 			btfArgs[i].IsInitialized = uint16(1)
-			lastTy, err := ResolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
+			lastTy, err := ResolveBTFPath(btfArgs, member.Type, pathToFound, i)
 			if err != nil {
 				// Propagate the deepest error for both resolve and non-resolve error.
 				if err2, ok := errors.AsType[*resolveError](err); ok {
@@ -344,7 +345,7 @@ func processMembers(
 			btfArgs[i].IsInitialized = uint16(1)
 			isNotLastChild := i < len(pathToFound)-1 && i < api.MaxBTFArgDepth
 			if isNotLastChild {
-				return ResolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i+1)
+				return ResolveBTFPath(btfArgs, member.Type, pathToFound, i+1)
 			}
 			currentType = ResolveNestedTypes(member.Type)
 			break
@@ -378,6 +379,7 @@ func processArray(
 	i int,
 	idx uint32,
 ) (*btf.Type, error) {
+	targetType = ResolveNestedTypes(targetType)
 	btfArgs[i].IsInitialized = uint16(1)
 	btfArgs[i].Offset = getSizeofType(targetType) * idx
 	if len(pathToFound) > i+1 {
