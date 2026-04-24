@@ -90,15 +90,13 @@ func equal(pod *corev1.Pod, podInfo *ciliumiov1alpha1.PodInfo) bool {
 	}
 
 	// check if ownerReference is changed.
-	controller := true
-	blockOwnerDeletion := true
 	expectedOwnerReference := metav1.OwnerReference{
 		APIVersion:         "v1",
 		Kind:               "Pod",
 		Name:               pod.Name,
 		UID:                pod.UID,
-		Controller:         &controller,
-		BlockOwnerDeletion: &blockOwnerDeletion,
+		Controller:         new(true),
+		BlockOwnerDeletion: new(true),
 	}
 	workloadObject, workloadType := podhelpers.GetWorkloadMetaFromPod(pod)
 	return pod.Name == podInfo.Name &&
@@ -132,8 +130,6 @@ func generatePodInfo(pod *corev1.Pod) *ciliumiov1alpha1.PodInfo {
 		podIPs = append(podIPs, ciliumiov1alpha1.PodIP{IP: podIP.IP})
 	}
 	workloadObject, workloadType := podhelpers.GetWorkloadMetaFromPod(pod)
-	controller := true
-	blockOwnerDeletion := true
 	return &ciliumiov1alpha1.PodInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        pod.Name,
@@ -147,8 +143,8 @@ func generatePodInfo(pod *corev1.Pod) *ciliumiov1alpha1.PodInfo {
 					Kind:               pod.Kind,
 					Name:               pod.Name,
 					UID:                pod.UID,
-					Controller:         &controller,
-					BlockOwnerDeletion: &blockOwnerDeletion,
+					Controller:         new(true),
+					BlockOwnerDeletion: new(true),
 				},
 			},
 		},

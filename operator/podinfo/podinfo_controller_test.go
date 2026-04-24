@@ -120,8 +120,6 @@ func randomPodGenerator() *corev1.Pod {
 func TestGeneratePod(t *testing.T) {
 	t.Run("Testing Object Meta", func(t *testing.T) {
 		pod := randomPodGenerator()
-		controller := true
-		blockOwnerDeletion := true
 		// Copy the Pod IPs into the PodInfo IPs.
 		var podIPs []ciliumv1alpha1.PodIP
 		for _, podIP := range pod.Status.PodIPs {
@@ -140,8 +138,8 @@ func TestGeneratePod(t *testing.T) {
 						Kind:               pod.Kind,
 						Name:               pod.Name,
 						UID:                pod.UID,
-						Controller:         &controller,
-						BlockOwnerDeletion: &blockOwnerDeletion,
+						Controller:         new(true),
+						BlockOwnerDeletion: new(true),
 					},
 				},
 			},
@@ -274,7 +272,6 @@ func TestEqual(t *testing.T) {
 
 		t.Run("Pod owner references changed", func(t *testing.T) {
 			pod := randomPodGenerator()
-			controller, blockOwnerDeletion := true, true
 			podInfo := generatePodInfo(pod)
 			pod.GenerateName = "tetragon-"
 			pod.OwnerReferences = []metav1.OwnerReference{
@@ -283,8 +280,8 @@ func TestEqual(t *testing.T) {
 					Kind:               "DaemonSet",
 					Name:               "tetragon",
 					UID:                "00000000-0000-0000-0000-000000000000",
-					Controller:         &controller,
-					BlockOwnerDeletion: &blockOwnerDeletion,
+					Controller:         new(true),
+					BlockOwnerDeletion: new(true),
 				},
 			}
 			assert.False(t, equal(pod, podInfo), "Pod owner references changed, still returning pod not changed")
@@ -320,8 +317,7 @@ func TestReconcile(t *testing.T) {
 func TestReconcileWithDeletionTimestamp(t *testing.T) {
 	pod := randomPodGenerator()
 	pod.SetFinalizers([]string{"finalize-it"})
-	deletionTimestamp := metav1.Now()
-	pod.SetDeletionTimestamp(&deletionTimestamp)
+	pod.SetDeletionTimestamp(new(metav1.Now()))
 	client := getClientBuilder().WithObjects(pod).Build()
 	reconciler := Reconciler{client}
 	namespacedName := types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
