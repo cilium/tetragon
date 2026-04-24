@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"path/filepath"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -97,7 +98,15 @@ func ResolveKubeConfigFile() string {
 	// if KUBECONFIG env is defined then use that
 	kubeConfigPath = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
 	if kubeConfigPath != "" {
-		return kubeConfigPath
+		// handle the variable as a path list, similar to client-go.
+		filePaths := filepath.SplitList(kubeConfigPath)
+		for _, filename := range filePaths {
+			if _, err := os.Stat(filename); err == nil {
+				return filename
+			}
+		}
+		// return the last path in the list if none exist yet.
+		return filePaths[len(filePaths)-1]
 	}
 
 	var (

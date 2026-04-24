@@ -25,7 +25,11 @@ SOFTWARE.
 
 package mapset
 
-import "sync"
+import (
+	"sync"
+
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+)
 
 type threadSafeSet[T comparable] struct {
 	sync.RWMutex
@@ -208,12 +212,12 @@ func (t *threadSafeSet[T]) Cardinality() int {
 
 func (t *threadSafeSet[T]) Each(cb func(T) bool) {
 	t.RLock()
+	defer t.RUnlock()
 	for elem := range *t.uss {
 		if cb(elem) {
 			break
 		}
 	}
-	t.RUnlock()
 }
 
 func (t *threadSafeSet[T]) Iter() <-chan T {
@@ -285,9 +289,16 @@ func (t *threadSafeSet[T]) Pop() (T, bool) {
 	return t.uss.Pop()
 }
 
+func (t *threadSafeSet[T]) PopN(n int) ([]T, int) {
+	t.Lock()
+	defer t.Unlock()
+	return t.uss.PopN(n)
+}
+
 func (t *threadSafeSet[T]) ToSlice() []T {
-	keys := make([]T, 0, t.Cardinality())
 	t.RLock()
+	l := len(*t.uss)
+	keys := make([]T, 0, l)
 	for elem := range *t.uss {
 		keys = append(keys, elem)
 	}
@@ -304,9 +315,25 @@ func (t *threadSafeSet[T]) MarshalJSON() ([]byte, error) {
 }
 
 func (t *threadSafeSet[T]) UnmarshalJSON(p []byte) error {
-	t.RLock()
+	t.Lock()
 	err := t.uss.UnmarshalJSON(p)
+	t.Unlock()
+
+	return err
+}
+
+func (t *threadSafeSet[T]) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	t.RLock()
+	bt, b, err := t.uss.MarshalBSONValue()
 	t.RUnlock()
+
+	return bt, b, err
+}
+
+func (t *threadSafeSet[T]) UnmarshalBSONValue(bt bsontype.Type, p []byte) error {
+	t.Lock()
+	err := t.uss.UnmarshalBSONValue(bt, p)
+	t.Unlock()
 
 	return err
 }

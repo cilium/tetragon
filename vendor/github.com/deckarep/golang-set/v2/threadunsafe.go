@@ -29,6 +29,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 type threadUnsafeSet[T comparable] map[T]struct{}
@@ -138,13 +141,13 @@ func (s *threadUnsafeSet[T]) contains(v T) (ok bool) {
 func (s *threadUnsafeSet[T]) Difference(other Set[T]) Set[T] {
 	o := other.(*threadUnsafeSet[T])
 
-	diff := newThreadUnsafeSet[T]()
+	diff := make(threadUnsafeSet[T], s.Cardinality())
 	for elem := range *s {
 		if !o.contains(elem) {
 			diff.add(elem)
 		}
 	}
-	return diff
+	return &diff
 }
 
 func (s *threadUnsafeSet[T]) Each(cb func(T) bool) {
@@ -172,22 +175,24 @@ func (s *threadUnsafeSet[T]) Equal(other Set[T]) bool {
 func (s *threadUnsafeSet[T]) Intersect(other Set[T]) Set[T] {
 	o := other.(*threadUnsafeSet[T])
 
-	intersection := newThreadUnsafeSet[T]()
+	var intersection threadUnsafeSet[T]
 	// loop over smaller set
 	if s.Cardinality() < other.Cardinality() {
+		intersection = make(threadUnsafeSet[T], s.Cardinality())
 		for elem := range *s {
 			if o.contains(elem) {
 				intersection.add(elem)
 			}
 		}
 	} else {
+		intersection = make(threadUnsafeSet[T], o.Cardinality())
 		for elem := range *o {
 			if s.contains(elem) {
 				intersection.add(elem)
 			}
 		}
 	}
-	return intersection
+	return &intersection
 }
 
 func (s *threadUnsafeSet[T]) IsEmpty() bool {
@@ -259,6 +264,27 @@ func (s *threadUnsafeSet[T]) Pop() (v T, ok bool) {
 	return v, false
 }
 
+func (s *threadUnsafeSet[T]) PopN(n int) (items []T, count int) {
+	if n <= 0 || len(*s) == 0 {
+		return make([]T, 0), 0
+	}
+	sn := s.Cardinality()
+	if n > sn {
+		n = sn
+	}
+
+	items = make([]T, 0, sn)
+	for item := range *s {
+		if count >= n {
+			break
+		}
+		delete(*s, item)
+		items = append(items, item)
+		count++
+	}
+	return items, count
+}
+
 func (s threadUnsafeSet[T]) Remove(v T) {
 	delete(s, v)
 }
@@ -281,7 +307,9 @@ func (s threadUnsafeSet[T]) String() string {
 func (s *threadUnsafeSet[T]) SymmetricDifference(other Set[T]) Set[T] {
 	o := other.(*threadUnsafeSet[T])
 
-	sd := newThreadUnsafeSet[T]()
+	// maximum number of elements is the sum of s and o cardinalities (when s and o are disjoint)
+	n := s.Cardinality() + o.Cardinality()
+	sd := make(threadUnsafeSet[T], n)
 	for elem := range *s {
 		if !o.contains(elem) {
 			sd.add(elem)
@@ -292,7 +320,7 @@ func (s *threadUnsafeSet[T]) SymmetricDifference(other Set[T]) Set[T] {
 			sd.add(elem)
 		}
 	}
-	return sd
+	return &sd
 }
 
 func (s threadUnsafeSet[T]) ToSlice() []T {
@@ -307,10 +335,8 @@ func (s threadUnsafeSet[T]) ToSlice() []T {
 func (s threadUnsafeSet[T]) Union(other Set[T]) Set[T] {
 	o := other.(*threadUnsafeSet[T])
 
-	n := s.Cardinality()
-	if o.Cardinality() > n {
-		n = o.Cardinality()
-	}
+	// maximum number of elements is the sum of s and o cardinalities (when s and o are disjoint)
+	n := s.Cardinality() + o.Cardinality()
 	unionedSet := make(threadUnsafeSet[T], n)
 
 	for elem := range s {
@@ -343,6 +369,27 @@ func (s threadUnsafeSet[T]) MarshalJSON() ([]byte, error) {
 func (s *threadUnsafeSet[T]) UnmarshalJSON(b []byte) error {
 	var i []T
 	err := json.Unmarshal(b, &i)
+	if err != nil {
+		return err
+	}
+	s.Append(i...)
+
+	return nil
+}
+
+// MarshalBSON creates a BSON array from the set.
+func (s threadUnsafeSet[T]) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	return bson.MarshalValue(s.ToSlice())
+}
+
+// UnmarshalBSON recreates a set from a BSON array.
+func (s threadUnsafeSet[T]) UnmarshalBSONValue(bt bsontype.Type, b []byte) error {
+	if bt != bson.TypeArray {
+		return fmt.Errorf("must use BSON Array to unmarshal Set")
+	}
+
+	var i []T
+	err := bson.UnmarshalValue(bt, b, &i)
 	if err != nil {
 		return err
 	}

@@ -20,8 +20,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -159,7 +161,7 @@ func (r *Resources) Delete(ctx context.Context, obj k8s.Object, opts ...DeleteOp
 }
 
 func WithGracePeriod(gpt time.Duration) DeleteOption {
-	t := gpt.Milliseconds()
+	t := int64(gpt.Seconds())
 	return func(do *metav1.DeleteOptions) { do.GracePeriodSeconds = &t }
 }
 
@@ -209,7 +211,7 @@ func WithFieldSelector(sel string) ListOption {
 }
 
 func WithTimeout(to time.Duration) ListOption {
-	t := to.Milliseconds()
+	t := int64(to.Seconds())
 	return func(lo *metav1.ListOptions) { lo.TimeoutSeconds = &t }
 }
 
@@ -327,6 +329,125 @@ func (r *Resources) ExecInPod(ctx context.Context, namespaceName, podName, conta
 	}
 
 	return nil
+}
+
+type matcher[T any] func([]T) (T, error)
+
+type predicate[T any] func(T) bool
+
+func match[T any](pred predicate[T], err error) matcher[T] {
+	return func(values []T) (T, error) {
+		for _, value := range values {
+			if pred(value) {
+				return value, nil
+			}
+		}
+
+		var notFound T
+		return notFound, err
+	}
+}
+
+func matchByIndex[T any](idx int, err error) matcher[T] {
+	return func(items []T) (T, error) {
+		if idx >= len(items) {
+			var notFound T
+			return notFound, fmt.Errorf("%w: index %d is out of range with length %d", err, idx, len(items))
+		}
+
+		return items[idx], nil
+	}
+}
+
+var (
+	errPodNotFound       = errors.New("pod not found")
+	errContainerNotFound = errors.New("container not found")
+)
+
+type deploymentOptions struct {
+	podMatcher       matcher[v1.Pod]
+	containerMatcher matcher[v1.Container]
+}
+
+// DeploymentOption extends the default behavior of [ExecInDeployment].
+type DeploymentOption func(*deploymentOptions)
+
+// WithDeploymentPod selects the pod that matches the given condition.
+func WithDeploymentPod(pred predicate[v1.Pod]) DeploymentOption {
+	return func(opts *deploymentOptions) {
+		opts.podMatcher = match(pred, errPodNotFound)
+	}
+}
+
+// WithDeploymentPodIndex selects the pod at the given index.
+func WithDeploymentPodIndex(idx int) DeploymentOption {
+	return func(opts *deploymentOptions) {
+		opts.podMatcher = matchByIndex[v1.Pod](idx, errPodNotFound)
+	}
+}
+
+// WithDeploymentContainer selects the container that matches the given condition.
+func WithDeploymentContainer(pred predicate[v1.Container]) DeploymentOption {
+	return func(opts *deploymentOptions) {
+		opts.containerMatcher = match(pred, errContainerNotFound)
+	}
+}
+
+// WithDeploymentContainerIndex selects the container at the given index.
+func WithDeploymentContainerIndex(idx int) DeploymentOption {
+	return func(opts *deploymentOptions) {
+		opts.containerMatcher = matchByIndex[v1.Container](idx, errContainerNotFound)
+	}
+}
+
+// WithDeploymentContainerName selects the container with the given name.
+func WithDeploymentContainerName(name string) DeploymentOption {
+	return func(opts *deploymentOptions) {
+		opts.containerMatcher = match(
+			func(c v1.Container) bool { return c.Name == name },
+			fmt.Errorf("%w: name %q", errContainerNotFound, name),
+		)
+	}
+}
+
+// ExecInDeployment runs the given command in a container belonging to the deployment with the given name.
+// By default, it selects the first container of the first pod.
+//
+// Pod and container selection can be customized using [WithDeploymentPod], [WithDeploymentContainer],
+// or related functions.
+func (r *Resources) ExecInDeployment(ctx context.Context, namespaceName, deploymentName string, command []string, stdout, stderr *bytes.Buffer, opts ...DeploymentOption) error {
+	options := deploymentOptions{}
+	defaultOpts := []DeploymentOption{WithDeploymentPodIndex(0), WithDeploymentContainerIndex(0)}
+	for _, fn := range append(defaultOpts, opts...) {
+		fn(&options)
+	}
+
+	var deployment appsv1.Deployment
+	if err := r.Get(ctx, deploymentName, namespaceName, &deployment); err != nil {
+		return err
+	}
+
+	sel, err := metav1.LabelSelectorAsSelector(deployment.Spec.Selector)
+	if err != nil {
+		return err
+	}
+
+	var pods v1.PodList
+	if err := r.client.List(ctx, &pods, cr.InNamespace(namespaceName), cr.MatchingLabelsSelector{Selector: sel}); err != nil {
+		return err
+	}
+
+	pod, err := options.podMatcher(pods.Items)
+	if err != nil {
+		return err
+	}
+
+	container, err := options.containerMatcher(pod.Spec.Containers)
+	if err != nil {
+		return err
+	}
+
+	return r.ExecInPod(ctx, namespaceName, pod.Name, container.Name, command, stdout, stderr)
 }
 
 func init() {
