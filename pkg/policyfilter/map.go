@@ -554,8 +554,7 @@ func (m PfMap) AddCgroup(polID PolicyID, cgID CgroupID) error {
 	}
 	defer inMap.Close()
 
-	val := uint8(0)
-	if err := inMap.Update(&cgID, &val, ebpf.UpdateAny); err != nil {
+	if err := inMap.Update(&cgID, new(uint8(0)), ebpf.UpdateAny); err != nil {
 		return fmt.Errorf("error updating inner map: %w", err)
 	}
 

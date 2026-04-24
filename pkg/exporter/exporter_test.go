@@ -335,9 +335,8 @@ func TestExporterSetLoggingParams(t *testing.T) {
 		assert.Len(t, files, 2)
 
 		// Set a new export file rotation interval (2s)
-		newRotationInterval := 2 * time.Second
 		err = e.SetLogParams(eventlog.Params{
-			RotationInterval: &newRotationInterval,
+			RotationInterval: new(2 * time.Second),
 		})
 		require.NoError(t, err)
 

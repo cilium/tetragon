@@ -76,7 +76,6 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *slog.Logger
 	count := 0
 	dec := json.NewDecoder(jsonFile)
 	for dec.More() {
-		var dbgErr *DebugError
 		var ev tetragon.GetEventsResponse
 		if err := dec.Decode(&ev); err != nil {
 			if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
@@ -104,7 +103,7 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *slog.Logger
 		} else if done && err != nil {
 			log.Error(fmt.Sprintf("%s => terminating error: %s", matchPrefix, err))
 			return err
-		} else if errors.As(err, &dbgErr) {
+		} else if _, ok := errors.AsType[*DebugError](err); ok {
 			log.Debug(fmt.Sprintf("%s => no match: %s, continuing", matchPrefix, err))
 		} else {
 			log.Info(fmt.Sprintf("%s => no match: %s, continuing", matchPrefix, err))

@@ -20,8 +20,7 @@ import (
 )
 
 func TestSensorsRun(m *testing.M, sensorName string) int {
-	c := ConfigDefaults
-	config = &c
+	config = new(ConfigDefaults)
 
 	// some tests require the name of the current binary.
 	config.SelfBinary = filepath.Base(os.Args[0])

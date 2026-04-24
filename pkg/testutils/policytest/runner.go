@@ -177,8 +177,7 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 	}
 
 	if testConf.MonitorMode {
-		mode := tetragon.TracingPolicyMode_TP_MODE_MONITOR
-		err := polHandler.Configure(l, r.cli, nil, &mode)
+		err := polHandler.Configure(l, r.cli, nil, new(tetragon.TracingPolicyMode_TP_MODE_MONITOR))
 		if err != nil {
 			err = errors.Join(err, polHandler.Cleanup(l, r.conf, r.cli))
 			return &Result{Err: err}

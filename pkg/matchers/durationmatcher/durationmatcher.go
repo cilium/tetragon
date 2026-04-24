@@ -188,8 +188,7 @@ func (m *DurationMatcher) Match(value *durationpb.Duration) error {
 			if value == nil {
 				return errors.New("duration is nil")
 			}
-			dur := value.AsDuration()
-			return m.checkBetween(&dur)
+			return m.checkBetween(new(value.AsDuration()))
 		}
 	case opFull:
 		{
@@ -199,8 +198,7 @@ func (m *DurationMatcher) Match(value *durationpb.Duration) error {
 			if value == nil {
 				return errors.New("duration is nil")
 			}
-			dur := value.AsDuration()
-			return m.checkFull(&dur)
+			return m.checkFull(new(value.AsDuration()))
 		}
 	case opGreater:
 		{
@@ -210,8 +208,7 @@ func (m *DurationMatcher) Match(value *durationpb.Duration) error {
 			if value == nil {
 				return errors.New("duration is nil")
 			}
-			dur := value.AsDuration()
-			return m.checkGreater(&dur)
+			return m.checkGreater(new(value.AsDuration()))
 		}
 	case opLess:
 		{
@@ -221,8 +218,7 @@ func (m *DurationMatcher) Match(value *durationpb.Duration) error {
 			if value == nil {
 				return errors.New("duration is nil")
 			}
-			dur := value.AsDuration()
-			return m.checkLess(&dur)
+			return m.checkLess(new(value.AsDuration()))
 		}
 	default:
 		return fmt.Errorf("unhandled DurationMatcher operator %s", m.Operator)

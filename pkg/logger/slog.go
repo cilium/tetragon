@@ -164,8 +164,7 @@ type FieldLogger interface {
 
 func init() {
 	// Set a no-op exit handler to avoid nil dereference
-	a := func() {}
-	exitHandler.Store(&a)
+	exitHandler.Store(new(func() {}))
 }
 
 var (

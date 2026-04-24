@@ -212,8 +212,7 @@ func TestArgExprs(t *testing.T) {
 	for _, tc := range testCase {
 		data, eargs := prepareArgs(t, tc.hookArgs, tc.exprArgs)
 
-		mapKey := uint32(0)
-		err := m.Update(&mapKey, &data, 0)
+		err := m.Update(new(uint32(0)), &data, 0)
 		require.NoError(t, err, "update map value")
 
 		fnName := "myfn"
@@ -247,8 +246,7 @@ func TestArgExprs(t *testing.T) {
 			Instructions: insns,
 			License:      "Dual BSD/GPL",
 		}, ebpf.ProgramOptions{LogLevel: ebpf.LogLevelInstruction})
-		var ve *ebpf.VerifierError
-		if errors.As(err, &ve) {
+		if ve, ok := errors.AsType[*ebpf.VerifierError](err); ok {
 			t.Logf("verifier error: %+v", ve)
 			t.FailNow()
 		}

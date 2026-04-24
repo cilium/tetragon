@@ -29,8 +29,7 @@ func ErrorLabel(err error) string {
 		return policyfiltermetrics.NoErr.String()
 	}
 
-	var podNamespaceConflictErr *podNamespaceConflictError
-	if errors.As(err, &podNamespaceConflictErr) {
+	if _, ok := errors.AsType[*podNamespaceConflictError](err); ok {
 		return policyfiltermetrics.PodNamespaceConflictErr.String()
 	}
 	return policyfiltermetrics.GenericErr.String()

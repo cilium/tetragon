@@ -246,8 +246,7 @@ func TestNamespacedPolicies(t *testing.T) {
 					if ok {
 						// cast uint64 to int32 so that we can have a single
 						// runTest function.
-						x := int32(arg)
-						return &x
+						return new(int32(arg))
 					}
 				} else if execEvent, ok := x.(*grpcexec.MsgExecveEventUnix); ok {
 					if strings.HasSuffix(execEvent.Unix.Process.Filename, "lseek-pipe") {
