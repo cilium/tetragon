@@ -25,6 +25,6 @@ int main(int argc, char *argv[])
 	if (setreuid(1879048188, 1879048188) < 0)
 		errExit("setreuid()");
 
-	execve(argv[1], argv, NULL);
+	execve(argv[1], &argv[1], NULL);
 	errExit("execve()");
 }
