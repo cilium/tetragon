@@ -291,8 +291,7 @@ func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 }
 
 func (msg *MsgExecveEventUnix) Cast(o any) notify.Message {
-	t := o.(processapi.MsgExecveEventUnix)
-	return &MsgExecveEventUnix{Unix: &t}
+	return &MsgExecveEventUnix{Unix: new(o.(processapi.MsgExecveEventUnix))}
 }
 
 // finalize() is called to finalize Process of the event ExecveEvent

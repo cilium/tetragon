@@ -325,8 +325,7 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 			if value == nil {
 				return errors.New("timestamp is nil")
 			}
-			tsTime := value.AsTime().UTC()
-			return m.checkAfter(&tsTime)
+			return m.checkAfter(new(value.AsTime().UTC()))
 		}
 	case opBefore:
 		{
@@ -336,8 +335,7 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 			if value == nil {
 				return errors.New("timestamp is nil")
 			}
-			tsTime := value.AsTime().UTC()
-			return m.checkBefore(&tsTime)
+			return m.checkBefore(new(value.AsTime().UTC()))
 		}
 	case opBetween:
 		{
@@ -347,8 +345,7 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 			if value == nil {
 				return errors.New("timestamp is nil")
 			}
-			tsTime := value.AsTime().UTC()
-			return m.checkBetween(&tsTime)
+			return m.checkBetween(new(value.AsTime().UTC()))
 		}
 	case opDay:
 		{
@@ -358,8 +355,7 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 			if value == nil {
 				return errors.New("timestamp is nil")
 			}
-			tsTime := value.AsTime().UTC()
-			return m.checkDay(&tsTime)
+			return m.checkDay(new(value.AsTime().UTC()))
 		}
 	case opFormat:
 		{
@@ -369,8 +365,7 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 			if value == nil {
 				return errors.New("timestamp is nil")
 			}
-			tsTime := value.AsTime().UTC()
-			return m.checkFormat(&tsTime)
+			return m.checkFormat(new(value.AsTime().UTC()))
 		}
 	case opHour:
 		{
@@ -380,8 +375,7 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 			if value == nil {
 				return errors.New("timestamp is nil")
 			}
-			tsTime := value.AsTime().UTC()
-			return m.checkHour(&tsTime)
+			return m.checkHour(new(value.AsTime().UTC()))
 		}
 	case opMinute:
 		{
@@ -391,8 +385,7 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 			if value == nil {
 				return errors.New("timestamp is nil")
 			}
-			tsTime := value.AsTime().UTC()
-			return m.checkMinute(&tsTime)
+			return m.checkMinute(new(value.AsTime().UTC()))
 		}
 	case opSecond:
 		{
@@ -402,8 +395,7 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 			if value == nil {
 				return errors.New("timestamp is nil")
 			}
-			tsTime := value.AsTime().UTC()
-			return m.checkSecond(&tsTime)
+			return m.checkSecond(new(value.AsTime().UTC()))
 		}
 	default:
 		return fmt.Errorf("unhandled TimestampMatcher operator %s", m.Operator)

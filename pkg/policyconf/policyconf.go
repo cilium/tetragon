@@ -51,8 +51,7 @@ func ModeFromBPFMap(fname string) (Mode, error) {
 	defer m.Close()
 
 	var ret PolicyConf
-	zero := uint32(0)
-	if err = m.Lookup(&zero, &ret); err != nil {
+	if err = m.Lookup(new(uint32(0)), &ret); err != nil {
 		return InvalidMode, err
 	}
 	return ret.Mode, nil
@@ -73,8 +72,7 @@ func SetModeInBPFMap(fname string, mode Mode) error {
 	conf := PolicyConf{
 		Mode: mode,
 	}
-	zero := uint32(0)
-	if err = m.Update(&zero, &conf, ebpf.UpdateExist); err != nil {
+	if err = m.Update(new(uint32(0)), &conf, ebpf.UpdateExist); err != nil {
 		return fmt.Errorf("failed to update map %q with val %v: %w", fname, conf, err)
 	}
 	return nil

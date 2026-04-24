@@ -533,8 +533,7 @@ func tpValidateAndAdjustEnforcerAction(
 					for i, arg := range tp.Args {
 						// syscall id
 						if arg.Index == 4 {
-							val := uint32(i)
-							act.EnforcerNotifyActionArgIndex = &val
+							act.EnforcerNotifyActionArgIndex = new(uint32(i))
 						}
 					}
 					defaultABI, _ := syscallinfo.DefaultABI()

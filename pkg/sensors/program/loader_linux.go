@@ -1104,8 +1104,7 @@ func doLoadProgram(
 		// gets properly pretty-printed.
 		if verbose != 0 {
 			logger.GetLogger().Info("Opening collection failed, dumping verifier log.")
-			var ve *ebpf.VerifierError
-			if errors.As(err, &ve) {
+			if ve, ok := errors.AsType[*ebpf.VerifierError](err); ok {
 				// Print a truncated version if we have verbose=1, otherwise dump the
 				// full log.
 				if verbose < 2 {

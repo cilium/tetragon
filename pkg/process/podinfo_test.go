@@ -19,7 +19,6 @@ import (
 
 func TestK8sWatcher_GetPodInfo(t *testing.T) {
 	build.SkipIfK8sDisabled(t)
-	controller := true
 	var pods []any
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -35,7 +34,7 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 				{
 					Name:       "test-workload",
 					Kind:       "Deployment",
-					Controller: &controller,
+					Controller: new(true),
 				},
 			},
 		},

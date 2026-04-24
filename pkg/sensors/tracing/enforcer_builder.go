@@ -45,14 +45,12 @@ func (ksb *EnforcerSpecBuilder) WithKill(sig uint32) *EnforcerSpecBuilder {
 }
 
 func (ksb *EnforcerSpecBuilder) WithMultiKprobe() *EnforcerSpecBuilder {
-	multi := true
-	ksb.multiKprobe = &multi
+	ksb.multiKprobe = new(true)
 	return ksb
 }
 
 func (ksb *EnforcerSpecBuilder) WithoutMultiKprobe() *EnforcerSpecBuilder {
-	multi := false
-	ksb.multiKprobe = &multi
+	ksb.multiKprobe = new(false)
 	return ksb
 }
 

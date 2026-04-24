@@ -29,7 +29,6 @@ import (
 
 func TestProcessManager_getPodInfo(t *testing.T) {
 	build.SkipIfK8sDisabled(t)
-	controller := true
 	podA := corev1.Pod{
 		ObjectMeta: v1.ObjectMeta{
 			Name:         "pod-a",
@@ -38,7 +37,7 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 			OwnerReferences: []v1.OwnerReference{
 				{
 					Name:       "test-workload",
-					Controller: &controller,
+					Controller: new(true),
 				},
 			},
 		},
@@ -92,7 +91,6 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 
 func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 	build.SkipIfK8sDisabled(t)
-	controller := true
 	var podA = corev1.Pod{
 		ObjectMeta: v1.ObjectMeta{
 			Name:         "pod-a",
@@ -101,7 +99,7 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 			OwnerReferences: []v1.OwnerReference{
 				{
 					Name:       "test-workload",
-					Controller: &controller,
+					Controller: new(true),
 				},
 			},
 		},

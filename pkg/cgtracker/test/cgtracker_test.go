@@ -96,9 +96,8 @@ func doMapTest(t *testing.T, cgfsPath string) {
 		if !strings.HasPrefix(path, "tracked") {
 			continue
 		}
-		trackedID := cgfs.cgIDs[path]
 		var val uint64
-		err = cgfs.cgTrackerMap.Lookup(&trackedID, &val)
+		err = cgfs.cgTrackerMap.Lookup(new(cgfs.cgIDs[path]), &val)
 		require.NoError(t, err)
 		require.Equal(t, trackerID, val)
 	}

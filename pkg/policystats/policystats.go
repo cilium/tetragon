@@ -46,8 +46,7 @@ func StatsFromBPFMap(fname string) (*PolicyStats, error) {
 	defer m.Close()
 
 	var ret PolicyStats
-	zero := uint32(0)
-	if err = m.Lookup(&zero, &ret); err != nil {
+	if err = m.Lookup(new(uint32(0)), &ret); err != nil {
 		return nil, fmt.Errorf("lookup failed: %w", err)
 	}
 	return &ret, nil

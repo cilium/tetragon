@@ -50,6 +50,5 @@ func (msg *MsgTestEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 }
 
 func (msg *MsgTestEventUnix) Cast(o any) notify.Message {
-	t := o.(testapi.MsgTestEvent)
-	return &MsgTestEventUnix{Msg: &t}
+	return &MsgTestEventUnix{Msg: new(o.(testapi.MsgTestEvent))}
 }

@@ -712,8 +712,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 }
 
 func (msg *MsgGenericTracepointUnix) Cast(o any) notify.Message {
-	t := o.(MsgGenericTracepointUnix)
-	return &t
+	return new(o.(MsgGenericTracepointUnix))
 }
 
 func (msg *MsgGenericTracepointUnix) PolicyInfo() tracingpolicy.PolicyInfo {
@@ -768,8 +767,7 @@ func (msg *MsgGenericKprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
 }
 
 func (msg *MsgGenericKprobeUnix) Cast(o any) notify.Message {
-	t := o.(MsgGenericKprobeUnix)
-	return &t
+	return new(o.(MsgGenericKprobeUnix))
 }
 
 func (msg *MsgGenericKprobeUnix) PolicyInfo() tracingpolicy.PolicyInfo {
@@ -849,8 +847,7 @@ func (msg *MsgProcessLoaderUnix) HandleMessage() *tetragon.GetEventsResponse {
 }
 
 func (msg *MsgProcessLoaderUnix) Cast(o any) notify.Message {
-	t := o.(MsgProcessLoaderUnix)
-	return &t
+	return new(o.(MsgProcessLoaderUnix))
 }
 
 type MsgGenericUprobeUnix struct {
@@ -971,8 +968,7 @@ func (msg *MsgGenericUprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
 }
 
 func (msg *MsgGenericUprobeUnix) Cast(o any) notify.Message {
-	t := o.(MsgGenericUprobeUnix)
-	return &t
+	return new(o.(MsgGenericUprobeUnix))
 }
 
 type MsgGenericUsdtUnix struct {
@@ -1077,8 +1073,7 @@ func (msg *MsgGenericUsdtUnix) HandleMessage() *tetragon.GetEventsResponse {
 }
 
 func (msg *MsgGenericUsdtUnix) Cast(o any) notify.Message {
-	t := o.(MsgGenericUsdtUnix)
-	return &t
+	return new(o.(MsgGenericUsdtUnix))
 }
 
 type MsgImaHash struct {
@@ -1120,8 +1115,7 @@ func (msg *MsgGenericLsmUnix) HandleMessage() *tetragon.GetEventsResponse {
 }
 
 func (msg *MsgGenericLsmUnix) Cast(o any) notify.Message {
-	t := o.(MsgGenericLsmUnix)
-	return &t
+	return new(o.(MsgGenericLsmUnix))
 }
 
 func (msg *MsgGenericLsmUnix) PolicyInfo() tracingpolicy.PolicyInfo {
@@ -1242,6 +1236,5 @@ func (msg *MsgProcessThrottleUnix) HandleMessage() *tetragon.GetEventsResponse {
 }
 
 func (msg *MsgProcessThrottleUnix) Cast(o any) notify.Message {
-	t := o.(MsgProcessThrottleUnix)
-	return &t
+	return new(o.(MsgProcessThrottleUnix))
 }
