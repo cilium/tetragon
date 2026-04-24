@@ -105,12 +105,14 @@ func (cr *PipedCommandResult) LastProc() *Proc {
 // CommandBuilder is a batch command builder that
 // can execute commands using different execution policies (i.e. serial, piped, concurrent)
 type CommandBuilder struct {
-	cmdPolicy CommandPolicy
-	procs     []*Proc
-	vars      *vars.Variables
-	err       error
-	stdout    io.Writer
-	stderr    io.Writer
+	cmdPolicy  CommandPolicy
+	procs      []*Proc
+	vars       *vars.Variables
+	err        error
+	stdout     io.Writer
+	stderr     io.Writer
+	shellStr   string
+	cmdStrings []string
 }
 
 // CommandsWithContextVars creates a *CommandBuilder with the specified context and session variables.
@@ -118,6 +120,7 @@ type CommandBuilder struct {
 func CommandsWithContextVars(ctx context.Context, variables *vars.Variables, cmds ...string) *CommandBuilder {
 	cb := new(CommandBuilder)
 	cb.vars = variables
+	cb.cmdStrings = cmds
 	for _, cmd := range cmds {
 		cb.procs = append(cb.procs, NewProcWithContextVars(ctx, cmd, variables))
 	}
@@ -172,6 +175,12 @@ func (cb *CommandBuilder) WithWorkDir(dir string) *CommandBuilder {
 	for _, proc := range cb.procs {
 		proc.cmd.Dir = dir
 	}
+	return cb
+}
+
+// WithShell sets the shell to use for all commands
+func (cb *CommandBuilder) WithShell(shell string) *CommandBuilder {
+	cb.shellStr = shell
 	return cb
 }
 
@@ -279,65 +288,6 @@ func (cb *CommandBuilder) Start() *CommandResult {
 func (cb *CommandBuilder) Concurr() *CommandResult {
 	cb.cmdPolicy = ConcurrentExecPolicy
 	return cb.Start()
-}
-
-// Pipe executes each command serially chaining the combinedOutput of previous command to the inputPipe of next command.
-func (cb *CommandBuilder) Pipe() *PipedCommandResult {
-	if cb.err != nil {
-		return &PipedCommandResult{err: cb.err}
-	}
-
-	var result PipedCommandResult
-	procLen := len(cb.procs)
-	if procLen == 0 {
-		return &PipedCommandResult{}
-	}
-
-	// wire last proc to combined output
-	last := procLen - 1
-	result.lastProc = cb.procs[last]
-
-	// setup standard output/err for last proc in pipe
-	result.lastProc.cmd.Stdout = cb.stdout
-	if cb.stdout == nil {
-		result.lastProc.cmd.Stdout = result.lastProc.result
-	}
-
-	result.lastProc.cmd.Stderr = cb.stderr
-	if cb.stderr == nil {
-		result.lastProc.cmd.Stderr = result.lastProc.result
-	}
-
-	result.lastProc.cmd.Stdout = result.lastProc.result
-	for i, p := range cb.procs[:last] {
-		pipeout, err := p.cmd.StdoutPipe()
-		if err != nil {
-			p.err = err
-			return &PipedCommandResult{err: err, errProcs: []*Proc{p}}
-		}
-
-		cb.procs[i+1].cmd.Stdin = pipeout
-	}
-
-	// start each process (but, not wait for result)
-	// to ensure data flow between successive processes start
-	for _, p := range cb.procs {
-		result.procs = append(result.procs, p)
-		if err := p.Start().Err(); err != nil {
-			result.errProcs = append(result.errProcs, p)
-			return &result
-		}
-	}
-
-	// wait and access processes result
-	for _, p := range cb.procs {
-		if err := p.Wait().Err(); err != nil {
-			result.errProcs = append(result.errProcs, p)
-			break
-		}
-	}
-
-	return &result
 }
 
 func (cb *CommandBuilder) runCommand(proc *Proc) error {

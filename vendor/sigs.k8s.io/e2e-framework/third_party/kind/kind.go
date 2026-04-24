@@ -107,11 +107,11 @@ func (k *Cluster) WithOpts(opts ...support.ClusterOpts) support.E2EClusterProvid
 	return k
 }
 
-func (k *Cluster) getKubeconfig() (string, error) {
+func (k *Cluster) getKubeconfig(ctx context.Context, args ...string) (string, error) {
 	kubecfg := fmt.Sprintf("%s-kubecfg", k.name)
 
 	var stdout, stderr bytes.Buffer
-	err := utils.RunCommandWithSeperatedOutput(fmt.Sprintf(`%s get kubeconfig --name %s`, k.path, k.name), &stdout, &stderr)
+	err := utils.RunCommandWithSeperatedOutputContext(ctx, fmt.Sprintf(`%s get kubeconfig %s --name %s`, k.path, strings.Join(args, " "), k.name), &stdout, &stderr)
 	if err != nil {
 		return "", fmt.Errorf("kind get kubeconfig: stderr: %s: %w", stderr.String(), err)
 	}
@@ -158,7 +158,7 @@ func (k *Cluster) Create(ctx context.Context, args ...string) (string, error) {
 
 	if _, ok := k.clusterExists(k.name); ok {
 		log.V(4).Info("Skipping Kind Cluster.Create: cluster already created: ", k.name)
-		kConfig, err := k.getKubeconfig()
+		kConfig, err := k.getKubeconfig(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -174,7 +174,7 @@ func (k *Cluster) Create(ctx context.Context, args ...string) (string, error) {
 		command = fmt.Sprintf("%s %s", command, strings.Join(args, " "))
 	}
 	log.V(4).Info("Launching:", command)
-	p := utils.RunCommand(command)
+	p := utils.RunCommandContext(ctx, command)
 	if p.Err() != nil {
 		outBytes, err := io.ReadAll(p.Out())
 		if err != nil {
@@ -188,7 +188,7 @@ func (k *Cluster) Create(ctx context.Context, args ...string) (string, error) {
 	}
 	log.V(4).Info("kind clusters available: ", clusters)
 
-	kConfig, err := k.getKubeconfig()
+	kConfig, err := k.getKubeconfig(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -219,7 +219,7 @@ func (k *Cluster) ExportLogs(ctx context.Context, dest string) error {
 		return err
 	}
 
-	p := utils.RunCommand(fmt.Sprintf(`%s export logs %s --name %s`, k.path, dest, k.name))
+	p := utils.RunCommandContext(ctx, fmt.Sprintf(`%s export logs %s --name %s`, k.path, dest, k.name))
 	if p.Err() != nil {
 		return fmt.Errorf("kind: export cluster %v logs failed: %s: %s", k.name, p.Err(), p.Result())
 	}
@@ -233,7 +233,7 @@ func (k *Cluster) Destroy(ctx context.Context) error {
 		return err
 	}
 
-	p := utils.RunCommand(fmt.Sprintf(`%s delete cluster --name %s`, k.path, k.name))
+	p := utils.RunCommandContext(ctx, fmt.Sprintf(`%s delete cluster --name %s`, k.path, k.name))
 	if p.Err() != nil {
 		outBytes, err := io.ReadAll(p.Out())
 		if err != nil {
@@ -262,7 +262,7 @@ func (k *Cluster) findOrInstallKind() error {
 }
 
 func (k *Cluster) LoadImage(ctx context.Context, image string, args ...string) error {
-	p := utils.RunCommand(fmt.Sprintf(`%s load docker-image --name %s %s`, k.path, k.name, image))
+	p := utils.RunCommandContext(ctx, fmt.Sprintf(`%s load docker-image --name %s %s`, k.path, k.name, image))
 	if p.Err() != nil {
 		return fmt.Errorf("kind: load docker-image %v failed: %s: %s", image, p.Err(), p.Result())
 	}
@@ -270,7 +270,7 @@ func (k *Cluster) LoadImage(ctx context.Context, image string, args ...string) e
 }
 
 func (k *Cluster) LoadImageArchive(ctx context.Context, imageArchive string, args ...string) error {
-	p := utils.RunCommand(fmt.Sprintf(`%s load image-archive --name %s %s`, k.path, k.name, imageArchive))
+	p := utils.RunCommandContext(ctx, fmt.Sprintf(`%s load image-archive --name %s %s`, k.path, k.name, imageArchive))
 	if p.Err() != nil {
 		return fmt.Errorf("kind: load image-archive %v failed: %s: %s", imageArchive, p.Err(), p.Result())
 	}
@@ -306,4 +306,8 @@ func (k *Cluster) WaitForControlPlane(ctx context.Context, client klient.Client)
 
 func (k *Cluster) KubernetesRestConfig() *rest.Config {
 	return k.rc
+}
+
+func (k *Cluster) GenerateKubeconfig(args ...string) (string, error) {
+	return k.getKubeconfig(context.Background(), args...)
 }

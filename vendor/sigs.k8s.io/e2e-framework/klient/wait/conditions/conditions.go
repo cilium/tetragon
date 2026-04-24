@@ -304,14 +304,15 @@ func (c *Condition) DeploymentAvailable(name, namespace string) apimachinerywait
 	)
 }
 
-// DaemonSetReady is a helper function used to check if a daemonset's pods are scheduled and ready
+// DaemonSetReady is a helper function used to check if a daemonset's pods are scheduled, ready and rolled out completely
 func (c *Condition) DaemonSetReady(daemonset k8s.Object) apimachinerywait.ConditionWithContextFunc {
 	return func(ctx context.Context) (done bool, err error) {
 		if err := c.resources.Get(ctx, daemonset.GetName(), daemonset.GetNamespace(), daemonset); err != nil {
 			return false, err
 		}
-		status := daemonset.(*appsv1.DaemonSet).Status // nolint: errcheck
-		if status.NumberReady == status.DesiredNumberScheduled && status.NumberUnavailable == 0 {
+		ds := daemonset.(*appsv1.DaemonSet) // nolint: errcheck
+		if ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
+			ds.Status.UpdatedNumberScheduled == ds.Status.DesiredNumberScheduled {
 			done = true
 		}
 		return
