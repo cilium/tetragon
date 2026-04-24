@@ -145,8 +145,7 @@ func tpEnableCmd() *cobra.Command {
 		Long:  "Enable a disabled tracing policy. Use disable to re-disable the tracing policy.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			enable := true
-			err := tpConfigure(args[0], namespace, &enable, nil)
+			err := tpConfigure(args[0], namespace, new(true), nil)
 			if err != nil {
 				return fmt.Errorf("failed to enable tracing policy: %w", err)
 			}
@@ -167,8 +166,7 @@ func tpDisableCmd() *cobra.Command {
 		Long:  "Disable an enabled tracing policy. Use enable to re-enable the tracing policy.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			enable := false
-			err := tpConfigure(args[0], namespace, &enable, nil)
+			err := tpConfigure(args[0], namespace, new(false), nil)
 			if err != nil {
 				return fmt.Errorf("failed to disable tracing policy: %w", err)
 			}
