@@ -8,6 +8,7 @@ package celbpf
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -17,16 +18,19 @@ import (
 	cgOperators "github.com/google/cel-go/common/operators"
 	cgTypes "github.com/google/cel-go/common/types"
 	cgRef "github.com/google/cel-go/common/types/ref"
+
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 type compiler struct {
-	ast  *cgAst.AST
-	src  cgCommon.Source
-	cg   *codeGenerator
-	args []exprArg
+	ast         *cgAst.AST
+	src         cgCommon.Source
+	cg          *codeGenerator
+	args        []v1alpha1.KProbeArg
+	arg_indexes []uint16
 }
 
-func newCompiler(ast *cgAst.AST, src cgCommon.Source, args []exprArg, labelPrefix string) *compiler {
+func newCompiler(ast *cgAst.AST, src cgCommon.Source, args []v1alpha1.KProbeArg, labelPrefix string) *compiler {
 	return &compiler{
 		ast:  ast,
 		src:  src,
@@ -163,13 +167,24 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 	return emitCall()
 }
 
-func (c *compiler) compileArg(argIdx int) error {
-	if argIdx >= len(c.args) {
+func (c *compiler) compileArg(argIdx uint16) error {
+	if int(argIdx) >= len(c.args) {
 		return fmt.Errorf("invalid argument (arg%d): undefined", argIdx)
 	}
 
 	arg := c.args[argIdx]
-	if err := c.cg.pushArg(arg.ty, arg.argOffset, scratchRegs[0], scratchRegs[1]); err != nil {
+
+	if !slices.Contains(c.arg_indexes, argIdx) {
+		c.arg_indexes = append(c.arg_indexes, argIdx)
+	}
+
+	converted_type := convertType(arg)
+
+	if converted_type == unsupportedTy {
+		return fmt.Errorf("arg%d has unsupported type", argIdx)
+	}
+
+	if err := c.cg.pushArg(converted_type, argIdx, scratchRegs[0], scratchRegs[1]); err != nil {
 		return fmt.Errorf("invalid argument (arg%d): %w", argIdx, err)
 	}
 	return nil
@@ -177,11 +192,11 @@ func (c *compiler) compileArg(argIdx int) error {
 
 func (c *compiler) compileIdent(s string) error {
 	if strings.HasPrefix(s, "arg") {
-		idx, err := strconv.Atoi(s[3:])
+		idx, err := strconv.ParseUint(s[3:], 10, 16)
 		if err != nil {
 			return fmt.Errorf("invalid argument (%s): %w", s, err)
 		}
-		return c.compileArg(idx)
+		return c.compileArg(uint16(idx))
 	}
 	return fmt.Errorf("BUG: ident %q unknown", s)
 }
@@ -209,16 +224,16 @@ func (c *compiler) compileExpr(expr cgAst.Expr) error {
 	return fmt.Errorf("unsupported CEL expr: %d (%+v)", expr.Kind(), expr)
 }
 
-func (c *compiler) compile() (asm.Instructions, error) {
+func (c *compiler) compile() (asm.Instructions, []uint16, error) {
 	expr := c.ast.Expr()
 	if cgAst.NavigateExpr(c.ast, expr).Type().Kind() != cgTypes.BoolKind {
-		return nil, errors.New("expecting CEL expression to return bool")
+		return nil, nil, errors.New("expecting CEL expression to return bool")
 	}
 	if err := c.compileExpr(expr); err != nil {
-		return nil, fmt.Errorf("failed to compile CEL expression: %w", err)
+		return nil, nil, fmt.Errorf("failed to compile CEL expression: %w", err)
 	}
 	c.cg.emitPopBool(asm.R0)
 	c.cg.emitRaw(asm.Return())
 
-	return c.cg.instructions(), nil
+	return c.cg.instructions(), c.arg_indexes, nil
 }

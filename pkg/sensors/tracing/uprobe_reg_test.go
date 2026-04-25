@@ -349,8 +349,6 @@ spec:
     selectors:
       - matchArgs:
         - operator: CelExpr
-          args:
-            - 2
           values:
           - "` + expression + `"
 `
@@ -398,19 +396,19 @@ spec:
 }
 
 func TestUprobeResolveCELMatch(t *testing.T) {
-	testUprobeResolveCEL(t, "arg0 == 7u", []string{"subp.v64", "7"}, false)
+	testUprobeResolveCEL(t, "arg2 == 7u", []string{"subp.v64", "7"}, false)
 }
 
 func TestUprobeResolveCELMatchFail(t *testing.T) {
-	testUprobeResolveCEL(t, "arg0 == 8u", []string{"subp.v64", "7"}, true)
+	testUprobeResolveCEL(t, "arg2 == 8u", []string{"subp.v64", "7"}, true)
 }
 
 func TestUprobeResolveCELMatchNotEqual(t *testing.T) {
-	testUprobeResolveCEL(t, "arg0 != 8u", []string{"subp.v64", "7"}, false)
+	testUprobeResolveCEL(t, "arg2 != 8u", []string{"subp.v64", "7"}, false)
 }
 
 func TestUprobeResolveCELNoMatchOnArgReadFailure(t *testing.T) {
-	testUprobeResolveCEL(t, "arg0 != 8u", []string{"v8", "7"}, true)
+	testUprobeResolveCEL(t, "arg2 != 8u", []string{"v8", "7"}, true)
 }
 
 func TestCelExprMultiUprobeOneMatch(t *testing.T) {

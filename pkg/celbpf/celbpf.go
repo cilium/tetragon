@@ -16,6 +16,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 type Env struct{}
@@ -38,38 +39,29 @@ func Supported() bool {
 	return bpf.DetectMixBpfAndTailCalls()
 }
 
-func Compile(celExpr string, args []ExprArg, labelPrefix string) (asm.Instructions, error) {
+func Compile(celExpr string, sig []v1alpha1.KProbeArg, labelPrefix string) (asm.Instructions, []uint16, error) {
 	source := cgCommon.NewTextSource(celExpr)
 	parser, err := cgParser.NewParser()
 	if err != nil {
-		return nil, fmt.Errorf("failed initialize CEL parser: %w", err)
+		return nil, nil, fmt.Errorf("failed initialize CEL parser: %w", err)
 	}
 
 	ast, errs := parser.Parse(source)
 	if len(errs.GetErrors()) > 0 {
-		return nil, fmt.Errorf("failed to parse CEL expresion %q: %s", celExpr, errs.ToDisplayString())
+		return nil, nil, fmt.Errorf("failed to parse CEL expresion %q: %s", celExpr, errs.ToDisplayString())
 	}
 
-	eargs := make([]exprArg, 0, len(args))
-	for i := range args {
-		earg, err := newExprArg(args[i])
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert argument %d: %w", i, err)
-		}
-		eargs = append(eargs, earg)
-	}
-
-	checkerEnv, err := newCheckerEnv(eargs)
+	checkerEnv, err := newCheckerEnv(sig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	ast, errs = cgChecker.Check(ast, source, checkerEnv)
 	if len(errs.GetErrors()) > 0 {
-		return nil, fmt.Errorf("check failed on CEL expresion %q: %s", celExpr, errs.ToDisplayString())
+		return nil, nil, fmt.Errorf("check failed on CEL expresion %q: %s", celExpr, errs.ToDisplayString())
 	}
 
-	compiler := newCompiler(ast, source, eargs, labelPrefix)
+	compiler := newCompiler(ast, source, sig, labelPrefix)
 	return compiler.compile()
 }
 
@@ -106,12 +98,12 @@ func CompileEmptyFunction(fnName string) asm.Instructions {
 	return insns
 }
 
-func CompileFn(fnName, celExpr string, args []ExprArg) (asm.Instructions, error) {
-	insns, err := Compile(celExpr, args, fnName)
+func CompileFn(fnName, celExpr string, sig []v1alpha1.KProbeArg) (asm.Instructions, []uint16, error) {
+	insns, arg_indexes, err := Compile(celExpr, sig, fnName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile CEL expression %q: %w", celExpr, err)
+		return nil, nil, fmt.Errorf("failed to compile CEL expression %q: %w", celExpr, err)
 	}
 	fnTy := btfCelExprTy(fnName)
 	insns[0] = btf.WithFuncMetadata(insns[0].WithSymbol(fnTy.Name), fnTy).WithSource(s{celExpr})
-	return insns, nil
+	return insns, arg_indexes, nil
 }

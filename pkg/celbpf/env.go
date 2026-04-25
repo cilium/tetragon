@@ -15,6 +15,9 @@ import (
 	cgOperators "github.com/google/cel-go/common/operators"
 	cgOverloads "github.com/google/cel-go/common/overloads"
 	cgTypes "github.com/google/cel-go/common/types"
+
+	gt "github.com/cilium/tetragon/pkg/generictypes"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 var (
@@ -121,16 +124,24 @@ func checkerAddFunctions(env *cgChecker.Env) error {
 	return env.AddFunctions(fns...)
 }
 
-func checkerAddArguments(checkerEnv *cgChecker.Env, args []exprArg) error {
+func convertType(conf_arg v1alpha1.KProbeArg) *cgTypes.Type {
+	t, err := typeFromGenTy(gt.GenericTypeFromString(conf_arg.Type))
+	if err != nil {
+		t = unsupportedTy
+	}
+	return t
+}
+
+func checkerAddArguments(checkerEnv *cgChecker.Env, args []v1alpha1.KProbeArg) error {
 	// add argument identifiers
-	for i := range args {
-		arg := cgDecls.NewVariable("arg"+strconv.Itoa(i), args[i].ty)
+	for i, a := range args {
+		arg := cgDecls.NewVariable("arg"+strconv.Itoa(i), convertType(a))
 		checkerEnv.AddIdents(arg)
 	}
 	return nil
 }
 
-func newCheckerEnv(args []exprArg) (*cgChecker.Env, error) {
+func newCheckerEnv(args []v1alpha1.KProbeArg) (*cgChecker.Env, error) {
 	tyProvider, err := NewProvider()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize type provider: %w", err)

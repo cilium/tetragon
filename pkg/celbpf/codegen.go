@@ -140,8 +140,8 @@ func (g *codeGenerator) emitU32(reg asm.Register, regTy *cgTypes.Type) error {
 	return nil
 }
 
-func (g *codeGenerator) pushArg(argTy *cgTypes.Type, argOffset int, tmp1, tmp2 asm.Register) error {
-	off := argOffset * 8
+func (g *codeGenerator) pushArg(argTy *cgTypes.Type, argOffset uint16, tmp1, tmp2 asm.Register) error {
+	off := int(argOffset * 8)
 	if off > math.MaxInt16 {
 		return fmt.Errorf("offset %d overflows 16-bits", off)
 	}

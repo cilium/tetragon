@@ -32,36 +32,27 @@ func addMatchCelExpr(
 	exprs *CelExprFunctions,
 	arg *v1alpha1.ArgSelector,
 	sig []v1alpha1.KProbeArg,
-) error {
+) ([]uint16, error) {
 
 	if len(arg.Values) != 1 {
-		return errors.New("addMatchCelExpr: only a single CelExpr value is supported")
+		return nil, errors.New("addMatchCelExpr: only a single CelExpr value is supported")
 	}
 
 	nExprs := len(*exprs)
 	if nExprs >= MaxCelExprFunctions {
-		return fmt.Errorf("addMatchCelExpr: cannot allocate new cel expression function. No more than %d CelExpr allowed per policy", MaxCelExprFunctions)
+		return nil, fmt.Errorf("addMatchCelExpr: cannot allocate new cel expression function. No more than %d CelExpr allowed per policy", MaxCelExprFunctions)
 	}
 
 	idx := nExprs
 	celExpr := arg.Values[0]
 
-	args := make([]celbpf.ExprArg, 0, len(arg.Args))
-	for i := range arg.Args {
-		argIdx, ty, err := argIndexTypeFromArgs(arg, i, sig)
-		if err != nil {
-			return nil
-		}
-		args = append(args, celbpf.ExprArg{GenTy: int(ty), ArgOffset: int(argIdx)})
-	}
-
-	insts, err := celbpf.CompileFn(CelExprFuncName(idx), celExpr, args)
+	insts, arg_indexes, err := celbpf.CompileFn(CelExprFuncName(idx), celExpr, sig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	*exprs = append(*exprs, insts)
-	return nil
+	return arg_indexes, nil
 }
 
 func parseMatchCelExpr(
@@ -73,7 +64,7 @@ func parseMatchCelExpr(
 		return errors.New("celbpf not supported in this kernel")
 	}
 
-	err := addMatchCelExpr(k.celExprFunctions, arg, sig)
+	arg_indexes, err := addMatchCelExpr(k.celExprFunctions, arg, sig)
 	if err != nil {
 		return err
 	}
@@ -83,13 +74,8 @@ func parseMatchCelExpr(
 	WriteSelectorUint32(&k.data, SelectorOpCelExpr)
 	moff := AdvanceSelectorLength(&k.data)
 	WriteSelectorUint32(&k.data, 0)
-
-	for i := range arg.Args {
-		idx, _, err := argIndexTypeFromArgs(arg, i, sig)
-		if err != nil {
-			return err
-		}
-		WriteSelectorUint32(&k.data, idx)
+	for _, idx := range arg_indexes {
+		WriteSelectorUint32(&k.data, uint32(idx))
 	}
 	WriteSelectorLength(&k.data, moff)
 	return nil
