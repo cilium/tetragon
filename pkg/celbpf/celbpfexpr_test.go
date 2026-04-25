@@ -123,7 +123,7 @@ func TestExprs(t *testing.T) {
 	testCases = append(testCases, testComparisons()...)
 
 	for _, tc := range testCases {
-		insts, err := Compile(tc.expr, nil, "tc")
+		insts, _, err := Compile(tc.expr, nil, "tc")
 		require.NoError(t, err, "Compiling expression %q failed", tc.expr)
 		insts[0] = insts[0].WithSource(s{tc.expr})
 		// t.Logf("expr:%q\ninsts[%d]:\n%s", tc.expr, len(insts), insts)

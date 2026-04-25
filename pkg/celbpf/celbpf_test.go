@@ -22,7 +22,7 @@ import (
 	"github.com/cilium/ebpf/btf"
 	"github.com/stretchr/testify/require"
 
-	gt "github.com/cilium/tetragon/pkg/generictypes"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 func dumpProg(t *testing.T, prog *ebpf.Program) {
@@ -50,8 +50,8 @@ type DummyMsg struct {
 	args    [24000]uint8
 }
 
-func prepareArgs(t *testing.T, hookArgs []any, exprArgs []int) (DummyMsg, []ExprArg) {
-	var eargs []ExprArg
+func prepareArgs(t *testing.T, hookArgs []any) (DummyMsg, []v1alpha1.KProbeArg) {
+	var args []v1alpha1.KProbeArg
 	var msg DummyMsg
 	argsOff := 0
 	for i := range 5 {
@@ -68,35 +68,30 @@ func prepareArgs(t *testing.T, hookArgs []any, exprArgs []int) (DummyMsg, []Expr
 		}
 	}
 
-	for _, eArg := range exprArgs {
-		hArg := hookArgs[eArg]
+	for _, hArg := range hookArgs {
 		switch hArg.(type) {
 		case int32:
-			eargs = append(eargs, ExprArg{
-				GenTy:     gt.GenericS32Type,
-				ArgOffset: eArg,
+			args = append(args, v1alpha1.KProbeArg{
+				Type: "int32",
 			})
 		case uint64:
-			eargs = append(eargs, ExprArg{
-				GenTy:     gt.GenericU64Type,
-				ArgOffset: eArg,
+			args = append(args, v1alpha1.KProbeArg{
+				Type: "uint64",
 			})
 		case uint32:
-			eargs = append(eargs, ExprArg{
-				GenTy:     gt.GenericU32Type,
-				ArgOffset: eArg,
+			args = append(args, v1alpha1.KProbeArg{
+				Type: "uint32",
 			})
 		case int64:
-			eargs = append(eargs, ExprArg{
-				GenTy:     gt.GenericS64Type,
-				ArgOffset: eArg,
+			args = append(args, v1alpha1.KProbeArg{
+				Type: "int64",
 			})
 		default:
 			t.Fatalf("unknown type %T", hArg)
 		}
 	}
 
-	return msg, eargs
+	return msg, args
 }
 
 func btfTestArgExprFnTy(fnName string) *btf.Func {
@@ -130,73 +125,61 @@ func TestArgExprs(t *testing.T) {
 		expr     string
 		ret      uint32
 		hookArgs []any
-		exprArgs []int
 	}{
 		{
 			expr:     "arg0 == 42u",
 			ret:      1,
 			hookArgs: []any{uint64(42)},
-			exprArgs: []int{0},
 		},
 		{
 			expr:     "arg0 == 43u",
 			ret:      0,
 			hookArgs: []any{uint64(42)},
-			exprArgs: []int{0},
 		},
 		{
 			expr:     "arg0 == 0xaaaaaaaaaaaaaaaau",
 			ret:      1,
 			hookArgs: []any{uint64(0xaaaaaaaaaaaaaaaa)},
-			exprArgs: []int{0},
 		},
 		{
 			expr:     "arg0 == 0xaaaaaaaaaaaaaaaau",
 			ret:      0,
 			hookArgs: []any{uint64(0xbaaaaaaaaaaaaaab)},
-			exprArgs: []int{0},
 		},
 		{
 			expr:     "arg0 == uint32(42u)",
 			ret:      1,
 			hookArgs: []any{uint32(42)},
-			exprArgs: []int{0},
 		},
 		{
 			expr:     "arg0 == uint32(43u)",
 			ret:      0,
 			hookArgs: []any{uint32(42)},
-			exprArgs: []int{0},
 		},
 		{
-			expr:     "arg0 == int32(42)",
+			expr:     "arg2 == int32(42)",
 			ret:      1,
 			hookArgs: []any{int32(0), uint64(0), int32(42)},
-			exprArgs: []int{2},
 		},
 		{
-			expr:     "arg0 == int32(0)",
+			expr:     "arg2 == int32(0)",
 			ret:      0,
 			hookArgs: []any{int32(0), uint64(0), int32(42)},
-			exprArgs: []int{2},
 		},
 		{
-			expr:     "arg0 == arg1",
+			expr:     "arg2 == arg0",
 			ret:      1,
 			hookArgs: []any{int32(42), uint64(0), int32(42)},
-			exprArgs: []int{2, 0},
 		},
 		{
-			expr:     "arg0 - int32(10) == int32(32)",
+			expr:     "arg2 - int32(10) == int32(32)",
 			ret:      1,
 			hookArgs: []any{int32(30), uint64(0), int32(42)},
-			exprArgs: []int{2},
 		},
 		{
-			expr:     "arg0 - int32(10) == int32(2) + arg1",
+			expr:     "arg2 - int32(10) == int32(2) + arg0",
 			ret:      1,
 			hookArgs: []any{int32(30), uint64(0), int32(42)},
-			exprArgs: []int{2, 0},
 		},
 	}
 
@@ -210,13 +193,13 @@ func TestArgExprs(t *testing.T) {
 	defer m.Close()
 
 	for _, tc := range testCase {
-		data, eargs := prepareArgs(t, tc.hookArgs, tc.exprArgs)
+		data, args := prepareArgs(t, tc.hookArgs)
 
 		err := m.Update(new(uint32(0)), &data, 0)
 		require.NoError(t, err, "update map value")
 
 		fnName := "myfn"
-		insns, err := CompileFn(fnName, tc.expr, eargs)
+		insns, _, err := CompileFn(fnName, tc.expr, args)
 		require.NoError(t, err)
 		prelude := asm.Instructions{
 			// R1 map

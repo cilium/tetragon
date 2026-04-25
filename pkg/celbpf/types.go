@@ -18,10 +18,11 @@ import (
 )
 
 var (
-	s64Ty = cgTypes.IntType
-	u64Ty = cgTypes.UintType
-	s32Ty = cgTypes.NewOpaqueType("s32")
-	u32Ty = cgTypes.NewOpaqueType("u32")
+	s64Ty         = cgTypes.IntType
+	u64Ty         = cgTypes.UintType
+	s32Ty         = cgTypes.NewOpaqueType("s32")
+	u32Ty         = cgTypes.NewOpaqueType("u32")
+	unsupportedTy = cgTypes.NewOpaqueType("unsupported")
 
 	addS32 = "add_s32"
 	addU32 = "add_u32"
@@ -73,11 +74,6 @@ func subOperatorFunctionOpts() []cgDecls.FunctionOpt {
 	return ret
 }
 
-type exprArg struct {
-	ty        *cgTypes.Type
-	argOffset int
-}
-
 func typeFromGenTy(genTy int) (*cgTypes.Type, error) {
 	switch genTy {
 	case gt.GenericS64Type:
@@ -93,15 +89,4 @@ func typeFromGenTy(genTy int) (*cgTypes.Type, error) {
 	}
 
 	return nil, fmt.Errorf("unhandled generic type: %d (%s)", genTy, gt.GenericTypeString(genTy))
-}
-
-func newExprArg(arg ExprArg) (exprArg, error) {
-	ty, err := typeFromGenTy(arg.GenTy)
-	if err != nil {
-		return exprArg{}, err
-	}
-	return exprArg{
-		ty:        ty,
-		argOffset: arg.ArgOffset,
-	}, nil
 }
