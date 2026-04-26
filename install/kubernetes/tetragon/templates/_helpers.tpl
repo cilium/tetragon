@@ -128,3 +128,15 @@ Runtime-hooks
 {{- else -}}
 {{- end -}}
 {{- end }}
+
+{{/*
+rthooks affinity: when rthooks.affinity is explicitly set (including {}),
+use it as-is. Otherwise fall back to the top-level .Values.affinity.
+*/}}
+{{- define "tetragon-rthooks.affinity" -}}
+{{- if hasKey .Values.rthooks "affinity" -}}
+{{- toYaml .Values.rthooks.affinity -}}
+{{- else -}}
+{{- toYaml .Values.affinity -}}
+{{- end -}}
+{{- end }}
