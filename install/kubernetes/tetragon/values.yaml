@@ -434,6 +434,10 @@ rthooks:
   #      Specific configuration for this interface can be found under "nriHook".
   #
   interface: ""
+  # -- Affinity for the Tetragon rthooks pod. If this key is omitted, the chart
+  # falls back to the top-level `affinity` value. Set it explicitly (including
+  # to `{}`) to override the top-level affinity for the rthooks DaemonSet only.
+  # affinity: {}
   # -- Annotations for the Tetragon rthooks daemonset
   annotations: {}
   # -- Extra labels for the Tetrargon rthooks daemonset
