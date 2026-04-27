@@ -55,6 +55,12 @@ To filter host workloads we use the `hostSelector` field of tracing policies to 
 should be applied to host workloads or not. For now this only supports `{}` to match all host workloads
 and `null` to match none of the host workloads.
 
+{{< note >}}
+Since a `TracingPolicyNamespaced` can only apply to Pods within a specific
+Kubernetes namespace, any non-null `hostSelector` will trigger a warning and
+and be overriden to `null`.
+{{< /note >}}
+
 Based on these, the user can filter out specific workloads.
 
 ## Examples
