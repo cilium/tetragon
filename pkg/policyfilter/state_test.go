@@ -6,12 +6,19 @@
 package policyfilter
 
 import (
+	"maps"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/labels"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 )
 
@@ -376,4 +383,82 @@ func TestStateHostSelector(t *testing.T) {
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
 		uint64(AllPodsID): {},
 	})
+}
+
+// TestRegressionOnPodLabelsMutation tests a regression we had in the podMatches
+// function. This function is mutating the Pod's label and was passed the actual
+// cached labels pointer. Any other user of the cache that would DeepCopy the
+// object, like a reconciler, would create a "fatal error: concurrent map
+// iteration and map write". Run the test with:
+//
+//	go test ./pkg/policyfilter -run TestRegressionOnPodLabelsMutation -race
+func TestRegressionOnPodLabelsMutation(t *testing.T) {
+	// Create a fake state without BPF maps, note: such helper should
+	// already exist so that it's easier to test this codebase.
+	emptySelector := &slimv1.LabelSelector{}
+	podSelector, err := labels.SelectorFromLabelSelector(emptySelector)
+	require.NoError(t, err)
+	containerSelector, err := labels.SelectorFromLabelSelector(emptySelector)
+	require.NoError(t, err)
+
+	log := logger.GetLogger().With("test", "race")
+	st := &state{
+		log:         log,
+		DebugLogger: logger.NewDebugLogger(log, false),
+		policies: []policy{
+			{
+				id:                PolicyID(1),
+				namespace:         "", // Empty namespace matches all
+				podSelector:       podSelector,
+				containerSelector: containerSelector,
+				polMap:            polMap{}, // Fake empty polMap
+			},
+		},
+		pods:       []podInfo{},
+		pfMap:      PfMap{}, // Fake empty PfMap
+		cgidFinder: nil,
+	}
+
+	cachedPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:       types.UID(uuid.New().String()),
+			Name:      "test-pod",
+			Namespace: "default",
+			Labels: map[string]string{
+				"app":  "myapp",
+				"tier": "backend",
+			},
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{Name: "test-container"},
+			},
+		},
+	}
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+
+	// Goroutine 1: Simulates the event handler calling updatePodHandler(),
+	// before the patch fix, this function is at some point calling
+	// podMatches function which was mutating the Pods labels.
+	wg.Go(func() {
+		<-start
+		for range 1000 {
+			st.updatePodHandler(cachedPod)
+		}
+	})
+
+	// Goroutine 2: Simulates a Reconciler doing DeepCopy on the same cached Pod
+	wg.Go(func() {
+		<-start
+		for range 1000 {
+			// DeepCopy reads cachedPod.Labels
+			copyLabels := make(map[string]string, len(cachedPod.Labels))
+			maps.Copy(copyLabels, cachedPod.Labels)
+		}
+	})
+
+	close(start)
+	wg.Wait()
 }
