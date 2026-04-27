@@ -24,7 +24,7 @@ import (
 
 // GetSysProcAttr returns the SysProcAttr to use for the process,
 // for unix systems this returns a SysProcAttr with Setpgid set to true,
-// which inherits the parent's process group id.
+// which creates a new process group for the child process.
 func GetSysProcAttr() *unix.SysProcAttr {
 	return &unix.SysProcAttr{
 		Setpgid: true,
