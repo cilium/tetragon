@@ -56,11 +56,11 @@ struct {
 #ifdef __MULTI_KPROBE
 #define MAIN	"uprobe.multi/generic_uprobe"
 #define COMMON	"uprobe.multi"
-#define OFFLOAD "uprobe.multi.s/generic_uprobe"
+#define OFFLOAD "uprobe.multi.s"
 #else
 #define MAIN	"uprobe/generic_uprobe"
 #define COMMON	"uprobe"
-#define OFFLOAD "uprobe.s/generic_uprobe"
+#define OFFLOAD "uprobe.s"
 #endif
 
 __attribute__((section((MAIN)), used)) int
