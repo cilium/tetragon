@@ -1046,7 +1046,11 @@ func doLoadProgram(
 	refMaps := make(map[string]bool)
 	for _, prog := range spec.Programs {
 		if prog.SectionName == load.Label {
-			progSpec = prog
+			if progSpec == nil {
+				progSpec = prog
+			} else {
+				logger.GetLogger().Warn("multiple main sections found", "section", load.Label, "object", load.Name)
+			}
 		}
 		for _, inst := range prog.Instructions {
 			if inst.Reference() != "" {
