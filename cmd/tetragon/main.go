@@ -681,12 +681,12 @@ func getExporter(ctx context.Context, server *server.Server) (*exporter.Exporter
 	return exporter.NewExporter(ctx, &req, server, encoder, writer, rateLimiter)
 }
 
-func Serve(ctx context.Context, listenAddr string, srv *server.Server, logSrv *eventlog.Server) error {
+func Serve(ctx context.Context, listenAddr string, srv *server.Server, logSrv *eventlog.Server, extraOpts ...grpc.ServerOption) error {
 	// we use an empty listen address to effectively disable the gRPC server
 	if len(listenAddr) == 0 {
 		return nil
 	}
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(extraOpts...)
 	tetragon.RegisterFineGuidanceSensorsServer(grpcServer, srv)
 	tetragon.RegisterEventLogServiceServer(grpcServer, logSrv)
 
