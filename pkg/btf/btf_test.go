@@ -680,3 +680,159 @@ func TestParseArrayIdxStr(t *testing.T) {
 		})
 	}
 }
+
+func TestProcessMembersErrorPrecedence(t *testing.T) {
+	intTy := &btf.Int{Name: "int", Size: 4}
+
+	// deeper resolveError beats shallower resolveError
+	t.Run("deepest_resolve_error_wins", func(t *testing.T) {
+		// struct outer {
+		//   struct { int a; };                     // anon1: "x" not found → resolveError{depth=0}
+		//   struct { struct inner { int b; } x; }; // anon2: "x" found, "y" not found → resolveError{depth=1}
+		// };
+		inner := &btf.Struct{
+			Name: "inner",
+			Size: 4,
+			Members: []btf.Member{
+				{Name: "b", Type: intTy, Offset: 0},
+			},
+		}
+		anon1 := &btf.Struct{
+			Size: 4,
+			Members: []btf.Member{
+				{Name: "a", Type: intTy, Offset: 0},
+			},
+		}
+		anon2 := &btf.Struct{
+			Size: 4,
+			Members: []btf.Member{
+				{Name: "x", Type: inner, Offset: 0},
+			},
+		}
+		outer := &btf.Struct{
+			Name: "outer",
+			Size: 8,
+			Members: []btf.Member{
+				{Name: "", Type: anon1, Offset: 0},
+				{Name: "", Type: anon2, Offset: btf.Bits(32)},
+			},
+		}
+
+		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, 0)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, `attribute "y" not found in structure "inner"`)
+	})
+
+	// non-resolveError (attribute found, wrong type) beats resolveError at the same depth
+	t.Run("non_resolve_error_beats_resolve_error_at_same_depth", func(t *testing.T) {
+		// struct outer {
+		//   struct { int q; };  // anon1: "x" not found → resolveError{depth=0}
+		//   struct { int x; };  // anon2: "x" found, int has no subfields → "unexpected type" (non-resolveError at depth=0)
+		// };
+		//
+		// anon2 got further (found "x"), so its error should win
+		anon1 := &btf.Struct{
+			Size: 4,
+			Members: []btf.Member{
+				{Name: "q", Type: intTy, Offset: 0},
+			},
+		}
+		anon2 := &btf.Struct{
+			Size: 4,
+			Members: []btf.Member{
+				{Name: "x", Type: intTy, Offset: 0},
+			},
+		}
+		outer := &btf.Struct{
+			Name: "outer",
+			Size: 8,
+			Members: []btf.Member{
+				{Name: "", Type: anon1, Offset: 0},
+				{Name: "", Type: anon2, Offset: btf.Bits(32)},
+			},
+		}
+
+		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+		// Two-element path: "x" is not the last child, so finding it in anon2 triggers
+		// ResolveBTFPath(int, path, 1) which returns a non-resolveError.
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, 0)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, `unexpected type : "x" has type "int"`)
+	})
+
+	// deeper resolveError from a later branch beats a non-resolveError from an earlier branch
+	t.Run("deep_resolve_error_beats_non_resolve_error", func(t *testing.T) {
+		// struct outer {
+		//   struct { int x; };                     // anon1: "x" found, int type → non-resolveError stored at depth=0
+		//   struct { struct inner { int b; } x; }; // anon2: "x" found, "y" not in inner → resolveError{depth=1}
+		// };
+		//
+		// anon2's resolveError at depth 1 is deeper than anon1's non-resolveError at depth 0.
+		inner := &btf.Struct{
+			Name: "inner",
+			Size: 4,
+			Members: []btf.Member{
+				{Name: "b", Type: intTy, Offset: 0},
+			},
+		}
+		anon1 := &btf.Struct{
+			Size: 4,
+			Members: []btf.Member{
+				{Name: "x", Type: intTy, Offset: 0},
+			},
+		}
+		anon2 := &btf.Struct{
+			Size: 4,
+			Members: []btf.Member{
+				{Name: "x", Type: inner, Offset: 0},
+			},
+		}
+		outer := &btf.Struct{
+			Name: "outer",
+			Size: 8,
+			Members: []btf.Member{
+				{Name: "", Type: anon1, Offset: 0},
+				{Name: "", Type: anon2, Offset: btf.Bits(32)},
+			},
+		}
+
+		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, 0)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, `attribute "y" not found in structure "inner"`)
+	})
+
+	// success through one anonymous branch when another fails
+	t.Run("success_through_anonymous_branch", func(t *testing.T) {
+		// struct outer {
+		//   struct { int q; }; // anon1: "x" not found, int type
+		//   struct { int x; }; // anon2: "x" found
+		// };
+		anon1 := &btf.Struct{
+			Size: 4,
+			Members: []btf.Member{
+				{Name: "q", Type: intTy, Offset: 0},
+			},
+		}
+		anon2 := &btf.Struct{
+			Size: 4,
+			Members: []btf.Member{
+				{Name: "x", Type: intTy, Offset: 0},
+			},
+		}
+		outer := &btf.Struct{
+			Name: "outer",
+			Size: 8,
+			Members: []btf.Member{
+				{Name: "", Type: anon1, Offset: 0},
+				{Name: "", Type: anon2, Offset: btf.Bits(32)},
+			},
+		}
+
+		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+		ty, err := ResolveBTFPath(&btfArgs, outer, []string{"x"}, 0)
+		require.NoError(t, err)
+		require.NotNil(t, ty)
+	})
+}
