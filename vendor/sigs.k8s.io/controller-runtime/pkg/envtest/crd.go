@@ -38,7 +38,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -362,7 +361,7 @@ func modifyConversionWebhooks(crds []*apiextensionsv1.CustomResourceDefinition, 
 	if err != nil {
 		return err
 	}
-	url := ptr.To(fmt.Sprintf("https://%s/convert", hostPort))
+	url := new(fmt.Sprintf("https://%s/convert", hostPort))
 
 	for i := range crds {
 		// Continue if we're preserving unknown fields.
