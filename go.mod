@@ -53,9 +53,9 @@ require (
 	k8s.io/code-generator v0.36.0
 	k8s.io/cri-api v0.36.0
 	k8s.io/klog/v2 v2.140.0
-	sigs.k8s.io/controller-runtime v0.23.3
+	sigs.k8s.io/controller-runtime v0.23.1-0.20260424122448-c8b4b9d61fbd
 	sigs.k8s.io/controller-tools v0.20.1
-	sigs.k8s.io/e2e-framework v0.7.0
+	sigs.k8s.io/e2e-framework v0.6.0
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -164,8 +164,4 @@ replace (
 	// Use local version of API
 	github.com/cilium/tetragon/api => ./api
 	github.com/cilium/tetragon/pkg/k8s => ./pkg/k8s
-
-	// Pin controller-runtime to a main-branch commit that supports k8s.io v0.36.0.
-	// The latest release (v0.23.3) only supports v0.35.x. Remove once v0.24.0 ships.
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.23.1-0.20260424122448-c8b4b9d61fbd
 )
