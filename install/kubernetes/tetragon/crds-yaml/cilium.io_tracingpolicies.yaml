@@ -43,13 +43,11 @@ spec:
             description: Tracing policy specification.
             properties:
               containerSelector:
-                default: {}
                 description: |-
                   ContainerSelector selects containers that this policy applies to.
                   A map of container fields will be constructed in the same way as a map of labels.
                   The name of the field represents the label "key", and the value of the field - label "value".
                   Currently, only the "name" field is supported.
-                nullable: true
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -1134,11 +1132,9 @@ spec:
                   type: object
                 type: array
               hostSelector:
-                default: {}
                 description: |-
                   HostSelector selects hosts that this policy applies to.
                   For now only ~ (none) and {} (all) is supported.
-                nullable: true
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -3032,9 +3028,7 @@ spec:
                   type: object
                 type: array
               podSelector:
-                default: {}
                 description: PodSelector selects pods that this policy applies to
-                nullable: true
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
