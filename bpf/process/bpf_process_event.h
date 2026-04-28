@@ -381,6 +381,14 @@ event_find_curr_probe(struct msg_generic_kprobe *msg)
 	curr = &msg->curr;
 	curr->key.pid = BPF_CORE_READ(task, tgid);
 	curr->key.ktime = tg_get_ktime();
+	/* msg lives in a percpu heap and may carry stale data from a prior
+	 * event. Reset the fields that aren't populated below so that
+	 * matchBinaries / matchPid / EVENT_IN_INIT_TREE checks don't observe
+	 * leftovers from a previous invocation.
+	 */
+	curr->pkey.pid = 0;
+	curr->pkey.ktime = 0;
+	curr->flags = 0;
 	curr->nspid = get_task_pid_vnr_by_task(task);
 
 	get_current_subj_caps(&curr->caps, task);
