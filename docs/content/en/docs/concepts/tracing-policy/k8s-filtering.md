@@ -57,11 +57,32 @@ and `null` to match none of the host workloads.
 
 {{< note >}}
 Since a `TracingPolicyNamespaced` can only apply to Pods within a specific
-Kubernetes namespace, any non-null `hostSelector` will trigger a warning and
-and be overriden to `null`.
+Kubernetes namespace, any non-null `hostSelector` will trigger an error.
 {{< /note >}}
 
-Based on these, the user can filter out specific workloads.
+Based on these, the user can choose on which workloads does a policy apply.
+
+## Filtering semantics
+
+The following table summarizes how different combinations of `hostSelector`, `podSelector`, and `containerSelector` behave.
+
+| `hostSelector`   | `podSelector`    | `containerSelector` | Result                                                                                                                 |
+| ---------------- | ---------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `null` (default) | `null` (default) | `null` (default)    | Select all host, pod, and container workloads.                                                                         |
+| `null` (default) | `null` (default) | `{...}`             | Select all containers that match `containerSelector` across all pods. No host workloads are selected.                  |
+| `null` (default) | `{...}`          | `null` (default)    | Select all containers in pods that match `podSelector`. No host workloads are selected.                                |
+| `null` (default) | `{...}`          | `{...}`             | Select all containers that match `containerSelector` in pods that match `podSelector`. No host workloads are selected. |
+| `{}`             | `null` (default) | `null` (default)    | Select all host workloads.                                                                                             |
+| `{}`             | `null` (default) | `{...}`             | Select all host workloads, plus all containers that match `containerSelector` across all pods.                         |
+| `{}`             | `{...}`          | `null` (default)    | Select all host workloads, plus all containers in pods that match `podSelector`.                                       |
+| `{}`             | `{...}`          | `{...}`             | Select all host workloads, plus all containers that match `containerSelector` in pods that match `podSelector`.        |
+
+{{< note >}}
+When `hostSelector`, `podSelector`, and `containerSelector` are all left at their default
+value of `null` (that is, they are omitted), this is treated as a special case: workload
+filtering is disabled entirely, and all host and pod/container workloads are selected.
+{{< /note >}}
+
 
 ## Examples
 
@@ -73,31 +94,25 @@ kind: TracingPolicy
 metadata:
   name: "workload-filtering"
 spec:
-  hostSelector: {}
-  podSelector: {}
-  containerSelector: {}
   kprobes:
 ```
 
-This is equivalent as if the user does not define any of `hostSelector`, `podSelector`, and
-`containerSelector`.
+In that case all of `hostSelector`, `podSelector`, and `containerSelector` have the default value `null`.
 
 The following example will match only host workloads.
 
 ```yaml
 spec:
   hostSelector: {}
-  podSelector: null
-  containerSelector: null
+  kprobes:
 ```
 
 The following example will match only pod workloads.
 
 ```yaml
 spec:
-  hostSelector: null
   podSelector: {}
-  containerSelector: {}
+  kprobes:
 ```
 
 `containerSelector` acts as a second level filtering on the `podSelector`. This means that first the
@@ -113,7 +128,6 @@ spec:
       operator: In
       values:
       - "kube-system"
-  containerSelector: {} # this can be also omitted as the default value is {}
 ```
 
 ## Demo

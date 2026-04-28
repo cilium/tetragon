@@ -107,8 +107,6 @@ Tracing policy specification.
 A map of container fields will be constructed in the same way as a map of labels.
 The name of the field represents the label "key", and the value of the field - label "value".
 Currently, only the "name" field is supported.<br/>
-          <br/>
-            <i>Default</i>: map[]<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -131,8 +129,6 @@ Currently, only the "name" field is supported.<br/>
         <td>
           HostSelector selects hosts that this policy applies to.
 For now only ~ (none) and {} (all) is supported.<br/>
-          <br/>
-            <i>Default</i>: map[]<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -175,8 +171,6 @@ For now only ~ (none) and {} (all) is supported.<br/>
         <td>object</td>
         <td>
           PodSelector selects pods that this policy applies to<br/>
-          <br/>
-            <i>Default</i>: map[]<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8874,8 +8868,6 @@ Tracing policy specification.
 A map of container fields will be constructed in the same way as a map of labels.
 The name of the field represents the label "key", and the value of the field - label "value".
 Currently, only the "name" field is supported.<br/>
-          <br/>
-            <i>Default</i>: map[]<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8898,8 +8890,6 @@ Currently, only the "name" field is supported.<br/>
         <td>
           HostSelector selects hosts that this policy applies to.
 For now only ~ (none) and {} (all) is supported.<br/>
-          <br/>
-            <i>Default</i>: map[]<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8942,8 +8932,6 @@ For now only ~ (none) and {} (all) is supported.<br/>
         <td>object</td>
         <td>
           PodSelector selects pods that this policy applies to<br/>
-          <br/>
-            <i>Default</i>: map[]<br/>
         </td>
         <td>false</td>
       </tr><tr>
