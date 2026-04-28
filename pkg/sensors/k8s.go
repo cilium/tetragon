@@ -29,7 +29,7 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 	hostSelector := tp.TpSpec().HostSelector
 	if tp.TpNamespace() != "" && tp.TpSpec().HostSelector != nil {
 		warnNonNilHostSelector.Do(func() {
-			logger.GetLogger().Warn("TracingPolicyNamespaced cannot match host workloads. Explicitly set `spec.hostSelector: null` to remove this warning. Overrided spec.hostSelector with null before applying this policy.")
+			logger.GetLogger().Warn("TracingPolicyNamespaced cannot match host workloads. All namespaced policies will ignore this field. Explicitly set spec.hostSelector: null to remove this warning.")
 		})
 		hostSelector = nil
 	}
