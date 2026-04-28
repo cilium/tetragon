@@ -12,7 +12,8 @@ See the [Stack Traces](https://tetragon.io/docs/concepts/tracing-policy/selector
 
 ### Helm Values
 
-* TBD
+* Change the default server-address of the agent to from `localhost:54321` to `/var/run/tetragon/tetragon.sock`.
+  This socket is also available for root users under the same path on the node. Update this address in all third-party programs that connect to the agent.
 
 ### TracingPolicy (k8s CRD)
 
