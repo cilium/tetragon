@@ -265,7 +265,7 @@ func (m PfMap) openPolicyMap(polID PolicyID) (polMap, error) {
 	// Reopen an inner policy map from the shared outer map on demand instead of
 	// caching a dedicated handle in PfMap.
 	var innerID uint32
-	if err := m.policyMap.Lookup(&polID, &innerID); err != nil {
+	if err := m.policyMap.MapHandle.Lookup(&polID, &innerID); err != nil {
 		return polMap{}, fmt.Errorf("failed to lookup policy id %d: %w", polID, err)
 	}
 
@@ -276,7 +276,7 @@ func (m PfMap) openPolicyMap(polID PolicyID) (polMap, error) {
 
 	return polMap{
 		Inner:     inner,
-		cgroupMap: m.cgroupMap,
+		cgroupMap: m.cgroupMapHandle(),
 	}, nil
 }
 
