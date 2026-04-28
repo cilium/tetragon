@@ -421,16 +421,7 @@ execve_send(struct exec_ctx_struct *ctx __arg_ctx)
 		__u32 off, len;
 
 		// read from proc exe stored at execve time
-		if (event->exe.len <= BINARY_PATH_MAX_LEN) {
-			curr->bin.path_length = with_errmetrics(probe_read, curr->bin.path, event->exe.len, event->exe.buf);
-			if (curr->bin.path_length == 0)
-				curr->bin.path_length = event->exe.len;
-			__u64 revlen = event->exe.len;
-
-			if (event->exe.len > STRING_POSTFIX_MAX_LENGTH - 1)
-				revlen = STRING_POSTFIX_MAX_LENGTH - 1;
-			with_errmetrics(probe_read, curr->bin.end, revlen, event->exe.end);
-		}
+		copy_exe_to_bin(&event->exe, &curr->bin);
 
 		off = event->exe.arg_start;
 		if (event->exe.arg_len > sizeof(curr->bin.args) - 2)
