@@ -79,6 +79,10 @@ spec:
         hostPath:
           path: /var/run/cilium
           type: DirectoryOrCreate
+      - name: tetragon-run
+        hostPath:
+          path: /var/run/tetragon
+          type: DirectoryOrCreate
       - name: export-logs
         hostPath:
           path: {{ .Values.exportDirectory }}

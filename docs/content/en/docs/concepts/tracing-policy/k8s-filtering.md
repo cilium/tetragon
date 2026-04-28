@@ -149,7 +149,7 @@ minikube ssh -- sudo mount bpffs -t bpf /sys/fs/bpf
 helm install --namespace kube-system \
 	--set tetragonOperator.image.override=cilium/tetragon-operator:latest \
 	--set tetragon.image.override=cilium/tetragon:latest  \
-	--set tetragon.grpc.address="unix:///var/run/cilium/tetragon/tetragon.sock" \
+	--set tetragon.grpc.address="unix:///var/run/tetragon/tetragon.sock" \
 	tetragon ./install/kubernetes/tetragon
 
 {{< /tab >}}
@@ -162,7 +162,7 @@ kind load docker-image cilium/tetragon:latest cilium/tetragon-operator:latest
 helm install --namespace kube-system \
 	--set tetragonOperator.image.override=cilium/tetragon-operator:latest \
 	--set tetragon.image.override=cilium/tetragon:latest  \
-	--set tetragon.grpc.address="unix:///var/run/cilium/tetragon/tetragon.sock" \
+	--set tetragon.grpc.address="unix:///var/run/tetragon/tetragon.sock" \
 	tetragon ./install/kubernetes/tetragon
 
 {{< /tab >}}

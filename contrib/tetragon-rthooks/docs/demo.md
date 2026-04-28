@@ -27,7 +27,7 @@ Install the image enabling the init container:
 helm install --namespace kube-system \
         --set tetragonOperator.image.override=localhost/cilium/tetragon-operator:latest \
         --set tetragon.image.override=localhost/cilium/tetragon:latest  \
-        --set tetragon.grpc.address="unix:///var/run/cilium/tetragon/tetragon.sock" \
+        --set tetragon.grpc.address="unix:///var/run/tetragon/tetragon/tetragon.sock" \
         --set tetragon.ociHookSetup.enabled=true \
         tetragon ./install/kubernetes/tetragon
 ...

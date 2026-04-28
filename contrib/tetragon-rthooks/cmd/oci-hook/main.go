@@ -38,7 +38,7 @@ var (
 	binDir                          = getBinaryDir()
 	defaultLogFname                 = filepath.Join(binDir, "tetragon-oci-hook.log")
 	defaultConfFile                 = filepath.Join(binDir, "tetragon-oci-hook.json")
-	defaultAgentAddress             = "unix:///var/run/cilium/tetragon/tetragon.sock"
+	defaultAgentAddress             = "unix:///var/run/tetragon/tetragon.sock"
 	defaultAnnotationsNamespaceKeys = "io.kubernetes.pod.namespace,io.kubernetes.cri.sandbox-namespace"
 	defaultAllowNamspaces           = "kube-system"
 )

@@ -34,6 +34,8 @@
       name: bpf-maps
     - mountPath: "/var/run/cilium"
       name: cilium-run
+    - mountPath: "/var/run/tetragon"
+      name: tetragon-run
     - mountPath: {{ .Values.exportDirectory }}
       name: export-logs
     - mountPath: "/procRoot"
