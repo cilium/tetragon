@@ -18,7 +18,6 @@ package helm
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -57,8 +56,6 @@ type Opts struct {
 	Wait bool
 	// Timeout is used to indicate the time to wait for any individual Kubernetes ops
 	Timeout string
-	// Context is used to indicate the context to be used for running helm commands.
-	Context context.Context
 }
 
 type Manager struct {
@@ -140,12 +137,6 @@ func WithWait() Option {
 func WithTimeout(timeout string) Option {
 	return func(opts *Opts) {
 		opts.Timeout = timeout
-	}
-}
-
-func WithContext(ctx context.Context) Option {
-	return func(opts *Opts) {
-		opts.Context = ctx
 	}
 }
 
@@ -242,11 +233,6 @@ func (m *Manager) RunTest(opts ...Option) error {
 // run method is used to invoke a helm command to perform a suitable operation.
 // Please make sure to configure the right Opts using the Option helpers
 func (m *Manager) run(opts *Opts) (err error) {
-	ctx := opts.Context
-	// Fallback to background context in case if the context is not provided as part of the options
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	if m.path == "" {
 		m.path = "helm"
 	}
@@ -260,7 +246,7 @@ func (m *Manager) run(opts *Opts) (err error) {
 		return
 	}
 	log.V(4).InfoS("Running Helm Operation", "command", command)
-	proc := m.e.NewProcWithContext(ctx, command)
+	proc := m.e.NewProc(command)
 
 	var stderr bytes.Buffer
 	proc.SetStderr(&stderr)
