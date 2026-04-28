@@ -24,6 +24,7 @@ import (
 
 	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -185,7 +186,7 @@ func (cs *channel[object, request]) Start(
 	}
 
 	if cs.bufferSize == nil {
-		cs.bufferSize = new(1024)
+		cs.bufferSize = ptr.To(1024)
 	}
 
 	dst := make(chan event.TypedGenericEvent[object], *cs.bufferSize)

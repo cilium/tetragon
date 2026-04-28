@@ -302,7 +302,7 @@ func (cm *controllerManager) GetControllerOptions() config.Controller {
 
 func (cm *controllerManager) addHealthProbeServer() error {
 	mux := http.NewServeMux()
-	srv := httpserver.New(cm.internalCtx, mux)
+	srv := httpserver.New(mux)
 
 	if cm.readyzHandler != nil {
 		mux.Handle(cm.readinessEndpointName, http.StripPrefix(cm.readinessEndpointName, cm.readyzHandler))
@@ -324,7 +324,7 @@ func (cm *controllerManager) addHealthProbeServer() error {
 
 func (cm *controllerManager) addPprofServer() error {
 	mux := http.NewServeMux()
-	srv := httpserver.New(cm.internalCtx, mux)
+	srv := httpserver.New(mux)
 
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
 	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)

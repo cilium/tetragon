@@ -246,7 +246,7 @@ func (s *defaultServer) Start(ctx context.Context) error {
 
 	log.Info("Serving metrics server", "bindAddress", s.options.BindAddress, "secure", s.options.SecureServing)
 
-	srv := httpserver.New(ctx, mux)
+	srv := httpserver.New(mux)
 
 	idleConnsClosed := make(chan struct{})
 	go func() {

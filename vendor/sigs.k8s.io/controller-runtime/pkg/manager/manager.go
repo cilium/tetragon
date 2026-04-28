@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/tools/events"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/conversion"
 
@@ -443,7 +444,7 @@ func New(config *rest.Config, options Options) (Manager, error) {
 	errChan := make(chan error, 1)
 	runnables := newRunnables(options.BaseContext, errChan).withLogger(options.Logger)
 	return &controllerManager{
-		stopProcedureEngaged:          new(int64(0)),
+		stopProcedureEngaged:          ptr.To(int64(0)),
 		cluster:                       cluster,
 		runnables:                     runnables,
 		errChan:                       errChan,

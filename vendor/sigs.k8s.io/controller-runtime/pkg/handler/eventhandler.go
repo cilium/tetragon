@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/priorityqueue"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -134,7 +135,7 @@ func (h TypedFuncs[object, request]) Create(ctx context.Context, e event.TypedCr
 			PriorityQueue: q.(priorityqueue.PriorityQueue[request]),
 		}
 		if e.IsInInitialList {
-			wq.priority = new(LowPriority)
+			wq.priority = ptr.To(LowPriority)
 		}
 		h.CreateFunc(ctx, e, wq)
 	}
@@ -161,7 +162,7 @@ func (h TypedFuncs[object, request]) Update(ctx context.Context, e event.TypedUp
 			PriorityQueue: q.(priorityqueue.PriorityQueue[request]),
 		}
 		if any(e.ObjectOld).(client.Object).GetResourceVersion() == any(e.ObjectNew).(client.Object).GetResourceVersion() {
-			wq.priority = new(LowPriority)
+			wq.priority = ptr.To(LowPriority)
 		}
 		h.UpdateFunc(ctx, e, wq)
 	}
@@ -224,7 +225,7 @@ func addToQueueCreate[T client.Object, request comparable](q workqueue.TypedRate
 
 	var priority *int
 	if evt.IsInInitialList {
-		priority = new(LowPriority)
+		priority = ptr.To(LowPriority)
 	}
 	priorityQueue.AddWithOpts(priorityqueue.AddOpts{Priority: priority}, item)
 }
@@ -240,7 +241,7 @@ func addToQueueUpdate[T client.Object, request comparable](q workqueue.TypedRate
 
 	var priority *int
 	if evt.ObjectOld.GetResourceVersion() == evt.ObjectNew.GetResourceVersion() {
-		priority = new(LowPriority)
+		priority = ptr.To(LowPriority)
 	}
 	priorityQueue.AddWithOpts(priorityqueue.AddOpts{Priority: priority}, item)
 }

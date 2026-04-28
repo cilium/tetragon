@@ -241,7 +241,7 @@ func (s *DefaultServer) Start(ctx context.Context) error {
 
 	log.Info("Serving webhook server", "host", s.Options.Host, "port", s.Options.Port)
 
-	srv := httpserver.New(ctx, s.webhookMux)
+	srv := httpserver.New(s.webhookMux)
 
 	idleConnsClosed := make(chan struct{})
 	go func() {
