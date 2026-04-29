@@ -1072,6 +1072,12 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 			polacct = POLICY_MONITOR_SET;
 		}
 		break;
+	case ACTION_OVERRIDE_CALL:
+#if defined(GENERIC_UPROBE)
+		// override call is treated exactly like an override reg
+		do_uprobe_override(ctx, actions->act[++i]);
+#endif
+		break;
 	default:
 		break;
 	}
