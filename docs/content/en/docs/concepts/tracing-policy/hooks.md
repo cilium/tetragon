@@ -806,7 +806,9 @@ Specifying socket tracking tells Tetragon to store a mapping between the socket
 and the process' PID and TGID; and to use that mapping when it sees the socket in a
 `sock` argument in another hook to replace the PID and TGID of the context with the
 process that actually owns the socket. This can be done by adding a `returnArgAction`
-to the call. Available actions are `TrackSock` and `UntrackSock`.
+to the call. Use `returnArg` to include the return value in the event output;
+`returnArgAction` is only for the socket-tracking actions `TrackSock` and
+`UntrackSock`.
 See [`TrackSock`](/docs/concepts/tracing-policy/selectors/#tracksock-action) and [`UntrackSock`](/docs/concepts/tracing-policy/selectors/#untracksock-action).
 
 ```yaml
