@@ -534,6 +534,10 @@ func TestUsdtSet(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "usdt-set", nil)
 }
 
+func TestUsdtLoadSelectorMaps(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "usdt-load-selector-maps", nil)
+}
+
 func TestUsdtResolve(t *testing.T) {
 	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
 		t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
