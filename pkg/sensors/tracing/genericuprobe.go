@@ -425,14 +425,14 @@ type uprobeHas struct {
 	sleepable        bool
 }
 
-func uprobeHasSetup(uprobes []v1alpha1.UProbeSpec) uprobeHas {
+func uprobeHasSetup(uprobes []v1alpha1.UProbeSpec, opts *specOptions) uprobeHas {
 	hasStackTrace := bool(false)
 	has := uprobeHas{}
 
 	for _, uprobe := range uprobes {
 		hasStackTrace = hasStackTrace || selectors.HasStackTrace(uprobe.Selectors)
 	}
-	has.sleepable = bpf.DetectSleepableTailCalls() && !hasStackTrace
+	has.sleepable = bpf.DetectSleepableTailCalls() && !hasStackTrace && !opts.DisableSleepable
 
 	return has
 }
@@ -466,7 +466,7 @@ func createGenericUprobeSensor(
 		celExprs: celExprs,
 	}
 
-	has := uprobeHasSetup(spec.UProbes)
+	has := uprobeHasSetup(spec.UProbes, polInfo.specOpts)
 
 	for _, uprobe := range spec.UProbes {
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
