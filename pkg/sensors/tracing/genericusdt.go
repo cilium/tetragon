@@ -200,6 +200,8 @@ func createMultiUsdtSensor(
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
+	maps = append(maps, createSelectorMaps(load, nil)...)
+
 	if has.sleepableOffload {
 		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
@@ -268,6 +270,8 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
+
+	maps = append(maps, createSelectorMaps(load, usdtEntry.selectors)...)
 
 	if has.sleepableOffload {
 		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
