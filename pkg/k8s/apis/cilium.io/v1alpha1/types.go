@@ -53,8 +53,9 @@ type KProbeSpec struct {
 	// A return argument to include in the trace output.
 	ReturnArg *KProbeArg `json:"returnArg,omitempty"`
 	// +kubebuilder:validation:Optional
-	// An action to perform on the return argument.
-	// Available actions are: Post;TrackSock;UntrackSock
+	// An action to perform on the return value.
+	// Use returnArg to include the return value in the event output.
+	// Supported actions are: TrackSock;UntrackSock
 	ReturnArgAction string `json:"returnArgAction,omitempty"`
 	// +kubebuilder:validation:Optional
 	// Selectors to apply before producing trace output. Selectors are ORed and short-circuited.

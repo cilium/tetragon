@@ -475,8 +475,9 @@ spec:
                       type: object
                     returnArgAction:
                       description: |-
-                        An action to perform on the return argument.
-                        Available actions are: Post;TrackSock;UntrackSock
+                        An action to perform on the return value.
+                        Use returnArg to include the return value in the event output.
+                        Supported actions are: TrackSock;UntrackSock
                       type: string
                     selectors:
                       description: Selectors to apply before producing trace output.
@@ -1552,8 +1553,9 @@ spec:
                       type: object
                     returnArgAction:
                       description: |-
-                        An action to perform on the return argument.
-                        Available actions are: Post;TrackSock;UntrackSock
+                        An action to perform on the return value.
+                        Use returnArg to include the return value in the event output.
+                        Supported actions are: TrackSock;UntrackSock
                       type: string
                     selectors:
                       description: Selectors to apply before producing trace output.

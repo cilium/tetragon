@@ -388,8 +388,9 @@ in the event output to inform users what is going on.<br/>
         <td><b>returnArgAction</b></td>
         <td>string</td>
         <td>
-          An action to perform on the return argument.
-Available actions are: Post;TrackSock;UntrackSock<br/>
+          An action to perform on the return value.
+Use returnArg to include the return value in the event output.
+Supported actions are: TrackSock;UntrackSock<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1831,8 +1832,9 @@ in the event output to inform users what is going on.<br/>
         <td><b>returnArgAction</b></td>
         <td>string</td>
         <td>
-          An action to perform on the return argument.
-Available actions are: Post;TrackSock;UntrackSock<br/>
+          An action to perform on the return value.
+Use returnArg to include the return value in the event output.
+Supported actions are: TrackSock;UntrackSock<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9149,8 +9151,9 @@ in the event output to inform users what is going on.<br/>
         <td><b>returnArgAction</b></td>
         <td>string</td>
         <td>
-          An action to perform on the return argument.
-Available actions are: Post;TrackSock;UntrackSock<br/>
+          An action to perform on the return value.
+Use returnArg to include the return value in the event output.
+Supported actions are: TrackSock;UntrackSock<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10592,8 +10595,9 @@ in the event output to inform users what is going on.<br/>
         <td><b>returnArgAction</b></td>
         <td>string</td>
         <td>
-          An action to perform on the return argument.
-Available actions are: Post;TrackSock;UntrackSock<br/>
+          An action to perform on the return value.
+Use returnArg to include the return value in the event output.
+Supported actions are: TrackSock;UntrackSock<br/>
         </td>
         <td>false</td>
       </tr><tr>

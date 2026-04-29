@@ -17,7 +17,10 @@ See the [Stack Traces](https://tetragon.io/docs/concepts/tracing-policy/selector
 
 ### TracingPolicy (k8s CRD)
 
-* TBD
+* `returnArgAction` no longer accepts `Post`. Use `returnArg` to include the
+  return value in events, and omit `returnArgAction` for the default return-value
+  behavior. Only `TrackSock` and `UntrackSock` are supported. Existing policies
+  that set `returnArgAction: "Post"` should remove the field.
 
 ### Events (protobuf API)
 
