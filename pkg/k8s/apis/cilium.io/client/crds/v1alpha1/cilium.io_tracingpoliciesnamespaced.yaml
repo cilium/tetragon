@@ -567,6 +567,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -1020,6 +1026,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -1651,6 +1663,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -2104,6 +2122,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -2465,6 +2489,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -2918,6 +2948,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -3182,6 +3218,12 @@ spec:
                             description: An arg value for the set action
                             format: int32
                             type: integer
+                          clearGoString:
+                            description: When true with action Override on uprobes,
+                              clears the Go string length register for the function
+                              argument at ArgIndex (ABI layout is resolved from the
+                              uprobe symbol).
+                            type: boolean
                           imaHash:
                             description: |-
                               Enable collection of file hashes from integrity subsystem.
@@ -3628,6 +3670,12 @@ spec:
                             description: An arg value for the set action
                             format: int32
                             type: integer
+                          clearGoString:
+                            description: When true with action Override on uprobes,
+                              clears the Go string length register for the function
+                              argument at ArgIndex (ABI layout is resolved from the
+                              uprobe symbol).
+                            type: boolean
                           imaHash:
                             description: |-
                               Enable collection of file hashes from integrity subsystem.
@@ -3946,6 +3994,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -4399,6 +4453,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -4978,6 +5038,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -5431,6 +5497,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -5770,6 +5842,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -6223,6 +6301,12 @@ spec:
                                   description: An arg value for the set action
                                   format: int32
                                   type: integer
+                                clearGoString:
+                                  description: When true with action Override on uprobes,
+                                    clears the Go string length register for the function
+                                    argument at ArgIndex (ABI layout is resolved from
+                                    the uprobe symbol).
+                                  type: boolean
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.

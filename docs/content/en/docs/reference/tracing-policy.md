@@ -993,6 +993,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -1579,6 +1586,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2437,6 +2451,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -3026,6 +3047,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -3563,6 +3591,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4155,6 +4190,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -4588,6 +4630,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5180,6 +5229,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -5675,6 +5731,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6264,6 +6327,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7023,6 +7093,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -7612,6 +7689,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -8114,6 +8198,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8703,6 +8794,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9758,6 +9856,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -10344,6 +10449,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11202,6 +11314,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -11791,6 +11910,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -12328,6 +12454,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12920,6 +13053,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -13353,6 +13493,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13945,6 +14092,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -14440,6 +14594,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15029,6 +15190,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15788,6 +15956,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -16377,6 +16552,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>imaHash</b></td>
         <td>boolean</td>
         <td>
@@ -16879,6 +17061,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17468,6 +17657,13 @@ be removed in version 1.5.<br/>
           An arg value for the set action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clearGoString</b></td>
+        <td>boolean</td>
+        <td>
+          When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).<br/>
         </td>
         <td>false</td>
       </tr><tr>
