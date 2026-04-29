@@ -78,3 +78,52 @@ spec:
 		},
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("usdt-load-selector-maps").WithLabels("usdt").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: usdt-argfilter-inmap-repro
+spec:
+  usdts:
+    - path: {{ testBinary "usdt-override" }}
+      provider: "tetragon"
+      name: "test_4B"
+      args:
+        - index: 1
+          type: "int32"
+      selectors:
+        - matchArgs:
+            - index: 1
+              operator: "InMap"
+              values:
+                - "321"
+                - "7"
+
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+		return "need 5.3 or newer kernel"
+	}
+	if !si.AgentInfo.Probes[bpf.UprobeRefCtrOffsetProbe] {
+		return "need uprobe ref_ctr_off support"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	myBin := c.TestBinary("usdt-override")
+	upChecker := ec.NewProcessUsdtChecker("USDT").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(myBin))).
+		WithProvider(sm.Full("tetragon")).
+		WithName(sm.Full("test_4B")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(321),
+			))
+
+	return &policytest.Scenario{
+		Name:         "load selector maps",
+		Trigger:      policytest.NewCmdTrigger(myBin, "321", "123").ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
