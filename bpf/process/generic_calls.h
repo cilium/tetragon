@@ -1253,6 +1253,10 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 #if defined(__LARGE_BPF_PROG) && (defined(GENERIC_KRETPROBE) || defined(GENERIC_FEXIT))
 		struct socket_owner owner;
 
+		/* ReturnArgAction only has return-path handling for socket tracking.
+		 * Userspace validation limits it to ACTION_TRACKSOCK and
+		 * ACTION_UNTRACKSOCK.
+		 */
 		switch (config->argreturnaction) {
 		case ACTION_TRACKSOCK:
 			owner.pid = e->current.pid;

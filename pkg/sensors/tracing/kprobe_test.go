@@ -6106,7 +6106,6 @@ spec:
     returnArg:
       index: 0
       type: "int"
-    returnArgAction: "Post"
     selectors:
     - matchArgs:
       - index: 0
@@ -6132,7 +6131,6 @@ spec:
     returnArg:
       index: 0
       type: "int"
-    returnArgAction: "Post"
     selectors:
     - matchArgs:      
       - index: 0
