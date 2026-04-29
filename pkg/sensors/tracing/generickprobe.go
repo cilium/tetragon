@@ -725,10 +725,14 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		if !config.EnableLargeProgs() {
 			return errFn(errors.New("ReturnArgAction requires kernel >=5.3"))
 		}
-		eventConfig.ArgReturnAction = selectors.ActionTypeFromString(f.ReturnArgAction)
-		if eventConfig.ArgReturnAction == selectors.ActionTypeInvalid {
+		actionID := selectors.ActionTypeFromString(f.ReturnArgAction)
+		if actionID == selectors.ActionTypeInvalid {
 			return errFn(fmt.Errorf("ReturnArgAction type '%s' unsupported", f.ReturnArgAction))
 		}
+		if actionID != selectors.ActionTypeTrackSock && actionID != selectors.ActionTypeUntrackSock {
+			return errFn(fmt.Errorf("ReturnArgAction type '%s' unsupported; omit returnArgAction or use 'TrackSock'/'UntrackSock'", f.ReturnArgAction))
+		}
+		eventConfig.ArgReturnAction = actionID
 	}
 
 	if selectors.HasOverride(f.Selectors) {

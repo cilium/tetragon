@@ -13,6 +13,8 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/build"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -236,6 +238,83 @@ spec:
 	err := checkCrd(t, crd)
 	require.Error(t, err)
 
+}
+
+func forceLargeProgs(t *testing.T) {
+	t.Helper()
+
+	origForceLargeProgs := option.Config.ForceLargeProgs
+	origForceSmallProgs := option.Config.ForceSmallProgs
+	option.Config.ForceLargeProgs = true
+	option.Config.ForceSmallProgs = false
+	t.Cleanup(func() {
+		option.Config.ForceLargeProgs = origForceLargeProgs
+		option.Config.ForceSmallProgs = origForceSmallProgs
+	})
+}
+
+func TestKprobeValidationReturnArgActionSocketTracking(t *testing.T) {
+	forceLargeProgs(t)
+
+	tests := []struct {
+		name   string
+		action string
+	}{
+		{name: "tracksock", action: "TrackSock"},
+		{name: "untracksock", action: "UntrackSock"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kp := &v1alpha1.KProbeSpec{
+				Call:            "sys_dup",
+				Syscall:         true,
+				Return:          true,
+				ReturnArg:       &v1alpha1.KProbeArg{Index: 0, Type: "int"},
+				ReturnArgAction: tt.action,
+			}
+			in := &addKprobeIn{policyName: "return-arg-action-" + tt.name}
+
+			id, err := addKprobe("sys_dup", 0, kp, in, hasMaps{})
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				_, err := genericKprobeTable.RemoveEntry(id)
+				require.NoError(t, err)
+			})
+		})
+	}
+}
+
+func TestKprobeValidationReturnArgActionPost(t *testing.T) {
+	forceLargeProgs(t)
+
+	kp := &v1alpha1.KProbeSpec{
+		Call:            "sys_dup",
+		Syscall:         true,
+		Return:          true,
+		ReturnArg:       &v1alpha1.KProbeArg{Index: 0, Type: "int"},
+		ReturnArgAction: "Post",
+	}
+	in := &addKprobeIn{policyName: "return-arg-action-post"}
+
+	_, err := addKprobe("sys_dup", 0, kp, in, hasMaps{})
+	require.ErrorContains(t, err, "omit returnArgAction or use 'TrackSock'/'UntrackSock'")
+}
+
+func TestKprobeValidationReturnArgActionInvalid(t *testing.T) {
+	forceLargeProgs(t)
+
+	kp := &v1alpha1.KProbeSpec{
+		Call:            "sys_dup",
+		Syscall:         true,
+		Return:          true,
+		ReturnArg:       &v1alpha1.KProbeArg{Index: 0, Type: "int"},
+		ReturnArgAction: "Bogus",
+	}
+	in := &addKprobeIn{policyName: "return-arg-action-invalid"}
+
+	_, err := addKprobe("sys_dup", 0, kp, in, hasMaps{})
+	require.ErrorContains(t, err, "ReturnArgAction type 'Bogus' unsupported")
 }
 
 func TestKprobeValidationMissingReturnArg(t *testing.T) {
