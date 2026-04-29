@@ -914,14 +914,14 @@ func ignoreDigestVerificationFailure(uprobe *v1alpha1.UProbeSpec) bool {
 	return uprobe.Ignore.DigestVerificationFailure
 }
 
-func uprobeHasSetup(uprobes []v1alpha1.UProbeSpec) uprobeHas {
+func uprobeHasSetup(uprobes []v1alpha1.UProbeSpec, opts *specOptions) uprobeHas {
 	hasStackTrace := false
 	has := uprobeHas{}
 
 	for _, uprobe := range uprobes {
 		hasStackTrace = hasStackTrace || selectors.HasStackTrace(uprobe.Selectors)
 	}
-	has.sleepable = bpf.DetectSleepableTailCalls() && !hasStackTrace
+	has.sleepable = bpf.DetectSleepableTailCalls() && !hasStackTrace && !opts.DisableSleepable
 
 	return has
 }
@@ -950,7 +950,7 @@ func createGenericUprobeSensor(
 		}
 	}
 
-	has := uprobeHasSetup(spec.UProbes)
+	has := uprobeHasSetup(spec.UProbes, polInfo.specOpts)
 
 	// user sleepable_preload override
 	has.sleepablePreloadSize = polInfo.specOpts.SleepablePreloadSize
