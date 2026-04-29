@@ -48,6 +48,7 @@ const (
 	ActionTypeNotifyEnforcer              = 12
 	ActionTypeCleanupEnforcerNotification = 13
 	ActionTypeSet                         = 14
+	ActionTypeOverrideCall                = 15
 )
 
 var actionTypeTable = map[string]uint32{
@@ -66,6 +67,7 @@ var actionTypeTable = map[string]uint32{
 	"notifyenforcer":              ActionTypeNotifyEnforcer,
 	"cleanupenforcernotification": ActionTypeCleanupEnforcerNotification,
 	"set":                         ActionTypeSet,
+	"overridecall":                ActionTypeOverrideCall,
 }
 
 var actionTypeStringTable = map[uint32]string{
@@ -83,6 +85,7 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeUntrackSock:                 "untracksock",
 	ActionTypeCleanupEnforcerNotification: "cleanupenforcernotification",
 	ActionTypeSet:                         "set",
+	ActionTypeOverrideCall:                "overridecall",
 }
 
 const (
@@ -1740,6 +1743,18 @@ func HasOverride(selectors []v1alpha1.KProbeSelector) bool {
 		for _, action := range s.MatchActions {
 			act := actionTypeTable[strings.ToLower(action.Action)]
 			if act == ActionTypeOverride {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func HasOverrideCall(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
+		for _, action := range s.MatchActions {
+			act := actionTypeTable[strings.ToLower(action.Action)]
+			if act == ActionTypeOverrideCall {
 				return true
 			}
 		}
