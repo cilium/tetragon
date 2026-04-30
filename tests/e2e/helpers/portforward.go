@@ -29,10 +29,13 @@ import (
 
 	"github.com/cilium/tetragon/pkg/multiplexer"
 	"github.com/cilium/tetragon/tests/e2e/flags"
+	"github.com/cilium/tetragon/tests/e2e/helpers/grpcbridge"
 	"github.com/cilium/tetragon/tests/e2e/state"
 )
 
-// PortForwardTetragonPods forwards gRPC and metrics ports for Tetragon pods.
+// PortForwardTetragonPods forwards metrics and gops ports for Tetragon pods and
+// connects to the gRPC server via a bridge DaemonSet that relays the Unix socket
+// to a TCP port using socat.
 func PortForwardTetragonPods(testenv env.Environment) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		opts, ok := ctx.Value(state.InstallOpts).(*flags.HelmOptions)
@@ -46,28 +49,60 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 		}
 		r := client.Resources(opts.Namespace)
 
-		podList := &corev1.PodList{}
+		// Deploy the socat bridge DaemonSet that exposes the Tetragon gRPC Unix
+		// socket as a TCP service on each node.
+		if err := grpcbridge.Deploy(ctx, r, testenv, opts.Namespace); err != nil {
+			return ctx, fmt.Errorf("failed to deploy gRPC bridge: %w", err)
+		}
+
+		tetragonPods := &corev1.PodList{}
 		if err = r.List(
 			ctx,
-			podList,
+			tetragonPods,
 			resources.WithLabelSelector("app.kubernetes.io/name="+opts.DaemonSetName),
+		); err != nil {
+			return ctx, err
+		}
+
+		bridgePods := &corev1.PodList{}
+		if err = r.List(
+			ctx,
+			bridgePods,
+			resources.WithLabelSelector("app.kubernetes.io/name="+grpcbridge.DaemonSetName),
 		); err != nil {
 			return ctx, err
 		}
 
 		// TODO: do we need to make this configurable at some point?
 		const (
-			grpcPort = 54321
 			promPort = 2112
 			gopsPort = 8118
 		)
 
-		grpcPorts := make(map[string]int)
 		promPorts := make(map[string]int)
 		gopsPorts := make(map[string]int)
+		for i, pod := range tetragonPods.Items {
+			if ctx, err = PortForwardPod(
+				testenv,
+				&pod,
+				nil,
+				os.Stderr,
+				30,
+				time.Second,
+				nil,
+				fmt.Sprintf("%d:%d", promPort+i, promPort),
+				fmt.Sprintf("%d:%d", gopsPort+i, gopsPort),
+			)(ctx, cfg); err != nil {
+				return ctx, fmt.Errorf("tetragon portforwarding failed: %w", err)
+			}
+			promPorts[pod.Name] = promPort + i
+			gopsPorts[pod.Name] = gopsPort + i
+		}
+
+		grpcPorts := make(map[string]int)
 		grpcConns := make(map[string]*grpc.ClientConn)
-		for i, pod := range podList.Items {
-			grpcLocalPort := grpcPort + i
+		for i, pod := range bridgePods.Items {
+			localPort := grpcbridge.SocatPort + i
 			if ctx, err = PortForwardPod(
 				testenv,
 				&pod,
@@ -76,22 +111,17 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 				30,
 				time.Second,
 				func() error {
-					addr := fmt.Sprintf("localhost:%d", grpcLocalPort)
-					conn, err := multiplexer.ConnectAttempt(ctx, addr)
+					conn, err := multiplexer.ConnectAttempt(ctx, fmt.Sprintf("localhost:%d", localPort))
 					if err == nil {
 						grpcConns[pod.Name] = conn
 					}
 					return err
 				},
-				fmt.Sprintf("%d:%d", grpcLocalPort, grpcPort),
-				fmt.Sprintf("%d:%d", promPort+i, promPort),
-				fmt.Sprintf("%d:%d", gopsPort+i, gopsPort),
+				fmt.Sprintf("%d:%d", localPort, grpcbridge.SocatPort),
 			)(ctx, cfg); err != nil {
-				return ctx, fmt.Errorf("tetragon portfwarding failed: %w", err)
+				return ctx, fmt.Errorf("gRPC bridge portforwarding failed: %w", err)
 			}
-			grpcPorts[pod.Name] = grpcPort + i
-			promPorts[pod.Name] = promPort + i
-			gopsPorts[pod.Name] = gopsPort + i
+			grpcPorts[pod.Name] = localPort
 		}
 
 		ctx = context.WithValue(ctx, state.GrpcForwardedPorts, grpcPorts)
@@ -105,7 +135,8 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 			return ctx, nil
 		})
 
-		klog.InfoS("Successfully forwarded ports for Tetragon pods", "grpcPorts", grpcPorts, "promPorts", promPorts, "gopsPorts", gopsPorts)
+		klog.InfoS("Successfully forwarded ports for Tetragon pods",
+			"promPorts", promPorts, "gopsPorts", gopsPorts, "grpcPorts", grpcPorts)
 
 		return ctx, nil
 	}
