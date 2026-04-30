@@ -475,3 +475,10 @@ rthooks:
   # -- rthooks service account.
   serviceAccount:
     name: ""
+  # -- exportLogs sidecar: tail the hook log file and stream it to stdout.
+  # Uses the same image as the rthooks container.
+  exportLogs:
+    # -- Enable the exportLogs sidecar container.
+    enabled: true
+    # -- resources for the exportLogs sidecar.
+    resources: {}
