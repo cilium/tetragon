@@ -1,19 +1,23 @@
 name: tetragon-rthooks test
 on:
   pull_request:
-    paths:
-      - 'contrib/tetragon-rthooks/**'
+    paths-ignore:
+      - 'docs/**'
   push:
     branches:
       - main
-    paths:
-      - 'contrib/tetragon-rthooks/**'
+    paths-ignore:
+      - 'docs/**'
 
 jobs:
-  build:
+  prepare:
     name: Build tetragon-rthooks
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      agentImage: ${{ steps.vars.outputs.agentImage }}
+      operatorImage: ${{ steps.vars.outputs.operatorImage }}
+      rthooksImage: ${{ steps.vars.outputs.rthooksImage }}
     concurrency:
       group: ${{ github.ref }}-rthooks-build
       cancel-in-progress: true
@@ -29,26 +33,38 @@ jobs:
         # renovate: datasource=golang-version depName=go
         go-version: '1.26.2'
 
-    - name: Build
-      env:
-        GOPATH: /home/runner/work/tetragon/tetragon/go
+    - name: Set Up Job Variables
+      id: vars
       run: |
-        cd go/src/github.com/cilium/tetragon/contrib/tetragon-rthooks
-        make
+        if [ ${{ github.event.issue.pull_request || github.event.pull_request }} ]; then
+          PR_API_JSON=$(curl \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            ${{ github.event.issue.pull_request.url || github.event.pull_request.url }})
+          SHA=$(echo "$PR_API_JSON" | jq -r ".head.sha")
+        else
+          SHA=${{ github.sha }}
+        fi
+        echo "agentImage=quay.io/cilium/tetragon-ci:${SHA}" >> $GITHUB_OUTPUT
+        echo "operatorImage=quay.io/cilium/tetragon-operator-ci:${SHA}" >> $GITHUB_OUTPUT
+        echo "rthooksImage=quay.io/cilium/tetragon-rthooks-ci:${SHA}" >> $GITHUB_OUTPUT
 
-    - name: tar build
-      run: |
-        cd go/src/github.com/cilium/tetragon/contrib
-        tar cz -f /tmp/tetragon-rthooks.tar ./tetragon-rthooks
-
-    - name: upload build
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+    - name: Wait Tetragon Images
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
       with:
-         name: tetragon-rthooks-build
-         path: /tmp/tetragon-rthooks.tar
-         retention-days: 1
+        timeout_minutes: 2
+        max_attempts: 30
+        retry_wait_seconds: 30
+        warning_on_retry: false
+        command: |
+          set -e
+          docker pull ${{ steps.vars.outputs.agentImage }}
+          docker pull ${{ steps.vars.outputs.operatorImage }}
+          docker pull ${{ steps.vars.outputs.rthooksImage }}
+          docker rmi ${{ steps.vars.outputs.agentImage }} ${{ steps.vars.outputs.operatorImage }} ${{ steps.vars.outputs.rthooksImage }}
+
   test:
-    needs: build
+    needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -61,23 +77,63 @@ jobs:
       group: ${{ github.ref }}-rthooks-test-${{ matrix.cri }}
       cancel-in-progress: true
     steps:
-    - name: start minikube
+    - name: Checkout Code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        path: go/src/github.com/cilium/tetragon/
+
+    - name: Install Go
+      uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+      with:
+        # renovate: datasource=golang-version depName=go
+        go-version: '1.26.2'
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+      with:
+        # renovate: datasource=github-releases depName=kubernetes/kubernetes
+        version: v1.36.0
+
+    - name: Install Helm
+      uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+      with:
+        # renovate: datasource=github-releases depName=helm/helm
+        version: v4.1.4
+
+    - name: Install Minikube
       uses: medyagh/setup-minikube@e9e035a86bbc3caea26a450bd4dbf9d0c453682e # v0.0.21
       with:
-        driver: docker
-        container-runtime: ${{ matrix.cri }}
+        start: false
 
-    - name: download build data
-      uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+    - name: Pull Tetragon Images
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
       with:
-         name: tetragon-rthooks-build
+        timeout_minutes: 2
+        max_attempts: 30
+        retry_wait_seconds: 30
+        warning_on_retry: false
+        command: |
+          set -e
+          docker pull ${{ needs.prepare.outputs.agentImage }}
+          docker pull ${{ needs.prepare.outputs.operatorImage }}
+          docker pull ${{ needs.prepare.outputs.rthooksImage }}
 
-    - name: extract build data
-      run: |
-        tar xf tetragon-rthooks.tar
 
-    - name: run test
+    - name: Run e2e Tests
       run: |
-        cd tetragon-rthooks
-        ./scripts/minikube-install-hook.sh -l
-        ./scripts/minikube-test-hook.sh
+        cd go/src/github.com/cilium/tetragon
+        make e2e-test-minikube E2E_BUILD_IMAGES=0 \
+        MINIKUBE_CONTAINER_RUNTIME=${{ matrix.cri }} \
+        E2E_AGENT=${{ needs.prepare.outputs.agentImage }} \
+        E2E_OPERATOR=${{ needs.prepare.outputs.operatorImage }} \
+        E2E_RTHOOKS=${{ needs.prepare.outputs.rthooksImage }} \
+        EXTRA_TESTFLAGS="-args -v=4"
+
+
+    - name: Upload Tetragon Logs
+      if: failure() || cancelled()
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      with:
+        name: tetragon-logs-${{ matrix.cri }}
+        path: /tmp/tetragon.e2e.*
+        retention-days: 5
