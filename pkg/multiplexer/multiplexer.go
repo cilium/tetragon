@@ -80,7 +80,15 @@ func ConnectAttempt(ctx context.Context, addr string) (*grpc.ClientConn, error) 
 			if !ok {
 				return nil, fmt.Errorf("conn for %s did not change from %s: %w", addr, state, ctx.Err())
 			}
-		case connectivity.TransientFailure, connectivity.Shutdown:
+		case connectivity.TransientFailure:
+			// gRPC will automatically schedule a reconnect; wait for the
+			// state to change before checking again. The caller's context
+			// deadline is the retry budget.
+			conn.WaitForStateChange(ctx, state)
+			if ctx.Err() != nil {
+				return nil, fmt.Errorf("conn for %s in state %s: %w", addr, state, ctx.Err())
+			}
+		case connectivity.Shutdown:
 			return nil, fmt.Errorf("conn for %s in state %s bailing out", addr, state)
 		default:
 			return nil, fmt.Errorf("%s: unknown conn state: %s", addr, state)
