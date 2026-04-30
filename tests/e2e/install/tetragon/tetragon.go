@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"maps"
 	"os/exec"
+	"slices"
 	"strings"
 
 	v1 "k8s.io/api/apps/v1"
@@ -36,6 +37,7 @@ var (
 	AgentBTFKey               = "tetragon.btf"
 	AgentImageKey             = "tetragon.image.override"
 	OperatorImageKey          = "tetragonOperator.image.override"
+	RTHooksImageKey           = "rthooks.image.override"
 )
 
 type Option func(*flags.HelmOptions)
@@ -154,30 +156,32 @@ func Install(opts ...Option) env.Func {
 		var helmArgs strings.Builder
 		for k, v := range o.HelmValues {
 			fmt.Fprintf(&helmArgs, " --set=%s=%s", k, v)
-			if clusterName := helpers.GetTempKindClusterName(ctx); clusterName != "" {
-				switch k {
-				case AgentImageKey:
-					fallthrough
-				case OperatorImageKey:
-					klog.InfoS("Loading image into kind cluster", "cluster", clusterName, "image", v, "helm", k)
-					var err error
-					if ctx, err = envfuncs.LoadDockerImageToCluster(clusterName, v)(ctx, cfg); err != nil {
-						// If the image is not present locally, don't worry about it but
-						// log a message
-						if strings.Contains(err.Error(), "not present locally") {
-							klog.InfoS("Image is not present locally, attempting to install Tetragon regardless", "cluster", clusterName, "image", v, "helm", k)
-							break
-						}
+			if !slices.Contains([]string{AgentImageKey, RTHooksImageKey, OperatorImageKey}, k) {
+				continue
+			}
 
-						// If failed to load the image, this could be related to kind/containerd issues, so just log
-						// the message and attempt to install Tetragon regardless. See
-						// https://github.com/kubernetes-sigs/kind/issues/3795
-						if err != nil {
-							klog.InfoS("Failed to load image into kind cluster", "cluster", clusterName, "image", v, "error", err)
-							break
-						}
-					}
+			clusterName := helpers.GetTempKindClusterName(ctx)
+			if flags.Opts.Minikube {
+				// If we are running against minkube, we don't care about the output of GetTempKindClusterName.
+				clusterName = "minikube"
+			} else if clusterName == "" {
+				continue
+			}
+
+			klog.InfoS("Loading image", "cluster", clusterName, "image", v, "helm", k)
+			var err error
+			if ctx, err = envfuncs.LoadDockerImageToCluster(clusterName, v)(ctx, cfg); err != nil {
+				// If the image is not present locally, don't worry about it but
+				// log a message
+				if strings.Contains(err.Error(), "not present locally") {
+					klog.InfoS("Image is not present locally, attempting to install Tetragon regardless", "cluster", clusterName, "image", v, "helm", k)
+					continue
 				}
+
+				// If failed to load the image, this could be related to kind/containerd issues, so just log
+				// the message and attempt to install Tetragon regardless. See
+				// https://github.com/kubernetes-sigs/kind/issues/3795
+				klog.InfoS("Failed to load image into kind cluster", "cluster", clusterName, "image", v, "error", err)
 			}
 		}
 		if o.ValuesFile != "" {
