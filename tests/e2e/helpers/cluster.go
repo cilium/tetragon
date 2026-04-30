@@ -9,8 +9,10 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"math"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -184,4 +186,45 @@ func GetTempKindClusterName(ctx context.Context) string {
 		return name
 	}
 	return ""
+}
+
+// LoadImageToMinikubeEnvFunc loads a container image into the minikube cluster via
+// `minikube image load`. This is the minikube equivalent of
+// envfuncs.LoadDockerImageToCluster for KinD.
+func LoadImageToMinikubeEnvFunc(_ string, image string, _ ...string) env.Func {
+	return func(ctx context.Context, _ *envconf.Config) (context.Context, error) {
+		klog.InfoS("Loading image into minikube", "image", image)
+
+		cmd := exec.Command("minikube", "image", "load", image)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return ctx, fmt.Errorf("minikube image load %s: %w\n%s", image, err, out)
+		}
+
+		// The name of locally build images doesn't contain a registry prefix
+		// like "docker.io/". This name, without the registry prefix, is also
+		// what helm uses in the Kubernetes Deployment.
+		//
+		// When executing `minikube image load` with the containerd container
+		// runtime, the image in minikube is tagged with the registry prefix
+		// "docker.io/" even if the image name doesn't contain it locally.
+		// By itself this poses no problem because with docker and containerd
+		// you can reference `docker.io/mycontainer` without the `docker.io`
+		// prefix as `mycontainer`.
+		//
+		// However, with cri-o as minikube container runtime, the image is
+		// loaded with a `localhost/` prefix instead of `docker.io/. Since
+		// `localhost/mycontainer` cannot be referenced as `mycontainer`, we are
+		// re-tagging the any `localhost/` images with `docker.io` since also
+		// cri-o allows referencing `docker.io/mycontainer` as `mycontainer`.
+		// this way we can keep the `mycontainer` reference in the helm chart.
+		//
+		// When the user manually sets the `E2E_AGENT` variable for the e2e
+		// target in the Makefile with an full image e.g. from quay.io, this
+		// re-tagging fails silently, since there isn't any `localhost/` image.
+		cmd = exec.Command("minikube", "image", "tag", "localhost/"+image, "docker.io/"+image)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return ctx, fmt.Errorf("minikube image tag %s: %w\n%s", image, err, out)
+		}
+		return ctx, nil
+	}
 }
