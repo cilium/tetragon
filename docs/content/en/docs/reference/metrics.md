@@ -204,7 +204,7 @@ The total number of event handler errors. For internal use only.
 
 | label | values |
 | ----- | ------ |
-| `error` | `event_handler_failed, unknown_opcode` |
+| `error` | `event_handler_failed, perf_empty_data, unknown_opcode` |
 | `opcode` | `0, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 5, 7` |
 
 ### `tetragon_handling_latency`
