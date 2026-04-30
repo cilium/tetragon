@@ -84,6 +84,11 @@ func init() {
 		"tetragon.uninstall-tetragon",
 		Opts.UninstallTetragon,
 		"Uninstall Tetragon after the test run.")
+
+	flag.BoolVar(&Opts.Minikube,
+		"minikube",
+		Opts.Minikube,
+		"Load images into Kubernetes via 'minikube image load' instead of the KinD loader")
 }
 
 type Flags struct {
@@ -92,6 +97,9 @@ type Flags struct {
 	KeepExportData bool
 	// UninstallTetragon specifies whether Tetragon should be uninstalled after the test run.
 	UninstallTetragon bool
+	// Minikube, when set, instructs the test framework to load images into Kubernetes
+	// via `minikube image load` instead of the KinD cluster loader.
+	Minikube bool
 }
 
 type HelmOptions struct {
