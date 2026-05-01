@@ -375,6 +375,13 @@
       "enabled": false
     },
     {
+      // do not update digest versions for these go modules. We frequently need to pin a digest, but don't want to update again until the following release
+      "enabled": false,
+      "matchPackageNames": ["github.com/cilium/ebpf", "github.com/cilium/little-vm-helper"],
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["digest"],
+    },
+    {
       // do not update sigstore/cosign-installer as it breaks CI
       "matchPackageNames": ["sigstore/cosign-installer"],
       "matchManagers": ["github-actions"],
