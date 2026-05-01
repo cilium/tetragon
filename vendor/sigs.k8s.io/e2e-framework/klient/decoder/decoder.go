@@ -27,6 +27,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/vladimirvivien/gexe/http"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -83,7 +84,7 @@ func DecodeEachFile(ctx context.Context, fsys fs.FS, pattern string, handlerFn H
 	return nil
 }
 
-// DecodeAllFiles  resolves files at the filesystem matching the pattern, decoding JSON or YAML files. Supports multi-document files.
+// DecodeAllFiles resolves files at the filesystem matching the pattern, decoding JSON or YAML files. Supports multi-document files.
 // Falls back to the unstructured.Unstructured type if a matching type cannot be found for the Kind.
 // Options may be provided to configure the behavior of the decoder.
 func DecodeAllFiles(ctx context.Context, fsys fs.FS, pattern string, options ...DecodeOption) ([]k8s.Object, error) {
@@ -140,7 +141,7 @@ func DecodeEach(ctx context.Context, manifest io.Reader, handlerFn HandlerFunc, 
 	return nil
 }
 
-// DecodeAll is a stream of  documents of any Kind using either the innate typing of the scheme.
+// DecodeAll is a stream of documents of any Kind using either the innate typing of the scheme.
 // Falls back to the unstructured.Unstructured type if a matching type cannot be found for the Kind.
 // Options may be provided to configure the behavior of the decoder.
 func DecodeAll(ctx context.Context, manifest io.Reader, options ...DecodeOption) ([]k8s.Object, error) {
@@ -215,6 +216,18 @@ func DecodeFile(fsys fs.FS, manifestPath string, obj k8s.Object, options ...Deco
 	}
 	defer f.Close()
 	return Decode(f, obj, options...)
+}
+
+// DecodeURL decodes a document from the URL of any Kind using either the innate typing of the scheme.
+// Falls back to the unstructured.Unstructured type if a matching type cannot be found for the Kind.
+func DecodeURL(ctx context.Context, url string, handlerFn HandlerFunc, options ...DecodeOption) error {
+	resp := http.Get(url).Do()
+	if resp.Err() != nil {
+		return resp.Err()
+	}
+	defer resp.Body().Close()
+
+	return DecodeEach(ctx, resp.Body(), handlerFn, options...)
 }
 
 // DecodeString decodes a single-document YAML or JSON string into the provided object. Patches are applied

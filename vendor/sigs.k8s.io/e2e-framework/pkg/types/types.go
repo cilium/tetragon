@@ -196,6 +196,11 @@ type E2EClusterProvider interface {
 	// using the cluster provider native way
 	GetKubeconfig() string
 
+	// GenerateKubeconfig provides a way to extract the kubeconfig file associated with the cluster in question.
+	// Different from GetKubeconfig, this method is used to extract the kubeconfig using provider native way, where the GetKubeconfig is cached.
+	// It is useful in cases where the kubeconfig file is required to be extracted multiple times during the test run with different arguments.
+	GenerateKubeconfig(args ...string) (string, error)
+
 	// GetKubectlContext is used to extract the kubectl context to be used while performing the operation
 	GetKubectlContext() string
 

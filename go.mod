@@ -5,7 +5,7 @@ go 1.26.0
 
 require (
 	github.com/alecthomas/kong v1.15.0
-	github.com/cilium/ebpf v0.21.1-0.20260427123516-6bf8ddfd0f0f
+	github.com/cilium/ebpf v0.21.1-0.20260501093402-9f87aafaeb37
 	github.com/cilium/little-vm-helper v0.0.29
 	github.com/cilium/lumberjack/v2 v2.4.2
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
@@ -53,9 +53,9 @@ require (
 	k8s.io/code-generator v0.36.0
 	k8s.io/cri-api v0.36.0
 	k8s.io/klog/v2 v2.140.0
-	sigs.k8s.io/controller-runtime v0.23.1-0.20260424122448-c8b4b9d61fbd
+	sigs.k8s.io/controller-runtime v0.24.0
 	sigs.k8s.io/controller-tools v0.20.1
-	sigs.k8s.io/e2e-framework v0.6.0
+	sigs.k8s.io/e2e-framework v0.7.0
 	sigs.k8s.io/yaml v1.6.0
 )
 
