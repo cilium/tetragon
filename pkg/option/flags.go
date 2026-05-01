@@ -31,6 +31,7 @@ const (
 	KeyKernelVersion          = "kernel"
 	KeyVerbosity              = "verbose"
 	KeyProcessCacheSize       = "process-cache-size"
+	KeyDisableProcessCache    = "disable-process-cache"
 	KeyDataCacheSize          = "data-cache-size"
 	KeyProcessCacheGCInterval = "process-cache-gc-interval"
 	KeyForceSmallProgs        = "force-small-progs"
@@ -226,6 +227,7 @@ func ReadAndSetFlags() error {
 	logger.PopulateLogOpts(Config.LogOpts, logLevel, logFormat, logFile)
 
 	Config.ProcessCacheSize = viper.GetInt(KeyProcessCacheSize)
+	Config.DisableProcessCache = viper.GetBool(KeyDisableProcessCache)
 	Config.DataCacheSize = viper.GetInt(KeyDataCacheSize)
 	Config.ProcessCacheGCInterval = viper.GetDuration(KeyProcessCacheGCInterval)
 
@@ -391,6 +393,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyKernelVersion, "", "Kernel version")
 	flags.Int(KeyVerbosity, 0, "set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
 	flags.Int(KeyProcessCacheSize, 65536, "Size of the process cache")
+	flags.Bool(KeyDisableProcessCache, false, "Disable process cache")
 	flags.Int(KeyDataCacheSize, 1024, "Size of the data events cache")
 	flags.Duration(KeyProcessCacheGCInterval, defaults.DefaultProcessCacheGCInterval, "Time between checking the process cache for old entries")
 	flags.Bool(KeyForceSmallProgs, false, "Force loading small programs, even in kernels with >= 5.3 versions")
