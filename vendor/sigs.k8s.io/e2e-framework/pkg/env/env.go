@@ -224,18 +224,22 @@ func (e *testEnv) processTestActions(ctx context.Context, t *testing.T, actions 
 // AfterEachFeature.
 func (e *testEnv) processTestFeature(ctx context.Context, t *testing.T, featureName string, feature types.Feature) context.Context {
 	t.Helper()
-	skipped, message := e.requireFeatureProcessing(feature)
-	if skipped {
-		t.Skip(message)
-	}
-	// execute beforeEachFeature actions
-	ctx = e.processFeatureActions(ctx, t, feature, e.getBeforeFeatureActions())
+	t.Run(featureName, func(newT *testing.T) {
+		newT.Helper()
+		skipped, message := e.requireFeatureProcessing(feature)
+		if skipped {
+			newT.Skip(message)
+		}
+		// execute beforeEachFeature actions
+		ctx = e.processFeatureActions(ctx, t, feature, e.getBeforeFeatureActions())
 
-	// execute feature test
-	ctx = e.execFeature(ctx, t, featureName, feature)
+		// execute feature test
+		ctx = e.execFeature(ctx, newT, feature)
 
-	// execute afterEachFeature actions
-	return e.processFeatureActions(ctx, t, feature, e.getAfterFeatureActions())
+		// execute afterEachFeature actions
+		ctx = e.processFeatureActions(ctx, t, feature, e.getAfterFeatureActions())
+	})
+	return ctx
 }
 
 // processFeatureActions is used to run a series of feature action that were configured as
@@ -477,72 +481,70 @@ func (e *testEnv) executeSteps(ctx context.Context, t *testing.T, steps []types.
 	return ctx
 }
 
-func (e *testEnv) execFeature(ctx context.Context, t *testing.T, featName string, f types.Feature) context.Context {
+func (e *testEnv) execFeature(ctx context.Context, t *testing.T, f types.Feature) context.Context {
 	t.Helper()
-	// feature-level subtest
-	t.Run(featName, func(newT *testing.T) {
-		newT.Helper()
 
-		if fDescription, ok := f.(types.DescribableFeature); ok && fDescription.Description() != "" {
-			t.Logf("Processing Feature: %s", fDescription.Description())
+	if fDescription, ok := f.(types.DescribableFeature); ok && fDescription.Description() != "" {
+		t.Logf("Processing Feature: %s", fDescription.Description())
+	}
+
+	// setups run at feature-level
+	setups := features.GetStepsByLevel(f.Steps(), types.LevelSetup)
+	ctx = e.executeSteps(ctx, t, setups)
+
+	// assessments run as feature/assessment sub level
+	assessments := features.GetStepsByLevel(f.Steps(), types.LevelAssess)
+
+	failed := false
+	for i, assess := range assessments {
+		assessName := assess.Name()
+		if dAssess, ok := assess.(types.DescribableStep); ok && dAssess.Description() != "" {
+			t.Logf("Processing Assessment: %s", dAssess.Description())
 		}
-
-		// setups run at feature-level
-		setups := features.GetStepsByLevel(f.Steps(), types.LevelSetup)
-		ctx = e.executeSteps(ctx, newT, setups)
-
-		// assessments run as feature/assessment sub level
-		assessments := features.GetStepsByLevel(f.Steps(), types.LevelAssess)
-
-		failed := false
-		for i, assess := range assessments {
-			assessName := assess.Name()
-			if dAssess, ok := assess.(types.DescribableStep); ok && dAssess.Description() != "" {
-				t.Logf("Processing Assessment: %s", dAssess.Description())
-			}
-			if assessName == "" {
-				assessName = fmt.Sprintf("Assessment-%d", i+1)
-			}
-			// shouldFailNow catches whether t.FailNow() is called in the assessment.
-			// If it is, we won't proceed with the next assessment.
-			var shouldFailNow bool
-			newT.Run(assessName, func(internalT *testing.T) {
-				internalT.Helper()
-				skipped, message := e.requireAssessmentProcessing(assess, i+1)
-				if skipped {
-					internalT.Skip(message)
-				}
-				// Set shouldFailNow to true before actually running the assessment, because if the assessment
-				// calls t.FailNow(), the function will be abruptly stopped in the middle of `e.executeSteps()`.
-				shouldFailNow = true
-				ctx = e.executeSteps(ctx, internalT, []types.Step{assess})
-				// If we reach this point, it means the assessment did not call t.FailNow().
-				shouldFailNow = false
-			})
-			// Check if the Test assessment under question performed either 2 things:
-			// - a t.FailNow() invocation
-			// - a `t.Fail()` or `t.Failed()` invocation
-			// In one of those cases, we need to track that and stop the next set of assessment in the feature
-			// under test from getting executed.
-			if shouldFailNow || (e.cfg.FailFast() && newT.Failed()) {
-				failed = true
-				break
-			}
+		if assessName == "" {
+			assessName = fmt.Sprintf("Assessment-%d", i+1)
 		}
-
-		// Let us fail the test fast and not run the teardown in case if the framework specific fail-fast mode is
-		// invoked to make sure we leave the traces of the failed test behind to enable better debugging for the
-		// test developers
-		if e.cfg.FailFast() && failed {
-			newT.FailNow()
+		// shouldFailNow catches whether t.FailNow() is called in the assessment.
+		// If it is, we won't proceed with the next assessment.
+		var shouldFailNow bool
+		var wasSkipped bool
+		t.Run(assessName, func(internalT *testing.T) {
+			internalT.Helper()
+			defer func() {
+				wasSkipped = internalT.Skipped()
+			}()
+			skipped, message := e.requireAssessmentProcessing(assess, i+1)
+			if skipped {
+				internalT.Skip(message)
+			}
+			// Set shouldFailNow to true before actually running the assessment, because if the assessment
+			// calls t.FailNow(), the function will be abruptly stopped in the middle of `e.executeSteps()`.
+			shouldFailNow = true
+			ctx = e.executeSteps(ctx, internalT, []types.Step{assess})
+			// If we reach this point, it means the assessment did not call t.FailNow().
+			shouldFailNow = false
+		})
+		// Check if the Test assessment under question performed either 2 things:
+		// - a t.FailNow() invocation
+		// - a `t.Fail()` or `t.Failed()` invocation
+		// In one of those cases, we need to track that and stop the next set of assessment in the feature
+		// under test from getting executed. Skipped tests should not trigger this.
+		if !wasSkipped && (shouldFailNow || (e.cfg.FailFast() && t.Failed())) {
+			failed = true
+			break
 		}
+	}
 
-		// teardowns run at feature-level
-		teardowns := features.GetStepsByLevel(f.Steps(), types.LevelTeardown)
-		ctx = e.executeSteps(ctx, newT, teardowns)
-	})
+	// Let us fail the test fast and not run the teardown in case if the framework specific fail-fast mode is
+	// invoked to make sure we leave the traces of the failed test behind to enable better debugging for the
+	// test developers
+	if e.cfg.FailFast() && failed {
+		t.FailNow()
+	}
 
-	return ctx
+	// teardowns run at feature-level
+	teardowns := features.GetStepsByLevel(f.Steps(), types.LevelTeardown)
+	return e.executeSteps(ctx, t, teardowns)
 }
 
 // requireFeatureProcessing is a wrapper around the requireProcessing function to process the feature level validation
@@ -649,7 +651,7 @@ func (e *testEnv) deepCopyConfig() *envconf.Config {
 
 	labels := make(map[string][]string, len(e.cfg.Labels()))
 	for k, vals := range e.cfg.Labels() {
-		copyVals := make([]string, len(vals))
+		copyVals := make([]string, 0, len(vals))
 		copyVals = append(copyVals, vals...)
 		labels[k] = copyVals
 	}
@@ -657,7 +659,7 @@ func (e *testEnv) deepCopyConfig() *envconf.Config {
 
 	skipLabels := make(map[string][]string, len(e.cfg.SkipLabels()))
 	for k, vals := range e.cfg.SkipLabels() {
-		copyVals := make([]string, len(vals))
+		copyVals := make([]string, 0, len(vals))
 		copyVals = append(copyVals, vals...)
 		skipLabels[k] = copyVals
 	}
