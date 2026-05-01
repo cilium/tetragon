@@ -66,6 +66,7 @@ type config struct {
 	RBQueueSize       int
 
 	ProcessCacheSize       int
+	DisableProcessCache    bool
 	DataCacheSize          int
 	ProcessCacheGCInterval time.Duration
 
