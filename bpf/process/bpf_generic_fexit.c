@@ -6,6 +6,12 @@
 
 #define GENERIC_FEXIT
 
+#ifdef __SLEEPABLE
+#define __NO_PERF_RINGBUFFER
+#define __NO_STACKTRACE
+#define __NO_PRELOAD
+#endif
+
 #include "compiler.h"
 #include "bpf_tracing.h"
 #include "bpf_event.h"
@@ -37,8 +43,13 @@ struct {
 #include "generic_maps.h"
 #include "generic_calls.h"
 
+#ifdef __SLEEPABLE
+#define SECTION_ENTRY "fexit.s/generic_fexit"
+#define SECTION_TAIL  "fexit.s/generic_fexit_tail"
+#else
 #define SECTION_ENTRY "fexit/generic_fexit"
 #define SECTION_TAIL  "fexit/generic_fexit_tail"
+#endif
 
 __attribute__((section(SECTION_ENTRY), used)) int
 generic_fexit_event(void *ctx)

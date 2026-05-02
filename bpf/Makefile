@@ -112,6 +112,9 @@ PROCESS += bpf_execve_map_update_v61.o bpf_execve_map_update_v511.o \
 PROCESS += bpf_generic_uprobe_sleepable.o bpf_multi_uprobe_sleepable.o \
 	   bpf_generic_retuprobe_sleepable.o bpf_multi_retuprobe_sleepable.o
 
+# sleepable fentry/fexit
+PROCESS += bpf_generic_fentry_sleepable.o bpf_generic_fexit_sleepable.o
+
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o bpf_cgtracker.o
 CGROUP += bpf_cgroup_mkdir_v511.o bpf_cgroup_rmdir_v511.o bpf_cgroup_release_v511.o
 BPFTEST = bpf_lseek.o
@@ -161,6 +164,9 @@ CFLAGS_bpf_generic_uprobe_sleepable.o    = -D__SLEEPABLE $(CFLAGS_v61)
 CFLAGS_bpf_multi_uprobe_sleepable.o      = -D__SLEEPABLE $(CFLAGS_v61) -D__MULTI_KPROBE
 CFLAGS_bpf_generic_retuprobe_sleepable.o = -D__SLEEPABLE $(CFLAGS_v61)
 CFLAGS_bpf_multi_retuprobe_sleepable.o   = -D__SLEEPABLE $(CFLAGS_v61) -D__MULTI_KPROBE
+
+CFLAGS_bpf_generic_fentry_sleepable.o = -D__SLEEPABLE $(CFLAGS_v61)
+CFLAGS_bpf_generic_fexit_sleepable.o  = -D__SLEEPABLE $(CFLAGS_v61)
 
 # Rules
 MTARGET_o  = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.o,$@)
@@ -242,6 +248,8 @@ $(DEPSDIR)bpf_generic_uprobe_sleepable.d: $(PROCESSDIR)bpf_generic_uprobe.c
 $(DEPSDIR)bpf_multi_uprobe_sleepable.d: $(PROCESSDIR)bpf_generic_uprobe.c
 $(DEPSDIR)bpf_generic_retuprobe_sleepable.d: $(PROCESSDIR)bpf_generic_retuprobe.c
 $(DEPSDIR)bpf_multi_retuprobe_sleepable.d: $(PROCESSDIR)bpf_generic_retuprobe.c
+$(DEPSDIR)bpf_generic_fentry_sleepable.d: $(PROCESSDIR)bpf_generic_fentry.c
+$(DEPSDIR)bpf_generic_fexit_sleepable.d:  $(PROCESSDIR)bpf_generic_fexit.c
 
 $(DEPSDIR)%.d: $(ALIGNCHECKERDIR)%.c
 	$(rule_d)

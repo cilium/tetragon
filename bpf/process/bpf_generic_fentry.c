@@ -6,6 +6,12 @@
 
 #define GENERIC_FENTRY
 
+#ifdef __SLEEPABLE
+#define __NO_PERF_RINGBUFFER
+#define __NO_STACKTRACE
+#define __NO_PRELOAD
+#endif
+
 #include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
@@ -46,8 +52,13 @@ struct {
 #include "generic_maps.h"
 #include "generic_calls.h"
 
+#ifdef __SLEEPABLE
+#define SECTION_ENTRY "fentry.s/generic_fentry"
+#define SECTION_TAIL  "fentry.s/generic_fentry_tail"
+#else
 #define SECTION_ENTRY "fentry/generic_fentry"
 #define SECTION_TAIL  "fentry/generic_fentry_tail"
+#endif
 
 __attribute__((section((SECTION_ENTRY)), used)) int
 generic_fentry_event(struct pt_regs *ctx)
