@@ -29,6 +29,10 @@ func GenericUprobeObjs(_, _ bool) (string, string) {
 	return "", ""
 }
 
+func GenericTracingObjs(_ bool) (string, string) {
+	return "", ""
+}
+
 func GenericTracepointObjs(_ bool) string {
 	return ""
 }

@@ -77,7 +77,10 @@ func GenericKprobeObjs(multi bool) (string, string) {
 	return "bpf_generic_kprobe.o", "bpf_generic_retkprobe.o"
 }
 
-func GenericTracingObjs() (string, string) {
+func GenericTracingObjs(sleepable bool) (string, string) {
+	if sleepable {
+		return "bpf_generic_fentry_sleepable.o", "bpf_generic_fexit_sleepable.o"
+	}
 	if EnableV61Progs() {
 		return "bpf_generic_fentry_v61.o", "bpf_generic_fexit_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {

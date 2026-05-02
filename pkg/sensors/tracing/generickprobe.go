@@ -523,11 +523,12 @@ type hasMaps struct {
 	sockTrack  bool
 	selector   bool
 	fentry     bool
+	sleepable  bool
 }
 
 // hasMapsSetup setups the has maps for the per policy maps. The per kprobe maps
 // are setup later in createSingleKprobeSensor or createMultiKprobeSensor.
-func hasMapsSetup(spec *v1alpha1.TracingPolicySpec, kprobes []v1alpha1.KProbeSpec, fentry bool) hasMaps {
+func hasMapsSetup(spec *v1alpha1.TracingPolicySpec, kprobes []v1alpha1.KProbeSpec, fentry bool, opts *specOptions) hasMaps {
 	has := hasMaps{fentry: fentry}
 	for _, kprobe := range kprobes {
 		has.fdInstall = has.fdInstall || selectors.HasFDInstall(kprobe.Selectors)
@@ -536,6 +537,10 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec, kprobes []v1alpha1.KProbeSpe
 		has.sockTrack = has.sockTrack || selectors.HasSockTrack(&kprobe)
 		has.override = has.override || selectors.HasOverride(kprobe.Selectors)
 		has.selector = has.selector || selectors.HasSelector(&kprobe)
+		has.stackTrace = has.stackTrace || selectors.HasStackTrace(kprobe.Selectors)
+	}
+	if fentry {
+		has.sleepable = bpf.DetectSleepableTailCalls() && !has.stackTrace && !opts.DisableSleepable
 	}
 	return has
 }
@@ -578,7 +583,7 @@ func createGenericKprobeSensor(
 		kprobes = spec.KProbes
 	}
 
-	has := hasMapsSetup(spec, kprobes, fentry)
+	has := hasMapsSetup(spec, kprobes, fentry, polInfo.specOpts)
 
 	// use multi kprobe only if:
 	// - it's not disabled by spec option
@@ -804,7 +809,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 				logger.GetLogger().Warn("maxData flag is ignored (supported from large programs)")
 			}
 		}
-		argMValue, err := getMetaValue(a)
+		argMValue, err := getUserMetaValue(a, false, a.User)
 		if err != nil {
 			return err
 		}
@@ -977,6 +982,13 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	return kprobeEntry.tableId, nil
 }
 
+func fentryLabel(sleepable bool) (string, string) {
+	if sleepable {
+		return "fentry.s/generic_fentry", "fexit.s/generic_fexit"
+	}
+	return "fentry/generic_fentry", "fexit/generic_fexit"
+}
+
 func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe,
 	progs []*program.Program, maps []*program.Map, has hasMaps) ([]*program.Program, []*program.Map) {
 
@@ -995,12 +1007,14 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 			AttachTo: kprobeEntry.funcName,
 		}
 
-		loadProgName, loadProgRetName = config.GenericTracingObjs()
+		loadProgName, loadProgRetName = config.GenericTracingObjs(has.sleepable)
+
+		label, _ := fentryLabel(has.sleepable)
 
 		load = program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgName),
 			kprobeEntry.funcName,
-			"fentry/generic_fentry",
+			label,
 			pinProg,
 			"generic_fentry").
 			SetAttachData(data)
@@ -1114,10 +1128,12 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 				AttachTo: kprobeEntry.funcName,
 			}
 
+			_, labelRet := fentryLabel(has.sleepable)
+
 			loadret = program.Builder(
 				path.Join(option.Config.HubbleLib, loadProgRetName),
 				kprobeEntry.funcName,
-				"fexit/generic_fexit",
+				labelRet,
 				pinRetProg,
 				"generic_fentry").
 				SetAttachData(data)

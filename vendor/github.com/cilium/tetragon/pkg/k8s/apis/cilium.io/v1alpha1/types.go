@@ -113,6 +113,11 @@ type KProbeArg struct {
 	// the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 	// type.
 	BTFType string `json:"btfType,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	// Address space of the argument. When true, the argument is read from user-space
+	// memory otherwise from kernel-space memory.
+	User bool `json:"user,omitempty"`
 }
 
 type BinarySelector struct {
