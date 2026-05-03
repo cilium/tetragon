@@ -437,15 +437,22 @@ func initProcessInternalExec(
 // a clone event
 func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 	parent *ProcessInternal, parentExecId string) (*ProcessInternal, error) {
-	pi := parent.cloneInternalProcessCopy()
-	if pi.process == nil {
-		err := errors.New("failed to clone parent process from cache")
-		logger.GetLogger().Debug("CloneEvent: parent process information is missing",
-			logfields.Error, err,
-			"event.name", "Clone",
-			"event.parent.pid", event.Parent.Pid,
-			"event.parent.exec_id", parentExecId)
-		return nil, err
+	var pi *ProcessInternal
+
+	if !option.Config.DisableProcessCache {
+		pi = parent.cloneInternalProcessCopy()
+		if pi.process == nil {
+			err := errors.New("failed to clone parent process from cache")
+			logger.GetLogger().Debug("CloneEvent: parent process information is missing",
+				logfields.Error, err,
+				"event.name", "Clone",
+				"event.parent.pid", event.Parent.Pid,
+				"event.parent.exec_id", parentExecId)
+			return nil, err
+		}
+	} else {
+		//TODO: maybe get this information from the execve map?
+		pi = &ProcessInternal{process: &tetragon.Process{}}
 	}
 
 	pi.process.ParentExecId = parentExecId
@@ -555,21 +562,30 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 		proc = initProcessInternalExec(event, event.Msg.CleanupProcess)
 	}
 
-	procCache.add(proc)
+	if !option.Config.DisableProcessCache {
+		procCache.add(proc)
+	}
+
 	return proc
 }
 
 // AddCloneEvent adds a new process into the cache from a CloneEvent
 func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
+	var parent *ProcessInternal
+
 	parentExecId := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
-	parent, err := Get(parentExecId)
-	if err != nil {
-		logger.GetLogger().Debug("CloneEvent: parent process not found in cache",
-			logfields.Error, err,
-			"event.name", "Clone",
-			"event.parent.pid", event.Parent.Pid,
-			"event.parent.exec_id", parentExecId)
-		return nil, err
+	if !option.Config.DisableProcessCache {
+		var err error
+
+		parent, err = Get(parentExecId)
+		if err != nil {
+			logger.GetLogger().Debug("CloneEvent: parent process not found in cache",
+				logfields.Error, err,
+				"event.name", "Clone",
+				"event.parent.pid", event.Parent.Pid,
+				"event.parent.exec_id", parentExecId)
+			return nil, err
+		}
 	}
 
 	proc, err := initProcessInternalClone(event, parent, parentExecId)
@@ -577,8 +593,11 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
 		return nil, err
 	}
 
-	parent.RefInc("parent")
-	procCache.add(proc)
+	if !option.Config.DisableProcessCache {
+		parent.RefInc("parent")
+		procCache.add(proc)
+	}
+
 	return proc, nil
 }
 
@@ -587,7 +606,10 @@ func Get(execId string) (*ProcessInternal, error) {
 }
 
 func DumpProcessCache(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.ProcessInternal {
-	return procCache.dump(opts)
+	if !option.Config.DisableProcessCache {
+		return procCache.dump(opts)
+	}
+	return []*tetragon.ProcessInternal{}
 }
 
 // This function returns the process cache entries (and not the copies

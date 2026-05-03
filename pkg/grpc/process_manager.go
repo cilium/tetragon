@@ -40,8 +40,10 @@ func NewProcessManager(
 
 	pm.Server = server.NewServer(ctx, wg, pm, manager, hookRunner)
 
-	// Exec cache is always needed to ensure events have an associated Process{}
-	eventcache.New(pm)
+	if !option.Config.DisableProcessCache {
+		// Exec cache is always needed to ensure events have an associated Process{}
+		eventcache.New(pm)
+	}
 
 	logger.GetLogger().Info("Starting process manager",
 		"enableK8s", option.Config.EnableK8s,
