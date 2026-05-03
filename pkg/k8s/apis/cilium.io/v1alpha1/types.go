@@ -109,9 +109,9 @@ type KProbeArg struct {
 	// Source of the data, if missing the default if function arguments
 	Source string `json:"source"`
 	// +kubebuilder:validation:Optional
-	// Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-	// the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-	// type.
+	// Type to use as the initial resolve type. For kprobe args it looks up the named struct
+	// from the kernel BTF, casting the argument's type before traversing the resolve path.
+	// For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.
 	BTFType string `json:"btfType,omitempty"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false

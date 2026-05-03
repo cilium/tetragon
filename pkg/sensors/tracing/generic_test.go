@@ -168,6 +168,39 @@ spec:
 	}
 }
 
+func TestResolveBTFArgWithBTFType(t *testing.T) {
+	rawPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobes"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    args:
+    - index: 1
+      type: "uint16"
+      btfType: "sockaddr_in"
+      resolve: "sin_port"
+  `
+	policy, err := tracingpolicy.FromYAML(rawPolicy)
+	require.NoError(t, err, "FromYAML rawPolicy error %q", err)
+
+	for _, hook := range policy.TpSpec().KProbes {
+		for _, arg := range hook.Args {
+			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false)
+			if err != nil {
+				t.Fatal(hook.Call, err)
+			}
+			require.NotNil(t, lastBTFType)
+			assert.NotNil(t, btfArg)
+
+			argType := findTypeFromBTFType(&arg, lastBTFType)
+			require.NotEqual(t, gt.GenericInvalidType, argType, "Type %q is not supported", (*lastBTFType).TypeName())
+		}
+	}
+}
+
 func TestAppendMacrosSelectors(t *testing.T) {
 	tests := map[string]struct {
 		selectors         []v1alpha1.KProbeSelector
