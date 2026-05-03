@@ -226,6 +226,12 @@ spec:
                             - dentry
                             - bpf_prog
                             type: string
+                          user:
+                            default: false
+                            description: |-
+                              Address space of the argument. When true, the argument is read from user-space
+                              memory otherwise from kernel-space memory.
+                            type: boolean
                         required:
                         - index
                         - type
@@ -341,6 +347,12 @@ spec:
                             - dentry
                             - bpf_prog
                             type: string
+                          user:
+                            default: false
+                            description: |-
+                              Address space of the argument. When true, the argument is read from user-space
+                              memory otherwise from kernel-space memory.
+                            type: boolean
                         required:
                         - index
                         - type
@@ -469,6 +481,12 @@ spec:
                           - dentry
                           - bpf_prog
                           type: string
+                        user:
+                          default: false
+                          description: |-
+                            Address space of the argument. When true, the argument is read from user-space
+                            memory otherwise from kernel-space memory.
+                          type: boolean
                       required:
                       - index
                       - type
@@ -1304,6 +1322,12 @@ spec:
                             - dentry
                             - bpf_prog
                             type: string
+                          user:
+                            default: false
+                            description: |-
+                              Address space of the argument. When true, the argument is read from user-space
+                              memory otherwise from kernel-space memory.
+                            type: boolean
                         required:
                         - index
                         - type
@@ -1419,6 +1443,12 @@ spec:
                             - dentry
                             - bpf_prog
                             type: string
+                          user:
+                            default: false
+                            description: |-
+                              Address space of the argument. When true, the argument is read from user-space
+                              memory otherwise from kernel-space memory.
+                            type: boolean
                         required:
                         - index
                         - type
@@ -1547,6 +1577,12 @@ spec:
                           - dentry
                           - bpf_prog
                           type: string
+                        user:
+                          default: false
+                          description: |-
+                            Address space of the argument. When true, the argument is read from user-space
+                            memory otherwise from kernel-space memory.
+                          type: boolean
                       required:
                       - index
                       - type
@@ -2357,6 +2393,12 @@ spec:
                             - dentry
                             - bpf_prog
                             type: string
+                          user:
+                            default: false
+                            description: |-
+                              Address space of the argument. When true, the argument is read from user-space
+                              memory otherwise from kernel-space memory.
+                            type: boolean
                         required:
                         - index
                         - type
@@ -3834,6 +3876,12 @@ spec:
                             - dentry
                             - bpf_prog
                             type: string
+                          user:
+                            default: false
+                            description: |-
+                              Address space of the argument. When true, the argument is read from user-space
+                              memory otherwise from kernel-space memory.
+                            type: boolean
                         required:
                         - index
                         - type
@@ -4624,6 +4672,12 @@ spec:
                             - dentry
                             - bpf_prog
                             type: string
+                          user:
+                            default: false
+                            description: |-
+                              Address space of the argument. When true, the argument is read from user-space
+                              memory otherwise from kernel-space memory.
+                            type: boolean
                         required:
                         - index
                         - type
@@ -4739,6 +4793,12 @@ spec:
                             - dentry
                             - bpf_prog
                             type: string
+                          user:
+                            default: false
+                            description: |-
+                              Address space of the argument. When true, the argument is read from user-space
+                              memory otherwise from kernel-space memory.
+                            type: boolean
                         required:
                         - index
                         - type
@@ -4875,6 +4935,12 @@ spec:
                           - dentry
                           - bpf_prog
                           type: string
+                        user:
+                          default: false
+                          description: |-
+                            Address space of the argument. When true, the argument is read from user-space
+                            memory otherwise from kernel-space memory.
+                          type: boolean
                       required:
                       - index
                       - type
@@ -5648,6 +5714,12 @@ spec:
                             - dentry
                             - bpf_prog
                             type: string
+                          user:
+                            default: false
+                            description: |-
+                              Address space of the argument. When true, the argument is read from user-space
+                              memory otherwise from kernel-space memory.
+                            type: boolean
                         required:
                         - index
                         - type
