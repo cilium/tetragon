@@ -6,10 +6,15 @@
 package tests
 
 import (
+	"context"
+	"fmt"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	tetragonbtf "github.com/cilium/tetragon/pkg/btf"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
+	"golang.org/x/sys/unix"
 )
 
 // This file contains tests on kernel functions.
@@ -44,6 +49,67 @@ spec:
 		Name:         "execute lseek and check events",
 		Trigger:      policytest.NewCmdTrigger(lseek, "-1", "0", "4444"),
 		EventChecker: ec.NewUnorderedEventChecker(lseekChecker),
+	}
+}).RegisterAtInit()
+
+type algBindTrigger struct {
+	algName string
+}
+
+func (t *algBindTrigger) Trigger(_ context.Context) error {
+	fd, err := unix.Socket(unix.AF_ALG, unix.SOCK_SEQPACKET, 0)
+	if err != nil {
+		return fmt.Errorf("AF_ALG socket: %w", err)
+	}
+	defer unix.Close(fd)
+	_ = unix.Bind(fd, &unix.SockaddrALG{
+		Type: "hash",
+		Name: t.algName,
+	})
+	return nil
+}
+
+var _ = policytest.NewBuilder("kprobe-sys-bind-sockaddr-alg").
+	WithLabels("kprobes").
+	WithParameter(policytest.Parameter{
+		Name:    "Hook",
+		Default: "kprobes",
+		Help:    "hook type for the policy",
+	}).
+	WithSkip(func(_ *policytest.SkipInfo) string {
+		if _, err := tetragonbtf.FindBTFStruct("sockaddr_alg"); err != nil {
+			return "sockaddr_alg not found in kernel BTF"
+		}
+		return ""
+	}).
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-bind-sockaddr-alg"
+spec:
+  {{ .Hook }}:
+  - call: "__sys_bind"
+    syscall: false
+    args:
+    - index: 1
+      type: "string"
+      btfType: "sockaddr_alg"
+      resolve: "salg_name"
+      user: true
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	const algName = "sha256"
+	algChecker := ec.NewProcessKprobeChecker("sys-bind-sockaddr-alg").
+		WithFunctionName(sm.Full("__sys_bind")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(algName)),
+			))
+	return &policytest.Scenario{
+		Name:         "bind AF_ALG socket and check salg_name",
+		Trigger:      &algBindTrigger{algName: algName},
+		EventChecker: ec.NewUnorderedEventChecker(algChecker),
 	}
 }).RegisterAtInit()
 

@@ -7854,6 +7854,10 @@ func TestKprobeResolveCurrent(t *testing.T) {
 	testKprobeResolveCurrent(t, false)
 }
 
+func TestKprobeSysBindSockaddrAlg(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-sys-bind-sockaddr-alg", nil)
+}
+
 func testKprobeRangeOp(t *testing.T, in, fentry bool) {
 
 	if !config.EnableLargeProgs() {

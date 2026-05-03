@@ -460,6 +460,13 @@ func TestFentryResolveCurrent(t *testing.T) {
 	testKprobeResolveCurrent(t, true)
 }
 
+func TestFentrySysBindSockaddrAlg(t *testing.T) {
+	checkFentry(t)
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-sys-bind-sockaddr-alg", map[string]any{
+		"Hook": "fentries",
+	})
+}
+
 func TestFentryRangeIn(t *testing.T) {
 	checkFentry(t)
 	testKprobeRangeOp(t, true, true)
