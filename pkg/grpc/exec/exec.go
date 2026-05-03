@@ -44,6 +44,8 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	var tetragonParent *tetragon.Process
 	var tetragonAncestors []*tetragon.Process
 	var ancestors []*process.ProcessInternal
+	var parent *process.ProcessInternal
+	var err error
 
 	proc := process.AddExecEvent(event.Unix)
 	tetragonProcess := proc.UnsafeGetProcess()
@@ -51,9 +53,11 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	parentId := tetragonProcess.ParentExecId
 	processId := tetragonProcess.ExecId
 
-	parent, err := process.Get(parentId)
-	if err == nil {
-		tetragonParent = parent.UnsafeGetProcess()
+	if !option.Config.DisableProcessCache {
+		parent, err = process.Get(parentId)
+		if err == nil {
+			tetragonParent = parent.UnsafeGetProcess()
+		}
 	}
 
 	// Set the ancestors only if --enable-ancestors flag includes 'base'.
@@ -119,9 +123,11 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 		// The eventmetrics will count further errors
 	}
 
-	// do we need to cleanup anything?
-	if cleanupEvent := event.getCleanupEvent(); cleanupEvent != nil {
-		cleanupEvent.HandleMessage()
+	if !option.Config.DisableProcessCache {
+		// do we need to cleanup anything?
+		if cleanupEvent := event.getCleanupEvent(); cleanupEvent != nil {
+			cleanupEvent.HandleMessage()
+		}
 	}
 
 	return tetragonEvent
@@ -366,6 +372,10 @@ func (msg *MsgCloneEventUnix) Retry(internal *process.ProcessInternal, _ notify.
 
 func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var ancestors []*process.ProcessInternal
+
+	if option.Config.DisableProcessCache {
+		return nil
+	}
 
 	proc, _ := process.AddCloneEvent(&msg.MsgCloneEvent)
 	if option.Config.EnableProcessAncestors && proc.NeededAncestors() {

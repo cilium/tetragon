@@ -530,6 +530,10 @@ func GetPodInfo(containerID, bin, args string, nspid uint32) *tetragon.Pod {
 }
 
 func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *ProcessInternal) {
+	if option.Config.DisableProcessCache {
+		return nil, nil
+	}
+
 	var parent, process *ProcessInternal
 	var err error
 
@@ -589,7 +593,10 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 		proc = initProcessInternalExec(event, event.Msg.CleanupProcess)
 	}
 
-	procCache.add(proc)
+	if !option.Config.DisableProcessCache {
+		procCache.add(proc)
+	}
+
 	return proc
 }
 
@@ -621,7 +628,10 @@ func Get(execId string) (*ProcessInternal, error) {
 }
 
 func DumpProcessCache(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.ProcessInternal {
-	return procCache.dump(opts)
+	if !option.Config.DisableProcessCache {
+		return procCache.dump(opts)
+	}
+	return []*tetragon.ProcessInternal{}
 }
 
 // This function returns the process cache entries (and not the copies
