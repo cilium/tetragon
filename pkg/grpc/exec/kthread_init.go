@@ -9,6 +9,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 )
@@ -21,13 +22,15 @@ type MsgKThreadInitUnix struct {
 }
 
 func (msg *MsgKThreadInitUnix) HandleMessage() *tetragon.GetEventsResponse {
-	proc := process.AddExecEvent(msg.Unix)
-	parent, err := process.Get(proc.UnsafeGetProcess().ParentExecId)
-	if err != nil {
-		logger.GetLogger().Warn(fmt.Sprintf("Failed to find parent for kernel thread %d", msg.Unix.Msg.Parent.Pid))
-		return nil
+	if !option.Config.DisableProcessCache {
+		proc := process.AddExecEvent(msg.Unix)
+		parent, err := process.Get(proc.UnsafeGetProcess().ParentExecId)
+		if err != nil {
+			logger.GetLogger().Warn(fmt.Sprintf("Failed to find parent for kernel thread %d", msg.Unix.Msg.Parent.Pid))
+			return nil
+		}
+		parent.RefInc("parent")
 	}
-	parent.RefInc("parent")
 	return nil
 }
 

@@ -5,17 +5,23 @@ package process
 
 import (
 	"errors"
+	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 
+	"golang.org/x/sys/unix"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -467,15 +473,35 @@ func initProcessInternalExec(
 // a clone event
 func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 	parent *ProcessInternal, parentExecId string) (*ProcessInternal, error) {
-	pi := parent.cloneInternalProcessCopy()
-	if pi.process == nil {
-		err := errors.New("failed to clone parent process from cache")
-		logger.GetLogger().Debug("CloneEvent: parent process information is missing",
-			logfields.Error, err,
-			"event.name", "Clone",
-			"event.parent.pid", event.Parent.Pid,
-			"event.parent.exec_id", parentExecId)
-		return nil, err
+	var pi *ProcessInternal
+
+	if !option.Config.DisableProcessCache {
+		pi = parent.cloneInternalProcessCopy()
+		if pi.process == nil {
+			err := errors.New("failed to clone parent process from cache")
+			logger.GetLogger().Debug("CloneEvent: parent process information is missing",
+				logfields.Error, err,
+				"event.name", "Clone",
+				"event.parent.pid", event.Parent.Pid,
+				"event.parent.exec_id", parentExecId)
+			return nil, err
+		}
+	} else {
+		// Note: Everything that this fills in, except for the Binary will be overwritten.
+		processFromMap, err := getProcessFromExecveMap(event.Parent.Pid)
+		if err != nil {
+			logger.GetLogger().Debug("CloneEvent: failed to retrieve parent process from execve_map",
+				logfields.Error, err,
+				"event.name", "Clone",
+				"event.parent.pid", event.Parent.Pid,
+				"event.parent.exec_id", parentExecId)
+		}
+
+		if processFromMap == nil {
+			processFromMap = &tetragon.Process{}
+		}
+
+		pi = &ProcessInternal{process: processFromMap}
 	}
 
 	pi.process.ParentExecId = parentExecId
@@ -520,12 +546,102 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 	return pi, nil
 }
 
+func getProcessFromExecveMap(parentPid uint32) (*tetragon.Process, error) {
+	val, err := lookupExecveMap(parentPid)
+	if err != nil {
+		return nil, err
+	}
+
+	parentExecId := GetProcessID(val.Process.Pid, val.Process.Ktime)
+	return &tetragon.Process{
+		Pid:          &wrapperspb.UInt32Value{Value: val.Process.Pid},
+		Binary:       unix.ByteSliceToString(val.Binary.Path[:]),
+		ExecId:       parentExecId,
+		ParentExecId: GetProcessID(val.Parent.Pid, val.Parent.Ktime),
+	}, nil
+}
+
+func lookupExecveMap(pid uint32) (*execvemap.ExecveValue, error) {
+	execveMapPath := filepath.Join(bpf.MapPrefixPath(), "execve_map")
+	execveMap, err := ebpf.LoadPinnedMap(execveMapPath, &ebpf.LoadPinOptions{ReadOnly: true})
+	if err != nil {
+		return nil, fmt.Errorf("failed to open execve_map: %w", err)
+	}
+	defer execveMap.Close()
+
+	key := execvemap.ExecveKey{Pid: pid}
+	var val execvemap.ExecveValue
+	if err := execveMap.Lookup(&key, &val); err != nil {
+		return nil, err
+	}
+
+	return &val, nil
+}
+
+func processInternalFromExecveMapValue(val *execvemap.ExecveValue) *ProcessInternal {
+	if val == nil {
+		return nil
+	}
+
+	return &ProcessInternal{
+		process: &tetragon.Process{
+			Pid:          &wrapperspb.UInt32Value{Value: val.Process.Pid},
+			Binary:       unix.ByteSliceToString(val.Binary.Path[:]),
+			ExecId:       GetProcessID(val.Process.Pid, val.Process.Ktime),
+			ParentExecId: GetProcessID(val.Parent.Pid, val.Parent.Ktime),
+			StartTime:    ktime.ToProto(val.Process.Ktime),
+		},
+	}
+}
+
 // GetPodInfo constructs and returns the Kubernetes Pod information associated with an event.
 func GetPodInfo(containerID, bin, args string, nspid uint32) *tetragon.Pod {
 	return getPodInfo(k8s, containerID, bin, args, nspid)
 }
 
 func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *ProcessInternal) {
+	if option.Config.DisableProcessCache {
+		val, err := lookupExecveMap(pid)
+		if err != nil {
+			logger.GetLogger().Debug("process not found in execve_map",
+				"pid", pid,
+				"ktime", ktime,
+				logfields.Error, err)
+			return nil, nil
+		}
+
+		// execve_map is keyed only by pid. If the stored ktime doesn't match
+		// the requested ktime, treat it as a miss to avoid pid-reuse confusion.
+		if val.Process.Ktime != ktime {
+			logger.GetLogger().Debug("process found in execve_map has ktime mismatch",
+				"pid", pid,
+				"expected_ktime", ktime,
+				"actual_ktime", val.Process.Ktime)
+			return nil, nil
+		}
+
+		process := processInternalFromExecveMapValue(val)
+
+		parentVal, err := lookupExecveMap(val.Parent.Pid)
+		if err != nil {
+			logger.GetLogger().Debug("parent process not found in execve_map",
+				"pid", pid,
+				"ktime", ktime,
+				logfields.Error, err)
+			return process, nil
+		}
+
+		if parentVal.Process.Ktime != val.Parent.Ktime {
+			logger.GetLogger().Debug("parent process found in execve_map has ktime mismatch",
+				"pid", pid,
+				"expected_parent_ktime", val.Parent.Ktime,
+				"actual_parent_ktime", parentVal.Process.Ktime)
+			return process, nil
+		}
+
+		return process, processInternalFromExecveMapValue(parentVal)
+	}
+
 	var parent, process *ProcessInternal
 	var err error
 
@@ -585,21 +701,30 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 		proc = initProcessInternalExec(event, event.Msg.CleanupProcess)
 	}
 
-	procCache.add(proc)
+	if !option.Config.DisableProcessCache {
+		procCache.add(proc)
+	}
+
 	return proc
 }
 
 // AddCloneEvent adds a new process into the cache from a CloneEvent
 func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
+	var parent *ProcessInternal
+
 	parentExecId := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
-	parent, err := Get(parentExecId)
-	if err != nil {
-		logger.GetLogger().Debug("CloneEvent: parent process not found in cache",
-			logfields.Error, err,
-			"event.name", "Clone",
-			"event.parent.pid", event.Parent.Pid,
-			"event.parent.exec_id", parentExecId)
-		return nil, err
+	if !option.Config.DisableProcessCache {
+		var err error
+
+		parent, err = Get(parentExecId)
+		if err != nil {
+			logger.GetLogger().Debug("CloneEvent: parent process not found in cache",
+				logfields.Error, err,
+				"event.name", "Clone",
+				"event.parent.pid", event.Parent.Pid,
+				"event.parent.exec_id", parentExecId)
+			return nil, err
+		}
 	}
 
 	proc, err := initProcessInternalClone(event, parent, parentExecId)
@@ -607,8 +732,11 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
 		return nil, err
 	}
 
-	parent.RefInc("parent")
-	procCache.add(proc)
+	if !option.Config.DisableProcessCache {
+		parent.RefInc("parent")
+		procCache.add(proc)
+	}
+
 	return proc, nil
 }
 
@@ -617,7 +745,10 @@ func Get(execId string) (*ProcessInternal, error) {
 }
 
 func DumpProcessCache(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.ProcessInternal {
-	return procCache.dump(opts)
+	if !option.Config.DisableProcessCache {
+		return procCache.dump(opts)
+	}
+	return []*tetragon.ProcessInternal{}
 }
 
 // This function returns the process cache entries (and not the copies
