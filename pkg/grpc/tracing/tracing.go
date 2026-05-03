@@ -913,14 +913,18 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	var ancestors []*process.ProcessInternal
 	var tetragonAncestors []*tetragon.Process
 	var tetragonArgs, tetragonData []*tetragon.KprobeArgument
+	var proc, parent *process.ProcessInternal
+	var tetragonProcess, tetragonParent *tetragon.Process
 
-	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
+	if !option.Config.DisableProcessCache {
+		proc, parent, tetragonProcess, tetragonParent = getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
 
-	// Set the ancestors only if --enable-ancestors flag includes 'uprobe'.
-	if option.Config.EnableProcessUprobeAncestors && proc.NeededAncestors() {
-		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
-		for _, ancestor := range ancestors {
-			tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+		// Set the ancestors only if --enable-ancestors flag includes 'uprobe'.
+		if option.Config.EnableProcessUprobeAncestors && proc.NeededAncestors() {
+			ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
+			for _, ancestor := range ancestors {
+				tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+			}
 		}
 	}
 
@@ -948,29 +952,31 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		Action:       kprobeAction(event.Msg.ActionId),
 	}
 
-	if tetragonProcess.Pid == nil {
-		eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
-		return nil
-	}
+	if !option.Config.DisableProcessCache {
+		if tetragonProcess.Pid == nil {
+			eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
+			return nil
+		}
 
-	if ec := eventcache.Get(); ec != nil && !isUnknown(tetragonProcess) &&
-		(ec.Needed(tetragonProcess) ||
-			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
-			(option.Config.EnableProcessUprobeAncestors && ec.NeededAncestors(parent, ancestors))) {
-		ec.Add(nil, tetragonEvent, event.Msg.Common.Ktime, event.Msg.ProcessKey.Ktime, event)
-		return nil
-	}
+		if ec := eventcache.Get(); ec != nil && !isUnknown(tetragonProcess) &&
+			(ec.Needed(tetragonProcess) ||
+				(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
+				(option.Config.EnableProcessUprobeAncestors && ec.NeededAncestors(parent, ancestors))) {
+			ec.Add(nil, tetragonEvent, event.Msg.Common.Ktime, event.Msg.ProcessKey.Ktime, event)
+			return nil
+		}
 
-	if proc != nil {
-		// At uprobes we report the per thread fields, so take a copy
-		// of the thread leader from the cache then update the corresponding
-		// per thread fields.
-		//
-		// The cost to get this is relatively high because it requires a
-		// deep copy of all the fields of the thread leader from the cache in
-		// order to safely modify them, to not corrupt gRPC streams.
-		tetragonEvent.Process = proc.GetProcessCopy()
-		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Msg.Tid)
+		if proc != nil {
+			// At uprobes we report the per thread fields, so take a copy
+			// of the thread leader from the cache then update the corresponding
+			// per thread fields.
+			//
+			// The cost to get this is relatively high because it requires a
+			// deep copy of all the fields of the thread leader from the cache in
+			// order to safely modify them, to not corrupt gRPC streams.
+			tetragonEvent.Process = proc.GetProcessCopy()
+			process.UpdateEventProcessTid(tetragonEvent.Process, &event.Msg.Tid)
+		}
 	}
 	return tetragonEvent
 }

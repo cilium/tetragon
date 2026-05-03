@@ -44,6 +44,8 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	var tetragonParent *tetragon.Process
 	var tetragonAncestors []*tetragon.Process
 	var ancestors []*process.ProcessInternal
+	var parent *process.ProcessInternal
+	var err error
 
 	proc := process.AddExecEvent(event.Unix)
 	tetragonProcess := proc.UnsafeGetProcess()
@@ -51,21 +53,23 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	parentId := tetragonProcess.ParentExecId
 	processId := tetragonProcess.ExecId
 
-	parent, err := process.Get(parentId)
-	if err == nil {
-		tetragonParent = parent.UnsafeGetProcess()
-	}
+	if !option.Config.DisableProcessCache {
+		parent, err = process.Get(parentId)
+		if err == nil {
+			tetragonParent = parent.UnsafeGetProcess()
+		}
 
-	// Set the ancestors only if --enable-ancestors flag includes 'base'.
-	if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
-		// We don't care about an error here, because later we call ec.NeededAncestors,
-		// that will determine if we were successful in collecting all ancestors and,
-		// if we were not, the event will be added to the event cache for reprocessing.
-		// Even if we were not able to collect all ancestors, we will still export what
-		// we were able to collect in the event.
-		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
-		for _, ancestor := range ancestors {
-			tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+		// Set the ancestors only if --enable-ancestors flag includes 'base'.
+		if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
+			// We don't care about an error here, because later we call ec.NeededAncestors,
+			// that will determine if we were successful in collecting all ancestors and,
+			// if we were not, the event will be added to the event cache for reprocessing.
+			// Even if we were not able to collect all ancestors, we will still export what
+			// we were able to collect in the event.
+			ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
+			for _, ancestor := range ancestors {
+				tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+			}
 		}
 	}
 
@@ -81,47 +85,49 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 		Ancestors: tetragonAncestors,
 	}
 
-	if tetragonProcess.Pid == nil {
-		eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
-		return nil
-	}
-
-	if useCache {
-		if ec := eventcache.Get(); ec != nil &&
-			(ec.Needed(tetragonProcess) ||
-				(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
-				(option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors))) {
-			ec.Add(proc, tetragonEvent, event.Unix.Msg.Common.Ktime, event.Unix.Process.Ktime, event)
+	if !option.Config.DisableProcessCache {
+		if tetragonProcess.Pid == nil {
+			eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
 			return nil
 		}
-	}
 
-	if option.Config.EnableProcessAncestors {
-		for _, ancestor := range ancestors {
-			ancestor.RefInc("ancestor")
+		if useCache {
+			if ec := eventcache.Get(); ec != nil &&
+				(ec.Needed(tetragonProcess) ||
+					(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
+					(option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors))) {
+				ec.Add(proc, tetragonEvent, event.Unix.Msg.Common.Ktime, event.Unix.Process.Ktime, event)
+				return nil
+			}
 		}
-	}
-	if parent != nil {
-		parent.RefInc("parent")
-	}
 
-	// Finalize the process event with extra fields
-	if err := event.finalize(tetragonEvent, proc, eventcache.NO_EV_CACHE); err != nil {
-		// Propagate metric errors about finalizing the event
-		errormetrics.ErrorTotalInc(errormetrics.EventFinalizeProcessInfoFailed)
-		logger.GetLogger().Debug("ExecveEvent: failed to finalize process exec event",
-			"event.name", "Execve",
-			"event.process.pid", tetragonProcess.GetPid().GetValue(),
-			"event.process.binary", tetragonProcess.Binary,
-			"event.process.exec_id", processId,
-			"event.event_cache", "no")
-		// For ProcessExec event we do not fail let's return what we have even if it's not complete
-		// The eventmetrics will count further errors
-	}
+		if option.Config.EnableProcessAncestors {
+			for _, ancestor := range ancestors {
+				ancestor.RefInc("ancestor")
+			}
+		}
+		if parent != nil {
+			parent.RefInc("parent")
+		}
 
-	// do we need to cleanup anything?
-	if cleanupEvent := event.getCleanupEvent(); cleanupEvent != nil {
-		cleanupEvent.HandleMessage()
+		// Finalize the process event with extra fields
+		if err := event.finalize(tetragonEvent, proc, eventcache.NO_EV_CACHE); err != nil {
+			// Propagate metric errors about finalizing the event
+			errormetrics.ErrorTotalInc(errormetrics.EventFinalizeProcessInfoFailed)
+			logger.GetLogger().Debug("ExecveEvent: failed to finalize process exec event",
+				"event.name", "Execve",
+				"event.process.pid", tetragonProcess.GetPid().GetValue(),
+				"event.process.binary", tetragonProcess.Binary,
+				"event.process.exec_id", processId,
+				"event.event_cache", "no")
+			// For ProcessExec event we do not fail let's return what we have even if it's not complete
+			// The eventmetrics will count further errors
+		}
+
+		// do we need to cleanup anything?
+		if cleanupEvent := event.getCleanupEvent(); cleanupEvent != nil {
+			cleanupEvent.HandleMessage()
+		}
 	}
 
 	return tetragonEvent
@@ -407,8 +413,12 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	var tetragonProcess, tetragonParent *tetragon.Process
 	var tetragonAncestors []*tetragon.Process
 	var ancestors []*process.ProcessInternal
+	var proc, parent *process.ProcessInternal
 
-	proc, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
+	if !option.Config.DisableProcessCache {
+		proc, parent = process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
+	}
+
 	if proc != nil {
 		tetragonProcess = proc.UnsafeGetProcess()
 	} else {
@@ -421,16 +431,18 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		tetragonParent = parent.UnsafeGetProcess()
 	}
 
-	// Set the ancestors only if --enable-ancestors flag includes 'base'.
-	if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
-		// We don't care about an error here, because later we call ec.NeededAncestors,
-		// that will determine if we were successful in collecting all ancestors and,
-		// if we were not, the event will be added to the event cache for reprocessing.
-		// Even if we were not able to collect all ancestors, we will still export what
-		// we were able to collect in the event.
-		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
-		for _, ancestor := range ancestors {
-			tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+	if !option.Config.DisableProcessCache {
+		// Set the ancestors only if --enable-ancestors flag includes 'base'.
+		if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
+			// We don't care about an error here, because later we call ec.NeededAncestors,
+			// that will determine if we were successful in collecting all ancestors and,
+			// if we were not, the event will be added to the event cache for reprocessing.
+			// Even if we were not able to collect all ancestors, we will still export what
+			// we were able to collect in the event.
+			ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
+			for _, ancestor := range ancestors {
+				tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+			}
 		}
 	}
 
@@ -479,29 +491,31 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		Time:      ktime.ToProto(event.Common.Ktime),
 	}
 
-	if tetragonProcess.Pid == nil {
-		eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
-		return nil
-	}
-
-	if ec := eventcache.Get(); ec != nil &&
-		(ec.Needed(tetragonProcess) ||
-			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
-			(option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors))) {
-		ec.Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
-		return nil
-	}
-
-	if option.Config.EnableProcessAncestors {
-		for _, ancestor := range ancestors {
-			ancestor.RefDec("ancestor")
+	if !option.Config.DisableProcessCache {
+		if tetragonProcess.Pid == nil {
+			eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
+			return nil
 		}
-	}
-	if parent != nil {
-		parent.RefDec("parent")
-	}
-	if proc != nil {
-		proc.RefDec("process")
+
+		if ec := eventcache.Get(); ec != nil &&
+			(ec.Needed(tetragonProcess) ||
+				(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
+				(option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors))) {
+			ec.Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
+			return nil
+		}
+
+		if option.Config.EnableProcessAncestors {
+			for _, ancestor := range ancestors {
+				ancestor.RefDec("ancestor")
+			}
+		}
+		if parent != nil {
+			parent.RefDec("parent")
+		}
+		if proc != nil {
+			proc.RefDec("process")
+		}
 	}
 	return tetragonEvent
 }
