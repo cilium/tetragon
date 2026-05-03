@@ -9,6 +9,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 )
@@ -21,6 +22,9 @@ type MsgKThreadInitUnix struct {
 }
 
 func (msg *MsgKThreadInitUnix) HandleMessage() *tetragon.GetEventsResponse {
+	if option.Config.DisableProcessCache {
+		return nil
+	}
 	proc := process.AddExecEvent(msg.Unix)
 	parent, err := process.Get(proc.UnsafeGetProcess().ParentExecId)
 	if err != nil {
