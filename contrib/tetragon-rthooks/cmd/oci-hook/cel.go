@@ -42,21 +42,38 @@ func celUserExpr(expr string) (*celProg, error) {
 	}, nil
 }
 
-func celAllowNamespaces(vals []string) (*celProg, error) {
+// celAllowNamespacesWithPatterns returns a *celProg that allows containers
+// whose pod namespace matches any of the provided exact names (namespaces) or
+// any of the provided RE2 regex patterns (patterns). Patterns perform substring
+// matching by default; use ^ and $ anchors for full-string matching. Either
+// slice may be empty or nil; if both are empty every container is failed (safe default).
+//
+// Behaviour summary:
+//   - Namespace key missing from annotations  -> fail (true)
+//   - Namespace matches an exact allow entry  -> do not fail (false)
+//   - Namespace matches a regex pattern       -> do not fail (false)
+//   - Namespace matches neither               -> fail (true)
+func celAllowNamespacesWithPatterns(namespaces []string, patterns []string) (*celProg, error) {
 	env, err := cel.NewEnv(
 		cel.Variable("annotations", cel.MapType(cel.StringType, cel.StringType)),
 		cel.Variable("annotations_namespace_keys", cel.ListType(cel.StringType)),
-		cel.Variable("allow_labels", cel.ListType(cel.StringType)),
+		cel.Variable("allow_namespaces", cel.ListType(cel.StringType)),
+		cel.Variable("allow_namespace_patterns", cel.ListType(cel.StringType)),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	//expr := `!(annotations_namespace_key in annotations && annotations[annotations_namespace_key] in allow_labels)`
-	expr := `annotations_namespace_keys.all(key, !(key in annotations && annotations[key] in allow_labels))`
+	// The expression fails (returns true) unless a matching namespace key is
+	// found AND the namespace is in the exact allow list or matches a regex pattern.
+	expr := `annotations_namespace_keys.all(key,
+		!(key in annotations && (
+			annotations[key] in allow_namespaces ||
+			allow_namespace_patterns.exists(p, annotations[key].matches(p))
+		)))`
 	ast, issues := env.Compile(expr)
 	if issues != nil && issues.Err() != nil {
-		return nil, fmt.Errorf("failed to compile `%s`: %w", expr, issues.Err())
+		return nil, fmt.Errorf("failed to compile allow-namespaces expr `%s`: %w", expr, issues.Err())
 	}
 
 	p, err := env.Program(ast)
@@ -67,8 +84,9 @@ func celAllowNamespaces(vals []string) (*celProg, error) {
 	return &celProg{
 		p: p,
 		values: map[string]interface{}{
-			"allow_labels":               vals,
 			"annotations_namespace_keys": cliConf.AnnNamespaceKeys,
+			"allow_namespaces":           namespaces,
+			"allow_namespace_patterns":   patterns,
 		},
 	}, nil
 }
