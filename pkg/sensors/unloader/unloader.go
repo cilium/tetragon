@@ -4,6 +4,7 @@
 package unloader
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -34,12 +35,12 @@ func (cue chainUnloaderError) Error() string {
 
 func (cu ChainUnloader) Unload(unpin bool) error {
 	var cue chainUnloaderError
-	for i := len(cu) - 1; i >= 0; i-- {
+	for _, u := range slices.Backward(cu) {
 		// Allow nil unloader, we just skip it..
-		if (cu)[i] == nil {
+		if u == nil {
 			continue
 		}
-		if err := (cu)[i].Unload(unpin); err != nil {
+		if err := u.Unload(unpin); err != nil {
 			cue.errors = append(cue.errors, err)
 		}
 	}
