@@ -109,6 +109,7 @@ type TracingPolicySpec struct {
 	ContainerSelector *slimv1.LabelSelector `json:"containerSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="!has(self.matchLabels) && !has(self.matchExpressions)",message="The hostSelector should be either null or {}."
 	// HostSelector selects hosts that this policy applies to.
 	// For now only ~ (none) and {} (all) is supported.
 	HostSelector *slimv1.LabelSelector `json:"hostSelector,omitempty"`

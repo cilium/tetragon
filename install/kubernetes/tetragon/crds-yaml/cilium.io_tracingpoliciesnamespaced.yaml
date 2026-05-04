@@ -1192,6 +1192,9 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: The hostSelector should be either null or {}.
+                  rule: '!has(self.matchLabels) && !has(self.matchExpressions)'
               kprobes:
                 description: A list of kprobe specs.
                 items:
