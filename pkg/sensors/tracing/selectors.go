@@ -109,6 +109,19 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*progr
 			},
 		},
 	}
+	if len(ks.MatchWorkloadIDs()) > 0 {
+		maps = append(maps, &program.MapLoad{
+			Name: "workloads_map",
+			Load: func(m *ebpf.Map, _ string) error {
+				for selID, polID := range ks.MatchWorkloadIDs() {
+					if err := m.Update(uint32(selID), polID, ebpf.UpdateAny); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+		})
+	}
 	if kernels.MinKernelVersion("5.11") {
 		maps = append(maps, []*program.MapLoad{
 			{

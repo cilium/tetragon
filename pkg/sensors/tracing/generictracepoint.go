@@ -649,6 +649,9 @@ func createGenericTracepointSensor(
 		filterMap := program.MapBuilderProgram("filter_map", prog0)
 		maps = append(maps, filterMap)
 
+		workloadsMap := program.MapBuilderProgram("workloads_map", prog0)
+		maps = append(maps, workloadsMap)
+
 		maps = append(maps, createSelectorMaps(prog0, tp.selectors)...)
 
 		if has.enforcer {
