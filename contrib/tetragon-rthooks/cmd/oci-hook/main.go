@@ -39,20 +39,24 @@ var (
 	defaultLogFname                 = filepath.Join(binDir, "tetragon-oci-hook.log")
 	defaultConfFile                 = filepath.Join(binDir, "tetragon-oci-hook.json")
 	defaultAgentAddress             = "unix:///var/run/tetragon/tetragon.sock"
-	defaultAnnotationsNamespaceKeys = "io.kubernetes.pod.namespace,io.kubernetes.cri.sandbox-namespace"
+	defaultAnnotationsNamespaceKeys = []string{
+		"io.kubernetes.pod.namespace",
+		"io.kubernetes.cri.sandbox-namespace",
+	}
 	defaultAllowNamspaces           = "kube-system"
 )
 
 var cliConf struct {
-	LogFname            string        `name:"log-fname" default:"${defLogFname}" help:"log output filename."`
-	LogLevel            string        `name:"log-level" default:"info" help:"log level"`
-	AgentAddr           string        `name:"grpc-address" default:"${defAgentAddress}" help:"Tetragon agent gRPC address"`
-	GrpcTimeout         time.Duration `name:"grpc-timeout" default:"10s" help:"timeout for connecting to the agent"`
-	DisableGrpc         bool          `name:"disable-grpc" default:false help:"do not connect to the agent. Instead, write a message to the log"`
-	JustPrintConfig     bool          `name:"just-print-config" default:false help:"just print the config and exit"`
-	AnnNamespaceKeys    []string      `name:"annotations-namespace-key" default:"${defAnnotationsNamespaceKeys}" help:"Runtime annotation keys for accessing k8s namespace"`
-	FailCelUser         string        `name:"fail-cel-expr" help:"CEL expression to decide whether to fail (and stop container from starting) or not"`
-	FailAllowNamespaces []string      `name:"fail-allow-namespaces" default:"${defAllowNamespaces}" help:"The hook will not fail for the specified namespaces, as determined by runtime annotation labels. Flag will be ignored if fail-cel-expr is set."`
+	LogFname                    string        `name:"log-fname" default:"${defLogFname}" help:"log output filename."`
+	LogLevel                    string        `name:"log-level" default:"info" help:"log level"`
+	AgentAddr                   string        `name:"grpc-address" default:"${defAgentAddress}" help:"Tetragon agent gRPC address"`
+	GrpcTimeout                 time.Duration `name:"grpc-timeout" default:"10s" help:"timeout for connecting to the agent"`
+	DisableGrpc                 bool          `name:"disable-grpc" default:false help:"do not connect to the agent. Instead, write a message to the log"`
+	JustPrintConfig             bool          `name:"just-print-config" default:false help:"just print the config and exit"`
+	AnnNamespaceKeys            []string      `name:"annotations-namespace-key" default:"${defAnnotationsNamespaceKeys}" help:"Runtime annotation keys for accessing k8s namespace"`
+	FailCelUser                 string        `name:"fail-cel-expr" help:"CEL expression to decide whether to fail (and stop container from starting) or not"`
+	FailAllowNamespaces         []string      `name:"fail-allow-namespaces" default:"${defAllowNamespaces}" help:"The hook will not fail for the specified namespaces, as determined by runtime annotation labels. Flag will be ignored if fail-cel-expr is set."`
+	FailAllowNamespacesRegex    []string      `name:"fail-allow-namespaces-regex" help:"RE2 regex patterns for namespaces the hook will not fail for. Substring match by default; use ^ and $ anchors for full-string matching (e.g. '^kube-.*$'). Can be combined with --fail-allow-namespaces. Ignored if fail-cel-expr is set."`
 
 	HookName string `arg:"" name:"hook"`
 }
@@ -363,14 +367,10 @@ func checkFail(log *slog.Logger, prog *celProg, annotations map[string]string) e
 }
 
 func failTestProg() (*celProg, error) {
-	var ret *celProg
-	var err error
 	if expr := cliConf.FailCelUser; expr != "" {
-		ret, err = celUserExpr(expr)
-	} else {
-		ret, err = celAllowNamespaces(cliConf.FailAllowNamespaces)
+		return celUserExpr(expr)
 	}
-	return ret, err
+	return celAllowNamespacesWithPatterns(cliConf.FailAllowNamespaces, cliConf.FailAllowNamespacesRegex)
 }
 
 type logHandler struct {
@@ -391,7 +391,7 @@ func main() {
 		kong.Vars{
 			"defLogFname":                 defaultLogFname,
 			"defAgentAddress":             defaultAgentAddress,
-			"defAnnotationsNamespaceKeys": defaultAnnotationsNamespaceKeys,
+			"defAnnotationsNamespaceKeys": strings.Join(defaultAnnotationsNamespaceKeys, ","),
 			"defAllowNamespaces":          defaultAllowNamspaces,
 		},
 		kong.Configuration(kong.JSON, defaultConfFile),

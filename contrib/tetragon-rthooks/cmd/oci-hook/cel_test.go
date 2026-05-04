@@ -16,7 +16,7 @@ func celUserExprNoError(t *testing.T, expr string) *celProg {
 }
 
 func celAllowNamespacesNoError(t *testing.T, vals []string) *celProg {
-	ret, err := celAllowNamespaces(vals)
+	ret, err := celAllowNamespacesWithPatterns(vals, nil)
 	require.NoError(t, err)
 	return ret
 }
