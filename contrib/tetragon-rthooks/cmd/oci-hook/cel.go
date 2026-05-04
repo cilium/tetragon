@@ -20,10 +20,13 @@ func celUserExpr(expr string) (*celProg, error) {
 		cel.Variable("annotations", cel.MapType(cel.StringType, cel.StringType)),
 		cel.Variable("annotations_namespace_key", cel.StringType),
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	ast, issues := env.Compile(expr)
 	if issues != nil && issues.Err() != nil {
-		return nil, fmt.Errorf("failed to compile `%s`: %w", expr, err)
+		return nil, fmt.Errorf("failed to compile `%s`: %w", expr, issues.Err())
 	}
 
 	p, err := env.Program(ast)
