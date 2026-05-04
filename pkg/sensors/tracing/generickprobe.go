@@ -1040,6 +1040,9 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 
+	workloadsMap := program.MapBuilderProgram("workloads_map", load)
+	maps = append(maps, workloadsMap)
+
 	if has.selector {
 		maps = append(maps, createSelectorMaps(load, getProgramSelector(load, kprobeEntry))...)
 

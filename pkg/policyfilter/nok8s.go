@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"sync"
 
+	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/podhelpers"
@@ -52,4 +53,14 @@ func (s *State) DelPolicy(polID PolicyID) error {
 func (s *State) AddPodContainer(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
 	containerID string, cgID CgroupID, containerInfo podhelpers.ContainerInfo) error {
 	return nil
+}
+
+func (s *State) AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector,
+	containerSelector *slimv1.LabelSelector, hostSelector *slimv1.LabelSelector) error {
+	return nil
+}
+
+// for matchWorkloads
+func GetSelectorPolicyID() PolicyID {
+	return PolicyID(0)
 }
