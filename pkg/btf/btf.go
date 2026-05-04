@@ -122,7 +122,7 @@ func firstTypeByName(spec *btf.Spec, name string, typ any) error {
 
 	// typ may be **T or *Type
 	typValue := reflect.ValueOf(typ)
-	if typValue.Kind() != reflect.Ptr {
+	if typValue.Kind() != reflect.Pointer {
 		return fmt.Errorf("%T is not a pointer", typ)
 	}
 

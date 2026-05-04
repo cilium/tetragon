@@ -39,7 +39,7 @@ type Server struct {
 // Helper to detect typed nils
 func isNil(i any) bool {
 	v := reflect.ValueOf(i)
-	if v.Kind() == reflect.Ptr && v.IsNil() {
+	if v.Kind() == reflect.Pointer && v.IsNil() {
 		return true
 	}
 	return false
