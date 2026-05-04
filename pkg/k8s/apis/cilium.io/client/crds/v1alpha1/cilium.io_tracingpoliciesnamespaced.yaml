@@ -574,6 +574,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -1028,6 +1045,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -1657,6 +1691,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -2111,6 +2162,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -2472,6 +2540,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -2926,6 +3011,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -3191,6 +3293,23 @@ spec:
                             description: Enable kernel stack trace export. Only valid
                               with the post action.
                             type: boolean
+                          newAddr:
+                            description: |-
+                              The new symbol's address for the overrideCall action.
+                              Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                            format: int64
+                            type: integer
+                          newOffset:
+                            description: |-
+                              The new symbol's offset for the overrideCall action.
+                              Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                            format: int64
+                            type: integer
+                          newSymbol:
+                            description: |-
+                              The new symbol for the overrideCall action.
+                              Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                            type: string
                           rateLimit:
                             description: |-
                               A time period within which repeated messages will not be posted. Can be
@@ -3638,6 +3757,23 @@ spec:
                             description: Enable kernel stack trace export. Only valid
                               with the post action.
                             type: boolean
+                          newAddr:
+                            description: |-
+                              The new symbol's address for the overrideCall action.
+                              Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                            format: int64
+                            type: integer
+                          newOffset:
+                            description: |-
+                              The new symbol's offset for the overrideCall action.
+                              Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                            format: int64
+                            type: integer
+                          newSymbol:
+                            description: |-
+                              The new symbol for the overrideCall action.
+                              Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                            type: string
                           rateLimit:
                             description: |-
                               A time period within which repeated messages will not be posted. Can be
@@ -3956,6 +4092,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -4410,6 +4563,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -4987,6 +5157,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -5441,6 +5628,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -5780,6 +5984,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -6234,6 +6455,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
