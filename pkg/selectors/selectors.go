@@ -113,6 +113,13 @@ type KernelSelectorData struct {
 	e   [4096]byte // kernel encoding of selectors
 }
 
+type KernelRegsIdx int32
+
+const (
+	KernelRegsActionOverrideIdx KernelRegsIdx = iota
+	KernelRegsActionOverrideCallIdx
+)
+
 type KernelSelectorState struct {
 	data KernelSelectorData
 
@@ -134,7 +141,7 @@ type KernelSelectorState struct {
 
 	isUprobe bool
 
-	regs []processapi.RegAssignment
+	regs map[KernelRegsIdx][]processapi.RegAssignment
 
 	subStrs []string
 
@@ -163,6 +170,7 @@ func NewKernelSelectorState(
 		isUprobe:           isUprobe,
 		celExprFunctions:   celExprs,
 		matchWorkloadIDs:   make(map[int]policyfilter.PolicyID),
+		regs:               make(map[KernelRegsIdx][]processapi.RegAssignment),
 	}
 }
 
@@ -227,7 +235,7 @@ func (k *KernelSelectorState) StringPostfixMaps() []map[KernelLPMTrieStringPostf
 	return k.maps.stringPostfixMaps
 }
 
-func (k *KernelSelectorState) Regs() []processapi.RegAssignment {
+func (k *KernelSelectorState) Regs() map[KernelRegsIdx][]processapi.RegAssignment {
 	return k.regs
 }
 
