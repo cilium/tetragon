@@ -10,6 +10,7 @@ import (
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -38,29 +39,23 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 
 	// If the user specifies a podSelector but don't specify a containerSelector,
 	// we assume that the user cares for all containers inside the pods that match.
-	if podSelector != nil && containerSelector == nil {
+	if podSelector != nil && selectors.MatchNothingLabelSelector(containerSelector) {
 		containerSelector = &slimv1.LabelSelector{}
 	}
 
 	// If the user specifies a containerSelector but don't specify a podSelector,
 	// we assume that the user cares for containers that match inside all pods.
-	if containerSelector != nil && podSelector == nil {
+	if containerSelector != nil && selectors.MatchNothingLabelSelector(podSelector) {
 		podSelector = &slimv1.LabelSelector{}
 	}
 
 	// This is the case where all of podSelector, containerSelector, hostSelector are excplicitly defined to be {}.
 	// In that case we match everything so no need to apply a policyfilter.
-	matchAll := func(s *slimv1.LabelSelector) bool {
-		return (s != nil && (len(s.MatchLabels)+len(s.MatchExpressions) == 0))
-	}
-	globalSelectorsMatchAll := matchAll(podSelector) && matchAll(containerSelector) && matchAll(hostSelector)
+	globalSelectorsMatchAll := selectors.MatchAllLabelSelector(podSelector) && selectors.MatchAllLabelSelector(containerSelector) && selectors.MatchAllLabelSelector(hostSelector)
 
 	// This covers the "special" case where all of podSelector, containerSelector, hostSelector are nil (default).
 	// In that case we match everything so no need to apply a policyfilter.
-	matchNothing := func(s *slimv1.LabelSelector) bool {
-		return s == nil
-	}
-	globalSelectorsMatchNothing := matchNothing(podSelector) && matchNothing(containerSelector) && matchNothing(hostSelector)
+	globalSelectorsMatchNothing := selectors.MatchNothingLabelSelector(podSelector) && selectors.MatchNothingLabelSelector(containerSelector) && selectors.MatchNothingLabelSelector(hostSelector)
 
 	// we do not call AddPolicy unless filtering is actually needed. This
 	// means that if policyfilter is disabled
