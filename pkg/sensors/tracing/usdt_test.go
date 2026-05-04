@@ -69,7 +69,7 @@ func TestUsdtLoadSensor(t *testing.T) {
 			{Name: "tg_rb_events", Progs: []uint{2, 6}},
 
 			// generic_usdt_event
-			{Name: "tg_conf_map", Progs: []uint{0, 2, 6}},
+			{Name: "tg_conf_map", Progs: []uint{0, 2, 4, 6}},
 
 			// shared with base sensor
 			{Name: "execve_map", Progs: []uint{4, 5, 6}},
@@ -107,10 +107,10 @@ func TestUsdtLoadSensor(t *testing.T) {
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}})
 			if config.EnableV511Progs() {
-				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2, 6}})
+				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2, 4, 6}})
 				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_rb_events", Progs: []uint{2, 6}})
 			} else {
-				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
+				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 4}})
 			}
 		} else {
 			// shared with base sensor
