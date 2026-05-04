@@ -42,6 +42,7 @@ cli-local-release: $(RELEASES) ## Compile tetra CLI release binaries locally
 
 $(RELEASE_FOLDER)/$(TARGET)-%.tar.gz: cli-clean
 	@{ \
+		set -e; \
 		OS=$(word 1,$(subst -, ,$*)); \
 		ARCH=$(word 2,$(subst -, ,$*)); \
 		EXT=""; if [ "$$OS" = "windows" ]; then EXT=".exe"; fi; \

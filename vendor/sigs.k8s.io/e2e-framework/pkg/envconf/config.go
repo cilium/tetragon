@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/flags"
 )
 
-// Config represents and environment configuration
+// Config represents the environment configuration
 type Config struct {
 	client                  klient.Client
 	kubeconfig              string
@@ -100,7 +100,7 @@ func (c *Config) KubeconfigFile() string {
 	return c.kubeconfig
 }
 
-// WithClient used to update the environment klient.Client
+// WithClient updates the environment klient.Client
 func (c *Config) WithClient(client klient.Client) *Config {
 	c.client = client
 	return c
@@ -112,7 +112,7 @@ func (c *Config) GetClient() klient.Client {
 }
 
 // NewClient is a constructor function that returns a previously
-// created klient.Client or create a new one based on configuration
+// created klient.Client or creates a new one based on configuration
 // previously set. Will return an error if unable to do so.
 func (c *Config) NewClient() (klient.Client, error) {
 	if c.client != nil {
@@ -258,7 +258,7 @@ func (c *Config) WithFailFast() *Config {
 	return c
 }
 
-// FailFast indicate if the framework is running in fail fast mode. This
+// FailFast indicates if the framework is running in fail fast mode. This
 // controls the behavior of how the assessments and features are handled
 // if a test encounters a failure result
 func (c *Config) FailFast() bool {
