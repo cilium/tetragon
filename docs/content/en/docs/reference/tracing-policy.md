@@ -129,6 +129,8 @@ Currently, only the "name" field is supported.<br/>
         <td>
           HostSelector selects hosts that this policy applies to.
 For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8892,6 +8894,8 @@ Currently, only the "name" field is supported.<br/>
         <td>
           HostSelector selects hosts that this policy applies to.
 For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
         </td>
         <td>false</td>
       </tr><tr>
