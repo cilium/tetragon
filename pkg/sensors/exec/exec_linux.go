@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
+	"github.com/cilium/tetragon/pkg/procsyms"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/exec/userinfo"
@@ -210,6 +211,8 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Invalidate cached memory maps since exec replaces the address space
+	procsyms.InvalidatePID(int(m.Parent.Pid))
 	msgUnix := msgToExecveUnix(&m)
 	msgUnix.Unix.Process, err = execParse(r)
 	if err == nil {
@@ -236,6 +239,8 @@ func handleExit(r *bytes.Reader) ([]observer.Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Invalidate cached memory maps for exiting process
+	procsyms.InvalidatePID(int(m.ProcessKey.Pid))
 	msgUnix := msgToExitUnix(&m)
 	return []observer.Event{msgUnix}, nil
 }
