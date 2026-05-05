@@ -1,3 +1,9 @@
+{{- if and .Values.tetragon.grpc.tls.enabled .Values.tetragon.grpc.enabled (hasPrefix "unix://" .Values.tetragon.grpc.address) -}}
+{{- fail (printf "tetragon.grpc.tls.enabled requires tetragon.grpc.address to point at a TCP listener, got %q. TLS does not apply to the unix-domain socket." .Values.tetragon.grpc.address) -}}
+{{- end -}}
+{{- if and .Values.tetragon.grpc.tls.enabled (not .Values.tetragon.grpc.tls.auto.enabled) (not .Values.tetragon.grpc.tls.server.existingSecret) -}}
+{{- fail "tetragon.grpc.tls: auto provisioning is disabled but server.existingSecret is empty. Set server.existingSecret to a Secret containing tls.crt, tls.key, and (for mTLS) ca.crt." -}}
+{{- end -}}
 {{- if .Values.tetragon.enabled }}
 apiVersion: v1
 kind: ConfigMap
@@ -48,6 +54,14 @@ data:
   server-address: {{ .Values.tetragon.grpc.address }}
 {{- else }}
   server-address: ""
+{{- end }}
+{{- if and .Values.tetragon.grpc.enabled .Values.tetragon.grpc.tls.enabled }}
+  server-tls-cert-file: "/var/lib/tetragon/tls/tls.crt"
+  server-tls-key-file: "/var/lib/tetragon/tls/tls.key"
+{{- if .Values.tetragon.grpc.tls.requireClientCert }}
+  server-tls-require-client-cert: "true"
+  server-tls-client-ca-files: "/var/lib/tetragon/tls/ca.crt"
+{{- end }}
 {{- end }}
 {{- if .Values.tetragon.healthGrpc.enabled }}
   health-server-address: :{{ .Values.tetragon.healthGrpc.port }}

@@ -186,6 +186,69 @@ tetragon:
     enabled: true
     # -- The address at which to expose gRPC. Examples: localhost:54321, unix:///var/run/tetragon/tetragon.sock
     address: "unix:///var/run/tetragon/tetragon.sock"
+    # -- gRPC TLS / mTLS configuration for the optional TCP listener
+    # (tetragon.grpc.address); the always-on unix-domain listener at
+    # /var/run/tetragon/tetragon.sock is unaffected.
+    #
+    # The auto-provisioned server cert uses a wildcard SAN over a synthetic
+    # DNS domain (*.tetragon-grpc.cilium.io) so a single Secret covers every
+    # DaemonSet pod. Clients must override SNI to <any>.tetragon-grpc.cilium.io
+    # to validate. See _helpers.tpl `tetragon.grpcTls.domain` for details;
+    # add Service-style or per-node identities via server.extraDnsNames /
+    # server.extraIpAddresses below.
+    tls:
+      # -- Enable TLS on the TCP gRPC listener. When false, the listener (if
+      # any) is plaintext.
+      enabled: false
+      # -- Require and verify client certificates (mTLS). When true, the
+      # agent rejects TCP gRPC connections that don't present a valid client
+      # cert signed by one of the bundled CAs.
+      requireClientCert: false
+      # -- Configure automatic TLS certificate generation.
+      auto:
+        # -- Auto-generate certificates. When false, you must provide a
+        # Secret yourself (see server.existingSecret).
+        enabled: true
+        # -- Method used to auto-generate certificates. Supported values:
+        # - helm:        Helm renders the cert/key Secret directly.
+        # - cronJob:     A Kubernetes CronJob runs cilium-certgen to (re)issue
+        #                the cert; a one-shot Job seeds it on install.
+        # - certmanager: cert-manager issues and rotates the cert.
+        method: helm
+        # -- Generated certificate validity duration in days.
+        # Defaults to 365 (1 year).
+        certValidityDuration: 365
+        # -- Schedule for certificate regeneration; only honored when
+        # method=cronJob. Empty disables the recurring CronJob, leaving only
+        # the one-shot bootstrap Job.
+        schedule: "0 0 1 */4 *"
+        # -- cert-manager IssuerRef used when method=certmanager.
+        # [Example]
+        # certManagerIssuerRef:
+        #   group: cert-manager.io
+        #   kind: ClusterIssuer
+        #   name: ca-issuer
+        certManagerIssuerRef: {}
+      # -- In-cluster CA used by the helm and cronJob methods.
+      ca:
+        # -- base64-encoded PEM CA certificate. When both cert and key are
+        # set, helm/cronJob reuse this CA instead of generating a fresh one.
+        cert: ""
+        # -- base64-encoded PEM CA private key. Required when ca.cert is set.
+        key: ""
+        # -- Validity duration in days for an auto-generated CA. Only used
+        # when ca.cert/key are unset.
+        certValidityDuration: 1095
+      # -- Server cert configuration.
+      server:
+        # -- Use an existing Secret (must contain tls.crt + tls.key, plus
+        # ca.crt when requireClientCert is true) instead of provisioning
+        # one. Disables all auto-* methods when set.
+        existingSecret: ""
+        # -- Extra DNS SANs added to auto-generated certificates.
+        extraDnsNames: []
+        # -- Extra IP SANs added to auto-generated certificates.
+        extraIpAddresses: []
   gops:
     # -- Whether to enable exposing gops server.
     enabled: true
@@ -475,3 +538,37 @@ rthooks:
   # -- rthooks service account.
   serviceAccount:
     name: ""
+
+# -- cilium-certgen settings used by tetragon.grpc.tls.auto.method=cronJob.
+# Mirrors the same block in cilium/cilium so operators familiar with the
+# hubble TLS workflow find consistent knobs.
+certgen:
+  image:
+    override: ~
+    repository: quay.io/cilium/certgen
+    tag: v0.2.5
+    pullPolicy: IfNotPresent
+  # -- Whether the certgen invocation should generate a CA when one isn't
+  # found in the configured CA Secret.
+  generateCA: true
+  # -- Pod labels added to certgen pods.
+  podLabels: {}
+  # -- Annotations applied to certgen Job/CronJob objects.
+  annotations:
+    job: {}
+    cronJob: {}
+  # -- Resource requests/limits for the certgen container.
+  resources: {}
+  # -- Node selector for certgen pods.
+  nodeSelector: {}
+  # -- Tolerations for certgen pods.
+  tolerations: []
+  # -- Affinity for certgen pods.
+  affinity: {}
+  # -- TTL applied to the bootstrap Job once it completes.
+  ttlSecondsAfterFinished: 1800
+  cronJob:
+    # -- Number of successful CronJob runs to retain.
+    successfulJobsHistoryLimit: 1
+    # -- Number of failed CronJob runs to retain.
+    failedJobsHistoryLimit: 1

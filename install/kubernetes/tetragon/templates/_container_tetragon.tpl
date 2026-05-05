@@ -44,6 +44,11 @@
     - mountPath: {{ quote .Values.tetragon.cri.socketHostPath }}
       name: cri-socket
 {{- end }}
+{{- if and .Values.tetragon.grpc.enabled .Values.tetragon.grpc.tls.enabled }}
+    - mountPath: /var/lib/tetragon/tls
+      name: tetragon-grpc-tls
+      readOnly: true
+{{- end }}
 {{- range .Values.extraHostPathMounts }}
     - name: {{ .name }}
       mountPath: {{ .mountPath }}
