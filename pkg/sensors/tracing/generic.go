@@ -150,6 +150,12 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 			return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 		}
 		ty = ebtf.Type(st)
+	} else if arg.BTFType != "" {
+		st, err := btf.FindBTFStruct(arg.BTFType)
+		if err != nil {
+			return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
+		}
+		ty = ebtf.Type(st)
 	} else {
 		param, err := btf.FindBTFFuncParamFromHook(hook, index)
 		if err != nil {
