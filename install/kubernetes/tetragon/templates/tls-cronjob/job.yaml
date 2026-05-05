@@ -1,0 +1,25 @@
+{{- if and .Values.tetragon.enabled .Values.tetragon.grpc.tls.enabled .Values.tetragon.grpc.tls.auto.enabled (eq .Values.tetragon.grpc.tls.auto.method "cronJob") (not .Values.tetragon.grpc.tls.server.existingSecret) -}}
+{{- /*
+Bootstrap Job — runs once on install/upgrade so the Secret exists before the
+recurring CronJob fires. The name is suffixed with a hash of the spec so that
+an upgrade that changes the JobSpec replaces the Job cleanly (Job specs are
+immutable).
+*/ -}}
+{{- $jobSpec := include "tetragon.certgen.jobSpec" . -}}
+{{- $jobHash := sha256sum $jobSpec | trunc 10 -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "tetragon.name" . }}-certgen-{{ $jobHash }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tetragon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: certgen
+  {{- with .Values.certgen.annotations.job }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ttlSecondsAfterFinished: {{ .Values.certgen.ttlSecondsAfterFinished }}
+  {{- $jobSpec | nindent 2 }}
+{{- end }}

@@ -140,3 +140,67 @@ use it as-is. Otherwise fall back to the top-level .Values.affinity.
 {{- toYaml .Values.affinity -}}
 {{- end -}}
 {{- end }}
+
+{{/*
+gRPC TLS resource names.
+*/}}
+{{- define "tetragon.grpcTlsSecretName" -}}
+{{- printf "%s-server-certs" (include "tetragon.name" .) | trunc 63 | trimSuffix "-" -}}
+{{- end }}
+
+{{- define "tetragon.caSecretName" -}}
+{{- printf "%s-ca" (include "tetragon.name" .) | trunc 63 | trimSuffix "-" -}}
+{{- end }}
+
+{{/*
+gRPC TLS cert identity.
+
+A wildcard SAN over a synthetic DNS suffix lets one Secret cover every
+DaemonSet pod: clients dial the agent's TCP address but override SNI to a
+single-label subdomain (RFC 6125 wildcard rules) so the cert validates
+without per-node provisioning.
+
+  server SAN: *.tetragon-grpc.cilium.io
+  client SNI: <any>.tetragon-grpc.cilium.io
+*/}}
+{{- define "tetragon.grpcTls.domain" -}}
+{{- print "tetragon-grpc.cilium.io" -}}
+{{- end }}
+
+{{- define "tetragon.grpcTls.commonName" -}}
+{{- printf "*.%s" (include "tetragon.grpcTls.domain" .) -}}
+{{- end }}
+
+{{- define "tetragon.grpcTls.dnsNames" -}}
+- {{ include "tetragon.grpcTls.commonName" . | quote }}
+{{- range .Values.tetragon.grpc.tls.server.extraDnsNames }}
+- {{ . | quote }}
+{{- end }}
+{{- end }}
+
+{{/*
+Generate / look up the in-cluster CA used by the helm-method server-cert
+Secret. Mirrors cilium.ca.setup: stash the CA on the dot via $_ so all
+templates that render in the same helm pass share one CA.
+*/}}
+{{- define "tetragon.ca.setup" }}
+  {{- if not .commonCA -}}
+    {{- $ca := "" -}}
+    {{- $secretName := include "tetragon.caSecretName" . -}}
+    {{- $crt := .Values.tetragon.grpc.tls.ca.cert -}}
+    {{- $key := .Values.tetragon.grpc.tls.ca.key -}}
+    {{- if and $crt $key }}
+      {{- $ca = buildCustomCert $crt $key -}}
+    {{- else }}
+      {{- with lookup "v1" "Secret" .Release.Namespace $secretName }}
+        {{- $crt := index .data "ca.crt" }}
+        {{- $key := index .data "ca.key" }}
+        {{- $ca = buildCustomCert $crt $key -}}
+      {{- else }}
+        {{- $validity := (.Values.tetragon.grpc.tls.ca.certValidityDuration | int) -}}
+        {{- $ca = genCA "Tetragon CA" $validity -}}
+      {{- end }}
+    {{- end -}}
+    {{- $_ := set . "commonCA" $ca -}}
+  {{- end -}}
+{{- end -}}

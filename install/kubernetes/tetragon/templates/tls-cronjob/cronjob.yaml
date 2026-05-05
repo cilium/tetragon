@@ -1,0 +1,25 @@
+{{- if and .Values.tetragon.enabled .Values.tetragon.grpc.tls.enabled .Values.tetragon.grpc.tls.auto.enabled (eq .Values.tetragon.grpc.tls.auto.method "cronJob") (not .Values.tetragon.grpc.tls.server.existingSecret) .Values.tetragon.grpc.tls.auto.schedule -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "tetragon.name" . }}-certgen
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tetragon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: certgen
+  {{- with .Values.certgen.annotations.cronJob }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  schedule: {{ .Values.tetragon.grpc.tls.auto.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.certgen.cronJob.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.certgen.cronJob.failedJobsHistoryLimit }}
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "tetragon.labels" . | nindent 8 }}
+        app.kubernetes.io/component: certgen
+    {{- include "tetragon.certgen.jobSpec" . | nindent 4 }}
+{{- end }}
