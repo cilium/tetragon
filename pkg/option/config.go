@@ -140,6 +140,21 @@ type config struct {
 	EnableGRPCDeprecatedTP bool
 
 	KeepCollection bool
+
+	// ServerTLSCertFile is the path to the PEM-encoded server leaf certificate
+	// served on the TCP gRPC listener. Empty disables TLS.
+	ServerTLSCertFile string
+	// ServerTLSKeyFile is the path to the PEM-encoded private key corresponding
+	// to ServerTLSCertFile. Required when ServerTLSCertFile is set.
+	ServerTLSKeyFile string
+	// ServerTLSClientCAFiles is a list of PEM-encoded CA bundle files used to
+	// verify presented client certificates. Required when
+	// ServerTLSRequireClientCert is true.
+	ServerTLSClientCAFiles []string
+	// ServerTLSRequireClientCert toggles mTLS. When true, the server promotes
+	// its ClientAuth policy to RequireAndVerifyClientCert; ServerTLSClientCAFiles
+	// must be non-empty.
+	ServerTLSRequireClientCert bool
 }
 
 var (
