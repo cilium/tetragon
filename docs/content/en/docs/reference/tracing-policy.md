@@ -462,9 +462,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -569,9 +577,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -702,9 +718,17 @@ A return argument to include in the trace output.
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1906,9 +1930,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2013,9 +2045,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2146,9 +2186,17 @@ A return argument to include in the trace output.
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3275,9 +3323,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5387,9 +5443,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6518,9 +6582,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6625,9 +6697,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6732,9 +6812,17 @@ A return argument to include in the trace output.
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7826,9 +7914,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9227,9 +9323,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9334,9 +9438,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9467,9 +9579,17 @@ A return argument to include in the trace output.
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10671,9 +10791,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10778,9 +10906,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10911,9 +11047,17 @@ A return argument to include in the trace output.
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12040,9 +12184,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14152,9 +14304,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15283,9 +15443,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15390,9 +15558,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15497,9 +15673,17 @@ A return argument to include in the trace output.
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16591,9 +16775,17 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
-the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
-type.<br/>
+          Type to use as the initial resolve type. For kprobe args it looks up the named struct
+from the kernel BTF, casting the argument's type before traversing the resolve path.
+For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>btfTypeModule</b></td>
+        <td>string</td>
+        <td>
+          Kernel module that contains the BTFType. This is used only for kprobe args.
+The module must already be loaded and expose BTF in /sys/kernel/btf.<br/>
         </td>
         <td>false</td>
       </tr><tr>
