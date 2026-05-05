@@ -41,6 +41,11 @@ const (
 	// Used by both client cli to guess unix socket address and by bugtool
 	InitInfoFile = DefaultRunDir + "tetragon-info.json"
 
+	// DefaultUnixSocket is the in-pod IPC socket the agent exposes when the
+	// gRPC server is listening on TCP, so co-located tooling can connect
+	// without TLS material.
+	DefaultUnixSocket = DefaultRunDir + "tetragon.sock"
+
 	// BugtoolExtraFiles is the file location for extra files to include in bugtool archives.
 	// Written by the daemon at startup, read by the CLI at bugtool time.
 	BugtoolExtraFiles = DefaultRunDir + "tetragon-bugtool-extra-files.json"
