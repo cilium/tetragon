@@ -372,6 +372,22 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Family = sockaddr.Family
 		arg.Path = decodeSockaddrUnPath(sockaddr.Path[:], sockaddr.PathLen, sockaddr.IsAbstract)
 		return arg
+	case gt.GenericSockaddrAlgType:
+		var sockaddr api.MsgGenericKprobeSockaddrAlg
+		var arg api.MsgGenericKprobeArgSockaddrAlg
+
+		err := binary.Read(r, binary.LittleEndian, &sockaddr)
+		if err != nil {
+			l.LogAttrs(slog.LevelWarn, "sockaddralg type err", slog.Any(logfields.Error, err))
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Family = sockaddr.Family
+		arg.Type = strutils.UTF8FromBPFBytes(sockaddr.Type[:sockaddr.TypeLen])
+		arg.Feat = sockaddr.Feat
+		arg.Mask = sockaddr.Mask
+		arg.Name = strutils.UTF8FromBPFBytes(sockaddr.Name[:sockaddr.NameLen])
+		return arg
 	case gt.GenericS64Type:
 		var output int64
 		var arg api.MsgGenericKprobeArgLong

@@ -54,6 +54,10 @@ enum {
 	// file type
 	op_filter_file_type = 36,
 	op_filter_not_file_type = 37,
+	// sockaddr_alg type
+	op_filter_alg_type = 38,
+	op_filter_alg_feat = 39,
+	op_filter_alg_mask = 40,
 };
 
 #endif // __OPERATIONS_H__

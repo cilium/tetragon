@@ -220,6 +220,10 @@ const (
 	// file type
 	SelectorOpFileType    = 36
 	SelectorOpNotFileType = 37
+	// sockaddr_alg type
+	SelectorOpALGType = 38
+	SelectorOpALGFeat = 39
+	SelectorOpALGMask = 40
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -259,6 +263,9 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorOpCelExpr:            "CelExpr",
 	SelectorOpFileType:           "FileType",
 	SelectorOpNotFileType:        "NotFileType",
+	SelectorOpALGType:            "ALGType",
+	SelectorOpALGFeat:            "ALGFeat",
+	SelectorOpALGMask:            "ALGMask",
 }
 
 func SelectorOp(op string) (uint32, error) {
@@ -335,6 +342,12 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpFileType, nil
 	case "NotFileType":
 		return SelectorOpNotFileType, nil
+	case "ALGType":
+		return SelectorOpALGType, nil
+	case "ALGFeat":
+		return SelectorOpALGFeat, nil
+	case "ALGMask":
+		return SelectorOpALGMask, nil
 	}
 
 	return 0, fmt.Errorf("unknown op '%s'", op)
@@ -1000,7 +1013,7 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpEQ, SelectorOpNEQ:
 		switch ty {
-		case gt.GenericFdType, gt.GenericFileType, gt.GenericPathType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc, gt.GenericNetDev, gt.GenericSockaddrUnType:
+		case gt.GenericFdType, gt.GenericFileType, gt.GenericPathType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc, gt.GenericNetDev, gt.GenericSockaddrUnType, gt.GenericSockaddrAlgType:
 			err := writeMatchStrings(k, arg.Values, ty)
 			if err != nil {
 				return fmt.Errorf("writeMatchStrings error: %w", err)
@@ -1022,11 +1035,14 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 			return fmt.Errorf("writePostfixStrings error: %w", err)
 		}
 	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport, SelectorOpProtocol, SelectorOpFamily, SelectorOpState:
-		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType && ty != gt.GenericSocketType && ty != gt.GenericSockaddrUnType {
-			return errors.New("sock/socket/skb/sockaddr/sockaddr_un operators specified for non-sock/socket/skb/sockaddr/sockaddr_un type")
+		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType && ty != gt.GenericSocketType && ty != gt.GenericSockaddrUnType && ty != gt.GenericSockaddrAlgType {
+			return errors.New("sock/socket/skb/sockaddr/sockaddr_un/sockaddr_alg operators specified for non-sock/socket/skb/sockaddr/sockaddr_un/sockaddr_alg type")
 		}
 		if ty == gt.GenericSockaddrUnType && op != SelectorOpFamily {
 			return errors.New("sockaddr_un only supports Family and string operators (Equal, NotEqual, Prefix, NotPrefix)")
+		}
+		if ty == gt.GenericSockaddrAlgType && op != SelectorOpFamily {
+			return errors.New("sockaddr_alg only supports Family, string operators (Equal, NotEqual, Prefix, NotPrefix), and ALG Type, Feat and Mask")
 		}
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDport || op == SelectorOpNotDport || op == SelectorOpProtocol || op == SelectorOpState) {
 			return errors.New("sockaddr only supports [not]saddr, [not]sport[priv], and family")
@@ -1053,6 +1069,21 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDportPriv || op == SelectorOpNotDportPriv) {
 			return errors.New("sockaddr only supports [not]saddr, [not]sport[priv], and family")
+		}
+	case SelectorOpALGType, SelectorOpALGFeat, SelectorOpALGMask:
+		if ty != gt.GenericSockaddrAlgType {
+			return errors.New("sockaddr_alg operators specified for non-sockaddr_alg type")
+		}
+		if op == SelectorOpALGType {
+			err := writeMatchStrings(k, arg.Values, ty)
+			if err != nil {
+				return fmt.Errorf("writeMatchStrings error: %w", err)
+			}
+		} else {
+			err := writeMatchRangesInMap(k, arg.Values, gt.GenericU32Type, op) // force type for feat and mask as ty is sockaddr_alg
+			if err != nil {
+				return fmt.Errorf("writeMatchRangesInMap error: %w", err)
+			}
 		}
 	case SelectorOpFileType, SelectorOpNotFileType:
 		if ty != gt.GenericFileType && ty != gt.GenericPathType {

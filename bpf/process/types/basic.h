@@ -12,6 +12,7 @@
 #include "sockaddr.h"
 #if defined(__V511_BPF_PROG)
 #include "sockaddr_un.h"
+#include "sockaddr_alg.h"
 #endif
 #include "socket.h"
 #include "net_device.h"
@@ -101,6 +102,7 @@ enum {
 	bpf_prog_type = 43,
 
 	sockaddr_un_type = 44,
+	sockaddr_alg_type = 45,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -425,6 +427,16 @@ FUNC_INLINE long copy_sockaddr_un(char *args, unsigned long arg)
 	set_event_from_sockaddr_un(sockaddr_un_event, address);
 
 	return sizeof(struct sockaddr_un_type);
+}
+
+FUNC_INLINE long copy_sockaddr_alg(char *args, unsigned long arg)
+{
+	struct sockaddr_alg_type *sockaddr_alg_event = (struct sockaddr_alg_type *)args;
+	struct sockaddr *address = (struct sockaddr *)arg;
+
+	set_event_from_sockaddr_alg(sockaddr_alg_event, address);
+
+	return sizeof(struct sockaddr_alg_type);
 }
 #endif
 
@@ -1212,6 +1224,57 @@ filter_sockaddr_un(struct selector_arg_filter *filter, char *args)
 
 	return 0;
 }
+
+FUNC_LOCAL long
+filter_sockaddr_alg(struct selector_arg_filter *filter, char *args)
+{
+	struct sockaddr_alg_type *address = (struct sockaddr_alg_type *)args;
+	char *name = (char *)&address->name[0];
+	char *type = (char *)&address->type[0];
+
+	switch (filter->op) {
+	// prefix and equal refers to the sockaddr_alg->name
+	case op_filter_str_prefix:
+	case op_filter_str_notprefix: {
+		long match = filter_char_buf_prefix(filter, name, address->name_len);
+
+		if (is_not_operator(filter->op))
+			return !match;
+		return match;
+	}
+	case op_filter_eq:
+	case op_filter_neq: {
+		long match = filter_char_buf_equal(filter, name, address->name_len);
+
+		if (is_not_operator(filter->op))
+			return !match;
+		return match;
+	}
+	case op_filter_family: {
+		__u32 value = address->family;
+
+		return filter_32ty_map(filter, (char *)&value);
+	}
+	case op_filter_alg_feat: {
+		__u32 value = address->feat;
+
+		return filter_32ty_map(filter, (char *)&value);
+	}
+	case op_filter_alg_mask: {
+		__u32 value = address->mask;
+
+		return filter_32ty_map(filter, (char *)&value);
+	}
+	// sockaddr_alg->type is a C string
+	case op_filter_alg_type: {
+		return filter_char_buf_equal(filter, type, address->type_len);
+	}
+	default:
+		break;
+	}
+
+	return 0;
+}
 #endif
 
 FUNC_INLINE long
@@ -1785,6 +1848,9 @@ filter_32ty_map(struct selector_arg_filter *filter, char *args)
 	case op_filter_protocol:
 	case op_filter_family:
 	case op_filter_state:
+	case op_filter_alg_type:
+	case op_filter_alg_feat:
+	case op_filter_alg_mask:
 		return !!pass;
 	case op_filter_notinmap:
 	case op_filter_notsport:
@@ -1890,6 +1956,8 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
 #if defined(__V511_BPF_PROG)
 	case sockaddr_un_type:
 		return sizeof(struct sockaddr_un_type);
+	case sockaddr_alg_type:
+		return sizeof(struct sockaddr_alg_type);
 #endif
 	case cred_type:
 		return sizeof(struct msg_cred);
@@ -2183,6 +2251,8 @@ filter_arg_2(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 #if defined(__V511_BPF_PROG)
 	case sockaddr_un_type:
 		return filter_sockaddr_un(filter, args);
+	case sockaddr_alg_type:
+		return filter_sockaddr_alg(filter, args);
 #endif
 	default:
 		return 1;

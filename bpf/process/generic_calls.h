@@ -224,6 +224,7 @@ FUNC_INLINE bool is_read_arg_1(long type)
 	case sockaddr_type:
 #if defined(__V511_BPF_PROG)
 	case sockaddr_un_type:
+	case sockaddr_alg_type:
 #endif
 		return true;
 	}
@@ -346,6 +347,9 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 #if defined(__V511_BPF_PROG)
 	case sockaddr_un_type:
 		size = copy_sockaddr_un(args, arg);
+		break;
+	case sockaddr_alg_type:
+		size = copy_sockaddr_alg(args, arg);
 		break;
 #endif
 	default:

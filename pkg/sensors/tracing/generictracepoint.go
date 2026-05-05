@@ -35,6 +35,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/cilium/tetragon/pkg/tracepoint"
 
@@ -1111,6 +1112,22 @@ func handleMsgGenericTracepoint(
 
 			arg.Family = sockaddr.Family
 			arg.Path = decodeSockaddrUnPath(sockaddr.Path[:], sockaddr.PathLen, sockaddr.IsAbstract)
+			unix.Args = append(unix.Args, arg)
+
+		case gt.GenericSockaddrAlgType:
+			var sockaddr tracingapi.MsgGenericKprobeSockaddrAlg
+			var arg tracingapi.MsgGenericKprobeArgSockaddrAlg
+
+			err := binary.Read(r, binary.LittleEndian, &sockaddr)
+			if err != nil {
+				logger.GetLogger().Warn("sockaddralg type err", logfields.Error, err)
+			}
+
+			arg.Family = sockaddr.Family
+			arg.Type = strutils.UTF8FromBPFBytes(sockaddr.Type[:sockaddr.TypeLen])
+			arg.Feat = sockaddr.Feat
+			arg.Mask = sockaddr.Mask
+			arg.Name = strutils.UTF8FromBPFBytes(sockaddr.Name[:sockaddr.NameLen])
 			unix.Args = append(unix.Args, arg)
 
 		case gt.GenericSyscall64:

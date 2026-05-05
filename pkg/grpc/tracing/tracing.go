@@ -187,6 +187,16 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		}
 		a.Arg = &tetragon.KprobeArgument_SockaddrunArg{SockaddrunArg: sockaddrUnArg}
 		a.Label = e.Label
+	case tracingapi.MsgGenericKprobeArgSockaddrAlg:
+		sockaddrAlgArg := &tetragon.KprobeSockaddrAlg{
+			Family: familyString(e.Family),
+			Type:   e.Type,
+			Feat:   e.Feat,
+			Mask:   e.Mask,
+			Name:   e.Name,
+		}
+		a.Arg = &tetragon.KprobeArgument_SockaddralgArg{SockaddralgArg: sockaddrAlgArg}
+		a.Label = e.Label
 	case tracingapi.MsgGenericKprobeArgCred:
 		credArg := &tetragon.ProcessCredentials{
 			Uid:        &wrapperspb.UInt32Value{Value: e.Uid},
@@ -515,12 +525,14 @@ func (msg *MsgGenericTracepointUnix) Retry(internal *process.ProcessInternal, ev
 
 func familyString(family uint16) string {
 	switch family {
+	case constants.AF_UNIX:
+		return "AF_UNIX"
 	case constants.AF_INET:
 		return "AF_INET"
 	case constants.AF_INET6:
 		return "AF_INET6"
-	case constants.AF_UNIX:
-		return "AF_UNIX"
+	case constants.AF_ALG:
+		return "AF_ALG"
 	}
 	return ""
 }
@@ -651,6 +663,19 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockaddrunArg{
 				SockaddrunArg: &address,
+			}})
+
+		case tracingapi.MsgGenericKprobeArgSockaddrAlg:
+			address := tetragon.KprobeSockaddrAlg{
+				Family: familyString(v.Family),
+				Type:   v.Type,
+				Feat:   v.Feat,
+				Mask:   v.Mask,
+				Name:   v.Name,
+			}
+
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockaddralgArg{
+				SockaddralgArg: &address,
 			}})
 
 		case tracingapi.MsgGenericSyscallID:

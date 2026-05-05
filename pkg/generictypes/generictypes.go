@@ -67,8 +67,10 @@ const (
 
 	GenericDentryType = 42
 
-	GenericBpfProgType    = 43
-	GenericSockaddrUnType = 44
+	GenericBpfProgType = 43
+
+	GenericSockaddrUnType  = 44
+	GenericSockaddrAlgType = 45
 
 	GenericUnsetType = 0
 
@@ -130,6 +132,7 @@ var genericStringToType = map[string]int{
 	"net_device":      GenericNetDev,
 	"sockaddr":        GenericSockaddrType,
 	"sockaddr_un":     GenericSockaddrUnType,
+	"sockaddr_alg":    GenericSockaddrAlgType,
 	"socket":          GenericSocketType,
 	"dentry":          GenericDentryType,
 	"bpf_prog":        GenericBpfProgType,
@@ -177,6 +180,7 @@ var genericTypeToStringTable = map[int]string{
 	GenericNetDev:          "net_device",
 	GenericSockaddrType:    "sockaddr",
 	GenericSockaddrUnType:  "sockaddr_un",
+	GenericSockaddrAlgType: "sockaddr_alg",
 	GenericSocketType:      "socket",
 	GenericDentryType:      "dentry",
 	GenericBpfProgType:     "bpf_prog",
