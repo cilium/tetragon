@@ -250,6 +250,20 @@ options:
       default_value: localhost:54321
       usage: |
         gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'). An empty address disables the gRPC server
+    - name: server-tls-cert-file
+      usage: |
+        Path to a PEM-encoded server certificate. When set, TLS is enabled on the TCP gRPC listener.
+    - name: server-tls-client-ca-files
+      default_value: '[]'
+      usage: |
+        Paths to PEM-encoded CA bundles used to verify client certificates. Required when --server-tls-require-client-cert is true.
+    - name: server-tls-key-file
+      usage: |
+        Path to the PEM-encoded private key matching --server-tls-cert-file. Required when --server-tls-cert-file is set.
+    - name: server-tls-require-client-cert
+      default_value: "false"
+      usage: |
+        Require and verify client certificates (mTLS). Requires --server-tls-client-ca-files.
     - name: tracing-policy
       usage: Tracing policy file to load at startup
     - name: tracing-policy-dir

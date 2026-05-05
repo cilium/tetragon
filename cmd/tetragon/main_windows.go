@@ -24,3 +24,10 @@ func checkStructAlignments() error {
 
 func setNetNSDir() {
 }
+
+// resolveUnixSocketPath is a no-op on Windows: the agent does not
+// advertise or open a unix socket sidecar listener, since the default
+// Linux path (/var/run/tetragon/tetragon.sock) is not available there.
+func resolveUnixSocketPath(_ string) (string, bool) {
+	return "", false
+}
