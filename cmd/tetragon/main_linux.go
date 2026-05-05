@@ -12,9 +12,28 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/proc"
+	"github.com/cilium/tetragon/pkg/server"
 
 	"github.com/spf13/viper"
 )
+
+// resolveUnixSocketPath returns the unix socket path the agent should
+// expose for in-pod tooling and whether one should be started, derived
+// from listenAddr: a "unix://X" address yields X; a TCP address yields
+// defaults.DefaultUnixSocket; an empty or invalid address yields ("", false).
+func resolveUnixSocketPath(listenAddr string) (string, bool) {
+	if listenAddr == "" {
+		return "", false
+	}
+	proto, addr, err := server.SplitListenAddr(listenAddr)
+	if err != nil {
+		return "", false
+	}
+	if proto == "unix" {
+		return addr, true
+	}
+	return defaults.DefaultUnixSocket, true
+}
 
 func logCurrentSecurityContext() {
 	proc.LogCurrentSecurityContext()
