@@ -120,15 +120,21 @@ func absPath(p string) string {
 	return ret
 }
 
-// Save daemon information so it is used by client cli but
-// also by bugtool
+// saveInitInfo writes daemon info read by tetra and bugtool. ServerAddr
+// advertises the unix listener (when one runs) so in-pod tooling
+// defaults to the trusted IPC channel rather than the TCP listener,
+// which may require TLS / mTLS.
 func saveInitInfo() error {
+	addr := ""
+	if path, ok := resolveUnixSocketPath(option.Config.ServerAddress); ok {
+		addr = "unix://" + path
+	}
 	info := bugtool.InitInfo{
 		ExportFname: absPath(option.Config.ExportFilename),
 		LibDir:      absPath(option.Config.HubbleLib),
 		BTFFname:    absPath(option.Config.BTF),
 		MetricsAddr: option.Config.MetricsServer,
-		ServerAddr:  option.Config.ServerAddress,
+		ServerAddr:  addr,
 		GopsAddr:    option.Config.GopsAddr,
 		MapDir:      absPath(bpf.MapPrefixPath()),
 		PID:         os.Getpid(),
