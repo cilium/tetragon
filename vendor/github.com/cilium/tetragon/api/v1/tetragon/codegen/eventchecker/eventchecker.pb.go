@@ -5633,6 +5633,114 @@ func (checker *KprobeSockaddrUnChecker) FromKprobeSockaddrUn(event *tetragon.Kpr
 	return checker
 }
 
+// KprobeSockaddrAlgChecker implements a checker struct to check a KprobeSockaddrAlg field
+type KprobeSockaddrAlgChecker struct {
+	Family *stringmatcher.StringMatcher `json:"family,omitempty"`
+	Type   *stringmatcher.StringMatcher `json:"type,omitempty"`
+	Feat   *uint32                      `json:"feat,omitempty"`
+	Mask   *uint32                      `json:"mask,omitempty"`
+	Name   *stringmatcher.StringMatcher `json:"name,omitempty"`
+}
+
+// NewKprobeSockaddrAlgChecker creates a new KprobeSockaddrAlgChecker
+func NewKprobeSockaddrAlgChecker() *KprobeSockaddrAlgChecker {
+	return &KprobeSockaddrAlgChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *KprobeSockaddrAlgChecker) GetCheckerType() string {
+	return "KprobeSockaddrAlgChecker"
+}
+
+// Check checks a KprobeSockaddrAlg field
+func (checker *KprobeSockaddrAlgChecker) Check(event *tetragon.KprobeSockaddrAlg) error {
+	if event == nil {
+		return fmt.Errorf("%s: KprobeSockaddrAlg field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Family != nil {
+			if err := checker.Family.Match(event.Family); err != nil {
+				return fmt.Errorf("Family check failed: %w", err)
+			}
+		}
+		if checker.Type != nil {
+			if err := checker.Type.Match(event.Type); err != nil {
+				return fmt.Errorf("Type check failed: %w", err)
+			}
+		}
+		if checker.Feat != nil {
+			if *checker.Feat != event.Feat {
+				return fmt.Errorf("Feat has value %d which does not match expected value %d", event.Feat, *checker.Feat)
+			}
+		}
+		if checker.Mask != nil {
+			if *checker.Mask != event.Mask {
+				return fmt.Errorf("Mask has value %d which does not match expected value %d", event.Mask, *checker.Mask)
+			}
+		}
+		if checker.Name != nil {
+			if err := checker.Name.Match(event.Name); err != nil {
+				return fmt.Errorf("Name check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithFamily adds a Family check to the KprobeSockaddrAlgChecker
+func (checker *KprobeSockaddrAlgChecker) WithFamily(check *stringmatcher.StringMatcher) *KprobeSockaddrAlgChecker {
+	checker.Family = check
+	return checker
+}
+
+// WithType adds a Type check to the KprobeSockaddrAlgChecker
+func (checker *KprobeSockaddrAlgChecker) WithType(check *stringmatcher.StringMatcher) *KprobeSockaddrAlgChecker {
+	checker.Type = check
+	return checker
+}
+
+// WithFeat adds a Feat check to the KprobeSockaddrAlgChecker
+func (checker *KprobeSockaddrAlgChecker) WithFeat(check uint32) *KprobeSockaddrAlgChecker {
+	checker.Feat = &check
+	return checker
+}
+
+// WithMask adds a Mask check to the KprobeSockaddrAlgChecker
+func (checker *KprobeSockaddrAlgChecker) WithMask(check uint32) *KprobeSockaddrAlgChecker {
+	checker.Mask = &check
+	return checker
+}
+
+// WithName adds a Name check to the KprobeSockaddrAlgChecker
+func (checker *KprobeSockaddrAlgChecker) WithName(check *stringmatcher.StringMatcher) *KprobeSockaddrAlgChecker {
+	checker.Name = check
+	return checker
+}
+
+//FromKprobeSockaddrAlg populates the KprobeSockaddrAlgChecker using data from a KprobeSockaddrAlg field
+func (checker *KprobeSockaddrAlgChecker) FromKprobeSockaddrAlg(event *tetragon.KprobeSockaddrAlg) *KprobeSockaddrAlgChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Family = stringmatcher.Full(event.Family)
+	checker.Type = stringmatcher.Full(event.Type)
+	{
+		val := event.Feat
+		checker.Feat = &val
+	}
+	{
+		val := event.Mask
+		checker.Mask = &val
+	}
+	checker.Name = stringmatcher.Full(event.Name)
+	return checker
+}
+
 // KprobeNetDevChecker implements a checker struct to check a KprobeNetDev field
 type KprobeNetDevChecker struct {
 	Name *stringmatcher.StringMatcher `json:"name,omitempty"`
@@ -6801,6 +6909,7 @@ type KprobeArgumentChecker struct {
 	BpfProgArg            *KprobeBpfProgChecker        `json:"bpfProgArg,omitempty"`
 	ErrorArg              *KprobeErrorChecker          `json:"errorArg,omitempty"`
 	SockaddrunArg         *KprobeSockaddrUnChecker     `json:"sockaddrunArg,omitempty"`
+	SockaddralgArg        *KprobeSockaddrAlgChecker    `json:"sockaddralgArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -7141,6 +7250,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: SockaddrunArg check failed: %T is not a SockaddrunArg", event)
 			}
 		}
+		if checker.SockaddralgArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_SockaddralgArg:
+				if err := checker.SockaddralgArg.Check(event.SockaddralgArg); err != nil {
+					return fmt.Errorf("SockaddralgArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: SockaddralgArg check failed: %T is not a SockaddralgArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -7347,6 +7466,12 @@ func (checker *KprobeArgumentChecker) WithSockaddrunArg(check *KprobeSockaddrUnC
 	return checker
 }
 
+// WithSockaddralgArg adds a SockaddralgArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithSockaddralgArg(check *KprobeSockaddrAlgChecker) *KprobeArgumentChecker {
+	checker.SockaddralgArg = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -7538,6 +7663,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_SockaddrunArg:
 		if event.SockaddrunArg != nil {
 			checker.SockaddrunArg = NewKprobeSockaddrUnChecker().FromKprobeSockaddrUn(event.SockaddrunArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_SockaddralgArg:
+		if event.SockaddralgArg != nil {
+			checker.SockaddralgArg = NewKprobeSockaddrAlgChecker().FromKprobeSockaddrAlg(event.SockaddralgArg)
 		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)

@@ -197,6 +197,7 @@ spec:
                             - sockaddr
                             - socket
                             - sockaddr_un
+                            - sockaddr_alg
                             - string
                             - fd
                             - file
@@ -312,6 +313,7 @@ spec:
                             - sockaddr
                             - socket
                             - sockaddr_un
+                            - sockaddr_alg
                             - string
                             - fd
                             - file
@@ -440,6 +442,7 @@ spec:
                           - sockaddr
                           - socket
                           - sockaddr_un
+                          - sockaddr_alg
                           - string
                           - fd
                           - file
@@ -654,6 +657,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -818,6 +824,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1107,6 +1116,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1278,6 +1290,7 @@ spec:
                             - sockaddr
                             - socket
                             - sockaddr_un
+                            - sockaddr_alg
                             - string
                             - fd
                             - file
@@ -1393,6 +1406,7 @@ spec:
                             - sockaddr
                             - socket
                             - sockaddr_un
+                            - sockaddr_alg
                             - string
                             - fd
                             - file
@@ -1521,6 +1535,7 @@ spec:
                           - sockaddr
                           - socket
                           - sockaddr_un
+                          - sockaddr_alg
                           - string
                           - fd
                           - file
@@ -1735,6 +1750,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1899,6 +1917,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2188,6 +2209,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2331,6 +2355,7 @@ spec:
                             - sockaddr
                             - socket
                             - sockaddr_un
+                            - sockaddr_alg
                             - string
                             - fd
                             - file
@@ -2548,6 +2573,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2712,6 +2740,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3001,6 +3032,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3264,6 +3298,9 @@ spec:
                             - CelExpr
                             - FileType
                             - NotFileType
+                            - ALGType
+                            - ALGFeat
+                            - ALGMask
                             type: string
                           values:
                             description: Value to compare the argument against.
@@ -3427,6 +3464,9 @@ spec:
                             - CelExpr
                             - FileType
                             - NotFileType
+                            - ALGType
+                            - ALGFeat
+                            - ALGMask
                             type: string
                           values:
                             description: Value to compare the argument against.
@@ -3710,6 +3750,9 @@ spec:
                             - CelExpr
                             - FileType
                             - NotFileType
+                            - ALGType
+                            - ALGFeat
+                            - ALGMask
                             type: string
                           values:
                             description: Value to compare the argument against.
@@ -3808,6 +3851,7 @@ spec:
                             - sockaddr
                             - socket
                             - sockaddr_un
+                            - sockaddr_alg
                             - string
                             - fd
                             - file
@@ -4028,6 +4072,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4192,6 +4239,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4481,6 +4531,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4598,6 +4651,7 @@ spec:
                             - sockaddr
                             - socket
                             - sockaddr_un
+                            - sockaddr_alg
                             - string
                             - fd
                             - file
@@ -4713,6 +4767,7 @@ spec:
                             - sockaddr
                             - socket
                             - sockaddr_un
+                            - sockaddr_alg
                             - string
                             - fd
                             - file
@@ -4849,6 +4904,7 @@ spec:
                           - sockaddr
                           - socket
                           - sockaddr_un
+                          - sockaddr_alg
                           - string
                           - fd
                           - file
@@ -5057,6 +5113,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -5221,6 +5280,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -5510,6 +5572,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -5622,6 +5687,7 @@ spec:
                             - sockaddr
                             - socket
                             - sockaddr_un
+                            - sockaddr_alg
                             - string
                             - fd
                             - file
@@ -5848,6 +5914,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -6012,6 +6081,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -6301,6 +6373,9 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - ALGType
+                                  - ALGFeat
+                                  - ALGMask
                                   type: string
                                 values:
                                   description: Value to compare the argument against.

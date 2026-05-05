@@ -376,6 +376,14 @@ message KprobeSockaddrUn {
   string path = 2;
 }
 
+message KprobeSockaddrAlg {
+  string family = 1;
+  string type = 2;
+  uint32 feat = 3;
+  uint32 mask = 4;
+  string name = 5;
+}
+
 message KprobeNetDev {
   string name = 1;
 }
@@ -493,6 +501,7 @@ message KprobeArgument {
     KprobeBpfProg bpf_prog_arg = 31;
     KprobeError error_arg = 32;
     KprobeSockaddrUn sockaddrun_arg = 33;
+    KprobeSockaddrAlg sockaddralg_arg = 34;
   }
   string label = 18;
 }

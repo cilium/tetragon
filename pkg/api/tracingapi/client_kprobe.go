@@ -292,6 +292,19 @@ type MsgGenericKprobeSockaddrUn struct {
 	Path       [108]byte
 }
 
+// The Name argument is now technically of arbitrary length (usually calculated from the len argument) but for simplicity,
+// we set this to 256 bytes, which is 4 times larger than the original sockaddr_alg name field, and hopefully enough for
+// most uses.
+type MsgGenericKprobeSockaddrAlg struct {
+	Family  uint16
+	Type    [14]byte
+	Feat    uint32
+	Mask    uint32
+	Name    [256]byte
+	TypeLen uint32
+	NameLen uint32
+}
+
 type MsgGenericKprobeArgSockaddr struct {
 	Index     uint64
 	SinFamily uint16
@@ -320,6 +333,24 @@ func (m MsgGenericKprobeArgSockaddrUn) GetIndex() uint64 {
 }
 
 func (m MsgGenericKprobeArgSockaddrUn) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
+type MsgGenericKprobeArgSockaddrAlg struct {
+	Index  uint64
+	Family uint16
+	Type   string
+	Feat   uint32
+	Mask   uint32
+	Name   string
+	Label  string
+}
+
+func (m MsgGenericKprobeArgSockaddrAlg) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgSockaddrAlg) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 

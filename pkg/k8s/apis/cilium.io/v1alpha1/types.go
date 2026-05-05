@@ -74,7 +74,7 @@ type KProbeArg struct {
 	// +kubebuilder:validation:Minimum=0
 	// Position of the argument.
 	Index uint32 `json:"index"`
-	// +kubebuilder:validation:Enum=auto;int;sint8;int8;uint8;sint16;int16;uint16;uint32;sint32;int32;ulong;uint64;size_t;long;sint64;int64;char_buf;char_iovec;skb;sock;sockaddr;socket;sockaddr_un;string;fd;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;const_buf;load_info;module;syscall64;kernel_cap_t;cap_inheritable;cap_permitted;cap_effective;linux_binprm;data_loc;net_device;bpf_cmd;dentry;bpf_prog;
+	// +kubebuilder:validation:Enum=auto;int;sint8;int8;uint8;sint16;int16;uint16;uint32;sint32;int32;ulong;uint64;size_t;long;sint64;int64;char_buf;char_iovec;skb;sock;sockaddr;socket;sockaddr_un;sockaddr_alg;string;fd;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;const_buf;load_info;module;syscall64;kernel_cap_t;cap_inheritable;cap_permitted;cap_effective;linux_binprm;data_loc;net_device;bpf_cmd;dentry;bpf_prog;
 	// +kubebuilder:default=auto
 	// Argument type.
 	Type string `json:"type"`
@@ -235,7 +235,7 @@ type ArgSelector struct {
 	// +kubebuilder:validation:items:Minimum=0
 	// Position of the operator arguments (in spec file) to apply fhe filter to.
 	Args []uint32 `json:"args,omitempty"`
-	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;NotPrefix;Postfix;NotPostfix;GreaterThan;LessThan;GT;LT;Mask;SPort;NotSPort;SPortPriv;NotSportPriv;DPort;NotDPort;DPortPriv;NotDPortPriv;SAddr;NotSAddr;DAddr;NotDAddr;Protocol;Family;State;InMap;NotInMap;CapabilitiesGained;InRange;NotInRange;SubString;SubStringIgnCase;CelExpr;FileType;NotFileType
+	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;NotPrefix;Postfix;NotPostfix;GreaterThan;LessThan;GT;LT;Mask;SPort;NotSPort;SPortPriv;NotSportPriv;DPort;NotDPort;DPortPriv;NotDPortPriv;SAddr;NotSAddr;DAddr;NotDAddr;Protocol;Family;State;InMap;NotInMap;CapabilitiesGained;InRange;NotInRange;SubString;SubStringIgnCase;CelExpr;FileType;NotFileType;ALGType;ALGFeat;ALGMask
 	// Filter operation.
 	Operator string `json:"operator"`
 	// Value to compare the argument against.

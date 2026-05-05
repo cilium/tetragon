@@ -407,6 +407,7 @@ Environment variable
 | bpf_prog_arg | [KprobeBpfProg](#tetragon-KprobeBpfProg) |  |  |
 | error_arg | [KprobeError](#tetragon-KprobeError) |  |  |
 | sockaddrun_arg | [KprobeSockaddrUn](#tetragon-KprobeSockaddrUn) |  |  |
+| sockaddralg_arg | [KprobeSockaddrAlg](#tetragon-KprobeSockaddrAlg) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
@@ -566,6 +567,18 @@ Environment variable
 | family | [string](#string) |  |  |
 | addr | [string](#string) |  |  |
 | port | [uint32](#uint32) |  |  |
+
+<a name="tetragon-KprobeSockaddrAlg"></a>
+
+### KprobeSockaddrAlg
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| family | [string](#string) |  |  |
+| type | [string](#string) |  |  |
+| feat | [uint32](#uint32) |  |  |
+| mask | [uint32](#uint32) |  |  |
+| name | [string](#string) |  |  |
 
 <a name="tetragon-KprobeSockaddrUn"></a>
 
