@@ -168,6 +168,87 @@ spec:
 	}
 }
 
+func TestResolveBTFArgWithBTFType(t *testing.T) {
+	rawPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobes"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    args:
+    - index: 1
+      type: "uint16"
+      label: "sockaddr.sa_family"
+      btfType: "sockaddr"
+      resolve: "sa_family"
+    - index: 1
+      type: "uint8"
+      label: "sockaddr.sa_data[0]"
+      btfType: "sockaddr"
+      resolve: "sa_data[0]"
+    - index: 1
+      type: "uint16"
+      label: "sockaddr_in.sin_port"
+      btfType: "sockaddr_in"
+      resolve: "sin_port"
+    - index: 1
+      type: "uint32"
+      label: "sockaddr_in.sin_addr.s_addr"
+      btfType: "sockaddr_in"
+      resolve: "sin_addr.s_addr"
+    - index: 1
+      type: "uint8"
+      label: "sockaddr_un.sun_path[0]"
+      btfType: "sockaddr_un"
+      resolve: "sun_path[0]"
+    - index: 1
+      type: "uint16"
+      label: "sockaddr_un.sun_family"
+      btfType: "sockaddr_un"
+      resolve: "sun_family"
+  `
+	policy, err := tracingpolicy.FromYAML(rawPolicy)
+	require.NoError(t, err, "FromYAML rawPolicy error %q", err)
+
+	tests := map[string]struct {
+		wantType  int
+		wantDepth int
+	}{
+		"sockaddr.sa_family":          {gt.GenericU16Type, 1},
+		"sockaddr.sa_data[0]":         {gt.GenericU8Type, 2},
+		"sockaddr_in.sin_port":        {gt.GenericU16Type, 1},
+		"sockaddr_in.sin_addr.s_addr": {gt.GenericU32Type, 2},
+		"sockaddr_un.sun_path[0]":     {gt.GenericU8Type, 2},
+		"sockaddr_un.sun_family":      {gt.GenericU16Type, 1},
+	}
+
+	for _, hook := range policy.TpSpec().KProbes {
+		for _, arg := range hook.Args {
+			test, ok := tests[arg.Label]
+			require.True(t, ok, "missing test case for %q", arg.Label)
+
+			t.Run(arg.Label, func(t *testing.T) {
+				lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false)
+				require.NoError(t, err, hook.Call)
+				require.NotNil(t, lastBTFType)
+
+				argType := findTypeFromBTFType(&arg, lastBTFType)
+				require.Equal(t, test.wantType, argType, "Type %q is not supported", (*lastBTFType).TypeName())
+
+				for i, entry := range btfArg {
+					if i < test.wantDepth {
+						require.Equal(t, uint16(1), entry.IsInitialized, "BTF arg depth %d", i)
+						continue
+					}
+					require.Zero(t, entry.IsInitialized, "BTF arg depth %d", i)
+				}
+			})
+		}
+	}
+}
+
 func TestAppendMacrosSelectors(t *testing.T) {
 	tests := map[string]struct {
 		selectors         []v1alpha1.KProbeSelector
