@@ -315,8 +315,17 @@ func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpe
 	}
 
 	linkFn := func() (link.Link, error) {
-		exec, err := link.OpenExecutable(data.Path)
+		// Open the binary to obtain a stable fd, then reference it via
+		// /proc/self/fd/<N> so the kernel anchors to the inode rather than
+		// the filename (TOCTOU-safe even if the binary is renamed or deleted).
+		f, err := os.Open(data.Path)
 		if err != nil {
+			return nil, fmt.Errorf("open executable %s: %w", data.Path, err)
+		}
+		fdPath := fmt.Sprintf("/proc/self/fd/%d", f.Fd())
+		exec, err := link.OpenExecutable(fdPath)
+		if err != nil {
+			f.Close()
 			return nil, err
 		}
 		opts := &link.UprobeOptions{
@@ -325,9 +334,13 @@ func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpe
 			Offset:       data.Offset,
 		}
 		if load.RetProbe {
-			return exec.Uretprobe(data.Symbol, prog, opts)
+			lnk, err := exec.Uretprobe(data.Symbol, prog, opts)
+			f.Close()
+			return lnk, err
 		}
-		return exec.Uprobe(data.Symbol, prog, opts)
+		lnk, err := exec.Uprobe(data.Symbol, prog, opts)
+		f.Close()
+		return lnk, err
 	}
 
 	lnk, err := linkFn()
@@ -370,8 +383,17 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 		var lnk link.Link
 
 		for path, attach := range data.Attach {
-			exec, err := link.OpenExecutable(path)
+			// Open the binary as an fd, then reference it via /proc/self/fd/<N>.
+			// The kernel follows the symlink to the inode, so the uprobe attachment
+			// tracks the inode rather than the filename (TOCTOU-safe).
+			f, err := os.Open(path)
 			if err != nil {
+				return nil, fmt.Errorf("open executable %s: %w", path, err)
+			}
+			fdPath := fmt.Sprintf("/proc/self/fd/%d", f.Fd())
+			exec, err := link.OpenExecutable(fdPath)
+			if err != nil {
+				f.Close()
 				return nil, err
 			}
 			opts := &link.UprobeMultiOptions{
@@ -385,6 +407,7 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 			} else {
 				lnk, err = exec.UprobeMulti(attach.Symbols, prog, opts)
 			}
+			f.Close()
 			if err != nil {
 				return nil, err
 			}
