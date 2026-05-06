@@ -20,4 +20,13 @@ exclude = [
   # this a parsing error from index.html, it uses the {{< latest-version >}}
   # shortcode which is not detected
   '^https://github.com/cilium/tetragon/releases/download/$',
+  # cosign keyless OIDC token endpoint: only responds to authenticated requests
+  '^https://token\.actions\.githubusercontent\.com',
+  # SPDX namespace URI used as the predicate-type identifier — not a fetchable resource
+  '^https://spdx\.dev/Document',
+  # lychee's URL extractor stops at the first `\` in the
+  # `--certificate-identity-regexp` argument value used in cosign examples,
+  # leaving it with the meaningless prefix `https://github` (normalised to
+  # `https://github/`). Exclude it so the spurious URL doesn't fail the check.
+  '^https?://github/?$',
 ]

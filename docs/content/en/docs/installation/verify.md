@@ -20,7 +20,11 @@ Since version 0.8.4, all Tetragon container images are signed using cosign.
 Let's verify a Tetragon image's signature using the `cosign verify` command:
 
 ```shell
-cosign verify --certificate-github-workflow-repository cilium/tetragon --certificate-oidc-issuer https://token.actions.githubusercontent.com <Image URL> | jq
+cosign verify \
+  --certificate-github-workflow-repository cilium/tetragon \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp 'https://github\.com/cilium/tetragon/\.github/workflows/.+' \
+  <Image URL> | jq
 ```
 
 {{< note >}}
@@ -39,27 +43,47 @@ insight into the software supply chain and any potential concerns related to
 license compliance and security that might exist.
 
 Starting with version 0.8.4, all Tetragon images include an SBOM. The SBOM is
-generated in [SPDX](https://spdx.dev/) format using the
-[bom](https://github.com/kubernetes-sigs/bom) tool. If you are new to the
-concept of SBOM, see [what an SBOM can do for you](https://www.chainguard.dev/unchained/what-an-sbom-can-do-for-you).
+generated in [SPDX JSON](https://spdx.dev/) format and published as a cosign
+[attestation](https://docs.sigstore.dev/cosign/verifying/attestation/)
+alongside the image. If you are new to the concept of SBOM, see
+[what an SBOM can do for you](https://www.chainguard.dev/unchained/what-an-sbom-can-do-for-you).
+
+{{< note >}}
+**Upgrade note:** Releases prior to v1.8 published the SBOM as a separate
+`.sbom` artifact attached with `cosign attach sbom`. Starting with v1.8, the
+SBOM is published as an SPDX JSON attestation via `cosign attest --type
+spdxjson`. The legacy commands below no longer apply to images built from v1.8
+onward; use the attestation-based commands instead.
+
+```shell
+# Legacy (pre-v1.8) — no longer applicable
+cosign download sbom <Image URL>
+cosign verify --attachment sbom <Image URL>
+```
+{{< /note >}}
 
 ### Download SBOM
 
-The SBOM can be downloaded from the supplied Tetragon image using the `cosign
-download sbom` command.
+The SBOM can be extracted from the attestation using `cosign download
+attestation` and decoding the base64-encoded payload:
 
 ```shell
-cosign download sbom --output-file sbom.spdx <Image URL>
+cosign download attestation --predicate-type=https://spdx.dev/Document <Image URL> \
+  | jq -r .dsseEnvelope.payload | base64 -d | jq .predicate > sbom.spdx.json
 ```
 
-### Verify SBOM Image Signature
+### Verify SBOM Attestation
 
-To ensure the SBOM is tamper-proof, its signature can be verified using the
-`cosign verify` command.
+To ensure the SBOM is tamper-proof, its attestation can be verified using the
+`cosign verify-attestation` command.
 
 ```shell
-COSIGN_EXPERIMENTAL=1 cosign verify --certificate-github-workflow-repository cilium/tetragon --certificate-oidc-issuer https://token.actions.githubusercontent.com --attachment sbom <Image URL> | jq
+cosign verify-attestation --type spdxjson \
+  --certificate-github-workflow-repository cilium/tetragon \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp 'https://github\.com/cilium/tetragon/\.github/workflows/.+' \
+  <Image URL> | jq
 ```
 
-It can be validated that the SBOM image was signed using Github Actions in the
-Cilium repository from the `Issuer` and `Subject` fields of the output.
+It can be validated that the SBOM attestation was signed using GitHub Actions
+in the Cilium repository from the `Issuer` and `Subject` fields of the output.
