@@ -47,6 +47,7 @@ List of described data types:
 - [`net_device`](#net_device)
 - [`sockaddr`](#sockaddr)
 - [`sockaddr_un`](#sockaddr_un)
+- [`sockaddr_alg`](#sockaddr_alg)
 - [`socket`](#socket)
 - [`file`](#file)
 - [`dentry`](#dentry)
@@ -295,6 +296,17 @@ paths are reported as-is; abstract socket names are reported with a leading `@` 
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `NotPrefix`,
 or `Family` operators. Port, protocol, and state operators are not supported.
+
+## `sockaddr_alg`
+
+The `sockaddr_alg` data type represents kernel `struct sockaddr_alg` object
+for crypto algorithm sockets. It extracts the sockaddr family, name (matched with
+Equal/NotEqual and Prefix/NotPrefix), type, feat and mask. These can be
+matched in tracing policies with Family, ALGType, ALGFeat, and ALGMask.
+
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `NotPrefix`,
+`Family`, `ALGType`, `ALGFeat`, and `ALGMask` operators. Other sockaddr
+operators are not supported.
 
 ## `socket`
 
