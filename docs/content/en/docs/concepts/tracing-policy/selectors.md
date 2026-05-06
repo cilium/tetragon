@@ -735,6 +735,7 @@ matches. They are defined under `matchActions` and currently, the following
 - [UntrackSock action](#untracksock-action)
 - [Notify Enforcer action](#notify-enforcer-action)
 - [USDT Set action](#usdt-set-action)
+- [OverrideCall action](#overridecall-action)
 
 {{< warning >}}
 The FollowFD and related (UnfollowFD, CopyFD) actions have been deprecated due to being unsafe and
@@ -1726,6 +1727,31 @@ The `Set` action uses following arguments:
 
 - The `argIndex` defines position of the return argument.
 - The `argValue` defined the actual value to write.
+
+### OverrideCall action
+
+OverrideCall action is only defined for uprobe selectors and allows tetragon to route the
+traced symbol calls to a new symbol.
+For example, to override `malloc` calls to `malloc_patched` function,
+the following policy can be used:
+
+```yaml
+uprobes:
+- path: "test"
+  symbols:
+  - "malloc"
+  selectors:
+  - matchActions:
+    - action: OverrideCall
+      newSymbol: "malloc_patched"
+```
+
+There are, however, some restrictions:
+- Kernel support to mess with raw registers is required.
+- The new symbol must be already present in the binary.
+- The new symbol must be compatible with the original symbol.
+- Only a single Symbol/Addr/Offset is supported when using the `OverrideCall` action.
+- Can't use `OverrideCall` and `Override` together.
 
 ## Selector Semantics
 
