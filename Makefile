@@ -549,5 +549,6 @@ version: ## Print Tetragon version.
 	@echo $(VERSION)
 
 chart-version: ## Print Tetragon OCI Helm chart version.
+	@echo "Chart version: $(VERSION)"
 	@echo $(VERSION) | sed 's/^v\(.*\)/\1/'
 
