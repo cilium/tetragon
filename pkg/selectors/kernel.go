@@ -1725,6 +1725,9 @@ func CleanupKernelSelectorState(state *KernelSelectorState) error {
 
 	for selectorID, paths := range state.MatchBinariesPaths() {
 		sel := state.MatchBinaries()[selectorID]
+		if sel.MBSetID == mbset.InvalidID {
+			continue
+		}
 		if err := mbset.RemoveID(sel.MBSetID, paths); err != nil {
 			errs = errors.Join(errs, err)
 		}
