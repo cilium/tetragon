@@ -93,6 +93,23 @@ fetch precompiled binaries. You can also use it to build from sources (using the
 brew install tetra
 ```
 
+## Connect to a TLS-protected server
+
+If the Tetragon agent runs the gRPC API over TLS or mTLS, point `tetra` at the
+TCP listener and pass the matching credentials:
+
+```shell
+tetra \
+  --server-address tetragon.example.com:54321 \
+  --tls-ca-cert-files ca.crt \
+  --tls-cert-file client.crt \
+  --tls-key-file client.key \
+  getevents
+```
+
+See [gRPC TLS / mTLS]({{< ref "/docs/installation/grpc-tls" >}}) for the full
+flag list and provisioning options.
+
 ## Install a specific release
 
 You can retrieve the release of `tetra` along the release of Tetragon on GitHub
