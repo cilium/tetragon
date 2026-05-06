@@ -43,7 +43,8 @@ PROGS = sigkill-tester \
 	uprobe-simple \
 	pclntab-unstripped \
 	pclntab-stripped \
-	null-mount
+	null-mount \
+	alg-bind
 
 LIBS =	libuprobe.so \
 	libtester.so
@@ -172,6 +173,10 @@ pclntab-unstripped: FORCE
 
 pclntab-stripped: FORCE
 	go build -ldflags='-s -w' -o $@ ./go/pclntab-test
+
+alg-bind: alg-bind.c
+	$(GCC) -Wall $< -o $@
+	echo `./alg-bind`
 
 .PHONY: clean
 clean:

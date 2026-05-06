@@ -46,3 +46,4 @@ uprobe-null.btf
 pclntab-stripped
 pclntab-unstripped
 null-mount
+alg-bind

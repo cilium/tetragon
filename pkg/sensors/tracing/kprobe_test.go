@@ -8558,3 +8558,86 @@ func TestKprobeNotEqualMultipleValues(t *testing.T) {
 func TestKprobeNULLStringAndReturnArg(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-null-string", nil)
 }
+
+func TestKprobeSockaddrALG(t *testing.T) {
+	if !kernels.MinKernelVersion("5.11") {
+		t.Skip("The functionality requires kernel >= v5.11; skipping.")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	ALGBind := testutils.RepoRootPath("contrib/tester-progs/alg-bind")
+
+	cmd := exec.CommandContext(ctx, ALGBind)
+	err := cmd.Run()
+	if err != nil {
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) && exitError.ExitCode() == 1 {
+			t.Skip("The test requires AF_ALG support, which appears to be missing; skipping.")
+		}
+	}
+
+	tracingPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "test-sockaddr-alg"
+spec:
+  kprobes:
+  - call: "security_socket_bind"
+    syscall: false
+    args:
+    - index: 1
+      type: "sockaddr_alg"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal" # relates to the salg_name
+        values:
+        - "authencesn(hmac(sha256),cbc(aes))"
+      - index: 1
+        operator: "Family"
+        values:
+        - "AF_ALG"
+      - index: 1
+        operator: "ALGType"
+        values:
+        - "aead"
+      - index: 1
+        operator: "ALGFeat"
+        values:
+        - "2" # an arbitrary test value
+      - index: 1
+        operator: "ALGMask"
+        values:
+        - "42" # an arbitrary test value
+`
+	createCrdFileFlag(t, tracingPolicy, true)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd = exec.CommandContext(ctx, ALGBind)
+	cmd.Run()
+
+	ALGBindExec := ec.NewProcessChecker().
+		WithBinary(sm.Suffix("alg-bind"))
+
+	kpChecker := ec.NewUnorderedEventChecker(
+		ec.NewProcessExecChecker("ALGBindExec").
+			WithProcess(ALGBindExec),
+		ec.NewProcessKprobeChecker("securitySocketBindChecker").
+			WithFunctionName(sm.Full("security_socket_bind")),
+	)
+
+	err = jsonchecker.JsonTestCheck(t, kpChecker)
+	require.NoError(t, err)
+}
