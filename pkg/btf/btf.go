@@ -286,7 +286,9 @@ func ResolveBTFPath(
 		if err != nil {
 			return nil, fmt.Errorf("fail parsing array index : %w", err)
 		}
-		if idx >= t.Nelems {
+		// BTF encodes flexible array members with nr_elems=0, so there is
+		// no static upper bound to enforce for those arrays.
+		if t.Nelems != 0 && idx >= t.Nelems {
 			return nil, fmt.Errorf("array index out of bound. Nelems=%d, got=%d", t.Nelems, idx)
 		}
 		return processArray(btfArgs, t.Type, pathToFound, i, idx)
