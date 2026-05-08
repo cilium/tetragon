@@ -51,28 +51,39 @@ struct {
 		});
 } policy_filter_cgroup_maps SEC(".maps");
 
-// policy_filter_check checks whether the policy applies on the current process.
-// Returns true if it does, false otherwise.
-
-FUNC_INLINE bool policy_filter_check(u32 policy_id)
+/**
+ * tg_get_current_cgrp_tracker_id() Returns tracker cgroup id of the current task or 0 on failure
+ */
+FUNC_INLINE __u64 tg_get_current_cgrp_tracker_id(void)
 {
-	void *policy_map;
 	__u64 cgroupid, trackerid;
-
-	if (!policy_id)
-		return true;
-
-	policy_map = map_lookup_elem(&policy_filter_maps, &policy_id);
-	if (!policy_map)
-		return false;
 
 	cgroupid = tg_get_current_cgroup_id();
 	if (!cgroupid)
-		return false;
+		return 0;
 
 	trackerid = cgrp_get_tracker_id(cgroupid);
 	if (trackerid)
 		cgroupid = trackerid;
+
+	return cgroupid;
+}
+
+// policy_filter_check__ checks whether the policy applies on a given cgroup id.
+// Returns true if it does, false otherwise.
+FUNC_INLINE bool policy_filter_check__(__u32 policy_id, __u64 cgroupid)
+{
+	void *policy_map;
+
+	if (!policy_id)
+		return true;
+
+	if (!cgroupid)
+		return false;
+
+	policy_map = map_lookup_elem(&policy_filter_maps, &policy_id);
+	if (!policy_map)
+		return false;
 
 	if (map_lookup_elem(policy_map, &cgroupid))
 		return true; // We have a match from the podSelector and/or the containerSelector.
@@ -80,17 +91,33 @@ FUNC_INLINE bool policy_filter_check(u32 policy_id)
 	// We didn't match on the podSelector and/or the containerSelector.
 	// Now we need to check if we have a hostSelector match.
 
-	trackerid = HOST_SELECTOR_MODE;
-	if (!map_lookup_elem(policy_map, &trackerid))
-		return false; // Cannot find the match mode of the hostSelector so we do not care to match any host workloads.
+	{
+		__u64 trackerid = HOST_SELECTOR_MODE;
 
-	policy_id = ALL_PODS_POLICY_ID;
-	policy_map = map_lookup_elem(&policy_filter_maps, &policy_id);
-	if (!policy_map)
-		return false; // Cannot find the cgroupids of all containers inside all pods. This should not happen.
+		if (!map_lookup_elem(policy_map, &trackerid))
+			return false; // Cannot find the match mode of the hostSelector so we do not care to match any host workloads.
+	}
+
+	{
+		__u32 all_pods_id = ALL_PODS_POLICY_ID;
+
+		policy_map = map_lookup_elem(&policy_filter_maps, &all_pods_id);
+		if (!policy_map)
+			return false; // Cannot find the cgroupids of all containers inside all pods. This should not happen.
+	}
 
 	// If !map_lookup_elem(policy_map, &cgroupid) then our cgroupid belongs to a host workload.
 	return !map_lookup_elem(policy_map, &cgroupid);
+}
+
+// policy_filter_check checks whether the policy applies on the current process.
+// Returns true if it does, false otherwise.
+FUNC_INLINE bool policy_filter_check(__u32 policy_id)
+{
+	__u64 cgroupid;
+
+	cgroupid = tg_get_current_cgrp_tracker_id();
+	return policy_filter_check__(policy_id, cgroupid);
 }
 
 #endif /* POLICY_FILTER_MAPS_H__ */
