@@ -290,29 +290,29 @@ func getBTFPointer(ty btf.Type) (*btf.Pointer, error) {
 	return nil, fmt.Errorf("Invalid type for \"%v\", expected \"*btf.Pointer\", got %q", t, reflect.TypeOf(ty).String())
 }
 
-func findMemberInBTFStruct(structTy *btf.Struct, memberName string) (*btf.Member, error) {
+func findMemberInBTFStruct(structTy *btf.Struct, memberName string) (*btf.Member, uint32, error) {
 	for _, member := range structTy.Members {
 		if member.Name == memberName {
-			return &member, nil
+			return &member, 0, nil
 		}
 
 		if anonymousStructTy, ok := member.Type.(*btf.Struct); ok && len(member.Name) == 0 {
 			for _, m := range anonymousStructTy.Members {
 				if m.Name == memberName {
-					return &m, nil
+					return &m, uint32(member.Offset.Bytes()), nil
 				}
 			}
 		}
 
-		if unionTy, ok := member.Type.(*btf.Union); ok {
+		if unionTy, ok := member.Type.(*btf.Union); ok && len(member.Name) == 0 {
 			for _, m := range unionTy.Members {
 				if m.Name == memberName {
-					return &m, nil
+					return &m, uint32(member.Offset.Bytes()), nil
 				}
 			}
 		}
 	}
-	return nil, fmt.Errorf("Member %q not found in struct %v", memberName, structTy)
+	return nil, 0, fmt.Errorf("Member %q not found in struct %v", memberName, structTy)
 }
 
 func getBTFPointerAndSetConfig(ty btf.Type, btfConfig *api.ConfigBTFArg) (*btf.Pointer, error) {
@@ -329,12 +329,12 @@ func getBTFPointerAndSetConfig(ty btf.Type, btfConfig *api.ConfigBTFArg) (*btf.P
 func getConfigAndNextType(structTy *btf.Struct, memberName string) (*btf.Type, *api.ConfigBTFArg, error) {
 	btfConfig := api.ConfigBTFArg{}
 
-	member, err := findMemberInBTFStruct(structTy, memberName)
+	member, parentOffset, err := findMemberInBTFStruct(structTy, memberName)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	btfConfig.Offset = uint32(member.Offset.Bytes())
+	btfConfig.Offset = uint32(member.Offset.Bytes()) + parentOffset
 	btfConfig.IsInitialized = uint16(1)
 
 	ty := ResolveNestedTypes(member.Type)
@@ -352,12 +352,12 @@ func getConfigAndNextType(structTy *btf.Struct, memberName string) (*btf.Type, *
 func getConfigAndNextStruct(structTy *btf.Struct, memberName string) (*btf.Struct, *api.ConfigBTFArg, error) {
 	btfConfig := api.ConfigBTFArg{}
 
-	member, err := findMemberInBTFStruct(structTy, memberName)
+	member, parentOffset, err := findMemberInBTFStruct(structTy, memberName)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	btfConfig.Offset = uint32(member.Offset.Bytes())
+	btfConfig.Offset = uint32(member.Offset.Bytes()) + parentOffset
 	btfConfig.IsInitialized = uint16(1)
 
 	ty := ResolveNestedTypes(member.Type)
