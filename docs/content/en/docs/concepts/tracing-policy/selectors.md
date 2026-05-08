@@ -289,8 +289,7 @@ The available operators for `matchBinaries` are:
 - `Postfix`
 - `NotPostfix`
 
-The `values` field has to be a map of `strings`. The default behaviour
-is `followForks: true`, so all the child processes are followed.
+The `values` field has to be a map of `strings`.
 
 ### Follow children
 
@@ -419,8 +418,7 @@ The available operators for `matchParentBinaries` are:
 - `Postfix`
 - `NotPostfix`
 
-The `values` field has to be a map of `strings`. The default behaviour
-is `followForks: true`, so all the child processes are followed.
+The `values` field has to be a map of `strings`.
 
 ### Follow children
 
