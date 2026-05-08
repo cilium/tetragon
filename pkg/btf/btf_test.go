@@ -681,6 +681,50 @@ func TestParseArrayIdxStr(t *testing.T) {
 	}
 }
 
+func TestResolveBTFPathZeroLengthArray(t *testing.T) {
+	u8Ty := &btf.Int{Name: "unsigned char", Size: 1}
+	root := &btf.Struct{
+		Name: "sockaddr",
+		Size: 2,
+		Members: []btf.Member{
+			{
+				Name: "sa_data",
+				Type: &btf.Array{
+					Type:   u8Ty,
+					Index:  &btf.Int{Name: "int", Size: 4},
+					Nelems: 0,
+				},
+				Offset: btf.Bits(16),
+			},
+		},
+	}
+
+	for _, tt := range []struct {
+		path   string
+		offset uint32
+	}{
+		{path: "[0]", offset: 0},
+		{path: "[13]", offset: 13},
+	} {
+		t.Run(tt.path, func(t *testing.T) {
+			var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+
+			ty, err := ResolveBTFPath(&btfArgs, root, []string{"sa_data", tt.path}, 0)
+			require.NoError(t, err)
+			require.NotNil(t, ty)
+
+			assert.Equal(t, btf.Type(u8Ty), *ty)
+
+			// sa_data
+			assert.Equal(t, uint16(1), btfArgs[0].IsInitialized)
+			assert.Equal(t, uint32(2), btfArgs[0].Offset)
+			// [X]
+			assert.Equal(t, uint16(1), btfArgs[1].IsInitialized)
+			assert.Equal(t, tt.offset, btfArgs[1].Offset)
+		})
+	}
+}
+
 func TestProcessMembersErrorPrecedence(t *testing.T) {
 	intTy := &btf.Int{Name: "int", Size: 4}
 
