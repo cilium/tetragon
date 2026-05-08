@@ -233,6 +233,7 @@ func processMembers(
 				lastError = err
 				continue
 			}
+			btfArgs[i].Offset += member.Offset.Bytes()
 			return lastTy, nil
 		}
 		if member.Name == pathToFound[i] {
