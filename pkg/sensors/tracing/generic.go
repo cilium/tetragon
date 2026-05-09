@@ -132,6 +132,30 @@ func resolveUserBTFArg(arg *v1alpha1.KProbeArg, btfPath string) (*ebtf.Type, [ap
 	return resolveBTFType(arg, ty)
 }
 
+func findBTFTypeStruct(hook string, arg *v1alpha1.KProbeArg) (*ebtf.Struct, error) {
+	if arg.BTFTypeModule != "" {
+		st, err := btf.FindBTFStructInModule(arg.BTFType, arg.BTFTypeModule)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find BTF type %q in module %q: %w", arg.BTFType, arg.BTFTypeModule, err)
+		}
+		return st, nil
+	}
+
+	st, err := btf.FindBTFStruct(arg.BTFType)
+	if err == nil || !errors.Is(err, ebtf.ErrNotFound) {
+		return st, err
+	}
+
+	st, module, moduleErr := btf.FindBTFStructInHookModule(hook, arg.BTFType)
+	if moduleErr == nil {
+		return st, nil
+	}
+	if module == "" {
+		return nil, err
+	}
+	return nil, fmt.Errorf("failed to find BTF type %q in kernel BTF or module %q: %w", arg.BTFType, module, errors.Join(err, moduleErr))
+}
+
 func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	// tracepoints have extra first internal argument, so we need to adjust the index
 	index := int(arg.Index)
@@ -151,7 +175,7 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 		}
 		ty = ebtf.Type(st)
 	} else if arg.BTFType != "" {
-		st, err := btf.FindBTFStruct(arg.BTFType)
+		st, err := findBTFTypeStruct(hook, arg)
 		if err != nil {
 			return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 		}

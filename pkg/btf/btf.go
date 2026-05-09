@@ -106,14 +106,40 @@ func GetCachedBTFFile() string {
 }
 
 func FindBTFStruct(name string) (*btf.Struct, error) {
-	var ty *btf.Struct
-
 	spec, err := NewBTF()
 	if err != nil {
 		return nil, err
 	}
+	return findBTFStructInSpec(spec, name)
+}
 
-	err = firstTypeByName(spec, name, &ty)
+func FindBTFStructInModule(name, module string) (*btf.Struct, error) {
+	spec, err := btf.LoadKernelModuleSpec(module)
+	if err != nil {
+		return nil, err
+	}
+	return findBTFStructInSpec(spec, name)
+}
+
+func FindBTFStructInHookModule(hook, name string) (*btf.Struct, string, error) {
+	ks, err := ksyms.KernelSymbols()
+	if err != nil {
+		return nil, "", err
+	}
+
+	kmod, err := ks.GetKmod(hook)
+	if err != nil {
+		return nil, "", err
+	}
+
+	st, err := FindBTFStructInModule(name, kmod)
+	return st, kmod, err
+}
+
+func findBTFStructInSpec(spec *btf.Spec, name string) (*btf.Struct, error) {
+	var ty *btf.Struct
+
+	err := firstTypeByName(spec, name, &ty)
 	return ty, err
 }
 
