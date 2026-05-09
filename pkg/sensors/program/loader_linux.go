@@ -6,8 +6,10 @@ package program
 import (
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -349,6 +351,100 @@ func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpe
 	}, nil
 }
 
+func multiUprobeAttachPaths(data *MultiUprobeAttachData) []string {
+	paths := make([]string, 0, len(data.Attach))
+	for path := range data.Attach {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	return paths
+}
+
+func sanitizeLinkPinToken(token string) string {
+	const maxLen = 32
+
+	var b strings.Builder
+	for i := 0; i < len(token) && b.Len() < maxLen; i++ {
+		c := token[i]
+		switch {
+		case c >= 'a' && c <= 'z':
+			b.WriteByte(c)
+		case c >= 'A' && c <= 'Z':
+			b.WriteByte(c)
+		case c >= '0' && c <= '9':
+			b.WriteByte(c)
+		case c == '_' || c == '-' || c == '.':
+			b.WriteByte(c)
+		default:
+			b.WriteByte('_')
+		}
+	}
+	if b.Len() == 0 {
+		return "path"
+	}
+	return b.String()
+}
+
+func multiUprobeLinkPinToken(path string) string {
+	base := filepath.Base(path)
+	if base == "." || base == "/" {
+		base = "path"
+	}
+
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(path))
+	return fmt.Sprintf("%s_%016x", sanitizeLinkPinToken(base), h.Sum64())
+}
+
+func multiUprobeLinkPinExtras(path string, pathCount int, extra ...string) []string {
+	if pathCount <= 1 {
+		return extra
+	}
+
+	ret := append([]string{}, extra...)
+	return append(ret, multiUprobeLinkPinToken(path))
+}
+
+func multiUprobeAttachTargetCount(attach *MultiUprobeAttachSymbolsCookies) (int, error) {
+	if attach == nil {
+		return 0, errors.New("missing attach data")
+	}
+	if len(attach.Symbols) != 0 && len(attach.Addresses) != 0 {
+		return 0, errors.New("symbols and addresses are mutually exclusive")
+	}
+
+	targets := len(attach.Symbols)
+	if targets == 0 {
+		targets = len(attach.Addresses)
+	}
+	if targets == 0 {
+		return 0, errors.New("no symbols or addresses configured")
+	}
+	return targets, nil
+}
+
+func validateMultiUprobeAttach(path string, attach *MultiUprobeAttachSymbolsCookies) error {
+	targets, err := multiUprobeAttachTargetCount(attach)
+	if err != nil {
+		return fmt.Errorf("path %q: %w", path, err)
+	}
+
+	if len(attach.Offsets) != 0 && len(attach.Offsets) != targets {
+		return fmt.Errorf("path %q: offsets length %d does not match target count %d",
+			path, len(attach.Offsets), targets)
+	}
+	if len(attach.RefCtrOffsets) != 0 && len(attach.RefCtrOffsets) != targets {
+		return fmt.Errorf("path %q: ref_ctr_offsets length %d does not match target count %d",
+			path, len(attach.RefCtrOffsets), targets)
+	}
+	if len(attach.Cookies) != 0 && len(attach.Cookies) != targets {
+		return fmt.Errorf("path %q: cookies length %d does not match target count %d",
+			path, len(attach.Cookies), targets)
+	}
+
+	return nil
+}
+
 func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
@@ -365,11 +461,21 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 		return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
 	}
 
+	paths := multiUprobeAttachPaths(data)
+	if len(paths) == 0 {
+		return nil, fmt.Errorf("attaching '%s' failed: no uprobe attach targets", spec.Name)
+	}
+
 	linkFn := func() ([]link.Link, error) {
 		var links []link.Link
 		var lnk link.Link
 
-		for path, attach := range data.Attach {
+		for _, path := range paths {
+			attach := data.Attach[path]
+			if err := validateMultiUprobeAttach(path, attach); err != nil {
+				return nil, err
+			}
+
 			exec, err := link.OpenExecutable(path)
 			if err != nil {
 				return nil, err
@@ -388,7 +494,7 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 			if err != nil {
 				return nil, err
 			}
-			err = LinkPin(lnk, bpfDir, load, extra...)
+			err = LinkPin(lnk, bpfDir, load, multiUprobeLinkPinExtras(path, len(paths), extra...)...)
 			if err != nil {
 				lnk.Close()
 				return nil, err

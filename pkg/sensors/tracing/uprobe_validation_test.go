@@ -11,8 +11,25 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/testutils"
 )
+
+func TestAppendOptionalRefCtrOffset(t *testing.T) {
+	attach := &program.MultiUprobeAttachSymbolsCookies{}
+
+	attach.Cookies = append(attach.Cookies, 0)
+	appendOptionalRefCtrOffset(attach, 0)
+	require.Empty(t, attach.RefCtrOffsets)
+
+	attach.Cookies = append(attach.Cookies, 1)
+	appendOptionalRefCtrOffset(attach, 8)
+	require.Equal(t, []uint64{0, 8}, attach.RefCtrOffsets)
+
+	attach.Cookies = append(attach.Cookies, 2)
+	appendOptionalRefCtrOffset(attach, 0)
+	require.Equal(t, []uint64{0, 8, 0}, attach.RefCtrOffsets)
+}
 
 func TestUprobeValidationTargets(t *testing.T) {
 	tests := []struct {

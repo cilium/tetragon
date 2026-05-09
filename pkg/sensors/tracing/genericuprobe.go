@@ -306,6 +306,18 @@ func parseSymbol(sym string) (string, uint64, error) {
 	return sym, offset, nil
 }
 
+func appendOptionalRefCtrOffset(attach *program.MultiUprobeAttachSymbolsCookies, refCtrOffset uint64) {
+	if refCtrOffset == 0 && len(attach.RefCtrOffsets) == 0 {
+		return
+	}
+
+	targets := len(attach.Cookies)
+	for len(attach.RefCtrOffsets) < targets-1 {
+		attach.RefCtrOffsets = append(attach.RefCtrOffsets, 0)
+	}
+	attach.RefCtrOffsets = append(attach.RefCtrOffsets, refCtrOffset)
+}
+
 func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) error {
 	load := args.Load
 	data := &program.MultiUprobeAttachData{}
@@ -378,11 +390,8 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 			attach.Offsets = append(attach.Offsets, offset)
 		}
 
-		if uprobeEntry.refCtrOffset != 0 {
-			attach.RefCtrOffsets = append(attach.RefCtrOffsets, uprobeEntry.refCtrOffset)
-		}
-
 		attach.Cookies = append(attach.Cookies, uint64(index))
+		appendOptionalRefCtrOffset(attach, uprobeEntry.refCtrOffset)
 
 		data.Attach[uprobeEntry.path] = attach
 	}
