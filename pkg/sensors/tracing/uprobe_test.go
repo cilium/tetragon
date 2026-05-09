@@ -1254,7 +1254,7 @@ spec:
 			WithBinary(sm.Full(uprobeTest1))).WithSymbol(sm.Full("uprobe_test_lib_string_arg_null")).WithArgs(ec.NewKprobeArgumentListMatcher().
 		WithOperator(lc.Ordered).
 		WithValues(
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address for basic type"))),
 			ec.NewKprobeArgumentChecker().WithIntArg(0)),
 	)
 	checker := ec.NewUnorderedEventChecker(upChecker)

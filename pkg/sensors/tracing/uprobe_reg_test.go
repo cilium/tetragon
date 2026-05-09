@@ -202,35 +202,35 @@ func TestUprobeResolve(t *testing.T) {
 			ec.NewKprobeArgumentChecker().WithSizeArg(10), // uint64(10)
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address encountered during resolve dereference at depth 2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address encountered during resolve dereference at depth 1"))),
 		}},
 		{"uint32", 1234, "enum_u32", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(1234), // uint32(1234)
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address encountered during resolve dereference at depth 2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address encountered during resolve dereference at depth 1"))),
 		}},
 		{"uint32", 12, "sub.v32", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(12), // uint32(12)
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address encountered during resolve dereference at depth 2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address encountered during resolve dereference at depth 1"))),
 		}},
 		{"uint64", 13, "arr[2].v64", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithSizeArg(13), // uint64(13)
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address encountered during resolve dereference at depth 2"))),
 		}},
 		{"uint64", 14, "dyn[6].v64", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address encountered during resolve dereference at depth 2"))),
 			ec.NewKprobeArgumentChecker().WithSizeArg(14), // uint64(14)
 		}},
 	}
@@ -1336,13 +1336,13 @@ func TestUprobeResolveNull(t *testing.T) {
 		kpArgs []*ec.KprobeArgumentChecker
 	}{
 		{"first", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("1"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address encountered during resolve dereference at depth 0"))),
 		}},
 		{"second", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address encountered during resolve dereference at depth 1"))),
 		}},
 		{"third", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address encountered during resolve dereference at depth 2"))),
 		}},
 		{"nonull", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithIntArg(0),
