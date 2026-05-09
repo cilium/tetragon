@@ -134,9 +134,9 @@ func getArgStatus(r *bytes.Reader) (*api.MsgGenericKprobeArgError, error) {
 
 	if status != 0 {
 		if status == ^uint32(0) {
-			arg.Message = "Bad address"
+			arg.Message = "Bad address for basic type"
 		} else {
-			arg.Message = strconv.FormatUint(uint64(status), 10)
+			arg.Message = "Bad address encountered during resolve dereference at depth " + strconv.FormatUint(uint64(status-1), 10)
 		}
 		return &arg, nil
 	}
