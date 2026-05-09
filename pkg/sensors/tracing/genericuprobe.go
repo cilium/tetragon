@@ -525,11 +525,21 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	refCtrOffsets := len(spec.RefCtrOffsets)
 
 	// uprobe definition spec usanity checks
-	if symbols == 0 && offsets == 0 && addrs == 0 {
-		return nil, errors.New("uprobe need either Symbols, Offsets or Addrs defined")
+	targetKinds := 0
+	if symbols != 0 {
+		targetKinds++
 	}
-	if symbols != 0 && offsets != 0 && addrs != 0 {
-		return nil, errors.New("uprobe is defined either only with Symbols, Offsets or Addrs")
+	if offsets != 0 {
+		targetKinds++
+	}
+	if addrs != 0 {
+		targetKinds++
+	}
+	if targetKinds == 0 {
+		return nil, errors.New("uprobe needs exactly one of Symbols, Offsets or Addrs defined")
+	}
+	if targetKinds > 1 {
+		return nil, errors.New("uprobe must define only one of Symbols, Offsets or Addrs")
 	}
 	if refCtrOffsets != 0 {
 		if symbols != 0 && symbols != refCtrOffsets {
@@ -539,6 +549,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		if offsets != 0 && offsets != refCtrOffsets {
 			return nil, fmt.Errorf("RefCtrOffsets(%d) has different dimension than Offsets(%d)",
 				refCtrOffsets, offsets)
+		}
+		if addrs != 0 && addrs != refCtrOffsets {
+			return nil, fmt.Errorf("RefCtrOffsets(%d) has different dimension than Addrs(%d)",
+				refCtrOffsets, addrs)
 		}
 	}
 
