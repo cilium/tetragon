@@ -2478,7 +2478,7 @@ FUNC_INLINE void do_action_signal(int signal)
 FUNC_INLINE bool
 rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_kprobe *e)
 {
-	__u64 curr_time = tg_get_ktime();
+	__u64 curr_time;
 	__u64 *last_repeat_entry;
 	struct ratelimit_key *key;
 	void *ro_heap;
@@ -2491,6 +2491,8 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 
 	if (!ratelimit_interval)
 		return false;
+
+	curr_time = tg_get_ktime();
 
 	key = map_lookup_elem(&ratelimit_heap, &zero);
 	if (!key)
