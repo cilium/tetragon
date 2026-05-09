@@ -249,6 +249,19 @@ spec:
 	}
 }
 
+func TestResolveBTFArgWithBTFTypeModule(t *testing.T) {
+	arg := v1alpha1.KProbeArg{
+		Index:         1,
+		Type:          "uint16",
+		BTFType:       "sockaddr_un",
+		BTFTypeModule: "tetragon_test_module_that_does_not_exist",
+		Resolve:       "sun_family",
+	}
+
+	_, _, err := resolveBTFArg("security_socket_connect", &arg, false)
+	require.ErrorContains(t, err, `failed to find BTF type "sockaddr_un" in module "tetragon_test_module_that_does_not_exist"`)
+}
+
 func TestAppendMacrosSelectors(t *testing.T) {
 	tests := map[string]struct {
 		selectors         []v1alpha1.KProbeSelector
