@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
+	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 
 	"github.com/cilium/tetragon/tests/e2e/flags"
 	"github.com/cilium/tetragon/tests/e2e/helpers"
@@ -113,6 +114,10 @@ func (r *Runner) Init() *Runner {
 	cfg, err := envconf.NewFromFlags()
 	if err != nil {
 		klog.Fatalf("Failed to configure test environment")
+	}
+
+	if flags.Opts.Minikube {
+		envfuncs.LoadDockerImageToCluster = helpers.LoadImageToMinikubeEnvFunc
 	}
 	klog.Info("IMPORTANT: Tetragon e2e tests require parallel tests enabled. User preferences will be ignored.")
 	cfg = cfg.WithParallelTestEnabled()

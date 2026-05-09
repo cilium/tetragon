@@ -46,6 +46,9 @@ spec:
       {{- end }}
       containers:
       {{- include "container.tetragon-rthooks" . | nindent 6 -}}
+      {{- if .Values.rthooks.exportLogs.enabled }}
+      {{- include "container.tetragon-rthooks-export-logs" . | nindent 6 -}}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -1,6 +1,6 @@
 {{- define "container.tetragon-rthooks" -}}
 - name: tetragon-rthooks
-  image: "{{ if .Values.rthooks.image.override }}{{ .Values.rthooks.image.override }}{{ else }}{{ .Values.rthooks.image.repository }}:{{ .Values.rthooks.image.tag }}{{ end }}"
+  image: {{ include "rthooks.image" . }}
   terminationMessagePolicy: FallbackToLogsOnError
   imagePullPolicy: {{ .Values.imagePullPolicy }}
   command:
@@ -37,6 +37,24 @@
       mountPath: {{ .Values.rthooks.nriHook.nriSocket }}
 {{- end }}
 {{- with .Values.rthooks.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+{{- end -}}
+
+{{- define "container.tetragon-rthooks-export-logs" -}}
+- name: export-logs
+  image: {{ include "rthooks.image" . }}
+  imagePullPolicy: {{ .Values.imagePullPolicy }}
+  command:
+    - tail
+    - -F
+    - {{ printf "%s/%s" .Values.rthooks.installDir "tetragon-oci-hook.log" | quote }}
+  volumeMounts:
+    - name: oci-hook-install-path
+      mountPath: {{ .Values.rthooks.installDir | quote }}
+      readOnly: true
+{{- with .Values.rthooks.exportLogs.resources }}
   resources:
     {{- toYaml . | nindent 4 }}
 {{- end }}

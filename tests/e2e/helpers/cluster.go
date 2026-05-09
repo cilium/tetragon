@@ -9,8 +9,10 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"math"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -184,4 +186,26 @@ func GetTempKindClusterName(ctx context.Context) string {
 		return name
 	}
 	return ""
+}
+
+// LoadImageToMinikubeEnvFunc loads a container image into the minikube cluster via
+// `minikube image load`. This is the minikube equivalent of
+// envfuncs.LoadDockerImageToCluster for KinD.
+func LoadImageToMinikubeEnvFunc(_ string, image string, _ ...string) env.Func {
+	return func(ctx context.Context, _ *envconf.Config) (context.Context, error) {
+		klog.InfoS("Loading image into minikube", "image", image)
+
+		cmd := exec.Command("minikube", "image", "load", image)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return ctx, fmt.Errorf("minikube image load %s: %w\n%s", image, err, out)
+		}
+
+		// cri-o on minikube automatically prefixes loaded images with "localhost/",
+		// so align the image tag with the one in the helm chart and the one when using containerd.
+		cmd = exec.Command("minikube", "image", "tag", "localhost/"+image, "docker.io/"+image)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return ctx, fmt.Errorf("minikube image tag %s: %w\n%s", image, err, out)
+		}
+		return ctx, nil
+	}
 }

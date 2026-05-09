@@ -119,6 +119,10 @@ ServiceAccounts
 Runtime-hooks
 */}}
 
+{{- define "rthooks.image" -}}
+"{{ if .Values.rthooks.image.override }}{{ .Values.rthooks.image.override }}{{ else }}{{ .Values.rthooks.image.repository }}:{{ .Values.rthooks.image.tag }}{{ end }}"
+{{- end -}}
+
 {{- define "rthooksInterface" -}}
 {{ $iface := .Values.rthooks.interface }}
 {{- if (eq $iface "oci-hooks") -}}

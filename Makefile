@@ -315,6 +315,8 @@ fetch-testdata:
 E2E_AGENT ?= "cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 # Operator image to use for end-to-end tests
 E2E_OPERATOR ?= "cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
+# RTHooks image to use for end-to-end tests
+E2E_RTHOOKS ?= "cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
 # BTF file to use in the E2E test. Set to nothing to use system BTF.
 E2E_BTF ?= ""
 # Actual flags to use for BTF file in e2e test. Use E2E_BTF instead.
@@ -337,11 +339,38 @@ ls-e2e-test:
 ## e2e-test E2E_TESTS=./tests/e2e/tests/skeleton: ## run a specific e2e test
 .PHONY: e2e-test
 ifneq ($(E2E_BUILD_IMAGES), 0)
-e2e-test: image image-operator
+e2e-test: image image-operator image-rthooks
 else
 e2e-test:
 endif
-	$(GO) list $(E2E_TESTS) | xargs -Ipkg $(GO) test $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover pkg ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" -tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" -tetragon.helm.set tetragon.grpc.address="localhost:54321" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes/tetragon)" $(E2E_BTF_FLAGS)
+	$(GO) list $(E2E_TESTS) | xargs -Ipkg $(GO) test $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover pkg ${EXTRA_TESTFLAGS} -fail-fast \
+	 -tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" \
+	 -tetragon.helm.set rthooks.image.override="$(E2E_RTHOOKS)" \
+	 -tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" \
+	 -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes/tetragon)" $(E2E_BTF_FLAGS)
+
+
+MINIKUBE_DRIVER ?= docker # docker,kvm2
+MINIKUBE_CONTAINER_RUNTIME ?= containerd # containerd,cri-o
+# Some e2e tests are special because they require a more proper Kubernetes implementation.
+# We use minikube for those and list them here.
+E2E_TESTS_MINIKUBE ?= ./tests/e2e/tests/rthooks
+
+## e2e-test-minikube: ## run e2e tests with minikube
+## e2e-test-minikube E2E_TESTS_MINIKUBE=./tests/e2e/tests/foo: ## run a specific e2e test with minikube
+.PHONY: e2e-test-minikube
+e2e-test-minikube:
+	@if minikube status 2>/dev/null; then \
+		echo "Error: a minikube instance already exists. Delete it first with 'minikube delete'."; \
+		exit 1; \
+	fi
+	minikube start --driver=$(MINIKUBE_DRIVER) --container-runtime=$(MINIKUBE_CONTAINER_RUNTIME)
+	kubectl config set-context minikube
+
+	$(MAKE) e2e-test E2E_TESTS=$(E2E_TESTS_MINIKUBE) EXTRA_TESTFLAGS="$(EXTRA_TESTFLAGS) -minikube -kubeconfig=$$HOME/.kube/config"; \
+	EXIT_CODE=$$?; \
+	minikube delete; \
+	exit $$EXIT_CODE
 
 ##@ Development
 
