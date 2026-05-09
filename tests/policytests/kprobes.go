@@ -70,7 +70,7 @@ spec:
 			WithBinary(sm.Full(myBin))).WithArgs(ec.NewKprobeArgumentListMatcher().
 		WithOperator(lc.Ordered).
 		WithValues(
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address for basic type"))),
 		)).WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(0))
 
 	return &policytest.Scenario{
