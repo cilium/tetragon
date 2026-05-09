@@ -77,6 +77,19 @@ func (s *Sensor) createDirs(bpfDir string) {
 	s.BpfDir = bpfDir
 }
 
+func (s *Sensor) validateProgramPinPaths() error {
+	pins := map[string]*program.Program{}
+	for _, p := range s.Progs {
+		pinPath := filepath.Join(s.policyDir(), s.Name, p.PinName)
+		if prev, ok := pins[pinPath]; ok {
+			return fmt.Errorf("sensor %s has duplicate BPF program pin path %q for labels %q and %q",
+				s.Name, pinPath, prev.Label, p.Label)
+		}
+		pins[pinPath] = p
+	}
+	return nil
+}
+
 func (s *Sensor) removeDirs() {
 	// Remove all the program dirs
 	for _, p := range s.Progs {
@@ -116,6 +129,16 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 		loadedProgs []*program.Program
 	)
 
+	l := logger.GetLogger()
+
+	l.Info("Loading sensor", "name", s.Name)
+	if s.Loaded {
+		return fmt.Errorf("loading sensor %s failed: sensor already loaded", s.Name)
+	}
+	if err = s.validateProgramPinPaths(); err != nil {
+		return fmt.Errorf("loading sensor %s failed: %w", s.Name, err)
+	}
+
 	s.createDirs(bpfDir)
 	defer func() {
 		if err != nil {
@@ -128,13 +151,6 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 			s.removeDirs()
 		}
 	}()
-
-	l := logger.GetLogger()
-
-	l.Info("Loading sensor", "name", s.Name)
-	if s.Loaded {
-		return fmt.Errorf("loading sensor %s failed: sensor already loaded", s.Name)
-	}
 
 	_, verStr, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	l.Info("Loading kernel version " + verStr)
