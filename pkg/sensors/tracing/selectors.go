@@ -27,107 +27,87 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*progr
 			Load: func(m *ebpf.Map, _ string) error {
 				return m.Update(index, selBuff[:], ebpf.UpdateAny)
 			},
-		}, {
+		},
+	}
+	if len(ks.ValueMaps()) != 0 {
+		maps = append(maps, &program.MapLoad{
 			Name: "argfilter_maps",
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 				return populateArgFilterMaps(ks, pinPathPrefix, outerMap)
 			},
-		}, {
+		})
+	}
+	if len(ks.Addr4Maps()) != 0 {
+		maps = append(maps, &program.MapLoad{
 			Name: "addr4lpm_maps",
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 				return populateAddr4FilterMaps(ks, pinPathPrefix, outerMap)
 			},
-		}, {
+		})
+	}
+	if len(ks.Addr6Maps()) != 0 {
+		maps = append(maps, &program.MapLoad{
 			Name: "addr6lpm_maps",
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 				return populateAddr6FilterMaps(ks, pinPathPrefix, outerMap)
 			},
-		}, {
+		})
+	}
+	if len(ks.MatchBinaries()) != 0 {
+		maps = append(maps, &program.MapLoad{
 			Name: "tg_mb_sel_opts",
 			Load: func(outerMap *ebpf.Map, _ string) error {
 				return populateMatchBinariesMaps(ks, outerMap)
 			},
-		}, {
+		})
+	}
+	if len(ks.MatchBinariesPaths()) != 0 {
+		maps = append(maps, &program.MapLoad{
 			Name: "tg_mb_paths",
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 				return populateMatchBinariesPathsMaps(ks, pinPathPrefix, outerMap)
 			},
-		}, {
+		})
+	}
+	if len(ks.StringPrefixMaps()) != 0 {
+		maps = append(maps, &program.MapLoad{
 			Name: "string_prefix_maps",
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 				return populateStringPrefixFilterMaps(ks, pinPathPrefix, outerMap)
 			},
-		}, {
+		})
+	}
+	if len(ks.StringPostfixMaps()) != 0 {
+		maps = append(maps, &program.MapLoad{
 			Name: "string_postfix_maps",
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 				return populateStringPostfixFilterMaps(ks, pinPathPrefix, outerMap)
 			},
-		}, {
-			Name: "string_maps_0",
+		})
+	}
+	numSubMaps := selectors.StringMapsNumSubMaps
+	if !kernels.MinKernelVersion("5.11") {
+		numSubMaps = selectors.StringMapsNumSubMapsSmall
+	}
+	for stringMapIndex := range numSubMaps {
+		if len(ks.StringMaps(stringMapIndex)) == 0 {
+			continue
+		}
+		idx := stringMapIndex
+		maps = append(maps, &program.MapLoad{
+			Name: fmt.Sprintf("string_maps_%d", idx),
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 0)
+				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, idx)
 			},
-		}, {
-			Name: "string_maps_1",
-			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 1)
-			},
-		}, {
-			Name: "string_maps_2",
-			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 2)
-			},
-		}, {
-			Name: "string_maps_3",
-			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 3)
-			},
-		}, {
-			Name: "string_maps_4",
-			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 4)
-			},
-		}, {
-			Name: "string_maps_5",
-			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 5)
-			},
-		}, {
-			Name: "string_maps_6",
-			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 6)
-			},
-		}, {
-			Name: "string_maps_7",
-			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 7)
-			},
-		}, {
+		})
+	}
+	if len(ks.SubStrings()) != 0 {
+		maps = append(maps, &program.MapLoad{
 			Name: "substring_map",
 			Load: func(outerMap *ebpf.Map, _ string) error {
 				return populateSubStringMap(outerMap, ks)
 			},
-		},
-	}
-	if kernels.MinKernelVersion("5.11") {
-		maps = append(maps, []*program.MapLoad{
-			{
-				Name: "string_maps_8",
-				Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-					return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 8)
-				},
-			}, {
-				Name: "string_maps_9",
-				Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-					return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 9)
-				},
-			}, {
-				Name: "string_maps_10",
-				Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-					return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 10)
-				},
-			},
-		}...)
+		})
 	}
 	return maps
 }
