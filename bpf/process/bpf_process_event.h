@@ -167,9 +167,16 @@ FUNC_INLINE void
 get_namespaces(struct msg_ns *msg, struct task_struct *task)
 {
 	struct nsproxy *nsproxy;
-	struct nsproxy nsp;
+	struct nsproxy nsp = {};
+
+	memset(msg, 0, sizeof(*msg));
+	if (!task)
+		return;
 
 	probe_read(&nsproxy, sizeof(nsproxy), _(&task->nsproxy));
+	if (!nsproxy)
+		return;
+
 	probe_read(&nsp, sizeof(nsp), _(nsproxy));
 
 	if (bpf_core_field_exists(nsproxy->uts_ns->ns)) {
