@@ -1043,6 +1043,27 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 	return nil
 }
 
+func collectProgramReferences(programs map[string]*ebpf.ProgramSpec, label string) (*ebpf.ProgramSpec, map[string]bool) {
+	var progSpec *ebpf.ProgramSpec
+	refMaps := make(map[string]bool)
+
+	for _, prog := range programs {
+		if prog.SectionName == label {
+			progSpec = prog
+		}
+		if prog.Type == ebpf.UnspecifiedProgram {
+			continue
+		}
+		for _, inst := range prog.Instructions {
+			if ref := inst.Reference(); ref != "" {
+				refMaps[ref] = true
+			}
+		}
+	}
+
+	return progSpec, refMaps
+}
+
 func doLoadProgram(
 	bpfDir string,
 	load *Program,
@@ -1147,19 +1168,7 @@ func doLoadProgram(
 
 	// Find all the maps referenced by the program, so we'll rewrite only
 	// the ones used.
-	var progSpec *ebpf.ProgramSpec
-
-	refMaps := make(map[string]bool)
-	for _, prog := range spec.Programs {
-		if prog.SectionName == load.Label {
-			progSpec = prog
-		}
-		for _, inst := range prog.Instructions {
-			if inst.Reference() != "" {
-				refMaps[inst.Reference()] = true
-			}
-		}
-	}
+	progSpec, refMaps := collectProgramReferences(spec.Programs, load.Label)
 
 	if progSpec == nil {
 		return nil, fmt.Errorf("program for section '%s' not found", load.Label)

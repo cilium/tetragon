@@ -9,9 +9,34 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/asm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestCollectProgramReferencesSkipsDisabledPrograms(t *testing.T) {
+	programs := map[string]*ebpf.ProgramSpec{
+		"main": {
+			Type:        ebpf.Kprobe,
+			SectionName: "kprobe/main",
+			Instructions: asm.Instructions{
+				asm.LoadMapPtr(asm.R1, 0).WithReference("used_map"),
+			},
+		},
+		"disabled": {
+			Type:        ebpf.UnspecifiedProgram,
+			SectionName: "kprobe/disabled",
+			Instructions: asm.Instructions{
+				asm.LoadMapPtr(asm.R1, 0).WithReference("disabled_map"),
+			},
+		},
+	}
+
+	prog, refs := collectProgramReferences(programs, "kprobe/main")
+	require.Same(t, programs["main"], prog)
+	assert.Equal(t, map[string]bool{"used_map": true}, refs)
+}
 
 func TestMultiUprobeAttachPaths(t *testing.T) {
 	data := &MultiUprobeAttachData{
