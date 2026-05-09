@@ -113,6 +113,10 @@ type KProbeArg struct {
 	// from the kernel BTF, casting the argument's type before traversing the resolve path.
 	// For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.
 	BTFType string `json:"btfType,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Kernel module that contains the BTFType. This is used only for kprobe args.
+	// The module must already be loaded and expose BTF in /sys/kernel/btf.
+	BTFTypeModule string `json:"btfTypeModule,omitempty"`
 }
 
 type BinarySelector struct {
