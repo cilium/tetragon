@@ -380,5 +380,12 @@ func processArray(
 	if len(pathToFound) > i+1 {
 		return ResolveBTFPath(btfArgs, targetType, pathToFound, i+1)
 	}
+	switch t := targetType.(type) {
+	case *btf.Pointer:
+		btfArgs[i].IsPointer = uint16(1)
+		targetType = t.Target
+	case *btf.Int, *btf.Enum:
+		btfArgs[i].IsPointer = uint16(1)
+	}
 	return &targetType, nil
 }
