@@ -39,7 +39,9 @@ type arrayWriter struct {
 func newArrayWriter(size int) *arrayWriter {
 	return &arrayWriter{
 		items: make([]string, 0, size),
-		done:  make(chan bool),
+		// Buffered so Write never blocks the producer goroutine if nobody
+		// is currently waiting on done (e.g. after a polling loop breaks).
+		done: make(chan bool, 1),
 	}
 }
 
@@ -128,34 +130,6 @@ type jsonEvent struct {
 
 const nodeName = "test-node-name"
 
-// countEvents counts the number of events and rate-limit-info messages in the given slice.
-// It returns (gotEvents, gotRateLimitInfo, gotDropped).
-func countEvents(eventsJSON []string) (gotEvents int, gotRateLimitInfo int, gotDropped uint64) {
-	for _, event := range eventsJSON {
-		if event == "" {
-			continue
-		}
-
-		var ev jsonEvent
-		if err := json.Unmarshal([]byte(event), &ev); err != nil {
-			continue
-		}
-
-		if len(ev.Event) > 0 {
-			gotEvents++
-		}
-		if len(ev.RateLimitInfo) > 0 {
-			var res tetragon.GetEventsResponse
-			if err := json.Unmarshal([]byte(event), &res); err != nil {
-				continue
-			}
-			gotRateLimitInfo++
-			gotDropped += res.GetRateLimitInfo().GetNumberOfDroppedProcessEvents()
-		}
-	}
-	return gotEvents, gotRateLimitInfo, gotDropped
-}
-
 func checkEvents(t *testing.T, eventsJSON []string, wantEvents, wantRateLimitInfo int, wantDropped uint64) {
 	t.Helper()
 
@@ -199,8 +173,6 @@ func checkEvents(t *testing.T, eventsJSON []string, wantEvents, wantRateLimitInf
 }
 
 func Test_rateLimitExport(t *testing.T) {
-	var wg sync.WaitGroup
-
 	// set node name to be reported in RateLimitInfo events
 	hubbleNodeNameEnv := "HUBBLE_NODE_NAME"
 	value, ok := os.LookupEnv(hubbleNodeNameEnv)
@@ -227,54 +199,43 @@ func Test_rateLimitExport(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s (%d events, %d rate limit)", tt.name, tt.totalEvents, tt.rateLimit), func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			eventNotifier := newFakeNotifier()
-			dr := rthooks.DummyHookRunner{}
-			grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr)
-			results := newArrayWriter(tt.totalEvents)
-			encoder := encoder.NewProtojsonEncoder(results)
-			request := &tetragon.GetEventsRequest{}
-			exporter, err := NewExporter(
-				ctx,
-				request,
-				grpcServer,
-				encoder,
-				results,
-				ratelimit.NewRateLimiter(ctx, 50*time.Millisecond, tt.rateLimit, encoder),
-			)
-			require.NoError(t, err)
-			require.NoError(t, exporter.Start(), "exporter must start without errors")
-			for i := range tt.totalEvents {
-				eventNotifier.NotifyListener(nil, &tetragon.GetEventsResponse{
-					Event: &tetragon.GetEventsResponse_ProcessExec{
-						ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Binary: fmt.Sprintf("a%d", i)}},
-					}})
-			}
-
-			// Wait until we receive the expected number of events and rate-limit-info messages.
-			// Use polling instead of fixed sleep to avoid timing-dependent race conditions.
-			timeout := time.After(500 * time.Millisecond)
-			ticker := time.NewTicker(10 * time.Millisecond)
-			defer ticker.Stop()
-
-			for {
-				gotEvents, gotRateLimitInfo, _ := countEvents(results.items)
-				if gotEvents >= tt.wantEvents && gotRateLimitInfo >= tt.wantRateLimitInfo {
-					// We have all the expected output, proceed to cleanup and assertions.
-					break
+			synctest.Test(t, func(t *testing.T) {
+				var wg sync.WaitGroup
+				ctx, cancel := context.WithCancel(context.Background())
+				eventNotifier := newFakeNotifier()
+				dr := rthooks.DummyHookRunner{}
+				grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr)
+				results := newArrayWriter(tt.totalEvents)
+				encoder := encoder.NewProtojsonEncoder(results)
+				request := &tetragon.GetEventsRequest{}
+				exporter, err := NewExporter(
+					ctx,
+					request,
+					grpcServer,
+					encoder,
+					results,
+					ratelimit.NewRateLimiter(ctx, 50*time.Millisecond, tt.rateLimit, encoder),
+				)
+				require.NoError(t, err)
+				require.NoError(t, exporter.Start(), "exporter must start without errors")
+				for i := range tt.totalEvents {
+					eventNotifier.NotifyListener(nil, &tetragon.GetEventsResponse{
+						Event: &tetragon.GetEventsResponse_ProcessExec{
+							ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Binary: fmt.Sprintf("a%d", i)}},
+						}})
 				}
-				select {
-				case <-timeout:
-					t.Fatalf("timeout waiting for events: got %d events and %d rate-limit-info, want %d events and %d rate-limit-info",
-						gotEvents, gotRateLimitInfo, tt.wantEvents, tt.wantRateLimitInfo)
-				case <-ticker.C:
-					// Continue polling
-				}
-			}
 
-			cancel()
+				// Allow the rate limiter (50ms tick) to fire and flush pending
+				// events / emit the rate-limit-info record. Under synctest,
+				// time advances deterministically while goroutines are blocked.
+				time.Sleep(100 * time.Millisecond)
+				synctest.Wait()
 
-			checkEvents(t, results.items, tt.wantEvents, tt.wantRateLimitInfo, tt.wantDropped)
+				cancel()
+				<-eventNotifier.removed
+
+				checkEvents(t, results.items, tt.wantEvents, tt.wantRateLimitInfo, tt.wantDropped)
+			})
 		})
 	}
 }

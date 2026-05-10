@@ -6,6 +6,7 @@ package process
 import (
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -53,27 +54,31 @@ func TestProcessCache(t *testing.T) {
 }
 
 func TestProcessCacheGCEarlyDeletion(t *testing.T) {
-	cache, err := NewCache(10, 10*time.Millisecond)
-	require.NoError(t, err)
-	defer cache.purge()
+	synctest.Test(t, func(t *testing.T) {
+		cache, err := NewCache(10, 10*time.Millisecond)
+		require.NoError(t, err)
+		defer cache.purge()
 
-	pid := wrapperspb.UInt32Value{Value: 1234}
-	proc := ProcessInternal{
-		process: &tetragon.Process{
-			ExecId: "process1",
-			Pid:    &pid,
-		},
-	}
-	cache.add(&proc)
+		pid := wrapperspb.UInt32Value{Value: 1234}
+		proc := ProcessInternal{
+			process: &tetragon.Process{
+				ExecId: "process1",
+				Pid:    &pid,
+			},
+		}
+		cache.add(&proc)
 
-	proc.color = deleted
-	cache.deletePending(&proc)
+		proc.color = deleted
+		cache.deletePending(&proc)
 
-	time.Sleep(50 * time.Millisecond)
+		// Wait for the GC goroutine to drain deleteChan and return to its
+		// select; under synctest this is deterministic and instant.
+		synctest.Wait()
 
-	expected := strings.NewReader(`# HELP tetragon_process_cache_early_deletions_total Number of times the GC attempted to delete a process already marked as deleted. May indicate the GC is deleting processes too early.
+		expected := strings.NewReader(`# HELP tetragon_process_cache_early_deletions_total Number of times the GC attempted to delete a process already marked as deleted. May indicate the GC is deleting processes too early.
 # TYPE tetragon_process_cache_early_deletions_total counter
 tetragon_process_cache_early_deletions_total 1
 `)
-	require.NoError(t, testutil.CollectAndCompare(processCacheEarlyDeletions, expected))
+		require.NoError(t, testutil.CollectAndCompare(processCacheEarlyDeletions, expected))
+	})
 }
