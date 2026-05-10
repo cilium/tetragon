@@ -720,6 +720,7 @@ func TestResolveBTFPathZeroLengthArray(t *testing.T) {
 			assert.Equal(t, uint32(2), btfArgs[0].Offset)
 			// [X]
 			assert.Equal(t, uint16(1), btfArgs[1].IsInitialized)
+			assert.Equal(t, uint16(1), btfArgs[1].IsPointer)
 			assert.Equal(t, tt.offset, btfArgs[1].Offset)
 		})
 	}
