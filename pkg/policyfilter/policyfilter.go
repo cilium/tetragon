@@ -10,6 +10,7 @@ import (
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
+	"github.com/cilium/tetragon/pkg/manager/events"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 )
@@ -61,10 +62,11 @@ type State interface {
 	// DelPod informs policyfilter that a pod has been deleted
 	DelPod(podID PodID) error
 
-	// RegisterPodHandlers can be used to register appropriate pod handlers to a pod informer
-	// that for keeping the policy filter state up-to-date.
-	//XXX: Is this needed?
-	//RegisterPodHandlers(podInformer cache.SharedIndexInformer)
+	// RegisterPodHandlers wires policyfilter's pod-event handlers into the
+	// supplied events.PodEventSource so the policy filter state stays up to
+	// date with pod lifecycle changes. It returns an error if any handler
+	// registration fails during startup.
+	RegisterPodHandlers(src events.PodEventSource) error
 
 	// Close releases resources allocated by the Manager. Specifically, we close and unpin the
 	// policy filter map.
