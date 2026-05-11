@@ -73,6 +73,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
+	_ "github.com/cilium/tetragon/tests/policytests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -142,6 +143,10 @@ func TestKprobeObjectLoad(t *testing.T) {
 // debug because we can write things on stdout which will not generate events.
 func TestKprobeLseek(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-lseek", nil)
+}
+
+func TestKprobeBTFTypeModuleAFAlgBind(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-btf-type-module-af-alg-bind", nil)
 }
 
 func getTestKprobeObjectWRChecker(t *testing.T) ec.MultiEventChecker {
