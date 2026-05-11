@@ -89,13 +89,13 @@ jobs:
         go-version: '1.26.3'
 
     - name: Install kubectl
-      uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+      uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
       with:
         # renovate: datasource=github-releases depName=kubernetes/kubernetes
         version: v1.36.0
 
     - name: Install Helm
-      uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+      uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
       with:
         # renovate: datasource=github-releases depName=helm/helm
         version: v4.1.4
