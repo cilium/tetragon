@@ -878,6 +878,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
           A list of argument filters. MatchArgs are ANDed.<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -1680,6 +1687,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicy.spec.fentries[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.hostSelector
 <sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
 
@@ -2320,6 +2623,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3124,6 +3434,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicy.spec.kprobes[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.lists[index]
 <sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
 
@@ -3449,6 +4055,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4253,6 +4866,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.options[index]
 <sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
 
@@ -4474,6 +5383,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5278,6 +6194,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicy.spec.selectorsMacros[key].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskeymatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskeymatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskeymatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskeymatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskeymatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskeymatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.tracepoints[index]
 <sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
 
@@ -5561,6 +6773,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6365,6 +7584,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.uprobes[index]
 <sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
 
@@ -6906,6 +8421,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7710,6 +9232,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicy.spec.uprobes[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.usdts[index]
 <sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
 
@@ -8000,6 +9818,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8798,6 +10623,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>[]string</td>
         <td>
           Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9643,6 +11764,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
           A list of argument filters. MatchArgs are ANDed.<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -10445,6 +12573,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.hostSelector
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
 
@@ -11085,6 +13509,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11889,6 +14320,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.lists[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
 
@@ -12214,6 +14941,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13018,6 +15752,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.options[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
 
@@ -13239,6 +16269,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -14043,6 +17080,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskeymatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.tracepoints[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
 
@@ -14326,6 +17659,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -15130,6 +18470,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.uprobes[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
 
@@ -15671,6 +19307,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -16475,6 +20118,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.usdts[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
 
@@ -16765,6 +20704,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>[]object</td>
         <td>
           A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindex">matchWorkloads</a></b></td>
+        <td>[]object</td>
+        <td>
+          Workloads to match<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -17563,6 +21509,302 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>[]string</td>
         <td>
           Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchWorkloads[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindexcontainerselector">containerSelector</a></b></td>
+        <td>object</td>
+        <td>
+          ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindexhostselector">hostSelector</a></b></td>
+        <td>object</td>
+        <td>
+          HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.matchLabels) && !has(self.matchExpressions): The hostSelector should be either null or {}.</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindexpodselector">podSelector</a></b></td>
+        <td>object</td>
+        <td>
+          PodSelector selects pods that this policy applies to<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchWorkloads[index].containerSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+ContainerSelector selects containers that this policy applies to.
+A map of container fields will be constructed in the same way as a map of labels.
+The name of the field represents the label "key", and the value of the field - label "value".
+Currently, only the "name" field is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindexcontainerselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchWorkloads[index].containerSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindexcontainerselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchWorkloads[index].hostSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+HostSelector selects hosts that this policy applies to.
+For now only ~ (none) and {} (all) is supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindexhostselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchWorkloads[index].hostSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindexhostselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchWorkloads[index].podSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindex)</sup></sup>
+
+
+PodSelector selects pods that this policy applies to
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindexpodselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchWorkloads[index].podSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindexmatchworkloadsindexpodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

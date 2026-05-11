@@ -11,6 +11,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 )
 
 type KernelLPMTrie4 struct {
@@ -138,6 +139,8 @@ type KernelSelectorState struct {
 	subStrs []string
 
 	celExprFunctions *CelExprFunctions
+
+	matchWorkloadIDs map[int]policyfilter.PolicyID
 }
 
 func NewKernelSelectorState(
@@ -159,6 +162,7 @@ func NewKernelSelectorState(
 		maps:               maps,
 		isUprobe:           isUprobe,
 		celExprFunctions:   celExprs,
+		matchWorkloadIDs:   make(map[int]policyfilter.PolicyID),
 	}
 }
 
@@ -172,6 +176,10 @@ func (k *KernelSelectorState) AddMatchBinaries(i int, sel MatchBinariesSelectorO
 
 func (k KernelSelectorState) MatchBinariesPaths() map[int][][processapi.BINARY_PATH_MAX_LEN]byte {
 	return k.matchBinariesPaths
+}
+
+func (k KernelSelectorState) MatchWorkloadIDs() map[int]policyfilter.PolicyID {
+	return k.matchWorkloadIDs
 }
 
 func (k *KernelSelectorState) WriteMatchBinariesPath(selectorID int, path string) {

@@ -24,9 +24,11 @@ import (
 	"github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/idtable"
+	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/network"
 )
@@ -1263,6 +1265,59 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	return nil
 }
 
+func ParseMatchWorkloads(k *KernelSelectorState, workloads []v1alpha1.WorkloadsSelector, selIdx int) error {
+	if len(workloads) > 1 {
+		return errors.New("only a single selector under matchWorkloads is supported")
+	}
+	if len(workloads) == 0 {
+		return nil
+	}
+
+	state, err := policyfilter.GetState()
+	if err != nil {
+		return fmt.Errorf("parseMatchWorkloads: failed to get policyfilter state: %w", err)
+	}
+
+	podSelector := workloads[0].PodSelector
+	containerSelector := workloads[0].ContainerSelector
+	hostSelector := workloads[0].HostSelector
+
+	// If the user specifies a podSelector but doesn't specify a containerSelector,
+	// we assume that the user cares for all containers inside the pods that match.
+	if podSelector != nil && MatchNothingLabelSelector(containerSelector) {
+		containerSelector = &slimv1.LabelSelector{}
+	}
+
+	// If the user specifies a containerSelector but doesn't specify a podSelector,
+	// we assume that the user cares for containers that match inside all pods.
+	if containerSelector != nil && MatchNothingLabelSelector(podSelector) {
+		podSelector = &slimv1.LabelSelector{}
+	}
+
+	// The user explicitly defined all podSelector, containerSelector, and hostSelector
+	// to be {}. This will match everything and for this reason we should not use
+	// a policyfilter at all.
+	if MatchAllLabelSelector(podSelector) && MatchAllLabelSelector(containerSelector) && MatchAllLabelSelector(hostSelector) {
+		return nil
+	}
+
+	// This covers the "special" case where all of podSelector, containerSelector, hostSelector
+	// are nil (default). In that case we match everything so no need to apply a policyfilter.
+	if MatchNothingLabelSelector(podSelector) && MatchNothingLabelSelector(containerSelector) && MatchNothingLabelSelector(hostSelector) {
+		return nil
+	}
+
+	selPolId := policyfilter.GetSelectorPolicyID()
+	err = state.AddPolicy(selPolId, "", podSelector, containerSelector, hostSelector)
+	if err != nil {
+		return fmt.Errorf("parseMatchWorkloads: failed to add policy: %w", err)
+	}
+
+	k.matchWorkloadIDs[selIdx] = selPolId
+
+	return nil
+}
+
 func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
 	if len(actions) > 3 {
 		return fmt.Errorf("only %d actions are support for selector (current number of values is %d)", 3, len(actions))
@@ -1695,6 +1750,9 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, args.Args, args.Data); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
+		if err := ParseMatchWorkloads(k, selector.MatchWorkloads, selIdx); err != nil {
+			return fmt.Errorf("parseMatchWorkloads  error: %w", err)
+		}
 		if err := ParseMatchActions(k, selector.MatchActions, args.ActionArgTable); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
 		}
@@ -1732,6 +1790,19 @@ func CleanupKernelSelectorState(state *KernelSelectorState) error {
 			errs = errors.Join(errs, err)
 		}
 	}
+
+	s, err := policyfilter.GetState()
+	if err != nil {
+		errs = errors.Join(errs, err)
+		return errs
+	}
+
+	for _, polID := range state.MatchWorkloadIDs() {
+		if err := s.DelPolicy(polID); err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+
 	return errs
 }
 

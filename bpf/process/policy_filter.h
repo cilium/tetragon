@@ -93,4 +93,22 @@ FUNC_INLINE bool policy_filter_check(u32 policy_id)
 	return !map_lookup_elem(policy_map, &cgroupid);
 }
 
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, MAX_SELECTORS);
+	__type(key, __u32); /* selector id */
+	__type(value, __u32); /* policy_id */
+} workloads_map SEC(".maps");
+
+FUNC_INLINE int match_workloads(__u32 selector_id)
+{
+	__u32 *pol_id = 0;
+
+	pol_id = map_lookup_elem(&workloads_map, &selector_id);
+	if (!pol_id)
+		return 1; // no matchWorkload in this selector so match
+
+	return policy_filter_check(*pol_id);
+}
+
 #endif /* POLICY_FILTER_MAPS_H__ */
