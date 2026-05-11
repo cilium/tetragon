@@ -22,6 +22,8 @@ func ExecObj() string {
 		return "bpf_execve_event_v310.o"
 	} else if EnableV61Progs() {
 		return "bpf_execve_event_v61.o"
+	} else if EnableBpf2BpfProgs() {
+		return "bpf_execve_event_v511_bpf2bpf.o"
 	} else if EnableV511Progs() {
 		return "bpf_execve_event_v511.o"
 	} else if EnableLargeProgs() {
@@ -62,6 +64,8 @@ func GenericKprobeObjs(multi bool) (string, string) {
 	if multi {
 		if EnableV61Progs() {
 			return "bpf_multi_kprobe_v61.o", "bpf_multi_retkprobe_v61.o"
+		} else if EnableBpf2BpfProgs() {
+			return "bpf_multi_kprobe_v511_bpf2bpf.o", "bpf_multi_retkprobe_v511_bpf2bpf.o"
 		} else if EnableV511Progs() {
 			return "bpf_multi_kprobe_v511.o", "bpf_multi_retkprobe_v511.o"
 		}
@@ -69,6 +73,8 @@ func GenericKprobeObjs(multi bool) (string, string) {
 	}
 	if EnableV61Progs() {
 		return "bpf_generic_kprobe_v61.o", "bpf_generic_retkprobe_v61.o"
+	} else if EnableBpf2BpfProgs() {
+		return "bpf_generic_kprobe_v511_bpf2bpf.o", "bpf_generic_retkprobe_v511_bpf2bpf.o"
 	} else if EnableV511Progs() {
 		return "bpf_generic_kprobe_v511.o", "bpf_generic_retkprobe_v511.o"
 	} else if EnableLargeProgs() {
@@ -80,6 +86,8 @@ func GenericKprobeObjs(multi bool) (string, string) {
 func GenericTracingObjs() (string, string) {
 	if EnableV61Progs() {
 		return "bpf_generic_fentry_v61.o", "bpf_generic_fexit_v61.o"
+	} else if EnableBpf2BpfProgs() {
+		return "bpf_generic_fentry_v511_bpf2bpf.o", "bpf_generic_fexit_v511_bpf2bpf.o"
 	} else if kernels.MinKernelVersion("5.11") {
 		return "bpf_generic_fentry_v511.o", "bpf_generic_fexit_v511.o"
 	} else if EnableLargeProgs() {
@@ -93,11 +101,15 @@ func GenericUprobeObjs(multi bool) (string, string) {
 	if multi {
 		if EnableV61Progs() {
 			return "bpf_multi_uprobe_v61.o", "bpf_multi_retuprobe_v61.o"
+		} else if EnableBpf2BpfProgs() {
+			return "bpf_multi_uprobe_v511_bpf2bpf.o", "bpf_multi_retuprobe_v511_bpf2bpf.o"
 		}
 		return "bpf_multi_uprobe_v511.o", "bpf_multi_retuprobe_v511.o"
 	}
 	if EnableV61Progs() {
 		return "bpf_generic_uprobe_v61.o", "bpf_generic_retuprobe_v61.o"
+	} else if EnableBpf2BpfProgs() {
+		return "bpf_generic_uprobe_v511_bpf2bpf.o", "bpf_generic_retuprobe_v511_bpf2bpf.o"
 	} else if EnableV511Progs() {
 		return "bpf_generic_uprobe_v511.o", "bpf_generic_retuprobe_v511.o"
 	} else if EnableLargeProgs() {
@@ -110,11 +122,15 @@ func GenericUsdtObjs(multi bool) string {
 	if multi {
 		if EnableV61Progs() {
 			return "bpf_multi_usdt_v61.o"
+		} else if EnableBpf2BpfProgs() {
+			return "bpf_multi_usdt_v511_bpf2bpf.o"
 		}
 		return "bpf_multi_usdt_v511.o"
 	}
 	if EnableV61Progs() {
 		return "bpf_generic_usdt_v61.o"
+	} else if EnableBpf2BpfProgs() {
+		return "bpf_generic_usdt_v511_bpf2bpf.o"
 	} else if EnableV511Progs() {
 		return "bpf_generic_usdt_v511.o"
 	}
@@ -125,6 +141,8 @@ func GenericTracepointObjs(raw bool) string {
 	if raw {
 		if EnableV61Progs() {
 			return "bpf_generic_rawtp_v61.o"
+		} else if EnableBpf2BpfProgs() {
+			return "bpf_generic_rawtp_v511_bpf2bpf.o"
 		} else if EnableV511Progs() {
 			return "bpf_generic_rawtp_v511.o"
 		} else if EnableLargeProgs() {
@@ -134,6 +152,8 @@ func GenericTracepointObjs(raw bool) string {
 	}
 	if EnableV61Progs() {
 		return "bpf_generic_tracepoint_v61.o"
+	} else if EnableBpf2BpfProgs() {
+		return "bpf_generic_tracepoint_v511_bpf2bpf.o"
 	} else if EnableV511Progs() {
 		return "bpf_generic_tracepoint_v511.o"
 	} else if EnableLargeProgs() {
@@ -145,6 +165,8 @@ func GenericTracepointObjs(raw bool) string {
 func GenericLsmObjs() (string, string) {
 	if EnableV61Progs() {
 		return "bpf_generic_lsm_core_v61.o", "bpf_generic_lsm_output_v61.o"
+	} else if EnableBpf2BpfProgs() {
+		return "bpf_generic_lsm_core_v511_bpf2bpf.o", "bpf_generic_lsm_output_v511_bpf2bpf.o"
 	} else if EnableV511Progs() {
 		return "bpf_generic_lsm_core_v511.o", "bpf_generic_lsm_output_v511.o"
 	}
@@ -190,6 +212,13 @@ func EnableV511Progs() bool {
 	}
 	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) >= kernels.KernelStringToNumeric("5.11.0"))
+}
+
+func EnableBpf2BpfProgs() bool {
+	if !EnableV511Progs() {
+		return false
+	}
+	return bpf.DetectMixBpfAndTailCalls()
 }
 
 func EnableV61Progs() bool {

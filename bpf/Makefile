@@ -84,6 +84,24 @@ PROCESS += bpf_generic_kprobe_v511.o bpf_generic_retkprobe_v511.o \
 PROCESS += bpf_generic_lsm_core_v511.o bpf_generic_lsm_output_v511.o \
 	   bpf_generic_lsm_ima_file_v511.o bpf_generic_lsm_ima_bprm_v511.o
 
+# v5.11 with bpf-to-bpf calls
+# base sensor
+PROCESS += bpf_execve_event_v511_bpf2bpf.o
+# generic probes
+PROCESS += bpf_generic_kprobe_v511_bpf2bpf.o bpf_generic_retkprobe_v511_bpf2bpf.o \
+	   bpf_multi_kprobe_v511_bpf2bpf.o bpf_multi_retkprobe_v511_bpf2bpf.o \
+	   bpf_generic_tracepoint_v511_bpf2bpf.o \
+	   bpf_generic_uprobe_v511_bpf2bpf.o bpf_generic_retuprobe_v511_bpf2bpf.o \
+	   bpf_multi_uprobe_v511_bpf2bpf.o bpf_multi_retuprobe_v511_bpf2bpf.o \
+	   bpf_generic_rawtp_v511_bpf2bpf.o \
+	   bpf_generic_usdt_v511_bpf2bpf.o \
+	   bpf_multi_usdt_v511_bpf2bpf.o \
+	   bpf_generic_fentry_v511_bpf2bpf.o \
+	   bpf_generic_fexit_v511_bpf2bpf.o
+
+# lsm
+PROCESS += bpf_generic_lsm_core_v511_bpf2bpf.o bpf_generic_lsm_output_v511_bpf2bpf.o
+
 # v6.1
 # base sensor
 PROCESS += bpf_execve_event_v61.o
@@ -146,6 +164,7 @@ $(DEPSDIR):
 CFLAGS_v310 = -D__RHEL7_BPF_PROG
 CFLAGS_v53  = -D__LARGE_BPF_PROG
 CFLAGS_v511 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG
+CFLAGS_v511_bpf2bpf = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__BPF2BPF_PROG
 CFLAGS_v61  = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG
 
 # Define extra CFLAGS for objects
@@ -215,6 +234,7 @@ endef # DEFINE_VARIANT
 $(eval $(call DEFINE_VARIANT,v310))
 $(eval $(call DEFINE_VARIANT,v53))
 $(eval $(call DEFINE_VARIANT,v511))
+$(eval $(call DEFINE_VARIANT,v511_bpf2bpf))
 $(eval $(call DEFINE_VARIANT,v61))
 
 # Object build rule for non VARIANT objects
