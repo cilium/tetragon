@@ -505,7 +505,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// Initialize a k8s watcher used to manage policies. This should happen
 	// after the sensors are loaded, otherwise existing policies will fail to
 	// load on the first attempt.
-	if err := initK8sPolicyWatcher(ctx); err != nil {
+	if err := initK8sPolicyWatcher(); err != nil {
 		return err
 	}
 
