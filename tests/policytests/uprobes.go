@@ -8,6 +8,7 @@ package tests
 import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
+	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 )
@@ -219,5 +220,47 @@ spec:
 		Name:         "check both events occur",
 		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(0),
 		EventChecker: ec.NewUnorderedEventChecker(upArg2Checker, upArg1Checker),
+	}
+}).RegisterAtInit()
+
+var _ = policytest.NewBuilder("resolve-nested-anon-struct").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: {{ testBinary "resolve-nested-anon-struct" }}
+    BTFPath: {{ testBinary "resolve-nested-anon-struct.btf" }}
+    symbols:
+    - "passit"
+    args:
+    - index: 0
+      type: "int"
+      resolve: "nested.ans.second"
+      BTFType: "mystruct"
+    - index: 0
+      type: "int"
+      resolve: "pnested.pans.second"
+      BTFType: "mystruct"
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+		return "need 5.3 or newer kernel"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	myBin := c.TestBinary("resolve-nested-anon-struct")
+	checker := ec.NewProcessUprobeChecker("test-nested-anon-structs").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(myBin))).WithSymbol(sm.Full("passit")).WithArgs(ec.NewKprobeArgumentListMatcher().WithOperator(lc.Ordered).
+		WithValues(
+			ec.NewKprobeArgumentChecker().WithIntArg(7),
+			ec.NewKprobeArgumentChecker().WithIntArg(77),
+		))
+
+	return &policytest.Scenario{
+		Name:         "check both both args resolved correctly from nested anonymous structs",
+		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(checker),
 	}
 }).RegisterAtInit()
