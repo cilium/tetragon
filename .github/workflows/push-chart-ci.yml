@@ -1,0 +1,102 @@
+name: Chart CI Push
+
+on:
+  workflow_call:
+    inputs:
+      checkout_ref:
+        description: 'Git ref to build.'
+        type: string
+        required: true
+      image_tag:
+        description: 'Image tag to use for the images in the chart.'
+        type: string
+        required: true
+    secrets:
+      QUAY_CHARTS_DEV_USERNAME:
+        required: true
+      QUAY_CHARTS_DEV_PASSWORD:
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  # Do not use github.workflow here. Under workflow_call it resolves to the
+  # calling workflow and can collide with the caller's concurrency group.
+  group: chart-ci-push-${{ github.event_name }}-${{ inputs.checkout_ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup-chart:
+    name: Setup Chart
+    runs-on: ubuntu-24.04
+    outputs:
+      chart-version: ${{ steps.get-version.outputs.chart_version }}
+    steps:
+    - name: Checkout default branch
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        ref: ${{ github.event.repository.default_branch }}
+        persist-credentials: false
+
+    - name: Copy default branch chart version script
+      run: |
+        mkdir -p ../tetragon-default-branch/contrib/scripts
+        cp ./contrib/scripts/print-chart-version.sh ../tetragon-default-branch/contrib/scripts/
+
+    - name: Checkout source code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
+        ref: ${{ inputs.checkout_ref }}
+        fetch-depth: 0
+
+    - name: Get version
+      id: get-version
+      run: |
+        printf 'chart_version=%s\n' "$(../tetragon-default-branch/contrib/scripts/print-chart-version.sh)" | tee -a "$GITHUB_OUTPUT"
+
+  push-chart:
+    name: Push Chart
+    runs-on: ubuntu-24.04
+    needs: setup-chart
+    steps:
+    - name: Checkout source chart
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
+        ref: ${{ inputs.checkout_ref }}
+        sparse-checkout: install/kubernetes/tetragon
+
+    - name: Push chart
+      uses: cilium/reusable-workflows/.github/actions/push-helm-chart@6ae27958f2f37545bf48e44106b73df05b1f6d12 # v0.1.0
+      with:
+        name: tetragon
+        path: install/kubernetes/tetragon
+        version: ${{ needs.setup-chart.outputs.chart-version }}
+        values_file_changes: |
+          {
+            "tetragon.image.repository": "quay.io/cilium/tetragon-ci",
+            "tetragon.image.tag": "${{ inputs.image_tag }}",
+            "tetragonOperator.image.repository": "quay.io/cilium/tetragon-operator-ci",
+            "tetragonOperator.image.tag": "${{ inputs.image_tag }}"
+          }
+        registry: quay.io
+        registry_namespace: cilium-charts-dev
+        registry_username: ${{ secrets.QUAY_CHARTS_DEV_USERNAME }}
+        registry_password: ${{ secrets.QUAY_CHARTS_DEV_PASSWORD }}
+
+  post-push:
+    name: Post-push Steps
+    runs-on: ubuntu-24.04
+    needs:
+    - setup-chart
+    - push-chart
+    steps:
+    - name: Print helm command
+      env:
+        CHART_VERSION: ${{ needs.setup-chart.outputs.chart-version }}
+      run: |
+        echo "Example commands:"
+        echo helm template -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version "$CHART_VERSION"
+        echo helm upgrade --install tetragon -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version "$CHART_VERSION"
