@@ -741,6 +741,81 @@ It is also possible to resolve arrays (`int arr[100]`) and dynamic arrays
   type: uint32
 ```
 
+#### Initial BTF type
+
+By default, Tetragon starts `resolve` from the BTF type of the hook argument.
+For kprobes, tracepoints, and LSM hooks, this type comes from the kernel BTF
+prototype. For uprobes and USDT probes, it comes from the BTF file configured
+with `btfPath`.
+
+Use `btfType` when the hook argument type is too generic, or when you need to
+cast the argument to a more specific structure before resolving fields. The
+`btfType` value is the BTF struct name without the `struct` prefix.
+
+The following example resolves fields from the `struct sockaddr_in` view of the
+second `security_socket_connect` argument:
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "socket-connect-address"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    syscall: false
+    args:
+    - index: 1
+      type: "uint16"
+      label: "sockaddr_in.sin_port"
+      btfType: "sockaddr_in"
+      resolve: "sin_port"
+    - index: 1
+      type: "uint32"
+      label: "sockaddr_in.sin_addr.s_addr"
+      btfType: "sockaddr_in"
+      resolve: "sin_addr.s_addr"
+```
+
+#### Kernel module BTF types
+
+For kprobe arguments, use `btfTypeModule` with `btfType` when the structure is
+defined by a kernel module instead of the main kernel BTF. The module name
+should be the kernel module name, without a `.ko` suffix.
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "af-alg-bind"
+spec:
+  kprobes:
+  - call: "security_socket_bind"
+    syscall: false
+    args:
+    - index: 1
+      type: "uint16"
+      label: "sockaddr_alg.salg_family"
+      btfType: "sockaddr_alg_new"
+      btfTypeModule: "af_alg"
+      resolve: "salg_family"
+    - index: 1
+      type: "string"
+      label: "sockaddr_alg.salg_name"
+      btfType: "sockaddr_alg_new"
+      btfTypeModule: "af_alg"
+      resolve: "salg_name"
+```
+
+{{< caution >}}
+When `btfTypeModule` is set, Tetragon first tries to read module BTF exposed by
+the kernel in `/sys/kernel/btf/<module>`. If that is not available, Tetragon
+fails to load the policy.
+{{< /caution >}}
+
+If `btfTypeModule` is omitted, Tetragon searches the main kernel BTF first. For
+hooks that belong to a loaded module, Tetragon also tries that hook's module BTF.
+
 ## Data
 
 Kprobes allow definition of `data` fields and following `matchData` selector
