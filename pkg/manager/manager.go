@@ -33,7 +33,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
-	"github.com/cilium/tetragon/pkg/podhooks"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/watcher"
 )
@@ -395,7 +394,6 @@ func (cm *ControllerManager) addPodInformer() error {
 	if err != nil {
 		return nil
 	}
-	podhooks.InstallHooks(cm.podInformer)
 	return nil
 }
 
