@@ -116,6 +116,29 @@ func (cm *ControllerManager) Start(ctx context.Context) {
 	})
 }
 
+// RegisterControllerWhenCRDReady schedules `setup` to run as soon as the named
+// CRD becomes available in the cluster. The wait happens inside a Runnable
+// added to the manager, so it works whether `mgr.Start()` has already been
+// called or not — controller-runtime starts late-added Runnables immediately
+// when the manager is already running.
+//
+// Use this for Reconcilers whose CRD may not be installed at agent startup, so
+// they can be registered without spamming the API server with NotFound errors.
+//
+// `setup` is typically a closure that builds and registers a controller via
+// `ctrl.NewControllerManagedBy(mgr).For(...).Complete(r)`.
+func (cm *ControllerManager) RegisterControllerWhenCRDReady(crdName string, setup func(ctrlManager.Manager) error) error {
+	return cm.Manager.Add(ctrlManager.RunnableFunc(func(ctx context.Context) error {
+		if err := cm.WaitCRDs(ctx, map[string]struct{}{crdName: {}}); err != nil {
+			return fmt.Errorf("waiting for CRD %q: %w", crdName, err)
+		}
+		if err := setup(cm.Manager); err != nil {
+			return fmt.Errorf("registering controller for CRD %q: %w", crdName, err)
+		}
+		return nil
+	}))
+}
+
 func (cm *ControllerManager) GetNamespace(name string) (*corev1.Namespace, error) {
 	ns := corev1.Namespace{}
 	if err := cm.Manager.GetCache().Get(context.Background(), types.NamespacedName{Name: name}, &ns); err != nil {

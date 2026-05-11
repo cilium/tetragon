@@ -28,10 +28,9 @@ func initK8s(ctx context.Context) (watcher.PodAccessor, error) {
 		controllerManager := manager.Get()
 		controllerManager.Start(ctx)
 		crds := make(map[string]struct{})
-		if option.Config.EnableTracingPolicyCRD {
-			crds[v1alpha1.TPName] = struct{}{}
-			crds[v1alpha1.TPNamespacedName] = struct{}{}
-		}
+		// Both TracingPolicy CRDs are gated independently inside their
+		// respective Reconciler-registration helpers, so neither appears
+		// here. Only PodInfo still uses the upfront WaitCRDs gate.
 		if option.Config.EnablePodInfo {
 			crds[v1alpha1.PIName] = struct{}{}
 		}
@@ -60,13 +59,18 @@ func initK8s(ctx context.Context) (watcher.PodAccessor, error) {
 	return podAccessor, nil
 }
 
-func initK8sPolicyWatcher(ctx context.Context) error {
+func initK8sPolicyWatcher(_ context.Context) error {
 	if option.K8SControlPlaneEnabled() && option.Config.EnableTracingPolicyCRD {
-		// add informers for all resources
-		log.Info("Enabling policy informers")
+		log.Info("Enabling policy reconcilers")
 		controllerManager := manager.Get()
-		err := crdwatcher.AddTracingPolicyInformer(ctx, controllerManager, observer.GetSensorManager())
-		if err != nil {
+		sensorManager := observer.GetSensorManager()
+		// Cluster-scoped TracingPolicy: gated on its own CRD.
+		if err := crdwatcher.RegisterTracingPolicyReconciler(controllerManager, sensorManager); err != nil {
+			return err
+		}
+		// Namespaced TracingPolicy: gated independently on its own CRD, so
+		// the cluster-scoped Reconciler still works if this CRD is absent.
+		if err := crdwatcher.RegisterTracingPolicyNamespacedReconciler(controllerManager, sensorManager); err != nil {
 			return err
 		}
 	}
