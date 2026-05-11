@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/cilium/tetragon/pkg/watcher/crdwatcher"
@@ -53,6 +54,13 @@ func initK8s(ctx context.Context) (watcher.PodAccessor, error) {
 				}
 				if err := EnableCgIDmap(podEvents); err != nil {
 					return nil, err
+				}
+				if option.Config.EnablePolicyFilter {
+					if pfState, pfErr := policyfilter.GetState(); pfErr == nil {
+						pfState.RegisterPodHandlers(podEvents)
+					} else {
+						log.Warn("failed to get policyfilter state", logfields.Error, pfErr)
+					}
 				}
 			}
 			k8sNode, err := controllerManager.GetNode()
