@@ -43,7 +43,8 @@ PROGS = sigkill-tester \
 	uprobe-simple \
 	pclntab-unstripped \
 	pclntab-stripped \
-	null-mount
+	null-mount \
+	resolve-nested-anon-struct
 
 LIBS =	libuprobe.so \
 	libtester.so
@@ -129,6 +130,13 @@ uprobe-resolve: uprobe-resolve.c tester-lib.h libtester.so
 	rm $@.btf.tmp
 
 uprobe-null: uprobe-null.c
+	$(GCC) -ggdb3 -O2 -Wall $< -o $@
+	pahole -J $@
+	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@
+	llvm-objcopy -I binary -O elf64-x86-64 --rename-section .data=.BTF $@.btf.tmp $@.btf
+	rm $@.btf.tmp
+
+resolve-nested-anon-struct: resolve-nested-anon-struct.c
 	$(GCC) -ggdb3 -O2 -Wall $< -o $@
 	pahole -J $@
 	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@
