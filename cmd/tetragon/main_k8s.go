@@ -42,11 +42,17 @@ func initK8s(ctx context.Context) (watcher.PodAccessor, error) {
 				}
 			}
 			podAccessor = controllerManager
-			// Wire pod-event consumers that need typed pod callbacks. The
-			// metrics consumer is delete-only — see RegisterPodDeleteHandler.
-			if option.Config.MetricsServer != "" {
-				if podEvents := controllerManager.PodEvents(); podEvents != nil {
+			// Wire pod-event consumers that need typed pod callbacks. Each
+			// consumer is conditional on its own enablement flag, so
+			// disabled features do not register no-op hooks. cgidmap's
+			// wiring lives in main_k8s_unix.go because the package is
+			// excluded from Windows builds.
+			if podEvents := controllerManager.PodEvents(); podEvents != nil {
+				if option.Config.MetricsServer != "" {
 					metrics.RegisterPodDeleteHandler(podEvents)
+				}
+				if err := EnableCgIDmap(podEvents); err != nil {
+					return nil, err
 				}
 			}
 			k8sNode, err := controllerManager.GetNode()
