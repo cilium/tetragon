@@ -11,11 +11,11 @@ import (
 	"github.com/cilium/tetragon/pkg/watcher"
 )
 
-func initK8s(ctx context.Context) (watcher.PodAccessor, error) {
+func initK8s(_ context.Context) (watcher.PodAccessor, error) {
 	return nil, nil
 }
 
-func initK8sPolicyWatcher(ctx context.Context) error {
+func initK8sPolicyWatcher() error {
 	return nil
 }
 
