@@ -42,6 +42,13 @@ func initK8s(ctx context.Context) (watcher.PodAccessor, error) {
 				}
 			}
 			podAccessor = controllerManager
+			// Wire pod-event consumers that need typed pod callbacks. The
+			// metrics consumer is delete-only — see RegisterPodDeleteHandler.
+			if option.Config.MetricsServer != "" {
+				if podEvents := controllerManager.PodEvents(); podEvents != nil {
+					metrics.RegisterPodDeleteHandler(podEvents)
+				}
+			}
 			k8sNode, err := controllerManager.GetNode()
 			if err != nil {
 				log.Warn("Failed to get local Kubernetes node info. node_labels field will be empty", logfields.Error, err)
@@ -80,6 +87,4 @@ func initK8sPolicyWatcher(_ context.Context) error {
 
 func initK8sMetrics() {
 	go metrics.StartPodDeleteHandler()
-	// Handler must be registered before the watcher is started
-	metrics.RegisterPodDeleteHandler()
 }
