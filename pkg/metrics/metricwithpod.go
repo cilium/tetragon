@@ -11,12 +11,18 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/podhooks"
 )
+
+// PodEventSource is the narrow capability metrics needs from the pod informer:
+// a delete callback delivered with a typed `*corev1.Pod`. Defined here, where
+// it is consumed, so the metrics package does not depend on `pkg/manager`.
+// The concrete adapter lives in `pkg/manager` and satisfies this interface.
+type PodEventSource interface {
+	OnPodDelete(handler func(pod *corev1.Pod))
+}
 
 var (
 	metricsWithPod      []*prometheus.MetricVec
@@ -26,38 +32,18 @@ var (
 	deleteDelay         = 1 * time.Minute
 )
 
-// RegisterPodDeleteHandler registers handler for deleting metrics associated
+// RegisterPodDeleteHandler registers a handler for deleting metrics associated
 // with deleted pods. Without it, Tetragon kept exposing stale metrics for
 // deleted pods. This was causing continuous increase in memory usage in
 // Tetragon agent as well as in the metrics scraper.
-func RegisterPodDeleteHandler() {
+//
+// `events` is the typed pod event source provided by `pkg/manager`. Tests can
+// pass a hand-rolled fake satisfying the same interface.
+func RegisterPodDeleteHandler(events PodEventSource) {
 	logger.GetLogger().Info("Registering pod delete handler for metrics")
-	podhooks.RegisterCallbacksAtInit(podhooks.Callbacks{
-		PodCallbacks: func(podInformer cache.SharedIndexInformer) {
-			podInformer.AddEventHandler(
-				cache.ResourceEventHandlerFuncs{
-					DeleteFunc: func(obj any) {
-						var pod *corev1.Pod
-						switch concreteObj := obj.(type) {
-						case *corev1.Pod:
-							pod = concreteObj
-						case cache.DeletedFinalStateUnknown:
-							// Handle the case when the watcher missed the deletion event
-							// (e.g. due to a lost apiserver connection).
-							deletedObj, ok := concreteObj.Obj.(*corev1.Pod)
-							if !ok {
-								return
-							}
-							pod = deletedObj
-						default:
-							return
-						}
-						queue := GetPodQueue()
-						queue.AddAfter(pod, deleteDelay)
-					},
-				},
-			)
-		},
+	events.OnPodDelete(func(pod *corev1.Pod) {
+		queue := GetPodQueue()
+		queue.AddAfter(pod, deleteDelay)
 	})
 }
 
