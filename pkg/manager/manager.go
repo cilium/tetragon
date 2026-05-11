@@ -33,6 +33,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/manager/events"
 	"github.com/cilium/tetragon/pkg/podhooks"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/watcher"
@@ -51,6 +52,7 @@ type ControllerManager struct {
 	Manager         ctrlManager.Manager
 	deletedPodCache *watcher.DeletedPodCache
 	podInformer     cache.SharedIndexInformer
+	podEvents       events.PodEventSource
 }
 
 func Get() *ControllerManager {
@@ -376,6 +378,7 @@ func (cm *ControllerManager) addPodInformer() error {
 		return err
 	}
 	cm.podInformer = podInformer.(cache.SharedIndexInformer)
+	cm.podEvents = newPodEventAdapter(cm.podInformer)
 	err = cm.podInformer.AddIndexers(cache.Indexers{
 		watcher.ContainerIdx: watcher.ContainerIndexFunc,
 		watcher.PodIdx:       watcher.PodIndexFunc,
@@ -390,6 +393,14 @@ func (cm *ControllerManager) addPodInformer() error {
 	}
 	podhooks.InstallHooks(cm.podInformer)
 	return nil
+}
+
+// PodEvents returns a typed events.PodEventSource backed by the pod informer.
+// Returns nil if the manager was constructed without a pod informer (e.g.,
+// out-of-cluster mode where pod watching is disabled). The adapter is created
+// once when the informer is added, so all consumers share the same instance.
+func (cm *ControllerManager) PodEvents() events.PodEventSource {
+	return cm.podEvents
 }
 
 func (cm *ControllerManager) FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
