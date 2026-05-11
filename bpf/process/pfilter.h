@@ -413,7 +413,7 @@ struct nc_filter {
  */
 #define NUM_NS_FILTERS_SMALL 4
 
-FUNC_INLINE int
+FUNC_LOCAL int
 selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 			struct msg_generic_kprobe *msg)
 {

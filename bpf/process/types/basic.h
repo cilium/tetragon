@@ -379,7 +379,7 @@ FUNC_INLINE long copy_strings(char *args, char *arg, int max_size)
 	return size + 4;
 }
 
-FUNC_INLINE long copy_skb(char *args, unsigned long arg)
+FUNC_LOCAL long copy_skb(char *args, unsigned long arg)
 {
 	struct sk_buff *skb = (struct sk_buff *)arg;
 	struct skb_type *skb_event = (struct skb_type *)args;
@@ -396,7 +396,7 @@ FUNC_INLINE long copy_skb(char *args, unsigned long arg)
 	return sizeof(struct skb_type);
 }
 
-FUNC_INLINE long copy_sock(char *args, unsigned long arg)
+FUNC_LOCAL long copy_sock(char *args, unsigned long arg)
 {
 	struct sock *sk = (struct sock *)arg;
 	struct sk_type *sk_event = (struct sk_type *)args;
@@ -406,7 +406,7 @@ FUNC_INLINE long copy_sock(char *args, unsigned long arg)
 	return sizeof(struct sk_type);
 }
 
-FUNC_INLINE long copy_sockaddr(char *args, unsigned long arg)
+FUNC_LOCAL long copy_sockaddr(char *args, unsigned long arg)
 {
 	struct sockaddr_in_type *sockaddr_event = (struct sockaddr_in_type *)args;
 	struct sockaddr *address = (struct sockaddr *)arg;
@@ -417,7 +417,7 @@ FUNC_INLINE long copy_sockaddr(char *args, unsigned long arg)
 }
 
 #if defined(__V511_BPF_PROG)
-FUNC_INLINE long copy_sockaddr_un(char *args, unsigned long arg)
+FUNC_LOCAL long copy_sockaddr_un(char *args, unsigned long arg)
 {
 	struct sockaddr_un_type *sockaddr_un_event = (struct sockaddr_un_type *)args;
 	struct sockaddr *address = (struct sockaddr *)arg;
@@ -428,7 +428,7 @@ FUNC_INLINE long copy_sockaddr_un(char *args, unsigned long arg)
 }
 #endif
 
-FUNC_INLINE long copy_socket(char *args, unsigned long arg)
+FUNC_LOCAL long copy_socket(char *args, unsigned long arg)
 {
 	struct socket *sock = (struct socket *)arg;
 	struct sk_type *sk_event = (struct sk_type *)args;
@@ -438,7 +438,7 @@ FUNC_INLINE long copy_socket(char *args, unsigned long arg)
 	return sizeof(struct sk_type);
 }
 
-FUNC_INLINE long copy_user_ns(char *args, unsigned long arg)
+FUNC_LOCAL long copy_user_ns(char *args, unsigned long arg)
 {
 	struct user_namespace *ns = (struct user_namespace *)arg;
 	struct msg_user_namespace *u_ns_info =
@@ -452,7 +452,7 @@ FUNC_INLINE long copy_user_ns(char *args, unsigned long arg)
 	return sizeof(struct msg_user_namespace);
 }
 
-FUNC_INLINE long copy_cred(char *args, unsigned long arg)
+FUNC_LOCAL long copy_cred(char *args, unsigned long arg)
 {
 	struct user_namespace *ns;
 	struct cred *cred = (struct cred *)arg;
@@ -490,7 +490,7 @@ FUNC_INLINE long copy_capability(char *args, unsigned long arg)
 	return sizeof(struct capability_info_type);
 }
 
-FUNC_INLINE long copy_load_module(char *args, unsigned long arg)
+FUNC_LOCAL long copy_load_module(char *args, unsigned long arg)
 {
 	int ok;
 	const char *name;
@@ -521,7 +521,7 @@ FUNC_INLINE long copy_load_module(char *args, unsigned long arg)
 	return sizeof(struct tg_kernel_module);
 }
 
-FUNC_INLINE long copy_kernel_module(char *args, unsigned long arg)
+FUNC_LOCAL long copy_kernel_module(char *args, unsigned long arg)
 {
 	const struct module *mod = (struct module *)arg;
 	struct tg_kernel_module *info = (struct tg_kernel_module *)args;
@@ -1214,7 +1214,7 @@ filter_sockaddr_un(struct selector_arg_filter *filter, char *args)
 }
 #endif
 
-FUNC_INLINE long
+FUNC_LOCAL long
 __copy_char_iovec(long off, unsigned long arg, unsigned long cnt,
 		  unsigned long max, struct msg_generic_kprobe *e)
 {
@@ -1234,7 +1234,7 @@ __copy_char_iovec(long off, unsigned long arg, unsigned long cnt,
 	return size + 8;
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 		struct msg_generic_kprobe *e)
 {
@@ -1252,7 +1252,7 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 	return __copy_char_iovec(off, arg, meta, 0, e);
 }
 
-FUNC_INLINE long copy_bpf_attr(char *args, unsigned long arg)
+FUNC_LOCAL long copy_bpf_attr(char *args, unsigned long arg)
 {
 	union bpf_attr *ba = (union bpf_attr *)arg;
 	struct bpf_info_type *bpf_info = (struct bpf_info_type *)args;
@@ -1265,7 +1265,7 @@ FUNC_INLINE long copy_bpf_attr(char *args, unsigned long arg)
 	return sizeof(struct bpf_info_type);
 }
 
-FUNC_INLINE long copy_bpf_prog(char *args, unsigned long arg)
+FUNC_LOCAL long copy_bpf_prog(char *args, unsigned long arg)
 {
 	struct bpf_prog *ba = (struct bpf_prog *)arg;
 	struct bpf_info_type *bpf_info = (struct bpf_info_type *)args;
@@ -1278,7 +1278,7 @@ FUNC_INLINE long copy_bpf_prog(char *args, unsigned long arg)
 	return sizeof(struct bpf_info_type);
 }
 
-FUNC_INLINE long copy_perf_event(char *args, unsigned long arg)
+FUNC_LOCAL long copy_perf_event(char *args, unsigned long arg)
 {
 	struct perf_event *p_event = (struct perf_event *)arg;
 	struct perf_event_info_type *event_info =
@@ -1301,7 +1301,7 @@ FUNC_INLINE long copy_perf_event(char *args, unsigned long arg)
 	return sizeof(struct perf_event_info_type);
 }
 
-FUNC_INLINE long copy_bpf_map(char *args, unsigned long arg)
+FUNC_LOCAL long copy_bpf_map(char *args, unsigned long arg)
 {
 	struct bpf_map *bpfmap = (struct bpf_map *)arg;
 	struct bpf_map_info_type *map_info = (struct bpf_map_info_type *)args;
@@ -1964,7 +1964,7 @@ struct {
 		});
 } tg_mb_paths SEC(".maps");
 
-FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, struct binary *bin)
+FUNC_LOCAL int match_binaries(__u32 key, struct execve_map_value *current, struct binary *bin)
 {
 	bool match = 0;
 	void *path_map;

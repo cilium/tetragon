@@ -116,7 +116,7 @@ __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 	return rd_bytes + extra;
 }
 
-FUNC_INLINE long
+FUNC_LOCAL long
 copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	      struct msg_generic_kprobe *e)
 {
@@ -136,7 +136,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 }
 
 #ifdef __LARGE_BPF_PROG
-FUNC_INLINE long
+FUNC_LOCAL long
 copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_generic_kprobe *e)
 {
 	long iter_iovec = -1, iter_ubuf __maybe_unused = -1;
@@ -1329,7 +1329,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 //    current->ktime
 // for the memory located at index 0 of @msg_heap assuming the value follows the
 // msg_generic_hdr structure.
-FUNC_INLINE int generic_process_filter(void)
+FUNC_LOCAL int generic_process_filter(void)
 {
 	int selectors, pass, zero = 0;
 	struct execve_map_value *enter;

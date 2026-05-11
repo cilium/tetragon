@@ -49,7 +49,7 @@ struct {
 	__type(value, struct msg_data);
 } data_heap SEC(".maps");
 
-FUNC_INLINE __u32
+FUNC_LOCAL __u32
 read_args(void *ctx, struct msg_execve_event *event)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
@@ -128,7 +128,7 @@ read_args(void *ctx, struct msg_execve_event *event)
 #ifdef __LARGE_BPF_PROG
 volatile const __u8 ENV_VARS_ENABLED;
 
-FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
+FUNC_LOCAL __u32 read_envs(void *ctx, struct msg_execve_event *event)
 {
 	struct msg_process *p = &event->process;
 	struct mm_struct *mm = NULL;
@@ -184,13 +184,13 @@ FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
 	return size;
 }
 #else
-FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
+FUNC_LOCAL __u32 read_envs(void *ctx, struct msg_execve_event *event)
 {
 	return 0;
 }
 #endif
 
-FUNC_INLINE __u32
+FUNC_LOCAL __u32
 read_path(void *ctx, struct msg_execve_event *event, void *filename)
 {
 	struct msg_process *p = &event->process;
@@ -222,7 +222,7 @@ read_path(void *ctx, struct msg_execve_event *event, void *filename)
 	return size;
 }
 
-FUNC_INLINE __u32
+FUNC_LOCAL __u32
 read_cwd(void *ctx, struct msg_process *p)
 {
 	if (p->flags & EVENT_ERROR_CWD)
@@ -230,7 +230,7 @@ read_cwd(void *ctx, struct msg_process *p)
 	return getcwd(p, p->size, p->pid);
 }
 
-FUNC_INLINE void
+FUNC_LOCAL void
 read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 {
 	struct execve_info *info;

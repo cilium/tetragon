@@ -701,7 +701,7 @@ event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
  * one remaining thread at its exit path.
  */
 #ifdef __LARGE_BPF_PROG
-FUNC_INLINE __u32
+FUNC_LOCAL __u32
 read_exe(struct task_struct *task, struct heap_exe *exe)
 {
 	struct file *file = BPF_CORE_READ(task, mm, exe_file);

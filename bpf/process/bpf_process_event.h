@@ -141,7 +141,7 @@ get_current_subj_caps(struct msg_capabilities *msg, struct task_struct *task)
 	__get_caps(msg, cred);
 }
 
-FUNC_INLINE void
+FUNC_LOCAL void
 get_current_subj_creds(struct msg_cred *info, struct task_struct *task)
 {
 	const struct cred *cred;
@@ -163,7 +163,7 @@ get_current_subj_creds(struct msg_cred *info, struct task_struct *task)
 	__get_caps(&info->caps, cred);
 }
 
-FUNC_INLINE void
+FUNC_LOCAL void
 get_namespaces(struct msg_ns *msg, struct task_struct *task)
 {
 	struct nsproxy *nsproxy;
@@ -297,7 +297,7 @@ __event_get_current_cgroup_name(struct cgroup *cgrp, struct msg_k8s *kube)
  * collects cgroup information from current task. This allows to operate on
  * different machines and workflows.
  */
-FUNC_INLINE __u32
+FUNC_LOCAL __u32
 __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 {
 	__u64 cgrpfs_magic = 0;
