@@ -4,8 +4,12 @@
 package program
 
 import (
+	"crypto"
+	"debug/elf"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,6 +27,45 @@ import (
 )
 
 type uprobeAttachFunc func(*Program, *ebpf.Program, *ebpf.ProgramSpec, string, ...string) (unloader.Unloader, error)
+
+// extractBuildID extracts the GNU build ID from an ELF binary.
+// Returns the build ID as a hex string, or an error if not found.
+func extractBuildID(file *os.File) (string, error) {
+	// Seek to the beginning to read the ELF header
+	if _, err := file.Seek(0, 0); err != nil {
+		return "", fmt.Errorf("failed to seek file: %w", err)
+	}
+
+	elfFile, err := elf.NewFile(file)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse ELF file: %w", err)
+	}
+
+	// Look for the .note.gnu.build-id section
+	section := elfFile.Section(".note.gnu.build-id")
+	if section == nil {
+		return "", errors.New("no .note.gnu.build-id section found in binary")
+	}
+
+	data, err := section.Data()
+	if err != nil {
+		return "", fmt.Errorf("failed to read .note.gnu.build-id section: %w", err)
+	}
+
+	// The .note.gnu.build-id section has the format:
+	// - 4 bytes: name size (always 4 for "GNU\0")
+	// - 4 bytes: description size (build ID length)
+	// - 4 bytes: note type (3 for NT_GNU_BUILD_ID)
+	// - 4 bytes: "GNU\0"
+	// - N bytes: build ID data
+	if len(data) < 16 {
+		return "", errors.New("invalid .note.gnu.build-id section: too small")
+	}
+
+	// Skip the header (16 bytes) and extract the build ID
+	buildID := data[16:]
+	return hex.EncodeToString(buildID), nil
+}
 
 func LinkPin(lnk link.Link, bpfDir string, load *Program, extra ...string) error {
 	// pinned link is not supported
@@ -306,6 +349,74 @@ func UprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
+// verifyFileDigest verifies that an open file's digest matches the configured digest.
+// digestConfig format is "<algo>:<hash>" (e.g., "sha256:abc123..." or "build-id:deadbeef...")
+func verifyFileDigest(file *os.File, digestConfig string, fileHashCache map[string]string) error {
+	if digestConfig == "" {
+		return nil
+	}
+
+	parts := strings.SplitN(digestConfig, ":", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digestConfig)
+	}
+
+	algo := strings.ToLower(parts[0])
+	expectedHash := strings.ToLower(parts[1])
+
+	if hash, ok := fileHashCache[algo]; ok {
+		if hash != expectedHash {
+			return fmt.Errorf("digest mismatch: expected %s:%s but got %s:%s", algo, expectedHash, algo, hash)
+		}
+		logger.GetLogger().Debug(fmt.Sprintf("Digest verified: %s:%s (cached)", algo, hash))
+		return nil
+	}
+
+	var calculatedHash string
+
+	if algo == "build-id" {
+		buildID, err := extractBuildID(file)
+		if err != nil {
+			return fmt.Errorf("failed to extract build ID: %w", err)
+		}
+		calculatedHash = buildID
+	} else {
+		var hashType crypto.Hash
+		switch algo {
+		case "sha256":
+			hashType = crypto.SHA256
+		case "sha384":
+			hashType = crypto.SHA384
+		case "sha512":
+			hashType = crypto.SHA512
+		case "sha1":
+			hashType = crypto.SHA1
+		default:
+			return fmt.Errorf("unsupported digest algorithm '%s'", algo)
+		}
+
+		if _, err := file.Seek(0, 0); err != nil {
+			return fmt.Errorf("failed to seek file: %w", err)
+		}
+
+		h := hashType.New()
+		if _, err := io.Copy(h, file); err != nil {
+			return fmt.Errorf("failed to calculate digest: %w", err)
+		}
+
+		calculatedHash = hex.EncodeToString(h.Sum(nil))
+	}
+
+	fileHashCache[algo] = calculatedHash
+
+	if calculatedHash != expectedHash {
+		return fmt.Errorf("digest mismatch: expected %s:%s but got %s:%s", algo, expectedHash, algo, calculatedHash)
+	}
+
+	logger.GetLogger().Debug(fmt.Sprintf("Digest verified: %s:%s", algo, calculatedHash))
+	return nil
+}
+
 func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	bpfDir string, extra ...string) (unloader.Unloader, error) {
 
@@ -321,6 +432,20 @@ func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpe
 		f, err := os.Open(data.Path)
 		if err != nil {
 			return nil, fmt.Errorf("open executable %s: %w", data.Path, err)
+		}
+		if len(data.Digests) > 0 {
+			digestCache := make(map[string]string)
+			matchFound := false
+			for _, digest := range data.Digests {
+				if err := verifyFileDigest(f, digest, digestCache); err == nil {
+					matchFound = true
+					break
+				}
+			}
+			if !matchFound {
+				f.Close()
+				return nil, errors.New("digest verification failed: no matching digest")
+			}
 		}
 		fdPath := fmt.Sprintf("/proc/self/fd/%d", f.Fd())
 		exec, err := link.OpenExecutable(fdPath)
@@ -390,6 +515,22 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 			if err != nil {
 				return nil, fmt.Errorf("open executable %s: %w", path, err)
 			}
+
+			if len(data.Digests[path]) > 0 {
+				digestCache := make(map[string]string)
+				matchFound := false
+				for _, digest := range data.Digests[path] {
+					if err := verifyFileDigest(f, digest, digestCache); err == nil {
+						matchFound = true
+						break
+					}
+				}
+				if !matchFound {
+					f.Close()
+					return nil, errors.New("digest verification failed: no matching digest")
+				}
+			}
+
 			fdPath := fmt.Sprintf("/proc/self/fd/%d", f.Fd())
 			exec, err := link.OpenExecutable(fdPath)
 			if err != nil {
