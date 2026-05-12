@@ -246,7 +246,8 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 	// a lot of code changes in a lot of a files.
 	metricsEnableOnce.Do(func() {
 		go metricsconfig.EnableMetrics(metricsAddr)
-		metricsconfig.InitAllMetrics(metricsconfig.GetRegistry())
+		metricsconfig.InitHealthMetrics(metricsconfig.GetRegistry())
+		metricsconfig.InitEventsMetrics(metricsconfig.GetRegistry())
 	})
 
 	tb.Cleanup(func() {

@@ -30,7 +30,7 @@ func InitResourcesMetricsForDocs(registry *prometheus.Registry) {
 	initResourcesMetrics(registry)
 }
 
-func initAllEventsMetrics(registry *prometheus.Registry) {
+func InitEventsMetrics(registry *prometheus.Registry) {
 	eventmetrics.InitEventsMetrics(registry)
 	syscallmetrics.InitMetrics(registry)
 }
@@ -40,9 +40,8 @@ func InitEventsMetricsForDocs(registry *prometheus.Registry) {
 	syscallmetrics.InitMetricsForDocs(registry)
 }
 
-func InitAllMetrics(registry *prometheus.Registry) {
+func InitHealthMetrics(registry *prometheus.Registry) {
 	healthMetrics := EnableHealthMetrics(registry)
 	healthMetrics.Init()
 	initAllResourcesMetrics(registry)
-	initAllEventsMetrics(registry)
 }
