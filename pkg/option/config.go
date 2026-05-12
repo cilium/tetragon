@@ -70,6 +70,7 @@ type config struct {
 	ProcessCacheGCInterval time.Duration
 
 	MetricsServer      string
+	EnableEventMetrics bool
 	MetricsLabelFilter metrics.LabelFilter
 	ServerAddress      string
 	TracingPolicy      string
