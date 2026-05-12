@@ -390,7 +390,11 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 
 	if option.Config.MetricsServer != "" {
 		go metricsconfig.EnableMetrics(option.Config.MetricsServer)
-		metricsconfig.InitAllMetrics(metricsconfig.GetRegistry())
+
+		reg := metricsconfig.GetRegistry()
+		metricsconfig.InitHealthMetrics(reg)
+		metricsconfig.InitEventsMetrics(reg)
+
 		initK8sMetrics()
 	}
 

@@ -28,7 +28,8 @@ var sampleMsgGenericTracepointUnix = tracing.MsgGenericTracepointUnix{
 
 func TestPodDelete(t *testing.T) {
 	reg := metricsconfig.GetRegistry()
-	metricsconfig.InitAllMetrics(reg)
+	metricsconfig.InitHealthMetrics(reg)
+	metricsconfig.InitEventsMetrics(reg)
 
 	// Process four events, each one with different combination of pod/namespace.
 	// These events should be counted by multiple metrics with a "pod" label:
