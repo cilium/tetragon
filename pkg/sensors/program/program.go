@@ -101,6 +101,7 @@ type UprobeAttachData struct {
 	RefCtrOffset  uint64
 	AddressOffset *uint64
 	AddressType   AddressType
+	BinaryDigests []string
 }
 
 type MultiUprobeAttachSymbolsCookies struct {
@@ -116,6 +117,8 @@ type MultiUprobeAttachSymbolsCookies struct {
 type MultiUprobeAttachData struct {
 	// Path -> []{Symbol,Cookie}
 	Attach map[string]*MultiUprobeAttachSymbolsCookies
+	// Path -> BinaryDigests
+	BinaryDigests map[string][]string
 }
 
 // Program reprents a BPF program.
