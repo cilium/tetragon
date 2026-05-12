@@ -4,7 +4,11 @@
 package program
 
 import (
+	"crypto"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,7 +17,8 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 
-	"github.com/cilium/tetragon/pkg/elf"
+	tetragonelf "github.com/cilium/tetragon/pkg/elf"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
@@ -48,7 +53,7 @@ func getAddress(f *os.File, configSymbol string, configAddress, configOffset uin
 	var ok bool
 	var symbol string
 
-	elfFile, err := elf.NewSafeELFFile(f)
+	elfFile, err := tetragonelf.NewSafeELFFile(f)
 	if err != nil {
 		return "", 0, 0, fmt.Errorf("faild to parse ELF data: %w", err)
 	}
@@ -148,6 +153,74 @@ func getAddresses(f *os.File, attach *MultiUprobeAttachSymbolsCookies) ([]string
 	return symbols, addresses, offsets, nil
 }
 
+// verifyFileDigest verifies that an open file's digest matches the configured digest.
+// digestConfig format is "<algo>:<hash>" (e.g., "sha256:abc123..." or "build-id:deadbeef...")
+func verifyFileDigest(file *os.File, digestConfig string, fileHashCache map[string]string) error {
+	if digestConfig == "" {
+		return nil
+	}
+
+	parts := strings.SplitN(digestConfig, ":", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digestConfig)
+	}
+
+	algo := strings.ToLower(parts[0])
+	expectedHash := strings.ToLower(parts[1])
+
+	if hash, ok := fileHashCache[algo]; ok {
+		if hash != expectedHash {
+			return fmt.Errorf("digest mismatch: expected %s:%s but got %s:%s", algo, expectedHash, algo, hash)
+		}
+		logger.GetLogger().Debug(fmt.Sprintf("Digest verified: %s:%s (cached)", algo, hash))
+		return nil
+	}
+
+	var calculatedHash string
+
+	if algo == "build-id" {
+		buildID, err := tetragonelf.ParseBuildId(file)
+		if err != nil {
+			return fmt.Errorf("failed to extract build ID: %w", err)
+		}
+		calculatedHash = hex.EncodeToString(buildID)
+	} else {
+		var hashType crypto.Hash
+		switch algo {
+		case "sha256":
+			hashType = crypto.SHA256
+		case "sha384":
+			hashType = crypto.SHA384
+		case "sha512":
+			hashType = crypto.SHA512
+		case "sha1":
+			hashType = crypto.SHA1
+		default:
+			return fmt.Errorf("unsupported digest algorithm '%s'", algo)
+		}
+
+		if _, err := file.Seek(0, 0); err != nil {
+			return fmt.Errorf("failed to seek file: %w", err)
+		}
+
+		h := hashType.New()
+		if _, err := io.Copy(h, file); err != nil {
+			return fmt.Errorf("failed to calculate digest: %w", err)
+		}
+
+		calculatedHash = hex.EncodeToString(h.Sum(nil))
+	}
+
+	fileHashCache[algo] = calculatedHash
+
+	if calculatedHash != expectedHash {
+		return fmt.Errorf("digest mismatch: expected %s:%s but got %s:%s", algo, expectedHash, algo, calculatedHash)
+	}
+
+	logger.GetLogger().Debug(fmt.Sprintf("Digest verified: %s:%s", algo, calculatedHash))
+	return nil
+}
+
 func UprobeOpen(load *Program) OpenFunc {
 	return func(coll *ebpf.CollectionSpec) error {
 		if !load.SleepableOffload {
@@ -191,6 +264,21 @@ func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpe
 			return nil, fmt.Errorf("open executable %s: %w", data.Path, err)
 		}
 		defer f.Close()
+
+		if len(data.BinaryDigests) > 0 {
+			digestCache := make(map[string]string)
+			matchFound := false
+			for _, digest := range data.BinaryDigests {
+				if err := verifyFileDigest(f, digest, digestCache); err == nil {
+					matchFound = true
+					break
+				}
+			}
+			if !matchFound {
+				return nil, errors.New("digest verification failed: no matching digest")
+			}
+		}
+
 		fdPath := procSelfFDPath(f)
 		exec, err := link.OpenExecutable(fdPath)
 		if err != nil {
@@ -240,7 +328,7 @@ func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
-func attachMultiUpobeLink(load *Program, prog *ebpf.Program, path string, attach *MultiUprobeAttachSymbolsCookies, bpfDir string, idx int, extra ...string) (link.Link, error) {
+func attachMultiUpobeLink(load *Program, prog *ebpf.Program, path string, attach *MultiUprobeAttachSymbolsCookies, digests []string, bpfDir string, idx int, extra ...string) (link.Link, error) {
 	// The kernel tracks uprobe targets by inode. When we open a file,
 	// its file descriptor points to an inode.
 	// The loader API requires that a path is provided. It will not accept
@@ -254,6 +342,21 @@ func attachMultiUpobeLink(load *Program, prog *ebpf.Program, path string, attach
 		return nil, fmt.Errorf("open executable %s: %w", path, err)
 	}
 	defer f.Close()
+
+	if len(digests) > 0 {
+		digestCache := make(map[string]string)
+		matchFound := false
+		for _, digest := range digests {
+			if err := verifyFileDigest(f, digest, digestCache); err == nil {
+				matchFound = true
+				break
+			}
+		}
+		if !matchFound {
+			return nil, errors.New("digest verification failed: no matching digest")
+		}
+	}
+
 	fdPath := procSelfFDPath(f)
 	exec, err := link.OpenExecutable(fdPath)
 	if err != nil {
@@ -300,7 +403,8 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 
 		idx := 0
 		for path, attach := range data.Attach {
-			lnk, err := attachMultiUpobeLink(load, prog, path, attach, bpfDir, idx, extra...)
+			digests := data.BinaryDigests[path]
+			lnk, err := attachMultiUpobeLink(load, prog, path, attach, digests, bpfDir, idx, extra...)
 			if err != nil {
 				return nil, err
 			}
