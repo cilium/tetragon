@@ -405,6 +405,12 @@ type UProbeSpec struct {
 	// +kubebuilder:validation:Optional
 	// A return argument to include in the trace output.
 	ReturnArg *KProbeArg `json:"returnArg,omitempty"`
+	// +kubebuilder:validation:Optional
+	// BinaryDigests specifies a set of digests for the traced binary.
+	// The uprobe is installed only if the digest of the traced binary matches a digest in the set.
+	// Currently, if the digest is not matched, the policy is rejected. Subsequent work will skip
+	// loading the uprobe instead of rejecting the policy.
+	BinaryDigests []string `json:"binaryDigests,omitempty"`
 }
 
 type UsdtSpec struct {
