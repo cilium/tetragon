@@ -46,7 +46,7 @@ while [ $# -ge 1 ]; do
         NAMESPACE=$2
 		shift 2
     elif [ "$1" == "--cluster" ]; then
-        CLUSTER_NAME="$2"
+        CLUSTER_NAME="$2"c
 		shift 2
     else
         usage
