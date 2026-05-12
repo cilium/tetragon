@@ -48,6 +48,7 @@ const (
 	KeyEnablePodAnnotations = "enable-pod-annotations"
 
 	KeyMetricsServer      = "metrics-server"
+	KeyEnableEventMetrics = "enable-event-metrics"
 	KeyMetricsLabelFilter = "metrics-label-filter"
 	KeyServerAddress      = "server-address"
 	KeyGopsAddr           = "gops-address"
@@ -234,6 +235,7 @@ func ReadAndSetFlags() error {
 	}
 
 	Config.MetricsServer = viper.GetString(KeyMetricsServer)
+	Config.EnableEventMetrics = viper.GetBool(KeyEnableEventMetrics)
 	Config.MetricsLabelFilter = DefaultLabelFilter().WithEnabledLabels(ParseMetricsLabelFilter(viper.GetString(KeyMetricsLabelFilter)))
 	Config.ServerAddress = viper.GetString(KeyServerAddress)
 
@@ -409,6 +411,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyK8sKubeConfigPath, "", "Absolute path of the kubernetes kubeconfig file")
 	flags.Int(KeyK8sControlPlaneRetry, 1, "Number of attempts for Kubernetes control plane connection (negative for infinite, zero is invalid, positive for max attempts)")
 	flags.String(KeyMetricsServer, "", "Metrics server address (e.g. ':2112'). Disabled by default")
+	flags.Bool(KeyEnableEventMetrics, true, fmt.Sprintf("Enable per-event metrics. Enabled by default. Health and resource metrics are always available when --%s is set.", KeyMetricsServer))
 	flags.String(KeyMetricsLabelFilter, "namespace,workload,pod,binary", "Comma-separated list of enabled metrics labels. Unknown labels will be ignored.")
 	flags.String(KeyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'). An empty address disables the gRPC server")
 	flags.String(KeyGopsAddr, "", "gops server address (e.g. 'localhost:8118'). Disabled by default")
