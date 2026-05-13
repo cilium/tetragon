@@ -50,6 +50,16 @@ func (watcher *FakeK8sWatcher) AddPod(pod *corev1.Pod) {
 	watcher.pods = append(watcher.pods, pod)
 }
 
+func (watcher *FakeK8sWatcher) RemovePod(rem *corev1.Pod) {
+	for i, p := range watcher.pods {
+		pod := p.(*corev1.Pod)
+		if pod.Name == rem.Name && pod.Namespace == rem.Namespace {
+			watcher.pods = append(watcher.pods[:i], watcher.pods[i+1:]...)
+			break
+		}
+	}
+}
+
 // ClearPods() removes all pods from the fake watcher. This is intended for testing.
 func (watcher *FakeK8sWatcher) ClearAllPods() {
 	watcher.pods = nil
