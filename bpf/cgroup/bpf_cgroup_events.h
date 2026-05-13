@@ -49,7 +49,7 @@ send_cgrp_event(struct bpf_raw_tracepoint_args *ctx,
 	msg->cgrp_data.level = cgrp_track->level;
 	msg->cgrp_data.hierarchy_id = cgrp_track->hierarchy_id;
 	memcpy(&msg->cgrp_data.name, &cgrp_track->name, KN_NAME_LENGTH);
-	probe_read_str(&msg->path, PATH_MAP_SIZE - 1, path);
+	with_errmetrics(probe_read_str, &msg->path, PATH_MAP_SIZE - 1, path);
 
 	event_output_metric(ctx, MSG_OP_CGROUP, msg, size);
 

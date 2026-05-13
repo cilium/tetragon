@@ -67,8 +67,8 @@ FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 		 *  entry from the execve_map anyway and explicitly set it to the to tgid.
 		 */
 		exit->info.tid = tgid;
-		probe_read(&exit->info.code, sizeof(exit->info.code),
-			   _(&task->exit_code));
+		with_errmetrics(probe_read, &exit->info.code, sizeof(exit->info.code),
+				_(&task->exit_code));
 
 		event_output_metric(ctx, MSG_OP_EXIT, exit, size);
 	}

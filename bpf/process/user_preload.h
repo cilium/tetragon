@@ -36,7 +36,7 @@ preload_string_type(struct pt_regs *ctx, struct event_config *config, unsigned l
 	if (!init)
 		return 0;
 
-	map_update_elem(&sleepable_preload, &id, init, BPF_ANY);
+	with_errmetrics(map_update_elem, &sleepable_preload, &id, init, BPF_ANY);
 	data = map_lookup_elem(&sleepable_preload, &id);
 	if (!data)
 		return 0;
@@ -121,7 +121,7 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 
 	ty = config->arg[index];
 
-	probe_read(&a, sizeof(a), &a);
+	with_errmetrics(probe_read, &a, sizeof(a), &a);
 
 	switch (ty) {
 	case string_type:

@@ -722,11 +722,11 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 		     : "i"(STRING_MAPS_HEAP_MASK));
 #ifdef __LARGE_BPF_PROG
 	if (index <= 5)
-		probe_read(&heap[1], len, arg_str);
+		with_errmetrics(probe_read, &heap[1], len, arg_str);
 	else
-		probe_read(&heap[2], len, arg_str);
+		with_errmetrics(probe_read, &heap[2], len, arg_str);
 #else
-	probe_read(&heap[1], len, arg_str);
+	with_errmetrics(probe_read, &heap[1], len, arg_str);
 #endif
 
 	// Pad string to multiple of key increment size
@@ -736,11 +736,11 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 			     : "i"(STRING_MAPS_HEAP_MASK));
 #ifdef __LARGE_BPF_PROG
 		if (index <= 5)
-			probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+			with_errmetrics(probe_read, heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 		else
-			probe_read(heap + len + 2, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+			with_errmetrics(probe_read, heap + len + 2, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #else
-		probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+		with_errmetrics(probe_read, heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #endif
 	}
 
@@ -782,7 +782,7 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 		     : [arg_len] "+r"(arg_len)
 		     : [mask] "i"(STRING_PREFIX_MAX_LENGTH - 1));
 
-	probe_read(arg->data, arg_len & (STRING_PREFIX_MAX_LENGTH - 1), arg_str);
+	with_errmetrics(probe_read, arg->data, arg_len & (STRING_PREFIX_MAX_LENGTH - 1), arg_str);
 
 	__u8 *pass = map_lookup_elem(addrmap, arg);
 
@@ -2391,8 +2391,8 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 			     : [size] "+r"(size)
 			     :);
 
-		probe_read(&val->file[0], size + 4 /* size */ + 4 /* flags */,
-			   &e->args[nameoff]);
+		with_errmetrics(probe_read, &val->file[0], size + 4 /* size */ + 4 /* flags */,
+				&e->args[nameoff]);
 
 		map_update_elem(&fdinstall_map, &key, val, BPF_ANY);
 	} else {
@@ -2709,7 +2709,7 @@ FUNC_INLINE const struct path *get_path(long type, unsigned long arg, struct pat
 		struct linux_binprm *bprm = (struct linux_binprm *)arg;
 
 		arg = (unsigned long)_(&bprm->file);
-		probe_read(&file, sizeof(file), (const void *)arg);
+		with_errmetrics(probe_read, &file, sizeof(file), (const void *)arg);
 		path_arg = _(&file->f_path);
 		break;
 	};
