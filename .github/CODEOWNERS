@@ -6,8 +6,12 @@
 # Request a review from William when protobuf infra is edited
 /api/* @will-isovalent @cilium/tetragon-reviewers
 
-# Request a review from kkourt when core sensor files are modified
-/pkg/src/sensors/ @kkourt @cilium/tetragon-reviewers
+# Request a review from tetragon-bpf team on any bpf related changes
+/bpf/ @cilium/tetragon-bpf
+/pkg/bpf/ @cilium/tetragon-bpf
+/pkg/btf/ @cilium/tetragon-bpf
+# Also request a review from kkourt when core sensor files are modified
+/pkg/sensors/ @kkourt @cilium/tetragon-bpf
 
 # Request a review from the tetragon-docs team on any doc changes
 /docs/ @cilium/tetragon-docs
