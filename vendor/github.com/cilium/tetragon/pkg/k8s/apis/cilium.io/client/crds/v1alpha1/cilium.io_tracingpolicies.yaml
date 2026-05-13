@@ -5522,6 +5522,15 @@ spec:
                         - type
                         type: object
                       type: array
+                    binaryDigests:
+                      description: |-
+                        BinaryDigests specifies a set of digests for the traced binary.
+                        The uprobe is installed only if the digest of the traced binary matches a digest in the set.
+                        Currently, if the digest is not matched, the policy is rejected. Subsequent work will skip
+                        loading the uprobe instead of rejecting the policy.
+                      items:
+                        type: string
+                      type: array
                     btfPath:
                       description: path for a BTF file for the traced binary
                       type: string
