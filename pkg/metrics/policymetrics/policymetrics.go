@@ -65,7 +65,7 @@ func collect(ch chan<- prometheus.Metric) {
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 900*time.Millisecond)
 	defer cancel()
-	list, err := sm.ListTracingPolicies(ctx)
+	list, err := sm.ListTracingPolicies(ctx, "")
 	if err != nil {
 		logger.GetLogger().Warn("error listing tracing policies to collect policies state", logfields.Error, err)
 		return
