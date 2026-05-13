@@ -103,7 +103,7 @@ func tester() int {
 			os.Stdout.Sync()
 			time.Sleep(100 * time.Millisecond)
 			if err := os.WriteFile("/proc/sysrq-trigger", []byte("o"), 0777); err != nil {
-				fmt.Printf("failed to use syseq-trigger to shutdown machine")
+				fmt.Printf("failed to use sysrq-trigger to shutdown machine: %v\n", err)
 				return
 			}
 			// wait for the powerdown before init is killed to avoid confusing messages from the kernel
