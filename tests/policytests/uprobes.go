@@ -264,3 +264,34 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(checker),
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-multiple-targets").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-multiple-targets"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-resolve" }}
+    symbols:
+    - "func"
+  - path: {{ testBinary "nop" }}
+    symbols:
+    - "main"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	binOne := c.TestBinary("uprobe-resolve")
+	binTwo := c.TestBinary("nop")
+	up1Checker := ec.NewProcessUprobeChecker(binOne).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(binOne))).WithSymbol(sm.Full("func"))
+
+	up2Checker := ec.NewProcessUprobeChecker(binTwo).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(binTwo))).WithSymbol(sm.Full("main"))
+
+	return &policytest.Scenario{
+		Name:         "check both events occur",
+		Trigger:      policytest.NewMultiCmdTrigger(map[string][]string{binOne: {"v8", "7"}, binTwo: {}}),
+		EventChecker: ec.NewUnorderedEventChecker(up1Checker, up2Checker),
+	}
+}).RegisterAtInit()

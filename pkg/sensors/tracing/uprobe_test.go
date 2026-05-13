@@ -177,6 +177,10 @@ func TestUprobePclntab(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-pclntab", nil)
 }
 
+func TestUprobeMultipleTargets(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-multiple-targets", nil)
+}
+
 func TestUretprobeGeneric(t *testing.T) {
 	testUretprobe := testutils.RepoRootPath("contrib/tester-progs/uretprobe")
 	uretprobeHook := `
