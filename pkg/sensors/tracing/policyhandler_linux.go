@@ -92,6 +92,7 @@ func newPolicyInfoFromSpec(
 
 	// If enforcement is not allowed, force monitor only
 	if !hasEnforcementActions(spec) {
+		logger.GetLogger().Warn("Enforcement actions are not configured for this policy, forcing monitor_only mode", "policy", name)
 		opts.policyMode = policyconf.MonitorOnlyMode
 	}
 
