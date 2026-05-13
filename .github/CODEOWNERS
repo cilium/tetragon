@@ -13,6 +13,11 @@
 # Also request a review from kkourt when core sensor files are modified
 /pkg/sensors/ @kkourt @cilium/tetragon-bpf
 
+# Request a review from the tetragon-windows team on any windows changes
+*_windows.go @cilium/tetragon-windows @cilium/tetragon-reviewers
+/.github/workflows/windows-build-smoke-test.yml @cilium/tetragon-windows
+/bpf/windows/ @cilium/tetragon-windows
+
 # Request a review from the tetragon-docs team on any doc changes
 /docs/ @cilium/tetragon-docs
 *.md @cilium/tetragon-docs
