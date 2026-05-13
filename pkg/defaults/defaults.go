@@ -48,6 +48,9 @@ const (
 	// Default directory from where to load tracing policies.
 	DefaultTpDir = "/etc/tetragon/tetragon.tp.d"
 
+	// Default directory from where to load YARA rule files (.yar).
+	DefaultYaraRulesDir = "/etc/tetragon/yara-rules.d"
+
 	// Default secure export logs permissions
 	DefaultLogsPermission = "600"
 

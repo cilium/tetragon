@@ -436,6 +436,14 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		return err
 	}
 
+	// Initialize YARA engine if a rules directory is configured.
+	// Errors are non-fatal: if the directory is missing or has no valid rules,
+	// we log a warning and continue — the rest of Tetragon must not be blocked
+	// by an optional security feature.
+	if err := observer.InitYaraScanner(option.Config.YaraRulesDir); err != nil {
+		log.Warn("YARA scanner not started", "reason", err, "yara-rules-dir", option.Config.YaraRulesDir)
+	}
+
 	// Load initial sensor before we start the server,
 	// so it's there before we allow to load policies.
 	if err = loadInitialSensor(ctx); err != nil {

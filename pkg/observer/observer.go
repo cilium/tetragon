@@ -19,6 +19,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/bpf"
+	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
@@ -34,7 +35,39 @@ var (
 	eventHandler = make(map[uint8]func(r *bytes.Reader) ([]Event, error))
 
 	observerList []*Observer
+
+	// trustedPrefixes lists path prefixes that are considered system noise.
+	// Defined at package level so the slice is allocated exactly once — HandlePerfData
+	// is called on every kernel event and must not allocate on the hot path.
+	trustedPrefixes = []string{
+		"/bin/",
+		"/sbin/",
+		"/usr/bin/",
+		"/usr/sbin/",
+		"/usr/lib/",
+		"/usr/lib64/",
+		"/lib/",
+		"/lib64/",
+		"/etc/",
+		"/var/lib/",
+		"/snap/",
+		"/run/",
+		"/proc/",
+		"/sys/",
+	}
 )
+
+// isTrustedBinary reports whether path belongs to a known-safe system directory.
+// Keeping this separate from HandlePerfData makes it unit-testable and easy to
+// swap for a trie/bloom-filter later without touching event dispatch logic.
+func isTrustedBinary(path string) bool {
+	for _, prefix := range trustedPrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}
 
 type Event notify.Message
 
@@ -112,6 +145,24 @@ func HandlePerfData(data []byte) (byte, []Event, *HandlePerfError) {
 			kind:   errormetrics.HandlePerfHandlerError,
 			err:    fmt.Errorf("handler for op %d failed: %w", op, err),
 			opcode: op,
+		}
+	}
+	if op == ops.MSG_OP_EXECVE {
+		for _, ev := range events {
+			execEv, ok := ev.(*grpcexec.MsgExecveEventUnix)
+			if !ok || execEv.Unix == nil {
+				continue
+			}
+			binaryPath := execEv.Unix.Process.Filename
+			if isTrustedBinary(binaryPath) {
+				continue
+			}
+			logger.GetLogger().Info("yara: queuing scan for suspect process",
+				"timestamp", time.Now().UTC().Format(time.RFC3339Nano),
+				"pid", execEv.Unix.Process.PID,
+				"binary", binaryPath,
+			)
+			enqueueYaraScan(execEv.Unix.Process.PID, binaryPath)
 		}
 	}
 	return op, events, nil
