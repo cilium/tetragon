@@ -17,7 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
-func tpConfigure(name, namespace string, enable *bool, mode *tetragon.TracingPolicyMode) error {
+func tpConfigure(name, namespace, domain string, enable *bool, mode *tetragon.TracingPolicyMode) error {
 	c, err := common.NewClientWithDefaultContextAndAddress()
 	if err != nil {
 		return fmt.Errorf("failed create gRPC client: %w", err)
@@ -27,6 +27,7 @@ func tpConfigure(name, namespace string, enable *bool, mode *tetragon.TracingPol
 	_, err = c.Client.ConfigureTracingPolicy(c.Ctx, &tetragon.ConfigureTracingPolicyRequest{
 		Name:      name,
 		Namespace: namespace,
+		Domain:    domain,
 		Enable:    enable,
 		Mode:      mode,
 	})
@@ -67,7 +68,10 @@ func tpModifyCmd() *cobra.Command {
 }
 
 func tpAddCmd() *cobra.Command {
-	var mode string
+	var (
+		mode   string
+		domain string
+	)
 	ret := &cobra.Command{
 		Use:   "add <yaml_file>",
 		Short: "add a tracing policy",
@@ -92,7 +96,8 @@ func tpAddCmd() *cobra.Command {
 			}
 
 			_, err = c.Client.AddTracingPolicy(c.Ctx, &tetragon.AddTracingPolicyRequest{
-				Yaml: string(yamlb),
+				Yaml:   string(yamlb),
+				Domain: domain,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to add tracing policy: %w", err)
@@ -104,11 +109,15 @@ func tpAddCmd() *cobra.Command {
 	}
 	flags := ret.Flags()
 	flags.StringVarP(&mode, "mode", "m", "", "Tracing policy mode (enforce|monitor)")
+	flags.StringVarP(&domain, "domain", "", "", "Domain to be used. Use k8s to act on CRD policies. By default only acts against grpc domain.")
 	return ret
 }
 
 func tpDelCmd() *cobra.Command {
-	var namespace string
+	var (
+		namespace string
+		domain    string
+	)
 	ret := &cobra.Command{
 		Use:   "delete <name>",
 		Short: "delete a tracing policy",
@@ -123,6 +132,7 @@ func tpDelCmd() *cobra.Command {
 			_, err = c.Client.DeleteTracingPolicy(c.Ctx, &tetragon.DeleteTracingPolicyRequest{
 				Name:      args[0],
 				Namespace: namespace,
+				Domain:    domain,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to delete tracing policy: %w", err)
@@ -134,18 +144,22 @@ func tpDelCmd() *cobra.Command {
 	}
 	flags := ret.Flags()
 	flags.StringVarP(&namespace, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	flags.StringVarP(&domain, "domain", "", "", "Domain to be used. Use k8s to act on CRD policies. By default only acts against grpc domain.")
 	return ret
 }
 
 func tpEnableCmd() *cobra.Command {
-	var namespace string
+	var (
+		namespace string
+		domain    string
+	)
 	ret := &cobra.Command{
 		Use:   "enable <name>",
 		Short: "enable a tracing policy",
 		Long:  "Enable a disabled tracing policy. Use disable to re-disable the tracing policy.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := tpConfigure(args[0], namespace, new(true), nil)
+			err := tpConfigure(args[0], namespace, domain, new(true), nil)
 			if err != nil {
 				return fmt.Errorf("failed to enable tracing policy: %w", err)
 			}
@@ -155,18 +169,22 @@ func tpEnableCmd() *cobra.Command {
 	}
 	flags := ret.Flags()
 	flags.StringVarP(&namespace, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	flags.StringVarP(&domain, "domain", "", "", "Domain to be used. Use k8s to act on CRD policies. By default only acts against grpc domain.")
 	return ret
 }
 
 func tpDisableCmd() *cobra.Command {
-	var namespace string
+	var (
+		namespace string
+		domain    string
+	)
 	ret := &cobra.Command{
 		Use:   "disable <name>",
 		Short: "disable a tracing policy",
 		Long:  "Disable an enabled tracing policy. Use enable to re-enable the tracing policy.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := tpConfigure(args[0], namespace, new(false), nil)
+			err := tpConfigure(args[0], namespace, domain, new(false), nil)
 			if err != nil {
 				return fmt.Errorf("failed to disable tracing policy: %w", err)
 			}
@@ -177,11 +195,15 @@ func tpDisableCmd() *cobra.Command {
 
 	flags := ret.Flags()
 	flags.StringVarP(&namespace, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	flags.StringVarP(&domain, "domain", "", "", "Domain to be used. Use k8s to act on CRD policies. By default only acts against grpc domain.")
 	return ret
 }
 
 func tpListCmd() *cobra.Command {
-	var output string
+	var (
+		output string
+		domain string
+	)
 	ret := &cobra.Command{
 		Use:   "list",
 		Short: "list loaded tracing policies",
@@ -200,7 +222,7 @@ func tpListCmd() *cobra.Command {
 			}
 			defer c.Close()
 
-			res, err := c.Client.ListTracingPolicies(c.Ctx, &tetragon.ListTracingPoliciesRequest{})
+			res, err := c.Client.ListTracingPolicies(c.Ctx, &tetragon.ListTracingPoliciesRequest{Domain: domain})
 			if err != nil || res == nil {
 				return fmt.Errorf("failed to list tracing policies: %w", err)
 			}
@@ -221,11 +243,15 @@ func tpListCmd() *cobra.Command {
 	}
 	flags := ret.Flags()
 	flags.StringVarP(&output, common.KeyOutput, "o", "text", "Output format. text or json")
+	flags.StringVarP(&domain, "domain", "", "", "Domain to be used. Use k8s to act on CRD policies. By default only acts against grpc domain.")
 	return ret
 }
 
 func tpSetModeCmd() *cobra.Command {
-	var namespace string
+	var (
+		namespace string
+		domain    string
+	)
 	ret := &cobra.Command{
 		Use:   "set-mode <name> <mode>",
 		Short: "set the mode of a tracing policy",
@@ -244,7 +270,7 @@ func tpSetModeCmd() *cobra.Command {
 				return fmt.Errorf("invalid mode %q", args[1])
 			}
 
-			err := tpConfigure(args[0], namespace, nil, &mode)
+			err := tpConfigure(args[0], namespace, domain, nil, &mode)
 			if err != nil {
 				return fmt.Errorf("failed set mode to %q tracing policy: %w", args[1], err)
 			}
@@ -255,6 +281,7 @@ func tpSetModeCmd() *cobra.Command {
 
 	flags := ret.Flags()
 	flags.StringVarP(&namespace, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	flags.StringVarP(&domain, "domain", "", "", "Domain to be used.")
 	return ret
 }
 
