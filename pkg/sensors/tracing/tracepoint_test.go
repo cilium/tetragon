@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/ebpf"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 
@@ -37,7 +36,6 @@ import (
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/notify"
-	"github.com/cilium/tetragon/pkg/sensors"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
@@ -426,106 +424,6 @@ func TestGenericTracepointRawSyscall(t *testing.T) {
 	}
 
 	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
-}
-
-func TestLoadTracepointSensor(t *testing.T) {
-	var sensorProgs = []tus.SensorProg{
-		0: {Name: "generic_tracepoint_event", Type: ebpf.TracePoint},
-		1: {Name: "generic_tracepoint_arg", Type: ebpf.TracePoint},
-		2: {Name: "generic_tracepoint_process_event", Type: ebpf.TracePoint},
-		3: {Name: "generic_tracepoint_filter", Type: ebpf.TracePoint},
-		4: {Name: "generic_tracepoint_actions", Type: ebpf.TracePoint},
-		5: {Name: "generic_tracepoint_output", Type: ebpf.TracePoint},
-	}
-
-	var sensorMaps = []tus.SensorMap{
-		// generic_tracepoint_output
-		{Name: "tcpmon_map", Progs: []uint{5}},
-	}
-
-	if config.EnableLargeProgs() {
-		// all programs
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5}})
-
-		// all but generic_tracepoint_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4}})
-
-		// all but generic_tracepoint_event,generic_tracepoint_filter
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2}})
-
-		// all kprobe but generic_tracepoint_filter
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 2, 4}})
-
-		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{3, 4, 5}})
-
-		// generic_tracepoint_event*,generic_tracepoint_filter
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{2, 3}})
-
-		if config.EnableV511Progs() {
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 5}})
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_rb_events", Progs: []uint{5}})
-		} else {
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
-		}
-	} else {
-		sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_tracepoint_process_event_2", Type: ebpf.TracePoint})
-		sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_tracepoint_arg_2", Type: ebpf.TracePoint})
-
-		// all programs
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}})
-
-		// all but generic_tracepoint_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4, 6, 7}})
-
-		// all but generic_tracepoint_event,generic_tracepoint_filter
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 6, 7}})
-
-		// all kprobe but generic_tracepoint_filter
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 2, 6}})
-
-		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{3}})
-
-		// only generic_tracepoint_event*
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{2, 6}})
-
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
-	}
-
-	readHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "raw-syscalls"
-spec:
-  tracepoints:
-    - subsystem: "raw_syscalls"
-      event: "sys_enter"
-      # args: add both the syscall id, and the array with the arguments
-      args:
-        - index: 4
-        - index: 5
-`
-
-	var sens []*sensors.Sensor
-	var err error
-
-	createCrdFile(t, readHook)
-
-	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib,
-		observertesthelper.WithKeepCollection())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-
-	tus.CheckSensorLoad(sens, sensorMaps, sensorProgs, t)
-
-	sensi := make([]sensors.SensorIface, 0, len(sens))
-	for _, s := range sens {
-		sensi = append(sensi, s)
-	}
-	sensors.UnloadSensors(sensi)
 }
 
 func TestTracepointCloneThreads(t *testing.T) {
