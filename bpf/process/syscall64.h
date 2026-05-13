@@ -13,7 +13,7 @@ FUNC_INLINE __u64 syscall64_set_32bit(__u64 arg)
 	__u32 status;
 
 	info = (struct thread_info *)get_current_task();
-	probe_read(&status, sizeof(status), _(&info->status));
+	with_errmetrics(probe_read, &status, sizeof(status), _(&info->status));
 	if (status & TS_COMPAT)
 		arg |= IS_32BIT;
 	return arg;
@@ -24,7 +24,7 @@ FUNC_INLINE __u64 syscall64_set_32bit(__u64 arg)
 	unsigned long flags;
 
 	info = (struct thread_info *)get_current_task();
-	probe_read(&flags, sizeof(flags), _(&info->flags));
+	with_errmetrics(probe_read, &flags, sizeof(flags), _(&info->flags));
 	if (flags & (1 << TIF_32BIT))
 		arg |= IS_32BIT;
 	return arg;
