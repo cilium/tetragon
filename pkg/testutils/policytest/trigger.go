@@ -50,6 +50,26 @@ func (c *CmdTrigger) ExpectSignal(sig syscall.Signal) *ExecTester {
 	}
 }
 
+// MultiCmdTrigger simply wraps multiple exec.CommandContext().Run() into a Trigger
+type MultiCmdTrigger struct {
+	BinToArgs map[string][]string
+}
+
+func NewMultiCmdTrigger(bin2args map[string][]string) *MultiCmdTrigger {
+	return &MultiCmdTrigger{
+		BinToArgs: bin2args,
+	}
+}
+
+func (c *MultiCmdTrigger) Trigger(ctx context.Context) error {
+	for bin, args := range c.BinToArgs {
+		if err := exec.CommandContext(ctx, bin, args...).Run(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type ExecTester struct {
 	CmdTrigger
 	// Execution should either terminate normally (with an exit code) or by a signal
