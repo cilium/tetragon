@@ -2,7 +2,9 @@
 * @cilium/tetragon-reviewers
 
 # Request a review from William when codegen is edited
-/cmd/protoc-gen-go-tetragon/ @will-isovalent
+/cmd/protoc-gen-go-tetragon/ @will-isovalent @cilium/tetragon-reviewers
+# Request a review from William when protobuf infra is edited
+/api/* @will-isovalent @cilium/tetragon-reviewers
 
 # Request a review from kkourt when core sensor files are modified
 /pkg/src/sensors/ @kkourt @cilium/tetragon-reviewers
