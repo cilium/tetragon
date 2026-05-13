@@ -7923,6 +7923,16 @@ merge patch.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>binaryDigests</b></td>
+        <td>[]string</td>
+        <td>
+          BinaryDigests specifies a set of digests for the traced binary.
+The uprobe is installed only if the digest of the traced binary matches a digest in the set.
+Currently, if the digest is not matched, the policy is rejected. Subsequent work will skip
+loading the uprobe instead of rejecting the policy.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>btfPath</b></td>
         <td>string</td>
         <td>
@@ -18778,6 +18788,16 @@ merge patch.<br/>
         <td>[]object</td>
         <td>
           A list of function arguments to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>binaryDigests</b></td>
+        <td>[]string</td>
+        <td>
+          BinaryDigests specifies a set of digests for the traced binary.
+The uprobe is installed only if the digest of the traced binary matches a digest in the set.
+Currently, if the digest is not matched, the policy is rejected. Subsequent work will skip
+loading the uprobe instead of rejecting the policy.<br/>
         </td>
         <td>false</td>
       </tr><tr>
