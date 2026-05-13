@@ -137,7 +137,7 @@ get_current_subj_caps(struct msg_capabilities *msg, struct task_struct *task)
 	const struct cred *cred;
 
 	/* Get the task's subjective creds */
-	probe_read(&cred, sizeof(cred), _(&task->cred));
+	with_errmetrics(probe_read, &cred, sizeof(cred), _(&task->cred));
 	__get_caps(msg, cred);
 }
 
@@ -427,12 +427,12 @@ FUNC_INLINE void update_parents_map(struct msg_execve_event *event, struct execv
 			// by clone, i.e. exec call was invoked in the same process.
 			if (!(event->process.flags & EVENT_CLONE)) {
 				memcpy(bin, &curr->bin, sizeof(curr->bin));
-				map_update_elem(&tg_parents_bin, &curr->key.pid, bin, BPF_ANY);
+				with_errmetrics(map_update_elem, &tg_parents_bin, &curr->key.pid, bin, BPF_ANY);
 			} else {
 				struct execve_map_value *parent = event_find_parent();
 
 				if (parent)
-					map_update_elem(&tg_parents_bin, &curr->key.pid, &parent->bin, BPF_ANY);
+					with_errmetrics(map_update_elem, &tg_parents_bin, &curr->key.pid, &parent->bin, BPF_ANY);
 			}
 		}
 	}

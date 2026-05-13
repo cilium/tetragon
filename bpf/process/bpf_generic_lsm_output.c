@@ -38,7 +38,7 @@ generic_lsm_output(void *ctx)
 		if (hash && hash->state == 2) {
 			// Copy hash after all arguments
 			if (e->common.size + sizeof(struct ima_hash) <= 16383) {
-				probe_read(&e->args[e->common.size & 16383], sizeof(struct ima_hash), (char *)hash);
+				with_errmetrics(probe_read, &e->args[e->common.size & 16383], sizeof(struct ima_hash), (char *)hash);
 				e->common.size += sizeof(struct ima_hash);
 			}
 			map_delete_elem(&ima_hash_map, &pid_tgid);

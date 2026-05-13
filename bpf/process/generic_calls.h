@@ -512,7 +512,7 @@ FUNC_INLINE long get_pt_regs_arg_syscall(struct pt_regs *ctx, __u16 offset, __u8
 	if (!_ctx)
 		return 0;
 
-	probe_read(&val, sizeof(val), _ctx + offset);
+	with_errmetrics(probe_read, &val, sizeof(val), _ctx + offset);
 	val <<= shift;
 	val >>= shift;
 	return val;
@@ -563,7 +563,7 @@ FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty, arg_stat
 		// a pointer to the map. The rest of the argument code might do
 		// some arithmetics on it which would fail for pointer, but it's
 		// always using probe_read, so it's safe.
-		probe_read(&arg, sizeof(arg), &arg);
+		with_errmetrics(probe_read, &arg, sizeof(arg), &arg);
 	}
 
 	return arg;

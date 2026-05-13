@@ -22,6 +22,12 @@ var Files = map[uint8]string{
 	13: "bpf_cgroup_rmdir.c",
 	14: "generic_calls.h",
 	15: "bpf_process_event.h",
+	16: "bpf_cgroup.h",
+	17: "basic.h",
+	18: "bpf_exit.h",
+	19: "syscall64.h",
+	20: "bpf_generic_lsm_output.c",
+	21: "bpf_cgroup_events.h",
 }
 
 func BPFFileName(id uint8) string {
