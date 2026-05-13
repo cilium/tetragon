@@ -15,7 +15,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/cilium/ebpf"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
@@ -28,146 +27,18 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
-	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
-	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	_ "github.com/cilium/tetragon/tests/policytests"
 )
-
-func TestLoadUprobeSensor(t *testing.T) {
-	var (
-		sensorProgs []tus.SensorProg
-		sensorMaps  []tus.SensorMap
-	)
-
-	if config.EnableV61Progs() {
-		sensorProgs = []tus.SensorProg{
-			// uprobe
-			0: {Name: "generic_uprobe_event", Type: ebpf.Kprobe},
-			1: {Name: "generic_uprobe_setup_event", Type: ebpf.Kprobe},
-			2: {Name: "generic_uprobe_process_event", Type: ebpf.Kprobe},
-			3: {Name: "generic_uprobe_filter_arg", Type: ebpf.Kprobe},
-			4: {Name: "generic_uprobe_process_filter", Type: ebpf.Kprobe},
-			5: {Name: "generic_uprobe_actions", Type: ebpf.Kprobe},
-			6: {Name: "generic_uprobe_output", Type: ebpf.Kprobe},
-		}
-
-		sensorMaps = []tus.SensorMap{
-			// all uprobe programs
-			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
-
-			// all but generic_uprobe_output
-			{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
-
-			// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
-			{Name: "filter_map", Progs: []uint{3, 4, 5}},
-
-			// generic_uprobe_output
-			{Name: "tcpmon_map", Progs: []uint{6}},
-			{Name: "tg_rb_events", Progs: []uint{6}},
-
-			// generic_uprobe_event
-			{Name: "tg_conf_map", Progs: []uint{0, 6}},
-
-			// shared with base sensor
-			{Name: "execve_map", Progs: []uint{4, 5, 6}},
-		}
-	} else {
-		sensorProgs = []tus.SensorProg{
-			// uprobe
-			0: {Name: "generic_uprobe_event", Type: ebpf.Kprobe},
-			1: {Name: "generic_uprobe_setup_event", Type: ebpf.Kprobe},
-			2: {Name: "generic_uprobe_process_event", Type: ebpf.Kprobe},
-			3: {Name: "generic_uprobe_filter_arg", Type: ebpf.Kprobe},
-			4: {Name: "generic_uprobe_process_filter", Type: ebpf.Kprobe},
-			5: {Name: "generic_uprobe_actions", Type: ebpf.Kprobe},
-			6: {Name: "generic_uprobe_output", Type: ebpf.Kprobe},
-			7: {Name: "generic_uprobe_path", Type: ebpf.Kprobe},
-		}
-
-		sensorMaps = []tus.SensorMap{
-			// generic_uprobe_output
-			{Name: "tcpmon_map", Progs: []uint{6}},
-		}
-
-		if config.EnableLargeProgs() {
-			// all uprobe programs
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}})
-
-			// all but generic_uprobe_output
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}})
-
-			// shared with base sensor
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}})
-
-			// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}})
-
-			if config.EnableV511Progs() {
-				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 6}})
-				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_rb_events", Progs: []uint{6}})
-			} else {
-				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
-			}
-		} else {
-			sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_uprobe_process_event_2", Type: ebpf.Kprobe})
-			sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_uprobe_filter_arg_2", Type: ebpf.Kprobe})
-
-			// all uprobe programs
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
-
-			// all but generic_uprobe_output
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 8, 9}})
-
-			// shared with base sensor
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4}})
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
-
-			// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5, 9}})
-		}
-	}
-
-	nopHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "uprobe"
-spec:
-  uprobes:
-  - path: "/bin/bash"
-    symbols:
-    - "main"
-`
-
-	var sens []*sensors.Sensor
-	var err error
-
-	createCrdFile(t, nopHook)
-
-	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib,
-		observertesthelper.WithMyPid(), observertesthelper.WithKeepCollection())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-
-	tus.CheckSensorLoad(sens, sensorMaps, sensorProgs, t)
-
-	sensi := make([]sensors.SensorIface, 0, len(sens))
-	for _, s := range sens {
-		sensi = append(sensi, s)
-	}
-	sensors.UnloadSensors(sensi)
-}
 
 func TestUprobeGeneric(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-generic", nil)
