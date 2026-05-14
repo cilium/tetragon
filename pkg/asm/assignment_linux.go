@@ -6,7 +6,6 @@ package asm
 import (
 	"errors"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 )
@@ -32,34 +31,6 @@ type Assignment struct {
 }
 
 type fn func(str string, ass *Assignment) error
-
-type RegScanner struct {
-	name string
-}
-
-func (sc *RegScanner) Reset() *RegScanner {
-	sc.name = ""
-	return sc
-}
-
-func (sc *RegScanner) Scan(state fmt.ScanState, _ rune) error {
-
-	for {
-		r, _, err := state.ReadRune()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			return err
-		}
-		if r == ',' || r == ' ' || r == ')' {
-			state.UnreadRune()
-			break
-		}
-		sc.name = sc.name + string(r)
-	}
-	return nil
-}
 
 func parseRegDeref(str string, ass *Assignment) error {
 	var (
@@ -133,21 +104,23 @@ func parseRegOff(str string, ass *Assignment) error {
 
 func parseReg(str string, ass *Assignment) error {
 	var (
-		reg RegScanner
-		n   int
-		ok  bool
+		ok bool
 	)
 
-	if n, _ = fmt.Sscanf(str, "%%%s", &reg); n != 1 {
+	if !strings.HasPrefix(str, "%") || len(str) == 1 {
 		return errNext
+	}
+
+	reg := str[1:]
+	src, srcSize, ok := RegOffsetSize(reg)
+	if !ok {
+		return fmt.Errorf("failed to parse register '%s'", reg)
 	}
 
 	ass.Type = ASM_ASSIGNMENT_TYPE_REG
 	ass.Off = 0
-	ass.Src, ass.SrcSize, ok = RegOffsetSize(reg.name)
-	if !ok {
-		return fmt.Errorf("failed to parse register '%s'", reg.name)
-	}
+	ass.Src = src
+	ass.SrcSize = srcSize
 	return nil
 }
 
