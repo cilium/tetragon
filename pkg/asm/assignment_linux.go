@@ -125,18 +125,9 @@ func parseReg(str string, ass *Assignment) error {
 }
 
 func parseConst(str string, ass *Assignment) error {
-
-	var (
-		uoff uint64
-		soff int64
-		err  error
-	)
-
-	if uoff, err = strconv.ParseUint(str, 0, 64); err != nil {
-		if soff, err = strconv.ParseInt(str, 0, 64); err != nil {
-			return errNext
-		}
-		uoff = uint64(soff)
+	uoff, err := parseOffset(str)
+	if err != nil {
+		return errNext
 	}
 
 	ass.Type = ASM_ASSIGNMENT_TYPE_CONST
