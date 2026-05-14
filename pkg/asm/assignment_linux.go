@@ -103,24 +103,31 @@ func parseRegDeref(str string, ass *Assignment) error {
 
 func parseRegOff(str string, ass *Assignment) error {
 	var (
-		reg RegScanner
-		n   int
 		ok  bool
-		off int
+		off uint64
+		err error
 	)
 
-	if n, _ = fmt.Sscanf(str, "0x%x%%%s", &off, &reg); n != 2 {
-		if n, _ = fmt.Sscanf(str, "%d%%%s", &off, reg.Reset()); n != 2 {
-			return errNext
-		}
+	percent := strings.LastIndexByte(str, '%')
+	if percent <= 0 || percent == len(str)-1 {
+		return errNext
+	}
+
+	off, err = parseOffset(str[:percent])
+	if err != nil {
+		return errNext
+	}
+
+	reg := str[percent+1:]
+	src, srcSize, ok := RegOffsetSize(reg)
+	if !ok {
+		return fmt.Errorf("failed to parse register '%s'", reg)
 	}
 
 	ass.Type = ASM_ASSIGNMENT_TYPE_REG_OFF
-	ass.Off = uint64(off)
-	ass.Src, ass.SrcSize, ok = RegOffsetSize(reg.name)
-	if !ok {
-		return fmt.Errorf("failed to parse register '%s'", reg.name)
-	}
+	ass.Off = off
+	ass.Src = src
+	ass.SrcSize = srcSize
 	return nil
 }
 
