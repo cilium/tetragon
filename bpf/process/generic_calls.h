@@ -123,6 +123,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	int *s = (int *)args_off(e, off);
 	unsigned long meta;
 	size_t bytes = 0;
+	long ret = 0;
 
 	if (has_return_copy(argm)) {
 		u64 retid = retprobe_map_get_key(ctx);
@@ -131,7 +132,9 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
 	meta = get_arg_meta(argm, e);
-	probe_read(&bytes, sizeof(bytes), &meta);
+	ret = probe_read(&bytes, sizeof(bytes), &meta);
+	if (ret < 0)
+		return ret;
 	return __copy_char_buf(ctx, off, arg, bytes, has_max_data(argm), e);
 }
 
@@ -143,6 +146,7 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 	struct iov_iter *iov_iter = (struct iov_iter *)arg;
 	struct kvec *kvec;
 	const char *buf;
+	long ret = 0;
 	size_t count;
 	u8 iter_type;
 	void *tmp;
@@ -152,7 +156,9 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 		goto nodata;
 
 	tmp = _(&iov_iter->iter_type);
-	probe_read(&iter_type, sizeof(iter_type), tmp);
+	ret = probe_read(&iter_type, sizeof(iter_type), tmp);
+	if (ret < 0)
+		return ret;
 
 	if (bpf_core_enum_value_exists(enum iter_type, ITER_IOVEC))
 		iter_iovec = bpf_core_enum_value(enum iter_type, ITER_IOVEC);
@@ -164,13 +170,19 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 
 	if (iter_type == iter_iovec) {
 		tmp = _(&iov_iter->kvec);
-		probe_read(&kvec, sizeof(kvec), tmp);
+		ret = probe_read(&kvec, sizeof(kvec), tmp);
+		if (ret < 0)
+			return ret;
 
 		tmp = _(&kvec->iov_base);
-		probe_read(&buf, sizeof(buf), tmp);
+		ret = probe_read(&buf, sizeof(buf), tmp);
+		if (ret < 0)
+			return ret;
 
 		tmp = _(&kvec->iov_len);
-		probe_read(&count, sizeof(count), tmp);
+		ret = probe_read(&count, sizeof(count), tmp);
+		if (ret < 0)
+			return ret;
 
 		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
 				       has_max_data(argm), e);
@@ -179,10 +191,14 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 #ifdef __V61_BPF_PROG
 	if (iter_type == iter_ubuf) {
 		tmp = _(&iov_iter->ubuf);
-		probe_read(&buf, sizeof(buf), tmp);
+		ret = probe_read(&buf, sizeof(buf), tmp);
+		if (ret < 0)
+			return ret;
 
 		tmp = _(&iov_iter->count);
-		probe_read(&count, sizeof(count), tmp);
+		ret = probe_read(&count, sizeof(count), tmp);
+		if (ret < 0)
+			return ret;
 
 		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
 				       has_max_data(argm), e);
@@ -243,6 +259,7 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 {
 	struct msg_generic_kprobe *e;
 	long size = -1;
+	long ret = 0;
 	int zero = 0;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
@@ -259,23 +276,31 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 		__u32 fd;
 
 		key.tid = get_current_pid_tgid() >> 32;
-		probe_read(&fd, sizeof(__u32), &arg);
+		ret = probe_read(&fd, sizeof(__u32), &arg);
+		if (ret < 0)
+			return ret;
 		key.fd = fd;
 
 		val = map_lookup_elem(&fdinstall_map, &key);
 		if (val) {
 			__u32 bytes = *((__u32 *)&val->file[0]);
 
-			probe_read(&args[0], sizeof(__u32), &fd);
+			ret = probe_read(&args[0], sizeof(__u32), &fd);
+			if (ret < 0)
+				return ret;
 			asm volatile("%[bytes] &= 0xfff;\n"
 				     : [bytes] "+r"(bytes)
 				     :);
-			probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
+			ret = probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
+			if (ret < 0)
+				return ret;
 			size = bytes + 4 + 4;
 
 			// flags
-			probe_read(&args[size], 4,
-				   (char *)&val->file[size - 4]);
+			ret = probe_read(&args[size], 4,
+					 (char *)&val->file[size - 4]);
+			if (ret < 0)
+				return ret;
 			size += 4;
 		} else {
 			/* If filter specification is fd type then we
@@ -512,7 +537,7 @@ FUNC_INLINE long get_pt_regs_arg_syscall(struct pt_regs *ctx, __u16 offset, __u8
 	if (!_ctx)
 		return 0;
 
-	probe_read(&val, sizeof(val), _ctx + offset);
+	with_errmetrics(probe_read, &val, sizeof(val), _ctx + offset);
 	val <<= shift;
 	val >>= shift;
 	return val;
@@ -563,7 +588,7 @@ FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty, arg_stat
 		// a pointer to the map. The rest of the argument code might do
 		// some arithmetics on it which would fail for pointer, but it's
 		// always using probe_read, so it's safe.
-		probe_read(&arg, sizeof(arg), &arg);
+		with_errmetrics(probe_read, &arg, sizeof(arg), &arg);
 	}
 
 	return arg;

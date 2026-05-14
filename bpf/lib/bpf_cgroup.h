@@ -109,7 +109,7 @@ FUNC_INLINE const char *__get_cgroup_kn_name(const struct kernfs_node *kn)
 	const char *name = NULL;
 
 	if (kn)
-		probe_read_kernel(&name, sizeof(name), _(&kn->name));
+		with_errmetrics(probe_read_kernel, &name, sizeof(name), _(&kn->name));
 
 	return name;
 }
@@ -138,7 +138,7 @@ FUNC_INLINE __u64 __get_cgroup_kn_id(const struct kernfs_node *kn)
 		if (BPF_CORE_READ_INTO(&id, old_kn, id.id) != 0)
 			return 0;
 	} else {
-		probe_read_kernel(&id, sizeof(id), _(&kn->id));
+		with_errmetrics(probe_read_kernel, &id, sizeof(id), _(&kn->id));
 	}
 
 	return id;
@@ -155,7 +155,7 @@ FUNC_INLINE struct kernfs_node *__get_cgroup_kn(const struct cgroup *cgrp)
 	struct kernfs_node *kn = NULL;
 
 	if (cgrp)
-		probe_read_kernel(&kn, sizeof(cgrp->kn), _(&cgrp->kn));
+		with_errmetrics(probe_read_kernel, &kn, sizeof(cgrp->kn), _(&cgrp->kn));
 
 	return kn;
 }
@@ -209,7 +209,7 @@ FUNC_INLINE __u32 get_cgroup_level(const struct cgroup *cgrp)
 {
 	__u32 level = 0;
 
-	probe_read_kernel(&level, sizeof(level), _(&cgrp->level));
+	with_errmetrics(probe_read_kernel, &level, sizeof(level), _(&cgrp->level));
 	return level;
 }
 
@@ -261,7 +261,7 @@ get_task_cgroup(struct task_struct *task, __u64 cgrpfs_ver, __u32 subsys_idx, __
 	struct css_set *cgroups;
 	struct cgroup *cgrp = NULL;
 
-	probe_read_kernel(&cgroups, sizeof(cgroups), _(&task->cgroups));
+	with_errmetrics(probe_read_kernel, &cgroups, sizeof(cgroups), _(&task->cgroups));
 	if (unlikely(!cgroups)) {
 		*error_flags |= EVENT_ERROR_CGROUPS;
 		return cgrp;
@@ -270,7 +270,7 @@ get_task_cgroup(struct task_struct *task, __u64 cgrpfs_ver, __u32 subsys_idx, __
 #ifndef __RHEL7_BPF_PROG
 	/* If we are in Cgroupv2 return the default css_set cgroup */
 	if (cgrpfs_ver == CGROUP2_SUPER_MAGIC) {
-		probe_read_kernel(&cgrp, sizeof(cgrp), _(&cgroups->dfl_cgrp));
+		with_errmetrics(probe_read_kernel, &cgrp, sizeof(cgrp), _(&cgroups->dfl_cgrp));
 		if (!cgrp)
 			*error_flags |= EVENT_ERROR_CGROUP_SUBSYSCGRP;
 		return cgrp;
@@ -432,7 +432,7 @@ __init_cgrp_tracking_val_heap(struct cgroup *cgrp, cgroup_state state)
 	kn = __get_cgroup_kn(cgrp);
 	name = __get_cgroup_kn_name(kn);
 	if (name)
-		probe_read_str(&heap->name, KN_NAME_LENGTH - 1, name);
+		with_errmetrics(probe_read_str, &heap->name, KN_NAME_LENGTH - 1, name);
 
 	return heap;
 }

@@ -59,7 +59,7 @@ FUNC_INLINE void do_uprobe_override(void *ctx, __u32 idx)
 	if (idxp)
 		*idxp = idx;
 	else
-		map_update_elem(&sleepable_offload, &id, &idx, BPF_ANY);
+		with_errmetrics(map_update_elem, &sleepable_offload, &id, &idx, BPF_ANY);
 }
 
 FUNC_INLINE __u64
