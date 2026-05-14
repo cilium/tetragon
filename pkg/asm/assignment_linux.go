@@ -149,6 +149,31 @@ func parseConst(str string, ass *Assignment) error {
 	return nil
 }
 
+func parseOffset(str string) (uint64, error) {
+	if str == "" {
+		return 0, strconv.ErrSyntax
+	}
+
+	if strings.HasPrefix(str, "-") {
+		off, err := strconv.ParseInt(str, 0, 64)
+		if err != nil {
+			return 0, err
+		}
+		return uint64(off), nil
+	}
+
+	off, err := strconv.ParseUint(str, 0, 64)
+	if err == nil {
+		return off, nil
+	}
+
+	soff, serr := strconv.ParseInt(str, 0, 64)
+	if serr != nil {
+		return 0, err
+	}
+	return uint64(soff), nil
+}
+
 func ParseAssignment(str string) (*Assignment, error) {
 	parsers := []fn{
 		parseRegDeref,
