@@ -170,20 +170,20 @@ func ParseAssignment(str string) (*Assignment, error) {
 
 	ass := &Assignment{}
 
-	s := strings.Split(str, "=")
-	if len(s) != 2 {
+	dst, src, cutOK := strings.Cut(str, "=")
+	if !cutOK || dst == "" || src == "" || strings.Contains(src, "=") {
 		return nil, fmt.Errorf("failed to parse assignment '%s'", str)
 	}
 
 	var ok bool
 
-	ass.Dst, ass.DstSize, ok = RegOffsetSize(s[0] /* dst */)
+	ass.Dst, ass.DstSize, ok = RegOffsetSize(dst)
 	if !ok {
-		return nil, fmt.Errorf("failed to parse register '%s'", s[0])
+		return nil, fmt.Errorf("failed to parse register '%s'", dst)
 	}
 
 	for _, parse := range parsers {
-		err := parse(s[1] /* src */, ass)
+		err := parse(src, ass)
 		if err == nil {
 			return ass, nil
 		}
