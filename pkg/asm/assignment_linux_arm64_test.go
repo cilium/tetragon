@@ -89,3 +89,26 @@ func TestAssignment(t *testing.T) {
 	assert.Equal(t, uint16(0xf8), ass.Src)
 	assert.Equal(t, uint64(0x20), ass.Off)
 }
+
+func TestAssignmentInvalid(t *testing.T) {
+	tests := []string{
+		"x0=",
+		"=1",
+		"x0=1=2",
+		"x0=abc",
+		"x29=0x20(%sp",
+		"x29=0x20(%sp)junk",
+		"sp=%x0)",
+		"sp=8%x0 garbage",
+		"x0=0x20()",
+		"x0=0x20(%notareg)",
+	}
+
+	for _, exp := range tests {
+		t.Run(exp, func(t *testing.T) {
+			ass, err := ParseAssignment(exp)
+			require.Error(t, err)
+			assert.Nil(t, ass)
+		})
+	}
+}
