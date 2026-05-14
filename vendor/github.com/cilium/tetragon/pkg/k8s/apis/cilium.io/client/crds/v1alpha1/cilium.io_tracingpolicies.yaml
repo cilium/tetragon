@@ -4797,6 +4797,12 @@ spec:
                         - type
                         type: object
                       type: array
+                    digests:
+                      description: Digests of the traced binary. If any digest matches,
+                        verification passes.
+                      items:
+                        type: string
+                      type: array
                     message:
                       description: |-
                         A short message of 256 characters max that will be included
