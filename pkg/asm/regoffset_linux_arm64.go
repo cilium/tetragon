@@ -4,13 +4,34 @@
 package asm
 
 import (
-	"fmt"
+	"strconv"
+	"strings"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
 
 var ptregs unix.PtraceRegs
+
+func parseArmRegisterIndex(name, prefix string, max int) (int, bool) {
+	idxStr, ok := strings.CutPrefix(name, prefix)
+	if !ok || idxStr == "" {
+		return 0, false
+	}
+
+	for _, ch := range idxStr {
+		if ch < '0' || ch > '9' {
+			return 0, false
+		}
+	}
+
+	idx, err := strconv.Atoi(idxStr)
+	if err != nil || idx > max {
+		return 0, false
+	}
+
+	return idx, true
+}
 
 func RegOffset(name string) (uint16, bool) {
 	switch name {
@@ -19,9 +40,8 @@ func RegOffset(name string) (uint16, bool) {
 	case "pc":
 		return uint16(unsafe.Offsetof(ptregs.Pc)), true
 	}
-	var idx int
-	_, err := fmt.Sscanf(name, "x%d", &idx)
-	if err == nil && idx >= 0 && idx <= 31 {
+	idx, ok := parseArmRegisterIndex(name, "x", 31)
+	if ok {
 		if idx == 31 {
 			return RegOffset("sp")
 		}
@@ -30,8 +50,8 @@ func RegOffset(name string) (uint16, bool) {
 		return uint16(baseOff + shift), true
 	}
 
-	_, err = fmt.Sscanf(name, "w%d", &idx)
-	if err == nil && idx >= 0 && idx <= 30 {
+	idx, ok = parseArmRegisterIndex(name, "w", 30)
+	if ok {
 		baseOff := unsafe.Offsetof(ptregs.Regs)
 		shift := unsafe.Sizeof(ptregs.Regs[0]) * uintptr(idx)
 		return uint16(baseOff + shift), true
@@ -46,9 +66,8 @@ func RegOffsetSize(name string) (uint16, uint8, bool) {
 		return 0, 0, false
 	}
 
-	var idx int
-	_, err := fmt.Sscanf(name, "w%d", &idx)
-	if err == nil {
+	_, isWReg := parseArmRegisterIndex(name, "w", 30)
+	if isWReg {
 		return off, 4, true
 	}
 
