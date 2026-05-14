@@ -101,6 +101,7 @@ enum {
 	bpf_prog_type = 43,
 
 	sockaddr_un_type = 44,
+	go_string_type = 45,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -2166,6 +2167,7 @@ filter_arg_2(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 #endif
 		return filter_file_buf(filter, (struct string_buf *)args);
 	case string_type:
+	case go_string_type:
 	case net_dev_ty:
 	case data_loc_type:
 		/* for strings, we just encode the length */

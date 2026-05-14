@@ -43,7 +43,9 @@ PROGS = sigkill-tester \
 	uprobe-simple \
 	pclntab-unstripped \
 	pclntab-stripped \
-	null-mount
+	null-mount \
+	gostring-arg-test \
+	gostring-clear-test
 
 LIBS =	libuprobe.so \
 	libtester.so
@@ -172,6 +174,12 @@ pclntab-unstripped: FORCE
 
 pclntab-stripped: FORCE
 	go build -ldflags='-s -w' -o $@ ./go/pclntab-test
+
+gostring-arg-test: FORCE
+	go build -o gostring-arg-test ./go/gostring-arg-test
+
+gostring-clear-test: FORCE
+	go build -o gostring-clear-test ./go/gostring-clear-test
 
 .PHONY: clean
 clean:

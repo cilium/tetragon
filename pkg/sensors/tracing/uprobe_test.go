@@ -177,6 +177,10 @@ func TestUprobePclntab(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-pclntab", nil)
 }
 
+func TestUprobeGoStringClear(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-go-string-clear", nil)
+}
+
 func TestUretprobeGeneric(t *testing.T) {
 	testUretprobe := testutils.RepoRootPath("contrib/tester-progs/uretprobe")
 	uretprobeHook := `
@@ -1276,4 +1280,8 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestUprobeGoStringArg(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-go-string-arg", nil)
 }

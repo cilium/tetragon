@@ -46,3 +46,5 @@ uprobe-null.btf
 pclntab-stripped
 pclntab-unstripped
 null-mount
+/gostring-arg-test
+/gostring-clear-test

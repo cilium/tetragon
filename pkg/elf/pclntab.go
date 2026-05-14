@@ -157,6 +157,23 @@ func pclntabToGosymtab(f *elf.File) (*gosym.Table, error) {
 	return table, nil
 }
 
+// ValidateGoABI checks that the binary uses a Go ABI compatible with the
+// static register slot table. Works on both stripped and unstripped binaries.
+func (se *SafeELFFile) ValidateGoABI() error {
+	pclnSect := se.Section(secGopclntab)
+	if pclnSect == nil {
+		pclnSect = se.Section(secGopclntabPIE)
+	}
+	if pclnSect == nil {
+		return fmt.Errorf("no %s section: not a Go binary", secGopclntab)
+	}
+	data, err := pclnSect.Data()
+	if err != nil {
+		return fmt.Errorf("read %s: %w", secGopclntab, err)
+	}
+	return pclntabRejectPreGo126(data)
+}
+
 // Rejects binaries compiled before Go 1.26 by checking whether the
 // pclntab header's textStart field is zero (zeroed in Go 1.26+, see
 // https://github.com/golang/go/commit/0e1bd8b5f17e337df0ffb57af03419b96c695fe4)

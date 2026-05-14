@@ -6,8 +6,11 @@
 package tests
 
 import (
+	"runtime"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
+	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 )
@@ -79,7 +82,7 @@ spec:
 `).WithSkip(func(si *policytest.SkipInfo) string {
 	// skip if uprobe_regs_change is not supported
 	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
-		return "uprobes cannot change registers"
+		return "uprobe register modification not supported (missing uprobe_regs_change)"
 	}
 	return ""
 }).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
@@ -219,5 +222,99 @@ spec:
 		Name:         "check both events occur",
 		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(0),
 		EventChecker: ec.NewUnorderedEventChecker(upArg2Checker, upArg1Checker),
+	}
+}).RegisterAtInit()
+
+// uprobe-go-string-clear: ClearGoString + go_string on amd64; binary exits with len(s) so
+// clearing the incoming string length must yield exit code 0.
+var _ = policytest.NewBuilder("uprobe-go-string-clear").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-go-string-clear"
+spec:
+  uprobes:
+  - path: {{ testBinary "gostring-clear-test" }}
+    symbols:
+    - "github.com/cilium/tetragon/pkg/sensors/tracing/goabitest.ReportLenForABI"
+    args:
+    - index: 0
+      type: "go_string"
+    selectors:
+    - matchActions:
+      - action: Override
+        argError: 0
+        argIndex: 0
+        clearGoString: true
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if runtime.GOARCH != "amd64" {
+		return "go_string ClearGoString is amd64-only"
+	}
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobe register modification not supported (missing uprobe_regs_change)"
+	}
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		return "go_string preload requires bpf_copy_from_user_str"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("gostring-clear-test")
+	upChecker := ec.NewProcessUprobeChecker("GO_STRING_CLEAR").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("github.com/cilium/tetragon/pkg/sensors/tracing/goabitest.ReportLenForABI"))
+	overrideOne := uint64(1)
+	return &policytest.Scenario{
+		Name: "ClearGoString zeros len register; process exits with len(s)==0",
+		// Non-empty argv[1]; without clearing, ReportLenForABI would exit(len)>0.
+		Trigger:      policytest.NewCmdTrigger(bin, "hello-from-policytest").ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Override: &overrideOne,
+		},
+	}
+}).RegisterAtInit()
+
+// uprobe-go-string-arg: capture the string argument passed to a pure stdlib
+// call (strings.ToUpper) from a tiny tester binary. strings.ToUpper is
+// enough to exercise the go_string arg path without any HTTP/filesystem
+// setup.
+var _ = policytest.NewBuilder("uprobe-go-string-arg").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-go-string-arg"
+spec:
+  uprobes:
+  - path: {{ testBinary "gostring-arg-test" }}
+    symbols:
+    - "strings.ToUpper"
+    args:
+    - index: 0
+      type: "go_string"
+`).WithSkip(func(_ *policytest.SkipInfo) string {
+	if runtime.GOARCH != "amd64" {
+		return "go_string ABI register mapping is amd64-only"
+	}
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		return "go_string sleepable preload requires bpf_copy_from_user_str kfunc support"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("gostring-arg-test")
+	strArg := "hello-from-policytest"
+	upChecker := ec.NewProcessUprobeChecker("GO_STRING_ARG").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("strings.ToUpper")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(strArg)),
+			))
+	return &policytest.Scenario{
+		Name:         "strings.ToUpper arg captured as go_string",
+		Trigger:      policytest.NewCmdTrigger(bin, strArg).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
 	}
 }).RegisterAtInit()

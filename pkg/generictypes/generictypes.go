@@ -69,9 +69,9 @@ const (
 
 	GenericBpfProgType    = 43
 	GenericSockaddrUnType = 44
+	GenericGoStringType   = 45
 
-	GenericUnsetType = 0
-
+	GenericUnsetType   = 0
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -133,6 +133,7 @@ var genericStringToType = map[string]int{
 	"socket":          GenericSocketType,
 	"dentry":          GenericDentryType,
 	"bpf_prog":        GenericBpfProgType,
+	"go_string":       GenericGoStringType,
 }
 
 var genericTypeToStringTable = map[int]string{
@@ -180,6 +181,7 @@ var genericTypeToStringTable = map[int]string{
 	GenericSocketType:      "socket",
 	GenericDentryType:      "dentry",
 	GenericBpfProgType:     "bpf_prog",
+	GenericGoStringType:    "go_string",
 	GenericInvalidType:     "",
 }
 
