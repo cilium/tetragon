@@ -92,7 +92,7 @@ jobs:
       uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
       with:
         # renovate: datasource=github-releases depName=kubernetes/kubernetes
-        version: v1.36.0
+        version: v1.36.1
 
     - name: Install Helm
       uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
