@@ -45,6 +45,7 @@ type observerUsdtSensor struct {
 type usdtHas struct {
 	sleepableOffload bool
 	sleepablePreload bool
+	parentBinaries   bool
 }
 
 var (
@@ -156,9 +157,7 @@ func createGenericUsdtSensor(
 		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
 	}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
-	}
+	maps = setParentsMap(progs, maps, has.parentBinaries)
 
 	return &sensors.Sensor{
 		Name:      name,
@@ -434,6 +433,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 			)
 		}
 		has.sleepablePreload = has.sleepablePreload || preload
+		has.parentBinaries = has.parentBinaries || selectors.HasMatchParentBinaries(spec.Selectors)
 		config.BTFArg = allBTFArgs
 
 		usdtEntry := &genericUsdt{

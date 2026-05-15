@@ -52,6 +52,10 @@ type T struct {
 	// In that case, the string contains the reason that the test was skipped.
 	ShouldSkip func(info *SkipInfo) string
 
+	// Setup is called before the observer is loaded. The returned function, if
+	// non-nil, is called as a cleanup after the test completes.
+	Setup func() func()
+
 	// Policy generates a policy for this test
 	Policy func(c *Conf) (Policy, error)
 
@@ -59,6 +63,9 @@ type T struct {
 
 	// Scenarios returns a list of scenarios to test the generated policy
 	Scenarios []func(c *Conf) *Scenario
+
+	// Do not limit events to observer's pid
+	AllEvents bool
 }
 
 type ScenarioRes struct {

@@ -612,6 +612,7 @@ func createGenericTracepointSensor(
 		if err := appendMacrosSelectors(tp.Spec.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectos: %w", err)
 		}
+		has.parentBinaries = has.parentBinaries || selectors.HasMatchParentBinaries(tp.Spec.Selectors)
 
 		pinProg := sensors.PathJoin(fmt.Sprintf("%s:%s", tp.Info.Subsys, tp.Info.Event))
 		attach := fmt.Sprintf("%s/%s", tp.Info.Subsys, tp.Info.Event)
@@ -670,9 +671,7 @@ func createGenericTracepointSensor(
 		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
 	}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
-	}
+	maps = setParentsMap(progs, maps, has.parentBinaries)
 
 	ret.Progs = progs
 	ret.Maps = maps
