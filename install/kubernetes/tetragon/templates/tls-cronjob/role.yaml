@@ -1,0 +1,24 @@
+{{- if and .Values.tetragon.enabled .Values.tetragon.grpc.tls.enabled .Values.tetragon.grpc.tls.auto.enabled (eq .Values.tetragon.grpc.tls.auto.method "cronJob") (not .Values.tetragon.grpc.tls.server.existingSecret) -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "tetragon.name" . }}-certgen
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tetragon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: certgen
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - {{ include "tetragon.grpcTlsSecretName" . }}
+    verbs: ["get", "update"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - {{ include "tetragon.caSecretName" . }}
+    verbs: ["get", "update"]
+{{- end }}

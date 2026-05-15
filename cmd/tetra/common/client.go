@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -106,9 +107,16 @@ func NewClient(ctx context.Context, address string, timeout time.Duration) (*Cli
 	c.SignalCtx, c.signalCancel = signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	c.Ctx, c.timeoutCancel = context.WithTimeout(c.SignalCtx, timeout)
 
-	var err error
+	tlsCreds, err := TLSCredentials(TLS)
+	if err != nil {
+		return nil, fmt.Errorf("building TLS credentials: %w", err)
+	}
+	creds := credentials.TransportCredentials(insecure.NewCredentials())
+	if tlsCreds != nil {
+		creds = tlsCreds
+	}
 	c.conn, err = grpc.NewClient(address,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithTransportCredentials(creds),
 		grpc.WithDefaultServiceConfig(RetryPolicy(Retries)),
 		grpc.WithMaxCallAttempts(Retries+1), // maxAttempt includes the first call
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize)),

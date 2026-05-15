@@ -47,6 +47,7 @@ To read more about Tetragon configuration, please check our reference pages:
 * For Kubernetes deployments, see the [Helm chart]({{< ref "/docs/reference/helm-chart" >}}) reference.
 * For Container or systemd deployments, see the [Daemon configuration]({{< ref "/docs/reference/daemon-configuration" >}})
 reference.
+* To secure the gRPC API with TLS or mTLS, see [gRPC TLS / mTLS]({{< ref "/docs/installation/grpc-tls" >}}).
 
 ## Enable Process Credentials
 

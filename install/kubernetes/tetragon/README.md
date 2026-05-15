@@ -9,6 +9,17 @@ Helm chart for Tetragon
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
+| certgen | object | `{"affinity":{},"annotations":{"cronJob":{},"job":{}},"cronJob":{"failedJobsHistoryLimit":1,"successfulJobsHistoryLimit":1},"generateCA":true,"image":{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/certgen","tag":"v0.2.5"},"nodeSelector":{},"podLabels":{},"resources":{},"tolerations":[],"ttlSecondsAfterFinished":1800}` | cilium-certgen settings used by tetragon.grpc.tls.auto.method=cronJob. Mirrors the same block in cilium/cilium so operators familiar with the hubble TLS workflow find consistent knobs. |
+| certgen.affinity | object | `{}` | Affinity for certgen pods. |
+| certgen.annotations | object | `{"cronJob":{},"job":{}}` | Annotations applied to certgen Job/CronJob objects. |
+| certgen.cronJob.failedJobsHistoryLimit | int | `1` | Number of failed CronJob runs to retain. |
+| certgen.cronJob.successfulJobsHistoryLimit | int | `1` | Number of successful CronJob runs to retain. |
+| certgen.generateCA | bool | `true` | Whether the certgen invocation should generate a CA when one isn't found in the configured CA Secret. |
+| certgen.nodeSelector | object | `{}` | Node selector for certgen pods. |
+| certgen.podLabels | object | `{}` | Pod labels added to certgen pods. |
+| certgen.resources | object | `{}` | Resource requests/limits for the certgen container. |
+| certgen.tolerations | list | `[]` | Tolerations for certgen pods. |
+| certgen.ttlSecondsAfterFinished | int | `1800` | TTL applied to the bootstrap Job once it completes. |
 | crds.installMethod | string | `"operator"` | Method for installing CRDs. Supported values are: "operator", "helm" and "none". The "operator" method allows for fine-grained control over which CRDs are installed and by default doesn't perform CRD downgrades. These can be configured in tetragonOperator section. The "helm" method always installs all CRDs for the chart version. |
 | daemonSetAnnotations | object | `{}` |  |
 | daemonSetLabelsOverride | object | `{}` |  |
@@ -93,6 +104,23 @@ Helm chart for Tetragon
 | tetragon.gops.port | int | `8118` | The port at which to expose gops. |
 | tetragon.grpc.address | string | `"unix:///var/run/tetragon/tetragon.sock"` | The address at which to expose gRPC. Examples: localhost:54321, unix:///var/run/tetragon/tetragon.sock |
 | tetragon.grpc.enabled | bool | `true` | Whether to enable exposing Tetragon gRPC. |
+| tetragon.grpc.tls | object | `{"auto":{"certManagerIssuerRef":{},"certValidityDuration":365,"enabled":true,"method":"helm","schedule":"0 0 1 */4 *"},"ca":{"cert":"","certValidityDuration":1095,"key":""},"enabled":false,"requireClientCert":false,"server":{"existingSecret":"","extraDnsNames":[],"extraIpAddresses":[]}}` | gRPC TLS / mTLS configuration for the optional TCP listener (tetragon.grpc.address); the always-on unix-domain listener at /var/run/tetragon/tetragon.sock is unaffected.  The auto-provisioned server cert uses a wildcard SAN over a synthetic DNS domain (*.tetragon-grpc.cilium.io) so a single Secret covers every DaemonSet pod. Clients must override SNI to <any>.tetragon-grpc.cilium.io to validate. See _helpers.tpl `tetragon.grpcTls.domain` for details; add Service-style or per-node identities via server.extraDnsNames / server.extraIpAddresses below. |
+| tetragon.grpc.tls.auto | object | `{"certManagerIssuerRef":{},"certValidityDuration":365,"enabled":true,"method":"helm","schedule":"0 0 1 */4 *"}` | Configure automatic TLS certificate generation. |
+| tetragon.grpc.tls.auto.certManagerIssuerRef | object | `{}` | cert-manager IssuerRef used when method=certmanager. [Example] certManagerIssuerRef:   group: cert-manager.io   kind: ClusterIssuer   name: ca-issuer |
+| tetragon.grpc.tls.auto.certValidityDuration | int | `365` | Generated certificate validity duration in days. Defaults to 365 (1 year). |
+| tetragon.grpc.tls.auto.enabled | bool | `true` | Auto-generate certificates. When false, you must provide a Secret yourself (see server.existingSecret). |
+| tetragon.grpc.tls.auto.method | string | `"helm"` | Method used to auto-generate certificates. Supported values: - helm:        Helm renders the cert/key Secret directly. - cronJob:     A Kubernetes CronJob runs cilium-certgen to (re)issue                the cert; a one-shot Job seeds it on install. - certmanager: cert-manager issues and rotates the cert. |
+| tetragon.grpc.tls.auto.schedule | string | `"0 0 1 */4 *"` | Schedule for certificate regeneration; only honored when method=cronJob. Empty disables the recurring CronJob, leaving only the one-shot bootstrap Job. |
+| tetragon.grpc.tls.ca | object | `{"cert":"","certValidityDuration":1095,"key":""}` | In-cluster CA used by the helm and cronJob methods. |
+| tetragon.grpc.tls.ca.cert | string | `""` | base64-encoded PEM CA certificate. When both cert and key are set, helm/cronJob reuse this CA instead of generating a fresh one. |
+| tetragon.grpc.tls.ca.certValidityDuration | int | `1095` | Validity duration in days for an auto-generated CA. Only used when ca.cert/key are unset. |
+| tetragon.grpc.tls.ca.key | string | `""` | base64-encoded PEM CA private key. Required when ca.cert is set. |
+| tetragon.grpc.tls.enabled | bool | `false` | Enable TLS on the TCP gRPC listener. When false, the listener (if any) is plaintext. |
+| tetragon.grpc.tls.requireClientCert | bool | `false` | Require and verify client certificates (mTLS). When true, the agent rejects TCP gRPC connections that don't present a valid client cert signed by one of the bundled CAs. |
+| tetragon.grpc.tls.server | object | `{"existingSecret":"","extraDnsNames":[],"extraIpAddresses":[]}` | Server cert configuration. |
+| tetragon.grpc.tls.server.existingSecret | string | `""` | Use an existing Secret (must contain tls.crt + tls.key, plus ca.crt when requireClientCert is true) instead of provisioning one. Disables all auto-* methods when set. |
+| tetragon.grpc.tls.server.extraDnsNames | list | `[]` | Extra DNS SANs added to auto-generated certificates. |
+| tetragon.grpc.tls.server.extraIpAddresses | list | `[]` | Extra IP SANs added to auto-generated certificates. |
 | tetragon.healthGrpc.enabled | bool | `true` | Whether to enable health gRPC server. |
 | tetragon.healthGrpc.interval | int | `10` | The interval at which to check the health of the agent. |
 | tetragon.healthGrpc.port | int | `6789` | The port at which to expose health gRPC. |

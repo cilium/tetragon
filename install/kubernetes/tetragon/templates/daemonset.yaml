@@ -104,6 +104,12 @@ spec:
           path: {{ quote .Values.tetragon.cri.socketHostPath }}
           type: Socket
 {{- end }}
+{{- if and .Values.tetragon.grpc.enabled .Values.tetragon.grpc.tls.enabled }}
+      - name: tetragon-grpc-tls
+        secret:
+          secretName: {{ .Values.tetragon.grpc.tls.server.existingSecret | default (include "tetragon.grpcTlsSecretName" .) }}
+          defaultMode: 0400
+{{- end }}
       {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 6 }}
       {{- end }}

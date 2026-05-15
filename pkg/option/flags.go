@@ -144,6 +144,12 @@ const (
 	KeyRetprobesCacheSize = "retprobes-cache-size"
 
 	KeyEnableDeprecatedTPGRPC = "enable-deprecated-tracingpolicy-grpc"
+
+	// gRPC server TLS / mTLS flags.
+	KeyServerTLSCertFile          = "server-tls-cert-file"
+	KeyServerTLSKeyFile           = "server-tls-key-file"
+	KeyServerTLSClientCAFiles     = "server-tls-client-ca-files"
+	KeyServerTLSRequireClientCert = "server-tls-require-client-cert"
 )
 
 type UsernameMetadaCode int
@@ -316,7 +322,60 @@ func ReadAndSetFlags() error {
 
 	Config.EnableGRPCDeprecatedTP = viper.GetBool(KeyEnableDeprecatedTPGRPC)
 
+	Config.ServerTLSCertFile = viper.GetString(KeyServerTLSCertFile)
+	Config.ServerTLSKeyFile = viper.GetString(KeyServerTLSKeyFile)
+	Config.ServerTLSClientCAFiles = viper.GetStringSlice(KeyServerTLSClientCAFiles)
+	Config.ServerTLSRequireClientCert = viper.GetBool(KeyServerTLSRequireClientCert)
+	if err := validateServerTLSConfig(Config); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// validateServerTLSConfig enforces the server-side TLS / mTLS flag
+// preconditions:
+//   - cert-file and key-file must be set together,
+//   - require-client-cert demands at least one client CA bundle,
+//   - client CA files cannot be supplied without enabling client cert
+//     verification (otherwise the bundle is silently ignored), and
+//   - TLS only applies to the TCP listener: pairing --server-tls-* with a
+//     unix-only or empty --server-address is almost certainly a misconfig
+//     (the cert material would be quietly ignored), so reject it loudly.
+func validateServerTLSConfig(c config) error {
+	hasCert := c.ServerTLSCertFile != ""
+	hasKey := c.ServerTLSKeyFile != ""
+	if hasCert != hasKey {
+		return fmt.Errorf("--%s and --%s must be set together", KeyServerTLSCertFile, KeyServerTLSKeyFile)
+	}
+	if c.ServerTLSRequireClientCert {
+		if !hasCert {
+			return fmt.Errorf("--%s requires --%s and --%s", KeyServerTLSRequireClientCert, KeyServerTLSCertFile, KeyServerTLSKeyFile)
+		}
+		if len(c.ServerTLSClientCAFiles) == 0 {
+			return fmt.Errorf("--%s requires at least one --%s entry", KeyServerTLSRequireClientCert, KeyServerTLSClientCAFiles)
+		}
+	}
+	if !c.ServerTLSRequireClientCert && len(c.ServerTLSClientCAFiles) > 0 {
+		return fmt.Errorf("--%s only takes effect when --%s is true", KeyServerTLSClientCAFiles, KeyServerTLSRequireClientCert)
+	}
+	if hasCert && !serverAddressUsesTCP(c.ServerAddress) {
+		return fmt.Errorf("--%s requires --%s to point at a TCP address (got %q); TLS does not apply to the unix-domain listener",
+			KeyServerTLSCertFile, KeyServerAddress, c.ServerAddress)
+	}
+	return nil
+}
+
+// serverAddressUsesTCP reports whether the configured listen address
+// targets a TCP listener (the only listener type TLS applies to).
+func serverAddressUsesTCP(addr string) bool {
+	if addr == "" {
+		return false
+	}
+	// Mirror server.SplitListenAddr: an explicit unix:// scheme is the
+	// only non-TCP form we accept; everything else is treated as a host
+	// or host:port for net.Listen("tcp", ...).
+	return !strings.HasPrefix(addr, "unix://")
 }
 
 type CgroupRate struct {
@@ -521,4 +580,9 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Bool(KeyEnableDeprecatedTPGRPC, false, "Enable deprecated gRPC TracingPolicy APIs")
 
+	// gRPC server TLS / mTLS flags.
+	flags.String(KeyServerTLSCertFile, "", "Path to a PEM-encoded server certificate. When set, TLS is enabled on the TCP gRPC listener.")
+	flags.String(KeyServerTLSKeyFile, "", "Path to the PEM-encoded private key matching --"+KeyServerTLSCertFile+". Required when --"+KeyServerTLSCertFile+" is set.")
+	flags.StringSlice(KeyServerTLSClientCAFiles, []string{}, "Paths to PEM-encoded CA bundles used to verify client certificates. Required when --"+KeyServerTLSRequireClientCert+" is true.")
+	flags.Bool(KeyServerTLSRequireClientCert, false, "Require and verify client certificates (mTLS). Requires --"+KeyServerTLSClientCAFiles+".")
 }
