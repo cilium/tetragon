@@ -27,6 +27,7 @@ int generic_uprobe_actions(void *ctx);
 int generic_uprobe_output(void *ctx);
 int generic_uprobe_path(void *ctx);
 
+#ifndef __NO_TAILCALLS
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, 13);
@@ -49,6 +50,7 @@ struct {
 #endif
 	},
 };
+#endif
 
 #include "generic_maps.h"
 #include "generic_calls.h"
@@ -66,9 +68,14 @@ struct {
 __attribute__((section((MAIN)), used)) int
 generic_uprobe_event(struct pt_regs *ctx)
 {
+#ifdef __NO_TAILCALLS
+	return generic_event_no_tail(ctx, MSG_OP_GENERIC_UPROBE);
+#else
 	return generic_start_process_filter(ctx, (struct bpf_map_def *)&uprobe_calls);
+#endif
 }
 
+#ifndef __NO_TAILCALLS
 __attribute__((section(COMMON), used)) int
 generic_uprobe_setup_event(void *ctx)
 {
@@ -154,6 +161,7 @@ generic_uprobe_path(void *ctx)
 	return generic_path(ctx, (struct bpf_map_def *)&uprobe_calls);
 }
 #endif
+#endif /* __NO_TAILCALLS */
 
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_preload(struct pt_regs *ctx)

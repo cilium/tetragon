@@ -20,6 +20,7 @@ int generic_retuprobe_filter_arg_2(struct pt_regs *ctx);
 int generic_retuprobe_actions(struct pt_regs *ctx);
 int generic_retuprobe_output(struct pt_regs *ctx);
 
+#ifndef __NO_TAILCALLS
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, 13);
@@ -35,6 +36,7 @@ struct {
 #endif
 	},
 };
+#endif
 
 #include "generic_maps.h"
 #include "generic_calls.h"
@@ -50,9 +52,14 @@ struct {
 __attribute__((section((MAIN)), used)) int
 BPF_KRETPROBE(generic_retuprobe_event, unsigned long ret)
 {
+#ifdef __NO_TAILCALLS
+	return generic_retprobe_no_tail(ctx, ret, MSG_OP_GENERIC_UPROBE);
+#else
 	return generic_retprobe(ctx, (struct bpf_map_def *)&retuprobe_calls, ret);
+#endif
 }
 
+#ifndef __NO_TAILCALLS
 #ifdef __LARGE_BPF_PROG
 __attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retuprobe_filter_arg)
@@ -88,3 +95,4 @@ BPF_KRETPROBE(generic_retuprobe_output)
 {
 	return generic_output(ctx, MSG_OP_GENERIC_UPROBE);
 }
+#endif /* __NO_TAILCALLS */
