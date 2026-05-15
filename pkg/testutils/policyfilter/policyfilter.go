@@ -6,8 +6,6 @@
 package policyfilter
 
 import (
-	"k8s.io/client-go/tools/cache"
-
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 
 	"github.com/cilium/tetragon/pkg/labels"
@@ -48,7 +46,7 @@ func (s *DummyPF) DelPod(_ policyfilter.PodID) error {
 	return nil
 }
 
-func (s *DummyPF) RegisterPodHandlers(_ cache.SharedIndexInformer) {
+func (s *DummyPF) RegisterPodHandlers(_ policyfilter.PodEventSource) {
 }
 
 func (s *DummyPF) Close() error {

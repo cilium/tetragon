@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/cilium/tetragon/pkg/watcher/crdwatcher"
@@ -28,10 +29,9 @@ func initK8s(ctx context.Context) (watcher.PodAccessor, error) {
 		controllerManager := manager.Get()
 		controllerManager.Start(ctx)
 		crds := make(map[string]struct{})
-		if option.Config.EnableTracingPolicyCRD {
-			crds[v1alpha1.TPName] = struct{}{}
-			crds[v1alpha1.TPNamespacedName] = struct{}{}
-		}
+		// Both TracingPolicy CRDs are gated independently inside their
+		// respective Reconciler-registration helpers, so neither appears
+		// here. Only PodInfo still uses the upfront WaitCRDs gate.
 		if option.Config.EnablePodInfo {
 			crds[v1alpha1.PIName] = struct{}{}
 		}
@@ -43,6 +43,24 @@ func initK8s(ctx context.Context) (watcher.PodAccessor, error) {
 				}
 			}
 			podAccessor = controllerManager
+			// Wire pod-event consumers that need typed pod callbacks. Each
+			// consumer is conditional on its own enablement flag, so
+			// disabled features do not register no-op hooks. cgidmap's
+			// wiring lives in main_k8s_unix.go because the package is
+			// excluded from Windows builds.
+			if podEvents := controllerManager.PodEvents(); podEvents != nil {
+				if option.Config.MetricsServer != "" {
+					metrics.RegisterPodDeleteHandler(podEvents)
+				}
+				registerCgidmapPodHandlers(podEvents)
+				if option.Config.EnablePolicyFilter {
+					if pfState, pfErr := policyfilter.GetState(); pfErr == nil {
+						pfState.RegisterPodHandlers(podEvents)
+					} else {
+						log.Warn("failed to get policyfilter state", logfields.Error, pfErr)
+					}
+				}
+			}
 			k8sNode, err := controllerManager.GetNode()
 			if err != nil {
 				log.Warn("Failed to get local Kubernetes node info. node_labels field will be empty", logfields.Error, err)
@@ -60,13 +78,18 @@ func initK8s(ctx context.Context) (watcher.PodAccessor, error) {
 	return podAccessor, nil
 }
 
-func initK8sPolicyWatcher(ctx context.Context) error {
+func initK8sPolicyWatcher(_ context.Context) error {
 	if option.K8SControlPlaneEnabled() && option.Config.EnableTracingPolicyCRD {
-		// add informers for all resources
-		log.Info("Enabling policy informers")
+		log.Info("Enabling policy reconcilers")
 		controllerManager := manager.Get()
-		err := crdwatcher.AddTracingPolicyInformer(ctx, controllerManager, observer.GetSensorManager())
-		if err != nil {
+		sensorManager := observer.GetSensorManager()
+		// Cluster-scoped TracingPolicy: gated on its own CRD.
+		if err := crdwatcher.RegisterTracingPolicyReconciler(controllerManager, sensorManager); err != nil {
+			return err
+		}
+		// Namespaced TracingPolicy: gated independently on its own CRD, so
+		// the cluster-scoped Reconciler still works if this CRD is absent.
+		if err := crdwatcher.RegisterTracingPolicyNamespacedReconciler(controllerManager, sensorManager); err != nil {
 			return err
 		}
 	}
@@ -76,6 +99,4 @@ func initK8sPolicyWatcher(ctx context.Context) error {
 
 func initK8sMetrics() {
 	go metrics.StartPodDeleteHandler()
-	// Handler must be registered before the watcher is started
-	metrics.RegisterPodDeleteHandler()
 }

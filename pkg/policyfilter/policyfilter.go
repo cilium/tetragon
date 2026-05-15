@@ -8,11 +8,22 @@ package policyfilter
 import (
 	"testing"
 
+	v1 "k8s.io/api/core/v1"
+
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 )
+
+// PodEventSource is the narrow capability policyfilter needs to consume pod
+// lifecycle events. The concrete adapter lives in pkg/manager; tests can pass
+// a hand-rolled fake satisfying the same interface.
+type PodEventSource interface {
+	OnPodAdd(handler func(pod *v1.Pod))
+	OnPodUpdate(handler func(oldPod, newPod *v1.Pod))
+	OnPodDelete(handler func(pod *v1.Pod))
+}
 
 // TestingEnableAndReset enables policy filter for tests (see ResetStateOnlyForTesting)
 func TestingEnableAndReset(t *testing.T) {
@@ -61,10 +72,10 @@ type State interface {
 	// DelPod informs policyfilter that a pod has been deleted
 	DelPod(podID PodID) error
 
-	// RegisterPodHandlers can be used to register appropriate pod handlers to a pod informer
-	// that for keeping the policy filter state up-to-date.
-	//XXX: Is this needed?
-	//RegisterPodHandlers(podInformer cache.SharedIndexInformer)
+	// RegisterPodHandlers wires policyfilter's pod-event handlers into the
+	// supplied PodEventSource so the policy filter state stays up to date
+	// with pod lifecycle changes.
+	RegisterPodHandlers(events PodEventSource)
 
 	// Close releases resources allocated by the Manager. Specifically, we close and unpin the
 	// policy filter map.

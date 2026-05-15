@@ -18,11 +18,9 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/podhelpers"
-	"github.com/cilium/tetragon/pkg/podhooks"
 
 	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/cache"
 )
 
 // Policy filter is a mechanism for restricting  tracing policies on a subset
@@ -58,20 +56,6 @@ import (
 //  - use a goroutine and a queue
 //  (https://github.com/kubernetes/client-go/blob/master/examples/workqueue/main.go) instead locks
 //  for serialization
-
-func init() {
-	podhooks.RegisterCallbacksAtInit(podhooks.Callbacks{
-		PodCallbacks: func(podInformer cache.SharedIndexInformer) {
-			// register pod handlers for policyfilters
-			if pfState, err := GetState(); err == nil {
-				logger.GetLogger().Info("registering policyfilter pod handlers")
-				if st, ok := pfState.(*state); ok {
-					st.RegisterPodHandlers(podInformer)
-				}
-			}
-		},
-	})
-}
 
 func (i PodID) String() string {
 	var x = uuid.UUID(i)
@@ -307,54 +291,47 @@ func (m *state) updatePodHandler(pod *v1.Pod) error {
 	return nil
 }
 
-func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj any) {
-			pod, ok := obj.(*v1.Pod)
-			if !ok {
-				logger.GetLogger().Warn(fmt.Sprintf("policyfilter, add-pod handler: unexpected object type: %T", pod))
-				return
-			}
-			err := m.updatePodHandler(pod)
-			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.AddPodOperation, ErrorLabel(err))
-		},
-		UpdateFunc: func(_, newObj any) {
-			pod, ok := newObj.(*v1.Pod)
-			if !ok {
-				logger.GetLogger().Warn(fmt.Sprintf("policyfilter, update-pod handler: unexpected object type(s): new:%T", pod))
-				return
-			}
-			err := m.updatePodHandler(pod)
-			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.UpdatePodOperation, ErrorLabel(err))
-		},
-		DeleteFunc: func(obj any) {
-			// Remove all containers for this pod
-			pod, ok := obj.(*v1.Pod)
-			if !ok {
-				logger.GetLogger().Warn(fmt.Sprintf("policyfilter, delete-pod handler: unexpected object type: %T", pod))
-				return
-			}
-			podID, err := uuid.Parse(string(pod.UID))
-			if err != nil {
-				logger.GetLogger().Warn("policyfilter, delete-pod: failed to parse id", "pod-id", pod.UID, logfields.Error, err)
-				return
-			}
-
-			namespace := pod.Namespace
-			err = m.DelPod(PodID(podID))
-			if err != nil {
-				logger.GetLogger().Warn("policyfilter, delete-pod handler: DelPod failed",
-					logfields.Error, err,
-					"pod-id", podID,
-					"namespace", namespace)
-			}
-			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.DeletePodOperation, ErrorLabel(err))
-		},
-	}
+// onPodAdd handles a new pod observed by the cluster. The handler refreshes
+// pod→policy mappings from the pod's current labels and containers.
+func (m *state) onPodAdd(pod *v1.Pod) {
+	err := m.updatePodHandler(pod)
+	policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.AddPodOperation, ErrorLabel(err))
 }
 
-func (m *state) RegisterPodHandlers(podInformer cache.SharedIndexInformer) {
-	podInformer.AddEventHandler(m.getPodEventHandlers())
+// onPodUpdate handles a pod update. The two-arg shape is preserved so future
+// label-diff optimisations can use `oldPod` without changing the
+// PodEventSource contract.
+func (m *state) onPodUpdate(_ /* oldPod */, newPod *v1.Pod) {
+	err := m.updatePodHandler(newPod)
+	policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.UpdatePodOperation, ErrorLabel(err))
+}
+
+func (m *state) onPodDelete(pod *v1.Pod) {
+	podID, err := uuid.Parse(string(pod.UID))
+	if err != nil {
+		m.log.Warn("policyfilter, delete-pod: failed to parse id", "pod-id", pod.UID, logfields.Error, err)
+		policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.DeletePodOperation, ErrorLabel(err))
+		return
+	}
+
+	err = m.DelPod(PodID(podID))
+	if err != nil {
+		m.log.Warn("policyfilter, delete-pod handler: DelPod failed",
+			logfields.Error, err,
+			"pod-id", podID,
+			"namespace", pod.Namespace)
+	}
+	policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.DeletePodOperation, ErrorLabel(err))
+}
+
+// RegisterPodHandlers wires the policyfilter's pod-event handlers into the
+// supplied PodEventSource. The DeletedFinalStateUnknown unwrap and the
+// `obj.(*v1.Pod)` type assertion happen inside the adapter (see pkg/manager),
+// so this code only deals with concrete `*v1.Pod` values.
+func (m *state) RegisterPodHandlers(events PodEventSource) {
+	events.OnPodAdd(m.onPodAdd)
+	events.OnPodUpdate(m.onPodUpdate)
+	events.OnPodDelete(m.onPodDelete)
 }
 
 // Close releases resources allocated by the Manager. Specifically, we close and unpin the policy filter map.

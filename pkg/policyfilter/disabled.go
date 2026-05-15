@@ -51,6 +51,10 @@ func (s *disabled) DelPod(podID PodID) error {
 	return nil
 }
 
+func (s *disabled) RegisterPodHandlers(events PodEventSource) {
+	// no-op: policyfilter disabled, nothing to update on pod events
+}
+
 func (s *disabled) Close() error {
 	return nil
 }
