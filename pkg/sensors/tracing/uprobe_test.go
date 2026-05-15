@@ -143,6 +143,9 @@ kind: TracingPolicy
 metadata:
   name: "uprobe"
 spec:
+  options:
+  - name: "disable-sleepable"
+    value: "1"
   uprobes:
   - path: "/bin/bash"
     symbols:

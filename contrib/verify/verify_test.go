@@ -117,6 +117,11 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			continue
 		}
 
+		// Skip sleepable objects if there's no sleepable tail call support.
+		if strings.Contains(fileName, "sleepable") && !bpf.DetectSleepableTailCalls() {
+			continue
+		}
+
 		spec, err := ebpf.LoadCollectionSpec(tetragonDir + "/" + fileName)
 		require.NoError(t, err, "failed to parse elf file into collection spec")
 		require.NotNil(t, spec, "collection spec should not be nil")

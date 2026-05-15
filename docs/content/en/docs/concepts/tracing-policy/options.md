@@ -44,6 +44,7 @@ Example:
 ## Uprobe options
 
 - [`disable-uprobe-multi`](#disable-uprobe-multi): disable uprobe multi link
+- [`disable-sleepable`](#disable-sleepable): disable sleepable uprobe programs
 
 ### disable-uprobe-multi
 
@@ -58,5 +59,21 @@ Example:
 ```yaml
   options:
     - name: "disable-uprobe-multi"
+      value: "1"
+```
+
+### disable-sleepable
+
+This option disables sleepable uprobe programs for all the uprobes defined in
+the spec file. If enabled, uprobes will use the standard non-sleepable uprobe
+programs even when sleepable uprobes are supported.
+
+It takes boolean as value, by default it's false.
+
+Example:
+
+```yaml
+  options:
+    - name: "disable-sleepable"
       value: "1"
 ```

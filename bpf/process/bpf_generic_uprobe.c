@@ -6,6 +6,12 @@
 
 #define GENERIC_UPROBE
 
+#ifdef __SLEEPABLE
+#define __NO_PERF_RINGBUFFER
+#define __NO_STACKTRACE
+#define __NO_PRELOAD
+#endif
+
 #include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
@@ -54,14 +60,24 @@ struct {
 #include "generic_calls.h"
 
 #ifdef __MULTI_KPROBE
-#define MAIN	"uprobe.multi/generic_uprobe"
-#define COMMON	"uprobe.multi"
-#define OFFLOAD "uprobe.multi.s/generic_uprobe"
+#ifdef __SLEEPABLE
+#define MAIN   "uprobe.multi.s/generic_uprobe"
+#define COMMON "uprobe.multi.s"
 #else
-#define MAIN	"uprobe/generic_uprobe"
-#define COMMON	"uprobe"
-#define OFFLOAD "uprobe.s/generic_uprobe"
-#endif
+#define MAIN   "uprobe.multi/generic_uprobe"
+#define COMMON "uprobe.multi"
+#endif /* __SLEEPABLE */
+#define OFFLOAD "uprobe.multi.s"
+#else
+#ifdef __SLEEPABLE
+#define MAIN   "uprobe.s/generic_uprobe"
+#define COMMON "uprobe.s"
+#else
+#define MAIN   "uprobe/generic_uprobe"
+#define COMMON "uprobe"
+#endif /* __SLEEPABLE */
+#define OFFLOAD "uprobe.s"
+#endif /* __MULTI_KPROBE */
 
 __attribute__((section((MAIN)), used)) int
 generic_uprobe_event(struct pt_regs *ctx)
@@ -155,6 +171,7 @@ generic_uprobe_path(void *ctx)
 }
 #endif
 
+#ifndef __NO_PRELOAD
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_preload(struct pt_regs *ctx)
 {
@@ -166,6 +183,7 @@ generic_sleepable_preload_cleanup(struct pt_regs *ctx)
 {
 	return user_preload_cleanup(ctx);
 }
+#endif /* __NO_PRELOAD */
 
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_offload(struct pt_regs *ctx)

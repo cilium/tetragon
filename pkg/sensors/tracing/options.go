@@ -18,10 +18,11 @@ import (
 type OverrideMethod int
 
 const (
-	keyOverrideMethod = "override-method"
-	valFmodRet        = "fmod-ret"
-	valOverrideReturn = "override-return"
-	keyPolicyMode     = "policy-mode"
+	keyOverrideMethod   = "override-method"
+	valFmodRet          = "fmod-ret"
+	valOverrideReturn   = "override-return"
+	keyPolicyMode       = "policy-mode"
+	keyDisableSleepable = "disable-sleepable"
 )
 
 const (
@@ -45,6 +46,7 @@ func overrideMethodParse(s string) OverrideMethod {
 type specOptions struct {
 	DisableKprobeMulti bool
 	DisableUprobeMulti bool
+	DisableSleepable   bool
 	OverrideMethod     OverrideMethod
 	policyMode         policyconf.Mode
 }
@@ -71,6 +73,12 @@ var opts = map[string]opt{
 	option.KeyDisableUprobeMulti: {
 		set: func(str string, options *specOptions) (err error) {
 			options.DisableUprobeMulti, err = strconv.ParseBool(str)
+			return err
+		},
+	},
+	keyDisableSleepable: {
+		set: func(str string, options *specOptions) (err error) {
+			options.DisableSleepable, err = strconv.ParseBool(str)
 			return err
 		},
 	},
