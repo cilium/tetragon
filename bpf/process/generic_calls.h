@@ -26,8 +26,14 @@
 
 #define MAX_TOTAL 9000
 
-FUNC_INLINE int
-generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
+#ifdef __NO_TAILCALLS
+#define FUNC_NO_TAIL static __attribute__((noinline)) __attribute__((__unused__))
+#else
+#define FUNC_NO_TAIL FUNC_INLINE
+#endif
+
+FUNC_NO_TAIL int
+generic_start_init(void *ctx)
 {
 	struct msg_generic_kprobe *msg;
 	struct event_config *config;
@@ -72,6 +78,15 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 
 	msg->lsm.post = false;
 	msg->common.flags = 0;
+
+	return 1;
+}
+
+FUNC_INLINE int
+generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
+{
+	if (!generic_start_init(ctx))
+		return 0;
 
 	/* Tail call into filters. */
 	tail_call(ctx, calls, TAIL_CALL_FILTER);
@@ -713,8 +728,8 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op)
 	e->tid = (__u32)get_current_pid_tgid();
 }
 
-FUNC_INLINE int
-generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcals)
+FUNC_NO_TAIL int
+generic_process_event_setup(struct pt_regs *ctx)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
@@ -839,6 +854,15 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	e->a3 = read_usdt_arg(ctx, config, 3, false);
 	e->a4 = read_usdt_arg(ctx, config, 4, false);
 #endif
+
+	return 1;
+}
+
+FUNC_INLINE int
+generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcals)
+{
+	if (!generic_process_event_setup(ctx))
+		return 0;
 
 	/* No arguments, go send.. */
 	if (arg_idx(0) == -1)
@@ -1123,8 +1147,8 @@ do_actions(void *ctx, struct selector_action *actions)
 	return post;
 }
 
-FUNC_INLINE long
-generic_actions(void *ctx, struct bpf_map_def *calls)
+FUNC_NO_TAIL long
+generic_actions_post(void *ctx)
 {
 	struct selector_arg_filters *arg;
 	struct selector_action *actions;
@@ -1157,6 +1181,15 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 	actions = (struct selector_action *)&f[actoff];
 
 	postit = do_actions(ctx, actions);
+	return postit;
+}
+
+FUNC_INLINE long
+generic_actions(void *ctx, struct bpf_map_def *calls)
+{
+	long postit;
+
+	postit = generic_actions_post(ctx);
 	if (postit)
 		tail_call(ctx, calls, TAIL_CALL_SEND);
 	return postit;
@@ -1211,7 +1244,7 @@ generic_output(void *ctx, u8 op)
 	return 0;
 }
 
-FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned long ret)
+FUNC_NO_TAIL int generic_retprobe_setup(void *ctx, unsigned long ret)
 {
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
@@ -1315,6 +1348,14 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 
 	e->func_id = config->func_id;
 	e->common.size = size;
+
+	return 1;
+}
+
+FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned long ret)
+{
+	if (!generic_retprobe_setup(ctx, ret))
+		return 0;
 
 	tail_call(ctx, calls, TAIL_CALL_ARGS);
 	return 1;
@@ -1492,4 +1533,109 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 	tail_call(ctx, tailcalls, TAIL_CALL_SEND);
 	return 0;
 }
+
+#ifdef __NO_TAILCALLS
+FUNC_NO_TAIL int generic_process_filter_no_tail(void)
+{
+	int ret = PFILTER_REJECT;
+
+	for (int i = 0; i < MAX_SELECTORS + 1; i++) {
+		ret = generic_process_filter();
+		if (ret != PFILTER_CONTINUE)
+			return ret;
+	}
+	return PFILTER_REJECT;
+}
+
+FUNC_NO_TAIL int generic_process_event_no_tail(void *ctx)
+{
+	struct msg_generic_kprobe *e;
+	int zero = 0;
+	long total;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	total = e->common.size;
+
+	for (int i = 0; i < MAX_POSSIBLE_ARGS; i++) {
+		long errv;
+
+		if (arg_idx(i) == -1)
+			break;
+		if (total >= MAX_TOTAL)
+			break;
+
+		errv = generic_read_arg(ctx, i, total, (struct bpf_map_def *)0,
+					__READ_ARG_ALL);
+		if (errv > 0)
+			total += errv;
+		e->common.size = total;
+	}
+
+	e->tailcall_index_process = 0;
+	return 0;
+}
+
+FUNC_NO_TAIL int generic_filter_arg_no_tail(void *ctx, bool is_entry, int arg, u8 op)
+{
+	struct msg_generic_kprobe *e;
+	int selidx, pass, zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	selidx = e->tailcall_index_selector;
+
+	for (int i = 0; i < MAX_SELECTORS + 1; i++) {
+		pass = filter_args(ctx, (struct bpf_map_def *)0, e,
+				   selidx & MAX_SELECTORS_MASK, is_entry, arg);
+		if (pass) {
+			if (pass > 1) {
+				e->pass = pass;
+				if (!generic_actions_post(ctx))
+					return 0;
+			}
+			return generic_output(ctx, op);
+		}
+
+		selidx = next_selidx(e, selidx);
+		if (selidx > MAX_SELECTORS)
+			return filter_args_reject(e->func_id);
+		e->tailcall_index_selector = selidx;
+	}
+
+	return filter_args_reject(e->func_id);
+}
+
+FUNC_NO_TAIL int generic_event_no_tail(void *ctx, u8 op)
+{
+	int ret;
+
+	if (!generic_start_init(ctx))
+		return 0;
+
+	ret = generic_process_filter_no_tail();
+	if (ret != PFILTER_ACCEPT)
+		return 0;
+
+	if (!generic_process_event_setup(ctx))
+		return 0;
+
+	if (arg_idx(0) != -1)
+		generic_process_event_no_tail(ctx);
+
+	return generic_filter_arg_no_tail(ctx, true, __FILTER_ARG_ALL, op);
+}
+
+FUNC_NO_TAIL int generic_retprobe_no_tail(void *ctx, unsigned long ret, u8 op)
+{
+	if (!generic_retprobe_setup(ctx, ret))
+		return 0;
+
+	return generic_filter_arg_no_tail(ctx, false, __FILTER_ARG_ALL, op);
+}
+#endif /* __NO_TAILCALLS */
 #endif /* __GENERIC_CALLS_H__ */

@@ -171,6 +171,31 @@ func getProgramSelector(load *program.Program, kprobeEntry *genericKprobe) *sele
 	return nil
 }
 
+func genericKprobeUsesTailCalls(obj string) bool {
+	switch path.Base(obj) {
+	case "bpf_generic_kprobe.o", "bpf_generic_retkprobe.o":
+		return true
+	default:
+		return false
+	}
+}
+
+func genericKprobeCelRewriteProg(load *program.Program, fentry bool) string {
+	if fentry {
+		return "generic_kprobe_filter_arg"
+	}
+	if genericKprobeUsesTailCalls(load.Name) {
+		if load.RetProbe {
+			return "generic_retkprobe_filter_arg"
+		}
+		return "generic_kprobe_filter_arg"
+	}
+	if load.RetProbe {
+		return "generic_retkprobe_event"
+	}
+	return "generic_kprobe_event"
+}
+
 func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, has hasMaps) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
@@ -212,8 +237,10 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
 
-	tailCalls := program.MapBuilderProgram("kprobe_calls", load)
-	maps = append(maps, tailCalls)
+	if genericKprobeUsesTailCalls(loadProgName) {
+		tailCalls := program.MapBuilderProgram("kprobe_calls", load)
+		maps = append(maps, tailCalls)
+	}
 
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
@@ -315,8 +342,10 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		}
 		maps = append(maps, socktrack)
 
-		tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
-		maps = append(maps, tailCalls)
+		if genericKprobeUsesTailCalls(loadProgRetName) {
+			tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
+			maps = append(maps, tailCalls)
+		}
 
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
@@ -1015,8 +1044,10 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 			pinProg,
 			"generic_kprobe")
 
-		tailCalls := program.MapBuilderProgram("kprobe_calls", load)
-		maps = append(maps, tailCalls)
+		if genericKprobeUsesTailCalls(loadProgName) {
+			tailCalls := program.MapBuilderProgram("kprobe_calls", load)
+			maps = append(maps, tailCalls)
+		}
 	}
 
 	load.SetPolicy(kprobeEntry.policyName)
@@ -1132,8 +1163,10 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 				pinRetProg,
 				"generic_kprobe")
 
-			tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
-			maps = append(maps, tailCalls)
+			if genericKprobeUsesTailCalls(loadProgRetName) {
+				tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
+				maps = append(maps, tailCalls)
+			}
 		}
 
 		loadret.SetRetProbe(true)
@@ -1218,9 +1251,9 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	}
 
 	rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
-	if entry := gk.loadArgs.selectors.entry; entry != nil {
+	if entry := getProgramSelector(load, gk); entry != nil {
 		if celbpf.EnabledInBPF() {
-			rewriteProg["generic_kprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
+			rewriteProg[genericKprobeCelRewriteProg(load, fentry)] = entry.CelExprFunctions().RewriteProg
 		}
 	}
 	load.RewriteProg = rewriteProg
@@ -1262,9 +1295,9 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 		}
 
 		rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
-		if entry := gk.loadArgs.selectors.entry; entry != nil {
+		if entry := getProgramSelector(load, gk); entry != nil {
 			if celbpf.EnabledInBPF() {
-				rewriteProg["generic_kprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
+				rewriteProg[genericKprobeCelRewriteProg(load, false)] = entry.CelExprFunctions().RewriteProg
 			}
 		}
 		load.RewriteProg = rewriteProg

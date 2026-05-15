@@ -13,7 +13,21 @@ enum {
 	STATE_WORK,
 };
 
-#ifndef __V61_BPF_PROG
+#if defined(__NO_TAILCALLS)
+FUNC_INLINE void generic_path_init(struct msg_generic_kprobe *e) {}
+
+FUNC_INLINE long generic_path_offload(void *ctx, long ty, unsigned long arg,
+				      int index, unsigned long orig_off,
+				      struct bpf_map_def *tailcals)
+{
+	return 0;
+}
+
+FUNC_INLINE bool should_offload_path(long ty)
+{
+	return false;
+}
+#elif !defined(__V61_BPF_PROG)
 
 FUNC_INLINE int get_off(char *buffer, char *buf)
 {
@@ -245,6 +259,6 @@ FUNC_INLINE bool should_offload_path(long ty)
 {
 	return false;
 }
-#endif /* !__V61_BPF_PROG */
+#endif /* __NO_TAILCALLS */
 
 #endif /* __GENERIC_PATH_H__ */

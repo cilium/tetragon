@@ -217,6 +217,23 @@ $(eval $(call DEFINE_VARIANT,v53))
 $(eval $(call DEFINE_VARIANT,v511))
 $(eval $(call DEFINE_VARIANT,v61))
 
+NO_TAILCALLS = -D__NO_TAILCALLS
+
+CFLAGS_bpf_generic_kprobe_v53.o += $(NO_TAILCALLS)
+CFLAGS_bpf_generic_retkprobe_v53.o += $(NO_TAILCALLS)
+CFLAGS_bpf_multi_kprobe_v53.o += $(NO_TAILCALLS)
+CFLAGS_bpf_multi_retkprobe_v53.o += $(NO_TAILCALLS)
+
+CFLAGS_bpf_generic_kprobe_v511.o += $(NO_TAILCALLS)
+CFLAGS_bpf_generic_retkprobe_v511.o += $(NO_TAILCALLS)
+CFLAGS_bpf_multi_kprobe_v511.o += $(NO_TAILCALLS)
+CFLAGS_bpf_multi_retkprobe_v511.o += $(NO_TAILCALLS)
+
+CFLAGS_bpf_generic_kprobe_v61.o += $(NO_TAILCALLS)
+CFLAGS_bpf_generic_retkprobe_v61.o += $(NO_TAILCALLS)
+CFLAGS_bpf_multi_kprobe_v61.o += $(NO_TAILCALLS)
+CFLAGS_bpf_multi_retkprobe_v61.o += $(NO_TAILCALLS)
+
 # Object build rule for non VARIANT objects
 objs/%.o:
 	$(rule_o)
