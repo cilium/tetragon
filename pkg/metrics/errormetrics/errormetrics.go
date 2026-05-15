@@ -51,6 +51,7 @@ const (
 
 var eventHandlerErrorLabelValues = map[EventHandlerError]string{
 	HandlePerfUnknownOp:    "unknown_opcode",
+	HandlePerfEmptyData:    "perf_empty_data",
 	HandlePerfHandlerError: "event_handler_failed",
 }
 
@@ -122,6 +123,7 @@ func InitMetrics() {
 	// NB: We initialize only ops.MSG_OP_UNDEF here, but unknown_opcode can occur for any opcode
 	// that is not explicitly handled.
 	GetHandlerErrors(ops.MSG_OP_UNDEF, HandlePerfUnknownOp).Add(0)
+	GetHandlerErrors(ops.MSG_OP_UNDEF, HandlePerfEmptyData).Add(0)
 
 	for er := range debugTypeLabelValues {
 		GetDebugTotal(er).Add(0)
