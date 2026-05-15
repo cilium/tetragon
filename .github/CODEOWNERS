@@ -20,7 +20,7 @@
 
 # Request a review from the tetragon-docs team on any doc changes
 /docs/ @cilium/tetragon-docs
-*.md @cilium/tetragon-docs
+/*.md @cilium/tetragon-docs
 # Exclude some docs generated files from specific tetragon-docs ownership
 /docs/content/en/docs/reference/helm-chart.md @cilium/tetragon-reviewers
 /docs/content/en/docs/reference/grpc-api.md @cilium/tetragon-reviewers
