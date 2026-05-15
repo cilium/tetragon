@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -369,6 +370,7 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 		var links []link.Link
 		var lnk link.Link
 
+		idx := 0
 		for path, attach := range data.Attach {
 			exec, err := link.OpenExecutable(path)
 			if err != nil {
@@ -388,12 +390,14 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 			if err != nil {
 				return nil, err
 			}
-			err = LinkPin(lnk, bpfDir, load, extra...)
+			pinExtra := append(extra, strconv.Itoa(idx))
+			err = LinkPin(lnk, bpfDir, load, pinExtra...)
 			if err != nil {
 				lnk.Close()
 				return nil, err
 			}
 			links = append(links, lnk)
+			idx++
 		}
 		return links, nil
 	}
