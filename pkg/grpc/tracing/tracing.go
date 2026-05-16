@@ -399,7 +399,10 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	if ec := eventcache.Get(); ec != nil && !isUnknown(tetragonProcess) &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
-			(option.Config.EnableProcessKprobeAncestors && ec.NeededAncestors(parent, ancestors))) {
+			(option.Config.EnableProcessKprobeAncestors && ec.NeededAncestors(parent, ancestors)) ||
+			// Clone-to-exec race: cache events with no container
+			// metadata so retry can resolve via cgidmap.
+			(option.Config.EnableK8s && tetragonProcess.Docker == "" && tetragonProcess.Pod == nil && event.Msg.CgrpTrackerID != 0)) {
 		ec.Add(nil, tetragonEvent, event.Msg.Common.Ktime, event.Msg.ProcessKey.Ktime, event)
 		return nil
 	}
@@ -510,7 +513,7 @@ func (msg *MsgGenericTracepointUnix) RetryInternal(ev notify.Event, timestamp ui
 }
 
 func (msg *MsgGenericTracepointUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid)
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid, resolveContainerID(msg.Msg.CgrpTrackerID))
 }
 
 func familyString(family uint16) string {
@@ -771,7 +774,7 @@ func (msg *MsgGenericKprobeUnix) RetryInternal(ev notify.Event, timestamp uint64
 }
 
 func (msg *MsgGenericKprobeUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid)
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid, resolveContainerID(msg.Msg.CgrpTrackerID))
 }
 
 func (msg *MsgGenericKprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
@@ -850,7 +853,7 @@ func (msg *MsgProcessLoaderUnix) RetryInternal(ev notify.Event, timestamp uint64
 
 func (msg *MsgProcessLoaderUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
 	LoaderMetricInc(LoaderResolvedRetry)
-	return eventcache.HandleGenericEvent(internal, ev, nil)
+	return eventcache.HandleGenericEvent(internal, ev, nil, "")
 }
 
 func (msg *MsgProcessLoaderUnix) HandleMessage() *tetragon.GetEventsResponse {
@@ -906,7 +909,7 @@ func (msg *MsgGenericUprobeUnix) RetryInternal(ev notify.Event, timestamp uint64
 }
 
 func (msg *MsgGenericUprobeUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid)
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid, resolveContainerID(msg.Msg.CgrpTrackerID))
 }
 
 func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
@@ -1017,7 +1020,7 @@ func (msg *MsgGenericUsdtUnix) RetryInternal(ev notify.Event, timestamp uint64) 
 }
 
 func (msg *MsgGenericUsdtUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid)
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid, resolveContainerID(msg.Msg.CgrpTrackerID))
 }
 
 func GetProcessUsdt(event *MsgGenericUsdtUnix) *tetragon.ProcessUsdt {
@@ -1119,7 +1122,7 @@ func (msg *MsgGenericLsmUnix) RetryInternal(ev notify.Event, timestamp uint64) (
 }
 
 func (msg *MsgGenericLsmUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid)
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid, resolveContainerID(msg.Msg.CgrpTrackerID))
 }
 
 func (msg *MsgGenericLsmUnix) HandleMessage() *tetragon.GetEventsResponse {

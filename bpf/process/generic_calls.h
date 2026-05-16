@@ -43,7 +43,8 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 	config = map_lookup_elem(&config_map, &msg->idx);
 	if (!config)
 		return 0;
-	if (!policy_filter_check(config->policy_id))
+	msg->cgrp_tracker_id = tg_get_current_cgrp_tracker_id();
+	if (!policy_filter_check__(config->policy_id, msg->cgrp_tracker_id))
 		return 0;
 	msg->func_id = config->func_id;
 	msg->retprobe_id = 0;
