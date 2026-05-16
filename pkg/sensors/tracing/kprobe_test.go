@@ -4423,7 +4423,7 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string, f
 	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
 	if assert.NoError(t, err) {
 		t.Cleanup(func() {
-			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "", matchBinariesTracingPolicy.TpDomain())
 		})
 	}
 
@@ -4550,7 +4550,7 @@ func testKprobeMatchBinariesEarlyExec(t *testing.T, fentry bool) {
 	err = sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
 	if assert.NoError(t, err) {
 		t.Cleanup(func() {
-			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "", matchBinariesTracingPolicy.TpDomain())
 		})
 	}
 
@@ -4612,7 +4612,7 @@ func matchBinariesNotInPerfringTest(t *testing.T, values []string) {
 	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
 	if assert.NoError(t, err) {
 		t.Cleanup(func() {
-			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries-notin", "")
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries-notin", "", matchBinariesTracingPolicy.TpDomain())
 		})
 	}
 
@@ -4741,7 +4741,7 @@ func TestKprobeMatchBinariesEarlyExecNotIn(t *testing.T) {
 	err = sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
 	if assert.NoError(t, err) {
 		t.Cleanup(func() {
-			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries-notin-early", "")
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries-notin-early", "", matchBinariesTracingPolicy.TpDomain())
 		})
 	}
 
@@ -4844,7 +4844,7 @@ func testKprobeMatchBinariesPrefixMatchArgs(t *testing.T, fentry bool) {
 	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
 	if assert.NoError(t, err) {
 		t.Cleanup(func() {
-			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "", matchBinariesTracingPolicy.TpDomain())
 		})
 	}
 
@@ -5483,7 +5483,7 @@ spec:
 	err = sm.Manager.AddTracingPolicy(ctx, tp)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		sm.Manager.DeleteTracingPolicy(ctx, "datagram", "")
+		sm.Manager.DeleteTracingPolicy(ctx, "datagram", "", tp.TpDomain())
 	})
 
 	ops := func() {
@@ -5706,7 +5706,7 @@ func testLinuxBinprmExtractPath(t *testing.T, fentry bool) {
 	err := sm.Manager.AddTracingPolicy(ctx, &bprmTracingPolicy)
 	if assert.NoError(t, err) {
 		t.Cleanup(func() {
-			sm.Manager.DeleteTracingPolicy(ctx, "bprm-extract-path", "")
+			sm.Manager.DeleteTracingPolicy(ctx, "bprm-extract-path", "", bprmTracingPolicy.TpDomain())
 		})
 	}
 

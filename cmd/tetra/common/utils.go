@@ -32,7 +32,7 @@ func HumanizeByteCount(b int) string {
 func PrintTracingPolicies(output io.Writer, policies []*tetragon.TracingPolicyStatus, skipPolicy func(pol *tetragon.TracingPolicyStatus) bool) {
 	// tabwriter config imitates kubectl default output, i.e. 3 spaces padding
 	w := tabwriter.NewWriter(output, 0, 0, 3, ' ', 0)
-	header := "ID\tNAME\tSTATE\tFILTERID\tNAMESPACE\tSENSORS\tKERNELMEMORY\tMODE\tNPOST\tNENFORCE\tNMONITOR"
+	header := "ID\tNAME\tDOMAIN\tSTATE\tFILTERID\tNAMESPACE\tSENSORS\tKERNELMEMORY\tMODE\tNPOST\tNENFORCE\tNMONITOR"
 	fmt.Fprintln(w, header)
 
 	for _, pol := range policies {
@@ -72,9 +72,10 @@ func PrintTracingPolicies(output io.Writer, policies []*tetragon.TracingPolicySt
 		}
 
 		counters := pol.GetStats().GetActionCounters()
-		fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%d\n",
+		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%d\n",
 			pol.Id,
 			pol.Name,
+			pol.Domain,
 			strings.TrimPrefix(strings.ToLower(pol.State.String()), "tp_state_"),
 			pol.FilterId,
 			namespace,
