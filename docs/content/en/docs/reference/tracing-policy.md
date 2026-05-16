@@ -929,7 +929,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1029,6 +1029,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1518,7 +1546,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1618,6 +1646,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2397,7 +2453,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -2497,6 +2553,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2986,7 +3070,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3086,6 +3170,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3534,7 +3646,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3634,6 +3746,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4123,7 +4263,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4223,6 +4363,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4559,7 +4727,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4659,6 +4827,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5148,7 +5344,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5248,6 +5444,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5654,7 +5878,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5754,6 +5978,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6243,7 +6495,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6343,6 +6595,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7023,7 +7303,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7123,6 +7403,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7612,7 +7920,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7712,6 +8020,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8125,7 +8461,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8225,6 +8561,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8714,7 +9078,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8814,6 +9178,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9790,7 +10182,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -9890,6 +10282,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10379,7 +10799,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10479,6 +10899,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11258,7 +11706,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -11358,6 +11806,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11847,7 +12323,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -11947,6 +12423,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12395,7 +12899,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12495,6 +12999,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12984,7 +13516,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13084,6 +13616,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13420,7 +13980,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13520,6 +14080,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14009,7 +14597,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14109,6 +14697,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14515,7 +15131,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14615,6 +15231,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15104,7 +15748,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -15204,6 +15848,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15884,7 +16556,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -15984,6 +16656,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16473,7 +17173,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -16573,6 +17273,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16986,7 +17714,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -17086,6 +17814,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17575,7 +18331,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, OverrideCall<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -17675,6 +18431,34 @@ Only valid with the post action.<br/>
         <td>boolean</td>
         <td>
           Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newAddr</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's address for the overrideCall action.
+Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newOffset</b></td>
+        <td>integer</td>
+        <td>
+          The new symbol's offset for the overrideCall action.
+Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>newSymbol</b></td>
+        <td>string</td>
+        <td>
+          The new symbol for the overrideCall action.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
         </td>
         <td>false</td>
       </tr><tr>

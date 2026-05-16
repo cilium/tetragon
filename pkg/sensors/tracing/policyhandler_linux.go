@@ -53,7 +53,7 @@ func hasEnforcementActions(spec *v1alpha1.TracingPolicySpec) bool {
 	}
 
 	for _, uprobe := range spec.UProbes {
-		if selectors.HasEnforcementAction(uprobe.Selectors) || selectors.HasOverride(uprobe.Selectors) {
+		if selectors.HasEnforcementAction(uprobe.Selectors) || selectors.HasOverride(uprobe.Selectors) || selectors.HasOverrideCall(uprobe.Selectors) {
 			return true
 		}
 	}

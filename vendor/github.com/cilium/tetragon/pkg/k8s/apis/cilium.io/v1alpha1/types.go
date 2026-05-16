@@ -247,7 +247,7 @@ type ArgSelector struct {
 }
 
 type ActionSelector struct {
-	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification;Set
+	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification;Set;OverrideCall
 	// Action to execute.
 	// NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 	// be removed in version 1.5.
@@ -282,6 +282,17 @@ type ActionSelector struct {
 	// +kubebuilder:validation:Optional
 	// An arg value for the regs action
 	ArgRegs []string `json:"argRegs,omitempty"`
+
+	// The new symbol for the overrideCall action.
+	// Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+	NewSymbol string `json:"newSymbol,omitempty"`
+	// The new symbol's address for the overrideCall action.
+	// Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+	NewAddr uint64 `json:"newAddr,omitempty"`
+	// The new symbol's offset for the overrideCall action.
+	// Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+	NewOffset int64 `json:"newOffset,omitempty"`
+
 	// +kubebuilder:validation:Optional
 	// A time period within which repeated messages will not be posted. Can be
 	// specified in seconds (default or with 's' suffix), minutes ('m' suffix)

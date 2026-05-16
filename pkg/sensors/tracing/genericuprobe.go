@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"path"
 	"strconv"
 	"strings"
@@ -83,12 +84,23 @@ type genericUprobe struct {
 	pendingEvents *lru.Cache[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]]
 }
 
-func populateUprobeRegs(m *ebpf.Map, regs []processapi.RegAssignment) error {
+func populateUprobeRegs(m *ebpf.Map, regs map[selectors.KernelRegsIdx][]processapi.RegAssignment) error {
 	uprobeRegs := processapi.UprobeRegs{}
 
-	n := copy(uprobeRegs.Ass[:], regs)
-	if n != len(regs) {
-		logger.GetLogger().Warn("register assignments count mismatch", "#regs", len(regs))
+	// We convert the map of slices to a single flat slice.
+	// This is because we will execute all the registers override
+	// in the same `uprobe_offload` context.
+	// This means that if we have 5 regs Override and 1 OverrideCall,
+	// the length of regsMap[0] will be 6,
+	// and `uprobe_offload` will execute the requested assignment to all of them.
+	var regsSlice []processapi.RegAssignment
+	for v := range maps.Values(regs) {
+		regsSlice = append(regsSlice, v...)
+	}
+
+	n := copy(uprobeRegs.Ass[:], regsSlice)
+	if n != len(regsSlice) {
+		logger.GetLogger().Warn("register assignments count mismatch", "#regs", len(regsSlice))
 	}
 	uprobeRegs.Cnt = uint32(n)
 	return m.Update(uint32(0), uprobeRegs, ebpf.UpdateAny)
@@ -542,11 +554,82 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		}
 	}
 
+	f, err := elf.OpenSafeELFFile(spec.Path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
 	if selectors.HasOverride(spec.Selectors) {
 		if !bpf.HasUprobeRegsChange() {
 			return nil, errors.New("can't use override regs action, no kernel support")
 		}
 		has.sleepableOffload = true
+	}
+
+	if selectors.HasOverrideCall(spec.Selectors) {
+		if !bpf.HasUprobeRegsChange() {
+			return nil, errors.New("can't use override_call regs action, no kernel support")
+		}
+
+		if symbols > 1 || offsets > 1 || addrs > 1 {
+			return nil, errors.New("can't use override_call with more than one symbol/offset/addr")
+		}
+
+		if selectors.HasOverride(spec.Selectors) {
+			return nil, errors.New("can't use override and override_call at the same time")
+		}
+
+		has.sleepableOffload = true
+
+		// Load probed symbol offset
+		var symbolOffset int64
+		if symbols > 0 {
+			off, err := f.Offset(spec.Symbols[0])
+			if err != nil {
+				return nil, err
+			}
+			symbolOffset = int64(off)
+		} else if offsets > 0 {
+			symbolOffset = int64(spec.Offsets[0])
+		} else if addrs > 0 {
+			off, err := f.OffsetFromAddr(spec.Addrs[0])
+			if err != nil {
+				return nil, err
+			}
+			symbolOffset = int64(off)
+		}
+
+	OuterLoop:
+		for _, sel := range spec.Selectors {
+			for i, matchAct := range sel.MatchActions {
+				if matchAct.Action == "OverrideCall" {
+					if matchAct.NewSymbol == "" && matchAct.NewAddr == 0 && matchAct.NewOffset == 0 {
+						return nil, errors.New("OverrideCall action needs one of newSymbol, newAddr or newOffset defined")
+					}
+
+					// Load override-symbol offset
+					var overrideSymbOffset uint64
+					if matchAct.NewSymbol != "" {
+						overrideSymbOffset, err = f.Offset(matchAct.NewSymbol)
+					} else if matchAct.NewAddr != 0 {
+						overrideSymbOffset, err = f.OffsetFromAddr(matchAct.NewAddr)
+					} else {
+						overrideSymbOffset = uint64(matchAct.NewOffset)
+					}
+					if err != nil {
+						return nil, err
+					}
+
+					// Store the relative-to-traced-symbol delta.
+					// In bpf, we will compute the override symbol address as:
+					// * curr_ip = PT_REGS_IP(ctx);
+					// * next_ip = curr_ip + uprobeOverrideCallAddr
+					sel.MatchActions[i].NewOffset = int64(overrideSymbOffset) - symbolOffset
+					break OuterLoop
+				}
+			}
+		}
 	}
 
 	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubString) {
@@ -815,12 +898,6 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		ids = append(ids, id)
 		return nil
 	}
-
-	f, err := elf.OpenSafeELFFile(spec.Path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
 
 	if symbols != 0 && f.IsStrippedPureGoBinary() {
 		tbl, err := f.Pclntab()
