@@ -253,7 +253,7 @@ tetragon:
         extraIpAddresses: []
   gops:
     # -- Whether to enable exposing gops server.
-    enabled: true
+    enabled: false
     # -- The address at which to expose gops.
     address: "localhost"
     # -- The port at which to expose gops.
