@@ -67,8 +67,10 @@ FUNC_INLINE bool policy_filter_check(u32 policy_id)
 		return false;
 
 	cgroupid = tg_get_current_cgroup_id();
-	if (!cgroupid)
+	if (!cgroupid) {
+		errmetrics(ENOENT);
 		return false;
+	}
 
 	trackerid = cgrp_get_tracker_id(cgroupid);
 	if (trackerid)
