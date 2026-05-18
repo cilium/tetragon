@@ -28,6 +28,8 @@ var Files = map[uint8]string{
 	19: "syscall64.h",
 	20: "bpf_generic_lsm_output.c",
 	21: "bpf_cgroup_events.h",
+	22: "bpf_fork.c",
+	23: "policy_filter.h",
 }
 
 func BPFFileName(id uint8) string {

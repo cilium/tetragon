@@ -95,7 +95,8 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 #ifndef __RHEL7_BPF_PROG
 	struct msg_k8s kube;
 
-	__event_get_cgroup_info(task, &kube);
+	if (__event_get_cgroup_info(task, &kube))
+		errmetrics(ENOENT);
 
 	if (cgroup_rate(ctx, &kube, msg.ktime))
 #endif
