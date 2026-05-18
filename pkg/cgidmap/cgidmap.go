@@ -243,7 +243,7 @@ var (
 
 type cgidDisabledError struct{}
 
-var cgidDisabled = &cgidDisabledError{} // nolint:errname
+var errCgidDisabled = &cgidDisabledError{}
 
 func (e *cgidDisabledError) Error() string {
 	return "cgidmap disabled"
@@ -254,7 +254,7 @@ func GlobalMap() (Map, error) {
 	setGlMap.Do(func() {
 		if !option.Config.EnableCgIDmap {
 			glMap = nil
-			glError = cgidDisabled
+			glError = errCgidDisabled
 			return
 		}
 
