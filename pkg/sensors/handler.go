@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	BaseSensorName = "__base__"
-	sensorsDomain  = "sensors"
+	BaseSensorName                              = "__base__"
+	sensorsDomain  tetragon.TracingPolicyDomain = -1
 )
 
 type handler struct {
@@ -361,19 +361,21 @@ func (h *handler) listOverheads() ([]ProgOverhead, error) {
 	return overheads, nil
 }
 
-func (h *handler) listDomains() []string {
+func (h *handler) listDomains() []tetragon.TracingPolicyDomain {
 	h.collections.mu.RLock()
 	defer h.collections.mu.RUnlock()
 	collections := h.collections.c
 
-	domains := make(map[string]struct{})
+	domains := make(map[tetragon.TracingPolicyDomain]struct{})
 	for ck := range collections {
-		domains[ck.domain] = struct{}{}
+		if ck.domain != sensorsDomain {
+			domains[ck.domain] = struct{}{}
+		}
 	}
 	return slices.Sorted(maps.Keys(domains))
 }
 
-func (h *handler) listPolicies(domain string) []*tetragon.TracingPolicyStatus {
+func (h *handler) listPolicies(domain tetragon.TracingPolicyDomain) []*tetragon.TracingPolicyStatus {
 	h.collections.mu.RLock()
 	defer h.collections.mu.RUnlock()
 	collections := h.collections.c
@@ -384,7 +386,7 @@ func (h *handler) listPolicies(domain string) []*tetragon.TracingPolicyStatus {
 			continue
 		}
 
-		if domain != "" && ck.domain != domain {
+		if domain != tetragon.TracingPolicyDomain_TP_DOMAIN_UNKNOWN && ck.domain != domain {
 			continue
 		}
 

@@ -133,7 +133,7 @@ func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tracing
 }
 
 // DeleteTracingPolicy deletes a new sensor based on a tracing policy
-func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespace string, domain string) error {
+func (h *Manager) DeleteTracingPolicy(ctx context.Context, name, namespace string, domain tetragon.TracingPolicyDomain) error {
 	ck, err := newCollectionKey(name, namespace, domain)
 	if err != nil {
 		return err
@@ -147,7 +147,7 @@ func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespac
 	return h.handler.deleteTracingPolicy(op)
 }
 
-func (h *Manager) EnableTracingPolicy(_ context.Context, name, namespace, domain string) error {
+func (h *Manager) EnableTracingPolicy(_ context.Context, name, namespace string, domain tetragon.TracingPolicyDomain) error {
 	ck, err := newCollectionKey(name, namespace, domain)
 	if err != nil {
 		return err
@@ -155,7 +155,7 @@ func (h *Manager) EnableTracingPolicy(_ context.Context, name, namespace, domain
 	return h.handler.configureTracingPolicy(ck, nil, new(true))
 }
 
-func (h *Manager) DisableTracingPolicy(_ context.Context, name, namespace, domain string) error {
+func (h *Manager) DisableTracingPolicy(_ context.Context, name, namespace string, domain tetragon.TracingPolicyDomain) error {
 	ck, err := newCollectionKey(name, namespace, domain)
 	if err != nil {
 		return err
@@ -172,7 +172,7 @@ func (h *Manager) ConfigureTracingPolicy(_ context.Context, conf *tetragon.Confi
 }
 
 // ListTracingPolicies returns a list of the active tracing policies
-func (h *Manager) ListTracingPolicies(_ context.Context, domain string) (*tetragon.ListTracingPoliciesResponse, error) {
+func (h *Manager) ListTracingPolicies(_ context.Context, domain tetragon.TracingPolicyDomain) (*tetragon.ListTracingPoliciesResponse, error) {
 	ret := &tetragon.ListTracingPoliciesResponse{}
 	ret.Policies = h.handler.listPolicies(domain)
 	return ret, nil
