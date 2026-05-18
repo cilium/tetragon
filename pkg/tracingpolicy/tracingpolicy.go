@@ -4,10 +4,9 @@
 package tracingpolicy
 
 import (
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
-
-const staticDomain = "static"
 
 // TracingPolicy is a tracing policy interface.
 // It is implemented by v1alpha1.types.TracingPolicy and
@@ -23,7 +22,7 @@ type TracingPolicy interface {
 	// TpNamespace returns the namespace of the policy
 	TpNamespace() string
 	// TpDomain returns the domain for the policy
-	TpDomain() string
+	TpDomain() tetragon.TracingPolicyDomain
 }
 
 type PolicyInfo struct {

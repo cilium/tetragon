@@ -8,7 +8,7 @@ require (
 	github.com/cilium/ebpf v0.21.1-0.20260501093402-9f87aafaeb37
 	github.com/cilium/little-vm-helper v0.0.29
 	github.com/cilium/lumberjack/v2 v2.4.2
-	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
+	github.com/cilium/tetragon/api v1.7.0
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/containerd/cgroups/v3 v3.1.3
 	github.com/deckarep/golang-set/v2 v2.9.0
