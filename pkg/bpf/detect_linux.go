@@ -58,6 +58,7 @@ var (
 	kfuncs                 FeatureKfuncs
 	mixBpfAndTailCalls     Feature
 	getFuncRetHelper       Feature
+	fentry                 Feature
 )
 
 func HasOverrideHelper() bool {
@@ -72,8 +73,47 @@ func HasProbeWriteUserHelper() bool {
 	return features.HaveProgramHelper(ebpf.Kprobe, asm.FnProbeWriteUser) == nil
 }
 
+// detectFentry probes whether the running kernel can actually load and attach
+// a BPF fentry program. A bare features.HaveProgramType(ebpf.Tracing) check is
+// insufficient because BPF_PROG_TYPE_TRACING also covers fexit, fmod_ret,
+// raw_tp and iter, and on arm64 the program type exists before BPF
+// trampolines do.
+//
+// Kernel requirements:
+//   - x86_64:  >= 5.5  (commit fec56f5890d9 "bpf: Introduce BPF trampoline")
+//   - arm64:   >= 6.0  (commit efc9909fdce0 "bpf, arm64: Add bpf trampoline for arm64")
+func detectFentry() bool {
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name: "probe_fentry",
+		Type: ebpf.Tracing,
+		Instructions: asm.Instructions{
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		AttachType: ebpf.AttachTraceFEntry,
+		AttachTo:   "security_task_prctl",
+		License:    "MIT",
+	})
+	if err != nil {
+		return false
+	}
+	defer prog.Close()
+
+	l, err := link.AttachTracing(link.TracingOptions{
+		Program: prog,
+	})
+	if err != nil {
+		return false
+	}
+	l.Close()
+	return true
+}
+
 func HasFentryProgram() bool {
-	return features.HaveProgramType(ebpf.Tracing) == nil
+	fentry.init.Do(func() {
+		fentry.detected = detectFentry()
+	})
+	return fentry.detected
 }
 
 func detectKprobeMulti() bool {
