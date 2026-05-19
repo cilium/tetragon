@@ -16,7 +16,6 @@
     "^make vendor$",
     "^make -C install/kubernetes$",
     "^go mod vendor$",
-    "^install-tool golang \\$\\(grep -oP '\\^toolchain go\\\\K\\.\\+\\$' go.mod \\|\\| grep -oP '\\^go \\\\K\\.\\+\\$' go.mod\\)$",
     "^make gen-docs-references$",
   ],
   // repository configuration
@@ -185,7 +184,7 @@
         "gomodVendor",
         "gomodUpdateImportPaths",
       ],
-      postUpgradeTasks: {
+      "postUpgradeTasks": {
         "commands": ["/tmp/install-buildx", "make vendor", "make protogen", "make crds", "make gen-docs-references"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
@@ -213,9 +212,12 @@
         // We need to trigger a golang install manually here because in some
         // cases it might not be preinstalled, see:
         // https://github.com/renovatebot/renovate/discussions/23485
-        "commands": ["install-tool golang $(grep -oP '^toolchain go\\K.+$' go.mod || grep -oP '^go \\K.+$' go.mod)", "make vendor", "make gen-docs-references"],
+        "commands": ["make vendor", "make gen-docs-references"],
         "fileFilters": ["**/**"],
-        "executionMode": "branch"
+        "executionMode": "branch",
+        "installTools": {
+          "golang": {}
+        }
       },
     },
     {
@@ -234,9 +236,12 @@
         // We need to trigger a golang install manually here because in some
         // cases it might not be preinstalled, see:
         // https://github.com/renovatebot/renovate/discussions/23485
-        "commands": ["install-tool golang $(grep -oP '^toolchain go\\K.+$' go.mod || grep -oP '^go \\K.+$' go.mod)", "make vendor", "make gen-docs-references"],
+        "commands": ["make vendor", "make gen-docs-references"],
         "fileFilters": ["**/**"],
-        "executionMode": "branch"
+        "executionMode": "branch",
+        "installTools": {
+          "golang": {}
+        }
       },
     },
     {
