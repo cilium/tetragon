@@ -137,18 +137,21 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 {
 	long iter_iovec = -1, iter_ubuf __maybe_unused = -1;
 	struct iov_iter *iov_iter = (struct iov_iter *)arg;
+	int *s = (int *)args_off(e, off);
 	struct kvec *kvec;
 	const char *buf;
+	long ret = 0;
 	size_t count;
 	u8 iter_type;
 	void *tmp;
-	int *s;
 
 	if (!bpf_core_field_exists(iov_iter->iter_type))
 		goto nodata;
 
 	tmp = _(&iov_iter->iter_type);
-	probe_read(&iter_type, sizeof(iter_type), tmp);
+	ret = probe_read(&iter_type, sizeof(iter_type), tmp);
+	if (ret < 0)
+		return_error(s, char_buf_pagefault);
 
 	if (bpf_core_enum_value_exists(enum iter_type, ITER_IOVEC))
 		iter_iovec = bpf_core_enum_value(enum iter_type, ITER_IOVEC);
@@ -160,13 +163,19 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 
 	if (iter_type == iter_iovec) {
 		tmp = _(&iov_iter->kvec);
-		probe_read(&kvec, sizeof(kvec), tmp);
+		ret = probe_read(&kvec, sizeof(kvec), tmp);
+		if (ret < 0)
+			return_error(s, char_buf_pagefault);
 
 		tmp = _(&kvec->iov_base);
-		probe_read(&buf, sizeof(buf), tmp);
+		ret = probe_read(&buf, sizeof(buf), tmp);
+		if (ret < 0)
+			return_error(s, char_buf_pagefault);
 
 		tmp = _(&kvec->iov_len);
-		probe_read(&count, sizeof(count), tmp);
+		ret = probe_read(&count, sizeof(count), tmp);
+		if (ret < 0)
+			return_error(s, char_buf_pagefault);
 
 		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
 				       has_max_data(argm), e);
@@ -175,10 +184,14 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 #ifdef __V61_BPF_PROG
 	if (iter_type == iter_ubuf) {
 		tmp = _(&iov_iter->ubuf);
-		probe_read(&buf, sizeof(buf), tmp);
+		ret = probe_read(&buf, sizeof(buf), tmp);
+		if (ret < 0)
+			return_error(s, char_buf_pagefault);
 
 		tmp = _(&iov_iter->count);
-		probe_read(&count, sizeof(count), tmp);
+		ret = probe_read(&count, sizeof(count), tmp);
+		if (ret < 0)
+			return_error(s, char_buf_pagefault);
 
 		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
 				       has_max_data(argm), e);
@@ -186,7 +199,6 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 #endif
 
 nodata:
-	s = (int *)args_off(e, off);
 	s[0] = 0;
 	s[1] = 0;
 	return 8;
