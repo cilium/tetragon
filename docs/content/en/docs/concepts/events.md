@@ -105,7 +105,7 @@ events encoded in JSON as shown here,
 </p>
 </details>
 
-Will only highlight a few important fields here. For a full specification of events see the Reference
+We will only highlight a few important fields here. For a full specification of events see the Reference
 section. All events in Tetragon contain a `process_exec` block to identify the process generating the
 event. For execution events this is the primary block. For [Tracing Policy]({{< ref "/docs/concepts/tracing-policy" >}}) events the
 hook that generated the event will attach further data to this. The `process_exec` event provides
@@ -115,7 +115,7 @@ the event here `process_exec.process.binary` and `process_exec.process.args`. Fi
 and `time` provide the location and time for the event and will be present in all event types.
 
 A default deployment writes the JSON log to `/var/run/cilium/tetragon/tetragon.log` where it can
-be exported through normal log collection tooling, e.g. 'fluentd', logstash, etc.. The file will
+be exported through normal log collection tooling, e.g. fluentd, logstash, etc. The file will
 be rotated and compressed by default. See [Helm Options] for details on how to customize this location.
 
 #### Export Filtering
@@ -173,7 +173,7 @@ The type for each filter attribute can be determined by referring to the
 | `labels` | Filter events by pod labels using [Kubernetes label selector syntax](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors) Note that this filter never matches events without the pod field (i.e. host process events). |
 | `policy_names` | Filter events by tracing policy names. |
 | `capabilities` | Filter events by Linux process capability. |
-| `cel_expression` | Filter using CEL expressions. CEL filters support IP and CIDR notiation extensions from the k8s project. See https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#IP and https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#CIDR for details. |
+| `cel_expression` | Filter using CEL expressions. CEL filters support IP and CIDR notation extensions from the k8s project. See https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#IP and https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#CIDR for details. |
 | `parent_binary_regex` | Filter process events by a list of regular expressions of parent process binary names (e.g. `"^/home/kubernetes/bin/kubelet$"`). You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
 | `parent_arguments_regex` | Filter by parent process arguments using a list of regular expressions. You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
 | `container_id` | Filter by the container ID in the process.docker field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax | 
@@ -223,7 +223,7 @@ Since Tetragon traces the entire system, event exports might sometimes contain
 sensitive information (for example, a secret passed via a command line argument
 to a process). To prevent this information from being exfiltrated via Tetragon
 JSON export, Tetragon provides a mechanism called Redaction Filters which can be
-used to string patterns to redact from exported process arguments and environment
+used to specify string patterns to redact from exported process arguments and environment
 variables. These filters are written in JSON and passed to the Tetragon agent via
 the `--redaction-filters` command line flag or the `redactionFilters` Helm value.
 
@@ -275,7 +275,7 @@ Now, an event that contains the string `"SSHPASS=password"` would have that stri
 replaced with `"SSHPASS=*****"`.
 
 It's also possible to store only requested environment variables with
-'--filter-environment-variables VAR1[,VAR2..]` option.
+'--filter-environment-variables VAR1[,VAR2..]' option.
 
 ### `tetra` CLI
 
@@ -302,7 +302,7 @@ filter by a specific binary and/or pod do the following,
 kubectl logs -n kube-system -l app.kubernetes.io/name=tetragon -c export-stdout -f | tetra getevents -o compact --processes curl --pod xwing
 ```
 
-Will filter and report just the relevant events.
+This will filter and report just the relevant events.
 
 ```
 🚀 process default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon
