@@ -11,7 +11,10 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Helm Values
 
-* TBD
+* CRI users: Mounting of the Container Runtime socket is moving to a directory path.
+  If your systems are running Kyverno/OPA/Gatekeeper rules that allow hostPath mounts
+  only by explicit paths, then you will need to extend your allowlist with the
+  directory containing the socket passed to `tetragon.cri.socketHostPath`.
 
 ### TracingPolicy (k8s CRD)
 

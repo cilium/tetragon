@@ -101,8 +101,8 @@ spec:
 {{- if and (.Values.tetragon.cri.enabled) (.Values.tetragon.cri.socketHostPath) }}
       - name: cri-socket
         hostPath:
-          path: {{ quote .Values.tetragon.cri.socketHostPath }}
-          type: Socket
+          path: {{ dir .Values.tetragon.cri.socketHostPath | quote }}
+          type: Directory
 {{- end }}
       {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 6 }}
