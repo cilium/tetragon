@@ -121,18 +121,14 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	      struct msg_generic_kprobe *e)
 {
 	int *s = (int *)args_off(e, off);
-	unsigned long meta;
-	size_t bytes = 0;
 
 	if (has_return_copy(argm)) {
-		u64 retid = retprobe_map_get_key(ctx);
+		__u64 retid = retprobe_map_get_key(ctx);
 
 		retprobe_map_set(e->func_id, retid, e->common.ktime, arg);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
-	meta = get_arg_meta(argm, e);
-	probe_read(&bytes, sizeof(bytes), &meta);
-	return __copy_char_buf(ctx, off, arg, bytes, has_max_data(argm), e);
+	return __copy_char_buf(ctx, off, arg, get_arg_meta(argm, e), has_max_data(argm), e);
 }
 
 #ifdef __LARGE_BPF_PROG
