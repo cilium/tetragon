@@ -239,6 +239,7 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 {
 	struct msg_generic_kprobe *e;
 	long size = -1;
+	long ret = 0;
 	int zero = 0;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
@@ -252,26 +253,28 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 	case fd_ty: {
 		struct fdinstall_key key = { 0 };
 		struct fdinstall_value *val;
-		__u32 fd;
 
 		key.tid = get_current_pid_tgid() >> 32;
-		probe_read(&fd, sizeof(__u32), &arg);
-		key.fd = fd;
+		key.fd = arg;
 
 		val = map_lookup_elem(&fdinstall_map, &key);
 		if (val) {
 			__u32 bytes = *((__u32 *)&val->file[0]);
 
-			probe_read(&args[0], sizeof(__u32), &fd);
+			memcpy(&args[0], &key.fd, sizeof(key.fd));
 			asm volatile("%[bytes] &= 0xfff;\n"
 				     : [bytes] "+r"(bytes)
 				     :);
-			probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
+			ret = probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
+			if (ret < 0)
+				return ret;
 			size = bytes + 4 + 4;
 
 			// flags
-			probe_read(&args[size], 4,
-				   (char *)&val->file[size - 4]);
+			ret = probe_read(&args[size], 4,
+					 (char *)&val->file[size - 4]);
+			if (ret < 0)
+				return ret;
 			size += 4;
 		} else {
 			/* If filter specification is fd type then we
