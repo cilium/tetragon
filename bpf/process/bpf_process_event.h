@@ -289,6 +289,9 @@ __event_get_current_cgroup_name(struct cgroup *cgrp, struct msg_k8s *kube)
  * Checks the tg_conf_map BPF map for cgroup and runtime configurations then
  * collects cgroup information from current task. This allows to operate on
  * different machines and workflows.
+ *
+ * Return 0 on success, or a bitmask of EVENT_ERROR_* flags on failures.
+ *
  */
 FUNC_INLINE __u32
 __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
@@ -311,7 +314,7 @@ __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 
 	cgrp = get_task_cgroup(task, cgrpfs_magic, subsys_idx, &flags);
 	if (!cgrp)
-		return 0;
+		return flags;
 
 	/* Collect event cgroup ID */
 	kube->cgrpid = __tg_get_current_cgroup_id(cgrp, cgrpfs_magic);
