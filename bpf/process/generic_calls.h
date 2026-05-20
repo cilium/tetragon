@@ -32,9 +32,9 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 	struct msg_generic_kprobe *msg;
 	struct event_config *config;
 	struct task_struct *task;
-	int i, zero = 0;
+	int i;
 
-	msg = map_lookup_elem(&process_call_heap, &zero);
+	msg = process_call_heap_lookup();
 	if (!msg)
 		return 0;
 
@@ -239,9 +239,8 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 {
 	struct msg_generic_kprobe *e;
 	long size = -1;
-	int zero = 0;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 
@@ -356,9 +355,8 @@ __read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 {
 	struct msg_generic_kprobe *e;
 	long size = -1;
-	int zero = 0;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 
@@ -452,10 +450,9 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	char *args;
 	const struct path *path_arg = 0;
 	struct path path_buf;
-	int zero = 0;
 	int ret;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 
@@ -576,11 +573,11 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
-	int am, zero = 0, arg_index __maybe_unused;
+	int am, arg_index __maybe_unused;
 	unsigned long a;
 	long ty;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 
@@ -654,10 +651,10 @@ FUNC_INLINE int
 generic_process_event(void *ctx, struct bpf_map_def *tailcals, int process)
 {
 	struct msg_generic_kprobe *e;
-	int index, zero = 0;
+	int index;
 	long total;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 
@@ -714,11 +711,10 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
-	int zero = 0;
 	long ty __maybe_unused;
 
 	/* Pid/Ktime Passed through per cpu map in process heap. */
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 
@@ -951,10 +947,9 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	int socki;
 	int argi __maybe_unused;
 	int err = 0;
-	int zero = 0;
 	u32 polacct;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 
@@ -1129,11 +1124,11 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 	struct selector_arg_filters *arg;
 	struct selector_action *actions;
 	struct msg_generic_kprobe *e;
-	int actoff, pass, zero = 0;
+	int actoff, pass;
 	bool postit;
 	__u8 *f;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 
@@ -1166,10 +1161,9 @@ FUNC_INLINE long
 generic_output(void *ctx, u8 op)
 {
 	struct msg_generic_kprobe *e;
-	int zero = 0;
 	size_t total;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 
@@ -1218,13 +1212,12 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	struct retprobe_info info;
 	struct event_config *config;
 	bool walker = false;
-	int zero = 0;
 	__u32 ppid;
 	long size = 0;
 	long ty_arg, do_copy;
 	__u64 pid_tgid;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 
@@ -1331,15 +1324,15 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 // msg_generic_hdr structure.
 FUNC_INLINE int generic_process_filter(void)
 {
-	int selectors, pass, zero = 0;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *msg;
 	struct msg_execve_key *current;
 	struct msg_selector_data *sel;
+	int selectors, pass;
 	bool walker = 0;
 	__u32 ppid, *f;
 
-	msg = map_lookup_elem(&process_call_heap, &zero);
+	msg = process_call_heap_lookup();
 	if (!msg)
 		return 0;
 
@@ -1464,9 +1457,9 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 				    bool is_entry, int arg)
 {
 	struct msg_generic_kprobe *e;
-	int selidx, pass, zero = 0;
+	int selidx, pass;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 	selidx = e->tailcall_index_selector;

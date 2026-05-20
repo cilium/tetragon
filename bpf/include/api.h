@@ -145,6 +145,7 @@ static struct bpf_sock *BPF_FUNC(get_listener_sock, struct bpf_sock *sk);
 static struct bpf_sock *BPF_FUNC(skc_lookup_tcp, void *ctx, struct bpf_sock_tuple *tuple, u32 tuple_size, u64 netns, u64 flags);
 static void *BPF_FUNC(sk_storage_get, struct bpf_map *map, void *sk, void *value, u64 flags);
 static void *BPF_FUNC(sk_storage_delete, struct bpf_map *map, void *sk);
+static void *BPF_FUNC(task_storage_get, struct bpf_map *map, void *task, void *value, u64 flags);
 static struct tcp6_sock *BPF_FUNC(skc_to_tcp6_sock, void *sk);
 static struct tcp_sock *BPF_FUNC(skc_to_tcp_sock, void *sk);
 static struct tcp_timewait_sock *BPF_FUNC(skc_to_tcp_timewait_sock, void *sk);

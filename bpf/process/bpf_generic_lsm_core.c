@@ -109,9 +109,8 @@ generic_lsm_actions(void *ctx)
 	bool postit = generic_actions(ctx, (struct bpf_map_def *)&lsm_calls);
 
 	struct msg_generic_kprobe *e;
-	int zero = 0;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = process_call_heap_lookup();
 	if (!e)
 		return 0;
 

@@ -6,12 +6,42 @@
 
 #include "lib/data_msg.h"
 
+/*
+ * Sleepable uprobe programs use BPF_MAP_TYPE_TASK_STORAGE so that each task
+ * gets its own scratch buffer.  A per-CPU array would be corrupted if the
+ * sleepable program is preempted and another task hits the same probe on the
+ * same CPU before the first task resumes.
+ */
+#ifdef __SLEEPABLE
+struct {
+	__uint(type, BPF_MAP_TYPE_TASK_STORAGE);
+	__uint(map_flags, BPF_F_NO_PREALLOC);
+	__type(key, int);
+	__type(value, struct msg_generic_kprobe);
+} process_call_heap SEC(".maps");
+
+FUNC_INLINE struct msg_generic_kprobe *process_call_heap_lookup(void)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task_btf();
+
+	return task_storage_get((struct bpf_map *) &process_call_heap, task, NULL,
+				BPF_LOCAL_STORAGE_GET_F_CREATE);
+}
+#else
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
 	__type(value, struct msg_generic_kprobe);
 } process_call_heap SEC(".maps");
+
+FUNC_INLINE struct msg_generic_kprobe *process_call_heap_lookup(void)
+{
+	__u32 zero = 0;
+
+	return map_lookup_elem(&process_call_heap, &zero);
+}
+#endif
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);

@@ -183,7 +183,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	struct event_config *config;
 	int zero = 0, i;
 
-	msg = map_lookup_elem(&process_call_heap, &zero);
+	msg = process_call_heap_lookup();
 	if (!msg)
 		return 0;
 
