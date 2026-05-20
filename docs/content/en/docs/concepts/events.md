@@ -114,7 +114,7 @@ in a Kubernetes cluster  `process_exec.process.pod`. The binary and args being e
 the event here `process_exec.process.binary` and `process_exec.process.args`. Finally, a `node_name`
 and `time` provide the location and time for the event and will be present in all event types.
 
-A default deployment writes the JSON log to `/var/run/cilium/tetragon/tetragon.log` where it can
+A default deployment writes the JSON log to `/var/log/tetragon/tetragon.log` where it can
 be exported through normal log collection tooling, e.g. fluentd, logstash, etc. The file will
 be rotated and compressed by default. See [Helm Options] for details on how to customize this location.
 

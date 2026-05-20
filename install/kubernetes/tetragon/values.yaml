@@ -29,7 +29,7 @@ serviceLabelsOverride: {}
 # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
 dnsPolicy: Default
 # -- Directory to put Tetragon JSON export files.
-exportDirectory: "/var/run/cilium/tetragon"
+exportDirectory: "/var/log/tetragon"
 # -- Configures whether Tetragon pods run on the host network.
 #
 # IMPORTANT: Tetragon must be on the host network for the process visibility to
