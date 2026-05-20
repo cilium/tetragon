@@ -138,6 +138,7 @@ func (r *Runner) Init() *Runner {
 	r.Setup(func(ctx context.Context, config *envconf.Config) (context.Context, error) {
 		ctx, err := r.installTetragon(ctx, config)
 		if err != nil {
+			klog.Errorf("Runner.installTetragon failed: %v", err)
 			r.setupTetragonFailed = true
 		}
 		return ctx, err
