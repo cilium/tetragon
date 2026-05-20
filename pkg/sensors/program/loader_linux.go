@@ -4,10 +4,15 @@
 package program
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -20,10 +25,24 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
 type uprobeAttachFunc func(*Program, *ebpf.Program, *ebpf.ProgramSpec, string, ...string) (unloader.Unloader, error)
+
+const (
+	sharedRodataConfigABI = "tetragon.tg_rodata_config.v1"
+	sharedRodataConfigMap = ".rodata.tg_cfg"
+	sharedRodataConfigVar = "tg_rodata_config"
+)
+
+type tgRodataConfig struct {
+	IterNum           uint8
+	ParentsMapEnabled uint8
+	EnvVarsEnabled    uint8
+	Pad               [5]uint8
+}
 
 func LinkPin(lnk link.Link, bpfDir string, load *Program, extra ...string) error {
 	// pinned link is not supported
@@ -894,8 +913,234 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 	return nil
 }
 
+func boolUint8(v bool) uint8 {
+	if v {
+		return 1
+	}
+	return 0
+}
+
+func currentRodataConfig() tgRodataConfig {
+	// We can't use numeric iterator until we get following fix from 6.9 kernel:
+	//   4f81c16f50ba bpf: Recognize that two registers are safe when their ranges match
+	// otherwise our loop code crosses 1mil instructions verifier limit.
+	iterNum := bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
+
+	return tgRodataConfig{
+		IterNum:           boolUint8(iterNum),
+		ParentsMapEnabled: boolUint8(option.Config.ParentsMapEnabled),
+		EnvVarsEnabled:    boolUint8(option.Config.EnableProcessEnvironmentVariables),
+	}
+}
+
+func setConstant(v *ebpf.VariableSpec, value any) error {
+	if !v.Constant() {
+		return fmt.Errorf("variable %s is not a constant", v.Name)
+	}
+	if err := v.Set(value); err != nil {
+		return fmt.Errorf("failed to set config variable '%s': %w", v, err)
+	}
+	return nil
+}
+
+func rewriteSharedRodataConfig(spec *ebpf.CollectionSpec, cfg tgRodataConfig) error {
+	v, ok := spec.Variables[sharedRodataConfigVar]
+	if !ok {
+		return nil
+	}
+	return setConstant(v, cfg)
+}
+
+type dataSectionVariable struct {
+	name   string
+	offset uint32
+	size   uint32
+	value  []byte
+}
+
+func dataSectionVariables(spec *ebpf.CollectionSpec, section string) []dataSectionVariable {
+	var vars []dataSectionVariable
+	for _, v := range spec.Variables {
+		if v.SectionName != section {
+			continue
+		}
+		vars = append(vars, dataSectionVariable{
+			name:   v.Name,
+			offset: v.Offset,
+			size:   v.Size(),
+			value:  v.Value,
+		})
+	}
+	sort.Slice(vars, func(i, j int) bool {
+		if vars[i].offset == vars[j].offset {
+			return vars[i].name < vars[j].name
+		}
+		return vars[i].offset < vars[j].offset
+	})
+	return vars
+}
+
+func dataSectionContents(spec *ebpf.CollectionSpec, section string) ([]byte, error) {
+	mapSpec := spec.Maps[section]
+	if mapSpec == nil {
+		return nil, fmt.Errorf("map %s not found", section)
+	}
+	if len(mapSpec.Contents) != 1 {
+		return nil, fmt.Errorf("expected one key in %s, found %d", section, len(mapSpec.Contents))
+	}
+	if key, ok := mapSpec.Contents[0].Key.(uint32); !ok || key != 0 {
+		return nil, fmt.Errorf("expected %s contents to have key 0", section)
+	}
+	value, ok := mapSpec.Contents[0].Value.([]byte)
+	if !ok {
+		return nil, fmt.Errorf("value at first %s map key is %T, not []byte", section, mapSpec.Contents[0].Value)
+	}
+
+	data := append([]byte(nil), value...)
+	for _, v := range dataSectionVariables(spec, section) {
+		end := v.offset + v.size
+		if end > uint32(len(data)) {
+			return nil, fmt.Errorf("variable %s exceeds %s map size", v.name, section)
+		}
+		copy(data[v.offset:end], v.value)
+	}
+	return data, nil
+}
+
+func appendUint32(dst []byte, v uint32) []byte {
+	var buf [4]byte
+	binary.LittleEndian.PutUint32(buf[:], v)
+	return append(dst, buf[:]...)
+}
+
+func sharedRodataConfigHash(spec *ebpf.CollectionSpec, contents []byte) (string, error) {
+	mapSpec := spec.Maps[sharedRodataConfigMap]
+	if mapSpec == nil {
+		return "", fmt.Errorf("map %s not found", sharedRodataConfigMap)
+	}
+
+	h := sha256.New()
+	_, _ = h.Write([]byte(sharedRodataConfigABI))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(sharedRodataConfigMap))
+	_, _ = h.Write([]byte{0})
+
+	buf := make([]byte, 0, 12)
+	buf = appendUint32(buf, mapSpec.KeySize)
+	buf = appendUint32(buf, mapSpec.ValueSize)
+	buf = appendUint32(buf, mapSpec.MaxEntries)
+	_, _ = h.Write(buf)
+
+	for _, v := range dataSectionVariables(spec, sharedRodataConfigMap) {
+		_, _ = h.Write([]byte(v.name))
+		_, _ = h.Write([]byte{0})
+		buf = buf[:0]
+		buf = appendUint32(buf, v.offset)
+		buf = appendUint32(buf, v.size)
+		_, _ = h.Write(buf)
+	}
+	_, _ = h.Write(contents)
+
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+func prepareSharedRodataConfigPin(pinPath string, contents []byte) error {
+	if _, err := os.Stat(pinPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("stat shared rodata config map %s: %w", pinPath, err)
+	}
+
+	m, err := ebpf.LoadPinnedMap(pinPath, nil)
+	if err != nil {
+		return fmt.Errorf("loading shared rodata config map %s: %w", pinPath, err)
+	}
+	defer m.Close()
+
+	info, err := m.Info()
+	if err != nil {
+		return fmt.Errorf("retrieving shared rodata config map info %s: %w", pinPath, err)
+	}
+
+	removePin := !info.Frozen()
+	if !removePin {
+		got, err := m.LookupBytes(uint32(0))
+		if err != nil {
+			return fmt.Errorf("reading shared rodata config map %s: %w", pinPath, err)
+		}
+		removePin = len(got) < len(contents) || !bytes.Equal(got[:len(contents)], contents)
+	}
+
+	if removePin {
+		if err := os.Remove(pinPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("removing stale shared rodata config map %s: %w", pinPath, err)
+		}
+	}
+	return nil
+}
+
+func cleanupUnfrozenSharedRodataConfigPin(pinPath string) {
+	if pinPath == "" {
+		return
+	}
+
+	m, err := ebpf.LoadPinnedMap(pinPath, nil)
+	if err != nil {
+		return
+	}
+	defer m.Close()
+
+	info, err := m.Info()
+	if err != nil || info.Frozen() {
+		return
+	}
+
+	if err := os.Remove(pinPath); err != nil && !os.IsNotExist(err) {
+		logger.GetLogger().Warn("Failed to remove unfrozen shared rodata config map",
+			"map", pinPath, logfields.Error, err)
+	}
+}
+
+func setupSharedRodataConfig(bpfDir string, spec *ebpf.CollectionSpec) (pinDir, pinPath string, err error) {
+	mapSpec := spec.Maps[sharedRodataConfigMap]
+	if mapSpec == nil {
+		return "", "", nil
+	}
+	if spec.Variables[sharedRodataConfigVar] == nil {
+		return "", "", fmt.Errorf("variable %s not found", sharedRodataConfigVar)
+	}
+
+	contents, err := dataSectionContents(spec, sharedRodataConfigMap)
+	if err != nil {
+		return "", "", err
+	}
+	hash, err := sharedRodataConfigHash(spec, contents)
+	if err != nil {
+		return "", "", err
+	}
+
+	pinDir = filepath.Join(bpfDir, "rodata", hash)
+	pinPath = filepath.Join(pinDir, sharedRodataConfigMap)
+	if err := os.MkdirAll(pinDir, 0755); err != nil {
+		return "", "", fmt.Errorf("creating shared rodata config directory %s: %w", pinDir, err)
+	}
+	if err := prepareSharedRodataConfigPin(pinPath, contents); err != nil {
+		return "", "", err
+	}
+
+	mapSpec.Pinning = ebpf.PinByName
+	AddGlobalMap(sharedRodataConfigMap)
+	return pinDir, pinPath, nil
+}
+
 func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 	var missing []string
+	cfg := currentRodataConfig()
+
+	if err := rewriteSharedRodataConfig(spec, cfg); err != nil {
+		return err
+	}
 
 	for n, c := range consts {
 		v, ok := spec.Variables[n]
@@ -904,25 +1149,20 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 			continue
 		}
 
-		if !v.Constant() {
-			return fmt.Errorf("variable %s is not a constant", n)
-		}
-
-		if err := v.Set(c); err != nil {
+		if err := setConstant(v, c); err != nil {
 			return fmt.Errorf("rewriting constant %s: %w", n, err)
 		}
 	}
 
 	confs := map[string]func(v *ebpf.VariableSpec) error{
 		"CONFIG_ITER_NUM": func(v *ebpf.VariableSpec) error {
-			// We can't use numeric iterator until we get following fix from 6.9 kernel:
-			//   4f81c16f50ba bpf: Recognize that two registers are safe when their ranges match
-			// otherwise our loop code crosses 1mil instructions verifier limit.
-			enabled := bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
-			if err := v.Set(enabled); err != nil {
-				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
-			}
-			return nil
+			return setConstant(v, cfg.IterNum)
+		},
+		"PARENTS_MAP_ENABLED": func(v *ebpf.VariableSpec) error {
+			return setConstant(v, cfg.ParentsMapEnabled)
+		},
+		"ENV_VARS_ENABLED": func(v *ebpf.VariableSpec) error {
+			return setConstant(v, cfg.EnvVarsEnabled)
 		},
 	}
 
@@ -984,6 +1224,11 @@ func doLoadProgram(
 		if err := loadOpts.Open(spec); err != nil {
 			return nil, fmt.Errorf("open spec function failed: %w", err)
 		}
+	}
+
+	sharedRodataPinDir, sharedRodataPinPath, err := setupSharedRodataConfig(bpfDir, spec)
+	if err != nil {
+		return nil, fmt.Errorf("setting up shared rodata config failed: %w", err)
 	}
 
 	// We have following maps available for loading:
@@ -1065,6 +1310,10 @@ func doLoadProgram(
 
 	pinnedMaps := make(map[string]*ebpf.Map)
 	for name := range refMaps {
+		if name == sharedRodataConfigMap {
+			continue
+		}
+
 		var m *ebpf.Map
 		var err error
 		var mapPath string
@@ -1095,6 +1344,9 @@ func doLoadProgram(
 	}
 
 	opts.MapReplacements = pinnedMaps
+	if sharedRodataPinDir != "" {
+		opts.Maps.PinPath = sharedRodataPinDir
+	}
 
 	coll, err := ebpf.NewCollectionWithOptions(spec, opts)
 	if err != nil && btfSpec != nil && load.KernelTypes != nil {
@@ -1104,6 +1356,8 @@ func doLoadProgram(
 		coll, err = ebpf.NewCollectionWithOptions(spec, opts)
 	}
 	if err != nil {
+		cleanupUnfrozenSharedRodataConfigPin(sharedRodataPinPath)
+
 		// Log the error directly using the logger so that the verifier log
 		// gets properly pretty-printed.
 		if verbose != 0 {
@@ -1226,6 +1480,10 @@ func doLoadProgram(
 	}
 
 	load.Prog = prog
+	if sharedRodataPinPath != "" {
+		acquireSharedPinnedMap(sharedRodataPinPath)
+		load.SharedMapPins = append(load.SharedMapPins, sharedRodataPinPath)
+	}
 
 	// in KernelTypes, we use a non-standard BTF which is possibly annotated with symbols
 	// from kernel modules. At this point we don't need that anymore, so we can release

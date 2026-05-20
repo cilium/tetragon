@@ -173,6 +173,9 @@ type Program struct {
 
 	Link link.Link
 	Prog *ebpf.Program
+	// SharedMapPins are pinned maps that are loaded outside the sensor map
+	// model and should be released with the program.
+	SharedMapPins []string
 
 	// policy name the program belongs to
 	Policy string
@@ -231,6 +234,8 @@ func (p *Program) Unload(unpin bool) error {
 	}
 	p.unloader = nil
 	p.unloaderOverride = nil
+	releaseSharedPinnedMaps(p.SharedMapPins, unpin)
+	p.SharedMapPins = nil
 	// The above unloader can succeed while not removing a pin to the program
 	// because of option.Config.KeepSensorsOnExit, and thus the maps remain.
 	if !p.Prog.IsPinned() {

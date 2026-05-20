@@ -414,8 +414,6 @@ event_find_curr_probe(struct msg_generic_kprobe *msg)
 #endif
 
 #ifdef __LARGE_BPF_PROG
-volatile const __u8 PARENTS_MAP_ENABLED;
-
 FUNC_INLINE void update_parents_map(struct msg_execve_event *event, struct execve_map_value *curr)
 {
 	if (PARENTS_MAP_ENABLED) {

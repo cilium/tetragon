@@ -3,10 +3,17 @@
 
 #pragma once
 
-#ifdef __V511_BPF_PROG
+#ifdef __LARGE_BPF_PROG
 
-#define DECLARE_CONFIG(type, name) \
-	volatile const type CONFIG_##name;
+struct tg_rodata_config {
+	__u8 iter_num;
+	__u8 parents_map_enabled;
+	__u8 env_vars_enabled;
+	__u8 pad[5];
+};
+
+volatile const struct tg_rodata_config tg_rodata_config
+	__attribute__((section(".rodata.tg_cfg"), used));
 
 /*
  * Reconstruct the rodata pointer on each access to prevent the compiler
@@ -21,18 +28,31 @@
  * blocks, so opt for a direct symbol reference instead. We need the
  * pointer reconstructed in bytecode on every access.
  */
-#define CONFIG(name)                                                  \
-	(*({                                                          \
+#define TG_RODATA_CONFIG_PTR()                                      \
+	({                                                        \
 		void *out;                                            \
-		asm volatile("%0 = " __stringify(CONFIG_##name) " ll" \
+		asm volatile("%0 = tg_rodata_config ll"               \
 			     : "=r"(out));                            \
-		(typeof(CONFIG_##name) *)out;                         \
-	}))
+		(volatile const struct tg_rodata_config *)out;        \
+	})
 
-DECLARE_CONFIG(bool, ITER_NUM);
+#define TG_RODATA_CONFIG(field) (TG_RODATA_CONFIG_PTR()->field)
 
-#else
+#define PARENTS_MAP_ENABLED TG_RODATA_CONFIG(parents_map_enabled)
+#define ENV_VARS_ENABLED    TG_RODATA_CONFIG(env_vars_enabled)
+
+#ifdef __V511_BPF_PROG
+
+#define CONFIG(name) TG_RODATA_CONFIG(iter_num)
+
+#else /* __V511_BPF_PROG */
 
 #define CONFIG(name) 0
 
 #endif /* __V511_BPF_PROG */
+
+#else /* __LARGE_BPF_PROG */
+
+#define CONFIG(name) 0
+
+#endif /* __LARGE_BPF_PROG */

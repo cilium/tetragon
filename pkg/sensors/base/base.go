@@ -155,14 +155,6 @@ func setupSensor() {
 	logger.GetLogger().Info(fmt.Sprintf("Set execve_map entries %d", entries),
 		"size", strutils.SizeWithSuffix(entries*int(unsafe.Sizeof(execvemap.ExecveValue{}))))
 
-	if option.Config.EnableProcessEnvironmentVariables {
-		Execve.RewriteConstants["ENV_VARS_ENABLED"] = uint8(1)
-	}
-
-	if option.Config.ParentsMapEnabled {
-		Execve.RewriteConstants["PARENTS_MAP_ENABLED"] = uint8(1)
-	}
-
 	if option.Config.ParentsMapEnabled {
 		entries = GetExecveEntries(option.Config.ParentsMapEntries, option.Config.ParentsMapSize)
 		ParentBinariesMap.SetMaxEntries(entries)

@@ -99,6 +99,8 @@ FUNC_INLINE void compiler_barrier(void)
 
 #define SEC(name) __attribute__((section(name), used))
 
+#include "config.h"
+
 /*
  * Helper macros to manipulate data structures
  */
