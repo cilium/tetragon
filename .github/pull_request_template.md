@@ -7,6 +7,8 @@ Thanks for contributing! Please ensure your pull request adheres to the followin
 - [ ] Provide a title or release-note blurb suitable for the release notes (see [guidelines](https://tetragon.io/docs/contribution-guide/release-notes/#release-note-blurb-in-pr)).
 - [ ] Update documentation and write an upgrade note if needed (see [guidelines](https://tetragon.io/docs/contribution-guide/release-notes/#upgrade-notes)).
 - [ ] Are you a user of Tetragon? Please add yourself to the [Users doc](https://github.com/cilium/cilium/blob/main/USERS.md) in the Cilium repository.
+- [ ] Consult https://github.com/cilium/community/blob/main/AI-POLICY.md for PRs that
+  use Generative AI.
 -->
 
 Fixes <!-- #issue-number -->
