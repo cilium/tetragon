@@ -17,6 +17,8 @@ Depending on your setup, changes listed here might require a manual intervention
   directory containing the socket passed to `tetragon.cri.socketHostPath`.
 * `tetragon.gops.enabled` now defaults to `false`. To re-enable the gops debug
   interface, set `--set tetragon.gops.enabled=true` at install or upgrade time.
+* `exportDirectory` default value has been updated to `/var/log/tetragon` from 
+  `/var/run/cilium/tetragon/` to avoid writing to tmpfs.
 
 ### TracingPolicy (k8s CRD)
 
