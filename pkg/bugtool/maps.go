@@ -9,7 +9,6 @@ import (
 	"iter"
 	"maps"
 	"os"
-	"slices"
 	"sort"
 	"syscall"
 
@@ -338,12 +337,8 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 			}{m, 1}
 		}
 	}
-	aggregatedMaps := slices.Collect(maps.Values(aggregatedMapsSet))
-	sort.Slice(aggregatedMaps, func(i, j int) bool {
-		return aggregatedMaps[i].Memlock > aggregatedMaps[j].Memlock
-	})
 
-	for _, m := range aggregatedMaps {
+	for m := range maps.Values(aggregatedMapsSet) {
 		out.AggregatedMaps = append(out.AggregatedMaps, AggregatedMap{
 			Name:              m.Name,
 			Type:              m.Type.String(),
@@ -356,6 +351,10 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 			PercentOfTotal:    float64(m.Memlock*m.count) / float64(total) * 100,
 		})
 	}
+
+	sort.Slice(out.AggregatedMaps, func(i, j int) bool {
+		return out.AggregatedMaps[i].TotalMemlockBytes > out.AggregatedMaps[j].TotalMemlockBytes
+	})
 
 	return &out, nil
 }
