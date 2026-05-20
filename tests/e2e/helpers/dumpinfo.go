@@ -35,7 +35,7 @@ import (
 var (
 	TetragonContainerName         = "tetragon"
 	TetragonOperatorContainerName = "tetragon-operator"
-	TetragonJsonPathname          = "/var/run/cilium/tetragon/tetragon.log"
+	TetragonJsonPathname          = "/var/log/tetragon/tetragon.log"
 )
 
 type TestEnvFunc = func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error)
