@@ -25,7 +25,7 @@ struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, 6);
 	__type(key, __u32);
-	__array(values, int(struct pt_regs *));
+	__array(values, int(void *));
 } fexit_calls SEC(".maps") = {
 	.values = {
 		[TAIL_CALL_ARGS] = (void *)&generic_fexit_filter_arg,
