@@ -17,7 +17,7 @@ import (
 
 type ExtendedMapInfo struct {
 	ebpf.MapInfo
-	Memlock int
+	Memlock uint64
 }
 
 func ExtendedInfoFromMapID(id int) (ExtendedMapInfo, error) {
@@ -72,7 +72,7 @@ func MemlockInfoFromMapID(id int) (ExtendedMapInfo, error) {
 	}, nil
 }
 
-func ParseMemlockFromFDInfo(fd int) (int, error) {
+func ParseMemlockFromFDInfo(fd int) (uint64, error) {
 	path := fmt.Sprintf("/proc/self/fdinfo/%d", fd)
 	file, err := os.Open(path)
 	if err != nil {
@@ -82,12 +82,12 @@ func ParseMemlockFromFDInfo(fd int) (int, error) {
 	return parseMemlockFromFDInfoReader(file)
 }
 
-func parseMemlockFromFDInfoReader(r io.Reader) (int, error) {
+func parseMemlockFromFDInfoReader(r io.Reader) (uint64, error) {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
 		if len(fields) > 1 && fields[0] == "memlock:" {
-			memlock, err := strconv.Atoi(fields[1])
+			memlock, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				return 0, fmt.Errorf("failed converting memlock to int: %w", err)
 			}
