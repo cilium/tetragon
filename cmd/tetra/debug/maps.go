@@ -106,18 +106,19 @@ adjust the number of item in the table.
 
 				if len(out.AggregatedMaps) != 0 {
 					w = tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
-					fmt.Fprintln(w, "Name\tType\tKeySize\tValueSize\tMaxEntries\tCount\tTotalMemlock\tPercentOfTotal")
+					fmt.Fprintln(w, "Name\tType\tKeySize\tValueSize\tMaxEntries\tCount\tMemlock\tTotalMemlock\tPercentOfTotal")
 					for i, d := range out.AggregatedMaps {
 						if lines != 0 && i+1 > lines {
 							break
 						}
-						fmt.Fprintf(w, "%s\t%s\t%d\t%d\t%d\t%d\t%s\t%0.1f%%\n",
+						fmt.Fprintf(w, "%s\t%s\t%d\t%d\t%d\t%d\t%s\t%s\t%0.1f%%\n",
 							d.Name,
 							d.Type,
 							d.KeySize,
 							d.ValueSize,
 							d.MaxEntries,
 							d.Count,
+							common.HumanizeByteCount(d.MemlockBytes),
 							common.HumanizeByteCount(d.TotalMemlockBytes),
 							d.PercentOfTotal,
 						)
