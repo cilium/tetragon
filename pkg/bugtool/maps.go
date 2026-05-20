@@ -219,6 +219,7 @@ type AggregatedMap struct {
 	ValueSize         uint32  `json:"value_size,omitempty"`
 	MaxEntries        uint32  `json:"max_entries,omitempty"`
 	Count             uint64  `json:"count,omitempty"`
+	MemlockBytes      uint64  `json:"memlock_bytes,omitempty"`
 	TotalMemlockBytes uint64  `json:"total_memlock_bytes,omitempty"`
 	PercentOfTotal    float64 `json:"percent_of_total,omitempty"`
 }
@@ -350,8 +351,9 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 			ValueSize:         m.ValueSize,
 			MaxEntries:        m.MaxEntries,
 			Count:             m.count,
-			TotalMemlockBytes: m.Memlock,
-			PercentOfTotal:    float64(m.Memlock) / float64(total) * 100,
+			MemlockBytes:      m.Memlock,
+			TotalMemlockBytes: m.Memlock * m.count,
+			PercentOfTotal:    float64(m.Memlock*m.count) / float64(total) * 100,
 		})
 	}
 
