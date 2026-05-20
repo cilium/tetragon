@@ -302,6 +302,7 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 	out.MapsStats.Diff = len(diff)
 
 	// details on diff maps
+	out.DiffMaps = make([]DiffMap, 0, len(diff))
 	for _, d := range diff {
 		id, ok := d.ID()
 		if !ok {
@@ -338,6 +339,7 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 		}
 	}
 
+	out.AggregatedMaps = make([]AggregatedMap, 0, len(aggregatedMapsSet))
 	for m := range maps.Values(aggregatedMapsSet) {
 		out.AggregatedMaps = append(out.AggregatedMaps, AggregatedMap{
 			Name:              m.Name,
