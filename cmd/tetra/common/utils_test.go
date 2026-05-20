@@ -10,7 +10,7 @@ import (
 
 func TestHumanizeByteCount(t *testing.T) {
 	tests := []struct {
-		input int
+		input uint64
 		want  string
 	}{
 		{0, "0 B"},
@@ -25,7 +25,7 @@ func TestHumanizeByteCount(t *testing.T) {
 		{12970000000000, "12.97 TB"},
 	}
 	for _, tt := range tests {
-		t.Run(strconv.Itoa(tt.input), func(t *testing.T) {
+		t.Run(strconv.FormatUint(tt.input, 10), func(t *testing.T) {
 			if got := HumanizeByteCount(tt.input); got != tt.want {
 				t.Errorf("HumanizeByteCount(%d) = %v, want %v", tt.input, got, tt.want)
 			}
