@@ -15,7 +15,7 @@ import (
 // HumanizeByteCount transforms bytes count into a quickly-readable version, for
 // example it transforms 4458824 into "4.46 MB". I copied this code from
 // https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
-func HumanizeByteCount(b int) string {
+func HumanizeByteCount(b uint64) string {
 	const unit = 1000
 	if b < unit {
 		return fmt.Sprintf("%d B", b)
@@ -79,7 +79,7 @@ func PrintTracingPolicies(output io.Writer, policies []*tetragon.TracingPolicySt
 			pol.FilterId,
 			namespace,
 			sensors,
-			HumanizeByteCount(int(pol.KernelMemoryBytes)),
+			HumanizeByteCount(pol.KernelMemoryBytes),
 			strings.TrimPrefix(strings.ToLower(pol.Mode.String()), "tp_mode_"),
 			counters.GetPost(),
 			counters.GetSignal()+counters.GetOverride()+counters.GetNotifyEnforcer()+counters.GetSet(),

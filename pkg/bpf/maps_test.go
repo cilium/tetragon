@@ -31,7 +31,7 @@ func Test_parseMemlockFromFDInfoReader(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    io.Reader
-		want    int
+		want    uint64
 		wantErr bool
 	}{
 		{

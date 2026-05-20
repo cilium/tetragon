@@ -35,7 +35,7 @@ func (tds TestDelayedSensor) Overhead() ([]ProgOverhead, bool) {
 	return []ProgOverhead{}, false
 }
 
-func (tds TestDelayedSensor) TotalMemlock() int {
+func (tds TestDelayedSensor) TotalMemlock() uint64 {
 	return 0
 }
 
