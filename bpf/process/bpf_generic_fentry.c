@@ -50,7 +50,7 @@ struct {
 #define SECTION_TAIL  "fentry/generic_fentry_tail"
 
 __attribute__((section((SECTION_ENTRY)), used)) int
-generic_fentry_event(struct pt_regs *ctx)
+generic_fentry_event(void *ctx)
 {
 	return generic_start_process_filter(ctx, (struct bpf_map_def *)&fentry_calls);
 }
