@@ -112,7 +112,7 @@ type SensorIface interface {
 	Destroy(unpin bool) error
 	// TotalMemlock is the total amount of memlock bytes for BPF maps used by
 	// the sensor's programs.
-	TotalMemlock() int
+	TotalMemlock() uint64
 	Overhead() ([]ProgOverhead, bool)
 }
 
@@ -149,7 +149,7 @@ func (s *Sensor) IsLoaded() bool {
 	return s.Loaded
 }
 
-func (s Sensor) TotalMemlock() int {
+func (s Sensor) TotalMemlock() uint64 {
 	uniqueMap := map[int]bpf.ExtendedMapInfo{}
 	for _, p := range s.Progs {
 		// we could first check that it exist then write but all maps with
@@ -157,7 +157,7 @@ func (s Sensor) TotalMemlock() int {
 		maps.Copy(uniqueMap, p.LoadedMapsInfo)
 	}
 
-	var total int
+	var total uint64
 	for _, info := range uniqueMap {
 		// we are using info.Name that is truncated to 15 chars to exclude
 		// global maps, a more resilient implementation could use ID but this

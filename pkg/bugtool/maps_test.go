@@ -33,8 +33,8 @@ func TestFindMaps(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	sumMemlock := func(mapInfos []bpf.ExtendedMapInfo) int {
-		sumMemlock := 0
+	sumMemlock := func(mapInfos []bpf.ExtendedMapInfo) uint64 {
+		sumMemlock := uint64(0)
 		for _, mapInfo := range mapInfos {
 			sumMemlock += mapInfo.Memlock
 		}
