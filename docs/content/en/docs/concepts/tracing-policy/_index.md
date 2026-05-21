@@ -33,3 +33,19 @@ startup using flags.
 
 Hence, even though Tracing Policies are structured as a Kubernetes CR, they can also be used in
 non-Kubernetes environments using the last two loading methods.
+
+Note, however, that Tetragon stores policies per-domain.
+That means that each of the above methods is going to affect policies in its own domain.
+The domain sharding feature makes for consistent and predictable behavior across all methods.
+- Kubernetes is going to enforce `k8s` domain
+- Tetra is going to enforce `grpc` domain
+- Statically loaded policies are going to be in the `static` domain
+
+You can list currently loaded domains using
+```shell
+tetra tracingpolicy domains
+```
+It will produce out similar to:
+```
+[grpc static]
+```
