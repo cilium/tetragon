@@ -246,8 +246,9 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 
 	attachData := &program.UprobeAttachData{
 		Path:         usdtEntry.path,
-		Address:      usdtEntry.target.IpRel,
+		Offset:       usdtEntry.target.IpRel,
 		RefCtrOffset: usdtEntry.target.SemaOff,
+		AddressType:  program.Offset,
 	}
 
 	load := program.Builder(
@@ -556,9 +557,10 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 			attach = &program.MultiUprobeAttachSymbolsCookies{}
 		}
 
-		attach.Addresses = append(attach.Addresses, usdtEntry.target.IpRel)
+		attach.Offsets = append(attach.Offsets, usdtEntry.target.IpRel)
 		attach.RefCtrOffsets = append(attach.RefCtrOffsets, usdtEntry.target.SemaOff)
 		attach.Cookies = append(attach.Cookies, uint64(index))
+		attach.AddressType = program.Offset
 
 		data.Attach[usdtEntry.path] = attach
 	}

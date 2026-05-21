@@ -8,10 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 
+	"github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
@@ -20,6 +22,130 @@ type uprobeAttachFunc func(*Program, *ebpf.Program, *ebpf.ProgramSpec, string, .
 
 func procSelfFDPath(f *os.File) string {
 	return filepath.Join(option.Config.ProcFS, "self", "fd", strconv.FormatUint(uint64(f.Fd()), 10))
+}
+
+func parseSymbol(sym string) (string, uint64, error) {
+	parts := strings.Split(sym, "+")
+	if len(parts) == 1 {
+		return sym, 0, nil
+	}
+	if len(parts) != 2 {
+		return parts[0], 0, fmt.Errorf("wrong symbol %q", sym)
+	}
+	sym = parts[0]
+	str := parts[1]
+	offset, err := strconv.ParseUint(str, 0, 0)
+	if err != nil {
+		return sym, 0, fmt.Errorf("wrong offset %q", str)
+	}
+	return sym, offset, nil
+}
+
+func getAddress(f *os.File, configSymbol string, configAddress, configOffset uint64, addressOffset *uint64, addrType AddressType) (string, uint64, uint64, error) {
+	var err error
+	var offset uint64
+	var address uint64
+	var ok bool
+	var symbol string
+
+	elfFile, err := elf.NewSafeELFFile(f)
+	if err != nil {
+		return "", 0, 0, fmt.Errorf("faild to parse ELF data: %w", err)
+	}
+
+	switch addrType {
+	case Symbol:
+		symbol, offset, err = parseSymbol(configSymbol)
+		if err != nil {
+			return "", 0, 0, fmt.Errorf("failed to parse symbol '%s': %w", configSymbol, err)
+		}
+
+		if elfFile.IsStrippedPureGoBinary() {
+			if offset != 0 {
+				return "", 0, 0, fmt.Errorf("offset is not supported for Go binaries, but got offset %d for symbol '%s'", offset, symbol)
+			}
+			tbl, pclnErr := elfFile.Pclntab()
+			if pclnErr != nil {
+				return "", 0, 0, fmt.Errorf("failed to parse pclntab: %w", pclnErr)
+			}
+			address, ok = tbl.OffsetByName(symbol)
+			if !ok {
+				return "", 0, 0, fmt.Errorf("symbol '%s' not found in pclntab", symbol)
+			}
+			symbol = "" // symbol is not used for Go binaries, as we attach by offset only
+		}
+	case Offset:
+		address = configOffset
+		if addressOffset != nil {
+			*addressOffset = address
+		}
+	case Address:
+		address, err = elfFile.OffsetFromAddr(configAddress)
+		if err != nil {
+			return "", 0, 0, fmt.Errorf("failed to get offset from address '%d': %w", configAddress, err)
+		}
+		if addressOffset != nil {
+			*addressOffset = address
+		}
+	default:
+		return "", 0, 0, fmt.Errorf("invalid address type: %d", addrType)
+	}
+
+	return symbol, address, offset, nil
+}
+
+func getAddresses(f *os.File, attach *MultiUprobeAttachSymbolsCookies) ([]string, []uint64, []uint64, error) {
+	var addresses []uint64
+	var offsets []uint64
+	var symbols []string
+
+	switch attach.AddressType {
+	case Symbol:
+		for _, sym := range attach.Symbols {
+			symbol, address, offset, err := getAddress(f, sym, 0, 0, nil, attach.AddressType)
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("failed to get address for symbol '%s': %w", sym, err)
+			}
+
+			if symbol != "" {
+				symbols = append(symbols, symbol)
+				offsets = append(offsets, offset)
+			} else {
+				addresses = append(addresses, address)
+				offsets = append(offsets, offset)
+			}
+		}
+	case Address:
+		for i, addr := range attach.Addresses {
+			var addressOffset *uint64
+			if i < len(attach.AddressOffsets) {
+				addressOffset = attach.AddressOffsets[i]
+			}
+			_, address, offset, err := getAddress(f, "", addr, 0, addressOffset, attach.AddressType)
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("failed to get offset for address '%d': %w", addr, err)
+			}
+			addresses = append(addresses, address)
+			offsets = append(offsets, offset)
+		}
+	case Offset:
+		for i, off := range attach.Offsets {
+			var addressOffset *uint64
+			if i < len(attach.AddressOffsets) {
+				addressOffset = attach.AddressOffsets[i]
+			}
+			_, address, offset, err := getAddress(f, "", 0, off, addressOffset, attach.AddressType)
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("failed to get address for offset '%d': %w", off, err)
+			}
+			addresses = append(addresses, address)
+			offsets = append(offsets, offset)
+		}
+	default:
+		return nil, nil, nil, fmt.Errorf("invalid address type: %d", attach.AddressType)
+	}
+
+	return symbols, addresses, offsets, nil
 }
 
 func UprobeOpen(load *Program) OpenFunc {
@@ -70,15 +196,21 @@ func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpe
 		if err != nil {
 			return nil, err
 		}
+
+		symbol, address, offset, err := getAddress(f, data.Symbol, data.Address, data.Offset, data.AddressOffset, data.AddressType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get address for path %q: %w", data.Path, err)
+		}
+
 		opts := &link.UprobeOptions{
-			Address:      data.Address,
+			Address:      address,
 			RefCtrOffset: data.RefCtrOffset,
-			Offset:       data.Offset,
+			Offset:       offset,
 		}
 		if load.RetProbe {
-			return exec.Uretprobe(data.Symbol, prog, opts)
+			return exec.Uretprobe(symbol, prog, opts)
 		}
-		return exec.Uprobe(data.Symbol, prog, opts)
+		return exec.Uprobe(symbol, prog, opts)
 	}
 
 	lnk, err := linkFn()
@@ -127,17 +259,21 @@ func attachMultiUpobeLink(load *Program, prog *ebpf.Program, path string, attach
 	if err != nil {
 		return nil, err
 	}
+	symbols, addresses, offsets, err := getAddresses(f, attach)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get addresses for path %q: %w", path, err)
+	}
 	opts := &link.UprobeMultiOptions{
-		Addresses:     attach.Addresses,
-		Offsets:       attach.Offsets,
+		Addresses:     addresses,
+		Offsets:       offsets,
 		RefCtrOffsets: attach.RefCtrOffsets,
 		Cookies:       attach.Cookies,
 	}
 	var lnk link.Link
 	if load.RetProbe {
-		lnk, err = exec.UretprobeMulti(attach.Symbols, prog, opts)
+		lnk, err = exec.UretprobeMulti(symbols, prog, opts)
 	} else {
-		lnk, err = exec.UprobeMulti(attach.Symbols, prog, opts)
+		lnk, err = exec.UprobeMulti(symbols, prog, opts)
 	}
 	if err != nil {
 		return nil, err

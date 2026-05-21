@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"log/slog"
 	"path"
-	"strconv"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -31,7 +30,6 @@ import (
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
-	"github.com/cilium/tetragon/pkg/elf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -60,12 +58,15 @@ type uprobeLoadArgs struct {
 }
 
 type genericUprobe struct {
-	loadArgs     uprobeLoadArgs
-	tableId      idtable.EntryID
-	path         string
-	symbol       string
-	address      uint64
-	refCtrOffset uint64
+	loadArgs      uprobeLoadArgs
+	tableId       idtable.EntryID
+	path          string
+	symbol        string
+	address       uint64
+	offset        uint64
+	addressOffset uint64
+	addressType   program.AddressType
+	refCtrOffset  uint64
 	// policyName is the name of the policy that this uprobe belongs to
 	policyName string
 	// message field of the Tracing Policy
@@ -104,6 +105,7 @@ func (g *genericUprobe) LogAttrs(level slog.Level, msg string, attrs ...slog.Att
 		slog.Attr{Key: "path", Value: slog.StringValue(g.path)},
 		slog.Attr{Key: "symbol", Value: slog.StringValue(g.symbol)},
 		slog.Attr{Key: "address", Value: slog.Uint64Value(g.address)},
+		slog.Attr{Key: "offset", Value: slog.Uint64Value(g.offset)},
 	)
 	logger.GetLogger().LogAttrs(context.Background(), level, msg, attrs...)
 }
@@ -146,7 +148,7 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 	unix.Msg = &m
 	unix.Path = uprobeEntry.path
 	unix.Symbol = uprobeEntry.symbol
-	unix.Offset = uprobeEntry.address
+	unix.Offset = uprobeEntry.addressOffset
 	unix.RefCtrOffset = uprobeEntry.refCtrOffset
 	unix.PolicyName = uprobeEntry.policyName
 	unix.Message = uprobeEntry.message
@@ -248,13 +250,14 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 
 	load.MapLoad = append(load.MapLoad, mapLoad...)
 
-	symbol, offset := resolveSymbol(uprobeEntry.symbol)
 	attachData := &program.UprobeAttachData{
-		Path:         uprobeEntry.path,
-		Symbol:       symbol,
-		Offset:       offset,
-		Address:      uprobeEntry.address,
-		RefCtrOffset: uprobeEntry.refCtrOffset,
+		Path:          uprobeEntry.path,
+		Symbol:        uprobeEntry.symbol,
+		Offset:        uprobeEntry.offset,
+		Address:       uprobeEntry.address,
+		RefCtrOffset:  uprobeEntry.refCtrOffset,
+		AddressOffset: &uprobeEntry.addressOffset,
+		AddressType:   uprobeEntry.addressType,
 	}
 	load.SetAttachData(attachData)
 
@@ -274,36 +277,6 @@ func getUprobeProgramSelector(load *program.Program, uprobeEntry *genericUprobe)
 		return uprobeEntry.loadArgs.selectors.entry
 	}
 	return nil
-}
-
-func checkSymbol(sym string) error {
-	_, _, err := parseSymbol(sym)
-	return err
-}
-
-func resolveSymbol(sym string) (string, uint64) {
-	sym, off, err := parseSymbol(sym)
-	if err != nil {
-		logger.GetLogger().Warn("failed to parse symbol, this should not happen, please report this", logfields.Error, err)
-	}
-	return sym, off
-}
-
-func parseSymbol(sym string) (string, uint64, error) {
-	parts := strings.Split(sym, "+")
-	if len(parts) == 1 {
-		return sym, 0, nil
-	}
-	if len(parts) != 2 {
-		return parts[0], 0, fmt.Errorf("wrong symbol %q", sym)
-	}
-	sym = parts[0]
-	str := parts[1]
-	offset, err := strconv.ParseUint(str, 0, 0)
-	if err != nil {
-		return sym, 0, fmt.Errorf("wrong offset %q", str)
-	}
-	return sym, offset, nil
 }
 
 func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) error {
@@ -370,13 +343,20 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 			attach = &program.MultiUprobeAttachSymbolsCookies{}
 		}
 
-		if uprobeEntry.address != 0 {
+		switch uprobeEntry.addressType {
+		case program.Symbol:
+			attach.Symbols = append(attach.Symbols, uprobeEntry.symbol)
+		case program.Offset:
+			attach.Offsets = append(attach.Offsets, uprobeEntry.offset)
+		case program.Address:
 			attach.Addresses = append(attach.Addresses, uprobeEntry.address)
-		} else if uprobeEntry.symbol != "" {
-			symbol, offset := resolveSymbol(uprobeEntry.symbol)
-			attach.Symbols = append(attach.Symbols, symbol)
-			attach.Offsets = append(attach.Offsets, offset)
+		default:
+			return fmt.Errorf("invalid address type: %d", uprobeEntry.addressType)
 		}
+
+		attach.AddressType = uprobeEntry.addressType
+
+		attach.AddressOffsets = append(attach.AddressOffsets, &uprobeEntry.addressOffset)
 
 		if uprobeEntry.refCtrOffset != 0 {
 			attach.RefCtrOffsets = append(attach.RefCtrOffsets, uprobeEntry.refCtrOffset)
@@ -776,7 +756,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		eventConfig.ArgReturnCopy = int32(gt.GenericUnsetType)
 	}
 
-	addUprobeEntry := func(sym string, offset uint64, idx int) error {
+	addUprobeEntry := func(sym string, offset uint64, addr uint64, addr_type program.AddressType, idx int) error {
 		var refCtrOffset uint64
 
 		if refCtrOffsets != 0 {
@@ -801,7 +781,9 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			tableId:           idtable.UninitializedEntryID,
 			path:              spec.Path,
 			symbol:            sym,
-			address:           offset,
+			address:           addr,
+			offset:            offset,
+			addressType:       addr_type,
 			refCtrOffset:      refCtrOffset,
 			policyName:        in.policyName,
 			message:           msgField,
@@ -825,54 +807,23 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil
 	}
 
-	f, err := elf.OpenSafeELFFile(spec.Path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	if symbols != 0 && f.IsStrippedPureGoBinary() {
-		tbl, err := f.Pclntab()
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse pclntab: %w", err)
-		}
+	if symbols != 0 {
 		for idx, sym := range spec.Symbols {
-			if err := checkSymbol(sym); err != nil {
-				return nil, fmt.Errorf("failed to parse symbol: %w", err)
-			}
-			off, ok := tbl.OffsetByName(sym)
-			if !ok {
-				return nil, fmt.Errorf("failed to resolve symbol: %w", err)
-			}
-			err = addUprobeEntry(sym, off, idx)
-			if err != nil {
-				return nil, err
-			}
-		}
-	} else if symbols != 0 {
-		for idx, sym := range spec.Symbols {
-			if err := checkSymbol(sym); err != nil {
-				return nil, fmt.Errorf("failed to parse symbol: %w", err)
-			}
-			err = addUprobeEntry(sym, 0, idx)
+			err = addUprobeEntry(sym, 0, 0, program.Symbol, idx)
 			if err != nil {
 				return nil, err
 			}
 		}
 	} else if offsets != 0 {
 		for idx, off := range spec.Offsets {
-			err = addUprobeEntry("", off, idx)
+			err = addUprobeEntry("", off, 0, program.Offset, idx)
 			if err != nil {
 				return nil, err
 			}
 		}
 	} else if addrs != 0 {
 		for idx, addr := range spec.Addrs {
-			off, err := f.OffsetFromAddr(addr)
-			if err != nil {
-				return nil, err
-			}
-			err = addUprobeEntry("", off, idx)
+			err = addUprobeEntry("", 0, addr, program.Address, idx)
 			if err != nil {
 				return nil, err
 			}

@@ -11,13 +11,13 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/testutils/repo"
 )
 
 func pclntabSkipIfNoBins(t *testing.T) (stripped, unstripped string) {
 	t.Helper()
-	stripped = testutils.RepoRootPath("contrib/tester-progs/pclntab-stripped")
-	unstripped = testutils.RepoRootPath("contrib/tester-progs/pclntab-unstripped")
+	stripped = repo.RootPath("contrib/tester-progs/pclntab-stripped")
+	unstripped = repo.RootPath("contrib/tester-progs/pclntab-unstripped")
 	if _, err := os.Stat(stripped); err != nil {
 		t.Skipf("pclntab-stripped not found: %v", err)
 	}

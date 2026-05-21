@@ -84,20 +84,33 @@ type MultiKprobeAttachData struct {
 	Overrides []string
 }
 
+type AddressType int
+
+const (
+	Unknown AddressType = iota
+	Symbol
+	Address
+	Offset
+)
+
 type UprobeAttachData struct {
-	Path         string
-	Symbol       string
-	Address      uint64
-	Offset       uint64
-	RefCtrOffset uint64
+	Path          string
+	Symbol        string
+	Address       uint64
+	Offset        uint64
+	RefCtrOffset  uint64
+	AddressOffset *uint64
+	AddressType   AddressType
 }
 
 type MultiUprobeAttachSymbolsCookies struct {
-	Symbols       []string
-	Addresses     []uint64
-	Offsets       []uint64
-	RefCtrOffsets []uint64
-	Cookies       []uint64
+	Symbols        []string
+	Addresses      []uint64
+	Offsets        []uint64
+	RefCtrOffsets  []uint64
+	Cookies        []uint64
+	AddressOffsets []*uint64
+	AddressType    AddressType
 }
 
 type MultiUprobeAttachData struct {
