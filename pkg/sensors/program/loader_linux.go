@@ -1147,7 +1147,7 @@ func doLoadProgram(
 		}
 		collMaps[id] = m
 	}
-	load.LoadedMapsInfo = map[int]bpf.ExtendedMapInfo{}
+	loadedMaps := map[int]bpf.ExtendedMapInfo{}
 	for _, p := range coll.Programs {
 		i, err := p.Info()
 		if err != nil {
@@ -1160,7 +1160,7 @@ func doLoadProgram(
 			break
 		}
 		for _, id := range ids {
-			if _, exist := load.LoadedMapsInfo[int(id)]; exist {
+			if _, exist := loadedMaps[int(id)]; exist {
 				continue
 			}
 			xInfo, err := bpf.ExtendedInfoFromMap(collMaps[id])
@@ -1168,9 +1168,12 @@ func doLoadProgram(
 				logger.GetLogger().Warn("failed to retrieve extended map info", "mapID", id, logfields.Error, err)
 				break
 			}
-			load.LoadedMapsInfo[int(id)] = xInfo
+			loadedMaps[int(id)] = xInfo
 		}
 	}
+	// Publish the fully-built map under the program's lock so concurrent
+	// readers never observe a partially-populated map.
+	load.SetLoadedMapsInfo(loadedMaps)
 
 	err = installTailCalls(bpfDir, spec, coll, load)
 	if err != nil {
