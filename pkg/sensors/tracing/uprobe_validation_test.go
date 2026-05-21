@@ -24,6 +24,9 @@ kind: TracingPolicy
 metadata:
   name: "uprobe"
 spec:
+  options:
+  - name: "disable-sleepable"
+    value: "true"
   uprobes:
   - path: "` + uprobe + `"
     symbols:

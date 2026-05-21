@@ -59,6 +59,7 @@ const (
 	argCurrentTaskBit = 1 << 6
 	argPtRegsBit      = 1 << 7
 	argPreloadBit     = 1 << 8
+	argUserBit        = 1 << 9
 )
 
 func argReturnCopy(meta int) bool {
@@ -74,6 +75,7 @@ func argReturnCopy(meta int) bool {
 //	  6 : CurrentTask
 //	  7 : PtRegs
 //	  8 : PtRegsPreload
+//	  9 : User
 func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	var meta int
 
@@ -98,7 +100,7 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	return meta, nil
 }
 
-func getUserMetaValue(arg *v1alpha1.KProbeArg, preload bool) (int, error) {
+func getUserMetaValue(arg *v1alpha1.KProbeArg, preload, user bool) (int, error) {
 	// common meta bits
 	meta, err := getMetaValue(arg)
 	if err != nil {
@@ -108,7 +110,9 @@ func getUserMetaValue(arg *v1alpha1.KProbeArg, preload bool) (int, error) {
 	if preload {
 		meta = meta | argPreloadBit
 	}
-
+	if user {
+		meta = meta | argUserBit
+	}
 	return meta, nil
 }
 
