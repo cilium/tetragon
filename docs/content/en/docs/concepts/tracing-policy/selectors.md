@@ -187,16 +187,27 @@ selectors:
 Data filters can be specified under the `matchData` field and provide
 filtering based on the value of the specified `data` field.
 
-You can specify the argument either in the `index` or in `args` field. Both `index` and
-`args` field denote the argument position within the spec file.
+The `data` block allows you to filter events based on fields of
+kernel data structures rather than function arguments — for example,
+the UID of the current task at a hook that does not take credentials
+as an argument. Each entry in the `data` block specifies:
 
-In the following example we extra pid value from `current_task` and filter
-on all values except for `1`.
+- `source`: where to read from. Supported values are `current_task`
+  (the process's `task_struct`) and `pt_regs` (the register state at
+  the hook point).
+- `resolve`: which field of the source structure to read.
+- `type`: how the resolved value should be interpreted.
+
+A `matchData` selector then refers to a `data` entry by its `index`
+and applies an operator.
+
+In the following example we extract the `pid` value from `current_task`
+and filter on all values except for `1`.
 
 ```yaml
 data:
 - index: 0
-  type: "string"
+  type: "int"
   source: "current_task"
   resolve: "pid"
 selectors:
@@ -206,6 +217,52 @@ selectors:
     values:
     - "1"
 ```
+
+Nested fields can be accessed through the `.` separator, as described
+in [Attribute resolution]({{< ref "/docs/concepts/tracing-policy/hooks#attribute-resolution" >}}).
+In the following example we extract the UID of the current task via
+`cred.uid.val` and filter for non-system users (UID greater than
+`1000`), hooked at `security_bprm_committed_creds` — an LSM hook
+called after a process's credentials are committed.
+
+```yaml
+kprobes:
+- call: "security_bprm_committed_creds"
+  syscall: false
+  data:
+  - index: 0
+    type: "int"
+    source: "current_task"
+    resolve: "cred.uid.val"
+  selectors:
+  - matchData:
+    - index: 0
+      operator: "GreaterThan"
+      values:
+      - "1000"
+```
+
+The same pattern works for non-integer types. The following example
+reads the process name from `comm` (a string field of `task_struct`)
+and matches when it equals a specific value.
+
+```yaml
+data:
+- index: 0
+  type: "string"
+  source: "current_task"
+  resolve: "comm"
+selectors:
+- matchData:
+  - index: 0
+    operator: "Equal"
+    values:
+    - "cat"
+```
+
+The available operators for `matchData` are the same as those listed under
+[Arguments filter](#arguments-filter), and apply according to the `type`
+declared in the corresponding `data` entry.
 
 ## Return args filter
 
