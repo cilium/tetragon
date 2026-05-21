@@ -166,7 +166,7 @@ func doLoadProgram(
 		// }
 	}
 
-	load.LoadedMapsInfo = map[int]bpf.ExtendedMapInfo{}
+	loadedMaps := map[int]bpf.ExtendedMapInfo{}
 
 	var prog *ebpf.Program
 	for _, p := range coll.Programs {
@@ -184,7 +184,7 @@ func doLoadProgram(
 			break
 		}
 		for _, id := range ids {
-			if _, exist := load.LoadedMapsInfo[int(id)]; exist {
+			if _, exist := loadedMaps[int(id)]; exist {
 				continue
 			}
 			xInfo, err := bpf.ExtendedInfoFromMap(collMaps[id])
@@ -192,9 +192,10 @@ func doLoadProgram(
 				logger.GetLogger().Warn("failed to retrieve extended map info", "mapID", id, logfields.Error, err)
 				break
 			}
-			load.LoadedMapsInfo[int(id)] = xInfo
+			loadedMaps[int(id)] = xInfo
 		}
 	}
+	load.SetLoadedMapsInfo(loadedMaps)
 
 	for _, mapLoad := range load.MapLoad {
 		pinPath := ""
