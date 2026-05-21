@@ -26,6 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
+      chart-version: ${{ steps.chart-version.outputs.chart_version }}
     strategy:
       matrix:
         include:
@@ -77,6 +78,11 @@ jobs:
       # Warning: this must run before checking out the untrusted code
       - name: Get version
         run: echo "TETRAGON_VERSION=$(make version)" >> $GITHUB_ENV
+
+      - name: Get chart version
+        id: chart-version
+        run: |
+          echo "chart_version=$(make chart-version)" >> $GITHUB_OUTPUT
 
       # Warning: since this is a privileged workflow, subsequent workflow job
       # steps must take care not to execute untrusted code.
@@ -163,17 +169,12 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Get chart version
-        id: version
-        run: |
-          echo "chart_version=$(make chart-version)" >> $GITHUB_OUTPUT
-
       - name: Push OCI Helm dev chart
         uses: cilium/reusable-workflows/.github/actions/push-helm-chart@6ae27958f2f37545bf48e44106b73df05b1f6d12 # v0.1.0
         with:
           name: tetragon
           path: install/kubernetes/tetragon
-          version: ${{ steps.version.outputs.chart_version }}
+          version: ${{ needs.build-and-push.outputs.chart-version }}
           values_file_changes: |
             {
               "tetragon.image.repository": "quay.io/cilium/tetragon-ci",
@@ -189,5 +190,5 @@ jobs:
       - name: Print helm command
         run: |
           echo "Example commands:"
-          echo helm template -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version ${{ steps.version.outputs.chart_version }}
-          echo helm upgrade --install tetragon -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version ${{ steps.version.outputs.chart_version }}
+          echo helm template -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version ${{ needs.build-and-push.outputs.chart-version }}
+          echo helm upgrade --install tetragon -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version ${{ needs.build-and-push.outputs.chart-version }}
