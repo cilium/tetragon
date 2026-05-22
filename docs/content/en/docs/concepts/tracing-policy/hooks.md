@@ -366,6 +366,66 @@ sensitive command input.
 For more details on available selectors and their usage, see the
 [Selectors]({{< ref "/docs/concepts/tracing-policy/selectors" >}}) documentation.
 
+### Target Binary Digest Verification
+
+In some cases, a uprobe policy is only intended to apply to a specific
+version of a binary, and could have adverse effect if attached to a
+different version of the binary.
+
+For users that want to only apply the policy for a specific build, they
+can specify a digest type and value to validate the target binary. The
+following example policy demonstrates this functionality.
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+    name: "uprobe-digest-example"
+spec:
+    uprobes:
+    - path: "/bin/example-target-binary"
+      symbols:
+      - "main"
+      binaryDigests:
+        - "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        - "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+```
+When the above policy is loaded, Tetragon will calculate the sha256 hash of
+`/bin/example-target-binary` and compare it against all configured binary
+digests. The policy will be rejected in its entirety if the calculated digest
+does not match any configured `binaryDigests`. This results in the policy
+status being `load_err`, which is equivalent to what happens when the target
+binary path does not exist.
+
+As you can see from the above example, the format of the entries in the
+`binaryDigests` list is `<digest type>:<digest>`.
+
+The following digest types are supported:
+- sha1
+- sha256
+- sha384
+- sha512
+- build-id (found in the ELF note section named `.note.gnu.build-id`)
+
+{{< caution >}}
+When a uprobe is attached, the kernel keeps track of the target by its
+inode. It's best practice for installation software (such as rpm, deb,
+install, tar) to unlink a pre-existing target before installing a new
+version. This ensures that the new version of the binary will have a new
+inode, so the uprobe will not fire for it.
+
+But, if the target binary is updated without an unlink, which would happen
+if `cp` is used or if the target is opened and updated in-place, the inode
+will be retained. In this case, the uprobe will continue firing for the
+updated binary, potentially causing unintended effect. As such, it's
+critical that users of this feature ensure their installation method will
+not retain the inode of the target binary that they want to update.
+
+If the user wants the policy to apply to a new version of the binary
+post-installation, they need to reload the policy after installation in
+order to attach to the new version of the binary.
+{{< /caution >}}
+
 ## USDTs
 
 Tetragon allows to attach and monitor USDT (User Statically-Defined Tracing) probes.
