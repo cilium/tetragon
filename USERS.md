@@ -76,9 +76,9 @@ Example entry:
       L: https://www.reddit.com/r/RedditEng/comments/1hv3sc7/tetragon_configuration_gotchas/
 
     * N: SINAD
-      D: SINAD uses Cilium and integrates Tetragon into their application EzyKube 
+      D: SINAD uses Cilium and integrates Tetragon into their application EzyKube
       U: Runtime security
-      L: https://sinad.io 
+      L: https://sinad.io
 
     * N: Stream Security
       D: Stream Security uses Tetragon for Network, Process, and File observability and protection in Kubernetes clusters
