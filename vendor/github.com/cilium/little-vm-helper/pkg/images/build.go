@@ -68,7 +68,7 @@ func (f *ImageForest) BuildImage(bldConf *BuildConf, image string) (*BuilderResu
 			"result":   fmt.Sprintf("%+v", imgRes),
 		})
 		if imgRes.Error == nil {
-			xlog.Info("image built succesfully")
+			xlog.Info("image built successfully")
 		} else {
 			xlog.Warn("image build failed")
 			break
@@ -110,7 +110,7 @@ func (f *ImageForest) BuildImages(bldConf *BuildConf, queue []string) *BuilderRe
 			"result": fmt.Sprintf("%+v", imgRes),
 		})
 		if imgRes.Error == nil {
-			xlog.Info("image built succesfully")
+			xlog.Info("image built successfully")
 		} else {
 			xlog.Warn("image build failed")
 		}
