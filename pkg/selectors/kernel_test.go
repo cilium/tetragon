@@ -1437,6 +1437,51 @@ func TestParseAddr(t *testing.T) {
 	}
 }
 
+func TestParseMatchArgSubString(t *testing.T) {
+	tests := []struct {
+		name   string
+		tyName string
+		tyVal  uint32
+	}{
+		{"fd", "fd", gt.GenericFdType},
+		{"dentry", "dentry", gt.GenericDentryType},
+		{"file", "file", gt.GenericFileType},
+		{"path", "path", gt.GenericPathType},
+		{"string", "string", gt.GenericStringType},
+		{"char_buf", "char_buf", gt.GenericCharBuffer},
+		{"linux_binprm", "linux_binprm", gt.GenericLinuxBinprmType},
+		{"data_loc", "data_loc", gt.GenericDataLoc},
+		{"net_device", "net_device", gt.GenericNetDev},
+		{"sockaddr_un", "sockaddr_un", gt.GenericSockaddrUnType},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			sig := []v1alpha1.KProbeArg{
+				{Index: 1, Type: tc.tyName, SizeArgIndex: 0, ReturnCopy: false},
+			}
+
+			arg := &v1alpha1.ArgSelector{Index: 1, Operator: "SubString", Values: []string{"test"}}
+			k := NewKernelSelectorState(nil, nil, false, nil)
+			d := &k.data
+
+			expected := []byte{
+				0x00, 0x00, 0x00, 0x00, // Index == 0
+				0x21, 0x00, 0x00, 0x00, // operator == SubString (33)
+				0x0c, 0x00, 0x00, 0x00, // length == 12
+				0x00, 0x00, 0x00, 0x00, // value type (placeholder)
+				0x00, 0x00, 0x00, 0x00, // substring id == 0
+			}
+			binary.LittleEndian.PutUint32(expected[12:16], tc.tyVal)
+
+			err := ParseMatchArg(k, arg, sig)
+			require.NoError(t, err)
+			require.Equal(t, expected, d.e[0:d.off])
+			require.Equal(t, []string{"test"}, k.SubStrings())
+		})
+	}
+}
+
 func TestParseCapabilityMask(t *testing.T) {
 	v, err := parseCapabilitiesMask("100")
 	require.NoError(t, err)

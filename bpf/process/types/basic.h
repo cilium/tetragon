@@ -996,6 +996,16 @@ filter_file_buf(struct selector_arg_filter *filter, struct string_buf *args)
 		return 0;
 
 	switch (filter->op) {
+#ifdef __LARGE_BPF_PROG
+	case op_substring_igncase:
+		if (bpf_ksym_exists(bpf_strncasestr))
+			match = filter_char_substring(filter, args->buf, args->len, true);
+		break;
+	case op_substring:
+		if (bpf_ksym_exists(bpf_strnstr))
+			match = filter_char_substring(filter, args->buf, args->len, false);
+		break;
+#endif
 	case op_filter_eq:
 	case op_filter_neq:
 		match = filter_char_buf_equal(filter, args->buf, args->len);
@@ -1185,6 +1195,16 @@ filter_sockaddr_un(struct selector_arg_filter *filter, char *args)
 	__u8 path_len = address->path_len;
 
 	switch (filter->op) {
+#ifdef __LARGE_BPF_PROG
+	case op_substring_igncase:
+		if (bpf_ksym_exists(bpf_strncasestr))
+			return filter_char_substring(filter, path, path_len, true);
+		break;
+	case op_substring:
+		if (bpf_ksym_exists(bpf_strnstr))
+			return filter_char_substring(filter, path, path_len, false);
+		break;
+#endif
 	case op_filter_str_prefix:
 	case op_filter_str_notprefix: {
 		long match = filter_char_buf_prefix(filter, path, path_len);
