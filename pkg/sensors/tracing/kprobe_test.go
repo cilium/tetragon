@@ -5746,6 +5746,24 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 	testLinuxBinprmExtractPath(t, false)
 }
 
+func TestSubStringLinuxBinprm(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-linux-binprm", map[string]any{
+		"Hook": "kprobes",
+	})
+}
+
+func TestSubStringFile(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-file", map[string]any{
+		"Hook": "kprobes",
+	})
+}
+
+func TestSubStringPath(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-path", map[string]any{
+		"Hook": "kprobes",
+	})
+}
+
 // Test module loading/unloading on Ubuntu
 func testTraceKernelModule(t *testing.T, fentry bool) {
 	_, err := ftrace.ReadAvailFuncs("^find_module_sections$")

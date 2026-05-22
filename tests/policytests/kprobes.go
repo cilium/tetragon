@@ -8,6 +8,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"os"
 
 	ebtf "github.com/cilium/ebpf/btf"
 	"golang.org/x/sys/unix"
@@ -193,3 +194,148 @@ spec:
 			EventChecker: ec.NewUnorderedEventChecker(checker),
 		}
 	}).RegisterAtInit()
+
+func skipSubStringKfunc(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.SubStringKfuncProbe] {
+		return "SubString operator requires bpf_strnstr kfunc and large BPF programs"
+	}
+	return ""
+}
+
+var _ = policytest.NewBuilder("kprobe-substring-linux-binprm").
+	WithLabels("kprobes").
+	WithSkip(skipSubStringKfunc).
+	WithParameter(policytest.Parameter{
+		Name:    "Hook",
+		Default: "kprobes",
+		Help:    "type of hook to use in the policy",
+	}).
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "substring-linux-binprm"
+spec:
+  {{ .Hook }}:
+  - call: "security_bprm_check"
+    syscall: false
+    args:
+    - index: 0
+      type: "linux_binprm"
+    selectors:
+    - matchArgs:
+      - operator: SubString
+        index: 0
+        values:
+        - "/i"
+`).AddScenario(func(_ *policytest.Conf) *policytest.Scenario {
+	checker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_bprm_check")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithLinuxBinprmArg(ec.NewKprobeLinuxBinprmChecker().WithPath(sm.Suffix("/id"))),
+			))
+
+	return &policytest.Scenario{
+		Name:         "SubString filter on linux_binprm matches /usr/bin/id",
+		Trigger:      policytest.NewCmdTrigger("/usr/bin/id"),
+		EventChecker: ec.NewUnorderedEventChecker(checker),
+	}
+}).RegisterAtInit()
+
+var _ = policytest.NewBuilder("kprobe-substring-file").
+	WithLabels("kprobes").
+	WithSkip(skipSubStringKfunc).
+	WithParameter(policytest.Parameter{
+		Name:    "Hook",
+		Default: "kprobes",
+		Help:    "type of hook to use in the policy",
+	}).
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "substring-file"
+spec:
+  {{ .Hook }}:
+  - call: "security_file_open"
+    syscall: false
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchArgs:
+      - operator: SubString
+        index: 0
+        values:
+        - "/i"
+`).AddScenario(func(_ *policytest.Conf) *policytest.Scenario {
+	checker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_file_open")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Suffix("/id"))),
+			))
+
+	return &policytest.Scenario{
+		Name:         "SubString filter on file type matches /usr/bin/id",
+		Trigger:      policytest.NewCmdTrigger("/usr/bin/id"),
+		EventChecker: ec.NewUnorderedEventChecker(checker),
+	}
+}).RegisterAtInit()
+
+type triggerSubStringPath struct{}
+
+func (t *triggerSubStringPath) Trigger(context context.Context) error {
+	tmpDir, err := os.MkdirTemp("", "substring-path-test")
+	if err != nil {
+		return nil
+	}
+	defer os.RemoveAll(tmpDir)
+	testDir := tmpDir + "/match_id_test/inner_dir"
+	return policytest.NewCmdTrigger("/usr/bin/mkdir", "-p", testDir).Trigger(context)
+}
+
+var _ = policytest.NewBuilder("kprobe-substring-path").
+	WithLabels("kprobes").
+	WithSkip(skipSubStringKfunc).
+	WithParameter(policytest.Parameter{
+		Name:    "Hook",
+		Default: "kprobes",
+		Help:    "type of hook to use in the policy",
+	}).
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "substring-path"
+spec:
+  {{ .Hook }}:
+  - call: "security_path_mkdir"
+    syscall: false
+    args:
+    - index: 0
+      type: "path"
+    selectors:
+    - matchArgs:
+      - operator: SubString
+        index: 0
+        values:
+        - "_id_"
+`).AddScenario(func(_ *policytest.Conf) *policytest.Scenario {
+	checker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_path_mkdir")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().WithPath(sm.Suffix("match_id_test"))),
+			))
+
+	return &policytest.Scenario{
+		Name:         "SubString filter on path type matches directory with _id_ in name",
+		Trigger:      &triggerSubStringPath{},
+		EventChecker: ec.NewUnorderedEventChecker(checker),
+	}
+}).RegisterAtInit()
