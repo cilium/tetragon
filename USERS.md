@@ -85,3 +85,8 @@ Example entry:
       U: Network monitoring, Process monitoring, File access monitoring
       L: https://www.stream.security/
       Q: @vitali-streamsec
+
+    * N: Xata
+      D: Xata uses Tetragon to identify security risks and policy violations
+      U: Runtime security
+      L: https://xata.io
