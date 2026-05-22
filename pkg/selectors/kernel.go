@@ -907,7 +907,7 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpEQ, SelectorOpNEQ:
 		switch ty {
-		case gt.GenericFdType, gt.GenericFileType, gt.GenericPathType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc, gt.GenericNetDev:
+		case gt.GenericFdType, gt.GenericFileType, gt.GenericPathType, gt.GenericDentryType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc, gt.GenericNetDev:
 			err := writeMatchStrings(k, arg.Values, ty)
 			if err != nil {
 				return fmt.Errorf("writeMatchStrings error: %w", err)
