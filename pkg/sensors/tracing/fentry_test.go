@@ -514,3 +514,24 @@ func TestFentryNotEqualMultipleValues(t *testing.T) {
 	checkFentry(t)
 	testKprobeNotEqualMultipleValues(t, true)
 }
+
+func TestSubStringLinuxBinprmFentry(t *testing.T) {
+	checkFentry(t)
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-linux-binprm", map[string]any{
+		"Hook": "fentries",
+	})
+}
+
+func TestSubStringFileFentry(t *testing.T) {
+	checkFentry(t)
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-file", map[string]any{
+		"Hook": "fentries",
+	})
+}
+
+func TestSubStringPathFentry(t *testing.T) {
+	checkFentry(t)
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-path", map[string]any{
+		"Hook": "fentries",
+	})
+}

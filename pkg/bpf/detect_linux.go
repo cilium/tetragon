@@ -693,6 +693,12 @@ func HasKfunc(name string) bool {
 	return detected
 }
 
+// HasSubStringKfunc returns true if the kernel supports the bpf_strnstr kfunc
+// which is required for the SubString operator.
+func HasSubStringKfunc() bool {
+	return HasProgramLargeSize() && HasKfunc("bpf_strnstr")
+}
+
 func detectMixBpfAndTailCalls() bool {
 	// create a tail call map
 	tcMap, err := ebpf.NewMap(&ebpf.MapSpec{
@@ -823,4 +829,5 @@ var FeatureProbes = []FeatureProbe{
 	{MixBPFAndTailCallsProbe, DetectMixBpfAndTailCalls},
 	{Fentry, HasFentryProgram},
 	{GetFuncRet, HasGetFuncRetHelper},
+	{SubStringKfuncProbe, HasSubStringKfunc},
 }
