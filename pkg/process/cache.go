@@ -77,6 +77,7 @@ func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 					 * process a second time, but that is harmless.
 					 */
 					if p.refcnt.Load() != 0 {
+						p.color = inUse
 						continue
 					}
 					if p.color == deleteReady {
