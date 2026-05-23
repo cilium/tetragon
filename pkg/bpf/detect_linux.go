@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
@@ -22,6 +23,7 @@ import (
 	ebtf "github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/features"
 	"github.com/cilium/ebpf/link"
+	"github.com/prometheus/procfs"
 	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/pkg/arch"
@@ -60,6 +62,7 @@ var (
 	getFuncRetHelper       Feature
 	fentry                 Feature
 	sleepableTailCalls     Feature
+	taskStorageUprobeLarge Feature
 )
 
 func HasOverrideHelper() bool {
@@ -813,6 +816,158 @@ func DetectSleepableTailCalls() bool {
 	return sleepableTailCalls.detected
 }
 
+const taskStorageUprobeLargeValueSize = 8193
+
+var taskStorageUprobeLargeProbeTriggerValue uint64
+
+//go:noinline
+func taskStorageUprobeLargeProbeTrigger() {
+	taskStorageUprobeLargeProbeTriggerValue++
+}
+
+func taskStorageUprobeLargeProbeOffset() (uint64, error) {
+	pc := reflect.ValueOf(taskStorageUprobeLargeProbeTrigger).Pointer()
+	if pc == 0 {
+		return 0, errors.New("failed to get probe trigger PC")
+	}
+	if fn := runtime.FuncForPC(pc); fn != nil {
+		pc = fn.Entry()
+	}
+
+	proc, err := procfs.NewProc(os.Getpid())
+	if err != nil {
+		return 0, fmt.Errorf("failed to open self proc: %w", err)
+	}
+	maps, err := proc.ProcMaps()
+	if err != nil {
+		return 0, fmt.Errorf("failed to read self maps: %w", err)
+	}
+
+	for _, m := range maps {
+		if m.Perms == nil || !m.Perms.Execute {
+			continue
+		}
+		if m.Pathname == "" || strings.HasPrefix(m.Pathname, "[") {
+			continue
+		}
+		if pc < m.StartAddr || pc >= m.EndAddr {
+			continue
+		}
+		if m.Offset < 0 {
+			return 0, fmt.Errorf("negative mapping offset %d", m.Offset)
+		}
+		return uint64(pc-m.StartAddr) + uint64(m.Offset), nil
+	}
+
+	return 0, fmt.Errorf("failed to find executable mapping for PC %#x", pc)
+}
+
+func detectTaskStorageUprobeLarge() bool {
+	intType := &ebtf.Int{Name: "int", Size: 4, Encoding: ebtf.Signed}
+	charType := &ebtf.Int{Name: "char", Size: 1, Encoding: ebtf.Char}
+
+	taskStorageMap, err := ebpf.NewMap(&ebpf.MapSpec{
+		Name:       "probe_task_storage",
+		Type:       ebpf.TaskStorage,
+		KeySize:    4,
+		ValueSize:  taskStorageUprobeLargeValueSize,
+		MaxEntries: 0,
+		Flags:      unix.BPF_F_NO_PREALLOC,
+		Key:        intType,
+		Value: &ebtf.Array{
+			Index:  intType,
+			Type:   charType,
+			Nelems: taskStorageUprobeLargeValueSize,
+		},
+	})
+	if err != nil {
+		return false
+	}
+	defer taskStorageMap.Close()
+
+	resultMap, err := ebpf.NewMap(&ebpf.MapSpec{
+		Name:       "probe_task_storage_result",
+		Type:       ebpf.Array,
+		KeySize:    4,
+		ValueSize:  4,
+		MaxEntries: 1,
+	})
+	if err != nil {
+		return false
+	}
+	defer resultMap.Close()
+
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name: "probe_task_storage_uprobe_large",
+		Type: ebpf.Kprobe,
+		Instructions: asm.Instructions{
+			asm.Mov.Imm(asm.R6, 0),
+			asm.FnGetCurrentTaskBtf.Call(),
+			asm.JEq.Imm(asm.R0, 0, "result"),
+			asm.Mov.Reg(asm.R2, asm.R0),
+			asm.LoadMapPtr(asm.R1, taskStorageMap.FD()),
+			asm.Mov.Imm(asm.R3, 0),
+			asm.Mov.Imm(asm.R4, unix.BPF_LOCAL_STORAGE_GET_F_CREATE),
+			asm.FnTaskStorageGet.Call(),
+			asm.JEq.Imm(asm.R0, 0, "result"),
+			asm.Mov.Imm(asm.R6, 1),
+
+			asm.Mov.Reg(asm.R2, asm.R10).WithSymbol("result"),
+			asm.Add.Imm(asm.R2, -4),
+			asm.StoreImm(asm.R10, -4, 0, asm.Word),
+			asm.LoadMapPtr(asm.R1, resultMap.FD()),
+			asm.FnMapLookupElem.Call(),
+			asm.JEq.Imm(asm.R0, 0, "exit"),
+			asm.StoreMem(asm.R0, 0, asm.R6, asm.Word),
+
+			asm.Mov.Imm(asm.R0, 0).WithSymbol("exit"),
+			asm.Return(),
+		},
+		Flags:   unix.BPF_F_SLEEPABLE,
+		License: "Dual BSD/GPL",
+	})
+	if err != nil {
+		return false
+	}
+	defer prog.Close()
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	tid := unix.Gettid()
+
+	offset, err := taskStorageUprobeLargeProbeOffset()
+	if err != nil {
+		return false
+	}
+	ex, err := link.OpenExecutable("/proc/self/exe")
+	if err != nil {
+		return false
+	}
+	up, err := ex.Uprobe("task_storage_uprobe_large", prog, &link.UprobeOptions{
+		Address: offset,
+		PID:     tid,
+	})
+	if err != nil {
+		return false
+	}
+	defer up.Close()
+
+	taskStorageUprobeLargeProbeTrigger()
+
+	var result uint32
+	if err := resultMap.Lookup(uint32(0), &result); err != nil {
+		return false
+	}
+	return result == 1
+}
+
+func HasTaskStorageUprobeLarge() bool {
+	taskStorageUprobeLarge.init.Do(func() {
+		taskStorageUprobeLarge.detected = detectTaskStorageUprobeLarge()
+	})
+	return taskStorageUprobeLarge.detected
+}
+
 func LogFeatures() string {
 	// once we have detected all features, flush the BTF spec
 	// we cache all values so calling again a Has* function will
@@ -864,4 +1019,5 @@ var FeatureProbes = []FeatureProbe{
 	{Fentry, HasFentryProgram},
 	{GetFuncRet, HasGetFuncRetHelper},
 	{SleepableTailCallsProbe, DetectSleepableTailCalls},
+	{TaskStorageUprobeLargeProbe, HasTaskStorageUprobeLarge},
 }

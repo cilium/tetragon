@@ -45,6 +45,10 @@ func DetectMixBpfAndTailCalls() bool {
 	return false
 }
 
+func HasTaskStorageUprobeLarge() bool {
+	return false
+}
+
 func LogFeatures() string {
 	return fmt.Sprintf("override_return: %t, buildid: %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t mix_bpf_and_tail_calls: %t",
 		HasOverrideHelper(), HasBuildId(), HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),

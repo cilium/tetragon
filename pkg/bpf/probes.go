@@ -25,4 +25,5 @@ const (
 	Fentry                      = "fentry"
 	GetFuncRet                  = "get_func_ret"
 	SleepableTailCallsProbe     = "sleepable_tail_calls"
+	TaskStorageUprobeLargeProbe = "task_storage_uprobe_large"
 )
