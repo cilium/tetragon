@@ -82,3 +82,50 @@ tetragon_process_cache_early_deletions_total 1
 		require.NoError(t, testutil.CollectAndCompare(processCacheEarlyDeletions, expected))
 	})
 }
+
+func TestProcessCacheGCLeak(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		interval := 10 * time.Millisecond
+		cache, err := NewCache(10, interval)
+		require.NoError(t, err)
+		defer cache.purge()
+
+		pid := wrapperspb.UInt32Value{Value: 1234}
+		proc := ProcessInternal{
+			process: &tetragon.Process{
+				ExecId: "process1",
+				Pid:    &pid,
+			},
+			refcntOps: make(map[string]int32),
+		}
+		proc.refcnt.Store(1)
+		cache.add(&proc)
+
+		// Trigger GC to see it, then increment refcnt while it's in the deleteQueue.
+		// The GC should drop it from the queue and reset its color to inUse.
+		cache.refDec(&proc, "test")
+		synctest.Wait()
+		assert.Equal(t, deletePending, proc.color)
+
+		cache.refInc(&proc, "test")
+		time.Sleep(interval + 1*time.Millisecond)
+		synctest.Wait()
+		assert.Equal(t, inUse, proc.color)
+
+		// Trigger refDec to 0 again and wait for GC cycles to remove it.
+		// Two GC cycles are needed because the GC moves processes from:
+		// deletePending -> deleteReady in the first tick, and
+		// deleteReady -> deleted in the second tick.
+		cache.refDec(&proc, "test")
+		synctest.Wait()
+
+		time.Sleep(interval + 1*time.Millisecond)
+		synctest.Wait()
+
+		time.Sleep(interval + 1*time.Millisecond)
+		synctest.Wait()
+
+		assert.Equal(t, deleted, proc.color)
+		assert.Equal(t, 0, cache.len())
+	})
+}
