@@ -1971,6 +1971,8 @@ There are different types supported for each operator. In case of `matchArgs`:
 * State
 * InRange - In interval range
 * NotInRange - Not in interval range
+* SubString - Substring match (v6.17+, requires the `bpf_strnstr` kfunc)
+* SubStringIgnoreCase - Substring match case-insensitive (v6.19+, requires the `bpf_strncasestr` kfunc)
 
 The operator types `Equal` and `NotEqual` are used to test whether the certain
 argument of a system call is equal to the defined value in the CR.
