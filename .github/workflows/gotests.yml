@@ -122,3 +122,56 @@ jobs:
       working-directory: ${{ github.workspace }}\go\src\github.com\cilium\tetragon
       run: |
         go test --failfast .\pkg\... .\cmd\...
+
+  race:
+    name: Race detector
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    # Advisory for now: a detected race should surface in the job logs without
+    # blocking the PR while we shake out the initial package list. Flip to
+    # false (or remove the line) once the default RACE_PKGS set is stable.
+    continue-on-error: true
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        path: go/src/github.com/cilium/tetragon/
+
+    - name: Install Go
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+      with:
+        # renovate: datasource=golang-version depName=go
+        go-version: '1.26.3'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install libelf-dev netcat-traditional libcap-dev gcc libc6-dev-i386 pahole llvm
+
+        sudo sed -i '/secure_path/d' /etc/sudoers
+        sudo sed -i '/env_reset/d' /etc/sudoers
+
+    - name: Install bpftool
+      uses: mtardy/setup-bpftool@9bc044304197616a6321d452e04cc059e006d8e2 # v1.0.4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run go tests with -race
+      env:
+        GOPATH: ${{ env.GITHUB_WORKSPACE }}/go
+        SUDO: sudo -E
+      run: |
+        go clean -cache -modcache -testcache -fuzzcache
+        cd go/src/github.com/cilium/tetragon/
+        sudo -E echo "run race tests: " `uname -a`
+        sudo -E go mod verify
+        export TETRAGON_LIB=$(realpath "bpf/objs/")
+        make test-race RACE_TEST_TIMEOUT=45m
+
+    - name: Upload Tetragon logs
+      if: failure()
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: tetragon-race-logs
+        path: /tmp/tetragon.gotest*
+        retention-days: 5
