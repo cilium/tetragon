@@ -103,7 +103,8 @@ The data type extracts 64-bit unsigned value.
 
 The data type extracts string terminated with zero byte.
 
-In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` operators.
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
+or `SubStringIgnoreCase` (v6.19+) operators.
 
 ## `skb`
 
@@ -130,7 +131,8 @@ The `char_buf` data type represents a character buffer. When using this type,
 specify the buffer size using `sizeArgIndex` (referencing another argument)
 or `returnCopy` (using the return value).
 
-In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` operators.
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
+or `SubStringIgnoreCase` (v6.19+) operators.
 
 ## `char_iovec`
 
@@ -144,16 +146,16 @@ In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` o
 The `filename` data type represents kernel `struct filename` object and
 retrieves the user-provided filename string.
 
-In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` operators
-with path strings.
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
+or `SubStringIgnoreCase` (v6.19+) operators with path strings.
 
 ## `fd`
 
 The `fd` data type represents a file descriptor. Tetragon resolves the
 file descriptor to retrieve the associated file path.
 
-In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` operators
-with path strings.
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
+or `SubStringIgnoreCase` (v6.19+) operators with path strings.
 
 ## `cred`
 
@@ -258,8 +260,8 @@ from a process's credentials (`struct cred`).
 The `linux_binprm` data type represents kernel `struct linux_binprm` object
 and retrieves the `struct linux_binprm::file` full path.
 
-In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` operators
-with path strings.
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
+or `SubStringIgnoreCase` (v6.19+) operators with path strings.
 
 See general path limitations in [path retrieval limits](#pathlimits).
 
@@ -268,15 +270,16 @@ See general path limitations in [path retrieval limits](#pathlimits).
 The `data_loc` data type is used with tracepoints to extract dynamically
 located string data using the kernel's `__data_loc` mechanism.
 
-In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` operators.
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
+or `SubStringIgnoreCase` (v6.19+) operators.
 
 ## `net_device`
 
 The `net_device` data type represents kernel `struct net_device` object.
 It extracts the network device name (e.g., `eth0`, `lo`).
 
-In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` operators
-with device name strings.
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
+or `SubStringIgnoreCase` (v6.19+) operators with device name strings.
 
 ## `sockaddr`
 
@@ -309,8 +312,8 @@ In `matchArgs` or `matchData`, use network operators: `SAddr`, `DAddr`, `SPort`,
 The `file` data type represents kernel `struct file` object and retrieves
 the file's full path.
 
-In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` operators
-with path strings.
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
+or `SubStringIgnoreCase` (v6.19+) operators with path strings.
 
 See general path limitations in [path retrieval limits](#pathlimits).
 Support for [file type filtering]({{< ref "selectors.md#file-type-filtering" >}}) is also available for this type.
@@ -324,8 +327,8 @@ This stems from the fact that with just `struct dentry` tetragon does not have
 mount information and does not have enough data to pass through main point within
 the path.
 
-In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` operators
-with path strings.
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
+or `SubStringIgnoreCase` (v6.19+) operators with path strings.
 
 See general path limitations in [path retrieval limits](#pathlimits).
 
@@ -335,8 +338,8 @@ The `path` data type represents kernel `struct path` object retrieves
 the related path.
 Support for [file type filtering]({{< ref "selectors.md#file-type-filtering" >}}) is also available for this type.
 
-In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` operators
-with path strings.
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
+or `SubStringIgnoreCase` (v6.19+) operators with path strings.
 
 <a name="pathlimits"></a>
 
