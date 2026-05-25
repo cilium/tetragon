@@ -73,16 +73,15 @@ func HasProbeWriteUserHelper() bool {
 	return features.HaveProgramHelper(ebpf.Kprobe, asm.FnProbeWriteUser) == nil
 }
 
-// detectFentry probes whether the running kernel can actually load and attach
-// a BPF fentry program. A bare features.HaveProgramType(ebpf.Tracing) check is
-// insufficient because BPF_PROG_TYPE_TRACING also covers fexit, fmod_ret,
-// raw_tp and iter, and on arm64 the program type exists before BPF
-// trampolines do.
-//
-// Kernel requirements:
-//   - x86_64:  >= 5.5  (commit fec56f5890d9 "bpf: Introduce BPF trampoline")
-//   - arm64:   >= 6.0  (commit efc9909fdce0 "bpf, arm64: Add bpf trampoline for arm64")
+// detectFentry checks if the kernel supports BPF fentry programs.
+// On amd64, the program type check is sufficient (trampolines landed with it in 5.5).
+// On other archs (e.g. arm64), trampolines came later than the program type, so we
+// must load and attach a probe to verify support.
 func detectFentry() bool {
+	if runtime.GOARCH == "amd64" {
+		return features.HaveProgramType(ebpf.Tracing) == nil
+	}
+
 	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
 		Name: "probe_fentry",
 		Type: ebpf.Tracing,
