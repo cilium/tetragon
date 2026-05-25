@@ -29,6 +29,11 @@ int main(int argc, char **argv)
 
 	posix_memalign(&buffer, BLOCKSIZE, BLOCKSIZE);
 	memset(buffer, 0, BLOCKSIZE);
+	if (strlen(avd) + 1 > BLOCKSIZE) {
+		fprintf(stderr, "message too large\n");
+		free(buffer);
+		exit(-1);
+	}
 	memcpy(buffer, avd, strlen(avd) + 1);
 
 	ssize_t ret = pwrite(fd, buffer, BLOCKSIZE, 0);
