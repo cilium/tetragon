@@ -271,6 +271,15 @@ copy-golangci-lint:
 test: tester-progs tetragon-bpf ## Run Go tests.
 	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... ${EXTRA_TESTFLAGS}
 
+# Packages exercised by `make test-race`. Override on the command line to
+# expand or narrow the scope.
+RACE_PKGS ?= ./pkg/sensors ./pkg/metrics/... ./pkg/process/... ./pkg/reader/... ./pkg/server/... ./pkg/ratelimit/...
+RACE_TEST_TIMEOUT ?= 30m
+
+.PHONY: test-race
+test-race: tester-progs tetragon-bpf ## Run Go tests with the race detector (use RACE_PKGS=... to override scope).
+	$(GO) test $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(RACE_TEST_TIMEOUT) -race $(RACE_PKGS) ${EXTRA_TESTFLAGS}
+
 .PHONY: tester-progs
 tester-progs: ## Compile helper programs for unit testing.
 	$(MAKE) -C $(TESTER_PROGS_DIR)
@@ -543,6 +552,8 @@ help: ## Display this help, based on https://www.thapaliya.com/en/writings/well-
 	$(call print_help_option,EXTRA_GO_BUILD_LDFLAGS,extra flags to pass to the Go linker)
 	$(call print_help_option,EXTRA_GO_BUILD_FLAGS,extra flags to pass to the Go builder)
 	$(call print_help_option,EXTRA_TESTFLAGS,extra flags to pass to the test binary)
+	$(call print_help_option,RACE_PKGS,packages exercised by test-race target)
+	$(call print_help_option,RACE_TEST_TIMEOUT,timeout for test-race target)
 
 .PHONY: version chart-version
 version: ## Print Tetragon version.
