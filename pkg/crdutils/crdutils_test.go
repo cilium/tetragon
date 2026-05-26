@@ -455,3 +455,36 @@ func TestTracingPolicyNotCoveredBySpec(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to unmarshal into typed object: error unmarshaling JSON: while decoding JSON: json: unknown field \"some_field\"")
 }
+
+// TestXValidationHostSelector tests that XValidation rules work using the
+// hostSelector field
+func TestXValidationHostSelector(t *testing.T) {
+	tpWithHostSelectorMatchLabels := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "test-policy"
+spec:
+  hostSelector:
+    matchLabels:
+      foo: bar
+  kprobes:
+  - call: "security_file_permission"
+    syscall: false
+`
+	_, err := TPContext.FromYAML(tpWithHostSelectorMatchLabels)
+	require.Error(t, err, "TracingPolicy with hostSelector.matchLabels should fail XValidation")
+	assert.Contains(t, err.Error(), "hostSelector should be either null or {}")
+
+	tpWithEmptyHostSelector := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "test-policy"
+spec:
+  hostSelector: {}
+  kprobes:
+  - call: "security_file_permission"
+    syscall: false
+`
+	_, err = TPContext.FromYAML(tpWithEmptyHostSelector)
+	assert.NoError(t, err, "TracingPolicy with empty hostSelector should pass")
+}
