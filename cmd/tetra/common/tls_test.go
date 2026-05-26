@@ -27,8 +27,8 @@ func TestTLSConfigEnabled(t *testing.T) {
 		want bool
 	}{
 		{name: "zero", cfg: TLSConfig{}},
-		{name: "skip-verify alone", cfg: TLSConfig{SkipVerify: true}},
-		{name: "server-name alone", cfg: TLSConfig{ServerName: "x"}},
+		{name: "skip-verify alone", cfg: TLSConfig{SkipVerify: true}, want: true},
+		{name: "server-name alone", cfg: TLSConfig{ServerName: "x"}, want: true},
 		{name: "ca alone", cfg: TLSConfig{CAFiles: []string{"a"}}, want: true},
 		{name: "cert alone", cfg: TLSConfig{CertFile: "a"}, want: true},
 		{name: "key alone", cfg: TLSConfig{KeyFile: "a"}, want: true},
@@ -88,6 +88,25 @@ func TestTLSCredentialsLoadsCAAndCert(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, creds)
+}
+
+func TestTLSCredentialsBuildsForTLSOnlyFlags(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		cfg  TLSConfig
+	}{
+		{name: "skip-verify only", cfg: TLSConfig{SkipVerify: true}},
+		{name: "server-name only", cfg: TLSConfig{ServerName: "node.tetragon-grpc.cilium.io"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			creds, err := TLSCredentials(tc.cfg)
+			require.NoError(t, err)
+			require.NotNil(t, creds)
+		})
+	}
 }
 
 func TestTLSCredentialsRejectsMissingFiles(t *testing.T) {
