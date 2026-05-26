@@ -178,5 +178,4 @@ jobs:
       # delete the built binaries from the artifacts in case of overall success
       - uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6.0.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           name: tetragon-build
