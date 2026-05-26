@@ -554,7 +554,7 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 }
 
 func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	if err := eventcache.HandleGenericEvent(internal, ev, nil); err != nil {
+	if err := eventcache.HandleGenericEvent(internal, ev, nil, ""); err != nil {
 		return err
 	}
 

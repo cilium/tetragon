@@ -19,4 +19,5 @@ type MsgGenericTracepoint struct {
 	Tid           uint32 // The recorded TID that triggered the event
 	KernelStackID int64
 	UserStackID   int64
+	CgrpTrackerID uint64
 }

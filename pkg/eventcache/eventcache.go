@@ -117,11 +117,27 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 // so we only need to wait for the internal link to the process context to
 // resolve PodInfo. This happens when the msg populates the internal state
 // but that event is not fully populated yet.
-func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid *uint32) error {
+func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid *uint32, containerID string) error {
 	p := internal.UnsafeGetProcess()
 	if option.Config.EnableK8s && p.Pod == nil {
-		CacheRetries(PodInfo).Inc()
-		return ErrFailedToGetPodInfo
+		docker := p.Docker
+		if docker == "" {
+			docker = containerID
+		}
+		if docker != "" {
+			podInfo := process.GetPodInfo(docker, p.Binary, p.Arguments, 0)
+			if podInfo == nil {
+				CacheRetries(PodInfo).Inc()
+				return ErrFailedToGetPodInfo
+			}
+			internal.AddPodInfo(podInfo)
+			if p.Docker == "" {
+				internal.UnsafeGetProcess().Docker = docker
+			}
+		} else {
+			CacheRetries(PodInfo).Inc()
+			return ErrFailedToGetPodInfo
+		}
 	}
 
 	// When we report the per thread fields, take a copy
