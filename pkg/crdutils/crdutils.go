@@ -9,6 +9,7 @@
 package crdutils
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -17,6 +18,7 @@ import (
 	ext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apischema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
+	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema/cel"
 	structuraldefaulting "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/defaulting"
 	structurallisttype "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/listtype"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/validation"
@@ -24,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	celconfig "k8s.io/apiserver/pkg/apis/cel"
 	"sigs.k8s.io/yaml"
 )
 
@@ -39,6 +42,7 @@ type CRDContext[P CRDObject] struct {
 	crd              *extv1.CustomResourceDefinition
 	structuralSchema *apischema.Structural
 	validator        validation.SchemaValidator
+	celValidator     *cel.Validator
 }
 
 // NewCRDContext creates a new CRDContext from extv1.CustomResourceDefinition.
@@ -60,10 +64,13 @@ func NewCRDContext[P CRDObject](crd *extv1.CustomResourceDefinition) (*CRDContex
 		return nil, fmt.Errorf("failed to create schema validator: %w", err)
 	}
 
+	celValidator := cel.NewValidator(structural, true, celconfig.PerCallLimit)
+
 	return &CRDContext[P]{
 		crd:              crd,
 		structuralSchema: structural,
 		validator:        validator,
+		celValidator:     celValidator,
 	}, nil
 }
 
@@ -115,6 +122,19 @@ func (c *CRDContext[P]) Validate(obj CRDObject, unstr *unstructured.Unstructured
 		unstr.Object,
 	)
 
+	// validate CEL rules (XValidations)
+	var celErrs field.ErrorList
+	if c.celValidator != nil {
+		celErrs, _ = c.celValidator.Validate(
+			context.Background(),
+			field.NewPath(""),
+			nil, // unused, already set at validator construction
+			unstr.Object,
+			nil,
+			celconfig.RuntimeCELCostBudget,
+		)
+	}
+
 	// merge errors
 	var errs []error
 	for _, err := range metaErrs {
@@ -122,6 +142,9 @@ func (c *CRDContext[P]) Validate(obj CRDObject, unstr *unstructured.Unstructured
 	}
 	errs = append(errs, validationResult.Errors...)
 	for _, err := range listErrs {
+		errs = append(errs, err)
+	}
+	for _, err := range celErrs {
 		errs = append(errs, err)
 	}
 
