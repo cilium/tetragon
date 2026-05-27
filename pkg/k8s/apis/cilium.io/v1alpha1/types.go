@@ -29,6 +29,7 @@ type KprobeIgnore struct {
 	CallNotFound bool `json:"callNotFound,omitempty"`
 }
 
+// +kubebuilder:validation:XValidation:rule="!self.return || has(self.returnArg)",message="ReturnArg not specified with Return=true."
 type KProbeSpec struct {
 	// Name of the function to apply the kprobe spec to.
 	Call string `json:"call"`
@@ -364,6 +365,8 @@ type TracepointSpec struct {
 	Raw bool `json:"raw,omitempty"`
 }
 
+// +kubebuilder:validation:AtMostOneOf=symbols;addrs;offsets
+// +kubebuilder:validation:XValidation:rule="!self.return || has(self.returnArg)",message="ReturnArg not specified with Return=true."
 type UProbeSpec struct {
 	// Name of the traced binary
 	Path string `json:"path"`

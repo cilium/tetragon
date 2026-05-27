@@ -333,7 +333,7 @@ spec:
     syscall: true
 `
 
-	err := checkCrd(t, crd)
+	_, err := tracingpolicy.FromYAML(crd)
 	require.Error(t, err)
 }
 

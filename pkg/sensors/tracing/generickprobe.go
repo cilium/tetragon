@@ -878,9 +878,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	// instructs the BPF kretprobe program which type of copy to use. And
 	// argReturnPrinters tell golang printer piece how to print the event.
 	if f.Return {
-		if f.ReturnArg == nil {
-			return errFn(errors.New("ReturnArg not specified with Return=true"))
-		}
+		// ReturnArg != nil is specified from crd validation (see TestUprobeValidationReturnWithoutArg())
 		argType := gt.GenericTypeFromString(f.ReturnArg.Type)
 		if argType == gt.GenericInvalidType {
 			if f.ReturnArg.Type == "" {
