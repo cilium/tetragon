@@ -298,7 +298,7 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 	case filename_ty: {
 		struct filename *file;
 
-		probe_read(&file, sizeof(file), &arg);
+		file = (struct filename *)arg;
 		probe_read(&arg, sizeof(arg), &file->name);
 	}
 		fallthrough;
