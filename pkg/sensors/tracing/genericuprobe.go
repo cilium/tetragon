@@ -204,9 +204,9 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 	load := args.Load
 
 	rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
-	if entry := uprobeEntry.loadArgs.selectors.entry; entry != nil {
+	if entry := getUprobeProgramSelector(load, uprobeEntry); entry != nil {
 		if celbpf.EnabledInBPF() {
-			rewriteProg["generic_uprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
+			rewriteProg[genericUprobeCelRewriteProg(load)] = entry.CelExprFunctions().RewriteProg
 		}
 	}
 	load.RewriteProg = rewriteProg
@@ -276,6 +276,23 @@ func getUprobeProgramSelector(load *program.Program, uprobeEntry *genericUprobe)
 	return nil
 }
 
+func genericUprobeUsesTailCalls(obj string) bool {
+	return !strings.Contains(path.Base(obj), "_notail")
+}
+
+func genericUprobeCelRewriteProg(load *program.Program) string {
+	if genericUprobeUsesTailCalls(load.Name) {
+		if load.RetProbe {
+			return "generic_retuprobe_filter_arg"
+		}
+		return "generic_uprobe_filter_arg"
+	}
+	if load.RetProbe {
+		return "generic_retuprobe_event"
+	}
+	return "generic_uprobe_event"
+}
+
 func checkSymbol(sym string) error {
 	_, _, err := parseSymbol(sym)
 	return err
@@ -320,9 +337,9 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 
 		rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
 
-		if entry := uprobeEntry.loadArgs.selectors.entry; entry != nil {
+		if entry := getUprobeProgramSelector(load, uprobeEntry); entry != nil {
 			if celbpf.EnabledInBPF() {
-				rewriteProg["generic_uprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
+				rewriteProg[genericUprobeCelRewriteProg(load)] = entry.CelExprFunctions().RewriteProg
 			}
 		}
 
@@ -925,11 +942,14 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	progs = append(progs, load)
 
 	configMap := program.MapBuilderProgram("config_map", load)
-	tailCalls := program.MapBuilderProgram("uprobe_calls", load)
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 
-	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
+	maps = append(maps, configMap, filterMap, retProbe)
+	if genericUprobeUsesTailCalls(loadProgName) {
+		tailCalls := program.MapBuilderProgram("uprobe_calls", load)
+		maps = append(maps, tailCalls)
+	}
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil))...)
 
 	if has.substring {
@@ -983,8 +1003,10 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		maps = append(maps, retFilterMap)
 		maps = append(maps, createSelectorMaps(loadret, getUprobeProgramSelector(loadret, nil))...)
 
-		retTailCalls := program.MapBuilderProgram("retuprobe_calls", loadret)
-		maps = append(maps, retTailCalls)
+		if genericUprobeUsesTailCalls(loadProgRetName) {
+			retTailCalls := program.MapBuilderProgram("retuprobe_calls", loadret)
+			maps = append(maps, retTailCalls)
+		}
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
 	}
@@ -1034,13 +1056,18 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	progs = append(progs, load)
 
 	configMap := program.MapBuilderProgram("config_map", load)
-	tailCalls := program.MapBuilderProgram("uprobe_calls", load)
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	workloadsMap := program.MapBuilderProgram("workloads_map", load)
 
-	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe, workloadsMap)
+	maps = append(maps, configMap, filterMap, selMatchBinariesMap, retProbe, workloadsMap)
+
+	if genericUprobeUsesTailCalls(loadProgName) {
+		tailCalls := program.MapBuilderProgram("uprobe_calls", load)
+		maps = append(maps, tailCalls)
+	}
+
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, uprobeEntry))...)
 
 	if has.substring {
@@ -1085,8 +1112,10 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		retConfigMap := program.MapBuilderProgram("config_map", loadret)
 		maps = append(maps, retConfigMap)
 
-		retTailCalls := program.MapBuilderProgram("retuprobe_calls", loadret)
-		maps = append(maps, retTailCalls)
+		if genericUprobeUsesTailCalls(loadProgRetName) {
+			retTailCalls := program.MapBuilderProgram("retuprobe_calls", loadret)
+			maps = append(maps, retTailCalls)
+		}
 
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)

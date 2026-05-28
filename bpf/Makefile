@@ -93,6 +93,8 @@ PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 	   bpf_generic_tracepoint_v61.o \
 	   bpf_generic_uprobe_v61.o bpf_generic_retuprobe_v61.o \
 	   bpf_multi_uprobe_v61.o bpf_multi_retuprobe_v61.o \
+	   bpf_generic_uprobe_notail_v61.o bpf_generic_retuprobe_notail_v61.o \
+	   bpf_multi_uprobe_notail_v61.o bpf_multi_retuprobe_notail_v61.o \
 	   bpf_generic_rawtp_v61.o \
 	   bpf_generic_usdt_v61.o \
 	   bpf_multi_usdt_v61.o \
@@ -183,6 +185,9 @@ $(DEPSDIR)bpf_multi_retkprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retkprobe.c
 $(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
 $(DEPSDIR)bpf_multi_retuprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retuprobe.c
 $(DEPSDIR)bpf_multi_usdt_$$(VAR).d: $(PROCESSDIR)bpf_generic_usdt.c
+$(DEPSDIR)bpf_generic_retuprobe_notail_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe_notail.c
+$(DEPSDIR)bpf_multi_uprobe_notail_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe_notail.c
+$(DEPSDIR)bpf_multi_retuprobe_notail_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe_notail.c
 
 # Object build rule for VARIANT objects
 $(OBJSDIR)%_$$(VAR).o:
@@ -210,6 +215,9 @@ CFLAGS_bpf_multi_retkprobe_$$(VAR).o = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_retuprobe_$$(VAR).o = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_usdt_$$(VAR).o      = -D__MULTI_KPROBE
+CFLAGS_bpf_generic_retuprobe_notail_$$(VAR).o = -D__GENERIC_RETUPROBE_NOTAIL $$(CFLAGS_$$(VAR))
+CFLAGS_bpf_multi_uprobe_notail_$$(VAR).o      = -D__MULTI_KPROBE $$(CFLAGS_$$(VAR))
+CFLAGS_bpf_multi_retuprobe_notail_$$(VAR).o   = -D__MULTI_KPROBE -D__GENERIC_RETUPROBE_NOTAIL $$(CFLAGS_$$(VAR))
 endef # DEFINE_VARIANT
 
 $(eval $(call DEFINE_VARIANT,v310))
