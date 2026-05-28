@@ -32,7 +32,7 @@ func HumanizeByteCount(b uint64) string {
 func PrintTracingPolicies(output io.Writer, policies []*tetragon.TracingPolicyStatus, skipPolicy func(pol *tetragon.TracingPolicyStatus) bool) {
 	// tabwriter config imitates kubectl default output, i.e. 3 spaces padding
 	w := tabwriter.NewWriter(output, 0, 0, 3, ' ', 0)
-	header := "ID\tNAME\tDOMAIN\tSTATE\tFILTERID\tNAMESPACE\tSENSORS\tKERNELMEMORY\tMODE\tNPOST\tNENFORCE\tNMONITOR"
+	header := "ID\tNAME\tDOMAIN\tSTATE\tFILTERID\tNAMESPACE\tSENSORS\tKERNELMEMORY\tMODE\tNPOST\tNENFORCE\tNMONITOR\tWARNINGS"
 	fmt.Fprintln(w, header)
 
 	for _, pol := range policies {
@@ -72,7 +72,8 @@ func PrintTracingPolicies(output io.Writer, policies []*tetragon.TracingPolicySt
 		}
 
 		counters := pol.GetStats().GetActionCounters()
-		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%d\n",
+		warnings := strings.Join(pol.Warnings, "; ")
+		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%s\n",
 			pol.Id,
 			pol.Name,
 			pol.Domain,
@@ -84,7 +85,8 @@ func PrintTracingPolicies(output io.Writer, policies []*tetragon.TracingPolicySt
 			strings.TrimPrefix(strings.ToLower(pol.Mode.String()), "tp_mode_"),
 			counters.GetPost(),
 			counters.GetSignal()+counters.GetOverride()+counters.GetNotifyEnforcer()+counters.GetSet(),
-			counters.GetMonitorSignal()+counters.GetMonitorOverride()+counters.GetMonitorNotifyEnforcer()+counters.GetMonitorSet())
+			counters.GetMonitorSignal()+counters.GetMonitorOverride()+counters.GetMonitorNotifyEnforcer()+counters.GetMonitorSet(),
+			warnings)
 	}
 	w.Flush()
 }
