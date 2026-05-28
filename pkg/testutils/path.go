@@ -6,15 +6,14 @@ package testutils
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 
+	"github.com/cilium/tetragon/pkg/testutils/repo"
 	"github.com/cilium/tetragon/pkg/tracepoint"
 )
 
 // RepoRootPath retrieves the repository root path (useful to find scripts and other files)
 func RepoRootPath(fname string) string {
-	_, testFname, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(testFname), "..", "..", fname)
+	return repo.RootPath(fname)
 }
 
 func CheckKernelTracingExists() bool {

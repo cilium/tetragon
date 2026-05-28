@@ -8,21 +8,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/testutils/repo"
 )
 
 var bpffsReady bool
-
-// NB: there is an import cycle that does allow us to use testutils.RepoRootPath
-func repoRootPath() string {
-	_, testFname, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(testFname), "..", "..")
-}
 
 func initBpffs() string {
 	bpf.CheckOrMountFS("")
@@ -41,7 +35,7 @@ func initBpffs() string {
 
 func TestMain(m *testing.M) {
 	flag.StringVar(&option.Config.HubbleLib,
-		"bpf-lib", filepath.Join(repoRootPath(), "bpf", "objs"),
+		"bpf-lib", filepath.Join(repo.RootPath("bpf"), "objs"),
 		"tetragon lib directory (location of btf file and bpf objs).")
 	flag.Parse()
 
