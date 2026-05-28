@@ -515,16 +515,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -540,22 +534,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -968,16 +952,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -993,22 +971,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -1794,16 +1762,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -1819,22 +1781,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -2247,16 +2199,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -2272,22 +2218,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -2795,16 +2731,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -2820,22 +2750,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -3248,16 +3168,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -3273,22 +3187,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -3697,16 +3601,10 @@ spec:
                       items:
                         properties:
                           action:
-                            description: |-
-                              Action to execute.
-                              NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                              be removed in version 1.5.
+                            description: Action to execute.
                             enum:
                             - Post
-                            - FollowFD
-                            - UnfollowFD
                             - Sigkill
-                            - CopyFD
                             - Override
                             - GetUrl
                             - DnsLookup
@@ -3722,20 +3620,11 @@ spec:
                             description: error value for override action
                             format: int32
                             type: integer
-                          argFd:
-                            description: An arg index for the fd for fdInstall action
-                            format: int32
-                            type: integer
                           argFqdn:
                             description: A FQDN to lookup for the dnsLookup action
                             type: string
                           argIndex:
                             description: An arg index for the set action
-                            format: int32
-                            type: integer
-                          argName:
-                            description: An arg index for the filename for fdInstall
-                              action
                             format: int32
                             type: integer
                           argRegs:
@@ -4143,16 +4032,10 @@ spec:
                       items:
                         properties:
                           action:
-                            description: |-
-                              Action to execute.
-                              NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                              be removed in version 1.5.
+                            description: Action to execute.
                             enum:
                             - Post
-                            - FollowFD
-                            - UnfollowFD
                             - Sigkill
-                            - CopyFD
                             - Override
                             - GetUrl
                             - DnsLookup
@@ -4168,20 +4051,11 @@ spec:
                             description: error value for override action
                             format: int32
                             type: integer
-                          argFd:
-                            description: An arg index for the fd for fdInstall action
-                            format: int32
-                            type: integer
                           argFqdn:
                             description: A FQDN to lookup for the dnsLookup action
                             type: string
                           argIndex:
                             description: An arg index for the set action
-                            format: int32
-                            type: integer
-                          argName:
-                            description: An arg index for the filename for fdInstall
-                              action
                             format: int32
                             type: integer
                           argRegs:
@@ -4642,16 +4516,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -4667,22 +4535,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -5095,16 +4953,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -5120,22 +4972,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -5869,16 +5711,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -5894,22 +5730,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -6322,16 +6148,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -6347,22 +6167,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -6848,16 +6658,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -6873,22 +6677,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -7301,16 +7095,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: |-
-                                    Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                  description: Action to execute.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -7326,22 +7114,12 @@ spec:
                                   description: error value for override action
                                   format: int32
                                   type: integer
-                                argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
-                                  format: int32
-                                  type: integer
                                 argFqdn:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
                                 argIndex:
                                   description: An arg index for the set action
-                                  format: int32
-                                  type: integer
-                                argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
                                   format: int32
                                   type: integer
                                 argRegs:
