@@ -111,6 +111,8 @@ message TracingPolicyStatus {
   optional TracingPolicyStats stats = 12;
   // domain of the policy
   string domain = 13;
+  // warnings that occurred while loading the policy
+  repeated string warnings = 14;
 }
 
 message ListTracingPoliciesResponse {
