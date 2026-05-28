@@ -277,16 +277,13 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 			asm volatile("%[bytes] &= 0xfff;\n"
 				     : [bytes] "+r"(bytes)
 				     :);
-			ret = probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
+			// size + file path + flags
+			size = 4 + bytes + 4;
+			ret = probe_read(&args[4], size, (char *)&val->file[0]);
 			if (ret < 0)
 				return ret;
-			size = bytes + 4 + 4;
 
-			// flags
-			ret = probe_read(&args[size], 4,
-					 (char *)&val->file[size - 4]);
-			if (ret < 0)
-				return ret;
+			// account for fd written at args[0]
 			size += 4;
 		} else {
 			/* If filter specification is fd type then we
