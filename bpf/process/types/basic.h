@@ -939,7 +939,6 @@ FUNC_LOCAL long
 filter_file_type(struct selector_arg_filter *filter, struct string_buf *args)
 {
 	// see store_path() for memory layout
-	// size + sizeof(u32) + sizeof(u16)
 	// mode is at the end, so we can access it using the length of the string
 	// plus the size of the flags.
 	__u16 mode = 0;
@@ -2351,7 +2350,10 @@ struct fdinstall_key {
 };
 
 struct fdinstall_value {
-	char file[4104]; // 4096B paths + 4B length + 4B flags
+	// 4B length + 4096B paths + 4B flags
+	// This must align with the implementation in store_path()
+	// Note that we don't yet store the mode here.
+	char file[4104];
 };
 
 struct {
