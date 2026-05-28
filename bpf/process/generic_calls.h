@@ -321,26 +321,26 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 	case size_type:
 	case s64_ty:
 	case u64_ty:
-		probe_read(args, sizeof(__u64), &arg);
+		*(__u64 *)args = (__u64)arg;
 		size = sizeof(__u64);
 		break;
 	/* Consolidate all the types to save instructions */
 	case int_type:
 	case s32_ty:
 	case u32_ty:
-		probe_read(args, sizeof(__u32), &arg);
+		*(__u32 *)args = (__u32)arg;
 		size = sizeof(__u32);
 		break;
 	case s16_ty:
 	case u16_ty:
 		/* read 2 bytes, but send 4 to keep alignment */
-		probe_read(args, sizeof(__u16), &arg);
+		*(__u16 *)args = (__u16)arg;
 		size = sizeof(__u32);
 		break;
 	case s8_ty:
 	case u8_ty:
 		/* read 1 byte, but send 4 to keep alignment */
-		probe_read(args, sizeof(__u8), &arg);
+		*(__u8 *)args = (__u8)arg;
 		size = sizeof(__u32);
 		break;
 	case skb_type:

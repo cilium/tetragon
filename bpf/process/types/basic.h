@@ -929,6 +929,7 @@ filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 	return is_not_operator(filter->op) ? !match : match;
 }
 
+// This struct captures the layout documented in store_path().
 struct string_buf {
 	__u32 len;
 	char buf[];
@@ -941,15 +942,18 @@ filter_file_type(struct selector_arg_filter *filter, struct string_buf *args)
 	// size + sizeof(u32) + sizeof(u16)
 	// mode is at the end, so we can access it using the length of the string
 	// plus the size of the flags.
-	u16 mode = 0;
+	__u16 mode = 0;
 	int j = 0;
 
-	// Use probe_read to avoid verifier unbounded memory access error
-	// Address is: args->buf (start of path) + args->len (end of path) + 4 (sizeof flags)
 	if (args->len > MAX_STRING)
 		return 0;
 
-	probe_read(&mode, sizeof(mode), (void *)((char *)args->buf + args->len + 4));
+	__u32 mode_off = args->len;
+	// Avoid unbounded access, needed on 4.19 only
+	asm volatile("%[mode_off] &= 0xfff;\n" : [mode_off] "+r"(mode_off));
+	// Offset from args: args->len (path) + 4 (len field) + 4 (flags)
+	mode_off += sizeof(args->len) + sizeof(__u32);
+	memcpy(&mode, (char *)args + mode_off, sizeof(mode));
 
 	/* filter->value contains the target file type constants (e.g. S_IFREG,
 	 * S_IFIFO) written by the userspace agent from the fileTypeTable.
