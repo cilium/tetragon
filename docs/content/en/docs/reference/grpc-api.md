@@ -1508,6 +1508,7 @@ Determines the behavior of a field filter
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) |  | current mode of the tracing policy |
 | stats | [TracingPolicyStats](#tetragon-TracingPolicyStats) | optional | stats of the tracing policy |
 | domain | [string](#string) |  | domain of the policy |
+| warnings | [string](#string) | repeated | warnings that occurred while loading the policy |
 
 <a name="tetragon-ConfigFlag"></a>
 
