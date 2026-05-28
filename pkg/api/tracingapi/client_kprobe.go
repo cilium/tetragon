@@ -12,12 +12,12 @@ const (
 )
 
 const (
-	ActionPost                        = 0
-	ActionFollowFd                    = 1
-	ActionSigKill                     = 2
-	ActionUnfollowFd                  = 3
-	ActionOverride                    = 4
-	ActionCopyFd                      = 5
+	ActionPost = 0
+	// ActionFollowFd                    = 1 deprecated
+	ActionSigKill = 2
+	// ActionUnfollowFd                  = 3 deprecated
+	ActionOverride = 4
+	// ActionCopyFd                      = 5 deprecated
 	ActionGetUrl                      = 6
 	ActionLookupDns                   = 7
 	ActionNoPost                      = 8
