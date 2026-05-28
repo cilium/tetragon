@@ -201,6 +201,10 @@ type Program struct {
 	// This is currently used for generated code for cel expressions, but can be extended to
 	// other uses.
 	RewriteProg map[string]func(prog *ebpf.ProgramSpec) error
+
+	// Warnings contains non-fatal issues encountered while loading/attaching
+	// this program (for example, digest mismatch based skips).
+	Warnings []string
 }
 
 func (p *Program) String() string {
@@ -231,6 +235,17 @@ func (p *Program) SetTailCall(prefix string, m *Map) *Program {
 func (p *Program) SetPolicy(policy string) *Program {
 	p.Policy = policy
 	return p
+}
+
+func (p *Program) AddWarning(warning string) {
+	if warning == "" {
+		return
+	}
+	p.Warnings = append(p.Warnings, warning)
+}
+
+func (p *Program) GetWarnings() []string {
+	return p.Warnings
 }
 
 func (p *Program) Unload(unpin bool) error {

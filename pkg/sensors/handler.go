@@ -414,6 +414,21 @@ func (h *handler) listPolicies(domain string) []*tetragon.TracingPolicyStatus {
 			pol.KernelMemoryBytes += uint64(sens.TotalMemlock())
 		}
 
+		warnings := map[string]struct{}{}
+		for _, sens := range col.sensors {
+			sensor, ok := sens.(*Sensor)
+			if !ok {
+				continue
+			}
+			for _, prog := range sensor.Progs {
+				for _, warning := range prog.GetWarnings() {
+					warnings[warning] = struct{}{}
+				}
+			}
+		}
+
+		pol.Warnings = slices.Sorted(maps.Keys(warnings))
+
 		ret = append(ret, &pol)
 	}
 

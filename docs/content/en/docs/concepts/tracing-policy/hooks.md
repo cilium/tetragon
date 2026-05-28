@@ -386,7 +386,8 @@ spec:
         - "sha256:1111111111111111111111111111111111111111111111111111111111111111"
         - "sha256:2222222222222222222222222222222222222222222222222222222222222222"
 ```
-When the above policy is loaded, tetragon will calculate the sha256 hash of `/bin/example-target-binary` and compare it against all the binaryDigests configured within the `binaryDigests` list. The policy will be rejected if the calculated digest does not match any of the configured binaryDigests.
+
+When the above policy is loaded, tetragon will calculate the sha256 hash of `/bin/example-target-binary` and compare it against all the binaryDigests configured within the `binaryDigests` list. If the calculated digest does not match any configured digest, that uprobe is skipped and a warning is reported in policy status.
 
 As you can see from the above example, the format of the entries of the `binaryDigests` list is
 `<digest type>:<digest>`.

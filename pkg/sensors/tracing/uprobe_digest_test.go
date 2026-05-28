@@ -80,7 +80,7 @@ spec:
 `, path, extra)
 }
 
-func policyLoadMatchesExpectation(t *testing.T, policy string, shouldLoad bool) {
+func policyLoadMatchesExpectation(t *testing.T, policy string, expectedWarnings ...string) {
 	t.Helper()
 
 	createCrdFile(t, policy)
@@ -99,15 +99,42 @@ func policyLoadMatchesExpectation(t *testing.T, policy string, shouldLoad bool) 
 	require.NoError(t, err, "failed to initialize observer")
 
 	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
-	if shouldLoad {
-		require.NoError(t, err, "policy should load")
-	} else {
-		require.Error(t, err, "policy should fail to load")
+	require.NoError(t, err, "policy should load")
+
+	warnings := policyWarningsForName(t, tp.TpName())
+	if len(expectedWarnings) == 0 {
+		require.Empty(t, warnings)
+		return
+	}
+
+	require.NotEmpty(t, warnings)
+	warningsJoined := strings.Join(warnings, "; ")
+	for _, expectedWarning := range expectedWarnings {
+		require.Contains(t, warningsJoined, expectedWarning)
 	}
 }
 
+func policyWarningsForName(t *testing.T, policyName string) []string {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	list, err := observer.GetSensorManager().ListTracingPolicies(ctx, "")
+	require.NoError(t, err, "failed to list tracing policies")
+
+	for _, policy := range list.Policies {
+		if policy.GetName() == policyName {
+			return policy.GetWarnings()
+		}
+	}
+
+	t.Fatalf("failed to find tracing policy status for policy %q", policyName)
+	return nil
+}
+
 func TestUprobeDigestNoDigest(t *testing.T) {
-	policyLoadMatchesExpectation(t, uprobePolicy(nil), true)
+	policyLoadMatchesExpectation(t, uprobePolicy(nil))
 }
 
 func TestUprobeDigestCorrectSHA256(t *testing.T) {
@@ -115,23 +142,23 @@ func TestUprobeDigestCorrectSHA256(t *testing.T) {
 	digest, err := calculateSHA256(nop)
 	require.NoError(t, err)
 
-	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256:" + digest}), true)
+	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256:" + digest}))
 }
 
 func TestUprobeDigestWrongSHA256(t *testing.T) {
 	policyLoadMatchesExpectation(
 		t,
 		uprobePolicy([]string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"}),
-		false,
+		"digest verification failed",
 	)
 }
 
 func TestUprobeDigestInvalidFormat(t *testing.T) {
-	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256noseparator"}), false)
+	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256noseparator"}), "digest verification failed")
 }
 
 func TestUprobeDigestUnsupportedAlgorithm(t *testing.T) {
-	policyLoadMatchesExpectation(t, uprobePolicy([]string{"md5:abc123"}), false)
+	policyLoadMatchesExpectation(t, uprobePolicy([]string{"md5:abc123"}), "digest verification failed")
 }
 
 func TestUprobeDigestCaseInsensitive(t *testing.T) {
@@ -139,7 +166,7 @@ func TestUprobeDigestCaseInsensitive(t *testing.T) {
 	digest, err := calculateSHA256(nop)
 	require.NoError(t, err)
 
-	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256:" + strings.ToUpper(digest)}), true)
+	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256:" + strings.ToUpper(digest)}))
 }
 
 func TestUprobeDigestBuildID(t *testing.T) {
@@ -149,7 +176,7 @@ func TestUprobeDigestBuildID(t *testing.T) {
 		t.Skip("binary has no build ID")
 	}
 
-	policyLoadMatchesExpectation(t, uprobePolicy([]string{"build-id:" + buildID}), true)
+	policyLoadMatchesExpectation(t, uprobePolicy([]string{"build-id:" + buildID}))
 }
 func TestUprobeDigestMultipleDigestsAnyMatch(t *testing.T) {
 	nop := repo.RootPath("contrib/tester-progs/nop")
@@ -161,7 +188,7 @@ func TestUprobeDigestMultipleDigestsAnyMatch(t *testing.T) {
 		"sha256:0000000000000000000000000000000000000000000000000000000000000000",
 		"sha256:" + digest,
 	}
-	policyLoadMatchesExpectation(t, uprobePolicy(digests), true)
+	policyLoadMatchesExpectation(t, uprobePolicy(digests))
 }
 
 func TestUprobeDigestMultipleDigestsAllWrong(t *testing.T) {
@@ -170,5 +197,9 @@ func TestUprobeDigestMultipleDigestsAllWrong(t *testing.T) {
 		"sha256:1111111111111111111111111111111111111111111111111111111111111111",
 		"sha256:2222222222222222222222222222222222222222222222222222222222222222",
 	}
-	policyLoadMatchesExpectation(t, uprobePolicy(wrongDigests), false)
+	policyLoadMatchesExpectation(
+		t,
+		uprobePolicy(wrongDigests),
+		"digest verification failed",
+	)
 }

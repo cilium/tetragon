@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,14 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
+
+type digestVerificationSkipError struct {
+	warning string
+}
+
+func (e *digestVerificationSkipError) Error() string {
+	return e.warning
+}
 
 type uprobeAttachFunc func(*Program, *ebpf.Program, *ebpf.ProgramSpec, string, ...string) (unloader.Unloader, error)
 
@@ -221,6 +230,32 @@ func verifyFileDigest(file *os.File, digestConfig string, fileHashCache map[stri
 	return nil
 }
 
+func verifyAnyConfiguredDigest(file *os.File, digests []string) (bool, string) {
+	if len(digests) == 0 {
+		return true, ""
+	}
+
+	digestCache := make(map[string]string)
+	expectedDigests := []string{}
+
+	for _, digest := range digests {
+		if err := verifyFileDigest(file, digest, digestCache); err == nil {
+			return true, ""
+		}
+		expectedDigests = append(expectedDigests, digest)
+	}
+
+	// All digests failed verification. Build a message showing expected vs actual.
+	// Format actual computed digests from cache as algo:hash
+	actualDigests := []string{}
+	for algo, hash := range digestCache {
+		actualDigests = append(actualDigests, fmt.Sprintf("%s:%s", algo, hash))
+	}
+	sort.Strings(actualDigests)
+
+	return false, fmt.Sprintf("expected one of [%s] but got %s", strings.Join(expectedDigests, ", "), strings.Join(actualDigests, "; "))
+}
+
 func UprobeOpen(load *Program) OpenFunc {
 	return func(coll *ebpf.CollectionSpec) error {
 		if !load.SleepableOffload {
@@ -265,18 +300,10 @@ func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpe
 		}
 		defer f.Close()
 
-		if len(data.BinaryDigests) > 0 {
-			digestCache := make(map[string]string)
-			matchFound := false
-			for _, digest := range data.BinaryDigests {
-				if err := verifyFileDigest(f, digest, digestCache); err == nil {
-					matchFound = true
-					break
-				}
-			}
-			if !matchFound {
-				return nil, errors.New("digest verification failed: no matching digest")
-			}
+		matchFound, details := verifyAnyConfiguredDigest(f, data.BinaryDigests)
+		if !matchFound {
+			warning := fmt.Sprintf("uprobe not applied for path %q: digest verification failed (%s)", data.Path, details)
+			return nil, &digestVerificationSkipError{warning: warning}
 		}
 
 		fdPath := procSelfFDPath(f)
@@ -343,18 +370,10 @@ func attachMultiUpobeLink(load *Program, prog *ebpf.Program, path string, attach
 	}
 	defer f.Close()
 
-	if len(digests) > 0 {
-		digestCache := make(map[string]string)
-		matchFound := false
-		for _, digest := range digests {
-			if err := verifyFileDigest(f, digest, digestCache); err == nil {
-				matchFound = true
-				break
-			}
-		}
-		if !matchFound {
-			return nil, errors.New("digest verification failed: no matching digest")
-		}
+	matchFound, details := verifyAnyConfiguredDigest(f, digests)
+	if !matchFound {
+		warning := fmt.Sprintf("uprobe-multi not applied for path %q: digest verification failed (%s)", path, details)
+		return nil, &digestVerificationSkipError{warning: warning}
 	}
 
 	fdPath := procSelfFDPath(f)
@@ -406,6 +425,13 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 			digests := data.BinaryDigests[path]
 			lnk, err := attachMultiUpobeLink(load, prog, path, attach, digests, bpfDir, idx, extra...)
 			if err != nil {
+				var skipErr *digestVerificationSkipError
+				if errors.As(err, &skipErr) {
+					load.AddWarning(skipErr.warning)
+					logger.GetLogger().Warn(skipErr.warning, "program", load.Name, "policy", load.Policy)
+					idx++
+					continue
+				}
 				return nil, err
 			}
 			links = append(links, lnk)
@@ -502,6 +528,12 @@ func uprobeAttach(load *Program, bpfDir string,
 	}
 
 	if main, err = attach(load, prog, spec, bpfDir); err != nil {
+		var skipErr *digestVerificationSkipError
+		if errors.As(err, &skipErr) {
+			load.AddWarning(skipErr.warning)
+			logger.GetLogger().Warn(skipErr.warning, "program", load.Name, "policy", load.Policy)
+			return nil, nil
+		}
 		return nil, err
 	}
 
