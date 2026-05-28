@@ -69,16 +69,10 @@ func kprobeAction(act uint64) tetragon.KprobeAction {
 	switch act {
 	case tracingapi.ActionPost:
 		return tetragon.KprobeAction_KPROBE_ACTION_POST
-	case tracingapi.ActionFollowFd:
-		return tetragon.KprobeAction_KPROBE_ACTION_FOLLOWFD
 	case tracingapi.ActionSigKill:
 		return tetragon.KprobeAction_KPROBE_ACTION_SIGKILL
-	case tracingapi.ActionUnfollowFd:
-		return tetragon.KprobeAction_KPROBE_ACTION_UNFOLLOWFD
 	case tracingapi.ActionOverride:
 		return tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE
-	case tracingapi.ActionCopyFd:
-		return tetragon.KprobeAction_KPROBE_ACTION_COPYFD
 	case tracingapi.ActionGetUrl:
 		return tetragon.KprobeAction_KPROBE_ACTION_GETURL
 	case tracingapi.ActionLookupDns:
