@@ -24,9 +24,9 @@ Depending on your setup, changes listed here might require a manual intervention
   return value in events, and omit `returnArgAction` for the default return-value
   behavior. Only `TrackSock` and `UntrackSock` are supported. Existing policies
   that set `returnArgAction: "Post"` should remove the field.
-
 * `fd` type no longer needs the pre `FollowFD` and post `UnfollowFD` actions to resolve the
   path and works on its own. Existing policies that used `fd` type should be updated to remove the hooks associated with the `FollowFD` and `UnfollowFD` actions. The structure around the use of `fd` hasn't changed and no update should be necessary to the hook that used the type. 
+* Actions `FollowFD`, `UnfollowFD` and `CopyFD` were removed (they were deprecated in v1.5).
 
 ### Events (protobuf API)
 
