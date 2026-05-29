@@ -491,7 +491,7 @@ func (s *bugtoolInfo) addMetrics() error {
 
 	buff := new(bytes.Buffer)
 	if _, err = buff.ReadFrom(resp.Body); err != nil {
-		s.multiLog.Warn("error in reading metrics server response: %s", err)
+		s.multiLog.WithError(err).Warn("error in reading metrics server response")
 	}
 	return s.tarAddBuff("metrics", buff)
 }
