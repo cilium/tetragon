@@ -882,10 +882,10 @@ func (s bugtoolInfo) addMemCgroupStats() error {
 			return fmt.Errorf("failed to read file %s: %w", file, err)
 		}
 		err = s.tarAddBuff(file, bytes.NewBuffer(buf))
-		if err == nil {
-			s.multiLog.WithField("file", file).Info("cgroup file added")
+		if err != nil {
 			return fmt.Errorf("failed to add buffer: %w", err)
 		}
+		s.multiLog.WithField("file", file).Info("cgroup file added")
 		return nil
 	}
 
