@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -410,6 +411,63 @@ type uprobeHas struct {
 	substring        bool
 }
 
+func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
+	if len(uprobes) < 2 {
+		return nil
+	}
+
+	type pathState struct {
+		idx     int
+		digests []string
+		method  string
+	}
+
+	pathStates := make(map[string]pathState)
+
+	for i, curr := range uprobes {
+		method := ""
+		if len(curr.Symbols) != 0 {
+			method = "symbols"
+		} else if len(curr.Offsets) != 0 {
+			method = "offsets"
+		} else if len(curr.Addrs) != 0 {
+			method = "addrs"
+		}
+
+		state, ok := pathStates[curr.Path]
+		if !ok {
+			pathStates[curr.Path] = pathState{
+				idx:     i,
+				digests: curr.BinaryDigests,
+				method:  method,
+			}
+			continue
+		}
+
+		if !slices.Equal(state.digests, curr.BinaryDigests) {
+			return fmt.Errorf(
+				"multi-uprobe requires identical digests for uprobes sharing the same path, but uprobe[%d] digests differ from uprobe[%d] for path %q; disable multiprobe with spec.options: [{name: disable-uprobe-multi, value: \"true\"}]",
+				i,
+				state.idx,
+				curr.Path,
+			)
+		}
+
+		if method != state.method {
+			return fmt.Errorf(
+				"multi-uprobe requires a single hook location method for uprobes sharing the same path, but uprobe[%d] uses %s while uprobe[%d] uses %s for path %q; disable multiprobe with spec.options: [{name: disable-uprobe-multi, value: \"true\"}]",
+				i,
+				method,
+				state.idx,
+				state.method,
+				curr.Path,
+			)
+		}
+	}
+
+	return nil
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -438,6 +496,12 @@ func createGenericUprobeSensor(
 
 		useMulti: useMulti,
 		celExprs: celExprs,
+	}
+
+	if in.useMulti {
+		if err = validateMultiUprobeConsistency(spec.UProbes); err != nil {
+			return nil, err
+		}
 	}
 
 	for _, uprobe := range spec.UProbes {
