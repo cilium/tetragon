@@ -606,6 +606,7 @@ func (s *bugtoolInfo) getPProf(file string, gopsSignal byte) error {
 		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithError(err).Warn("Failed to contact gops server")
 		return err
 	}
+	defer conn.Close()
 
 	buf := []byte{gopsSignal}
 	if _, err := conn.Write(buf); err != nil {
