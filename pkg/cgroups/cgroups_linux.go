@@ -274,12 +274,6 @@ func setDeploymentMode(cgroupPath string) error {
 		return nil
 	}
 
-	if cgroupPath == "" {
-		// Probably namespaced
-		deploymentMode = DEPLOY_CONTAINER
-		return nil
-	}
-
 	// Last go through the deployments
 	for _, d := range deployments {
 		if d.str != "" && strings.Contains(cgroupPath, d.str) {
