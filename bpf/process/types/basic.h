@@ -789,14 +789,19 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	return !!pass;
 }
 
-FUNC_INLINE void __copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset, uint mask)
+struct copy_reverse_data {
+	__u8 *dest;
+	__u8 *src;
+	uint len;
+	uint offset;
+	uint mask;
+};
+
+FUNC_LOCAL int do_copy_reverse(uint i, struct copy_reverse_data *data)
 {
-	uint i;
+	uint len = data->len, offset = data->offset, mask = data->mask;
 
 	len &= STRING_POSTFIX_MAX_MASK;
-#ifndef __LARGE_BPF_PROG
-#pragma unroll
-#endif
 	// Maximum we can go to is one less than the absolute maximum.
 	// This is to allow the masking and indexing to work correctly.
 	// (Appreciate this is a bit ugly.)
@@ -807,10 +812,39 @@ FUNC_INLINE void __copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset, ui
 	// reverse copy the string as if it was 127 chars long.
 	// Alternative (prettier) fixes resulted in a confused verifier
 	// unfortunately.
-	for (i = 0; i < (STRING_POSTFIX_MAX_MATCH_LENGTH - 1); i++) {
-		dest[i & STRING_POSTFIX_MAX_MASK] = src[(len + offset - 1 - i) & mask];
-		if (len + offset == (i + 1))
-			return;
+	data->dest[i & STRING_POSTFIX_MAX_MASK] = data->src[(len + offset - 1 - i) & mask];
+	return len + offset == (i + 1) ? 1 : 0;
+}
+
+FUNC_INLINE void __copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset, uint mask)
+{
+	struct copy_reverse_data data = {
+		.dest = dest,
+		.src = src,
+		.len = len,
+		.offset = offset,
+		.mask = mask,
+	};
+	uint i;
+
+	if (CONFIG(ITER_NUM)) {
+		bpf_for(i, 0, STRING_POSTFIX_MAX_MATCH_LENGTH - 1)
+		{
+			if (do_copy_reverse(i, &data))
+				return;
+		}
+	} else {
+#ifndef __V61_BPF_PROG
+#ifndef __LARGE_BPF_PROG
+#pragma unroll
+#endif
+		for (i = 0; i < (STRING_POSTFIX_MAX_MATCH_LENGTH - 1); i++) {
+			if (do_copy_reverse(i, &data))
+				return;
+		}
+#else
+		loop(STRING_POSTFIX_MAX_MATCH_LENGTH - 1, do_copy_reverse, &data, 0);
+#endif /* __V61_BPF_PROG */
 	}
 }
 
