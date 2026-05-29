@@ -338,7 +338,6 @@ func (m PfMap) deletePolicyIDInCgroupMap(polID PolicyID) error {
 		if err != nil {
 			return fmt.Errorf("error opening inner map: %w", err)
 		}
-		defer inMap.Close()
 
 		// We don't know if this exists if this does not exist this
 		// will return an error, but this is fine.
@@ -347,6 +346,7 @@ func (m PfMap) deletePolicyIDInCgroupMap(polID PolicyID) error {
 		// now we need to check the size of the inner map
 		// if this is 0 we should also remove the outer entry
 		mapSize, err := getMapSize(inMap)
+		inMap.Close()
 		if err != nil {
 			return fmt.Errorf("error getting inner map size: %w", err)
 		}
@@ -502,10 +502,10 @@ func (m polMap) delCgroupIDs(polID PolicyID, cgIDs []CgroupID) error {
 		if err != nil {
 			return fmt.Errorf("error opening inner map: %w", err)
 		}
-		defer inMap.Close()
 
 		var zero uint8
 		if err := inMap.Lookup(polID, &zero); err != nil {
+			inMap.Close()
 			continue
 		}
 
@@ -514,6 +514,7 @@ func (m polMap) delCgroupIDs(polID PolicyID, cgIDs []CgroupID) error {
 
 		// get the inner map size
 		sz, err := getMapSize(inMap)
+		inMap.Close()
 		if err != nil {
 			return fmt.Errorf("error getting inner map size: %w", err)
 		}
