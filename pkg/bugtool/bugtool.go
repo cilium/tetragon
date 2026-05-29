@@ -184,6 +184,7 @@ func doTarAddBuff(tarWriter *tar.Writer, fname string, buff *bytes.Buffer) error
 
 	if err := tarWriter.WriteHeader(&logHdr); err != nil {
 		logger.GetLogger().Error("failed to write log buffer tar header")
+		return err
 	}
 
 	_, err := io.Copy(tarWriter, buff)
