@@ -439,10 +439,9 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	if (PARENTS_MAP_ENABLED) {
 		struct binary *parent_bin = map_lookup_elem(&tg_parents_bin, &enter->key.pid);
 
-		if (parent_bin)
-			/* matchParentBinaries key is in range [MAX_SELECTORS; MAX_SELECTORS * 2) */
-			if (!match_binaries(index + MAX_SELECTORS, enter, parent_bin))
-				return 0;
+		/* matchParentBinaries key is in range [MAX_SELECTORS; MAX_SELECTORS * 2) */
+		if (!match_binaries(index + MAX_SELECTORS, enter, parent_bin))
+			return 0;
 	}
 #endif
 
