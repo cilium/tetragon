@@ -6,7 +6,6 @@ package asm
 import (
 	"errors"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 	"unicode"
@@ -36,56 +35,62 @@ type Assignment struct {
 
 type fn func(str string, ass *Assignment) error
 
-type RegScanner struct {
-	name string
-}
-
-func (sc *RegScanner) Reset() *RegScanner {
-	sc.name = ""
-	return sc
-}
-
-func (sc *RegScanner) Scan(state fmt.ScanState, _ rune) error {
-
-	for {
-		r, _, err := state.ReadRune()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			return err
-		}
-		if r == ',' || r == ' ' || r == ')' {
-			state.UnreadRune()
-			break
-		}
-		sc.name = sc.name + string(r)
-	}
-	return nil
-}
-
+// parseRegDeref parses dereference forms "(%reg)" and "off(%reg)".
+// Examples: "(%rsp)", "0x20(%rsp)", "0x20 ( %rsp )".
 func parseRegDeref(str string, ass *Assignment) error {
 	var (
-		off int64
-		reg RegScanner
-		n   int
+		off uint64
+		err error
 		ok  bool
 	)
 
-	if n, _ = fmt.Sscanf(str, "0x%x(%%%s)", &off, &reg); n != 2 {
-		if n, _ = fmt.Sscanf(str, "%d(%%%s)", &off, &reg); n != 2 {
-			if n, _ = fmt.Sscanf(str, "(%%%s)", reg.Reset()); n != 1 {
-				return errNext
-			}
+	p := cursorparser.New(str)
+
+	// Split "off(%reg)" at the opening parenthesis. The left side is the
+	// optional offset; the text between '(' and ')' must be a register ref.
+	offStr, ok := p.ReadUntil('(')
+	if !ok {
+		return errNext
+	}
+
+	// Everything before '(' is the optional offset. No prefix means zero
+	// offset, so "(%rsp)" and "0(%rsp)" produce the same dereference base.
+	if offStr = strings.TrimSpace(offStr); offStr != "" {
+		off, err = parseOffset(offStr)
+		if err != nil {
+			return errNext
 		}
 	}
 
-	ass.Type = ASM_ASSIGNMENT_TYPE_REG_DEREF
-	ass.Off = uint64(off)
-	ass.Src, ass.SrcSize, ok = RegOffsetSize(reg.name)
-	if !ok {
-		return fmt.Errorf("failed to parse register '%s'", reg.name)
+	if !p.Consume('(') {
+		return errNext
 	}
+
+	if !p.Consume('%') {
+		return errNext
+	}
+
+	// Reading the register up to ')' leaves the cursor at the closing
+	// delimiter. Consuming it below rejects missing parentheses and junk
+	// suffixes.
+	reg, ok := p.ReadUntil(')')
+	if !ok {
+		return errNext
+	}
+	reg = strings.TrimRightFunc(reg, unicode.IsSpace)
+	if reg == "" || !p.Consume(')') || !p.Done() {
+		return errNext
+	}
+
+	src, srcSize, ok := RegOffsetSize(reg)
+	if !ok {
+		return fmt.Errorf("failed to parse register '%s'", reg)
+	}
+
+	ass.Type = ASM_ASSIGNMENT_TYPE_REG_DEREF
+	ass.Off = off
+	ass.Src = src
+	ass.SrcSize = srcSize
 	return nil
 }
 
