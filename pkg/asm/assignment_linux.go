@@ -129,24 +129,40 @@ func parseReg(str string, ass *Assignment) error {
 	return nil
 }
 
+// parseConst parses constant assignment forms such as "1" and "-1".
+// Constants keep base-0 parsing, so 0x and leading-zero forms are accepted.
+// Examples: "1", "-1", "0x20", "010".
 func parseConst(str string, ass *Assignment) error {
-
-	var (
-		uoff uint64
-		soff int64
-		err  error
-	)
-
-	if uoff, err = strconv.ParseUint(str, 0, 64); err != nil {
-		if soff, err = strconv.ParseInt(str, 0, 64); err != nil {
-			return errNext
-		}
-		uoff = uint64(soff)
+	uoff, err := parseOffset(strings.TrimSpace(str))
+	if err != nil {
+		return errNext
 	}
 
 	ass.Type = ASM_ASSIGNMENT_TYPE_CONST
 	ass.Off = uoff
 	return nil
+}
+
+// parseOffset parses decimal, hex, octal, signed, and full-width unsigned
+// offsets. It intentionally uses strconv base 0, so offsets accept "0x20",
+// "010", "-1", and "0xffffffffffffffff" forms.
+func parseOffset(str string) (uint64, error) {
+	if str == "" {
+		return 0, strconv.ErrSyntax
+	}
+
+	// Parse negative numbers as int64 first because ParseUint rejects the
+	// leading minus sign. The uint64 conversion preserves the two's-complement
+	// representation used by the assignment format.
+	if strings.HasPrefix(str, "-") {
+		off, err := strconv.ParseInt(str, 0, 64)
+		if err != nil {
+			return 0, err
+		}
+		return uint64(off), nil
+	}
+
+	return strconv.ParseUint(str, 0, 64)
 }
 
 func ParseAssignment(str string) (*Assignment, error) {
