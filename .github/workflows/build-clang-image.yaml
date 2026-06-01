@@ -43,7 +43,7 @@ jobs:
           fetch-depth: 0
 
       - name: Preview build Clang image
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           provenance: false
           context: .
@@ -60,7 +60,7 @@ jobs:
     permissions:
       # To be able to access the repository with `actions/checkout`
       contents: read
-      # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
+      # Required to generate OIDC tokens for cosign keyless signing
       id-token: write
     steps:
       # https://github.com/docker/setup-qemu-action
@@ -74,7 +74,7 @@ jobs:
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
       - name: Login to quay.io
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: quay.io
           username: ${{ secrets.QUAY_CLANG_RELEASE_USERNAME }}
@@ -96,7 +96,7 @@ jobs:
           fetch-depth: 0
 
       - name: Release Build clang
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         id: docker_build_release
         with:
           provenance: false
@@ -107,51 +107,13 @@ jobs:
           tags: |
             quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@11086d25041f77fe8fe7b9ea4e48e3b9192b8f19 # v3.1.2
-
-      - name: Sign Container Image
-        if: steps.tag-in-repositories.outputs.exists == 'false'
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        run: |
-          cosign sign -y quay.io/${{ github.repository_owner }}/clang@${{ steps.docker_build_release.outputs.digest }}
-
-      - name: Install Go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+      - name: Sign image and publish SBOM attestation
+        uses: ./.github/actions/cosign
         with:
-          # renovate: datasource=golang-version depName=go
-          go-version: '1.26.3'
-
-      - name: Install Bom
-        shell: bash
-        env:
-          # renovate: datasource=github-releases depName=kubernetes-sigs/bom
-          BOM_VERSION: v0.7.1
-        run: |
-          go install sigs.k8s.io/bom/cmd/bom@${{ env.BOM_VERSION }}
-
-      - name: Generate SBOM
-        shell: bash
-        # To-Do: Format SBOM output to JSON after a new version of cosign is released after v1.13.1. Ref: https://github.com/sigstore/cosign/pull/2479
-        run: |
-          bom generate -o sbom_clang_${{ steps.tag.outputs.tag }}.spdx \
-          --dirs= . \
-          --image=quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}
-
-      - name: Attach SBOM to container image
-        run: |
-          cosign attach sbom --sbom sbom_clang_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/clang@${{ steps.docker_build_release.outputs.digest }}
-
-      - name: Sign SBOM Image
-        if: steps.tag-in-repositories.outputs.exists == 'false'
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        run: |
-          docker_build_release_digest="${{ steps.docker_build_release.outputs.digest }}"
-          image_name="quay.io/${{ github.repository_owner }}/clang:${docker_build_release_digest/:/-}.sbom"
-          docker_build_release_sbom_digest="sha256:$(docker buildx imagetools inspect --raw ${image_name} | sha256sum | head -c 64)"
-          cosign sign -y "quay.io/${{ github.repository_owner }}/clang@${docker_build_release_sbom_digest}"
+          image: quay.io/${{ github.repository_owner }}/clang@${{ steps.docker_build_release.outputs.digest }}
+          image_tag: quay.io/${{ github.repository_owner }}/clang:${{ steps.tag.outputs.tag }}
+          sbom_name: clang_${{ steps.tag.outputs.tag }}
+          upload_sbom_release_assets: 'false'
 
       - name: Image Release Digest
         shell: bash
@@ -168,7 +130,7 @@ jobs:
 
       # Upload artifact digests
       - name: Upload artifact digests
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: image-digest clang
           path: image-digest
@@ -186,7 +148,7 @@ jobs:
           mkdir -p image-digest/
 
       - name: Download digests of all images built
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           path: image-digest/
 
