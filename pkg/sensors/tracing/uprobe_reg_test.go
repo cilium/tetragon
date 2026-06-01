@@ -1046,6 +1046,9 @@ func testUprobePtRegsPreloadSubstring(t *testing.T, str string, ignoreCase bool,
 	if !single && !bpf.HasUprobeMulti() {
 		t.Skip("skipping, can't use uprobe multi, no kernel support")
 	}
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping, x86_64 only test")
+	}
 
 	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
 
@@ -1228,6 +1231,9 @@ func testUprobePtRegsPreloadSubstringOverride(t *testing.T, single bool) {
 	}
 	if !bpf.HasKfunc("bpf_strnstr") {
 		t.Skip("skipping, no bpf_strnstr kfunc in kernel")
+	}
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping, x86_64 only test")
 	}
 
 	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
