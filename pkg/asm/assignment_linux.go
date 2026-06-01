@@ -9,6 +9,9 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"unicode"
+
+	"github.com/cilium/tetragon/pkg/cursorparser"
 )
 
 const (
@@ -109,23 +112,31 @@ func parseRegOff(str string, ass *Assignment) error {
 	return nil
 }
 
+// parseReg parses register assignment forms "%reg".
+// Example: "%rax".
 func parseReg(str string, ass *Assignment) error {
-	var (
-		reg RegScanner
-		n   int
-		ok  bool
-	)
+	p := cursorparser.New(str)
 
-	if n, _ = fmt.Sscanf(str, "%%%s", &reg); n != 1 {
+	// Register assignments must start with a percent marker.
+	if !p.Consume('%') {
 		return errNext
+	}
+
+	// Everything after '%' is the source register.
+	reg := strings.TrimRightFunc(p.ReadRest(), unicode.IsSpace)
+	if reg == "" {
+		return errNext
+	}
+
+	src, srcSize, ok := RegOffsetSize(reg)
+	if !ok {
+		return fmt.Errorf("failed to parse register '%s'", reg)
 	}
 
 	ass.Type = ASM_ASSIGNMENT_TYPE_REG
 	ass.Off = 0
-	ass.Src, ass.SrcSize, ok = RegOffsetSize(reg.name)
-	if !ok {
-		return fmt.Errorf("failed to parse register '%s'", reg.name)
-	}
+	ass.Src = src
+	ass.SrcSize = srcSize
 	return nil
 }
 
