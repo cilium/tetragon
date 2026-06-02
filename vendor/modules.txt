@@ -296,6 +296,9 @@ github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors
 github.com/hashicorp/golang-lru/v2
 github.com/hashicorp/golang-lru/v2/internal
 github.com/hashicorp/golang-lru/v2/simplelru
+# github.com/hillu/go-yara/v4 v4.3.4
+## explicit; go 1.10
+github.com/hillu/go-yara/v4
 # github.com/iancoleman/strcase v0.3.0
 ## explicit; go 1.16
 github.com/iancoleman/strcase

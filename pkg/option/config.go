@@ -75,6 +75,7 @@ type config struct {
 	ServerAddress      string
 	TracingPolicy      string
 	TracingPolicyDir   string
+	YaraRulesDir       string
 
 	ExportFilename             string
 	ExportFileMaxSizeMB        int

@@ -62,6 +62,7 @@ const (
 	KeyEnableProcessNs   = "enable-process-ns"
 	KeyTracingPolicy     = "tracing-policy"
 	KeyTracingPolicyDir  = "tracing-policy-dir"
+	KeyYaraRulesDir      = "yara-rules-dir"
 
 	KeyCpuProfile = "cpuprofile"
 	KeyMemProfile = "memprofile"
@@ -272,6 +273,7 @@ func ReadAndSetFlags() error {
 	Config.EnablePidSetFilter = viper.GetBool(KeyEnablePidSetFilter)
 
 	Config.TracingPolicyDir = viper.GetString(KeyTracingPolicyDir)
+	Config.YaraRulesDir = viper.GetString(KeyYaraRulesDir)
 
 	Config.EnablePodInfo = viper.GetBool(KeyEnablePodInfo)
 	Config.EnablePodAnnotations = viper.GetBool(KeyEnablePodAnnotations)
@@ -489,6 +491,8 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyTracingPolicy, "", "Tracing policy file to load at startup")
 
 	flags.String(KeyTracingPolicyDir, defaults.DefaultTpDir, "Directory from where to load Tracing Policies")
+
+	flags.String(KeyYaraRulesDir, defaults.DefaultYaraRulesDir, "Directory from where to load YARA rules (.yar files) for process execution scanning")
 
 	// Options for debugging/development, not visible to users
 	flags.String(KeyCpuProfile, "", "Store CPU profile into provided file")
