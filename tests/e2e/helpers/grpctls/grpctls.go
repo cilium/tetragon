@@ -49,6 +49,13 @@ const (
 
 	// ServerNameSNI matches the wildcard SAN on chart-provisioned certs.
 	ServerNameSNI = "any.tetragon-grpc.cilium.io"
+
+	// The agent binds its gRPC listener only after BPF/sensor loading, after
+	// the pod already reports Ready. A refused upstream connection kills the
+	// port-forward, so it is re-established on every retry until the listener
+	// accepts connections (same pattern as PortForwardTetragonPods).
+	portForwardRetries      = 60
+	portForwardRetryBackoff = 2 * time.Second
 )
 
 // HelmOptions returns Helm values that install Tetragon with a TCP gRPC
@@ -68,8 +75,10 @@ func HandshakeFeature(r *runners.Runner) features.Feature {
 	return features.New("mTLS handshake succeeds with valid client cert").
 		Assess("GetVersion", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			rootCAs, caCert, caKey := agentCerts(ctx, t, cfg)
-			addr := portForwardAgent(ctx, t, r, cfg)
-			version := waitForReady(t, addr, validClientCreds(t, rootCAs, caCert, caKey))
+			creds := validClientCreds(t, rootCAs, caCert, caKey)
+			addr := portForwardAgent(ctx, t, r, cfg, creds)
+			version, err := getVersion(addr, creds)
+			require.NoError(t, err)
 			t.Logf("handshake succeeded, agent version: %s", version)
 			return ctx
 		}).Feature()
@@ -80,8 +89,7 @@ func RejectsPlaintextFeature(r *runners.Runner) features.Feature {
 	return features.New("mTLS rejects plaintext clients").
 		Assess("dial fails", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			rootCAs, caCert, caKey := agentCerts(ctx, t, cfg)
-			addr := portForwardAgent(ctx, t, r, cfg)
-			waitForReady(t, addr, validClientCreds(t, rootCAs, caCert, caKey))
+			addr := portForwardAgent(ctx, t, r, cfg, validClientCreds(t, rootCAs, caCert, caKey))
 
 			conn := dial(t, addr, insecure.NewCredentials())
 			_, err := tetragon.NewFineGuidanceSensorsClient(conn).
@@ -98,8 +106,7 @@ func RejectsAnonymousTLSFeature(r *runners.Runner) features.Feature {
 	return features.New("mTLS rejects clients without a client cert").
 		Assess("dial fails", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			rootCAs, caCert, caKey := agentCerts(ctx, t, cfg)
-			addr := portForwardAgent(ctx, t, r, cfg)
-			waitForReady(t, addr, validClientCreds(t, rootCAs, caCert, caKey))
+			addr := portForwardAgent(ctx, t, r, cfg, validClientCreds(t, rootCAs, caCert, caKey))
 
 			creds := credentials.NewTLS(&tls.Config{
 				MinVersion: tls.VersionTLS13,
@@ -186,8 +193,11 @@ func mintClientCert(t *testing.T, caCert *x509.Certificate, caKey crypto.Signer)
 }
 
 // portForwardAgent forwards the first Tetragon pod's TCP gRPC port to an
-// OS-assigned loopback port and returns the local address.
-func portForwardAgent(ctx context.Context, t *testing.T, r *runners.Runner, cfg *envconf.Config) string {
+// OS-assigned loopback port and blocks until an mTLS GetVersion through the
+// tunnel succeeds. The readiness check must run end-to-end: a refused
+// upstream connection kills the forwarder, and only a failed check makes
+// PortForwardPod tear it down and establish a fresh one.
+func portForwardAgent(ctx context.Context, t *testing.T, r *runners.Runner, cfg *envconf.Config, creds credentials.TransportCredentials) string {
 	t.Helper()
 	opts, ok := ctx.Value(state.InstallOpts).(*flags.HelmOptions)
 	require.True(t, ok)
@@ -201,20 +211,37 @@ func portForwardAgent(ctx context.Context, t *testing.T, r *runners.Runner, cfg 
 	pod := pods.Items[0]
 
 	localPort := freeLoopbackPort(t)
+	addr := fmt.Sprintf("127.0.0.1:%d", localPort)
 	_, err = helpers.PortForwardPod(
-		r.Environment, &pod, nil, nil, 30, time.Second,
+		r.Environment, &pod, nil, nil, portForwardRetries, portForwardRetryBackoff,
 		func() error {
-			conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", localPort), 2*time.Second)
-			if err != nil {
-				return err
-			}
-			_ = conn.Close()
-			return nil
+			_, err := getVersion(addr, creds)
+			return err
 		},
 		fmt.Sprintf("%d:%d", localPort, DefaultAgentTCPPort),
 	)(ctx, cfg)
-	require.NoError(t, err, "could not establish port-forward")
-	return fmt.Sprintf("127.0.0.1:%d", localPort)
+	require.NoError(t, err, "agent gRPC TLS listener not reachable through port-forward")
+	return addr
+}
+
+// getVersion performs a single mTLS GetVersion call against addr.
+func getVersion(addr string, creds credentials.TransportCredentials) (string, error) {
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(creds))
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = conn.Close() }()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	resp, err := tetragon.NewFineGuidanceSensorsClient(conn).
+		GetVersion(ctx, &tetragon.GetVersionRequest{})
+	if err != nil {
+		return "", err
+	}
+	if resp.GetVersion() == "" {
+		return "", errors.New("agent returned an empty version")
+	}
+	return resp.GetVersion(), nil
 }
 
 // freeLoopbackPort asks the kernel for an unused loopback port.
@@ -251,31 +278,6 @@ func validClientCreds(t *testing.T, rootCAs *x509.CertPool, caCert *x509.Certifi
 		Certificates: []tls.Certificate{mintClientCert(t, caCert, caKey)},
 		ServerName:   ServerNameSNI,
 	})
-}
-
-// waitForReady blocks until a valid mTLS dial + GetVersion succeeds. Pod
-// readiness only gates on the health probe; the gRPC listener comes up later,
-// so rejection tests must not run before the listener exists.
-func waitForReady(t *testing.T, addr string, creds credentials.TransportCredentials) string {
-	t.Helper()
-	var version string
-	require.Eventually(t, func() bool {
-		conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(creds))
-		if err != nil {
-			return false
-		}
-		defer func() { _ = conn.Close() }()
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		resp, err := tetragon.NewFineGuidanceSensorsClient(conn).
-			GetVersion(ctx, &tetragon.GetVersionRequest{})
-		if err != nil || resp.GetVersion() == "" {
-			return false
-		}
-		version = resp.GetVersion()
-		return true
-	}, 90*time.Second, time.Second, "agent gRPC listener not ready")
-	return version
 }
 
 // requireUnavailable asserts the RPC failed with codes.Unavailable, which is
