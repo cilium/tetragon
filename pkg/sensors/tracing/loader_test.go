@@ -33,7 +33,7 @@ type note struct {
 }
 
 func align(v, a uint32) uint32 {
-	return ((v + 1) / a) * a
+	return ((v + a - 1) / a) * a
 }
 
 func parseNote(dat []byte) ([]byte, bool) {
