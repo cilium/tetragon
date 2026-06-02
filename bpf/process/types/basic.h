@@ -890,33 +890,59 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 }
 
 #ifdef __LARGE_BPF_PROG
+struct filter_char_substring_data {
+	struct selector_arg_filter *filter;
+	char *arg_str;
+	uint arg_len;
+	bool igncase;
+};
+
+FUNC_LOCAL long
+do_filter_char_substring(int i, struct filter_char_substring_data *data, bool igncase)
+{
+	__u32 id = ((__u32 *)&data->filter->value)[i];
+	char *sub_str;
+	int idx;
+
+	sub_str = map_lookup_elem(&substring_map, &id);
+	if (!sub_str)
+		return 0;
+
+	if (igncase)
+		idx = bpf_strncasestr(data->arg_str, sub_str, data->arg_len);
+	else
+		idx = bpf_strnstr(data->arg_str, sub_str, data->arg_len);
+
+	return idx >= 0 ? 1 : 0;
+}
+
 FUNC_LOCAL long
 filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint arg_len, bool igncase)
 {
-	__u32 *v = (__u32 *)&filter->value;
+	struct filter_char_substring_data data = {
+		.filter = filter,
+		.arg_str = arg_str,
+		.arg_len = arg_len,
+	};
 	int i, j = 0;
 
-	for (i = 0; i < MAX_SUBSTRING_VALUES; i++) {
-		__u32 id = v[i];
-		char *sub_str;
-		int idx;
-
-		sub_str = map_lookup_elem(&substring_map, &id);
-		if (!sub_str)
-			return 0;
-
-		if (igncase)
-			idx = bpf_strncasestr(arg_str, sub_str, arg_len);
-		else
-			idx = bpf_strnstr(arg_str, sub_str, arg_len);
-
-		if (idx >= 0)
-			return 1;
-
-		// placed here to allow llvm unroll this loop
-		j += 4;
-		if (j + 8 >= filter->vallen)
-			break;
+	if (CONFIG(ITER_NUM)) {
+		bpf_for(i, 0, MAX_SUBSTRING_VALUES)
+		{
+			if (do_filter_char_substring(i, &data, igncase))
+				return 1;
+			j += 4;
+			if (j + 8 >= data.filter->vallen)
+				break;
+		}
+	} else {
+		for (i = 0; i < MAX_SUBSTRING_VALUES; i++) {
+			if (do_filter_char_substring(i, &data, igncase))
+				return 1;
+			j += 4;
+			if (j + 8 >= data.filter->vallen)
+				break;
+		}
 	}
 	return 0;
 }
