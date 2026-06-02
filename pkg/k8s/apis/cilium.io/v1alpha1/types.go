@@ -409,7 +409,7 @@ type UProbeSpec struct {
 	ReturnArg *KProbeArg `json:"returnArg,omitempty"`
 	// +kubebuilder:validation:Optional
 	// Digests of the traced binary. If any digest matches, verification passes.
-	Digests []string `json:"digests,omitempty"`
+	BinaryDigests []string `json:"binaryDigests,omitempty"`
 }
 
 type UsdtSpec struct {
