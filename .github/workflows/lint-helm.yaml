@@ -61,6 +61,8 @@ jobs:
         run: |
           set -ex
           make -C install/kubernetes lint
+      - name: Check images tags exists
+        run: make -C install/kubernetes check-images-tags
       - name: Run Kubeconform with minimum supported K8s version
         if: success() || steps.validate_openapi2jsonschema_script.outcome == 'failure'
         id: kubeconform_min_k8s_version
