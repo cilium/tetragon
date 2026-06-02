@@ -59,7 +59,7 @@ func parseNote(dat []byte) ([]byte, bool) {
 		if note.Typ == 3 &&
 			note.Namesz == 4 &&
 			bytes.Equal(name, []byte{'G', 'N', 'U', 0}) &&
-			note.Descsz > 0 && note.Descsz <= 20 {
+			note.Descsz > 0 {
 			return desc, true
 		}
 	}
