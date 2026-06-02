@@ -84,6 +84,18 @@ openapi2jsonschema.py: ## openapi2jsonschema.py script generating JSON schema fr
 lint: ## Lint the Helm chart
 	$(HELM) lint . --with-subcharts
 
+.PHONY: check-images-tags
+check-images-tags: ## Verify all image:tag references in values.yaml exist in their registries
+	@set -e; \
+	IMAGES=$$(yq -e '.. | select(has("repository") and has("tag")) | .repository + ":" + .tag' tetragon/values.yaml); \
+	for img in $$IMAGES; do \
+		echo "Checking $$img"; \
+		if ! docker buildx imagetools inspect "$$img" >/dev/null 2>&1; then \
+			echo "  MISSING: $$img" >&2; \
+			exit 1; \
+		fi; \
+	done;
+
 .PHONY: kubeconform
 # Run kubeconform Helm chart validation checks to validate the templated
 # Kubernetes (custom) resources against their spec.
