@@ -438,7 +438,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 
 	// The "defer cleanupWg.Wait()" above, might introduce deadlocks if an error happens.
 	// This is because cancel() will not be called until cleanupWg.Wait() returns.
-	// But, the code in server/server.go:GetEventsWG() will only call cleanupWg.Done() if ctx.Done()
+	// But, the code in server/server.go:GetEventsWithStartupCh() will only call cleanupWg.Done() if ctx is done
 	// Which causes a deadlock. To fix this, we add a new ctx and we pass that to the rest of the
 	// initialization functions. This means that we can cancel them without causing a deadlock
 	// using cancel2.

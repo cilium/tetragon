@@ -123,34 +123,41 @@ func (s *Server) removeNotifierAndDrain(l *getEventsListener) {
 	}
 }
 func (s *Server) GetEvents(request *tetragon.GetEventsRequest, server tetragon.FineGuidanceSensors_GetEventsServer) error {
-	return s.GetEventsWG(request, server, nil, nil)
+	return s.GetEventsWithStartupCh(request, server, nil, nil)
 }
 
-func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon.FineGuidanceSensors_GetEventsServer, closer io.Closer, readyWG *sync.WaitGroup) error {
+// GetEventsWithStartupCh is like GetEvents but accepts an optional ready channel for
+// callers that need to detect startup completion or failure.
+//
+// On startup failure ready receives the error; on success ready is closed
+// (receiver gets nil). Either way this happens before the event loop is
+// entered.  Pass nil to opt out.
+func (s *Server) GetEventsWithStartupCh(request *tetragon.GetEventsRequest, server tetragon.FineGuidanceSensors_GetEventsServer, closer io.Closer, ready chan<- error) error {
 	logger.GetLogger().Debug("Received a GetEvents request",
 		"events.allow_list", request.GetAllowList(),
 		"events.deny_list", request.GetDenyList(),
 		"events.field_filters", request.GetFieldFilters(),
 		"events.aggregation_options", request.GetAggregationOptions())
+
+	signalError := func(err error) {
+		if ready != nil {
+			ready <- err
+		}
+	}
+
 	allowList, err := filters.BuildFilterList(s.ctx, request.AllowList, filters.Filters)
 	if err != nil {
-		if readyWG != nil {
-			readyWG.Done()
-		}
+		signalError(err)
 		return err
 	}
 	denyList, err := filters.BuildFilterList(s.ctx, request.DenyList, filters.Filters)
 	if err != nil {
-		if readyWG != nil {
-			readyWG.Done()
-		}
+		signalError(err)
 		return err
 	}
 	aggregator, err := aggregator.NewAggregator(server, request.AggregationOptions)
 	if err != nil {
-		if readyWG != nil {
-			readyWG.Done()
-		}
+		signalError(err)
 		return err
 	}
 	if aggregator != nil {
@@ -160,8 +167,8 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 	l := newListener()
 	s.notifier.AddListener(l)
 	defer s.removeNotifierAndDrain(l)
-	if readyWG != nil {
-		readyWG.Done()
+	if ready != nil {
+		close(ready)
 	}
 	s.ctxCleanupWG.Add(1)
 	defer s.ctxCleanupWG.Done()
