@@ -34,13 +34,13 @@ import (
 )
 
 const (
-	ActionTypeInvalid                     = -1
-	ActionTypePost                        = 0
-	ActionTypeFollowFd                    = 1
-	ActionTypeSigKill                     = 2
-	ActionTypeUnfollowFd                  = 3
-	ActionTypeOverride                    = 4
-	ActionTypeCopyFd                      = 5
+	ActionTypeInvalid = -1
+	ActionTypePost    = 0
+	// ActionTypeFollowFd                    = 1 deprecated
+	ActionTypeSigKill = 2
+	// ActionTypeUnfollowFd                  = 3 deprecated
+	ActionTypeOverride = 4
+	// ActionTypeCopyFd                      = 5 deprecated
 	ActionTypeGetUrl                      = 6
 	ActionTypeDnsLookup                   = 7
 	ActionTypeNoPost                      = 8
@@ -54,11 +54,8 @@ const (
 
 var actionTypeTable = map[string]uint32{
 	"post":                        ActionTypePost,
-	"followfd":                    ActionTypeFollowFd,
-	"unfollowfd":                  ActionTypeUnfollowFd,
 	"sigkill":                     ActionTypeSigKill,
 	"override":                    ActionTypeOverride,
-	"copyfd":                      ActionTypeCopyFd,
 	"geturl":                      ActionTypeGetUrl,
 	"dnslookup":                   ActionTypeDnsLookup,
 	"nopost":                      ActionTypeNoPost,
@@ -72,11 +69,8 @@ var actionTypeTable = map[string]uint32{
 
 var actionTypeStringTable = map[uint32]string{
 	ActionTypePost:                        "post",
-	ActionTypeFollowFd:                    "followfd",
-	ActionTypeUnfollowFd:                  "unfollowfd",
 	ActionTypeSigKill:                     "sigkill",
 	ActionTypeOverride:                    "override",
-	ActionTypeCopyFd:                      "copyfd",
 	ActionTypeGetUrl:                      "geturl",
 	ActionTypeDnsLookup:                   "dnslookup",
 	ActionTypeNoPost:                      "nopost",
@@ -1191,12 +1185,6 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	}
 
 	switch act {
-	case ActionTypeFollowFd, ActionTypeCopyFd:
-		WriteSelectorUint32(&k.data, action.ArgFd)
-		WriteSelectorUint32(&k.data, action.ArgName)
-	case ActionTypeUnfollowFd:
-		WriteSelectorUint32(&k.data, action.ArgFd)
-		WriteSelectorUint32(&k.data, action.ArgName)
 	case ActionTypeOverride:
 		if k.isUprobe {
 			id, err := parseOverrideRegs(k, action.ArgRegs, uint64(action.ArgError))
@@ -1888,19 +1876,6 @@ func HasNotifyEnforcerAction(selectors []v1alpha1.KProbeSelector) bool {
 	for _, s := range selectors {
 		for _, action := range s.MatchActions {
 			if action.Action == "NotifyEnforcer" {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func HasFDInstall(sel []v1alpha1.KProbeSelector) bool {
-	for _, selector := range sel {
-		for _, matchAction := range selector.MatchActions {
-			if a := ActionTypeFromString(matchAction.Action); a == ActionTypeFollowFd ||
-				a == ActionTypeUnfollowFd ||
-				a == ActionTypeCopyFd {
 				return true
 			}
 		}
