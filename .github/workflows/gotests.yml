@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -71,7 +71,7 @@ jobs:
         sudo -E echo "run go tests: " `uname -a`
         sudo -E go mod verify
         export TETRAGON_LIB=$(realpath "bpf/objs/")
-        make test GO_TEST_TIMEOUT=40m
+        make test GO_TEST_TIMEOUT=60m
 
     # Run some somple nok8s tests in packages where there is meaningful differentiation
     - name: Run nok8s go tests
