@@ -17,10 +17,8 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
-	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
-	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
@@ -84,22 +82,13 @@ func TestKprobeNSChanges(t *testing.T) {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
 	}
 
-	writeArg0 := ec.NewKprobeArgumentChecker().
-		WithFileArg(ec.NewKprobeFileChecker().
-			WithPath(sm.Suffix("strange.txt")).
-			WithFlags(sm.Full("")),
-		)
-	writeArg1 := ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("testdata\x00")))
-	writeArg2 := ec.NewKprobeArgumentChecker().WithSizeArg(9)
-
 	kprobeChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_write"))).
+		WithFunctionName(sm.Full("security_file_permission")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				writeArg0,
-				writeArg1,
-				writeArg2,
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Suffix("strange.txt"))),
+				ec.NewKprobeArgumentChecker().WithIntArg(2), // MAY_WRITE
 			))
 
 	checker := ec.NewUnorderedEventChecker(
@@ -165,22 +154,13 @@ func testKprobeCapChanges(t *testing.T, spec string, op string, value string) {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
 	}
 
-	writeArg0 := ec.NewKprobeArgumentChecker().
-		WithFileArg(ec.NewKprobeFileChecker().
-			WithPath(sm.Suffix("strange.txt")).
-			WithFlags(sm.Full("")),
-		)
-	writeArg1 := ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("testdata\x00")))
-	writeArg2 := ec.NewKprobeArgumentChecker().WithSizeArg(9)
-
 	kprobeChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_write"))).
+		WithFunctionName(sm.Full("security_file_permission")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				writeArg0,
-				writeArg1,
-				writeArg2,
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Suffix("strange.txt"))),
+				ec.NewKprobeArgumentChecker().WithIntArg(2), // MAY_WRITE
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
 
