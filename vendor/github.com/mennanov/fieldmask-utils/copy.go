@@ -14,14 +14,14 @@ import (
 // Only the fields where FieldFilter returns true will be copied to `dst`.
 // `src` and `dst` must be coherent in terms of the field names, but it is not required for them to be of the same type.
 // Unexported fields are copied only if the corresponding struct filter is empty and `dst` is assignable to `src`.
-func StructToStruct(filter FieldFilter, src, dst interface{}, userOpts ...Option) error {
+func StructToStruct(filter FieldFilter, src, dst any, userOpts ...Option) error {
 	opts := newDefaultOptions()
 	for _, o := range userOpts {
 		o(opts)
 	}
 
 	dstVal := reflect.ValueOf(dst)
-	if dstVal.Kind() != reflect.Ptr {
+	if dstVal.Kind() != reflect.Pointer {
 		return errors.Errorf("dst must be a pointer, %s given", dstVal.Kind())
 	}
 	srcVal := indirect(reflect.ValueOf(src))
@@ -37,11 +37,11 @@ func StructToStruct(filter FieldFilter, src, dst interface{}, userOpts ...Option
 
 func ensureCompatible(src, dst *reflect.Value) error {
 	srcKind := src.Kind()
-	if srcKind == reflect.Ptr {
+	if srcKind == reflect.Pointer {
 		srcKind = src.Type().Elem().Kind()
 	}
 	dstKind := dst.Kind()
-	if dstKind == reflect.Ptr {
+	if dstKind == reflect.Pointer {
 		dstKind = dst.Type().Elem().Kind()
 	}
 	if srcKind != dstKind {
@@ -51,29 +51,36 @@ func ensureCompatible(src, dst *reflect.Value) error {
 }
 
 func structToStruct(filter FieldFilter, src, dst *reflect.Value, userOptions *options) error {
-	if err := ensureCompatible(src, dst); err != nil {
-		// incompatible, try using converters:
-		converted := false
-		for _, fn := range userOptions.ConverterHooks {
-			data, err := fn(src, dst)
-			if err != nil {
-				// error during conversion, pass upwards
-				return err
-			}
-			rdata := reflect.ValueOf(data)
-			if err := ensureCompatible(&rdata, dst); err != nil {
-				// no change using conversion, try next
-				continue
-			}
-
-			// it is convertable, replace src
-			src = &rdata
-			converted = true
-			break
-		}
-		if !converted {
+	// Apply user conversions as early as possible to allow replacements of src.
+	// This allows users (providing a converter) to assign protobuf message structs
+	// to golang primitive types.
+	for _, fn := range userOptions.ConverterHooks {
+		data, err := fn(src, dst)
+		if err != nil {
+			// error during conversion; pass upwards
 			return err
 		}
+
+		rdata := reflect.ValueOf(data)
+		if !rdata.IsValid() || rdata.Type() == src.Type() {
+			// invalid or converter didn't change the type; keep original (addressable) src
+			continue
+		}
+
+		if err := ensureCompatible(&rdata, dst); err != nil {
+			// no change using conversion; try next
+			continue
+		}
+
+		// it is convertable; replace src
+		src = &rdata
+
+		// keep going as we want to allow converter chaining
+	}
+
+	// final check to ensure types are compatible
+	if err := ensureCompatible(src, dst); err != nil {
+		return err
 	}
 
 	switch src.Kind() {
@@ -83,7 +90,7 @@ func structToStruct(filter FieldFilter, src, dst *reflect.Value, userOptions *op
 			return nil
 		}
 
-		if dst.Kind() == reflect.Ptr {
+		if dst.Kind() == reflect.Pointer {
 			if dst.IsNil() {
 				dst.Set(reflect.New(dst.Type().Elem()))
 			}
@@ -117,13 +124,13 @@ func structToStruct(filter FieldFilter, src, dst *reflect.Value, userOptions *op
 			}
 		}
 
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if src.IsNil() {
 			// If src is nil set dst to nil too.
 			dst.Set(reflect.Zero(dst.Type()))
 			break
 		}
-		if dst.Kind() == reflect.Ptr && dst.IsNil() {
+		if dst.Kind() == reflect.Pointer && dst.IsNil() {
 			// If dst is nil create a new instance of the underlying type and set dst to the pointer of that instance.
 			dst.Set(reflect.New(dst.Type().Elem()))
 		}
@@ -169,7 +176,7 @@ func structToStruct(filter FieldFilter, src, dst *reflect.Value, userOptions *op
 		}
 
 		srcElem, dstElem := src.Elem(), *dst
-		if dst.Kind() == reflect.Ptr {
+		if dst.Kind() == reflect.Pointer {
 			dstElem = dst.Elem()
 		}
 
@@ -184,7 +191,7 @@ func structToStruct(filter FieldFilter, src, dst *reflect.Value, userOptions *op
 			break
 		}
 		if dst.IsNil() {
-			if src.Elem().Kind() != reflect.Ptr {
+			if src.Elem().Kind() != reflect.Pointer {
 				// Non-pointer interface implementations are not addressable.
 				return errors.Errorf("expected a pointer for an interface value, got %s instead", src.Elem().Kind())
 			}
@@ -206,7 +213,7 @@ func structToStruct(filter FieldFilter, src, dst *reflect.Value, userOptions *op
 		dstLen := dst.Len()
 		srcLen := userOptions.CopyListSize(src)
 
-		for i := 0; i < srcLen; i++ {
+		for i := range srcLen {
 			srcItem := src.Index(i)
 			var dstItem reflect.Value
 			if i < dstLen {
@@ -236,7 +243,7 @@ func structToStruct(filter FieldFilter, src, dst *reflect.Value, userOptions *op
 		if dstLen < srcLen {
 			return errors.Errorf("dst array size %d is less than src size %d", dstLen, srcLen)
 		}
-		for i := 0; i < srcLen; i++ {
+		for i := range srcLen {
 			srcItem := src.Index(i)
 			dstItem := dst.Index(i)
 			if err := structToStruct(filter, &srcItem, &dstItem, userOptions); err != nil {
@@ -248,7 +255,7 @@ func structToStruct(filter FieldFilter, src, dst *reflect.Value, userOptions *op
 		if !dst.CanSet() {
 			return errors.Errorf("dst %s, %s is not settable", dst, dst.Type())
 		}
-		if dst.Kind() == reflect.Ptr {
+		if dst.Kind() == reflect.Pointer {
 			if !src.CanAddr() {
 				return errors.Errorf("src %s, %s is not addressable", src, src.Type())
 			}
@@ -292,7 +299,7 @@ type options struct {
 	// after conversion.
 	// If a converter returns an error that error is propagated to the
 	// initial call of StructToStruct.
-	ConverterHooks []func(src, dst *reflect.Value) (interface{}, error)
+	ConverterHooks []func(src, dst *reflect.Value) (any, error)
 }
 
 // mapVisitor is called for every filtered field in structToMap.
@@ -343,7 +350,7 @@ func WithUnmarshalAllAny(unmarshal bool) Option {
 }
 
 // WithConverterHook adds a converter hook to convert from src to dst.
-func WithConverterHook(converter func(src, dst *reflect.Value) (interface{}, error)) Option {
+func WithConverterHook(converter func(src, dst *reflect.Value) (any, error)) Option {
 	return func(o *options) {
 		o.ConverterHooks = append(o.ConverterHooks, converter)
 	}
@@ -366,17 +373,17 @@ func fieldName(tag string, f reflect.StructField) string {
 	if !ok {
 		return f.Name
 	}
-	firstComma := strings.Index(lookupResult, ",")
-	if firstComma == -1 {
+	before, _, ok := strings.Cut(lookupResult, ",")
+	if !ok {
 		return lookupResult
 	}
-	return lookupResult[:firstComma]
+	return before
 }
 
 // StructToMap copies `src` struct to the `dst` map.
 // Behavior is similar to `StructToStruct`.
 // Arrays in the non-empty dst are converted to slices.
-func StructToMap(filter FieldFilter, src interface{}, dst map[string]interface{}, userOpts ...Option) error {
+func StructToMap(filter FieldFilter, src any, dst map[string]any, userOpts ...Option) error {
 	opts := newDefaultOptions()
 	for _, o := range userOpts {
 		o(opts)
@@ -411,7 +418,7 @@ func structToMap(filter FieldFilter, src, dst reflect.Value, userOptions *option
 				if srcField.IsValid() {
 					mapValue = newValue(srcField.Type())
 				} else {
-					dstMap := dst.Interface().(map[string]interface{})
+					dstMap := dst.Interface().(map[string]any)
 					dstMap[dstName] = nil
 					continue
 				}
@@ -440,7 +447,7 @@ func structToMap(filter FieldFilter, src, dst reflect.Value, userOptions *option
 			dst.SetMapIndex(reflect.ValueOf(dstName), mapValue)
 		}
 
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if src.IsNil() {
 			reflect.ValueOf(dst).Set(reflect.ValueOf(nil))
 			break
@@ -485,7 +492,7 @@ func structToMap(filter FieldFilter, src, dst reflect.Value, userOptions *option
 				dst = sliceDst
 			}
 			var err error
-			for i := 0; i < desiredDstLen; i++ {
+			for i := range desiredDstLen {
 				itemExists := false
 				var subDst reflect.Value
 				if i < dst.Len() {
@@ -516,7 +523,7 @@ func structToMap(filter FieldFilter, src, dst reflect.Value, userOptions *option
 }
 
 func indirect(v reflect.Value) reflect.Value {
-	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+	for v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
 		v = v.Elem()
 	}
 	return v
@@ -524,7 +531,7 @@ func indirect(v reflect.Value) reflect.Value {
 
 // isPrimitive checks whether the given kind is simple enough so that it can be copied directly without recursion.
 func isPrimitive(kind reflect.Kind) bool {
-	return kind != reflect.Ptr &&
+	return kind != reflect.Pointer &&
 		kind != reflect.Struct &&
 		kind != reflect.Interface &&
 		kind != reflect.Slice &&
@@ -536,12 +543,12 @@ func isPrimitive(kind reflect.Kind) bool {
 func newValue(t reflect.Type) reflect.Value {
 	switch t.Kind() {
 	case reflect.Struct:
-		return reflect.MakeMap(reflect.TypeOf(map[string]interface{}{}))
+		return reflect.MakeMap(reflect.TypeFor[map[string]any]())
 
 	case reflect.Array, reflect.Slice:
 		return reflect.MakeSlice(reflect.SliceOf(newValue(t.Elem()).Type()), 0, 0)
 
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return newValue(t.Elem())
 
 	default:
