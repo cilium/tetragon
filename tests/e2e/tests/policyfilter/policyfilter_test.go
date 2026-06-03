@@ -73,6 +73,10 @@ var (
 	testNamespaces = []string{otherNamespace, policyNamespace, podlblNamespace, containerSelectorNamespace, fileNamespace}
 )
 
+const (
+	ubuntuImage = "ubuntu:24.04@sha256:786a8b558f7be160c6c8c4a54f9a57274f3b4fb1491cf65146521ae77ff1dc54"
+)
+
 func TestMain(m *testing.M) {
 	runner = runners.NewRunner().WithInstallTetragon(e2e.WithHelmOptions(map[string]string{
 		"tetragon.exportAllowList":    "",
@@ -188,7 +192,7 @@ spec:
     spec:
       containers:
       - name: ubuntu
-        image: ubuntu:20.04
+        image: ` + ubuntuImage + `
         imagePullPolicy: Always
         command: ["bash"]
         args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
@@ -320,7 +324,7 @@ spec:
     spec:
       containers:
       - name: ubuntu
-        image: ubuntu:20.04
+        image: ` + ubuntuImage + `
         imagePullPolicy: Always
         command: ["bash"]
         args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
@@ -343,7 +347,7 @@ spec:
     spec:
       containers:
       - name: ubuntu
-        image: ubuntu:20.04
+        image: ` + ubuntuImage + `
         imagePullPolicy: Always
         command: ["bash"]
         args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
@@ -493,12 +497,12 @@ spec:
     spec:
       containers:
       - name: main
-        image: ubuntu:20.04
+        image: ` + ubuntuImage + `
         imagePullPolicy: IfNotPresent
         command: ["bash"]
         args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
       - name: sidecar
-        image: ubuntu:20.04
+        image: ` + ubuntuImage + `
         imagePullPolicy: IfNotPresent
         command: ["bash"]
         args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
@@ -588,7 +592,7 @@ spec:
     spec:
       containers:
       - name: main
-        image: ubuntu:20.04
+        image: ` + ubuntuImage + `
         imagePullPolicy: IfNotPresent
         command: ["bash"]
         args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
