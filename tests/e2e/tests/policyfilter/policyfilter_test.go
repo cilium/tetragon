@@ -669,7 +669,7 @@ spec:
       - index: 0
         operator: "Prefix"
         values:
-        - "/etc/passwd"
+        - "/etc/myshadow"
       - index: 1
         operator: "Equal"
         values:
@@ -680,12 +680,12 @@ spec:
           - key: "name"
             operator: In
             values:
-            - "passwd"
+            - "myshadow"
     - matchArgs:
       - index: 0
         operator: "Prefix"
         values:
-        - "/etc/shadow"
+        - "/etc/mypasswd"
       - index: 1
         operator: "Equal"
         values:
@@ -696,9 +696,12 @@ spec:
           - key: "name"
             operator: In
             values:
-            - "shadow"
+            - "mypasswd"
 `
 
+// This Deployment has two containers. Both create and try to read two files: /etc/myshadow and /etc/mypasswd.
+// The policy above should match the container named myshadow only when it reads /etc/myshadow and the container
+// named mypasswd only when it reads /etc/mypasswd, and not the other way around.
 const ubuntuFilePod = `
 kind: Deployment
 apiVersion: apps/v1
@@ -715,16 +718,16 @@ spec:
         app: "ubuntu-file"
     spec:
       containers:
-      - name: passwd
-        image: ubuntu:20.04
+      - name: myshadow
+        image: ` + ubuntuImage + `
         imagePullPolicy: IfNotPresent
         command: ["bash"]
-        args: ["-c", "while sleep 1; do cat /etc/passwd; done"]
-      - name: shadow
-        image: ubuntu:20.04
+        args: ["-c", "touch /etc/myshadow; touch /etc/mypasswd; while sleep 1; do cat /etc/myshadow && cat /etc/mypasswd; done"]
+      - name: mypasswd
+        image: ` + ubuntuImage + `
         imagePullPolicy: IfNotPresent
         command: ["bash"]
-        args: ["-c", "while sleep 1; do cat /etc/shadow; done"]
+        args: ["-c", "touch /etc/mypasswd; touch /etc/myshadow; while sleep 1; do cat /etc/mypasswd && cat /etc/myshadow; done"]
 `
 
 func matchWorkloadsChecker() *checker.RPCChecker {
@@ -732,12 +735,12 @@ func matchWorkloadsChecker() *checker.RPCChecker {
 }
 
 type matchWorkloadsFileChecker struct {
-	matchesShadow int
-	matchesPasswd int
+	matchesWatchme    int
+	matchesWatchmetoo int
 }
 
 func (cfc *matchWorkloadsFileChecker) Done() bool {
-	return cfc.matchesPasswd > 0 && cfc.matchesShadow > 0
+	return cfc.matchesWatchme > 0 && cfc.matchesWatchmetoo > 0
 }
 
 func (cfc *matchWorkloadsFileChecker) NextEventCheck(event ec.Event, _ *slog.Logger) (bool, error) {
@@ -767,18 +770,18 @@ func (cfc *matchWorkloadsFileChecker) NextEventCheck(event ec.Event, _ *slog.Log
 	container := ev.GetProcess().GetPod().GetContainer()
 
 	switch arg.Path {
-	case "/etc/passwd":
-		if container.Name == "passwd" {
-			cfc.matchesPasswd++
+	case "/etc/myshadow":
+		if container.Name == "myshadow" {
+			cfc.matchesWatchme++
 			return cfc.Done(), nil
 		}
-		return true, fmt.Errorf("unexpected event %+v for /etc/passwd from a container with a different name than passwd", ev)
-	case "/etc/shadow":
-		if container.Name == "shadow" {
-			cfc.matchesShadow++
+		return true, fmt.Errorf("unexpected event %+v for /etc/myshadow from a container with a different name than myshadow", ev)
+	case "/etc/mypasswd":
+		if container.Name == "mypasswd" {
+			cfc.matchesWatchmetoo++
 			return cfc.Done(), nil
 		}
-		return true, fmt.Errorf("unexpected event %+v for /etc/shadow from a container with a different name than shadow", ev)
+		return true, fmt.Errorf("unexpected event %+v for /etc/mypasswd from a container with a different name than mypasswd", ev)
 	default:
 		return false, nil
 	}
@@ -788,7 +791,7 @@ func (cfc *matchWorkloadsFileChecker) FinalCheck(_ *slog.Logger) error {
 	if cfc.Done() {
 		return nil
 	}
-	return fmt.Errorf("match-workloads checker failed, had %d matches for /etc/passwd and %d matches for /etc/shadow", cfc.matchesPasswd, cfc.matchesShadow)
+	return fmt.Errorf("match-workloads checker failed, had %d matches for /etc/myshadow and %d matches for /etc/mypasswd", cfc.matchesWatchme, cfc.matchesWatchmetoo)
 }
 
 func TestMatchWorkloadsSelector(t *testing.T) {
