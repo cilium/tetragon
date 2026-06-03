@@ -124,3 +124,57 @@ func TestProcessCacheGCLeak(t *testing.T) {
 		assert.Equal(t, 0, cache.len())
 	})
 }
+
+func TestProcessCacheDoubleParentDecrease(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		interval := 10 * time.Millisecond
+		cache, err := NewCache(2, interval)
+		require.NoError(t, err)
+		defer cache.purge()
+
+		parent := &ProcessInternal{
+			process:   &tetragon.Process{ExecId: "parent", Pid: &wrapperspb.UInt32Value{Value: 100}},
+			refcntOps: make(map[string]int32),
+		}
+		parent.refcnt.Store(1)
+		cache.add(parent)
+
+		child := &ProcessInternal{
+			process:   &tetragon.Process{ExecId: "child", Pid: &wrapperspb.UInt32Value{Value: 101}, ParentExecId: "parent"},
+			refcntOps: make(map[string]int32),
+		}
+		child.refcnt.Store(1)
+		cache.add(child)
+
+		cache.refInc(parent, "parent++")
+		assert.Equal(t, uint32(2), parent.refcnt.Load())
+
+		// simulate exit handler path
+		if !child.GetParentRefcntDecreased() {
+			parent.RefDec("parent")
+			child.SetParentRefcntDecreased(true)
+		}
+		assert.Equal(t, uint32(1), parent.refcnt.Load())
+
+		cache.refDec(child, "process--")
+		synctest.Wait()
+		assert.Equal(t, deletePending, child.color)
+
+		// simulate resurrection: refInc after deletePending
+		cache.refInc(child, "late-event")
+		time.Sleep(interval + 1*time.Millisecond)
+		synctest.Wait()
+		assert.Equal(t, inUse, child.color)
+
+		// trigger LRU eviction of child
+		cache.get("parent")
+		other := &ProcessInternal{
+			process:   &tetragon.Process{ExecId: "other", Pid: &wrapperspb.UInt32Value{Value: 102}},
+			refcntOps: make(map[string]int32),
+		}
+		other.refcnt.Store(1)
+		cache.add(other)
+
+		assert.Equal(t, uint32(1), parent.refcnt.Load())
+	})
+}

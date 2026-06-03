@@ -52,6 +52,10 @@ type ProcessInternal struct {
 	// garbage collector metadata
 	color  int // Writes should happen only inside gc select channel
 	refcnt atomic.Uint32
+	// parentRefcntDecreased tracks whether the parent reference count has been
+	// decreased for this process. This is used to avoid double parent-- when
+	// a process is evicted by the LRU and then handled by the exit handler.
+	parentRefcntDecreased bool
 	// refcntOps is a map of operations to refcnt change
 	// keys can be:
 	// - "process++": process increased refcnt (i.e. this process starts)
@@ -230,6 +234,18 @@ func (pi *ProcessInternal) RefInc(reason string) {
 
 func (pi *ProcessInternal) RefGet() uint32 {
 	return pi.refcnt.Load()
+}
+
+func (pi *ProcessInternal) SetParentRefcntDecreased(val bool) {
+	pi.mu.Lock()
+	defer pi.mu.Unlock()
+	pi.parentRefcntDecreased = val
+}
+
+func (pi *ProcessInternal) GetParentRefcntDecreased() bool {
+	pi.mu.Lock()
+	defer pi.mu.Unlock()
+	return pi.parentRefcntDecreased
 }
 
 func (pi *ProcessInternal) NeededAncestors() bool {
