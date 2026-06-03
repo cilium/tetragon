@@ -6,11 +6,8 @@
 package tracing
 
 import (
-	"bytes"
 	"context"
-	"debug/elf"
-	"encoding/binary"
-	"io"
+	"os"
 	"os/exec"
 	"sync"
 	"testing"
@@ -18,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	elfpkg "github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
@@ -25,69 +23,6 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
-
-type note struct {
-	Namesz uint32
-	Descsz uint32
-	Typ    uint32
-}
-
-func align(v, a uint32) uint32 {
-	return ((v + a - 1) / a) * a
-}
-
-func parseNote(dat []byte) ([]byte, bool) {
-	var note note
-
-	dr := bytes.NewReader(dat)
-
-	for {
-		if err := binary.Read(dr, binary.LittleEndian, &note); err != nil {
-			return []byte{}, false
-		}
-
-		name := make([]byte, align(note.Namesz, 4))
-		if err := binary.Read(dr, binary.LittleEndian, name); err != nil {
-			return []byte{}, false
-		}
-
-		desc := make([]byte, align(note.Descsz, 4))
-		if err := binary.Read(dr, binary.LittleEndian, desc); err != nil {
-			return []byte{}, false
-		}
-
-		if note.Typ == 3 &&
-			note.Namesz == 4 &&
-			bytes.Equal(name, []byte{'G', 'N', 'U', 0}) &&
-			note.Descsz > 0 {
-			return desc, true
-		}
-	}
-}
-
-func parseBuildId(filename string) ([]byte, error) {
-	f, err := elf.Open(filename)
-	if err != nil {
-		return []byte{}, err
-	}
-	defer f.Close()
-
-	for _, ph := range f.Progs {
-		if ph.Type != elf.PT_NOTE {
-			continue
-		}
-		dat := make([]byte, ph.Filesz)
-		_, err := io.ReadFull(ph.Open(), dat)
-		if err != nil {
-			continue
-		}
-		bid, ok := parseNote(dat)
-		if ok {
-			return bid, nil
-		}
-	}
-	return []byte{}, nil
-}
 
 func TestLoader(t *testing.T) {
 	if !hasLoaderEvents() {
@@ -113,7 +48,13 @@ spec:
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
-	id, err := parseBuildId(testNop)
+	file, err := os.Open(testNop)
+	if err != nil {
+		t.Fatalf("Failed to open test binary: %v\n", err)
+	}
+
+	id, err := elfpkg.ParseBuildId(file)
+	file.Close()
 	if err != nil {
 		t.Fatalf("Failed to ParseBuildId: %v\n", err)
 	}
