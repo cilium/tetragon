@@ -28,7 +28,7 @@ const (
 	GenericFilenameType = 14
 	GenericPathType     = 15
 	GenericFileType     = 16
-	GenericFdType       = 17
+	// GenericFdType       = 17 deprecated
 
 	// GenericConstBuffer is a buffer type whose size is static (and known).
 	GenericConstBuffer   = 18
@@ -82,26 +82,26 @@ const (
 )
 
 var genericStringToType = map[string]int{
-	"string":          GenericStringType,
-	"int":             GenericIntType,
-	"uint64":          GenericU64Type,
-	"unsigned long":   GenericU64Type,
-	"ulong":           GenericU64Type,
-	"uint32":          GenericU32Type,
-	"sint64":          GenericS64Type,
-	"int64":           GenericS64Type,
-	"long":            GenericS64Type,
-	"sint32":          GenericS32Type,
-	"int32":           GenericS32Type,
-	"skb":             GenericSkbType,
-	"sock":            GenericSockType,
-	"size_t":          GenericSizeType,
-	"char_buf":        GenericCharBuffer,
-	"char_iovec":      GenericCharIovec,
-	"filename":        GenericFilenameType,
-	"file":            GenericFileType,
-	"path":            GenericPathType,
-	"fd":              GenericFdType,
+	"string":        GenericStringType,
+	"int":           GenericIntType,
+	"uint64":        GenericU64Type,
+	"unsigned long": GenericU64Type,
+	"ulong":         GenericU64Type,
+	"uint32":        GenericU32Type,
+	"sint64":        GenericS64Type,
+	"int64":         GenericS64Type,
+	"long":          GenericS64Type,
+	"sint32":        GenericS32Type,
+	"int32":         GenericS32Type,
+	"skb":           GenericSkbType,
+	"sock":          GenericSockType,
+	"size_t":        GenericSizeType,
+	"char_buf":      GenericCharBuffer,
+	"char_iovec":    GenericCharIovec,
+	"filename":      GenericFilenameType,
+	"file":          GenericFileType,
+	"path":          GenericPathType,
+	// "fd":              GenericFdType, deprecated
 	"cred":            GenericCredType,
 	"const_buf":       GenericConstBuffer,
 	"nop":             GenericNopType,
@@ -136,21 +136,21 @@ var genericStringToType = map[string]int{
 }
 
 var genericTypeToStringTable = map[int]string{
-	GenericStringType:      "string",
-	GenericIntType:         "int",
-	GenericU64Type:         "uint64",
-	GenericU32Type:         "uint32",
-	GenericS64Type:         "int64",
-	GenericS32Type:         "int32",
-	GenericSkbType:         "skb",
-	GenericSockType:        "sock",
-	GenericSizeType:        "size_t",
-	GenericCharBuffer:      "char_buf",
-	GenericCharIovec:       "char_iovec",
-	GenericFilenameType:    "filename",
-	GenericFileType:        "file",
-	GenericPathType:        "path",
-	GenericFdType:          "fd",
+	GenericStringType:   "string",
+	GenericIntType:      "int",
+	GenericU64Type:      "uint64",
+	GenericU32Type:      "uint32",
+	GenericS64Type:      "int64",
+	GenericS32Type:      "int32",
+	GenericSkbType:      "skb",
+	GenericSockType:     "sock",
+	GenericSizeType:     "size_t",
+	GenericCharBuffer:   "char_buf",
+	GenericCharIovec:    "char_iovec",
+	GenericFilenameType: "filename",
+	GenericFileType:     "file",
+	GenericPathType:     "path",
+	// GenericFdType:          "fd", deprecated
 	GenericCredType:        "cred",
 	GenericConstBuffer:     "const_buf",
 	GenericNopType:         "nop",

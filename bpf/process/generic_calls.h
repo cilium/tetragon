@@ -211,7 +211,6 @@ FUNC_INLINE bool is_read_arg_1(long type)
 {
 	switch (type) {
 	case iov_iter_type:
-	case fd_ty:
 	case filename_ty:
 	case string_type:
 	case net_dev_ty:
@@ -260,12 +259,6 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 	switch (type) {
 	case iov_iter_type:
 		size = copy_iov_iter(ctx, orig_off, arg, argm, e);
-		break;
-	case fd_ty:
-		/* If filter specification is fd type then we
-         * prevent the filter from matching
-         */
-		return -1;
 		break;
 	case filename_ty: {
 		struct filename *file;

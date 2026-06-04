@@ -203,7 +203,6 @@ spec:
                             - socket
                             - sockaddr_un
                             - string
-                            - fd
                             - file
                             - filename
                             - path
@@ -323,7 +322,6 @@ spec:
                             - socket
                             - sockaddr_un
                             - string
-                            - fd
                             - file
                             - filename
                             - path
@@ -456,7 +454,6 @@ spec:
                           - socket
                           - sockaddr_un
                           - string
-                          - fd
                           - file
                           - filename
                           - path
@@ -1450,7 +1447,6 @@ spec:
                             - socket
                             - sockaddr_un
                             - string
-                            - fd
                             - file
                             - filename
                             - path
@@ -1570,7 +1566,6 @@ spec:
                             - socket
                             - sockaddr_un
                             - string
-                            - fd
                             - file
                             - filename
                             - path
@@ -1703,7 +1698,6 @@ spec:
                           - socket
                           - sockaddr_un
                           - string
-                          - fd
                           - file
                           - filename
                           - path
@@ -2669,7 +2663,6 @@ spec:
                             - socket
                             - sockaddr_un
                             - string
-                            - fd
                             - file
                             - filename
                             - path
@@ -4451,7 +4444,6 @@ spec:
                             - socket
                             - sockaddr_un
                             - string
-                            - fd
                             - file
                             - filename
                             - path
@@ -5397,7 +5389,6 @@ spec:
                             - socket
                             - sockaddr_un
                             - string
-                            - fd
                             - file
                             - filename
                             - path
@@ -5517,7 +5508,6 @@ spec:
                             - socket
                             - sockaddr_un
                             - string
-                            - fd
                             - file
                             - filename
                             - path
@@ -5658,7 +5648,6 @@ spec:
                           - socket
                           - sockaddr_un
                           - string
-                          - fd
                           - file
                           - filename
                           - path
@@ -6587,7 +6576,6 @@ spec:
                             - socket
                             - sockaddr_un
                             - string
-                            - fd
                             - file
                             - filename
                             - path

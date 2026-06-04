@@ -57,7 +57,7 @@ enum {
 	filename_ty = 14,
 	path_ty = 15,
 	file_ty = 16,
-	fd_ty = 17,
+	// fd_ty = 17, deprecated together with actions followfd, unfollowfd and copyfd
 
 	/* const_buf_type is a type for buffers with static size that is passed
 	 * in the meta argument
@@ -179,7 +179,7 @@ struct selector_arg_filters {
  */
 #define MAX_MATCH_STRING_VALUES 2
 
-/* Number of values allowed in matchArgs while using an "fd" or "file" arg.
+/* Number of values allowed in matchArgs while using a "file" arg.
  */
 #ifdef __LARGE_BPF_PROG
 #define MAX_MATCH_FILE_VALUES 8
@@ -1886,7 +1886,6 @@ filter_8ty(struct selector_arg_filter *filter, char *args)
 FUNC_INLINE size_t type_to_min_size(int type, int argm)
 {
 	switch (type) {
-	case fd_ty:
 	case file_ty:
 	case path_ty:
 	case dentry_type:
@@ -2174,10 +2173,6 @@ FUNC_INLINE long
 filter_arg_2(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, char *args)
 {
 	switch (filter->type) {
-	case fd_ty:
-		/* Advance args past fd */
-		args += 4;
-		fallthrough;
 	case file_ty:
 	case path_ty:
 	case dentry_type:

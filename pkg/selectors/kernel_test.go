@@ -1381,7 +1381,6 @@ func TestParseMatchArgSubString(t *testing.T) {
 		tyName string
 		tyVal  uint32
 	}{
-		{"fd", "fd", gt.GenericFdType},
 		{"dentry", "dentry", gt.GenericDentryType},
 		{"file", "file", gt.GenericFileType},
 		{"path", "path", gt.GenericPathType},

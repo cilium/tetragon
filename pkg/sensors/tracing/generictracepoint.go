@@ -1145,17 +1145,11 @@ func handleMsgGenericTracepoint(
 			arg.Permission = mode
 			unix.Args = append(unix.Args, arg)
 
-		case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
+		case gt.GenericFileType, gt.GenericKiocb:
 			var arg tracingapi.MsgGenericKprobeArgFile
 			var flags uint32
-			var b int32
 			var mode uint16
 			var err error
-
-			/* Eat file descriptor its not used in userland */
-			if out.genericTypeId == gt.GenericFdType {
-				binary.Read(r, binary.LittleEndian, &b)
-			}
 
 			arg.Value, err = parseString(r)
 			if err != nil {
