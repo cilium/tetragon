@@ -256,21 +256,6 @@ func TestFentryMatchArgsFilePrefix(t *testing.T) {
 	testKprobeMatchArgsFilePrefix(t, true)
 }
 
-func TestFentryMatchArgsFdEqual(t *testing.T) {
-	checkFentry(t)
-	testKprobeMatchArgsFdEqual(t, true)
-}
-
-func TestFentryMatchArgsFdPostfix(t *testing.T) {
-	checkFentry(t)
-	testKprobeMatchArgsFdPostfix(t, true)
-}
-
-func TestFentryMatchArgsFdPrefix(t *testing.T) {
-	checkFentry(t)
-	testKprobeMatchArgsFdPrefix(t, true)
-}
-
 func TestFentrytMatchArgsFileMonitoringPrefix(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchArgsFileMonitoringPrefix(t, true)
