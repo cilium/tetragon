@@ -279,7 +279,7 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string, tempFD uintptr) 
 
 	testBin := testutils.RepoRootPath("contrib/tester-progs/direct-write-tester")
 
-	cmd := exec.Command(testBin, tempFile)
+	cmd := exec.Command(testBin, tempFile, fmt.Sprintf("%d", tempFD))
 	err = cmd.Run()
 	require.Error(t, err)
 
