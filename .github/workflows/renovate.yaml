@@ -61,7 +61,7 @@ jobs:
       # renovate clones the repository again in its container fs but it needs
       # the renovate configuration to start.
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Self-hosted Renovate
         uses: renovatebot/github-action@693b9ef15eec82123529a37c782242f091365961 # v46.1.14
