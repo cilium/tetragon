@@ -75,7 +75,7 @@ type KProbeArg struct {
 	// +kubebuilder:validation:Minimum=0
 	// Position of the argument.
 	Index uint32 `json:"index"`
-	// +kubebuilder:validation:Enum=auto;int;sint8;int8;uint8;sint16;int16;uint16;uint32;sint32;int32;ulong;uint64;size_t;long;sint64;int64;char_buf;char_iovec;skb;sock;sockaddr;socket;sockaddr_un;string;fd;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;const_buf;load_info;module;syscall64;kernel_cap_t;cap_inheritable;cap_permitted;cap_effective;linux_binprm;data_loc;net_device;bpf_cmd;dentry;bpf_prog;
+	// +kubebuilder:validation:Enum=auto;int;sint8;int8;uint8;sint16;int16;uint16;uint32;sint32;int32;ulong;uint64;size_t;long;sint64;int64;char_buf;char_iovec;skb;sock;sockaddr;socket;sockaddr_un;string;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;const_buf;load_info;module;syscall64;kernel_cap_t;cap_inheritable;cap_permitted;cap_effective;linux_binprm;data_loc;net_device;bpf_cmd;dentry;bpf_prog;
 	// +kubebuilder:default=auto
 	// Argument type.
 	Type string `json:"type"`
@@ -268,17 +268,9 @@ type ArgSelector struct {
 }
 
 type ActionSelector struct {
-	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification;Set
+	// +kubebuilder:validation:Enum=Post;Sigkill;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification;Set
 	// Action to execute.
-	// NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-	// be removed in version 1.5.
 	Action string `json:"action"`
-	// +kubebuilder:validation:Optional
-	// An arg index for the fd for fdInstall action
-	ArgFd uint32 `json:"argFd"`
-	// +kubebuilder:validation:Optional
-	// An arg index for the filename for fdInstall action
-	ArgName uint32 `json:"argName"`
 	// +kubebuilder:validation:Optional
 	// A URL for the getUrl action
 	ArgUrl string `json:"argUrl"`

@@ -22,6 +22,8 @@ Depending on your setup, changes listed here might require a manual intervention
   return value in events, and omit `returnArgAction` for the default return-value
   behavior. Only `TrackSock` and `UntrackSock` are supported. Existing policies
   that set `returnArgAction: "Post"` should remove the field.
+* Actions `followfd`, `unfollowfd` and `copyfd` are no longer supported.
+  They were previously deprecated and to be removed in tetragon v1.5.
 
 ### Events (protobuf API)
 

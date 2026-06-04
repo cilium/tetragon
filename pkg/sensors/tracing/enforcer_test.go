@@ -7,6 +7,7 @@ package tracing
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"sync"
@@ -259,7 +260,7 @@ func TestEnforcerMultiNotSupported(t *testing.T) {
 	require.Error(t, err)
 }
 
-func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
+func testSecurity(t *testing.T, tracingPolicy, tempFile string, tempFD uintptr) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -278,7 +279,7 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 
 	testBin := testutils.RepoRootPath("contrib/tester-progs/direct-write-tester")
 
-	cmd := exec.Command(testBin, tempFile)
+	cmd := exec.Command(testBin, tempFile, fmt.Sprintf("%d", tempFD))
 	err = cmd.Run()
 	require.Error(t, err)
 
@@ -292,8 +293,7 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 		WithArgs(eventchecker.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				eventchecker.NewKprobeArgumentChecker().WithFileArg(
-					eventchecker.NewKprobeFileChecker().WithPath(sm.Full(tempFile))),
+				eventchecker.NewKprobeArgumentChecker().WithIntArg(int32(tempFD)),
 			))
 
 	checker := eventchecker.NewUnorderedEventChecker(kpCheckerPwrite)
@@ -307,7 +307,7 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 	}
 }
 
-func directWriteTempFile(t *testing.T) string {
+func directWriteTempFile(t *testing.T) (string, uintptr) {
 	// We can't use t.TempDir as it writes into /tmp by default.
 	// The direct-write-tester.c program opens and writes using the O_DIRECT
 	// flag that is unsupported and return EINVAL on tmpfs, while it works on a
@@ -320,7 +320,7 @@ func directWriteTempFile(t *testing.T) string {
 	t.Cleanup(func() {
 		os.Remove(tempFile.Name())
 	})
-	return tempFile.Name()
+	return tempFile.Name(), tempFile.Fd()
 }
 
 // Testing the ability to kill the process before it executes the syscall,
@@ -352,7 +352,7 @@ func TestEnforcerSecuritySigKill(t *testing.T) {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
 
-	tempFile := directWriteTempFile(t)
+	tempFile, tempFD := directWriteTempFile(t)
 
 	tracingPolicy := `
 apiVersion: cilium.io/v1alpha1
@@ -367,56 +367,24 @@ spec:
   - calls:
     - "security_file_permission"
   kprobes:
-  - call: "fd_install"
-    syscall: false
-    args:
-    - index: 0
-      type: int
-    - index: 1
-      type: "file"
-    selectors:
-    - matchArgs:
-      - index: 1
-        operator: "Equal"
-        values:
-        - "` + tempFile + `"
-      matchActions:
-      - action: FollowFD
-        argFd: 0
-        argName: 1
-  - call: "sys_close"
-    syscall: true
-    args:
-    - index: 0
-      type: "fd"
-    selectors:
-    - matchArgs:
-      - index: 0
-        operator: "Equal"
-        values:
-        - "` + tempFile + `"
-      matchActions:
-      - action: UnfollowFD
-        argFd: 0
-        argName: 0
   - call: "sys_pwrite64"
     syscall: true
     args:
     - index: 0
-      type: "fd"
+      type: "int"
     selectors:
     - matchArgs:
       - index: 0
         operator: "Equal"
         values:
-        - "` + tempFile + `"
+        - "` + fmt.Sprintf("%d", tempFD) + `"
       matchActions:
       - action: Sigkill
       - action: "NotifyEnforcer"
         argError: -1
 `
 
-	testSecurity(t, tracingPolicy, tempFile)
+	testSecurity(t, tracingPolicy, tempFile, tempFD)
 }
 
 // Testing the ability to kill the process before it executes the syscall,
@@ -444,7 +412,7 @@ func TestEnforcerSecurityNotifyEnforcer(t *testing.T) {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
 
-	tempFile := directWriteTempFile(t)
+	tempFile, tempFD := directWriteTempFile(t)
 
 	tracingPolicy := `
 apiVersion: cilium.io/v1alpha1
@@ -459,56 +427,24 @@ spec:
   - calls:
     - "security_file_permission"
   kprobes:
-  - call: "fd_install"
-    syscall: false
-    args:
-    - index: 0
-      type: int
-    - index: 1
-      type: "file"
-    selectors:
-    - matchArgs:
-      - index: 1
-        operator: "Equal"
-        values:
-        - "` + tempFile + `"
-      matchActions:
-      - action: FollowFD
-        argFd: 0
-        argName: 1
-  - call: "sys_close"
-    syscall: true
-    args:
-    - index: 0
-      type: "fd"
-    selectors:
-    - matchArgs:
-      - index: 0
-        operator: "Equal"
-        values:
-        - "` + tempFile + `"
-      matchActions:
-      - action: UnfollowFD
-        argFd: 0
-        argName: 0
   - call: "sys_pwrite64"
     syscall: true
     args:
     - index: 0
-      type: "fd"
+      type: "int"
     selectors:
     - matchArgs:
       - index: 0
         operator: "Equal"
         values:
-        - "` + tempFile + `"
+        - "` + fmt.Sprintf("%d", tempFD) + `"
       matchActions:
       - action: "NotifyEnforcer"
         argError: -1
         argSig: 9
 `
 
-	testSecurity(t, tracingPolicy, tempFile)
+	testSecurity(t, tracingPolicy, tempFile, tempFD)
 }
 
 // This test loads 2 policies:

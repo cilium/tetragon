@@ -255,7 +255,7 @@ func TestLSMOpenFile(t *testing.T) {
 	defer cancel()
 
 	testBin := testutils.RepoRootPath("contrib/tester-progs/direct-write-tester")
-	tempFile := directWriteTempFile(t)
+	tempFile, _ := directWriteTempFile(t)
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1

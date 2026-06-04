@@ -211,7 +211,6 @@ FUNC_INLINE bool is_read_arg_1(long type)
 {
 	switch (type) {
 	case iov_iter_type:
-	case fd_ty:
 	case filename_ty:
 	case string_type:
 	case net_dev_ty:
@@ -251,7 +250,6 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 {
 	struct msg_generic_kprobe *e;
 	long size = -1;
-	long ret = 0;
 	int zero = 0;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
@@ -262,39 +260,6 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 	case iov_iter_type:
 		size = copy_iov_iter(ctx, orig_off, arg, argm, e);
 		break;
-	case fd_ty: {
-		struct fdinstall_key key = { 0 };
-		struct fdinstall_value *val;
-
-		key.tid = get_current_pid_tgid() >> 32;
-		key.fd = arg;
-
-		val = map_lookup_elem(&fdinstall_map, &key);
-		if (val) {
-			__u32 bytes = *((__u32 *)&val->file[0]);
-
-			memcpy(&args[0], &key.fd, sizeof(key.fd));
-			asm volatile("%[bytes] &= 0xfff;\n"
-				     : [bytes] "+r"(bytes)
-				     :);
-			ret = probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
-			if (ret < 0)
-				return ret;
-			size = bytes + 4 + 4;
-
-			// flags
-			ret = probe_read(&args[size], 4,
-					 (char *)&val->file[size - 4]);
-			if (ret < 0)
-				return ret;
-			size += 4;
-		} else {
-			/* If filter specification is fd type then we
-			 * prevent the filter from matching
-			 */
-			return -1;
-		}
-	} break;
 	case filename_ty: {
 		struct filename *file;
 
@@ -961,8 +926,6 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	int action = actions->act[i];
 	struct msg_generic_kprobe *e;
 	__s32 error __maybe_unused;
-	int fdi, namei;
-	int newfdi, oldfdi;
 	int socki;
 	int argi __maybe_unused;
 	int err = 0;
@@ -1014,17 +977,6 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		break;
 	}
 
-	case ACTION_UNFOLLOWFD:
-	case ACTION_FOLLOWFD:
-		fdi = actions->act[++i];
-		namei = actions->act[++i];
-		err = installfd(e, fdi, namei, action == ACTION_FOLLOWFD);
-		break;
-	case ACTION_COPYFD:
-		oldfdi = actions->act[++i];
-		newfdi = actions->act[++i];
-		err = copyfd(e, oldfdi, newfdi);
-		break;
 	case ACTION_SIGNAL:
 		signal = actions->act[++i];
 		fallthrough;

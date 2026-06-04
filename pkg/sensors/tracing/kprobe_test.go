@@ -2033,39 +2033,24 @@ func testKprobeObjectFileWriteHook(pidStr string) string {
     name: "sys-read"
   spec:
     kprobes:
-    - call: "fd_install"
-      return: false
+    - call: "security_file_permission"
       syscall: false
       args:
       - index: 0
-        type: int
+        type: file
       - index: 1
-        type: "file"
+        type: "int"
       selectors:
       - matchPIDs:
         - operator: In
           followForks: true
           values:
           - ` + pidStr + `
-        matchActions:
-        - action: FollowFD
-          argFd: 0
-          argName: 1
-    - call: "sys_write"
-      syscall: true
-      args:
-      - index: 0
-        type: "fd"
-      - index: 1
-        type: "char_buf"
-        sizeArgIndex: 3
-      - index: 2
-        type: "size_t"
-      selectors:
-      - matchPIDs:
-        - operator: In
+        matchArgs:
+        - index: 1
+          operator: "Equal"
           values:
-          - ` + pidStr + `
+          - "2"
   `
 }
 
@@ -2077,14 +2062,13 @@ func testKprobeObjectFileWriteFilteredHook(pidStr string, dir string) string {
     name: "sys-read"
   spec:
     kprobes:
-    - call: "fd_install"
-      return: false
+    - call: "security_file_permission"
       syscall: false
       args:
       - index: 0
-        type: int
+        type: file
       - index: 1
-        type: "file"
+        type: "int"
       selectors:
       - matchPIDs:
         - operator: In
@@ -2092,34 +2076,14 @@ func testKprobeObjectFileWriteFilteredHook(pidStr string, dir string) string {
           values:
           - ` + pidStr + `
         matchArgs:
-        - index: 1
-          operator: "Postfix"
-          values:
-          - "` + dir + `/testfile"
-        matchActions:
-        - action: FollowFD
-          argFd: 0
-          argName: 1
-    - call: "sys_write"
-      syscall: true
-      args:
-      - index: 0
-        type: "fd"
-      - index: 1
-        type: "char_buf"
-        sizeArgIndex: 3
-      - index: 2
-        type: "size_t"
-      selectors:
-      - matchPIDs:
-        - operator: In
-          values:
-          - ` + pidStr + `
-        matchArgs:
         - index: 0
           operator: "Postfix"
           values:
           - "` + dir + `/testfile"
+        - index: 1
+          operator: "Equal"
+          values:
+          - "2"
   `
 }
 
@@ -2142,11 +2106,29 @@ func getWriteChecker(t *testing.T, path, flags string) ec.MultiEventChecker {
 	return ec.NewUnorderedEventChecker(kpChecker)
 }
 
+func getSecurityFilePermChecker(t *testing.T, path, flags string) ec.MultiEventChecker {
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_file_permission")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().
+					WithPath(sm.Full(path)).
+					WithFlags(sm.Full(flags)),
+				),
+				ec.NewKprobeArgumentChecker().WithIntArg(2), // MAY_WRITE
+			)).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
+
+	return ec.NewUnorderedEventChecker(kpChecker)
+}
+
 func testKprobeObjectFileWrite(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+	testKprobeObjectFiltered(t, readHook, getSecurityFilePermChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectFileWrite(t *testing.T) {
@@ -2157,7 +2139,7 @@ func testKprobeObjectFileWriteFiltered(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+	testKprobeObjectFiltered(t, readHook, getSecurityFilePermChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectFileWriteFiltered(t *testing.T) {
@@ -3459,74 +3441,6 @@ spec:
 	return configHook.String()
 }
 
-func getMatchArgsFdCrd(opStr string, vals []string) string {
-	var configHook strings.Builder
-	configHook.WriteString(`apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "testing-file-match-args"
-spec:
-  kprobes:
-  - call: "fd_install"
-    syscall: false
-    return: false
-    args:
-    - index: 0
-      type: int
-    - index: 1
-      type: "file"
-    selectors:
-    - matchArgs:
-      - index: 1
-        operator: "` + opStr + `"
-        values: `)
-	for i := range vals {
-		fmt.Fprintf(&configHook, "\n        - \"%s\"", vals[i])
-	}
-	configHook.WriteString("\n")
-	configHook.WriteString(`      matchActions:
-      - action: FollowFD
-        argFd: 0
-        argName: 1
-  - call: "sys_close"
-    syscall: true
-    args:
-    - index: 0
-      type: "fd"
-    selectors:
-    - matchArgs:
-      - index: 0
-        operator: "` + opStr + `"
-        values: `)
-	for i := range vals {
-		fmt.Fprintf(&configHook, "\n        - \"%s\"", vals[i])
-	}
-	configHook.WriteString("\n")
-	configHook.WriteString(`      matchActions:
-      - action: UnfollowFD
-        argFd: 0
-        argName: 0
-  - call: "sys_read"
-    syscall: true
-    args:
-    - index: 0
-      type: "fd"
-    - index: 1
-      type: "char_buf"
-      returnCopy: false
-    - index: 2
-      type: "size_t"
-    selectors:
-    - matchArgs:
-      - index: 0
-        operator: "` + opStr + `"
-        values: `)
-	for i := range vals {
-		fmt.Fprintf(&configHook, "\n        - \"%s\"", vals[i])
-	}
-	return configHook.String()
-}
-
 // this will trigger an fd_install event
 func openFile(t *testing.T, file string) int {
 	fd, errno := syscall.Open(file, syscall.O_RDONLY, 0)
@@ -3737,133 +3651,6 @@ func testKprobeMatchArgsFilePrefix(t *testing.T, fentry bool) {
 
 func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 	testKprobeMatchArgsFilePrefix(t, false)
-}
-
-func testKprobeMatchArgsFdEqual(t *testing.T, fentry bool) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	numValues := getNumValues()
-	argVals := make([]string, numValues)
-	argVals[0] = "/etc/passwd"
-	argVals[1] = "/etc/group"
-	if config.EnableLargeProgs() {
-		argVals[2] = "/etc/hostname"
-		argVals[3] = "/etc/shadow"
-	}
-
-	createCrdFileFlag(t, getMatchArgsFdCrd("Equal", argVals[:]), fentry)
-
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	kpCheckers := make([]ec.EventChecker, numValues)
-	for i := range numValues {
-		readFile(t, allFiles[i])
-		kpCheckers[i] = createReadChecker(t, allFiles[i])
-	}
-
-	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
-	require.NoError(t, err)
-}
-
-func TestKprobeMatchArgsFdEqual(t *testing.T) {
-	testKprobeMatchArgsFdEqual(t, false)
-}
-
-func testKprobeMatchArgsFdPostfix(t *testing.T, fentry bool) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	numValues := getNumValues()
-	argVals := make([]string, numValues)
-	argVals[0] = "passwd"
-	argVals[1] = "group"
-	if config.EnableLargeProgs() {
-		argVals[2] = "hostname"
-		argVals[3] = "shadow"
-	}
-
-	createCrdFileFlag(t, getMatchArgsFdCrd("Postfix", argVals[:]), fentry)
-
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	kpCheckers := make([]ec.EventChecker, numValues)
-	for i := range numValues {
-		readFile(t, allFiles[i])
-		kpCheckers[i] = createReadChecker(t, allFiles[i])
-	}
-
-	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
-	require.NoError(t, err)
-}
-
-func TestKprobeMatchArgsFdPostfix(t *testing.T) {
-	testKprobeMatchArgsFdPostfix(t, false)
-}
-
-func testKprobeMatchArgsFdPrefix(t *testing.T, fentry bool) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	numValues := getNumValues()
-	argVals := make([]string, numValues)
-	argVals[0] = "/etc/p"
-	argVals[1] = "/etc/g"
-	if config.EnableLargeProgs() {
-		argVals[2] = "/etc/h"
-		argVals[3] = "/etc/s"
-	}
-
-	createCrdFileFlag(t, getMatchArgsFdCrd("Prefix", argVals[:]), fentry)
-
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	kpCheckers := make([]ec.EventChecker, numValues)
-	for i := range numValues {
-		readFile(t, allFiles[i])
-		kpCheckers[i] = createReadChecker(t, allFiles[i])
-	}
-
-	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	// This check is failing in CI on bpf-next but working locally. This will give it a few
-	// more chances for the events to show up.
-	for range 3 {
-		err = jsonchecker.JsonTestCheck(t, checker)
-		if err == nil {
-			break
-		}
-	}
-	require.NoError(t, err)
-}
-
-func TestKprobeMatchArgsFdPrefix(t *testing.T) {
-	testKprobeMatchArgsFdPrefix(t, false)
 }
 
 func getMatchArgsFileFIMCrd(vals []string) string {
