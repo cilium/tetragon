@@ -424,6 +424,29 @@ type uprobeHas struct {
 	substring        bool
 }
 
+func cleanupUprobeEntries(ids []idtable.EntryID) error {
+	var errs error
+
+	for _, id := range ids {
+		uprobeEntry, err := genericUprobeTableGet(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+			continue
+		}
+
+		if err = selectors.CleanupKernelSelectorState(uprobeEntry.loadArgs.selectors.entry); err != nil {
+			errs = errors.Join(errs, err)
+		}
+
+		_, err = uprobeTable.RemoveEntry(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+
+	return errs
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -456,13 +479,21 @@ func createGenericUprobeSensor(
 
 	for _, uprobe := range spec.UProbes {
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
-			return nil, fmt.Errorf("append macros selectors: %w", err)
-		}
-
-		ids, err = addUprobe(&uprobe, ids, &in, &has)
-		if err != nil {
+			err = fmt.Errorf("append macros selectors: %w", err)
+			if cleanupErr := cleanupUprobeEntries(ids); cleanupErr != nil {
+				return nil, errors.Join(err, cleanupErr)
+			}
 			return nil, err
 		}
+
+		nextIDs, addErr := addUprobe(&uprobe, ids, &in, &has)
+		if addErr != nil {
+			if cleanupErr := cleanupUprobeEntries(ids); cleanupErr != nil {
+				return nil, errors.Join(addErr, cleanupErr)
+			}
+			return nil, addErr
+		}
+		ids = nextIDs
 	}
 
 	if in.useMulti {
@@ -472,6 +503,9 @@ func createGenericUprobeSensor(
 	}
 
 	if err != nil {
+		if cleanupErr := cleanupUprobeEntries(ids); cleanupErr != nil {
+			return nil, errors.Join(err, cleanupErr)
+		}
 		return nil, err
 	}
 
@@ -491,33 +525,40 @@ func createGenericUprobeSensor(
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
 		DestroyHook: func() error {
-			var errs error
-
-			for _, id := range ids {
-				uprobeEntry, err := genericUprobeTableGet(id)
-				if err != nil {
-					errs = errors.Join(errs, err)
-					continue
-				}
-
-				if err = selectors.CleanupKernelSelectorState(uprobeEntry.loadArgs.selectors.entry); err != nil {
-					errs = errors.Join(errs, err)
-				}
-
-				_, err = uprobeTable.RemoveEntry(id)
-				if err != nil {
-					errs = errors.Join(errs, err)
-				}
-			}
-			return errs
+			return cleanupUprobeEntries(ids)
 		},
 	}, nil
 }
 
-func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) ([]idtable.EntryID, error) {
+func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) (retIDs []idtable.EntryID, retErr error) {
 	var argRetprobe *v1alpha1.KProbeArg
 	var argRetprobeIdx int
 	var setRetprobe bool
+	baseLen := len(ids)
+	committed := false
+	var err error
+	var uprobeSelectorState *selectors.KernelSelectorState
+	var uprobeRetSelectorState *selectors.KernelSelectorState
+
+	defer func() {
+		if committed {
+			return
+		}
+
+		if len(ids) > baseLen {
+			if cleanupErr := cleanupUprobeEntries(ids[baseLen:]); cleanupErr != nil {
+				retErr = errors.Join(retErr, cleanupErr)
+			}
+			ids = ids[:baseLen]
+			return
+		}
+
+		if uprobeSelectorState != nil {
+			if cleanupErr := selectors.CleanupKernelSelectorState(uprobeSelectorState); cleanupErr != nil {
+				retErr = errors.Join(retErr, cleanupErr)
+			}
+		}
+	}()
 
 	symbols := len(spec.Symbols)
 	offsets := len(spec.Offsets)
@@ -573,7 +614,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	}
 
 	// Parse Filters into kernel filter logic
-	uprobeSelectorState, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
+	uprobeSelectorState, err = selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,
 		Args:      spec.Args,
 		Data:      spec.Data,
@@ -584,7 +625,6 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
-	var uprobeRetSelectorState *selectors.KernelSelectorState
 	if spec.Return {
 		uprobeRetSelectorState, err = selectors.InitKernelReturnSelectorState(spec.Selectors, spec.ReturnArg,
 			nil, nil, nil)
@@ -879,6 +919,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		}
 	}
 
+	committed = true
 	return ids, nil
 }
 
