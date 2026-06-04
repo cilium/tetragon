@@ -23,12 +23,24 @@ data:
   enable-process-ns: {{ .Values.tetragon.enableProcessNs | quote }}
   enable-ancestors: {{ .Values.tetragon.processAncestors.enabled | quote }}
   process-cache-size: {{ .Values.tetragon.processCacheSize | quote }}
-{{- if .Values.tetragon.exportFilename }}
+{{- if and .Values.tetragon.exportFilename (eq .Values.export.mode "stdout") }}
   export-filename: {{ .Values.exportDirectory}}/{{ .Values.tetragon.exportFilename }}
   export-file-perm: {{ .Values.tetragon.exportFilePerm | quote }}
   export-file-max-size-mb: {{ .Values.tetragon.exportFileMaxSizeMB | quote }}
   export-file-max-backups: {{ .Values.tetragon.exportFileMaxBackups | quote }}
   export-file-compress: {{ .Values.tetragon.exportFileCompress | quote }}
+  export-allowlist: |-
+{{- .Values.tetragon.exportAllowList | trim | nindent 4 }}
+  export-denylist: |-
+{{- .Values.tetragon.exportDenyList | trim | nindent 4 }}
+  field-filters: |-
+{{- .Values.tetragon.fieldFilters | trim | nindent 4 }}
+  redaction-filters: |-
+{{- .Values.tetragon.redactionFilters | trim | nindent 4 }}
+  export-rate-limit: {{ .Values.tetragon.exportRateLimit | quote }}
+{{- end }}
+{{- if eq .Values.export.mode "direct-stdout" }}
+  export-stdout: "true"
   export-allowlist: |-
 {{- .Values.tetragon.exportAllowList | trim | nindent 4 }}
   export-denylist: |-
