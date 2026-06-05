@@ -103,7 +103,7 @@ type MultiUprobeAttachSymbolsCookies struct {
 }
 
 type MultiUprobeAttachData struct {
-	// Path -> []{Symbol,Cookie}
+	// linkPath -> []{Symbol,Cookie}
 	Attach map[string]*MultiUprobeAttachSymbolsCookies
 }
 
