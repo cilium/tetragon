@@ -4,7 +4,9 @@
 package process
 
 import (
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -67,7 +69,7 @@ func TestProcessCacheGCEarlyDeletion(t *testing.T) {
 	}
 	cache.add(&proc)
 
-	proc.color = deleted
+	proc.setColor(deleted)
 	cache.deletePending(&proc)
 
 	time.Sleep(50 * time.Millisecond)
@@ -101,12 +103,12 @@ func TestProcessCacheGCLeak(t *testing.T) {
 		// The GC should drop it from the queue and reset its color to inUse.
 		cache.refDec(&proc, "test")
 		synctest.Wait()
-		assert.Equal(t, deletePending, proc.color)
+		assert.Equal(t, deletePending, proc.getColor())
 
 		cache.refInc(&proc, "test")
 		time.Sleep(interval + 1*time.Millisecond)
 		synctest.Wait()
-		assert.Equal(t, inUse, proc.color)
+		assert.Equal(t, inUse, proc.getColor())
 
 		// Trigger refDec to 0 again and wait for GC cycles to remove it.
 		// Two GC cycles are needed because the GC moves processes from:
@@ -121,9 +123,73 @@ func TestProcessCacheGCLeak(t *testing.T) {
 		time.Sleep(interval + 1*time.Millisecond)
 		synctest.Wait()
 
-		assert.Equal(t, deleted, proc.color)
+		assert.Equal(t, deleted, proc.getColor())
 		assert.Equal(t, 0, cache.len())
 	})
+}
+
+// TestProcessCacheColorDataRace exercises the GC goroutine writing the color
+// field concurrently with another goroutine reading it via getEntries (the same
+// read path used by dump). Before color was made atomic this test reports a data
+// race under -race. It must stay clean now that color uses atomic access.
+func TestProcessCacheColorDataRace(t *testing.T) {
+	interval := 1 * time.Millisecond
+	cache, err := NewCache(100, interval)
+	require.NoError(t, err)
+	defer cache.purge()
+
+	procs := make([]*ProcessInternal, 0, 50)
+	for i := 0; i < 50; i++ {
+		p := &ProcessInternal{
+			process: &tetragon.Process{
+				ExecId: "proc" + strconv.Itoa(i),
+				Pid:    &wrapperspb.UInt32Value{Value: uint32(1000 + i)},
+			},
+			refcntOps: make(map[string]int32),
+		}
+		p.refcnt.Store(1)
+		cache.add(p)
+		procs = append(procs, p)
+	}
+
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+
+	// Reader goroutine: reads color via the getEntries path repeatedly.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				cache.getEntries()
+			}
+		}
+	}()
+
+	// Writer goroutine: churns refcnt so the GC goroutine keeps writing color
+	// (inUse -> deletePending -> deleteReady -> inUse ...).
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				for _, p := range procs {
+					cache.refDec(p, "race")
+					cache.refInc(p, "race")
+				}
+			}
+		}
+	}()
+
+	time.Sleep(200 * time.Millisecond)
+	close(stop)
+	wg.Wait()
 }
 
 func TestProcessCacheDoubleParentDecrease(t *testing.T) {
@@ -159,13 +225,13 @@ func TestProcessCacheDoubleParentDecrease(t *testing.T) {
 
 		cache.refDec(child, "process--")
 		synctest.Wait()
-		assert.Equal(t, deletePending, child.color)
+		assert.Equal(t, deletePending, child.getColor())
 
 		// simulate resurrection: refInc after deletePending
 		cache.refInc(child, "late-event")
 		time.Sleep(interval + 1*time.Millisecond)
 		synctest.Wait()
-		assert.Equal(t, inUse, child.color)
+		assert.Equal(t, inUse, child.getColor())
 
 		// trigger LRU eviction of child
 		cache.get("parent")

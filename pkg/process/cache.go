@@ -28,15 +28,19 @@ type Cache struct {
 	stopChan   chan bool
 }
 
+// processColor tracks the garbage collection state of a process. It is stored
+// in ProcessInternal as an atomic and accessed via getColor/setColor.
+type processColor int32
+
 // garbage collection states
 const (
-	inUse = iota
+	inUse processColor = iota
 	deletePending
 	deleteReady
 	deleted
 )
 
-var colorStr = map[int]string{
+var colorStr = map[processColor]string{
 	inUse:         "inUse",
 	deletePending: "deletePending",
 	deleteReady:   "deleteReady",
@@ -77,15 +81,15 @@ func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 					 * process a second time, but that is harmless.
 					 */
 					if p.refcnt.Load() != 0 {
-						p.color = inUse
+						p.setColor(inUse)
 						continue
 					}
-					if p.color == deleteReady {
-						p.color = deleted
+					if p.getColor() == deleteReady {
+						p.setColor(deleted)
 						pc.remove(p.process)
 					} else {
 						newQueue = append(newQueue, p)
-						p.color = deleteReady
+						p.setColor(deleteReady)
 					}
 				}
 				deleteQueue = newQueue
@@ -93,21 +97,18 @@ func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 				// The object has already been deleted let if fall of
 				// the edge of the world. Hitting this could mean our
 				// GC logic deleted a process too early.
-				if p.color == deleted {
+				if p.getColor() == deleted {
 					processCacheEarlyDeletions.Inc()
 					continue
 				}
 				// duplicate deletes can happen, if they do reset
 				// color to pending and move along. This will cause
 				// the GC to keep it alive for at least another pass.
-				// Notice color is only ever touched inside GC behind
-				// select channel logic so should be safe to work on
-				// and assume its visible everywhere.
-				if p.color != inUse {
-					p.color = deletePending
+				if p.getColor() != inUse {
+					p.setColor(deletePending)
 					continue
 				}
-				p.color = deletePending
+				p.setColor(deletePending)
 				deleteQueue = append(deleteQueue, p)
 			}
 		}
@@ -165,7 +166,7 @@ func NewCache(
 			}
 
 			// Skip non-inUse entries whose exit path already performed parent--
-			if evicted.color != inUse {
+			if evicted.getColor() != inUse {
 				return
 			}
 
@@ -257,7 +258,7 @@ func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.Proces
 			Process:   proto.Clone(v.process).(*tetragon.Process),
 			Refcnt:    &wrapperspb.UInt32Value{Value: ref},
 			RefcntOps: maps.Clone(v.refcntOps),
-			Color:     colorStr[v.color],
+			Color:     colorStr[v.getColor()],
 		})
 	}
 	return processes
@@ -270,7 +271,7 @@ func (pc *Cache) getEntries() []*tetragon.ProcessInternal {
 			Process:   v.process,
 			Refcnt:    &wrapperspb.UInt32Value{Value: v.refcnt.Load()},
 			RefcntOps: v.refcntOps,
-			Color:     colorStr[v.color],
+			Color:     colorStr[v.getColor()],
 		})
 	}
 	return processes
