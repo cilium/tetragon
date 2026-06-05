@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -307,6 +308,17 @@ func UprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
+func procSelfFDPath(f *os.File) string {
+	return filepath.Join(option.Config.ProcFS, "self", "fd", strconv.FormatUint(uint64(f.Fd()), 10))
+}
+
+func getTargetPath(file *os.File, linkByFD bool) string {
+	if linkByFD {
+		return procSelfFDPath(file)
+	}
+	return file.Name()
+}
+
 func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	bpfDir string, extra ...string) (unloader.Unloader, error) {
 
@@ -316,10 +328,21 @@ func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpe
 	}
 
 	linkFn := func() (link.Link, error) {
-		exec, err := link.OpenExecutable(data.Path)
+		// The kernel tracks uprobe targets by inode. When we open a file,
+		// its file descriptor points to an inode.
+		// The loader API requires that a path is provided. It will not accept
+		// a file descriptor directly. But we can use the procfs self/fd/<N> symlink
+		// to reference the file descriptor, which is a stable reference to the
+		// inode even if the path's inode changes.
+		// This trick ensures that the uprobe attachment is not affected by TOCTOU issues
+		// with the target file.
+
+		targetPath := getTargetPath(data.File, data.LinkByFD)
+		exec, err := link.OpenExecutable(targetPath)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("open executable %s: %w", targetPath, err)
 		}
+
 		opts := &link.UprobeOptions{
 			Address:      data.Address,
 			RefCtrOffset: data.RefCtrOffset,
@@ -358,13 +381,21 @@ func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
-func attachMultiUpobeLink(load *Program, prog *ebpf.Program, path string,
+func attachMultiUpobeLink(load *Program, prog *ebpf.Program, file *os.File,
 	attach *MultiUprobeAttachSymbolsCookies, bpfDir string,
 	idx int, extra ...string) (link.Link, error) {
-
-	exec, err := link.OpenExecutable(path)
+	// The kernel tracks uprobe targets by inode. When we open a file,
+	// its file descriptor points to an inode.
+	// The loader API requires that a path is provided. It will not accept
+	// a file descriptor directly. But we can use the procfs self/fd/<N> symlink
+	// to reference the file descriptor, which is a stable reference to the
+	// inode even if the path's inode changes.
+	// This trick ensures that the uprobe attachment is not affected by TOCTOU issues
+	// with the target file.
+	targetPath := getTargetPath(file, attach.LinkByFD)
+	exec, err := link.OpenExecutable(targetPath)
 	if err != nil {
-		return nil, fmt.Errorf("open executable %s: %w", path, err)
+		return nil, fmt.Errorf("open executable %s: %w", targetPath, err)
 	}
 	opts := &link.UprobeMultiOptions{
 		Addresses:     attach.Addresses,
@@ -402,8 +433,8 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 		var links []link.Link
 
 		idx := 0
-		for path, attach := range data.Attach {
-			lnk, err := attachMultiUpobeLink(load, prog, path, attach, bpfDir, idx, extra...)
+		for file, attach := range data.Attach {
+			lnk, err := attachMultiUpobeLink(load, prog, file, attach, bpfDir, idx, extra...)
 			if err != nil {
 				return nil, err
 			}
