@@ -8,9 +8,12 @@ package tracing
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path"
@@ -51,11 +54,21 @@ type observerUprobeSensor struct {
 	name string
 }
 
-const disableNotAllowedReasonLinkByFD = "target linked by file descriptor"
+const disableNotAllowedReasonBinaryDigests = "binaryDigests configured"
 
 var (
 	uprobeTable idtable.Table
 )
+
+// DigestMismatchError indicates that a calculated digest does not match the
+// configured digest value.
+type DigestMismatchError struct {
+	Detail string
+}
+
+func (e *DigestMismatchError) Error() string {
+	return e.Detail
+}
 
 type uprobeLoadArgs struct {
 	selectors kprobeSelectors
@@ -636,6 +649,133 @@ func cleanupUprobeEntries(ids []idtable.EntryID, openedFiles []*os.File) error {
 	return errs
 }
 
+func computeHash(algo string, file *os.File) (string, error) {
+	if algo == "build-id" {
+		// There is no need to call safeELF.Close() because that function only closes the underlying *os.File.
+		// Further, safeELF.Close() won't attempt to close the underlying file when the SafeELFFile is created with
+		// NewSafeELFFile().
+		// We don't want to close the underlying file here because it needs to remain open for the uprobe to be
+		// attached to its file descriptor.
+		safeELF, err := elf.NewSafeELFFile(file)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse ELF: %w", err)
+		}
+
+		buildID, err := safeELF.ParseBuildID()
+		if err != nil {
+			return "", fmt.Errorf("failed to extract build ID: %w", err)
+		}
+		return hex.EncodeToString(buildID), nil
+	}
+
+	var hashType crypto.Hash
+	switch algo {
+	case "sha256":
+		hashType = crypto.SHA256
+	case "sha384":
+		hashType = crypto.SHA384
+	case "sha512":
+		hashType = crypto.SHA512
+	case "sha1":
+		hashType = crypto.SHA1
+	default:
+		return "", fmt.Errorf("unsupported digest algorithm '%s'", algo)
+	}
+
+	h := hashType.New()
+	if _, err := io.Copy(h, file); err != nil {
+		return "", fmt.Errorf("failed to calculate digest: %w", err)
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// verifyFileDigest verifies that an open file's digest matches the configured digest.
+// digestConfig format is "<algo>:<hash>" (e.g., "sha256:abc123..." or "build-id:deadbeef...")
+func verifyFileDigest(file *os.File, digestConfig string, fileHashCache map[string]string) (retErr error) {
+	if digestConfig == "" {
+		return nil
+	}
+
+	digestConfig = strings.TrimSpace(digestConfig)
+	algo, expectedHash, found := strings.Cut(digestConfig, ":")
+	if !found {
+		return fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digestConfig)
+	}
+
+	algo = strings.ToLower(strings.TrimSpace(algo))
+	expectedHash = strings.ToLower(strings.TrimSpace(expectedHash))
+	if algo == "" || expectedHash == "" {
+		return fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digestConfig)
+	}
+
+	if hash, ok := fileHashCache[algo]; ok {
+		if hash != expectedHash {
+			return &DigestMismatchError{
+				Detail: fmt.Sprintf("digest mismatch: expected %s:%s but got %s:%s", algo, expectedHash, algo, hash),
+			}
+		}
+		logger.GetLogger().Debug(fmt.Sprintf("Digest verified: %s:%s (cached)", algo, hash))
+		return nil
+	}
+
+	currentOffset, err := file.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return fmt.Errorf("error getting offset: %w", err)
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return fmt.Errorf("failed to seek file: %w", err)
+	}
+
+	defer func() {
+		if _, err := file.Seek(currentOffset, io.SeekStart); err != nil {
+			retErr = errors.Join(retErr, fmt.Errorf("failed to restore file offset: %w", err))
+		}
+	}()
+
+	calculatedHash, err := computeHash(algo, file)
+	if err != nil {
+		return err
+	}
+
+	fileHashCache[algo] = calculatedHash
+
+	if calculatedHash != expectedHash {
+		return &DigestMismatchError{
+			Detail: fmt.Sprintf("digest mismatch: expected %s:%s but got %s:%s", algo, expectedHash, algo, calculatedHash),
+		}
+	}
+
+	logger.GetLogger().Debug(fmt.Sprintf("Digest verified: %s:%s", algo, calculatedHash))
+	return nil
+}
+
+func verifyBinaryDigests(uprobe *v1alpha1.UProbeSpec, entryFile *os.File) error {
+	if entryFile == nil {
+		return nil
+	}
+
+	digestCache := make(map[string]string)
+	for _, digest := range uprobe.BinaryDigests {
+		err := verifyFileDigest(entryFile, digest, digestCache)
+		if err == nil {
+			return nil
+		}
+
+		// Keep trying other configured digests only when the current digest
+		// mismatches. Operational errors should be returned immediately.
+		if _, ok := errors.AsType[*DigestMismatchError](err); !ok {
+			return err
+		}
+		logger.GetLogger().Debug(err.Error())
+	}
+
+	return &DigestMismatchError{
+		Detail: fmt.Sprintf("digest verification failed for path %q", uprobe.Path),
+	}
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -683,7 +823,7 @@ func createGenericUprobeSensor(
 	}()
 
 	var selectorStatsBase uint32
-	for _, uprobe := range spec.UProbes {
+	for cfgIdx, uprobe := range spec.UProbes {
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
@@ -699,12 +839,19 @@ func createGenericUprobeSensor(
 
 		var entryFile *os.File
 
-		if entryFile != nil {
+		if len(uprobe.BinaryDigests) != 0 {
+			entryFile, err = os.Open(absPath)
+			if err != nil {
+				return nil, err
+			}
 			openedFiles = append(openedFiles, entryFile)
 		}
 
-		ids, err = addUprobe(&uprobe, entryFile, ids, &in, &has)
-		if err != nil {
+		if err := verifyBinaryDigests(&uprobe, entryFile); err != nil {
+			return nil, fmt.Errorf("spec.uprobes[%d]: %w", cfgIdx, err)
+		}
+
+		if ids, err = addUprobe(&uprobe, entryFile, ids, &in, &has); err != nil {
 			return nil, err
 		}
 	}
@@ -1005,7 +1152,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 		// and as such their file descriptors are no longer valid after that point. So, it's not safe to load the sensor again
 		// when we re-enable a policy after it's been disabled, because the configured targetPaths would point to closed/re-used file descriptors.
 		if state.entryFile != nil {
-			has.disableNotAllowedReason = disableNotAllowedReasonLinkByFD
+			has.disableNotAllowedReason = disableNotAllowedReasonBinaryDigests
 		}
 
 		uprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]](option.Config.RetprobesCacheSize)
