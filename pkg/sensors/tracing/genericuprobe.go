@@ -8,9 +8,12 @@ package tracing
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path"
@@ -634,6 +637,112 @@ func cleanupUprobeEntries(ids []idtable.EntryID) error {
 	return errs
 }
 
+// verifyFileDigest verifies that an open file's digest matches the configured digest.
+// digestConfig format is "<algo>:<hash>" (e.g., "sha256:abc123..." or "build-id:deadbeef...")
+func verifyFileDigest(file *os.File, digestConfig string, fileHashCache map[string]string) error {
+	if digestConfig == "" {
+		return nil
+	}
+
+	algo, expectedHash, found := strings.Cut(digestConfig, ":")
+	if !found {
+		return fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digestConfig)
+	}
+
+	algo = strings.ToLower(algo)
+	expectedHash = strings.ToLower(expectedHash)
+
+	if hash, ok := fileHashCache[algo]; ok {
+		if hash != expectedHash {
+			return fmt.Errorf("digest mismatch: expected %s:%s but got %s:%s", algo, expectedHash, algo, hash)
+		}
+		logger.GetLogger().Debug(fmt.Sprintf("Digest verified: %s:%s (cached)", algo, hash))
+		return nil
+	}
+
+	if _, err := file.Seek(0, 0); err != nil {
+		return fmt.Errorf("failed to seek file: %w", err)
+	}
+
+	var calculatedHash string
+
+	if algo == "build-id" {
+		safeELF, err := elf.NewSafeELFFile(file)
+		if err != nil {
+			return fmt.Errorf("failed to parse ELF: %w", err)
+		}
+
+		buildID, err := safeELF.ParseBuildId()
+		if err != nil {
+			return fmt.Errorf("failed to extract build ID: %w", err)
+		}
+		calculatedHash = hex.EncodeToString(buildID)
+	} else {
+		var hashType crypto.Hash
+		switch algo {
+		case "sha256":
+			hashType = crypto.SHA256
+		case "sha384":
+			hashType = crypto.SHA384
+		case "sha512":
+			hashType = crypto.SHA512
+		case "sha1":
+			hashType = crypto.SHA1
+		default:
+			return fmt.Errorf("unsupported digest algorithm '%s'", algo)
+		}
+
+		h := hashType.New()
+		if _, err := io.Copy(h, file); err != nil {
+			return fmt.Errorf("failed to calculate digest: %w", err)
+		}
+
+		calculatedHash = hex.EncodeToString(h.Sum(nil))
+	}
+
+	fileHashCache[algo] = calculatedHash
+
+	if calculatedHash != expectedHash {
+		return fmt.Errorf("digest mismatch: expected %s:%s but got %s:%s", algo, expectedHash, algo, calculatedHash)
+	}
+
+	logger.GetLogger().Debug(fmt.Sprintf("Digest verified: %s:%s", algo, calculatedHash))
+	return nil
+}
+
+func verifyBinaryDigests(uprobe *v1alpha1.UProbeSpec, entryFile *os.File, cfgIdx int) error {
+	if len(uprobe.BinaryDigests) == 0 {
+		return nil
+	}
+
+	digestCache := make(map[string]string)
+	matchFound := false
+	for _, digest := range uprobe.BinaryDigests {
+		if err := verifyFileDigest(entryFile, digest, digestCache); err == nil {
+			matchFound = true
+			break
+		}
+	}
+
+	if !matchFound {
+		// Build a summary of actual hashes computed during verification
+		var actualHashes []string
+		for algo, hash := range digestCache {
+			actualHashes = append(actualHashes, fmt.Sprintf("%s:%s", algo, hash))
+		}
+		logger.GetLogger().Debug(
+			"digest verification failed: none of the configured digests matched",
+			"path", uprobe.Path,
+			"index", cfgIdx,
+			"configured", strings.Join(uprobe.BinaryDigests, ", "),
+			"actual", strings.Join(actualHashes, ", "),
+		)
+		return fmt.Errorf("digest verification failed for path %q at hook index %d", uprobe.Path, cfgIdx)
+	}
+
+	return nil
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -680,7 +789,7 @@ func createGenericUprobeSensor(
 	}()
 
 	var selectorStatsBase uint32
-	for _, uprobe := range spec.UProbes {
+	for cfgIdx, uprobe := range spec.UProbes {
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
@@ -699,8 +808,14 @@ func createGenericUprobeSensor(
 			return nil, err
 		}
 
-		ids, err = addUprobe(&uprobe, entryFile, ids, &in, &has)
-		if err != nil {
+		if err := verifyBinaryDigests(&uprobe, entryFile, cfgIdx); err != nil {
+			if closeErr := entryFile.Close(); closeErr != nil && !errors.Is(closeErr, os.ErrClosed) {
+				err = errors.Join(err, closeErr)
+			}
+			return nil, err
+		}
+
+		if ids, err = addUprobe(&uprobe, entryFile, ids, &in, &has); err != nil {
 			if closeErr := entryFile.Close(); closeErr != nil && !errors.Is(closeErr, os.ErrClosed) {
 				err = errors.Join(err, closeErr)
 			}
@@ -975,7 +1090,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 				retprobe:  state.setRetprobe,
 				config:    state.eventConfig,
 				selectors: state.selectors,
-				linkByFD:  false,
+				linkByFD:  len(spec.BinaryDigests) != 0,
 			},
 			tableId:           idtable.UninitializedEntryID,
 			file:              state.entryFile,
