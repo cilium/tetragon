@@ -8,9 +8,12 @@ package tracing
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path"
@@ -453,6 +456,74 @@ func cleanupUprobeEntries(ids []idtable.EntryID) error {
 	return errs
 }
 
+// verifyFileDigest verifies that an open file's digest matches the configured digest.
+// digestConfig format is "<algo>:<hash>" (e.g., "sha256:abc123..." or "build-id:deadbeef...")
+func verifyFileDigest(file *os.File, digestConfig string, fileHashCache map[string]string) error {
+	if digestConfig == "" {
+		return nil
+	}
+
+	parts := strings.SplitN(digestConfig, ":", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digestConfig)
+	}
+
+	algo := strings.ToLower(parts[0])
+	expectedHash := strings.ToLower(parts[1])
+
+	if hash, ok := fileHashCache[algo]; ok {
+		if hash != expectedHash {
+			return fmt.Errorf("digest mismatch: expected %s:%s but got %s:%s", algo, expectedHash, algo, hash)
+		}
+		logger.GetLogger().Debug(fmt.Sprintf("Digest verified: %s:%s (cached)", algo, hash))
+		return nil
+	}
+
+	if _, err := file.Seek(0, 0); err != nil {
+		return fmt.Errorf("failed to seek file: %w", err)
+	}
+
+	var calculatedHash string
+
+	if algo == "build-id" {
+		buildID, err := elf.ParseBuildId(file)
+		if err != nil {
+			return fmt.Errorf("failed to extract build ID: %w", err)
+		}
+		calculatedHash = hex.EncodeToString(buildID)
+	} else {
+		var hashType crypto.Hash
+		switch algo {
+		case "sha256":
+			hashType = crypto.SHA256
+		case "sha384":
+			hashType = crypto.SHA384
+		case "sha512":
+			hashType = crypto.SHA512
+		case "sha1":
+			hashType = crypto.SHA1
+		default:
+			return fmt.Errorf("unsupported digest algorithm '%s'", algo)
+		}
+
+		h := hashType.New()
+		if _, err := io.Copy(h, file); err != nil {
+			return fmt.Errorf("failed to calculate digest: %w", err)
+		}
+
+		calculatedHash = hex.EncodeToString(h.Sum(nil))
+	}
+
+	fileHashCache[algo] = calculatedHash
+
+	if calculatedHash != expectedHash {
+		return fmt.Errorf("digest mismatch: expected %s:%s but got %s:%s", algo, expectedHash, algo, calculatedHash)
+	}
+
+	logger.GetLogger().Debug(fmt.Sprintf("Digest verified: %s:%s", algo, calculatedHash))
+	return nil
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -504,6 +575,20 @@ func createGenericUprobeSensor(
 			}
 			entryFile = &program.UprobeFile{Handle: f}
 			openedFiles[uprobe.Path] = entryFile
+		}
+
+		if len(uprobe.BinaryDigests) > 0 {
+			digestCache := make(map[string]string)
+			matchFound := false
+			for _, digest := range uprobe.BinaryDigests {
+				if err := verifyFileDigest(entryFile.Handle, digest, digestCache); err == nil {
+					matchFound = true
+					break
+				}
+			}
+			if !matchFound {
+				return nil, errors.New("digest verification failed: no matching digest")
+			}
 		}
 
 		nextIDs, addErr := addUprobe(&uprobe, entryFile, ids, &in, &has)
