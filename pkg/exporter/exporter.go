@@ -88,13 +88,15 @@ func (e *Exporter) Start() error {
 		e.rotateTimer = time.AfterFunc(e.rotationInterval, e.rotate)
 	}
 
-	ready := make(chan error, 1)
-	go func() {
-		e.server.GetEventsWithStartupCh(e.request, e, e.closer, ready)
-	}()
-	if err := <-ready; err != nil {
+	run, err := e.server.GetEventsListener(e.request, e, e.closer)
+	if err != nil {
 		return fmt.Errorf("error starting JSON exporter: %w", err)
 	}
+	go func() {
+		if err := run(); err != nil {
+			logger.GetLogger().Warn("JSON exporter terminated with error", logfields.Error, err)
+		}
+	}()
 	return nil
 }
 
