@@ -15,6 +15,7 @@ Depending on your setup, changes listed here might require a manual intervention
   If your systems are running Kyverno/OPA/Gatekeeper rules that allow hostPath mounts
   only by explicit paths, then you will need to extend your allowlist with the
   directory containing the socket passed to `tetragon.cri.socketHostPath`.
+* `exportDirectory` default value has been updated to `/var/log/tetragon` from `/var/run/cilium/tetragon/` to avoid writing to tmpfs.
 
 ### TracingPolicy (k8s CRD)
 

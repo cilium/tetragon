@@ -47,7 +47,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | export.stdout.envFromSecrets | list | `[]` | A simplified way to add secret references to envFrom. Can be specified either as a string (just the secret name) or as an object with additional parameters. Example: envFromSecrets:   - my-simple-secret   - name: my-optional-secret     optional: true |
 | export.stdout.extraEnv | list | `[]` | Extra environment variables to add to the export-stdout container. Example: extraEnv:   - name: FOO     value: bar   - name: SECRET_KEY     valueFrom:       secretKeyRef:         name: my-secret         key: secret-key |
 | export.stdout.extraEnvFrom | list | `[]` | Extra envFrom sources to add to the export-stdout container. This allows adding any type of envFrom source (configMapRef, secretRef, etc.). Example: extraEnvFrom:   - configMapRef:       name: my-config-map   - secretRef:       name: my-secret       optional: true |
-| exportDirectory | string | `"/var/run/cilium/tetragon"` | Directory to put Tetragon JSON export files. |
+| exportDirectory | string | `"/var/log/tetragon"` | Directory to put Tetragon JSON export files. |
 | extraConfigmapMounts | list | `[]` |  |
 | extraHostPathMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
