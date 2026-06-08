@@ -106,6 +106,28 @@ type addUsdtIn struct {
 	useMulti   bool
 }
 
+func cleanupUsdtEntries(ids []idtable.EntryID) error {
+	var errs error
+
+	for _, id := range ids {
+		usdtEntry, err := genericUsdtTableGet(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+			continue
+		}
+		if err = selectors.CleanupKernelSelectorState(usdtEntry.selectors); err != nil {
+			errs = errors.Join(errs, err)
+		}
+
+		_, err = usdtTable.RemoveEntry(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+
+	return errs
+}
+
 func createGenericUsdtSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -129,13 +151,21 @@ func createGenericUsdtSensor(
 
 	for _, usdt := range spec.Usdts {
 		if err = appendMacrosSelectors(usdt.Selectors, spec.SelectorsMacros); err != nil {
-			return nil, fmt.Errorf("append macros selectors: %w", err)
-		}
-
-		ids, err = addUsdt(&usdt, &in, ids, &has)
-		if err != nil {
+			err = fmt.Errorf("append macros selectors: %w", err)
+			if cleanupErr := cleanupUsdtEntries(ids); cleanupErr != nil {
+				err = errors.Join(err, cleanupErr)
+			}
 			return nil, err
 		}
+
+		nextIDs, addErr := addUsdt(&usdt, &in, ids, &has)
+		if addErr != nil {
+			if cleanupErr := cleanupUsdtEntries(ids); cleanupErr != nil {
+				addErr = errors.Join(addErr, cleanupErr)
+			}
+			return nil, addErr
+		}
+		ids = nextIDs
 		hasSetAction = hasSetAction || selectors.HasSet(&usdt)
 	}
 
@@ -148,6 +178,9 @@ func createGenericUsdtSensor(
 	}
 
 	if err != nil {
+		if cleanupErr := cleanupUsdtEntries(ids); cleanupErr != nil {
+			err = errors.Join(err, cleanupErr)
+		}
 		return nil, err
 	}
 
@@ -166,6 +199,9 @@ func createGenericUsdtSensor(
 		Maps:      maps,
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
+		DestroyHook: func() error {
+			return cleanupUsdtEntries(ids)
+		},
 	}, nil
 }
 
@@ -295,7 +331,30 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	return progs, maps
 }
 
-func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has *usdtHas) ([]idtable.EntryID, error) {
+func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has *usdtHas) (retIDs []idtable.EntryID, retErr error) {
+	baseLen := len(ids)
+	committed := false
+	var state *selectors.KernelSelectorState
+
+	defer func() {
+		if committed {
+			return
+		}
+
+		if len(ids) > baseLen {
+			if cleanupErr := cleanupUsdtEntries(ids[baseLen:]); cleanupErr != nil {
+				retErr = errors.Join(retErr, cleanupErr)
+			}
+			ids = ids[:baseLen]
+		}
+
+		if state != nil {
+			if cleanupErr := selectors.CleanupKernelSelectorState(state); cleanupErr != nil {
+				retErr = errors.Join(retErr, cleanupErr)
+			}
+		}
+	}()
+
 	se, err := elf.OpenSafeELFFile(spec.Path)
 	if err != nil {
 		return nil, err
@@ -338,7 +397,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		}
 
 		// Parse Filters into kernel filter logic
-		state, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
+		state, err = selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 			Selectors: spec.Selectors,
 			Args:      spec.Args,
 			Data:      []v1alpha1.KProbeArg{},
@@ -455,12 +514,14 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		config.FuncId = uint32(id.ID)
 
 		ids = append(ids, id)
+		state = nil
 	}
 
 	if !found {
 		return nil, fmt.Errorf("failed to configure usdt '%s/%s', not found in the binary: '%s'",
 			spec.Provider, spec.Name, spec.Path)
 	}
+	committed = true
 	return ids, nil
 }
 
