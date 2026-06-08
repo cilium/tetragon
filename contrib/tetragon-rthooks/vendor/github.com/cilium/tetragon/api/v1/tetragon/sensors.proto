@@ -102,6 +102,26 @@ message TracingPolicyStats {
   repeated TracingPolicySelectorActionCounters selector_action_counters = 2;
 }
 
+enum HookState {
+  // unknown or unspecified state
+  STATUS_UNSPECIFIED = 0;
+  // probe was loaded
+  STATUS_LOADED = 1;
+  // probe was not loaded due to digest mismatch
+  STATUS_DIGEST_REJECTED = 2;
+}
+
+message HookStatus {
+  // hook's section within the policy
+  string section = 1;
+  // hook state
+  HookState state = 2;
+  // description of hook
+  string hook_description = 3;
+  // the index at which this hook is configured within its section
+  uint32 hook_idx = 4;
+}
+
 message TracingPolicyStatus {
   // id is the id of the policy
   uint64 id = 1;
@@ -129,6 +149,8 @@ message TracingPolicyStatus {
   optional TracingPolicyStats stats = 12;
   // domain of the policy
   string domain = 13;
+  // status of policy's hooks
+  repeated HookStatus hook_statuses = 14;
 }
 
 message ListTracingPoliciesResponse {
