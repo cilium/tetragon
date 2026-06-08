@@ -107,11 +107,33 @@ type addUsdtIn struct {
 	selectorStatsBase uint32
 }
 
+func cleanupUsdtEntries(ids []idtable.EntryID) error {
+	var errs error
+
+	for _, id := range ids {
+		usdtEntry, err := genericUsdtTableGet(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+			continue
+		}
+		if err = selectors.CleanupKernelSelectorState(usdtEntry.selectors); err != nil {
+			errs = errors.Join(errs, err)
+		}
+
+		_, err = usdtTable.RemoveEntry(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+
+	return errs
+}
+
 func createGenericUsdtSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
 	polInfo *policyInfo,
-) (*sensors.Sensor, error) {
+) (retSensor *sensors.Sensor, retError error) {
 	var (
 		progs []*program.Program
 		maps  []*program.Map
@@ -127,6 +149,14 @@ func createGenericUsdtSensor(
 	}
 
 	hasSetAction := false
+
+	defer func() {
+		if retError != nil {
+			if cleanupErr := cleanupUsdtEntries(ids); cleanupErr != nil {
+				retError = errors.Join(retError, cleanupErr)
+			}
+		}
+	}()
 
 	var selectorStatsBase uint32
 	for _, usdt := range spec.Usdts {
@@ -171,6 +201,9 @@ func createGenericUsdtSensor(
 		Maps:      maps,
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
+		DestroyHook: func() error {
+			return cleanupUsdtEntries(ids)
+		},
 	}, nil
 }
 
@@ -300,32 +333,42 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	return progs, maps
 }
 
-func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has *usdtHas) ([]idtable.EntryID, error) {
+func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has *usdtHas) (retIDs []idtable.EntryID, retErr error) {
+	var state *selectors.KernelSelectorState
+
+	defer func() {
+		if retErr != nil {
+			if cleanupErr := selectors.CleanupKernelSelectorState(state); cleanupErr != nil {
+				retErr = errors.Join(retErr, cleanupErr)
+			}
+		}
+	}()
+
 	se, err := elf.OpenSafeELFFile(spec.Path)
 	if err != nil {
-		return nil, err
+		return ids, err
 	}
 
 	targets, err := se.UsdtTargets()
 	if err != nil {
-		return nil, err
+		return ids, err
 	}
 
 	tagsField, err := GetPolicyTags(spec.Tags)
 	if err != nil {
-		return nil, err
+		return ids, err
 	}
 
 	msgField, err := getPolicyMessage(spec.Message)
 	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
-		return nil, err
+		return ids, err
 	} else if errors.Is(err, ErrMsgSyntaxLong) {
 		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen),
 			"policy-name", in.policyName)
 	}
 
 	// Parse Filters into kernel filter logic
-	state, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
+	state, err = selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,
 		Args:      spec.Args,
 		Data:      []v1alpha1.KProbeArg{},
@@ -347,7 +390,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		found = true
 
 		if len(spec.Args) > api.EventConfigMaxArgs {
-			return nil, fmt.Errorf("failed to configure usdt '%s/%s', too many arguments (%d) allowed %d",
+			return ids, fmt.Errorf("failed to configure usdt '%s/%s', too many arguments (%d) allowed %d",
 				spec.Provider, spec.Name, len(spec.Args), api.EventConfigMaxArgs)
 		}
 
@@ -355,27 +398,27 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		if ok, idx := selectors.HasSetArgIndex(spec); ok {
 			// argument index is within usdt args in spec
 			if idx > uint32(len(spec.Args)) {
-				return nil, fmt.Errorf("failed to configure usdt '%s/%s', set action argument spec index %d out of bounds",
+				return ids, fmt.Errorf("failed to configure usdt '%s/%s', set action argument spec index %d out of bounds",
 					spec.Provider, spec.Name, idx)
 			}
 
 			// usdt spec argument points to existing usdt defined in elf note
 			arg := spec.Args[idx]
 			if arg.Index > uint32(len(target.Spec.Args)) {
-				return nil, fmt.Errorf("failed to configure usdt '%s/%s', argument index %d out of bounds",
+				return ids, fmt.Errorf("failed to configure usdt '%s/%s', argument index %d out of bounds",
 					spec.Provider, spec.Name, arg.Index)
 			}
 
 			// output argument must be 'deref' type
 			tgtArg := &target.Spec.Args[arg.Index]
 			if tgtArg.Type != elf.USDT_ARG_TYPE_REG_DEREF {
-				return nil, fmt.Errorf("failed to configure usdt '%s/%s', set action argument is not 'deref' type: '%s'",
+				return ids, fmt.Errorf("failed to configure usdt '%s/%s', set action argument is not 'deref' type: '%s'",
 					spec.Provider, spec.Name, tgtArg.Str)
 			}
 
 			// output argument is only allowed to be exactly 4 bytes
 			if tgtArg.Size != 4 {
-				return nil, fmt.Errorf("failed to configure usdt '%s/%s', set action argument must have size of 4 bytes, current is: %d",
+				return ids, fmt.Errorf("failed to configure usdt '%s/%s', set action argument must have size of 4 bytes, current is: %d",
 					spec.Provider, spec.Name, tgtArg.Size)
 			}
 		}
@@ -385,7 +428,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		for cfgIdx, arg := range spec.Args {
 			tgtIdx := arg.Index
 			if tgtIdx > target.Spec.ArgsCnt {
-				return nil, fmt.Errorf("failed to configure usdt '%s/%s', argument index %d out of bounds",
+				return ids, fmt.Errorf("failed to configure usdt '%s/%s', argument index %d out of bounds",
 					spec.Provider, spec.Name, tgtIdx)
 			}
 			tgtArg := &target.Spec.Args[tgtIdx]
@@ -402,7 +445,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 			if arg.Resolve != "" {
 				lastBTFType, btfArg, err := resolveUserBTFArg(&arg, spec.BTFPath)
 				if err != nil {
-					return nil, err
+					return ids, err
 				}
 
 				allBTFArgs[cfgIdx] = btfArg
@@ -417,17 +460,17 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 
 			if argType == gt.GenericStringType {
 				if !bpf.HasKfunc("bpf_copy_from_user_str") {
-					return nil, fmt.Errorf("can't preload string for argument %d", cfgIdx)
+					return ids, fmt.Errorf("can't preload string for argument %d", cfgIdx)
 				}
 
 				if preload {
-					return nil, errors.New("preloading multiple arguments per hook point is not supported")
+					return ids, errors.New("preloading multiple arguments per hook point is not supported")
 				}
 
 				preload = true
 				argMValue, err := getUserMetaValue(&arg, true)
 				if err != nil {
-					return nil, err
+					return ids, err
 				}
 				config.ArgMeta[cfgIdx] = uint32(argMValue)
 			}
@@ -462,7 +505,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 	}
 
 	if !found {
-		return nil, fmt.Errorf("failed to configure usdt '%s/%s', not found in the binary: '%s'",
+		return ids, fmt.Errorf("failed to configure usdt '%s/%s', not found in the binary: '%s'",
 			spec.Provider, spec.Name, spec.Path)
 	}
 	return ids, nil
