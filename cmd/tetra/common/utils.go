@@ -29,10 +29,13 @@ func HumanizeByteCount(b uint64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-func PrintTracingPolicies(output io.Writer, policies []*tetragon.TracingPolicyStatus, skipPolicy func(pol *tetragon.TracingPolicyStatus) bool) {
+func PrintTracingPolicies(output io.Writer, policies []*tetragon.TracingPolicyStatus, hookStatus bool, skipPolicy func(pol *tetragon.TracingPolicyStatus) bool) {
 	// tabwriter config imitates kubectl default output, i.e. 3 spaces padding
 	w := tabwriter.NewWriter(output, 0, 0, 3, ' ', 0)
 	header := "ID\tNAME\tDOMAIN\tSTATE\tFILTERID\tNAMESPACE\tSENSORS\tKERNELMEMORY\tMODE\tNPOST\tNENFORCE\tNMONITOR"
+	if hookStatus {
+		header = "ID\tNAME\tDOMAIN\tCFGIDX\tHOOK\tSTATUS"
+	}
 	fmt.Fprintln(w, header)
 
 	for _, pol := range policies {
@@ -71,20 +74,46 @@ func PrintTracingPolicies(output io.Writer, policies []*tetragon.TracingPolicySt
 			}
 		}
 
-		counters := pol.GetStats().GetActionCounters()
-		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%d\n",
-			pol.Id,
-			pol.Name,
-			pol.Domain,
-			strings.TrimPrefix(strings.ToLower(pol.State.String()), "tp_state_"),
-			pol.FilterId,
-			namespace,
-			sensors,
-			HumanizeByteCount(pol.KernelMemoryBytes),
-			strings.TrimPrefix(strings.ToLower(pol.Mode.String()), "tp_mode_"),
-			counters.GetPost(),
-			counters.GetSignal()+counters.GetOverride()+counters.GetNotifyEnforcer()+counters.GetSet(),
-			counters.GetMonitorSignal()+counters.GetMonitorOverride()+counters.GetMonitorNotifyEnforcer()+counters.GetMonitorSet())
+		if !hookStatus {
+			counters := pol.GetStats().GetActionCounters()
+			fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%d\n",
+				pol.Id,
+				pol.Name,
+				pol.Domain,
+				strings.TrimPrefix(strings.ToLower(pol.State.String()), "tp_state_"),
+				pol.FilterId,
+				namespace,
+				sensors,
+				HumanizeByteCount(pol.KernelMemoryBytes),
+				strings.TrimPrefix(strings.ToLower(pol.Mode.String()), "tp_mode_"),
+				counters.GetPost(),
+				counters.GetSignal()+counters.GetOverride()+counters.GetNotifyEnforcer()+counters.GetSet(),
+				counters.GetMonitorSignal()+counters.GetMonitorOverride()+counters.GetMonitorNotifyEnforcer()+counters.GetMonitorSet())
+			continue
+		}
+
+		hook_statuses := pol.HookStatuses
+		if len(hook_statuses) == 0 {
+			fmt.Fprintf(w, "%d\t%s\t%s\t\n", pol.Id, pol.Name, pol.Domain)
+			continue
+		}
+
+		for i, hs := range hook_statuses {
+			hookStatus := strings.TrimPrefix(strings.ToLower(hs.State.String()), "status_")
+			if i == 0 {
+				fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%s\t%s\n",
+					pol.Id,
+					pol.Name,
+					pol.Domain,
+					hs.HookIdx,
+					hs.HookDescription,
+					hookStatus)
+				continue
+			}
+
+			fmt.Fprintf(w, "\t\t\t%d\t%s\t%s\n", hs.HookIdx, hs.HookDescription, hookStatus)
+		}
+
 	}
 	w.Flush()
 }
