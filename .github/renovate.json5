@@ -466,6 +466,16 @@
       ],
       "automerge": true
     },
+    {
+      // Group all yq updates into a single branch. Refresh once every 3 months
+      "groupName": "yq",
+      "groupSlug": "mikefarah-yq",
+      "matchDepNames": [
+        "mikefarah/yq",
+        "docker.io/mikefarah/yq",
+      ],
+      "schedule": ["* * 1 */3 *"],
+    }
   ],
   // Those regexes manage version strings in variousfiles, similar to the
   // examples shown here: https://docs.renovatebot.com/modules/manager/regex/#advanced-capture
