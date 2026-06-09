@@ -89,7 +89,7 @@ func listPoliciesForContainer() *cobra.Command {
 				return fmt.Errorf("failed to list tracing policies: %w", err)
 			}
 
-			common.PrintTracingPolicies(os.Stdout, res.Policies, func(pol *tetragon.TracingPolicyStatus) bool {
+			common.PrintTracingPolicies(os.Stdout, res.Policies, false, func(pol *tetragon.TracingPolicyStatus) bool {
 				_, ok := policyIds[policyfilter.PolicyID(pol.FilterId)]
 				return !ok
 			})
