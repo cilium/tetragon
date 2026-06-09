@@ -31,6 +31,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
+	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -801,6 +802,7 @@ func createGenericUprobeSensor(
 	var err error
 	var has uprobeHas
 	var celExprs *selectors.CelExprFunctions
+	var statuses []*tetragon.HookStatus
 
 	// use multi uprobe only if:
 	// - it's not disabled by spec option
@@ -860,32 +862,54 @@ func createGenericUprobeSensor(
 			}
 		}
 
-		if err := verifyBinaryDigests(&uprobe, entryFile); err != nil {
-			return nil, fmt.Errorf("spec.uprobes[%d]: %w", cfgIdx, err)
+		hook_status := &tetragon.HookStatus{
+			State:           tetragon.HookState_STATUS_UNSPECIFIED,
+			HookDescription: uprobe.Path,
+			Section:         "uprobes",
+			HookIdx:         uint32(cfgIdx),
 		}
+
+		statuses = append(statuses, hook_status)
+
+		if err := verifyBinaryDigests(&uprobe, entryFile); err != nil {
+			var mismatchErr *DigestMismatchError
+			if !errors.As(err, &mismatchErr) {
+				return nil, fmt.Errorf("spec.uprobes[%d]: %w", cfgIdx, err)
+			}
+
+			hook_status.State = tetragon.HookState_STATUS_DIGEST_REJECTED
+			logger.GetLogger().Info(
+				fmt.Sprintf("spec.uprobes[%d]: %s", cfgIdx, mismatchErr.Error()),
+			)
+			continue
+		}
+
+		hook_status.State = tetragon.HookState_STATUS_LOADED
 
 		if ids, err = addUprobe(&uprobe, entryFile, ids, &in, &has); err != nil {
 			return nil, err
 		}
 	}
 
-	if useMulti {
-		progs, maps, err = createMultiUprobeSensor(polInfo, name, ids, has)
-	} else {
-		progs, maps, err = createSingleUprobeSensor(polInfo, ids, has)
-	}
+	if len(ids) != 0 {
+		if useMulti {
+			progs, maps, err = createMultiUprobeSensor(polInfo, name, ids, has)
+		} else {
+			progs, maps, err = createSingleUprobeSensor(polInfo, ids, has)
+		}
 
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return nil, err
+		}
 
-	maps = append(maps, program.MapUserFrom(base.ExecveMap))
-	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
-		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
-	}
+		maps = append(maps, program.MapUserFrom(base.ExecveMap))
+		if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
+			maps = append(maps, program.MapUserFrom(base.RingBufEvents))
+		}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		if option.Config.ParentsMapEnabled {
+			maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		}
 	}
 
 	return &sensors.Sensor{
@@ -895,6 +919,7 @@ func createGenericUprobeSensor(
 		Policy:                  polInfo.name,
 		Namespace:               polInfo.namespace,
 		DisableNotAllowedReason: has.disableNotAllowedReason,
+		Statuses:                statuses,
 		DestroyHook: func() error {
 			return cleanupUprobeEntries(ids, openedFiles)
 		},
