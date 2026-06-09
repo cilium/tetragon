@@ -203,8 +203,9 @@ func tpDisableCmd() *cobra.Command {
 
 func tpListCmd() *cobra.Command {
 	var (
-		output *option.Enum
-		domain string
+		output     *option.Enum
+		domain     string
+		hookStatus bool
 	)
 	ret := &cobra.Command{
 		Use:   "list",
@@ -231,7 +232,7 @@ func tpListCmd() *cobra.Command {
 				}
 				cmd.Println(string(b))
 			case "text":
-				common.PrintTracingPolicies(cmd.OutOrStdout(), res.Policies, nil)
+				common.PrintTracingPolicies(cmd.OutOrStdout(), res.Policies, hookStatus, nil)
 			}
 
 			return nil
@@ -242,6 +243,7 @@ func tpListCmd() *cobra.Command {
 	flags := ret.Flags()
 	flags.VarP(output, common.KeyOutput, "o", "Output format "+output.Allowed())
 	flags.StringVarP(&domain, "domain", "", "", "Domain to be used. Use k8s to act on CRD policies. By default only acts against grpc domain.")
+	flags.BoolVar(&hookStatus, "hook-status", false, "In text output, print only per-hook status lines per policy")
 	return ret
 }
 
