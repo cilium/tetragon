@@ -23,18 +23,18 @@ import (
 	"github.com/cilium/tetragon/pkg/selectors"
 )
 
-func getOrOpenFile(path string, openedFiles map[string]*os.File) (*os.File, error) {
+func getOrOpenFile(path string, openedFiles map[string]*os.File) (*os.File, bool, error) {
 	if f, ok := openedFiles[path]; ok {
-		return f, nil
+		return f, true, nil
 	}
 
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	openedFiles[path] = f
-	return f, nil
+	return f, false, nil
 }
 
 // Takes arg.Resolve as input and return the path in []string

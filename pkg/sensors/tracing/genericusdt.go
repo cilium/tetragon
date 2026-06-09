@@ -180,7 +180,7 @@ func createGenericUsdtSensor(
 		}
 		usdt.Path = absPath
 
-		entryFile, err := getOrOpenFile(absPath, openedFiles)
+		entryFile, _, err := getOrOpenFile(absPath, openedFiles)
 		if err != nil {
 			return nil, err
 		}

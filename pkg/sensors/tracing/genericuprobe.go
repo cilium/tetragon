@@ -31,6 +31,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
+	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -710,7 +711,7 @@ func verifyFileDigest(file *os.File, digestConfig string, fileHashCache map[stri
 	return nil
 }
 
-func verifyBinaryDigests(uprobe *v1alpha1.UProbeSpec, entryFile *os.File, cfgIdx int) error {
+func verifyBinaryDigests(uprobe *v1alpha1.UProbeSpec, entryFile *os.File, alreadyOpened bool, openedFiles map[string]*os.File, statuses *[]*tetragon.HookStatus, cfgIdx int) error {
 	if len(uprobe.BinaryDigests) == 0 {
 		return nil
 	}
@@ -725,6 +726,19 @@ func verifyBinaryDigests(uprobe *v1alpha1.UProbeSpec, entryFile *os.File, cfgIdx
 	}
 
 	if !matchFound {
+		if !alreadyOpened {
+			if err := entryFile.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+				logger.GetLogger().Warn("failed to close file after digest mismatch", logfields.Error, err, "path", uprobe.Path)
+			}
+			delete(openedFiles, uprobe.Path)
+		}
+		*statuses = append(*statuses, &tetragon.HookStatus{
+			State:           tetragon.HookState_STATUS_DIGEST_REJECTED,
+			HookDescription: uprobe.Path,
+			Section:         "uprobes",
+			HookIdx:         uint32(cfgIdx),
+		})
+
 		// Build a summary of actual hashes computed during verification
 		var actualHashes []string
 		for algo, hash := range digestCache {
@@ -754,6 +768,7 @@ func createGenericUprobeSensor(
 	var err error
 	var has uprobeHas
 	var celExprs *selectors.CelExprFunctions
+	var statuses []*tetragon.HookStatus
 	openedFiles := make(map[string]*os.File)
 
 	// use multi uprobe only if:
@@ -803,16 +818,14 @@ func createGenericUprobeSensor(
 		}
 		uprobe.Path = absPath
 
-		entryFile, err := getOrOpenFile(absPath, openedFiles)
+		entryFile, alreadyOpened, err := getOrOpenFile(absPath, openedFiles)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := verifyBinaryDigests(&uprobe, entryFile, cfgIdx); err != nil {
-			if closeErr := entryFile.Close(); closeErr != nil && !errors.Is(closeErr, os.ErrClosed) {
-				err = errors.Join(err, closeErr)
-			}
-			return nil, err
+		if err := verifyBinaryDigests(&uprobe, entryFile, alreadyOpened, openedFiles, &statuses, cfgIdx); err != nil {
+			logger.GetLogger().Info(err.Error())
+			continue
 		}
 
 		if ids, err = addUprobe(&uprobe, entryFile, ids, &in, &has); err != nil {
@@ -821,25 +834,34 @@ func createGenericUprobeSensor(
 			}
 			return nil, err
 		}
+
+		statuses = append(statuses, &tetragon.HookStatus{
+			State:           tetragon.HookState_STATUS_LOADED,
+			HookDescription: uprobe.Path,
+			Section:         "uprobes",
+			HookIdx:         uint32(cfgIdx),
+		})
 	}
 
-	if useMulti {
-		progs, maps, err = createMultiUprobeSensor(polInfo, name, ids, has)
-	} else {
-		progs, maps, err = createSingleUprobeSensor(polInfo, ids, has)
-	}
+	if len(openedFiles) != 0 {
+		if useMulti {
+			progs, maps, err = createMultiUprobeSensor(polInfo, name, ids, has)
+		} else {
+			progs, maps, err = createSingleUprobeSensor(polInfo, ids, has)
+		}
 
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return nil, err
+		}
 
-	maps = append(maps, program.MapUserFrom(base.ExecveMap))
-	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
-		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
-	}
+		maps = append(maps, program.MapUserFrom(base.ExecveMap))
+		if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
+			maps = append(maps, program.MapUserFrom(base.RingBufEvents))
+		}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		if option.Config.ParentsMapEnabled {
+			maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		}
 	}
 
 	return &sensors.Sensor{
@@ -849,6 +871,7 @@ func createGenericUprobeSensor(
 		Policy:                  polInfo.name,
 		Namespace:               polInfo.namespace,
 		DisablePolicyNotAllowed: has.disableNotAllowed,
+		Statuses:                statuses,
 		DestroyHook: func() error {
 			return cleanupUprobeEntries(ids)
 		},
