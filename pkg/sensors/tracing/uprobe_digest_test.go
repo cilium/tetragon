@@ -19,6 +19,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -80,7 +81,7 @@ spec:
 `, path, extra)
 }
 
-func policyLoadMatchesExpectation(t *testing.T, policy string, shouldLoad bool) {
+func policyLoadMatchesExpectation(t *testing.T, policy string, expectedHookStatus tetragon.HookStatus) {
 	t.Helper()
 
 	createCrdFile(t, policy)
@@ -99,15 +100,27 @@ func policyLoadMatchesExpectation(t *testing.T, policy string, shouldLoad bool) 
 	require.NoError(t, err, "failed to initialize observer")
 
 	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
-	if shouldLoad {
-		require.NoError(t, err, "policy should load")
-	} else {
-		require.Error(t, err, "policy should fail to load")
+	require.NoError(t, err, "policy should load")
+
+	statusRes, err := observer.GetSensorManager().ListTracingPolicies(ctx, "")
+	require.NoError(t, err, "failed to list tracing policies")
+
+	var policyStatus *tetragon.TracingPolicyStatus
+	for _, s := range statusRes.Policies {
+		if s.GetName() == "uprobe-digest-test" {
+			policyStatus = s
+			break
+		}
 	}
+	require.NotNil(t, policyStatus, "failed to find tracing policy status")
+	sensor_info := policyStatus.GetSensorInfo()
+	require.Len(t, sensor_info, 1, "expected one sensor info")
+	require.Len(t, sensor_info[0].GetHookInfo(), 1, "expected one per-hook status")
+	require.Equal(t, expectedHookStatus, sensor_info[0].GetHookInfo()[0].GetStatus(), "unexpected hook status")
 }
 
 func TestUprobeDigestNoDigest(t *testing.T) {
-	policyLoadMatchesExpectation(t, uprobePolicy(nil), true)
+	policyLoadMatchesExpectation(t, uprobePolicy(nil), tetragon.HookStatus_STATUS_LOADED)
 }
 
 func TestUprobeDigestCorrectSHA256(t *testing.T) {
@@ -115,23 +128,23 @@ func TestUprobeDigestCorrectSHA256(t *testing.T) {
 	digest, err := calculateSHA256(nop)
 	require.NoError(t, err)
 
-	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256:" + digest}), true)
+	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256:" + digest}), tetragon.HookStatus_STATUS_LOADED)
 }
 
 func TestUprobeDigestWrongSHA256(t *testing.T) {
 	policyLoadMatchesExpectation(
 		t,
 		uprobePolicy([]string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"}),
-		false,
+		tetragon.HookStatus_STATUS_DIGEST_REJECTED,
 	)
 }
 
 func TestUprobeDigestInvalidFormat(t *testing.T) {
-	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256noseparator"}), false)
+	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256noseparator"}), tetragon.HookStatus_STATUS_DIGEST_REJECTED)
 }
 
 func TestUprobeDigestUnsupportedAlgorithm(t *testing.T) {
-	policyLoadMatchesExpectation(t, uprobePolicy([]string{"md5:abc123"}), false)
+	policyLoadMatchesExpectation(t, uprobePolicy([]string{"md5:abc123"}), tetragon.HookStatus_STATUS_DIGEST_REJECTED)
 }
 
 func TestUprobeDigestCaseInsensitive(t *testing.T) {
@@ -139,7 +152,7 @@ func TestUprobeDigestCaseInsensitive(t *testing.T) {
 	digest, err := calculateSHA256(nop)
 	require.NoError(t, err)
 
-	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256:" + strings.ToUpper(digest)}), true)
+	policyLoadMatchesExpectation(t, uprobePolicy([]string{"sha256:" + strings.ToUpper(digest)}), tetragon.HookStatus_STATUS_LOADED)
 }
 
 func TestUprobeDigestBuildID(t *testing.T) {
@@ -149,7 +162,7 @@ func TestUprobeDigestBuildID(t *testing.T) {
 		t.Skip("binary has no build ID")
 	}
 
-	policyLoadMatchesExpectation(t, uprobePolicy([]string{"build-id:" + buildID}), true)
+	policyLoadMatchesExpectation(t, uprobePolicy([]string{"build-id:" + buildID}), tetragon.HookStatus_STATUS_LOADED)
 }
 func TestUprobeDigestMultipleDigestsAnyMatch(t *testing.T) {
 	nop := testutils.RepoRootPath("contrib/tester-progs/nop")
@@ -161,7 +174,7 @@ func TestUprobeDigestMultipleDigestsAnyMatch(t *testing.T) {
 		"sha256:0000000000000000000000000000000000000000000000000000000000000000",
 		"sha256:" + digest,
 	}
-	policyLoadMatchesExpectation(t, uprobePolicy(digests), true)
+	policyLoadMatchesExpectation(t, uprobePolicy(digests), tetragon.HookStatus_STATUS_LOADED)
 }
 
 func TestUprobeDigestMultipleDigestsAllWrong(t *testing.T) {
@@ -170,5 +183,5 @@ func TestUprobeDigestMultipleDigestsAllWrong(t *testing.T) {
 		"sha256:1111111111111111111111111111111111111111111111111111111111111111",
 		"sha256:2222222222222222222222222222222222222222222222222222222222222222",
 	}
-	policyLoadMatchesExpectation(t, uprobePolicy(wrongDigests), false)
+	policyLoadMatchesExpectation(t, uprobePolicy(wrongDigests), tetragon.HookStatus_STATUS_DIGEST_REJECTED)
 }

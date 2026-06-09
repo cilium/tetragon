@@ -31,6 +31,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
+	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -593,6 +594,7 @@ func createGenericUprobeSensor(
 	var err error
 	var has uprobeHas
 	var celExprs *selectors.CelExprFunctions
+	var hookInfo []*tetragon.HookInfo
 	openedFiles := make(map[string]*program.UprobeFile)
 
 	// use multi uprobe only if:
@@ -620,13 +622,7 @@ func createGenericUprobeSensor(
 	}
 
 	for _, uprobe := range spec.UProbes {
-		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
-			err = fmt.Errorf("append macros selectors: %w", err)
-			if cleanupErr := cleanupUprobeEntries(ids); cleanupErr != nil {
-				err = errors.Join(err, cleanupErr)
-			}
-			return nil, err
-		}
+		alreadyOpened := true
 
 		entryFile, ok := openedFiles[uprobe.Path]
 		if !ok {
@@ -639,6 +635,7 @@ func createGenericUprobeSensor(
 			}
 			entryFile = &program.UprobeFile{Handle: f}
 			openedFiles[uprobe.Path] = entryFile
+			alreadyOpened = false
 		}
 
 		if len(uprobe.BinaryDigests) > 0 {
@@ -651,8 +648,30 @@ func createGenericUprobeSensor(
 				}
 			}
 			if !matchFound {
-				return nil, errors.New("digest verification failed: no matching digest")
+				if !alreadyOpened {
+					if err := entryFile.Handle.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+						logger.GetLogger().Warn("failed to close file after digest mismatch", logfields.Error, err, "path", uprobe.Path)
+					}
+					delete(openedFiles, uprobe.Path)
+				}
+				hookInfo = append(hookInfo, &tetragon.HookInfo{
+					Status: tetragon.HookStatus_STATUS_DIGEST_REJECTED,
+					Name:   uprobe.Path,
+				})
+
+				continue
 			}
+		}
+
+		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
+			err = fmt.Errorf("append macros selectors: %w", err)
+			if cleanupErr := cleanupUprobeEntries(ids); cleanupErr != nil {
+				err = errors.Join(err, cleanupErr)
+			}
+			if closeErr := entryFile.Handle.Close(); closeErr != nil && !errors.Is(closeErr, os.ErrClosed) {
+				err = errors.Join(err, closeErr)
+			}
+			return nil, err
 		}
 
 		nextIDs, addErr := addUprobe(&uprobe, entryFile, ids, &in, &has)
@@ -666,29 +685,35 @@ func createGenericUprobeSensor(
 			}
 			return nil, addErr
 		}
+		hookInfo = append(hookInfo, &tetragon.HookInfo{
+			Status: tetragon.HookStatus_STATUS_LOADED,
+			Name:   uprobe.Path,
+		})
 		ids = nextIDs
 	}
 
-	if in.useMulti {
-		progs, maps, err = createMultiUprobeSensor(polInfo, name, ids, has)
-	} else {
-		progs, maps, err = createSingleUprobeSensor(polInfo, ids, has)
-	}
-
-	if err != nil {
-		if cleanupErr := cleanupUprobeEntries(ids); cleanupErr != nil {
-			err = errors.Join(err, cleanupErr)
+	if len(openedFiles) != 0 {
+		if in.useMulti {
+			progs, maps, err = createMultiUprobeSensor(polInfo, name, ids, has)
+		} else {
+			progs, maps, err = createSingleUprobeSensor(polInfo, ids, has)
 		}
-		return nil, err
-	}
 
-	maps = append(maps, program.MapUserFrom(base.ExecveMap))
-	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
-		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
-	}
+		if err != nil {
+			if cleanupErr := cleanupUprobeEntries(ids); cleanupErr != nil {
+				err = errors.Join(err, cleanupErr)
+			}
+			return nil, err
+		}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		maps = append(maps, program.MapUserFrom(base.ExecveMap))
+		if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
+			maps = append(maps, program.MapUserFrom(base.RingBufEvents))
+		}
+
+		if option.Config.ParentsMapEnabled {
+			maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		}
 	}
 
 	return &sensors.Sensor{
@@ -697,6 +722,7 @@ func createGenericUprobeSensor(
 		Maps:      maps,
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
+		HookInfo:  hookInfo,
 		DestroyHook: func() error {
 			return cleanupUprobeEntries(ids)
 		},

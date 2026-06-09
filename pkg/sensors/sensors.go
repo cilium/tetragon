@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -73,6 +74,8 @@ type Sensor struct {
 	// when removing the sensor, sensor cannot be loaded again after this hook
 	// being triggered and must be recreated.
 	DestroyHook SensorHook
+	// HookStatus contains per-hook status for all hooks managed by this sensor.
+	HookInfo []*tetragon.HookInfo
 }
 
 func (s *Sensor) AddPostUnloadHook(hook SensorHook) {
@@ -114,6 +117,11 @@ type SensorIface interface {
 	// the sensor's programs.
 	TotalMemlock() uint64
 	Overhead() ([]ProgOverhead, bool)
+	GetHookInfo() []*tetragon.HookInfo
+}
+
+func (s *Sensor) GetHookInfo() []*tetragon.HookInfo {
+	return s.HookInfo
 }
 
 func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
