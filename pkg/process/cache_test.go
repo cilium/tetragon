@@ -139,7 +139,7 @@ func TestProcessCacheColorDataRace(t *testing.T) {
 	defer cache.purge()
 
 	procs := make([]*ProcessInternal, 0, 50)
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		p := &ProcessInternal{
 			process: &tetragon.Process{
 				ExecId: "proc" + strconv.Itoa(i),
@@ -156,9 +156,7 @@ func TestProcessCacheColorDataRace(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// Reader goroutine: reads color via the getEntries path repeatedly.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case <-stop:
@@ -167,13 +165,11 @@ func TestProcessCacheColorDataRace(t *testing.T) {
 				cache.getEntries()
 			}
 		}
-	}()
+	})
 
 	// Writer goroutine: churns refcnt so the GC goroutine keeps writing color
 	// (inUse -> deletePending -> deleteReady -> inUse ...).
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case <-stop:
@@ -185,7 +181,7 @@ func TestProcessCacheColorDataRace(t *testing.T) {
 				}
 			}
 		}
-	}()
+	})
 
 	time.Sleep(200 * time.Millisecond)
 	close(stop)
