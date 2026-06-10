@@ -19,6 +19,8 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+
+	"github.com/cilium/tetragon/pkg/logger"
 )
 
 type cli struct {
@@ -228,7 +230,7 @@ func updateInfo(
 
 	ret := make(map[string][]SyscallArg)
 	for k, v := range allSyscalls {
-		sl := slog.With("syscall", k)
+		sl := slog.New(slog.NewTextHandler(os.Stdout, nil)).With("syscall", k)
 		if v.inOld && v.inNew {
 			ret[k] = updateArgs(sl, oldInfo[k], newInfo[k])
 		} else if v.inOld {
@@ -347,13 +349,13 @@ func (c *SyscallsIDsCmd) Run() error {
 	for _, abi := range c.ABI {
 		glibcLoc, ok := glibcLocation[abi]
 		if !ok {
-			slog.Warn("unknown abi, ignoring", "abi", abi)
+			logger.GetLogger().Warn("unknown abi, ignoring", "abi", abi)
 			continue
 		}
 
 		abiTmpDir := filepath.Join(tmpDir, abi)
 		if err := os.Mkdir(abiTmpDir, 0755); err != nil {
-			slog.Warn("error creationg dir", "dir", abiTmpDir, "err", err)
+			logger.GetLogger().Warn("error creationg dir", "dir", abiTmpDir, "err", err)
 			continue
 		}
 
@@ -426,7 +428,7 @@ func main() {
 	cliCtx := kong.Parse(cliCnf)
 	err := cliCtx.Run()
 	if err != nil {
-		slog.Error("failed to run", "error", err)
+		logger.GetLogger().Error("failed to run", "error", err)
 		os.Exit(1)
 	}
 }
