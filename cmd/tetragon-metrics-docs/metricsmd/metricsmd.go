@@ -9,6 +9,8 @@ import (
 	"github.com/isovalent/metricstool/pkg/metricsmd"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
+
+	"github.com/cilium/tetragon/pkg/logger"
 )
 
 type initMetricsFunc func(string, *prometheus.Registry, *slog.Logger) error
@@ -64,7 +66,7 @@ func New(targets map[string]string, init initMetricsFunc) *cobra.Command {
 
 	cmd, err := metricsmd.NewCmd(nil, nil, config)
 	if err != nil {
-		slog.Error("failed to create metrics-docs command", "error", err)
+		logger.GetLogger().Error("failed to create metrics-docs command", "error", err)
 	}
 	return cmd
 }
