@@ -211,7 +211,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 			flags = 0
 		}
 
-		if a.ty == gt.GenericFileType || a.ty == gt.GenericKiocb {
+		if a.ty == gt.GenericFileType || a.ty == gt.GenericFdType || a.ty == gt.GenericKiocb {
 			err := binary.Read(r, binary.LittleEndian, &mode)
 			if err != nil {
 				mode = 0

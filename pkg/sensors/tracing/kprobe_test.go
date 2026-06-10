@@ -5764,6 +5764,12 @@ func TestSubStringPath(t *testing.T) {
 	})
 }
 
+func TestFdRetrival(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-fd-arg", map[string]any{
+		"Hook": "kprobes",
+	})
+}
+
 // Test module loading/unloading on Ubuntu
 func testTraceKernelModule(t *testing.T, fentry bool) {
 	_, err := ftrace.ReadAvailFuncs("^find_module_sections$")

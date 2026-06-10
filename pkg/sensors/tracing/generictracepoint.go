@@ -1185,7 +1185,7 @@ func handleMsgGenericTracepoint(
 				flags = 0
 			}
 
-			if out.genericTypeId == gt.GenericFileType || out.genericTypeId == gt.GenericKiocb {
+			if out.genericTypeId == gt.GenericFileType || out.genericTypeId == gt.GenericFdType || out.genericTypeId == gt.GenericKiocb {
 				err = binary.Read(r, binary.LittleEndian, &mode)
 				if err != nil {
 					mode = 0

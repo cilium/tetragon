@@ -535,3 +535,9 @@ func TestSubStringPathFentry(t *testing.T) {
 		"Hook": "fentries",
 	})
 }
+
+func TestFdRetrivalFentry(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-fd-arg", map[string]any{
+		"Hook": "fentries",
+	})
+}
