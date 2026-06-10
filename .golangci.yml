@@ -43,6 +43,15 @@ linters:
         - "on"
         - at
         - from
+    sloglint:
+      no-mixed-args: true
+      kv-only: true
+      no-global: "default"
+      forbidden-keys:
+        - time
+        - level
+        - msg
+        - source
     goheader:
       values:
         regexp:
