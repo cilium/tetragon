@@ -85,6 +85,11 @@
   //   important rules override settings from earlier rules if needed.
   "packageRules": [
     {
+      // Dependency cooldown: skip versions published less than 5 days ago
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "minimumReleaseAge": "5 days"
+    },
+    {
       "groupName": "all github action dependencies",
       "groupSlug": "all-github-action",
       "matchFileNames": [
