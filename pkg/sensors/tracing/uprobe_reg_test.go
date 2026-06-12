@@ -17,6 +17,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/pkg/logger"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/celbpf"
@@ -175,6 +177,73 @@ spec:
 	cmd := exec.Command(testBinary, "1")
 	require.Error(t, cmd.Run())
 	require.Equal(t, 11, cmd.ProcessState.ExitCode())
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUprobeOverrideCallAction(t *testing.T) {
+	if !bpf.HasUprobeRegsChange() {
+		t.Skip("this test requires writing to regs kernel support")
+	}
+
+	testutils.CaptureLog(t, logger.GetLogger())
+	uprobeTest1 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-selector"
+spec:
+  uprobes:
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_string_arg_empty"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "` + uprobeTest1 + `"
+      matchActions:
+      - action: OverrideCall
+        newSymbol: "uprobe_test_lib_string_arg__"
+`
+
+	createCrdFile(t, uprobeHook)
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_SELECTOR_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobeTest1))).
+		WithSymbol(sm.Full("uprobe_test_lib_string_arg_empty"))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	var bytes []byte
+	if bytes, err = exec.Command(uprobeTest1).Output(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	if strings.Contains(string(bytes), "uprobe_test_lib_string_arg_empty") {
+		t.Fatalf("uprobe_test_lib_string_arg_empty should not be called")
+	}
+	if !strings.Contains(string(bytes), "uprobe_test_lib_string_arg__") {
+		t.Fatalf("uprobe_test_lib_string_arg__ should be called")
+	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)

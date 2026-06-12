@@ -819,6 +819,7 @@ matches. They are defined under `matchActions` and currently, the following
 - [UntrackSock action](#untracksock-action)
 - [Notify Enforcer action](#notify-enforcer-action)
 - [USDT Set action](#usdt-set-action)
+- [OverrideCall action](#overridecall-action)
 
 {{< warning >}}
 The FollowFD and related (UnfollowFD, CopyFD) actions have been deprecated due to being unsafe and
@@ -826,7 +827,7 @@ are planned to be removed in version 1.5.
 {{< /warning >}}
 
 {{< note >}}
-`Sigkill`, `Override`, `FollowFD`, `UnfollowFD`, `CopyFD`, `Post`,
+`Sigkill`, `Override`, `OverrideCall`, `FollowFD`, `UnfollowFD`, `CopyFD`, `Post`,
 `TrackSock` and `UntrackSock` are
 executed directly in the kernel BPF code while `GetUrl` and `DnsLookup` are
 happening in userspace after the reception of events.
@@ -979,8 +980,6 @@ ensure they properly follow the [Error Injectable Functions](https://docs.kernel
 Beware, here be dragons!!! Use with caution, it could easily crash traced application.
 {{< /warning >}}
 
-Note that `Override` action can be used only on `x86_64` architecture.
-
 Similar to kprobe, the uprobe `Override` action allows to modify the return value
 of user space call with `argError` argument, like:
 
@@ -998,7 +997,8 @@ uprobes:
 Note that it can be successfully used only when following conditions are met:
 - uprobe is attached to the beggining of the user space function;
 - user space function is called via `call` instruction;
-- user space function returns `int` type.
+- user space function returns `int` type;
+- Kernel support to manipulate raw registers is available (6.18+ unless backported).
 
 It's possible to override specific registers with arbitrary value with `argRegs`
 argument, like:
@@ -1810,6 +1810,34 @@ The `Set` action uses following arguments:
 
 - The `argIndex` defines position of the return argument.
 - The `argValue` defined the actual value to write.
+
+### OverrideCall action
+
+{{< warning >}}
+Beware, here be dragons!!! Use with caution, it could easily crash traced application.
+{{< /warning >}}
+
+OverrideCall action is only defined for uprobe selectors.
+It allows tetragon to route the traced symbol calls to a different symbol.
+For example, to override `malloc` calls to `malloc_patched` function, the following policy can be used:
+
+```yaml
+uprobes:
+- path: "test"
+  symbols:
+  - "malloc"
+  selectors:
+  - matchActions:
+    - action: OverrideCall
+      newSymbol: "malloc_patched"
+```
+
+There are, however, some restrictions:
+- Kernel support to manipulate raw registers is required (6.18+ unless backported);
+- The new symbol must be already present in the binary;
+- The new symbol must be compatible (same signature) with the original symbol; tetragon enforces no verification;
+- Only a single `Symbol`/`Addr`/`Offset` uprobe hook point is supported when using the `OverrideCall` action;
+- Can't use `OverrideCall` and `Override` together.
 
 ## Selector Semantics
 

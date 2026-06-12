@@ -535,6 +535,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -588,6 +589,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -610,6 +628,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -988,6 +1011,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1041,6 +1065,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -1063,6 +1104,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchArgs are
@@ -1814,6 +1860,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1867,6 +1914,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -1889,6 +1953,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -2267,6 +2336,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2320,6 +2390,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -2342,6 +2429,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchArgs are
@@ -2815,6 +2907,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2868,6 +2961,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -2890,6 +3000,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -3268,6 +3383,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -3321,6 +3437,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -3343,6 +3476,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchArgs are
@@ -3717,6 +3855,7 @@ spec:
                             - NotifyEnforcer
                             - CleanupEnforcerNotification
                             - Set
+                            - OverrideCall
                             type: string
                           argError:
                             description: error value for override action
@@ -3768,6 +3907,23 @@ spec:
                             description: Enable kernel stack trace export. Only valid
                               with the post action.
                             type: boolean
+                          newAddr:
+                            description: |-
+                              The new symbol's address for the overrideCall action.
+                              Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                            format: int64
+                            type: integer
+                          newOffset:
+                            description: |-
+                              The new symbol's offset for the overrideCall action.
+                              Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                            format: int64
+                            type: integer
+                          newSymbol:
+                            description: |-
+                              The new symbol for the overrideCall action.
+                              Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                            type: string
                           rateLimit:
                             description: |-
                               A time period within which repeated messages will not be posted. Can be
@@ -3790,6 +3946,11 @@ spec:
                         required:
                         - action
                         type: object
+                        x-kubernetes-validations:
+                        - message: at most one of the fields in [newSymbol newAddr
+                            newOffset] may be set
+                          rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                            <= 1'
                       type: array
                     matchArgs:
                       description: A list of argument filters. MatchArgs are ANDed.
@@ -4163,6 +4324,7 @@ spec:
                             - NotifyEnforcer
                             - CleanupEnforcerNotification
                             - Set
+                            - OverrideCall
                             type: string
                           argError:
                             description: error value for override action
@@ -4214,6 +4376,23 @@ spec:
                             description: Enable kernel stack trace export. Only valid
                               with the post action.
                             type: boolean
+                          newAddr:
+                            description: |-
+                              The new symbol's address for the overrideCall action.
+                              Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                            format: int64
+                            type: integer
+                          newOffset:
+                            description: |-
+                              The new symbol's offset for the overrideCall action.
+                              Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                            format: int64
+                            type: integer
+                          newSymbol:
+                            description: |-
+                              The new symbol for the overrideCall action.
+                              Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                            type: string
                           rateLimit:
                             description: |-
                               A time period within which repeated messages will not be posted. Can be
@@ -4236,6 +4415,11 @@ spec:
                         required:
                         - action
                         type: object
+                        x-kubernetes-validations:
+                        - message: at most one of the fields in [newSymbol newAddr
+                            newOffset] may be set
+                          rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                            <= 1'
                       type: array
                     matchReturnArgs:
                       description: A list of argument filters. MatchArgs are ANDed.
@@ -4662,6 +4846,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -4715,6 +4900,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -4737,6 +4939,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -5115,6 +5322,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -5168,6 +5376,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -5190,6 +5415,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchArgs are
@@ -5889,6 +6119,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -5942,6 +6173,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -5964,6 +6212,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -6342,6 +6595,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -6395,6 +6649,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -6417,6 +6688,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchArgs are
@@ -6868,6 +7144,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -6921,6 +7198,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -6943,6 +7237,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -7321,6 +7620,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - OverrideCall
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -7374,6 +7674,23 @@ spec:
                                   description: Enable kernel stack trace export. Only
                                     valid with the post action.
                                   type: boolean
+                                newAddr:
+                                  description: |-
+                                    The new symbol's address for the overrideCall action.
+                                    Beware that the called symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newOffset:
+                                  description: |-
+                                    The new symbol's offset for the overrideCall action.
+                                    Beware that the new symbol MUST be binary compatible with the traced uprobe symbol.
+                                  format: int64
+                                  type: integer
+                                newSymbol:
+                                  description: |-
+                                    The new symbol for the overrideCall action.
+                                    Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+                                  type: string
                                 rateLimit:
                                   description: |-
                                     A time period within which repeated messages will not be posted. Can be
@@ -7396,6 +7713,11 @@ spec:
                               required:
                               - action
                               type: object
+                              x-kubernetes-validations:
+                              - message: at most one of the fields in [newSymbol newAddr
+                                  newOffset] may be set
+                                rule: '[has(self.newSymbol),has(self.newAddr),has(self.newOffset)].filter(x,x==true).size()
+                                  <= 1'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchArgs are

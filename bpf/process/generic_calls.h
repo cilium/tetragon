@@ -1034,6 +1034,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		}
 		break;
 	case ACTION_OVERRIDE:
+	case ACTION_OVERRIDE_CALL:
 		error = actions->act[++i];
 		if (enforce_mode) {
 #if defined(GENERIC_UPROBE)

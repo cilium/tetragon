@@ -42,6 +42,13 @@ int uprobe_test_lib_string_arg(char *str)
 	return 0;
 }
 
+// This will be used for OverrideCall test
+int uprobe_test_lib_string_arg__(char *str)
+{
+	printf("uprobe_test_lib_string_arg__ called\n");
+	return 0;
+}
+
 int uprobe_test_lib_string_arg0(char *str, int two, int three, int four, int five)
 {
 	printf("uprobe_test_lib_string_arg0 called\n");
