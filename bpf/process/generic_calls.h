@@ -1413,7 +1413,7 @@ FUNC_INLINE int filter_args(void *ctx, struct bpf_map_def *tailcalls,
 		return filter_args_reject(e->func_id);
 
 	if (e->sel.active[selidx]) {
-		int pass = selector_arg_offset(ctx, tailcalls, e, selidx, is_entry, arg);
+		int pass = selector_arg_offset(ctx, tailcalls, selidx, is_entry, arg);
 
 		if (pass)
 			return pass;
