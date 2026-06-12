@@ -33,7 +33,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
-	"github.com/cilium/tetragon/pkg/podhooks"
+	"github.com/cilium/tetragon/pkg/manager/events"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/watcher"
 )
@@ -51,6 +51,7 @@ type ControllerManager struct {
 	Manager         ctrlManager.Manager
 	deletedPodCache *watcher.DeletedPodCache
 	podInformer     cache.SharedIndexInformer
+	podEvents       events.PodEventSource
 }
 
 func Get() *ControllerManager {
@@ -114,6 +115,24 @@ func (cm *ControllerManager) Start(ctx context.Context) {
 		}()
 		cm.Manager.GetCache().WaitForCacheSync(ctx)
 	})
+}
+
+const crdWaitResyncPeriod = time.Minute
+
+// RegisterControllerWhenCRDReady runs setup once crdName is observed. The
+// wait is a manager Runnable, so registration works before or after
+// Manager.Start. Use this for Reconcilers whose CRD may not yet be installed
+// at agent startup.
+func (cm *ControllerManager) RegisterControllerWhenCRDReady(crdName string, setup func(ctrlManager.Manager) error) error {
+	return cm.Manager.Add(ctrlManager.RunnableFunc(func(ctx context.Context) error {
+		if err := cm.WaitCRDsWithResync(ctx, map[string]struct{}{crdName: {}}, crdWaitResyncPeriod); err != nil {
+			return fmt.Errorf("waiting for CRD %q: %w", crdName, err)
+		}
+		if err := setup(cm.Manager); err != nil {
+			return fmt.Errorf("registering controller for CRD %q: %w", crdName, err)
+		}
+		return nil
+	}))
 }
 
 func (cm *ControllerManager) GetNamespace(name string) (*corev1.Namespace, error) {
@@ -358,6 +377,7 @@ func (cm *ControllerManager) addPodInformer() error {
 		return err
 	}
 	cm.podInformer = podInformer.(cache.SharedIndexInformer)
+	cm.podEvents = newPodEventAdapter(cm.podInformer)
 	err = cm.podInformer.AddIndexers(cache.Indexers{
 		watcher.ContainerIdx: watcher.ContainerIndexFunc,
 		watcher.PodIdx:       watcher.PodIndexFunc,
@@ -368,10 +388,17 @@ func (cm *ControllerManager) addPodInformer() error {
 	// add event handlers to the informer
 	_, err = cm.podInformer.AddEventHandler(cm.deletedPodCache.EventHandler())
 	if err != nil {
-		return nil
+		return err
 	}
-	podhooks.InstallHooks(cm.podInformer)
 	return nil
+}
+
+// PodEvents returns a typed events.PodEventSource backed by the pod informer.
+// Returns nil if the manager was constructed without a pod informer (e.g.,
+// out-of-cluster mode where pod watching is disabled). The adapter is created
+// once when the informer is added, so all consumers share the same instance.
+func (cm *ControllerManager) PodEvents() events.PodEventSource {
+	return cm.podEvents
 }
 
 func (cm *ControllerManager) FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {

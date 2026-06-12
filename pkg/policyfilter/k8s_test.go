@@ -6,12 +6,10 @@
 package policyfilter
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"math/rand"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -20,11 +18,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes/fake"
-	clienttesting "k8s.io/client-go/testing"
-	"k8s.io/client-go/tools/cache"
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
@@ -32,19 +25,12 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 )
 
-// Testing of policyfilter using a fake k8s clientset.
+// Testing of policyfilter using a hand-rolled fake PodEventSource.
 //
-// The idea here is to perform k8s operations that cause our callbacks to be called, and then test
-// the state of the policyfilter bpf map.
-//
-// There are a few complications:
-// We need a fake cgroup-id finder that can map container ids to cgroup ids.
-// Since the pod informer callbacks are called asynchronously, we need to know were they have been
-// called so that test whether the state is up-to-date. To this end, we wrap the callbacks and
-// implement counters that we check before testing the state (see waitForCallbacks).
-//
-// The approach here can be extended for randomized testing by having a (simpler) mirrored state and
-// performing state transitions and checking that each step is correct.
+// The idea is to drive the policyfilter's pod handlers directly from the test
+// (no informer, no fake clientset) and assert the resulting state of the
+// policy filter bpf map. Because callbacks are invoked synchronously, the
+// previous waitForCallbacks dance is no longer needed.
 
 type tlog struct {
 	*testing.T
@@ -76,59 +62,59 @@ func (ts *testState) randString(length int) string {
 	return hex.EncodeToString(b)[2 : length+2]
 }
 
-// testState provides two things: i) helper functions for creating/updating pods, and ii) a fake
-// FsScanner.
+// testState provides helper functions for creating/updating pods and a fake
+// cgroup-id finder.
 type testState struct {
 	pods   []testPod
-	client *fake.Clientset
 	rnd    *rand.Rand
-
-	nrAdds, nrUpds, nrDels uint64
-	cbAdds, cbUpds, cbDels atomic.Uint64
+	source *fakePodEventSource
 }
 
-func newTestState(client *fake.Clientset) *testState {
-	ts := testState{
-		client: client,
+func newTestState(source *fakePodEventSource) *testState {
+	return &testState{
 		rnd:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		source: source,
 	}
-	return &ts
 }
 
-func (ts *testState) callbacksDone() bool {
-	return (ts.cbAdds.Load() == ts.nrAdds) &&
-		(ts.cbUpds.Load() == ts.nrUpds) &&
-		(ts.cbDels.Load() == ts.nrDels)
+// fakePodEventSource is a hand-rolled fake satisfying policyfilter.PodEventSource.
+// It captures the registered handlers so the test can fire events synchronously.
+// Each event type holds a slice of handlers — matching the production adapter,
+// which supports independent registrations from multiple consumers on the same
+// informer.
+type fakePodEventSource struct {
+	addHandlers    []func(*v1.Pod)
+	updateHandlers []func(*v1.Pod, *v1.Pod)
+	deleteHandlers []func(*v1.Pod)
 }
 
-func (ts *testState) waitForCallbacks(t *testing.T) {
-	dt := 1 * time.Millisecond
-	for range 6 {
-		time.Sleep(dt)
-		if ts.callbacksDone() {
-			return
-		}
-		dt = 5 * dt
+func (f *fakePodEventSource) OnPodAdd(handler func(pod *v1.Pod)) {
+	f.addHandlers = append(f.addHandlers, handler)
+}
+
+func (f *fakePodEventSource) OnPodUpdate(handler func(oldPod, newPod *v1.Pod)) {
+	f.updateHandlers = append(f.updateHandlers, handler)
+}
+
+func (f *fakePodEventSource) OnPodDelete(handler func(pod *v1.Pod)) {
+	f.deleteHandlers = append(f.deleteHandlers, handler)
+}
+
+func (f *fakePodEventSource) firePodAdd(pod *v1.Pod) {
+	for _, h := range f.addHandlers {
+		h(pod)
 	}
-
-	t.Fatalf("waitForCallbacks: timeout (%s)", dt)
 }
 
-func (ts *testState) eventHandler(m *state) cache.ResourceEventHandler {
-	h := m.getPodEventHandlers()
-	return cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj any) {
-			h.OnAdd(obj, false)
-			ts.cbAdds.Add(1)
-		},
-		UpdateFunc: func(oldObj, newObj any) {
-			h.OnUpdate(oldObj, newObj)
-			ts.cbUpds.Add(1)
-		},
-		DeleteFunc: func(obj any) {
-			h.OnDelete(obj)
-			ts.cbDels.Add(1)
-		},
+func (f *fakePodEventSource) firePodUpdate(oldPod, newPod *v1.Pod) {
+	for _, h := range f.updateHandlers {
+		h(oldPod, newPod)
+	}
+}
+
+func (f *fakePodEventSource) firePodDelete(pod *v1.Pod) {
+	for _, h := range f.deleteHandlers {
+		h(pod)
 	}
 }
 
@@ -170,9 +156,9 @@ func (ts *testState) newTestContainer(name string) testContainer {
 	}
 }
 
-func (ts *testState) createPod(t *testing.T, name string, namespace string, podLabels labels.Labels, containerNames ...string) {
+func (ts *testState) createPod(_ *testing.T, name string, namespace string, podLabels labels.Labels, containerNames ...string) {
 	podID := uuid.New()
-	testPod := testPod{
+	tp := testPod{
 		name:      name,
 		id:        podID,
 		namespace: namespace,
@@ -180,33 +166,29 @@ func (ts *testState) createPod(t *testing.T, name string, namespace string, podL
 	}
 
 	for _, contName := range containerNames {
-		testPod.containers = append(testPod.containers, ts.newTestContainer(contName))
+		tp.containers = append(tp.containers, ts.newTestContainer(contName))
 	}
-	ts.pods = append(ts.pods, testPod)
+	ts.pods = append(ts.pods, tp)
 
-	pod := testPod.Pod()
-	_, err := ts.client.CoreV1().Pods(namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("error injecting pod add: %v", err)
-	}
-	ts.nrAdds++
+	ts.source.firePodAdd(tp.Pod())
 }
 
 func (ts *testState) findPod(t *testing.T, name string) *testPod {
-	var testPod *testPod
+	var tp *testPod
 	for i := range ts.pods {
 		if ts.pods[i].name == name {
-			testPod = &ts.pods[i]
+			tp = &ts.pods[i]
 		}
 	}
-	require.NotNil(t, testPod)
-	return testPod
+	require.NotNil(t, tp)
+	return tp
 }
 
 func (ts *testState) updatePodContainers(t *testing.T, name string, containerNames ...string) {
-	testPod := ts.findPod(t, name)
+	tp := ts.findPod(t, name)
+	oldPod := tp.Pod()
 	containers := map[string]testContainer{}
-	for _, cont := range testPod.containers {
+	for _, cont := range tp.containers {
 		containers[cont.name] = cont
 	}
 
@@ -220,32 +202,24 @@ func (ts *testState) updatePodContainers(t *testing.T, name string, containerNam
 		}
 		newContainers = append(newContainers, newCont)
 	}
-	testPod.containers = newContainers
+	tp.containers = newContainers
 
-	pod := testPod.Pod()
-	_, err := ts.client.CoreV1().Pods(testPod.namespace).Update(context.TODO(), pod, metav1.UpdateOptions{})
-	if err != nil {
-		t.Fatalf("error injecting pod update: %v", err)
-	}
-	ts.nrUpds++
+	ts.source.firePodUpdate(oldPod, tp.Pod())
 }
 
 func (ts *testState) updatePodLabels(t *testing.T, name string, podLabels labels.Labels) {
-	testPod := ts.findPod(t, name)
-	testPod.labels = podLabels
-	pod := testPod.Pod()
-	_, err := ts.client.CoreV1().Pods(testPod.namespace).Update(context.TODO(), pod, metav1.UpdateOptions{})
-	if err != nil {
-		t.Fatalf("error injecting pod update: %v", err)
-	}
-	ts.nrUpds++
+	tp := ts.findPod(t, name)
+	oldPod := tp.Pod()
+	tp.labels = podLabels
+	ts.source.firePodUpdate(oldPod, tp.Pod())
 }
 
 func (ts *testState) deletePod(t *testing.T, name string) {
 	var p *testPod
 	for idx, pod := range ts.pods {
 		if pod.name == name {
-			p = &pod
+			tmp := pod
+			p = &tmp
 			ts.pods = append(ts.pods[:idx], ts.pods[idx+1:]...)
 			break
 		}
@@ -253,11 +227,7 @@ func (ts *testState) deletePod(t *testing.T, name string) {
 	if p == nil {
 		t.Fatalf("unknown pod name: %s", name)
 	}
-	err := ts.client.CoreV1().Pods(p.namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
-	if err != nil {
-		t.Fatalf("error deleting pod %s: %v", name, err)
-	}
-	ts.nrDels++
+	ts.source.firePodDelete(p.Pod())
 }
 
 // testState implements cgFinder
@@ -352,7 +322,6 @@ func testNamespacePods(t *testing.T, st *state, ts *testState) {
 	ts.createPod(t, "p1", "ns1", emptyLabels, "p1c1", "p1c2")
 	ts.createPod(t, "p2", "ns2", emptyLabels, "p2c1")
 	ts.createPod(t, "p3", "ns1", emptyLabels, "p3c1")
-	ts.waitForCallbacks(t)
 
 	c1 := ts.podsCgroupIDs(t, "p1", "p3")
 	c2 := ts.podsCgroupIDs(t, "p2")
@@ -365,7 +334,6 @@ func testNamespacePods(t *testing.T, st *state, ts *testState) {
 	)
 
 	ts.deletePod(t, "p3")
-	ts.waitForCallbacks(t)
 
 	c1 = ts.podsCgroupIDs(t, "p1")
 	requirePfmEqualTo(t, st.pfMap,
@@ -377,7 +345,6 @@ func testNamespacePods(t *testing.T, st *state, ts *testState) {
 	)
 
 	ts.deletePod(t, "p2")
-	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			2:                 c1,
@@ -404,7 +371,6 @@ func testNamespacePods(t *testing.T, st *state, ts *testState) {
 	)
 
 	ts.deletePod(t, "p1")
-	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(AllPodsID): {},
@@ -440,8 +406,6 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	ts.createPod(t, "db", "default", labels.Labels{"app": "db"}, "db-c1")
 	ts.createPod(t, "log", "default", labels.Labels{}, "log-c1")
 
-	ts.waitForCallbacks(t)
-
 	c1 := ts.podsCgroupIDs(t, "web", "db", "log")
 	c2 := ts.podsCgroupIDs(t, "web")
 	c3 := ts.podsCgroupIDs(t, "web", "db")
@@ -459,7 +423,6 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 
 	ts.updatePodLabels(t, "log", labels.Labels{"app": "log"})
 
-	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(matchesAllID):  c1,
@@ -470,7 +433,6 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	)
 
 	ts.updatePodLabels(t, "web", labels.Labels{"application": "web"})
-	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(matchesAllID):  c1,
@@ -481,7 +443,6 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	)
 
 	ts.deletePod(t, "log")
-	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(matchesAllID):  c3,
@@ -493,7 +454,6 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 
 	err = st.DelPolicy(PolicyID(matchesAllID))
 	require.NoError(t, err)
-	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(matchesWebID):  {},
@@ -508,7 +468,6 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	require.NoError(t, err)
 	err = st.DelPolicy(PolicyID(matchesWebID))
 	require.NoError(t, err)
-	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(AllPodsID): {},
@@ -566,7 +525,6 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 		"log": {},
 	})
 
-	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(matchesAllContainers): c1,
@@ -580,7 +538,6 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	// make sure adding this label will not add all cgroup IDs from the pod to the policy
 	ts.updatePodLabels(t, "log", labels.Labels{"app": "log"})
 	ts.updatePodContainers(t, "web", "web-c3", "app-c1")
-	ts.waitForCallbacks(t)
 
 	c4 := ts.containersCgroupIDs(t, map[string][]string{
 		"web": {"web-c3", "app-c1"},
@@ -609,7 +566,6 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	// it will not raise an error but there will be a warning
 	ts.updatePodLabels(t, "log", labels.Labels{"app": "not-log"})
 	ts.updatePodContainers(t, "db", "db-c1", "init")
-	ts.waitForCallbacks(t)
 
 	c7 := ts.containersCgroupIDs(t, map[string][]string{
 		"web": {"web-c3", "app-c1"},
@@ -636,7 +592,6 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	err = st.DelPolicy(PolicyID(matchesAllContainers))
 	require.NoError(t, err)
 	ts.deletePod(t, "log")
-	ts.waitForCallbacks(t)
 
 	c10 := ts.containersCgroupIDs(t, map[string][]string{
 		"web": {"web-c3", "app-c1"},
@@ -664,7 +619,6 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	require.NoError(t, err)
 	err = st.DelPolicy(PolicyID(matchesWebContainers))
 	require.NoError(t, err)
-	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(AllPodsID): {},
@@ -676,7 +630,6 @@ func testPreExistingPods(t *testing.T, st *state, ts *testState) {
 	// create pods
 	ts.createPod(t, "web", "default", labels.Labels{"app": "web"}, "web-c1", "web-c2")
 	ts.createPod(t, "db", "default", labels.Labels{"app": "db"}, "db-c1")
-	ts.waitForCallbacks(t)
 
 	// create policy
 	matchesWebID := uint32(2)
@@ -704,7 +657,6 @@ func testPreExistingPods(t *testing.T, st *state, ts *testState) {
 	ts.deletePod(t, "db")
 	err = st.DelPolicy(PolicyID(matchesWebID))
 	require.NoError(t, err)
-	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(AllPodsID): {},
@@ -716,7 +668,6 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 	ts.createPod(t, "web", "default", nil, "web-c1", "web-c2")
 	ts.createPod(t, "db", "default", nil, "db-c1")
 	ts.createPod(t, "log", "default", nil, "log-c1")
-	ts.waitForCallbacks(t)
 
 	// create policy
 	policyID := uint32(2)
@@ -748,7 +699,6 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 	ts.updatePodContainers(t, "db", "db-c2")
 	require.Len(t, ts.podsCgroupIDs(t, "web"), 3)
 	require.Len(t, ts.podsCgroupIDs(t, "db"), 1)
-	ts.waitForCallbacks(t)
 
 	c3 := ts.podsCgroupIDs(t, "web", "db")
 
@@ -764,7 +714,6 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 	ts.deletePod(t, "log")
 	err = st.DelPolicy(PolicyID(policyID))
 	require.NoError(t, err)
-	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(AllPodsID): {},
@@ -772,10 +721,9 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 	)
 }
 
-// example taken from https://github.com/kubernetes/client-go/blob/04ef61f72b7bc5ae6efef4e4dc0001746637fdb3/examples/fake-client/main_test.go
+// TestK8s drives policyfilter through a fake PodEventSource (no informer, no
+// fake clientset) and asserts the resulting bpf-map state.
 func TestK8s(t *testing.T) {
-	ctx := t.Context()
-
 	// NB: using testutils.CaptureLog causes import cycle
 	lc := &tlog{T: t}
 	log := slog.New(slog.NewTextHandler(lc, nil))
@@ -790,52 +738,15 @@ func TestK8s(t *testing.T) {
 		option.Config.EnablePolicyFilterDebug = oldEnablePolicyFilterValueDebug
 	})
 
-	watcherStarted := make(chan struct{})
-	// Create the fake client.
-	client := fake.NewClientset()
-	// A catch-all watch reactor that allows us to inject the watcherStarted channel.
-	client.PrependWatchReactor("*", func(action clienttesting.Action) (handled bool, ret watch.Interface, err error) {
-		gvr := action.GetResource()
-		ns := action.GetNamespace()
-		watch, err := client.Tracker().Watch(gvr, ns)
-		if err != nil {
-			return false, nil, err
-		}
-		close(watcherStarted)
-		return true, watch, nil
-	})
-
-	// We will create an informer that writes added pods to a channel.
-	informers := informers.NewSharedInformerFactory(client, 0)
-	podInformer := informers.Core().V1().Pods().Informer()
-
-	// testState implements cgFinder
-	ts := newTestState(client)
+	source := &fakePodEventSource{}
+	ts := newTestState(source)
 	st, err := newState(log, ts, true)
 	if err != nil {
 		t.Skipf("failed to initialize policy filter state: %s", err)
 	}
 	defer st.Close()
 
-	podInformer.AddEventHandler(ts.eventHandler(st))
-
-	// Make sure informers are running.
-	informers.Start(ctx.Done())
-
-	// This is not required in tests, but it serves as a proof-of-concept by
-	// ensuring that the informer goroutine have warmed up and called List before
-	// we send any events to it.
-	cache.WaitForCacheSync(ctx.Done(), podInformer.HasSynced)
-
-	// The fake client doesn't support resource version. Any writes to the client
-	// after the informer's initial LIST and before the informer establishing the
-	// watcher will be missed by the informer. Therefore we wait until the watcher
-	// starts.
-	// Note that the fake client isn't designed to work with informer. It
-	// doesn't support resource version. It's encouraged to use a real client
-	// in an integration/E2E test if you need to test complex behavior with
-	// informer/controllers.
-	<-watcherStarted
+	st.RegisterPodHandlers(source)
 
 	t.Run("namespaces", func(t *testing.T) {
 		testNamespacePods(t, st, ts)
