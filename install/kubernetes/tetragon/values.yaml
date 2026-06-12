@@ -546,6 +546,13 @@ rthooks:
   # -- rthooks service account.
   serviceAccount:
     name: ""
+  # -- exportLogs sidecar: tail the hook log file and stream it to stdout.
+  # Uses the same image as the rthooks container.
+  exportLogs:
+    # -- Enable the exportLogs sidecar container.
+    enabled: true
+    # -- resources for the exportLogs sidecar.
+    resources: {}
 
 # -- cilium-certgen settings used by tetragon.grpc.tls.auto.method=cronJob.
 # Mirrors the same block in cilium/cilium so operators familiar with the
