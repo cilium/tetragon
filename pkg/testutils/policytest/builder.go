@@ -56,7 +56,6 @@ func (b *Builder) WithPolicyTemplate(tmpl string) *Builder {
 				}
 
 				tempFile.Close()
-				defer os.Remove(tempFile.Name())
 
 				c.TempFiles = append(c.TempFiles, tempFile.Name())
 				return tempFile.Name(), nil

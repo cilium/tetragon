@@ -32,6 +32,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
@@ -456,91 +457,5 @@ spec:
 }
 
 func TestLSMDuplicateHooks(t *testing.T) {
-	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
-		t.Skip()
-	}
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	testBin := testutils.RepoRootPath("contrib/tester-progs/direct-write-tester")
-	tempFile1 := directWriteTempFile(t)
-	tempFile2 := directWriteTempFile(t)
-
-	// This test checks that each selector is applied when multiple lsmhook
-	// entries are defined with the same hook
-	configHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "lsm"
-spec:
-  lsmhooks:
-  - hook: "file_open"
-    args:
-      - index: 0
-        type: "file"
-    selectors:
-    - matchArgs:
-      - args: [0]
-        operator: "Equal"
-        values: [` + tempFile1 + `]
-      matchActions:
-        - action: Post
-  - hook: "file_open"
-    args:
-      - index: 0
-        type: "file"
-    selectors:
-    - matchArgs:
-      - args: [0]
-        operator: "Equal"
-        values: [` + tempFile2 + `]
-      matchActions:
-        - action: Post
-`
-
-	configHookRaw := []byte(configHook)
-	err := os.WriteFile(testConfigFile, configHookRaw, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
-
-	// Check for tempFile1 being opened
-	file1Checker := ec.NewProcessLsmChecker("lsm-file1-checker").
-		WithFunctionName(sm.Suffix("file_open")).
-		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(testBin))).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithOperator(lc.Ordered).
-			WithValues(
-				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(tempFile1)))))
-
-	file2Checker := ec.NewProcessLsmChecker("lsm-file2-checker").
-		WithFunctionName(sm.Suffix("file_open")).
-		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(testBin))).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithOperator(lc.Ordered).
-			WithValues(
-				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(tempFile2)))))
-
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	// Open each test file
-	for _, tempFile := range []string{tempFile1, tempFile2} {
-		if err := exec.Command(testBin, tempFile).Run(); err != nil {
-			t.Fatalf("failed to run %s: %s (%v)", testBin, tempFile, err)
-		}
-	}
-
-	// Check that each test file emitted an event
-	// TODO: Check each test file emitted only one event
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(file1Checker, file2Checker))
-	require.NoError(t, err)
+	policytest.AllPolicyTests.DoObserverTest(t, "lsm-dup-hooks", nil)
 }

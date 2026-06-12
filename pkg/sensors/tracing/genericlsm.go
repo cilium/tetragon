@@ -440,8 +440,12 @@ func createGenericLsmSensor(
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
 
-		instance := dups[hook.Hook]
-		dups[hook.Hook] = instance + 1
+		instance, ok := dups[hook.Hook]
+		if ok {
+			instance = instance + 1
+		}
+		dups[hook.Hook] = instance
+
 		id, err := addLsm(&hook, instance, &in)
 		if err != nil {
 			return nil, err
