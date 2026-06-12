@@ -6,7 +6,6 @@ package sensors
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"sort"
 	"sync"
 	"time"
@@ -153,8 +152,11 @@ func (s Sensor) TotalMemlock() uint64 {
 	uniqueMap := map[int]bpf.ExtendedMapInfo{}
 	for _, p := range s.Progs {
 		// we could first check that it exist then write but all maps with
-		// same ID on the kernel should share the same info
-		maps.Copy(uniqueMap, p.LoadedMapsInfo)
+		// same ID on the kernel should share the same info.
+		// Use CopyLoadedMapsInfo so we don't iterate the program's map while
+		// the load/unload path is mutating it (was: maps.Copy of a shared
+		// field, which racing readers could panic on).
+		p.CopyLoadedMapsInfo(uniqueMap)
 	}
 
 	var total uint64

@@ -484,17 +484,16 @@ func TestPolicyKernelMemoryBytes(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	RegisterPolicyHandlerAtInit("loaded-map", &dummyHandler{s: &Sensor{Name: "dummy-sensor",
-		Progs: []*program.Program{{
-			Name:           "bpf-program-that-does-not-exist",
-			LoadedMapsInfo: map[int]bpf.ExtendedMapInfo{0: {Memlock: 110}, 1: {Memlock: 120}},
-		}, {
-			Name:           "bpf-program-that-does-not-exist-2",
-			LoadedMapsInfo: map[int]bpf.ExtendedMapInfo{2: {Memlock: 130}, 3: {Memlock: 140}},
-		}, {
-			Name:           "bpf-program-that-does-not-exist-3",
-			LoadedMapsInfo: map[int]bpf.ExtendedMapInfo{2: {Memlock: 130}}, // this will overwrite map ID 2
-		}},
+	p1 := &program.Program{Name: "bpf-program-that-does-not-exist"}
+	p1.SetLoadedMapsInfo(map[int]bpf.ExtendedMapInfo{0: {Memlock: 110}, 1: {Memlock: 120}})
+	p2 := &program.Program{Name: "bpf-program-that-does-not-exist-2"}
+	p2.SetLoadedMapsInfo(map[int]bpf.ExtendedMapInfo{2: {Memlock: 130}, 3: {Memlock: 140}})
+	// p3's map ID 2 overwrites p2's map ID 2 in the dedup'd TotalMemlock sum.
+	p3 := &program.Program{Name: "bpf-program-that-does-not-exist-3"}
+	p3.SetLoadedMapsInfo(map[int]bpf.ExtendedMapInfo{2: {Memlock: 130}})
+	RegisterPolicyHandlerAtInit("loaded-map", &dummyHandler{s: &Sensor{
+		Name:  "dummy-sensor",
+		Progs: []*program.Program{p1, p2, p3},
 	}})
 	t.Cleanup(func() {
 		delete(registeredPolicyHandlers, "loaded-map")

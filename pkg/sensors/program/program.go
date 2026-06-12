@@ -30,6 +30,8 @@ package program
 
 import (
 	"fmt"
+	"maps"
+	"sync"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
@@ -177,9 +179,13 @@ type Program struct {
 	// policy name the program belongs to
 	Policy string
 
-	// Information of all maps used and loaded by this program by map ID. This
-	// is populated after load and used for map memlock accounting.
-	LoadedMapsInfo map[int]bpf.ExtendedMapInfo
+	// loadedMapsInfo holds info of all maps used and loaded by this program
+	// by map ID. It is populated after load and used for map memlock
+	// accounting. Unexported so all access goes through SetLoadedMapsInfo and
+	// CopyLoadedMapsInfo, which take mapsMu and prevent the data race between
+	// load/unload (writer) and gRPC ListTracingPolicies (reader).
+	mapsMu         sync.RWMutex
+	loadedMapsInfo map[int]bpf.ExtendedMapInfo
 
 	// RewriteProg allows rewriting bpf programs before they are loaded.
 	// This is currently used for generated code for cel expressions, but can be extended to
@@ -234,7 +240,7 @@ func (p *Program) Unload(unpin bool) error {
 	// The above unloader can succeed while not removing a pin to the program
 	// because of option.Config.KeepSensorsOnExit, and thus the maps remain.
 	if !p.Prog.IsPinned() {
-		p.LoadedMapsInfo = nil
+		p.SetLoadedMapsInfo(nil)
 	}
 	return nil
 }
@@ -253,4 +259,24 @@ func (p *Program) Relink() error {
 		return fmt.Errorf("Relink failed: unloader type %T of program %p does not support it", p.unloader, p)
 	}
 	return rl.Relink()
+}
+
+// SetLoadedMapsInfo replaces the program's loadedMapsInfo map under the
+// program's lock. Callers that build the map incrementally should do so in a
+// local map and pass it here once, rather than mutating the field directly.
+// Pass nil to clear (e.g. on unload).
+func (p *Program) SetLoadedMapsInfo(m map[int]bpf.ExtendedMapInfo) {
+	p.mapsMu.Lock()
+	defer p.mapsMu.Unlock()
+	p.loadedMapsInfo = m
+}
+
+// CopyLoadedMapsInfo copies the program's loadedMapsInfo entries into dst
+// under the program's read lock. Used by Sensor.TotalMemlock and any other
+// reader to avoid racing with concurrent load/unload. dst must be non-nil;
+// the caller owns it and merges entries from one or more programs into it.
+func (p *Program) CopyLoadedMapsInfo(dst map[int]bpf.ExtendedMapInfo) {
+	p.mapsMu.RLock()
+	defer p.mapsMu.RUnlock()
+	maps.Copy(dst, p.loadedMapsInfo)
 }
