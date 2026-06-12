@@ -86,5 +86,5 @@ BPF_KRETPROBE(generic_retuprobe_actions)
 __attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retuprobe_output)
 {
-	return generic_output(ctx, MSG_OP_GENERIC_UPROBE);
+	return generic_output(ctx);
 }

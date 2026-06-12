@@ -140,7 +140,7 @@ generic_rawtp_actions(void *ctx)
 __attribute__((section("raw_tp"), used)) int
 generic_rawtp_output(void *ctx)
 {
-	return generic_output(ctx, MSG_OP_GENERIC_TRACEPOINT);
+	return generic_output(ctx);
 }
 
 #ifndef __V61_BPF_PROG

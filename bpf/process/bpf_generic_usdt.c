@@ -128,7 +128,7 @@ generic_usdt_actions(void *ctx)
 __attribute__((section(COMMON), used)) int
 generic_usdt_output(void *ctx)
 {
-	return generic_output(ctx, MSG_OP_GENERIC_USDT);
+	return generic_output(ctx);
 }
 
 #ifndef __V61_BPF_PROG
