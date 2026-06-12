@@ -1171,7 +1171,7 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 }
 
 FUNC_INLINE long
-generic_output(void *ctx, u8 op)
+generic_output(void *ctx)
 {
 	struct msg_generic_kprobe *e;
 	int zero = 0;
@@ -1215,7 +1215,7 @@ generic_output(void *ctx, u8 op)
 		     "if %[total] < 9000 goto +1\n;"
 		     "%[total] = 9000;\n"
 		     : [total] "+r"(total));
-	event_output_metric(ctx, op, e, total);
+	event_output_metric(ctx, e->common.op, e, total);
 	return 0;
 }
 
