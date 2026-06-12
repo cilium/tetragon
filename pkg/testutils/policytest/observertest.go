@@ -89,4 +89,11 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 		err = jsonchecker.JsonTestCheckExpect(t, scenario.EventChecker, scenario.ExpectCheckerFailure)
 		require.NoError(t, err)
 	}
+
+	// Clean up any temp files created when test runs cleanup
+	for _, tempFile := range conf.TempFiles {
+		t.Cleanup(func() {
+			os.Remove(tempFile)
+		})
+	}
 }

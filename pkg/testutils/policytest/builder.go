@@ -8,6 +8,7 @@ package policytest
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"text/template"
 )
 
@@ -39,12 +40,26 @@ func (b *Builder) WithParameter(p Parameter) *Builder {
 //
 // In the template, the following functions are supported
 //   - testBinary: generate a test binary path from the binary name (Conf.TestBinary())
+//   - tempFile: generate a temporary file and save it in the conf
 func (b *Builder) WithPolicyTemplate(tmpl string) *Builder {
 	policyTest := b.policytest
 	policyTest.Policy = func(c *Conf) (Policy, error) {
 		funcMap := template.FuncMap{
 			"testBinary": func(s string) string {
 				return c.TestBinary(s)
+			},
+			"tempFile": func() (string, error) {
+				tempFile, err := os.CreateTemp("/var/tmp", "tetragon-testfile-*")
+				if err != nil {
+					// non-nil error here will be returned by Template.Parse
+					return "", err
+				}
+
+				tempFile.Close()
+				defer os.Remove(tempFile.Name())
+
+				c.TempFiles = append(c.TempFiles, tempFile.Name())
+				return tempFile.Name(), nil
 			},
 		}
 		t, err := template.New("testpolicy").Funcs(funcMap).Parse(tmpl)

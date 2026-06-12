@@ -27,6 +27,9 @@ type Conf struct {
 
 	// Path to save the generated policy
 	DumpPolicyPath string
+
+	// List of temp files generated during the test
+	TempFiles []string
 }
 
 func (c *Conf) TestBinary(s string) string {
