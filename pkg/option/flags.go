@@ -74,6 +74,7 @@ const (
 	KeyExportFileCompress         = "export-file-compress"
 	KeyExportRateLimit            = "export-rate-limit"
 	KeyExportFilePerm             = "export-file-perm"
+	KeyExportStdout               = "export-stdout"
 
 	KeyEnableExportAggregation     = "enable-export-aggregation"
 	KeyExportAggregationWindowSize = "export-aggregation-window-size"
@@ -252,6 +253,7 @@ func ReadAndSetFlags() error {
 	Config.ExportFileCompress = viper.GetBool(KeyExportFileCompress)
 	Config.ExportRateLimit = viper.GetInt(KeyExportRateLimit)
 	Config.ExportFilePerm = viper.GetString(KeyExportFilePerm)
+	Config.ExportStdout = viper.GetBool(KeyExportStdout)
 
 	Config.EnableExportAggregation = viper.GetBool(KeyEnableExportAggregation)
 	Config.ExportAggregationWindowSize = viper.GetDuration(KeyExportAggregationWindowSize)
@@ -463,6 +465,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyExportFileCompress, false, "Compress rotated JSON export files")
 	flags.String(KeyExportFilePerm, defaults.DefaultLogsPermission, "Access permissions on JSON export files")
 	flags.Int(KeyExportRateLimit, -1, "Rate limit (per minute) for event export. Set to -1 to disable")
+	flags.Bool(KeyExportStdout, false, "Export events directly to stdout. Disabled by default")
 	flags.String(KeyLogLevel, "info", "Set log level")
 	flags.String(KeyLogFormat, "text", "Set log format")
 	flags.String(KeyLogFile, "", "Set log file where tetragon agent logs will be written (in addition to stdout or stderr)")

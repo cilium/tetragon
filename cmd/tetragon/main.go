@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"net"
@@ -72,6 +73,12 @@ import (
 var (
 	log = logger.GetLogger()
 )
+
+// writeNopCloser wraps an io.Writer with a no-op Close to satisfy io.WriteCloser.
+// Used to pass os.Stdout to the exporter without letting the exporter close fd 1 at shutdown.
+type writeNopCloser struct{ io.Writer }
+
+func (writeNopCloser) Close() error { return nil }
 
 func getExportFilters() ([]*tetragon.Filter, []*tetragon.Filter, error) {
 	allowList, err := filters.ParseFilterList(viper.GetString(option.KeyExportAllowlist), viper.GetBool(option.KeyEnablePidSetFilter))
@@ -215,8 +222,12 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	// Logging should always be bootstrapped first. Do not add any code above this!
-	if err := logger.SetupLogging(option.Config.LogOpts, option.Config.Debug); err != nil {
+	// If we use stdout for event exporting, we need to make sure that logs are not interleaving with JSON events on stdout.
+	if err := logger.SetupLogging(option.Config.LogOpts, option.Config.Debug, !option.Config.ExportStdout); err != nil {
 		logger.Fatal(log, "Failed to setup logging", logfields.Error, err)
+	}
+	if option.Config.ExportStdout {
+		log.Info("Logs redirected to stderr because --export-stdout is active")
 	}
 
 	if !filepath.IsAbs(option.Config.TracingPolicyDir) {
@@ -473,8 +484,14 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 
 	// Fetch the exporter if needed
+	if option.Config.ExportFilename != "" && option.Config.ExportStdout {
+		return fmt.Errorf("--export-filename and --export-stdout are mutually exclusive")
+	}
+	if option.Config.ExportStdout && option.Config.ExportFileRotationInterval > 0 {
+		return fmt.Errorf("--export-stdout and --export-file-rotation-interval are mutually exclusive")
+	}
 	var exporter *exporter.Exporter
-	if option.Config.ExportFilename != "" {
+	if option.Config.ExportFilename != "" || option.Config.ExportStdout {
 		exporter, err = getExporter(ctx, pm.Server)
 		if err != nil {
 			return fmt.Errorf("failed to fetch json exporter: %w", err)
@@ -498,7 +515,10 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		health.StartHealthServer(ctx, option.Config.HealthServerAddress, option.Config.HealthServerInterval)
 	}
 
-	log.Info("Exporter configuration", "enabled", option.Config.ExportFilename != "", "fileName", option.Config.ExportFilename)
+	log.Info("Exporter configuration",
+		"file", option.Config.ExportFilename != "",
+		"stdout", option.Config.ExportStdout,
+		"fileName", option.Config.ExportFilename)
 	obs.AddListener(pm)
 	saveInitInfo()
 
@@ -657,24 +677,34 @@ func getExporter(ctx context.Context, server *server.Server) (*exporter.Exporter
 	if err != nil {
 		return nil, err
 	}
-	writer := &lumberjack.Logger{
-		Filename:   option.Config.ExportFilename,
-		MaxSize:    option.Config.ExportFileMaxSizeMB,
-		MaxBackups: option.Config.ExportFileMaxBackups,
-		Compress:   option.Config.ExportFileCompress,
-	}
 
-	perms, err := fileutils.RegularFilePerms(option.Config.ExportFilePerm)
-	if err != nil {
-		log.Warn(fmt.Sprintf("Failed to parse export file permission '%s', failing back to %v",
-			option.KeyExportFilePerm, perms), logfields.Error, err)
-	}
-	writer.FileMode = perms
+	var writer io.WriteCloser
+	if option.Config.ExportStdout {
+		writer = writeNopCloser{os.Stdout}
+		log.Info("Starting JSON exporter", "logger", "stdout")
+	} else {
+		lj := &lumberjack.Logger{
+			Filename:   option.Config.ExportFilename,
+			MaxSize:    option.Config.ExportFileMaxSizeMB,
+			MaxBackups: option.Config.ExportFileMaxBackups,
+			Compress:   option.Config.ExportFileCompress,
+		}
 
-	finfo, err := os.Stat(filepath.Clean(option.Config.ExportFilename))
-	if err == nil && finfo.IsDir() {
-		// Error if exportFilename points to a directory
-		return nil, errors.New("passed export JSON logs file point to a directory")
+		perms, err := fileutils.RegularFilePerms(option.Config.ExportFilePerm)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Failed to parse export file permission '%s', failing back to %v",
+				option.KeyExportFilePerm, perms), logfields.Error, err)
+		}
+		lj.FileMode = perms
+
+		finfo, err := os.Stat(filepath.Clean(option.Config.ExportFilename))
+		if err == nil && finfo.IsDir() {
+			// Error if exportFilename points to a directory
+			return nil, errors.New("passed export JSON logs file point to a directory")
+		}
+
+		writer = lj
+		log.Info("Starting JSON exporter", "logger", lj)
 	}
 
 	// Track how many bytes are written to the event export location
@@ -693,7 +723,6 @@ func getExporter(ctx context.Context, server *server.Server) (*exporter.Exporter
 	}
 	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions, FieldFilters: fieldFilters}
 	log.Info("Configured field filters", "fieldFilters", fieldFilters)
-	log.Info("Starting JSON exporter", "logger", writer, "request", &req)
 	return exporter.NewExporter(ctx, &req, server, encoder, writer, rateLimiter)
 }
 
