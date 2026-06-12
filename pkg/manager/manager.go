@@ -41,6 +41,7 @@ import (
 var (
 	initOnce, startOnce sync.Once
 	manager             *ControllerManager
+	managerErr          error // : Capture init error for safe retrieval
 	_                   watcher.PodAccessor = (*ControllerManager)(nil)
 )
 
@@ -53,15 +54,14 @@ type ControllerManager struct {
 	podInformer     cache.SharedIndexInformer
 }
 
-func Get() *ControllerManager {
-	var err error
+// Get returns the singleton ControllerManager, initializing it on first call.
+//  Now returns error instead of silently panicking on init failure,
+// giving callers a chance to handle the error gracefully.
+func Get() (*ControllerManager, error) {
 	initOnce.Do(func() {
-		manager, err = newControllerManager()
-		if err != nil {
-			panic(err)
-		}
+		manager, managerErr = newControllerManager()
 	})
-	return manager
+	return manager, managerErr
 }
 
 // newControllerManager creates a new controller manager. The enableMetrics flag
@@ -163,12 +163,29 @@ func (cm *ControllerManager) ListNamespaces() ([]corev1.Namespace, error) {
 func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struct{}) error {
 	log := logger.GetLogger()
 	log.Info("Waiting for required CRDs", "crds", crds)
-	var wg sync.WaitGroup
-	wg.Add(1)
+
+	//  Make a local copy so we don't mutate the caller's map,
+	// and protect it with a mutex since the AddFunc callback runs in a
+	// separate goroutine spawned by the informer.
+	var mu sync.Mutex
+	remaining := make(map[string]struct{}, len(crds))
+	for k := range crds {
+		remaining[k] = struct{}{}
+	}
+
+	// Use a channel instead of sync.WaitGroup so we can also
+	// select on ctx.Done() and avoid a goroutine leak / wg.Done() underflow.
+	done := make(chan struct{})
+	var once sync.Once
+	finish := func() {
+		once.Do(func() { close(done) })
+	}
+
 	crdInformer, err := cm.Manager.GetCache().GetInformer(ctx, &apiextensionsv1.CustomResourceDefinition{})
 	if err != nil {
 		return err
 	}
+
 	_, err = crdInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj any) {
 			crdObject, ok := obj.(*apiextensionsv1.CustomResourceDefinition)
@@ -176,12 +193,17 @@ func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struc
 				log.Warn("Received an invalid object", "obj", obj)
 				return
 			}
-			if _, ok := crds[crdObject.Name]; ok {
+
+			//  Lock before reading/writing the shared map.
+			mu.Lock()
+			defer mu.Unlock()
+
+			if _, ok := remaining[crdObject.Name]; ok {
 				log.Info("Found CRD", "crd", crdObject.Name)
-				delete(crds, crdObject.Name)
-				if len(crds) == 0 {
+				delete(remaining, crdObject.Name)
+				if len(remaining) == 0 {
 					log.Info("Found all the required CRDs")
-					wg.Done()
+					finish()
 				}
 			}
 		},
@@ -190,7 +212,17 @@ func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struc
 		log.Error("failed to add event handler", logfields.Error, err)
 		return err
 	}
-	wg.Wait()
+
+	//  Block until all CRDs found OR context cancelled —
+	// previously wg.Wait() would block forever on context cancellation.
+	select {
+	case <-done:
+		// all CRDs found — normal path
+	case <-ctx.Done():
+		log.Info("Context cancelled while waiting for CRDs", logfields.Error, ctx.Err())
+		return ctx.Err()
+	}
+
 	err = cm.Manager.GetCache().RemoveInformer(ctx, &apiextensionsv1.CustomResourceDefinition{})
 	if err != nil {
 		log.Warn("failed to remove CRD informer", logfields.Error, err)
@@ -245,8 +277,10 @@ func (cm *ControllerManager) WaitCRDsWithResync(ctx context.Context, crds map[st
 		log.Info("Informer cache not synced yet")
 	}
 
-	// Make a copy of crds to avoid modifying the original map
-	remainingCRDs := make(map[string]struct{})
+	// Protect remainingCRDs with a mutex — AddFunc callback is
+	// invoked from the informer's goroutine, concurrent with this goroutine.
+	var mu sync.Mutex
+	remainingCRDs := make(map[string]struct{}, len(crds))
 	for crd := range crds {
 		remainingCRDs[crd] = struct{}{}
 	}
@@ -258,6 +292,7 @@ func (cm *ControllerManager) WaitCRDsWithResync(ctx context.Context, crds map[st
 		log.Warn("Failed to list existing CRDs from cache", logfields.Error, err)
 		// Continue with event handler approach
 	} else {
+		// No concurrent access yet (handler not registered), so no lock needed here.
 		for _, crdObject := range existingCRDs.Items {
 			if _, required := remainingCRDs[crdObject.Name]; required {
 				log.Info("Found CRD in cache", "crd", crdObject.Name)
@@ -274,35 +309,34 @@ func (cm *ControllerManager) WaitCRDsWithResync(ctx context.Context, crds map[st
 
 	log.Debug("Still waiting for CRDs", "remaining", remainingCRDs)
 
-	// Set up waiting mechanism for remaining CRDs
+	// Replace the bare bool `completed` + unsynchronised wg.Done()
+	// with a channel + sync.Once, which is safe to call from multiple goroutines
+	// and eliminates the wg counter underflow / double-close panics.
 	done := make(chan struct{})
-	var wg sync.WaitGroup
-	wg.Add(1)
-	completed := false
 	var once sync.Once
 	finish := func() {
-		once.Do(func() {
-			close(done)
-			wg.Done()
-		})
+		once.Do(func() { close(done) })
 	}
 
 	_, err = crdInformer.AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj any) {
-			if completed {
-				return
-			}
 			crdObject, ok := obj.(*apiextensionsv1.CustomResourceDefinition)
 			if !ok {
 				log.Warn("Received an invalid object", "obj", obj)
 				return
 			}
+
+			//  Hold the lock for the entire read-modify-check sequence
+			// so no two callbacks can race on remainingCRDs.
+			mu.Lock()
+			defer mu.Unlock()
+
 			if _, required := remainingCRDs[crdObject.Name]; required {
 				log.Info("Found CRD", "crd", crdObject.Name)
 				delete(remainingCRDs, crdObject.Name)
 				if len(remainingCRDs) == 0 {
 					log.Info("Found all the required CRDs")
-					completed = true
+					// finish() is safe to call multiple times thanks to sync.Once
 					finish()
 				}
 			}
@@ -318,28 +352,22 @@ func (cm *ControllerManager) WaitCRDsWithResync(ctx context.Context, crds map[st
 		return err
 	}
 
-	// Wait with context cancellation
-	go func() {
-		select {
-		case <-ctx.Done():
-			log.Info("Context cancelled while waiting for CRDs", logfields.Error, ctx.Err())
-			finish()
-		case <-done:
-			// CRDs found, normal completion
-		}
-	}()
-
-	wg.Wait()
-
-	// Check if context was cancelled
-	if ctx.Err() != nil {
-		// Context was cancelled before finding all CRDs
+	// : Single select replaces the wg + separate goroutine pattern.
+	// The previous code launched a goroutine that called finish() on ctx.Done,
+	// then called wg.Wait() — if the goroutine ran first it was fine, but if
+	// wg.Wait() unblocked before the goroutine ran, ctx.Err() check below
+	// could return nil even after cancellation.  A single select is atomic.
+	select {
+	case <-done:
+		// All CRDs found — normal completion, fall through to return nil.
+	case <-ctx.Done():
+		log.Info("Context cancelled while waiting for CRDs", logfields.Error, ctx.Err())
 		return ctx.Err()
 	}
 
 	// Do not remove the informer, as GetInformer may return a shared informer that is used elsewhere.
 	// We're only adding an event handler, not owning the informer.
-	// The controller-runtime manager handles informer cleanup automatically when stopped
+	// The controller-runtime manager handles informer cleanup automatically when stopped.
 	return nil
 }
 
