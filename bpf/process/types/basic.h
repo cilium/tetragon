@@ -2293,7 +2293,7 @@ filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, cha
 
 FUNC_INLINE int
 selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
-		    __u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
+		    struct msg_generic_kprobe *e, __u32 selidx,
 		    bool is_entry, int arg)
 {
 	struct selector_arg_filters *filters;
@@ -2301,6 +2301,12 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 	long seloff, argsoff, margsoff;
 	__u32 i = 0, index;
 	char *args;
+	__u8 *f;
+
+	/* No filters and no selectors so just accepts */
+	f = map_lookup_elem(&filter_map, &e->idx);
+	if (!f)
+		return 0;
 
 	seloff = 4; /* start of the relative offsets */
 	seloff += (selidx * 4); /* relative offset for this selector */

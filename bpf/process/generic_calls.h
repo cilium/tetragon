@@ -1414,13 +1414,6 @@ FUNC_INLINE int filter_args(void *ctx, struct bpf_map_def *tailcalls,
 			    struct msg_generic_kprobe *e, int selidx, bool is_entry,
 			    int arg)
 {
-	__u8 *f;
-
-	/* No filters and no selectors so just accepts */
-	f = map_lookup_elem(&filter_map, &e->idx);
-	if (!f)
-		return 1;
-
 	/* No selectors, accept by default */
 	if (!e->sel.active[SELECTORS_ACTIVE])
 		return 1;
@@ -1433,7 +1426,7 @@ FUNC_INLINE int filter_args(void *ctx, struct bpf_map_def *tailcalls,
 		return filter_args_reject(e->func_id);
 
 	if (e->sel.active[selidx]) {
-		int pass = selector_arg_offset(ctx, tailcalls, f, e, selidx, is_entry, arg);
+		int pass = selector_arg_offset(ctx, tailcalls, e, selidx, is_entry, arg);
 
 		if (pass)
 			return pass;
