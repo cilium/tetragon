@@ -144,7 +144,7 @@ generic_uprobe_actions(void *ctx)
 __attribute__((section(COMMON), used)) int
 generic_uprobe_output(void *ctx)
 {
-	return generic_output(ctx, MSG_OP_GENERIC_UPROBE);
+	return generic_output(ctx);
 }
 
 #ifndef __V61_BPF_PROG
