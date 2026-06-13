@@ -49,7 +49,7 @@ helm uninstall -n kube-system tetragon
 ```
 
 In many situations, you would want the hook to keep running even if tetragon is
-not. Doing so, will allow you to configure a class of pods that can only run if tetragon is availble.
+not. Doing so, will allow you to configure a class of pods that can only run if tetragon is available.
 
 
 To uninstall the hook, you can install the following daemonset:
