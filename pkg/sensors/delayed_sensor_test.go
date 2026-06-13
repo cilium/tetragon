@@ -7,6 +7,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/cilium/tetragon/api/v1/tetragon"
 )
 
 // A sensor to test the intermediate policy states (loading / unloading)
@@ -79,4 +81,8 @@ func (tds *TestDelayedSensor) unblock(t *testing.T) {
 		t.Fatalf("unblocked failed: channel does not seem to be empty")
 	}
 
+}
+
+func (tds *TestDelayedSensor) GetHookInfo() []*tetragon.HookInfo {
+	return []*tetragon.HookInfo{}
 }

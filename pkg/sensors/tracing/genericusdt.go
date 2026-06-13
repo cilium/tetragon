@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"path"
 
 	"github.com/cilium/ebpf"
@@ -54,7 +55,7 @@ var (
 type genericUsdt struct {
 	tableId idtable.EntryID
 	config  *api.EventConfig
-	path    string
+	file    *program.UprobeFile
 	target  *elf.UsdtTarget
 	// policyName is the name of the policy that this uprobe belongs to
 	policyName string
@@ -75,7 +76,7 @@ func (g *genericUsdt) SetID(id idtable.EntryID) {
 func (g *genericUsdt) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
 	attrs = append(attrs,
 		slog.Attr{Key: "policy_name", Value: slog.StringValue(g.policyName)},
-		slog.Attr{Key: "path", Value: slog.StringValue(g.path)},
+		slog.Attr{Key: "path", Value: slog.StringValue(g.file.Handle.Name())},
 	)
 	logger.GetLogger().LogAttrs(context.Background(), level, msg, attrs...)
 }
@@ -106,6 +107,32 @@ type addUsdtIn struct {
 	useMulti   bool
 }
 
+func cleanupUsdtEntries(ids []idtable.EntryID) error {
+	var errs error
+
+	for _, id := range ids {
+		usdtEntry, err := genericUsdtTableGet(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+			continue
+		}
+		if err = selectors.CleanupKernelSelectorState(usdtEntry.selectors); err != nil {
+			errs = errors.Join(errs, err)
+		}
+
+		if err := usdtEntry.file.Handle.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+			errs = errors.Join(errs, err)
+		}
+
+		_, err = usdtTable.RemoveEntry(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+
+	return errs
+}
+
 func createGenericUsdtSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -118,6 +145,7 @@ func createGenericUsdtSensor(
 		err   error
 		has   usdtHas
 	)
+	openedFiles := make(map[string]*program.UprobeFile)
 
 	in := addUsdtIn{
 		sensorPath: name,
@@ -129,13 +157,38 @@ func createGenericUsdtSensor(
 
 	for _, usdt := range spec.Usdts {
 		if err = appendMacrosSelectors(usdt.Selectors, spec.SelectorsMacros); err != nil {
-			return nil, fmt.Errorf("append macros selectors: %w", err)
-		}
-
-		ids, err = addUsdt(&usdt, &in, ids, &has)
-		if err != nil {
+			err = fmt.Errorf("append macros selectors: %w", err)
+			if cleanupErr := cleanupUsdtEntries(ids); cleanupErr != nil {
+				err = errors.Join(err, cleanupErr)
+			}
 			return nil, err
 		}
+
+		entryFile, ok := openedFiles[usdt.Path]
+		if !ok {
+			f, err := os.Open(usdt.Path)
+			if err != nil {
+				if cleanupErr := cleanupUsdtEntries(ids); cleanupErr != nil {
+					err = errors.Join(err, cleanupErr)
+				}
+				return nil, err
+			}
+			entryFile = &program.UprobeFile{Handle: f}
+			openedFiles[usdt.Path] = entryFile
+		}
+
+		nextIDs, addErr := addUsdt(&usdt, entryFile, &in, ids, &has)
+		if addErr != nil {
+			if cleanupErr := cleanupUsdtEntries(ids); cleanupErr != nil {
+				addErr = errors.Join(addErr, cleanupErr)
+			}
+
+			if err := entryFile.Handle.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+				addErr = errors.Join(addErr, err)
+			}
+			return nil, addErr
+		}
+		ids = nextIDs
 		hasSetAction = hasSetAction || selectors.HasSet(&usdt)
 	}
 
@@ -148,6 +201,9 @@ func createGenericUsdtSensor(
 	}
 
 	if err != nil {
+		if cleanupErr := cleanupUsdtEntries(ids); cleanupErr != nil {
+			err = errors.Join(err, cleanupErr)
+		}
 		return nil, err
 	}
 
@@ -166,6 +222,9 @@ func createGenericUsdtSensor(
 		Maps:      maps,
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
+		DestroyHook: func() error {
+			return cleanupUsdtEntries(ids)
+		},
 	}, nil
 }
 
@@ -185,6 +244,14 @@ func createMultiUsdtSensor(
 		"generic_usdt").
 		SetLoaderData(multiIDs).
 		SetPolicy(polInfo.name)
+
+	for _, id := range multiIDs {
+		usdtEntry, err := genericUsdtTableGet(id)
+		if err != nil {
+			return nil, nil, fmt.Errorf("getting entry from usdtTable failed with: %w", err)
+		}
+		usdtEntry.file.RefCount++
+	}
 
 	load.SleepableOffload = has.sleepableOffload
 	load.SleepablePreload = has.sleepablePreload
@@ -245,20 +312,22 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	loadProgName := config.GenericUsdtObjs(false)
 
 	attachData := &program.UprobeAttachData{
-		Path:         usdtEntry.path,
+		File:         usdtEntry.file,
 		Address:      usdtEntry.target.IpRel,
 		RefCtrOffset: usdtEntry.target.SemaOff,
 	}
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
-		fmt.Sprintf("%s %s %s", usdtEntry.path, usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name),
+		fmt.Sprintf("%s %s %s", usdtEntry.file.Handle.Name(), usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name),
 		"uprobe/generic_usdt",
 		fmt.Sprintf("%s_%s_%d", usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name, usdtEntry.tableId.ID),
 		"generic_usdt").
 		SetAttachData(attachData).
 		SetLoaderData(usdtEntry).
 		SetPolicy(usdtEntry.policyName)
+
+	usdtEntry.file.RefCount++
 
 	load.SleepableOffload = has.sleepableOffload
 	load.SleepablePreload = has.sleepablePreload
@@ -295,8 +364,31 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	return progs, maps
 }
 
-func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has *usdtHas) ([]idtable.EntryID, error) {
-	se, err := elf.OpenSafeELFFile(spec.Path)
+func addUsdt(spec *v1alpha1.UsdtSpec, entryFile *program.UprobeFile, in *addUsdtIn, ids []idtable.EntryID, has *usdtHas) (retIDs []idtable.EntryID, retErr error) {
+	baseLen := len(ids)
+	committed := false
+	var state *selectors.KernelSelectorState
+
+	defer func() {
+		if committed {
+			return
+		}
+
+		if len(ids) > baseLen {
+			if cleanupErr := cleanupUsdtEntries(ids[baseLen:]); cleanupErr != nil {
+				retErr = errors.Join(retErr, cleanupErr)
+			}
+			ids = ids[:baseLen]
+		}
+
+		if state != nil {
+			if cleanupErr := selectors.CleanupKernelSelectorState(state); cleanupErr != nil {
+				retErr = errors.Join(retErr, cleanupErr)
+			}
+		}
+	}()
+
+	se, err := elf.NewSafeELFFile(entryFile.Handle)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +430,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		}
 
 		// Parse Filters into kernel filter logic
-		state, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
+		state, err = selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 			Selectors: spec.Selectors,
 			Args:      spec.Args,
 			Data:      []v1alpha1.KProbeArg{},
@@ -440,7 +532,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		usdtEntry := &genericUsdt{
 			tableId:     idtable.UninitializedEntryID,
 			config:      config,
-			path:        spec.Path,
+			file:        entryFile,
 			target:      target,
 			policyName:  in.policyName,
 			argPrinters: argPrinters,
@@ -455,12 +547,14 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		config.FuncId = uint32(id.ID)
 
 		ids = append(ids, id)
+		state = nil
 	}
 
 	if !found {
 		return nil, fmt.Errorf("failed to configure usdt '%s/%s', not found in the binary: '%s'",
 			spec.Provider, spec.Name, spec.Path)
 	}
+	committed = true
 	return ids, nil
 }
 
@@ -510,14 +604,14 @@ func loadSingleUsdtSensor(usdtEntry *genericUsdt, args sensors.LoadProbeArgs) er
 	}
 
 	logger.GetLogger().Info(fmt.Sprintf("Loaded generic usdt sensor: %s -> %s [%s/%s]",
-		args.Load.Name, usdtEntry.path, usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name))
+		args.Load.Name, usdtEntry.file.Handle.Name(), usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name))
 	return nil
 }
 
 func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) error {
 	load := args.Load
 	data := &program.MultiUprobeAttachData{}
-	data.Attach = make(map[string]*program.MultiUprobeAttachSymbolsCookies)
+	data.Attach = make(map[*program.UprobeFile]*program.MultiUprobeAttachSymbolsCookies)
 
 	for index, id := range ids {
 		usdtEntry, err := genericUsdtTableGet(id)
@@ -551,7 +645,7 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 
 		load.MapLoad = append(load.MapLoad, selectorsMaploads(usdtEntry.selectors, uint32(index))...)
 
-		attach, ok := data.Attach[usdtEntry.path]
+		attach, ok := data.Attach[usdtEntry.file]
 		if !ok {
 			attach = &program.MultiUprobeAttachSymbolsCookies{}
 		}
@@ -560,7 +654,7 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 		attach.RefCtrOffsets = append(attach.RefCtrOffsets, usdtEntry.target.SemaOff)
 		attach.Cookies = append(attach.Cookies, uint64(index))
 
-		data.Attach[usdtEntry.path] = attach
+		data.Attach[usdtEntry.file] = attach
 	}
 
 	load.SetAttachData(data)
@@ -591,7 +685,7 @@ func handleGenericUsdt(r *bytes.Reader) ([]observer.Event, error) {
 
 	unix := &tracing.MsgGenericUsdtUnix{}
 	unix.Msg = &m
-	unix.Path = uprobeUsdt.path
+	unix.Path = uprobeUsdt.file.Handle.Name()
 	unix.Provider = uprobeUsdt.target.Spec.Provider
 	unix.Name = uprobeUsdt.target.Spec.Name
 	unix.PolicyName = uprobeUsdt.policyName

@@ -926,6 +926,7 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 	};
 	int i, j = 0;
 
+#ifdef __V61_BPF_PROG
 	if (CONFIG(ITER_NUM)) {
 		bpf_for(i, 0, MAX_SUBSTRING_VALUES)
 		{
@@ -944,6 +945,15 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 				break;
 		}
 	}
+#else
+	for (i = 0; i < MAX_SUBSTRING_VALUES; i++) {
+		if (do_filter_char_substring(i, &data, igncase))
+			return 1;
+		j += 4;
+		if (j + 8 >= data.filter->vallen)
+			break;
+	}
+#endif
 	return 0;
 }
 #endif /* __LARGE_BPF_PROG */

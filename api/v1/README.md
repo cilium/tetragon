@@ -126,6 +126,7 @@
     - [GetInfoResponse.Probe](#tetragon-GetInfoResponse-Probe)
     - [GetVersionRequest](#tetragon-GetVersionRequest)
     - [GetVersionResponse](#tetragon-GetVersionResponse)
+    - [HookInfo](#tetragon-HookInfo)
     - [ListDomainsRequest](#tetragon-ListDomainsRequest)
     - [ListDomainsResponse](#tetragon-ListDomainsResponse)
     - [ListSensorsRequest](#tetragon-ListSensorsRequest)
@@ -136,6 +137,7 @@
     - [ProcessInternal.RefcntOpsEntry](#tetragon-ProcessInternal-RefcntOpsEntry)
     - [RemoveSensorRequest](#tetragon-RemoveSensorRequest)
     - [RemoveSensorResponse](#tetragon-RemoveSensorResponse)
+    - [SensorInfo](#tetragon-SensorInfo)
     - [SensorStatus](#tetragon-SensorStatus)
     - [SetDebugRequest](#tetragon-SetDebugRequest)
     - [SetDebugResponse](#tetragon-SetDebugResponse)
@@ -144,6 +146,7 @@
     - [TracingPolicyStatus](#tetragon-TracingPolicyStatus)
   
     - [ConfigFlag](#tetragon-ConfigFlag)
+    - [HookStatus](#tetragon-HookStatus)
     - [LogLevel](#tetragon-LogLevel)
     - [TracingPolicyMode](#tetragon-TracingPolicyMode)
     - [TracingPolicyState](#tetragon-TracingPolicyState)
@@ -2253,6 +2256,22 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-HookInfo"></a>
+
+### HookInfo
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| status | [HookStatus](#tetragon-HookStatus) |  | hook probe status |
+| name | [string](#string) |  | hook name |
+
+
+
+
+
+
 <a name="tetragon-ListDomainsRequest"></a>
 
 ### ListDomainsRequest
@@ -2392,6 +2411,22 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-SensorInfo"></a>
+
+### SensorInfo
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | name of sensor |
+| hook_info | [HookInfo](#tetragon-HookInfo) | repeated | status of sensor&#39;s hooks |
+
+
+
+
+
+
 <a name="tetragon-SensorStatus"></a>
 
 ### SensorStatus
@@ -2500,6 +2535,7 @@ Determines the behavior of a field filter
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) |  | current mode of the tracing policy |
 | stats | [TracingPolicyStats](#tetragon-TracingPolicyStats) | optional | stats of the tracing policy |
 | domain | [string](#string) |  | domain of the policy |
+| sensor_info | [SensorInfo](#tetragon-SensorInfo) | repeated | sensor info and status |
 
 
 
@@ -2517,6 +2553,19 @@ For now, we only want to support debug-related config flags to be configurable.
 | ---- | ------ | ----------- |
 | CONFIG_FLAG_LOG_LEVEL | 0 |  |
 | CONFIG_FLAG_DUMP_PROCESS_CACHE | 1 |  |
+
+
+
+<a name="tetragon-HookStatus"></a>
+
+### HookStatus
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| STATUS_UNSPECIFIED | 0 | unknown or unspecified state |
+| STATUS_LOADED | 1 | probe was loaded |
+| STATUS_DIGEST_REJECTED | 2 | probe was not loaded due to digest mismatch |
 
 
 

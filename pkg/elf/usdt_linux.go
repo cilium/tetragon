@@ -38,17 +38,6 @@ func getBase(se *SafeELFFile) (uint64, error) {
 	return 0, nil
 }
 
-// Integer represents all possible integer types.
-// Remove when x/exp/constraints is moved to the standard library.
-type Integer interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
-}
-
-// align returns 'n' updated to 'alignment' boundary.
-func align[I Integer](n, alignment I) I {
-	return (n + alignment - 1) / alignment * alignment
-}
-
 func (se *SafeELFFile) UsdtTargets() ([]*UsdtTarget, error) {
 	var targets []*UsdtTarget
 

@@ -125,6 +125,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
+		col.destroy(true)
 		return err
 	}
 	col.state = EnabledState
@@ -393,14 +394,15 @@ func (h *handler) listPolicies(domain string) []*tetragon.TracingPolicyStatus {
 
 		col.tracingpolicy.TpSpec()
 		pol := tetragon.TracingPolicyStatus{
-			Id:       col.tracingpolicyID,
-			Name:     ck.name,
-			Enabled:  col.state == EnabledState,
-			FilterId: col.policyfilterID,
-			State:    col.state.ToTetragonState(),
-			Mode:     col.mode(),
-			Stats:    col.stats(),
-			Domain:   ck.domain,
+			Id:         col.tracingpolicyID,
+			Name:       ck.name,
+			Enabled:    col.state == EnabledState,
+			FilterId:   col.policyfilterID,
+			State:      col.state.ToTetragonState(),
+			Mode:       col.mode(),
+			Stats:      col.stats(),
+			Domain:     ck.domain,
+			SensorInfo: []*tetragon.SensorInfo{},
 		}
 
 		if col.err != nil {
@@ -412,6 +414,10 @@ func (h *handler) listPolicies(domain string) []*tetragon.TracingPolicyStatus {
 		for _, sens := range col.sensors {
 			pol.Sensors = append(pol.Sensors, sens.GetName())
 			pol.KernelMemoryBytes += uint64(sens.TotalMemlock())
+			pol.SensorInfo = append(pol.SensorInfo, &tetragon.SensorInfo{
+				Name:     sens.GetName(),
+				HookInfo: sens.GetHookInfo(),
+			})
 		}
 
 		ret = append(ret, &pol)
@@ -462,7 +468,14 @@ func sensorsFromPolicyHandlers(tp tracingpolicy.TracingPolicy, filterID policyfi
 	for n, s := range registeredPolicyHandlers {
 		sensor, err := s.PolicyHandler(tp, filterID)
 		if err != nil {
-			return nil, fmt.Errorf("policy handler '%s' failed loading policy '%s': %w", n, tp.TpName(), err)
+			var destroyErr error
+			for _, s := range sensors {
+				if dErr := s.Destroy(true); dErr != nil {
+					destroyErr = errors.Join(destroyErr, dErr)
+				}
+			}
+			mainErr := fmt.Errorf("policy handler '%s' failed loading policy '%s': %w", n, tp.TpName(), err)
+			return nil, errors.Join(mainErr, destroyErr)
 		}
 		if sensor == nil {
 			continue

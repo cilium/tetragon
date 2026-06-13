@@ -7981,6 +7981,13 @@ merge patch.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>binaryDigests</b></td>
+        <td>[]string</td>
+        <td>
+          Digests of the traced binary. If any digest matches, verification passes.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>btfPath</b></td>
         <td>string</td>
         <td>
@@ -18960,6 +18967,13 @@ merge patch.<br/>
         <td>[]object</td>
         <td>
           A list of function arguments to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>binaryDigests</b></td>
+        <td>[]string</td>
+        <td>
+          Digests of the traced binary. If any digest matches, verification passes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
