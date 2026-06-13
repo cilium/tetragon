@@ -36,10 +36,11 @@ type TLSConfig struct {
 var TLS TLSConfig
 
 // Enabled reports whether the dial should switch from plaintext to TLS.
-// --tls-skip-verify and --tls-server-name only refine an already-active
-// TLS dial; on their own they don't trigger TLS mode.
+// Any TLS-related flag should activate a TLS dial so callers don't silently
+// fall back to plaintext when users request server-name overrides, dev-only
+// verification skipping, or the system CA bundle.
 func (c TLSConfig) Enabled() bool {
-	return c.CertFile != "" || c.KeyFile != "" || len(c.CAFiles) > 0
+	return c.CertFile != "" || c.KeyFile != "" || len(c.CAFiles) > 0 || c.ServerName != "" || c.SkipVerify
 }
 
 // Validate enforces the minimum invariants. --tls-skip-verify with

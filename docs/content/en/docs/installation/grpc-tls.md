@@ -98,6 +98,9 @@ tetra \
 ```
 
 Drop `--tls-cert-file` / `--tls-key-file` if the server is in TLS-only mode.
+If the server certificate chains to the host OS trust store, you can also omit
+`--tls-ca-cert-files`; for example, `--tls-server-name` alone is enough to
+switch `tetra` to a TLS connection that uses the system CA bundle.
 
 {{< caution >}}
 `--tls-skip-verify` disables server certificate verification and is intended
