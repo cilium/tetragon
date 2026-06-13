@@ -10,9 +10,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cilium/ebpf"
 	ebtf "github.com/cilium/ebpf/btf"
 
+	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/btf"
@@ -307,4 +310,16 @@ func useMacro[T any](filters []T, macrosFilters []T) ([]T, error) {
 		return nil, fmt.Errorf("%T: field is defined in multiple macros and/or policy selectors", filters[0])
 	}
 	return append(filters, macrosFilters...), nil
+}
+
+func setupCelExpr(load *program.Program, selectors kprobeSelectors, fn string) {
+	if !celbpf.EnabledInBPF() || load.RewriteProg != nil || load.RetProbe {
+		return
+	}
+
+	rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
+	if entry := selectors.entry; entry != nil {
+		rewriteProg[fn] = entry.CelExprFunctions().RewriteProg
+		load.RewriteProg = rewriteProg
+	}
 }
