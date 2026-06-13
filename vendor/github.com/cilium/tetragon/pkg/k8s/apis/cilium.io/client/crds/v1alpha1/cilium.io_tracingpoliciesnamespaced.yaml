@@ -1332,6 +1332,9 @@ spec:
                   required:
                   - call
                   type: object
+                  x-kubernetes-validations:
+                  - message: ReturnArg not specified with Return=true.
+                    rule: '!self.return || has(self.returnArg)'
                 type: array
               hostSelector:
                 description: |-
@@ -2611,6 +2614,9 @@ spec:
                   required:
                   - call
                   type: object
+                  x-kubernetes-validations:
+                  - message: ReturnArg not specified with Return=true.
+                    rule: '!self.return || has(self.returnArg)'
                 type: array
               lists:
                 description: A list of list specs.
@@ -6687,6 +6693,13 @@ spec:
                   required:
                   - path
                   type: object
+                  x-kubernetes-validations:
+                  - message: ReturnArg not specified with Return=true.
+                    rule: '!self.return || has(self.returnArg)'
+                  - message: at most one of the fields in [symbols addrs offsets]
+                      may be set
+                    rule: '[has(self.symbols),has(self.addrs),has(self.offsets)].filter(x,x==true).size()
+                      <= 1'
                 type: array
               usdts:
                 description: A list of usdt specs.
@@ -7665,6 +7678,11 @@ spec:
                   type: object
                 type: array
             type: object
+            x-kubernetes-validations:
+            - message: at most one of the fields in [kprobes tracepoints uprobes lsmhooks
+                usdts fentries] may be set
+              rule: '[has(self.kprobes),has(self.tracepoints),has(self.uprobes),has(self.lsmhooks),has(self.usdts),has(self.fentries)].filter(x,x==true).size()
+                <= 1'
         required:
         - metadata
         - spec

@@ -80,6 +80,7 @@ func (tp *TracingPolicyNamespaced) TpNamespace() string {
 	return tp.ObjectMeta.Namespace
 }
 
+// +kubebuilder:validation:AtMostOneOf=kprobes;tracepoints;uprobes;lsmhooks;usdts;fentries
 type TracingPolicySpec struct {
 	// +kubebuilder:validation:Optional
 	// A list of kprobe specs.

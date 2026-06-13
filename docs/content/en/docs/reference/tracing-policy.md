@@ -78,6 +78,8 @@ Resource Types:
         <td>object</td>
         <td>
           Tracing policy specification.<br/>
+          <br/>
+            <i>Validations</i>:<li>[has(self.kprobes),has(self.tracepoints),has(self.uprobes),has(self.lsmhooks),has(self.usdts),has(self.fentries)].filter(x,x==true).size() <= 1: at most one of the fields in [kprobes tracepoints uprobes lsmhooks usdts fentries] may be set</li>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -11060,6 +11062,8 @@ merge patch.<br/>
         <td>object</td>
         <td>
           Tracing policy specification.<br/>
+          <br/>
+            <i>Validations</i>:<li>[has(self.kprobes),has(self.tracepoints),has(self.uprobes),has(self.lsmhooks),has(self.usdts),has(self.fentries)].filter(x,x==true).size() <= 1: at most one of the fields in [kprobes tracepoints uprobes lsmhooks usdts fentries] may be set</li>
         </td>
         <td>true</td>
       </tr></tbody>
