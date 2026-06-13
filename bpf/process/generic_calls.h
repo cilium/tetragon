@@ -251,7 +251,6 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 {
 	struct msg_generic_kprobe *e;
 	long size = -1;
-	long ret = 0;
 	int zero = 0;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
@@ -262,36 +261,6 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 	case iov_iter_type:
 		size = copy_iov_iter(ctx, orig_off, arg, argm, e);
 		break;
-	case fd_ty: {
-		struct fdinstall_key key = { 0 };
-		struct fdinstall_value *val;
-
-		key.tid = get_current_pid_tgid() >> 32;
-		key.fd = arg;
-
-		val = map_lookup_elem(&fdinstall_map, &key);
-		if (val) {
-			__u32 bytes = *((__u32 *)&val->file[0]);
-
-			memcpy(&args[0], &key.fd, sizeof(key.fd));
-			asm volatile("%[bytes] &= 0xfff;\n"
-				     : [bytes] "+r"(bytes)
-				     :);
-			// size + file path + flags
-			size = 4 + bytes + 4;
-			ret = probe_read(&args[4], size, (char *)&val->file[0]);
-			if (ret < 0)
-				return ret;
-
-			// account for fd written at args[0]
-			size += 4;
-		} else {
-			/* If filter specification is fd type then we
-			 * prevent the filter from matching
-			 */
-			return -1;
-		}
-	} break;
 	case filename_ty: {
 		struct filename *file;
 
@@ -464,6 +433,7 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	char *args;
 	const struct path *path_arg = 0;
 	struct path path_buf;
+	int path_off = 0;
 	int zero = 0;
 	int ret;
 
@@ -488,7 +458,15 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	 * const for 4.19 kernels..
 	 */
 	if (path_arg) {
-		ret = copy_path(args, path_arg);
+		if (type == fd_ty) {
+			__u32 fd = (__u32)arg;
+
+			memcpy(args, &fd, sizeof(fd));
+			path_off = sizeof(fd);
+		}
+		ret = copy_path(args + path_off, path_arg);
+		if (ret > 0)
+			ret += path_off;
 	} else if (process == __READ_ARG_1) {
 		ret = __read_arg_1(ctx, type, orig_off, arg, argm, args);
 	} else if (process == __READ_ARG_2) {
