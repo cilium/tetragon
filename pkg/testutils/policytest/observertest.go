@@ -52,6 +52,12 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
+	if pt.Setup != nil {
+		if cleanup := pt.Setup(); cleanup != nil {
+			defer cleanup()
+		}
+	}
+
 	conf := &Conf{
 		BinsDir: testutils.RepoRootPath("contrib/tester-progs"),
 		TestConf: &TestConf{
@@ -71,12 +77,24 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 	policyFile.Close()
 	policyFname := policyFile.Name()
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, policyFname, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	opts := []observertesthelper.TestOption{
+		observertesthelper.WithConfig(policyFname),
+	}
+	if !pt.AllEvents {
+		opts = append(opts, observertesthelper.WithMyPid())
+	}
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, opts...)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 
-	for _, s := range pt.Scenarios {
+	for i, s := range pt.Scenarios {
+		if i > 0 {
+			if err := testutils.TruncateExportFile(t); err != nil {
+				t.Fatalf("failed to truncate export file before scenario %d: %s", i, err)
+			}
+		}
 		observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 		readyWG.Wait()
 
