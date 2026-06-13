@@ -80,6 +80,13 @@ func TestAssignment(t *testing.T) {
 	assert.Equal(t, uint16(0x50), ass.Src)
 	assert.Equal(t, uint64(0), ass.Off)
 
+	ass, err = ParseAssignment("rsp = %rax")
+	require.NoError(t, err)
+	assert.Equal(t, ASM_ASSIGNMENT_TYPE_REG, ass.Type)
+	assert.Equal(t, uint16(0x98), ass.Dst)
+	assert.Equal(t, uint16(0x50), ass.Src)
+	assert.Equal(t, uint64(0), ass.Off)
+
 	// register + offset
 	ass, err = ParseAssignment("rbp=128%rax")
 	require.NoError(t, err)
@@ -87,6 +94,13 @@ func TestAssignment(t *testing.T) {
 	assert.Equal(t, uint16(0x20), ass.Dst)
 	assert.Equal(t, uint16(0x50), ass.Src)
 	assert.Equal(t, uint64(128), ass.Off)
+
+	ass, err = ParseAssignment("rbp = 010 %rax")
+	require.NoError(t, err)
+	assert.Equal(t, ASM_ASSIGNMENT_TYPE_REG_OFF, ass.Type)
+	assert.Equal(t, uint16(0x20), ass.Dst)
+	assert.Equal(t, uint16(0x50), ass.Src)
+	assert.Equal(t, uint64(8), ass.Off)
 
 	ass, err = ParseAssignment("rax=0x80%rax")
 	require.NoError(t, err)
@@ -109,4 +123,49 @@ func TestAssignment(t *testing.T) {
 	assert.Equal(t, uint16(0x20), ass.Dst)
 	assert.Equal(t, uint16(0x98), ass.Src)
 	assert.Equal(t, uint64(0x20), ass.Off)
+
+	ass, err = ParseAssignment("rbp = 0x20 ( %rsp )")
+	require.NoError(t, err)
+	assert.Equal(t, ASM_ASSIGNMENT_TYPE_REG_DEREF, ass.Type)
+	assert.Equal(t, uint16(0x20), ass.Dst)
+	assert.Equal(t, uint16(0x98), ass.Src)
+	assert.Equal(t, uint64(0x20), ass.Off)
+
+	ass, err = ParseAssignment("rsp=010(%rbp)")
+	require.NoError(t, err)
+	assert.Equal(t, ASM_ASSIGNMENT_TYPE_REG_DEREF, ass.Type)
+	assert.Equal(t, uint16(0x98), ass.Dst)
+	assert.Equal(t, uint16(0x20), ass.Src)
+	assert.Equal(t, uint64(8), ass.Off)
+}
+
+func TestAssignmentInvalid(t *testing.T) {
+	tests := []string{
+		"rax=",
+		"=1",
+		"rax=1=2",
+		"ra x=1",
+		"rax=1 2",
+		"rax=abc",
+		"rbp=0x2 0(%rsp)",
+		"rbp=0x20(%rsp",
+		"rbp=0x20(%rsp)junk",
+		"rbp=0x20(% rsp)",
+		"rsp=%rax)",
+		"rsp=% rax",
+		"rsp=%r ax",
+		"rsp=8% rax",
+		"rsp=8%rax garbage",
+		"rsp=8%r ax",
+		"rax=0x20()",
+		"rax=0x20(%notareg)",
+	}
+
+	for _, exp := range tests {
+		t.Run(exp, func(t *testing.T) {
+			ass, err := ParseAssignment(exp)
+			require.Error(t, err)
+			assert.Nil(t, ass)
+		})
+	}
 }
