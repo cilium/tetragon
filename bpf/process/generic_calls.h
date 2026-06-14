@@ -494,6 +494,12 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	}
 
 	if (ret < 0) {
+		/* fd_ty returns -1 when the fd is not in the fdinstall_map,
+		 * meaning the filter should not match (event should be dropped).
+		 * This is a filter decision, not a fault.
+		 */
+		if (type == fd_ty)
+			return -1;
 		e->arg_status[index & MAX_POSSIBLE_ARGS_MASK] = -1;
 		/* update the arg status to reflect the detected fault */
 		write_arg_status(e, orig_off - sizeof(arg_status_t), e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
@@ -675,6 +681,13 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals, int process)
 		errv = generic_read_arg(ctx, index, total, tailcals, process);
 		if (errv > 0)
 			total += errv;
+		/* Follow filter lookup failed so lets abort the event.
+		 * From high-level this is a filter and should be in the
+		 * filter block, but its just easier to do here so lets
+		 * do it where it makes most sense.
+		 */
+		else if (errv < 0)
+			return filter_args_reject(e->func_id);
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
