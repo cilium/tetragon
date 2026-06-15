@@ -19,9 +19,9 @@ const (
 	// containerName is the name of the test pod's single container.
 	containerName = "policytest"
 
-	// DefaultImage is the policytest image. Provisional until the image build
-	// is finalized; override via the orchestrator.
-	DefaultImage = "tetragon-policytest:latest"
+	// DefaultImage is the policytest image built by `make image-policytest`.
+	// Override via the orchestrator's --image flag.
+	DefaultImage = "cilium/tetragon-policytest:latest"
 )
 
 // TestPodSpec describes the inputs needed to build a test pod that runs policy
