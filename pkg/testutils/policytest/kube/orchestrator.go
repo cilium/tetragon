@@ -15,7 +15,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const defaultPollInterval = 2 * time.Second
+const (
+	defaultPollInterval = 2 * time.Second
+	// cleanupTimeout bounds best-effort deletion of the test pod and the copied
+	// TLS secret. Cleanup must run even when the caller's context is already
+	// cancelled (timeout, Ctrl-C), so it uses a fresh context with this budget.
+	cleanupTimeout = 30 * time.Second
+)
 
 // Orchestrator runs policy tests on a cluster by deploying a test pod, waiting
 // for it to complete, collecting its machine-readable results from the pod
@@ -24,6 +30,11 @@ type Orchestrator struct {
 	client       kubernetes.Interface
 	namespace    string
 	pollInterval time.Duration
+
+	// TLSSecretSourceNamespace is the namespace to copy a test pod's TLS secret
+	// from (the agent's namespace). Secrets are namespace-scoped, so the secret
+	// is copied into the test namespace and removed when the run finishes.
+	TLSSecretSourceNamespace string
 
 	// podLogs reads the logs of a completed pod. It is a field so tests can
 	// inject log content (the fake clientset returns canned logs).
@@ -51,11 +62,22 @@ func NewOrchestrator(client kubernetes.Interface, namespace string) *Orchestrato
 // gRPC-loaded namespaced policies is decided.
 func (o *Orchestrator) Run(ctx context.Context, spec *TestPodSpec) (results []TestResult, err error) {
 	pod := spec.Build()
+
+	if spec.TLSSecret != "" && o.TLSSecretSourceNamespace != "" && o.TLSSecretSourceNamespace != o.namespace {
+		cleanup, err := o.copyTLSSecret(ctx, spec.TLSSecret)
+		if err != nil {
+			return nil, err
+		}
+		defer cleanup()
+	}
+
 	if _, err := o.client.CoreV1().Pods(o.namespace).Create(ctx, pod, metav1.CreateOptions{}); err != nil {
 		return nil, fmt.Errorf("failed to create test pod: %w", err)
 	}
 	defer func() {
-		delErr := o.client.CoreV1().Pods(o.namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{})
+		cctx, cancel := cleanupContext()
+		defer cancel()
+		delErr := o.client.CoreV1().Pods(o.namespace).Delete(cctx, pod.Name, metav1.DeleteOptions{})
 		if delErr != nil && err == nil {
 			err = fmt.Errorf("failed to delete test pod %q: %w", pod.Name, delErr)
 		}
@@ -71,12 +93,12 @@ func (o *Orchestrator) Run(ctx context.Context, spec *TestPodSpec) (results []Te
 		return nil, fmt.Errorf("failed to read test pod logs: %w", err)
 	}
 
-	results, err = Decode(logs)
+	results, err = ExtractResults(logs)
 	if err != nil {
 		if phase == corev1.PodFailed {
 			return nil, fmt.Errorf("test pod %q failed; logs: %s", pod.Name, string(logs))
 		}
-		return nil, fmt.Errorf("failed to decode results from test pod %q: %w", pod.Name, err)
+		return nil, fmt.Errorf("failed to extract results from test pod %q: %w; logs: %s", pod.Name, err, string(logs))
 	}
 	return results, nil
 }
@@ -103,6 +125,39 @@ func (o *Orchestrator) waitForCompletion(ctx context.Context, name string) (core
 		case <-ticker.C:
 		}
 	}
+}
+
+// copyTLSSecret copies the named secret from TLSSecretSourceNamespace into the
+// orchestrator's namespace so the test pod can mount it (secrets are
+// namespace-scoped). It returns a cleanup func that removes the copy.
+func (o *Orchestrator) copyTLSSecret(ctx context.Context, name string) (func(), error) {
+	src, err := o.client.CoreV1().Secrets(o.TLSSecretSourceNamespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to read TLS secret %s/%s: %w", o.TLSSecretSourceNamespace, name, err)
+	}
+	dup := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: o.namespace},
+		Type:       src.Type,
+		Data:       src.Data,
+	}
+	// Remove any copy stranded by a previous interrupted run so Create does not
+	// fail with AlreadyExists (and the stale private key does not linger).
+	_ = o.client.CoreV1().Secrets(o.namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if _, err := o.client.CoreV1().Secrets(o.namespace).Create(ctx, dup, metav1.CreateOptions{}); err != nil {
+		return nil, fmt.Errorf("failed to copy TLS secret into %q: %w", o.namespace, err)
+	}
+	return func() {
+		cctx, cancel := cleanupContext()
+		defer cancel()
+		_ = o.client.CoreV1().Secrets(o.namespace).Delete(cctx, name, metav1.DeleteOptions{})
+	}, nil
+}
+
+// cleanupContext returns a short-lived context for best-effort deletion that
+// must run even when the caller's context is already cancelled (timeout,
+// Ctrl-C). Callers must defer the returned cancel.
+func cleanupContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), cleanupTimeout)
 }
 
 func (o *Orchestrator) readPodLogs(ctx context.Context, namespace, name string) ([]byte, error) {

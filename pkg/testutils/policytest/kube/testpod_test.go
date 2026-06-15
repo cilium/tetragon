@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -53,6 +54,38 @@ func TestTestPodSpec_Build(t *testing.T) {
 		"--namespace", "pt-ns",
 		"--pod-selector-label", "tetragon.io/policytest-run=abc",
 	}, c.Args)
+
+	// no TLS configured -> no secret volume/mount
+	assert.Empty(t, pod.Spec.Volumes)
+	assert.Empty(t, c.VolumeMounts)
+}
+
+func TestTestPodSpec_TLS(t *testing.T) {
+	spec := &TestPodSpec{
+		Name: "p", Namespace: "ns", RunID: "r", AgentAddr: "1.2.3.4:54321",
+		Tests:         []string{"t"},
+		TLSSecret:     "tetragon-server-certs",
+		TLSServerName: "tetragon.local",
+	}
+
+	pod := spec.Build()
+
+	// secret mounted read-only as a volume
+	require.Len(t, pod.Spec.Volumes, 1)
+	assert.Equal(t, "tetragon-server-certs", pod.Spec.Volumes[0].Secret.SecretName)
+
+	c := pod.Spec.Containers[0]
+	require.Len(t, c.VolumeMounts, 1)
+	assert.True(t, c.VolumeMounts[0].ReadOnly)
+	mp := c.VolumeMounts[0].MountPath
+
+	// mTLS client flags reference the mounted cert files + SNI override
+	assert.Subset(t, c.Args, []string{
+		"--tls-ca-cert-files", mp + "/ca.crt",
+		"--tls-cert-file", mp + "/tls.crt",
+		"--tls-key-file", mp + "/tls.key",
+		"--tls-server-name", "tetragon.local",
+	})
 }
 
 func TestTestPodSpec_RunLabelMatchesSelector(t *testing.T) {

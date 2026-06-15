@@ -9,11 +9,20 @@
 package kube
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 )
+
+// ResultMarker prefixes the encoded results line the in-pod runner writes to
+// stdout, so the orchestrator can extract it from pod logs that also contain
+// the runner's stderr logging.
+const ResultMarker = "POLICYTEST-RESULTS:"
+
+var errNoResultMarker = errors.New("no policytest results marker found in pod logs")
 
 // ScenarioResult is the machine-readable result of a single policy test
 // scenario. Errors are rendered as strings so the result can be serialized;
@@ -73,6 +82,19 @@ func Encode(results []TestResult) ([]byte, error) {
 		return nil, fmt.Errorf("failed to encode results: %w", err)
 	}
 	return data, nil
+}
+
+// ExtractResults finds the marked results line in pod logs (which also contain
+// the runner's stderr logging) and decodes it.
+func ExtractResults(logs []byte) ([]TestResult, error) {
+	marker := []byte(ResultMarker)
+	lines := bytes.Split(logs, []byte("\n"))
+	for i := len(lines) - 1; i >= 0; i-- {
+		if idx := bytes.Index(lines[i], marker); idx >= 0 {
+			return Decode(lines[i][idx+len(marker):])
+		}
+	}
+	return nil, errNoResultMarker
 }
 
 // Decode parses a set of test results produced by Encode.

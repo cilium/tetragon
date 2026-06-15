@@ -95,6 +95,7 @@ func inpodCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to start in-pod runner: %w", err)
 			}
+			defer runner.Close()
 
 			var results []kube.TestResult
 			for _, t := range tests {
@@ -104,13 +105,14 @@ func inpodCmd() *cobra.Command {
 				})
 				results = append(results, kube.FromResult(t.Name, res))
 			}
-			runner.Close()
 
 			data, err := kube.Encode(results)
 			if err != nil {
 				return err
 			}
-			cmd.OutOrStdout().Write(data)
+			// Prefix with the marker so the orchestrator can extract this line
+			// from pod logs that also contain stderr logging.
+			fmt.Fprintf(cmd.OutOrStdout(), "%s%s\n", kube.ResultMarker, data)
 			return nil
 		},
 	}

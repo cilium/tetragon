@@ -17,7 +17,7 @@ import (
 func TestRunCmd_KubeFlag(t *testing.T) {
 	cmd := runCmd()
 	require.NotNil(t, cmd.Flags().Lookup("kube"), "run must have a --kube flag")
-	for _, f := range []string{"namespace", "node", "image", "agent-namespace"} {
+	for _, f := range []string{"namespace", "node", "image", "agent-namespace", "tls-secret", "tls-server-name"} {
 		assert.NotNil(t, cmd.Flags().Lookup(f), "run must have --"+f)
 	}
 }

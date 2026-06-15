@@ -47,20 +47,24 @@ func validateTests(names []string) error {
 
 // kubeOpts holds the inputs for building the test pod spec.
 type kubeOpts struct {
-	namespace string
-	image     string
-	agentPort int
+	namespace     string
+	image         string
+	agentPort     int
+	tlsSecret     string
+	tlsServerName string
 }
 
 func (o *kubeOpts) podSpec(runID string, agent *kube.Agent, tests []string) *kube.TestPodSpec {
 	return &kube.TestPodSpec{
-		Name:      "policytest-" + runID,
-		Namespace: o.namespace,
-		Node:      agent.Node,
-		Image:     o.image,
-		RunID:     runID,
-		AgentAddr: fmt.Sprintf("%s:%d", agent.PodIP, o.agentPort),
-		Tests:     tests,
+		Name:          "policytest-" + runID,
+		Namespace:     o.namespace,
+		Node:          agent.Node,
+		Image:         o.image,
+		RunID:         runID,
+		AgentAddr:     fmt.Sprintf("%s:%d", agent.PodIP, o.agentPort),
+		Tests:         tests,
+		TLSSecret:     o.tlsSecret,
+		TLSServerName: o.tlsServerName,
 	}
 }
 
@@ -95,9 +99,11 @@ type kubeFlags struct {
 func defaultKubeFlags() kubeFlags {
 	return kubeFlags{
 		opts: kubeOpts{
-			namespace: "default",
-			image:     kube.DefaultImage,
-			agentPort: 54321,
+			namespace:     "default",
+			image:         kube.DefaultImage,
+			agentPort:     54321,
+			tlsSecret:     "tetragon-server-certs",
+			tlsServerName: "tetragon.local",
 		},
 		agentNamespace: "kube-system",
 		agentSelector:  kube.DefaultAgentLabelSelector,
@@ -114,6 +120,8 @@ func addKubeFlags(flags *pflag.FlagSet, kf *kubeFlags) {
 	flags.StringVar(&kf.agentNamespace, "agent-namespace", kf.agentNamespace, "namespace where the Tetragon agent runs (--kube)")
 	flags.StringVar(&kf.agentSelector, "agent-selector", kf.agentSelector, "label selector for Tetragon agent pods (--kube)")
 	flags.StringVar(&kf.kubeconfig, "kubeconfig", kf.kubeconfig, "path to kubeconfig (defaults to the ambient configuration) (--kube)")
+	flags.StringVar(&kf.opts.tlsSecret, "tls-secret", kf.opts.tlsSecret, "kubernetes.io/tls secret with the agent's certs, copied into the test namespace and used as the gRPC client mTLS credentials (empty to disable) (--kube)")
+	flags.StringVar(&kf.opts.tlsServerName, "tls-server-name", kf.opts.tlsServerName, "SNI / certificate hostname override when dialing the agent (--kube)")
 	flags.DurationVar(&kf.timeout, "timeout", kf.timeout, "overall timeout for the cluster run, e.g. if the test pod never completes (--kube)")
 }
 
@@ -152,6 +160,7 @@ func runKube(cmd *cobra.Command, args []string, kf *kubeFlags) error {
 
 	spec := kf.opts.podSpec(runID, agent, args)
 	orch := kube.NewOrchestrator(client, kf.opts.namespace)
+	orch.TLSSecretSourceNamespace = kf.agentNamespace
 	results, err := orch.Run(ctx, spec)
 	if err != nil {
 		return err

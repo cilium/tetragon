@@ -30,6 +30,26 @@ func TestResultsRoundTrip(t *testing.T) {
 	assert.Equal(t, results, got)
 }
 
+func TestExtractResults(t *testing.T) {
+	data, err := Encode([]TestResult{{Name: "t1", Scenarios: []ScenarioResult{{Name: "s1"}}}})
+	require.NoError(t, err)
+
+	// pod logs interleave slog (stderr) with the stdout result line
+	logs := []byte("level=warn msg=\"Could not find BPF map root\"\n" +
+		ResultMarker + string(data) + "\n" +
+		"level=info msg=\"done\"\n")
+
+	got, err := ExtractResults(logs)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "t1", got[0].Name)
+}
+
+func TestExtractResults_NoMarker(t *testing.T) {
+	_, err := ExtractResults([]byte("level=warn msg=\"only noise\"\n"))
+	require.Error(t, err)
+}
+
 func TestFromResult(t *testing.T) {
 	r := &policytest.Result{
 		Err: errors.New("load failed"),
