@@ -2047,6 +2047,11 @@ func testKprobeObjectFileWriteHook(pidStr string) string {
           followForks: true
           values:
           - ` + pidStr + `
+        matchArgs:
+        - index: 1
+          operator: "Postfix"
+          values:
+          - "testfile"
         matchActions:
         - action: FollowFD
           argFd: 0
@@ -2066,6 +2071,11 @@ func testKprobeObjectFileWriteHook(pidStr string) string {
         - operator: In
           values:
           - ` + pidStr + `
+        matchArgs:
+        - index: 0
+          operator: "Postfix"
+          values:
+          - "testfile"
   `
 }
 
