@@ -18,6 +18,7 @@ import (
 
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	_ "github.com/cilium/tetragon/tests/policytests" // so that tests can be registered
 )
 
@@ -30,6 +31,7 @@ func New() *cobra.Command {
 	tpCmd.AddCommand(
 		listCmd(),
 		runCmd(),
+		inpodCmd(),
 		dumpPolicyCmd(),
 	)
 	return tpCmd
@@ -151,6 +153,9 @@ func runCmd() *cobra.Command {
 				_, ok := names[t.Name]
 				return ok
 			})
+			// Initialize tus.Conf() so policytests that read it don't panic
+			// outside the `go test` sensor harness.
+			tus.SetConf(&tus.ConfigDefaults)
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
 				GrpcAddr:       common.ServerAddress,
 				BinsDir:        testBinsPath,
