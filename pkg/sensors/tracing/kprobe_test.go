@@ -2042,11 +2042,11 @@ func testKprobeObjectFileWriteHook(pidStr string) string {
       - index: 1
         type: "file"
       selectors:
-      - matchPIDs:
-        - operator: In
-          followForks: true
+      - matchArgs:
+        - index: 1
+          operator: "Postfix"
           values:
-          - ` + pidStr + `
+          - "testfile"
         matchActions:
         - action: FollowFD
           argFd: 0
@@ -2062,10 +2062,11 @@ func testKprobeObjectFileWriteHook(pidStr string) string {
       - index: 2
         type: "size_t"
       selectors:
-      - matchPIDs:
-        - operator: In
+      - matchArgs:
+        - index: 0
+          operator: "Postfix"
           values:
-          - ` + pidStr + `
+          - "testfile"
   `
 }
 
