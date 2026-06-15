@@ -1,4 +1,4 @@
-# Least-privilege RBAC for running `tetra policytest run-kube`.
+# Least-privilege RBAC for running `tetra policytest run --kube`.
 #
 # The runner (operator or CI principal) needs two sets of permissions:
 #   - in the TEST namespace (here: policytest): manage the throwaway test pod
