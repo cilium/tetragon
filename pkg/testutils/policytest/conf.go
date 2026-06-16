@@ -7,8 +7,10 @@ package policytest
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 type ParamVals map[string]any
@@ -43,8 +45,54 @@ type Conf struct {
 
 	// Path to save the generated policy
 	DumpPolicyPath string
+
+	// Map of temporary files generated for this generated policy. Key is
+	// unique identifier for the temp file, value is the generated temp
+	// filename
+	tempFiles   map[string]string
+	tempFilesMu sync.Mutex
 }
 
 func (c *Conf) TestBinary(s string) string {
 	return filepath.Join(c.BinsDir, s)
+}
+
+func (c *Conf) TempFile(key string) (string, error) {
+	c.tempFilesMu.Lock()
+	defer c.tempFilesMu.Unlock()
+
+	if c.tempFiles == nil {
+		c.tempFiles = make(map[string]string)
+	} else if path, ok := c.tempFiles[key]; ok {
+		return path, nil // already created — return cached path
+	}
+	tempFile, err := os.CreateTemp("", "tetragon-testfile-*")
+	if err != nil {
+		return "", err
+	}
+	tempFile.Close()
+	path := tempFile.Name()
+	c.tempFiles[key] = path
+	return path, nil
+}
+
+func (c *Conf) TempFileMust(key string) string {
+	ret, err := c.TempFile(key)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+func (c *Conf) CleanupTempFiles() {
+	c.tempFilesMu.Lock()
+	defer c.tempFilesMu.Unlock()
+
+	if c.tempFiles == nil {
+		return
+	}
+	for _, tempFile := range c.tempFiles {
+		os.Remove(tempFile)
+	}
+	c.tempFiles = nil
 }
