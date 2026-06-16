@@ -29,6 +29,8 @@ type Scenario struct {
 // Policies are represented as strings, because that's how they are loaded via gRPC
 type Policy string
 
+type PolicyCleanupFn func()
+
 type Label string
 
 type SkipInfo struct {
@@ -53,7 +55,7 @@ type T struct {
 	ShouldSkip func(info *SkipInfo) string
 
 	// Policy generates a policy for this test
-	Policy func(c *Conf) (Policy, error)
+	Policy func(c *Conf) (Policy, PolicyCleanupFn, error)
 
 	Params []Parameter
 
