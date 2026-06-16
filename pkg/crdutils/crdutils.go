@@ -21,6 +21,7 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema/cel"
 	structuraldefaulting "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/defaulting"
 	structurallisttype "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/listtype"
+	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema/pruning"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/validation"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	celconfig "k8s.io/apiserver/pkg/apis/cel"
 	"sigs.k8s.io/yaml"
+
+	"github.com/cilium/tetragon/pkg/logger"
 )
 
 type CRDObject interface {
@@ -78,6 +81,19 @@ func (c *CRDContext[P]) IsNamespaced() bool {
 	return c.crd.Spec.Scope == extv1.NamespaceScoped
 }
 
+// UnknownFields returns the dotted paths of fields in unstr that are not part
+// of the CRD's structural schema. It operates on a deep copy, so unstr is left
+// untouched.
+func (c *CRDContext[P]) UnknownFields(unstr *unstructured.Unstructured) []string {
+	pruned := unstr.DeepCopy()
+	return pruning.PruneWithOptions(
+		pruned.Object,
+		c.structuralSchema,
+		true, // isResourceRoot: skip apiVersion/kind/metadata
+		apischema.UnknownFieldPathOptions{TrackUnknownFieldPaths: true},
+	)
+}
+
 // ApplyDefaults applies default values to an unstructured object using the
 // provided structural schema. It uses internal k8s api server machinery and
 // can only process unstructured objects, so it requires to unmarshal and
@@ -85,9 +101,22 @@ func (c *CRDContext[P]) IsNamespaced() bool {
 func (c *CRDContext[P]) ApplyDefaults(data []byte) ([]byte, unstructured.Unstructured, error) {
 	// unmarshal YAML into an unstructured object
 	var unstr unstructured.Unstructured
-	err := yaml.UnmarshalStrict([]byte(data), &unstr)
+	err := yaml.UnmarshalStrict(data, &unstr)
 	if err != nil {
 		return nil, unstr, fmt.Errorf("failed to unmarshal YAML: %w", err)
+	}
+
+	// Warn about fields that are not part of the CRD schema. Some spec subtrees
+	// (e.g. file) use a custom JSON unmarshaler that ignores unknown fields
+	// rather than failing, which can silently drop misspelled or misplaced
+	// selectors. We only report here; the strict unmarshal in FromYAML still
+	// rejects unknown fields that are not hidden by such a custom unmarshaler.
+	if unknown := c.UnknownFields(&unstr); len(unknown) > 0 {
+		logger.GetLogger().Warn(
+			"tracing policy contains unknown fields that are not part of the CRD schema and will be ignored",
+			"name", unstr.GetName(),
+			"unknownFields", unknown,
+		)
 	}
 
 	// apply defaults

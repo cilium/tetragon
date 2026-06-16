@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/yaml"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/testutils/tempfile"
@@ -454,6 +456,45 @@ func TestTracingPolicyNotCoveredBySpec(t *testing.T) {
 	_, err := TPContext.FromFile(path)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to unmarshal into typed object: error unmarshaling JSON: while decoding JSON: json: unknown field \"some_field\"")
+}
+
+func TestUnknownFields(t *testing.T) {
+	t.Run("top-level unknown spec field", func(t *testing.T) {
+		var unstr unstructured.Unstructured
+		require.NoError(t, yaml.UnmarshalStrict([]byte(tpNotCoveredBySpec), &unstr))
+		unknown := TPContext.UnknownFields(&unstr)
+		require.Contains(t, unknown, "spec.some_field")
+	})
+
+	t.Run("nested unknown selector field", func(t *testing.T) {
+		const tp = `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: nested-unknown
+spec:
+  kprobes:
+  - call: "security_file_permission"
+    syscall: false
+    selectors:
+    - matchTypo:
+      - namespace: Pid
+    - anotherMatchTypo:
+        key: value
+`
+		var unstr unstructured.Unstructured
+		require.NoError(t, yaml.UnmarshalStrict([]byte(tp), &unstr))
+		unknown := TPContext.UnknownFields(&unstr)
+		require.Len(t, unknown, 2)
+		require.Contains(t, unknown, "spec.kprobes[0].selectors[0].matchTypo")
+		require.Contains(t, unknown, "spec.kprobes[0].selectors[1].anotherMatchTypo")
+	})
+
+	t.Run("valid policy has no unknown fields", func(t *testing.T) {
+		var unstr unstructured.Unstructured
+		require.NoError(t, yaml.UnmarshalStrict([]byte(writev), &unstr))
+		assert.Empty(t, TPContext.UnknownFields(&unstr))
+	})
 }
 
 // TestXValidationHostSelector tests that XValidation rules work using the
