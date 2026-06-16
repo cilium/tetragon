@@ -39,17 +39,31 @@ func (b *Builder) WithParameter(p Parameter) *Builder {
 //
 // In the template, the following functions are supported
 //   - testBinary: generate a test binary path from the binary name (Conf.TestBinary())
+//   - tempFile: generate a temporary file and save it in the conf
 func (b *Builder) WithPolicyTemplate(tmpl string) *Builder {
 	policyTest := b.policytest
-	policyTest.Policy = func(c *Conf) (Policy, error) {
+	policyTest.Policy = func(c *Conf) (Policy, PolicyCleanupFn, error) {
 		funcMap := template.FuncMap{
 			"testBinary": func(s string) string {
 				return c.TestBinary(s)
 			},
+			"tempFile": func(key string) (string, error) {
+				return c.TempFile(key)
+			},
 		}
+
 		t, err := template.New("testpolicy").Funcs(funcMap).Parse(tmpl)
+
+		// Clean up any temp files created if this function returns due to an
+		// error
+		defer func() {
+			if err != nil {
+				c.CleanupTempFiles()
+			}
+		}()
+
 		if err != nil {
-			return Policy(""), fmt.Errorf("failed to parse template: %w", err)
+			return Policy(""), nil, fmt.Errorf("failed to parse template: %w", err)
 		}
 
 		// fill in params
@@ -65,9 +79,9 @@ func (b *Builder) WithPolicyTemplate(tmpl string) *Builder {
 		var buf bytes.Buffer
 		err = t.Execute(&buf, params)
 		if err != nil {
-			return Policy(""), fmt.Errorf("failed to execute template: %w", err)
+			return Policy(""), nil, fmt.Errorf("failed to execute template: %w", err)
 		}
-		return Policy(buf.String()), nil
+		return Policy(buf.String()), c.CleanupTempFiles, nil
 	}
 	return b
 }

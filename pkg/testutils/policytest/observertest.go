@@ -58,10 +58,11 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 			ParamValues: params,
 		},
 	}
-	policyStr, err := pt.Policy(conf)
+	policyStr, cleanupFn, err := pt.Policy(conf)
 	if err != nil {
 		t.Fatalf("failed to generate policy: %s", err)
 	}
+	t.Cleanup(cleanupFn)
 
 	policyFile, err := os.CreateTemp("", "tetragon-policy-"+t.Name()+"-*.txt")
 	if err != nil {

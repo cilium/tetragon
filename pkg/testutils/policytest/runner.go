@@ -115,11 +115,20 @@ func (r *LocalRunner) Close() {
 
 func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error) {
 	// generate policy
-	pol, err := test.Policy(r.conf)
+	pol, cleanup, err := test.Policy(r.conf)
 	if err != nil {
 		err = fmt.Errorf("failed to create policy for test %q: %w", test.Name, err)
 		return nil, err
 	}
+
+	// call cleanup if we're returning due to an error. Note that this won't
+	// run if the test doesn't have a policy but there should be nothing to
+	// clean up in this case
+	defer func() {
+		if err != nil {
+			cleanup()
+		}
+	}()
 
 	// allow for tests that do not have a policy
 	if len(pol) == 0 {
@@ -154,6 +163,7 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 	return &PolicyHandler{
 		tpName:      tpName,
 		tpNamespace: "", // TODO: change this when we add support for namespaced policies
+		cleanup:     cleanup,
 	}, nil
 }
 
@@ -385,9 +395,15 @@ func runFwd(
 type PolicyHandler struct {
 	tpName      string
 	tpNamespace string
+	cleanup     PolicyCleanupFn
 }
 
 func (ph *PolicyHandler) Cleanup(l *slog.Logger, conf *Conf, client *cli.ClientWithContext) error {
+
+	// call policy cleanup after we are done
+	if ph.cleanup != nil {
+		defer ph.cleanup()
+	}
 
 	_, err := client.Client.DeleteTracingPolicy(client.Ctx, &tetragon.DeleteTracingPolicyRequest{
 		Name:      ph.tpName,
