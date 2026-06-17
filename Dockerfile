@@ -84,7 +84,7 @@ RUN curl -L https://github.com/libbpf/bpftool/releases/download/${BPFTOOL_TAG}/b
 
 # Get bash-completion manifests and generate tetra CLI bash
 # autocompletions (we don't want all bash-completions in the base-build)
-FROM docker.io/library/alpine:3.24.0@sha256:a2d49ea686c2adfe3c992e47dc3b5e7fa6e6b5055609400dc2acaeb241c829f4 AS cli-autocomplete
+FROM docker.io/library/alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS cli-autocomplete
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/
 RUN apk add --no-cache bash-completion && \
     tetra completion bash > /etc/bash_completion.d/tetra && \
@@ -92,7 +92,7 @@ RUN apk add --no-cache bash-completion && \
 
 # Almost final step runs on target platform (might need emulation) and
 # retrieves (cross-)compiled binaries from builders
-FROM docker.io/library/alpine:3.24.0@sha256:a2d49ea686c2adfe3c992e47dc3b5e7fa6e6b5055609400dc2acaeb241c829f4 AS base-build
+FROM docker.io/library/alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS base-build
 RUN apk add --no-cache iproute2
 RUN mkdir /var/lib/tetragon/ && \
     mkdir -p /etc/tetragon/tetragon.conf.d/ && \
