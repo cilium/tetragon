@@ -2238,9 +2238,6 @@ filter_arg_2(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 {
 	switch (filter->type) {
 	case fd_ty:
-		/* Advance args past fd */
-		args += 4;
-		fallthrough;
 	case file_ty:
 	case path_ty:
 	case dentry_type:
@@ -2766,6 +2763,38 @@ FUNC_INLINE void path_from_dentry(struct dentry *dentry, struct path *path_buf)
 	path_buf->dentry = dentry;
 }
 
+FUNC_INLINE const struct path *path_from_fd(unsigned long fd)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task();
+	struct files_struct *files = NULL;
+	struct fdtable *fdt = NULL;
+	struct file **fd_array = NULL;
+	struct file *file = NULL;
+	__u32 fd_idx;
+	__u32 max_fds;
+
+	if (fd > 0xffffffff)
+		return NULL;
+	fd_idx = (__u32)fd;
+
+	if (BPF_CORE_READ_INTO(&files, task, files) != 0 || !files)
+		return NULL;
+	if (BPF_CORE_READ_INTO(&fdt, files, fdt) != 0 || !fdt)
+		return NULL;
+	if (BPF_CORE_READ_INTO(&max_fds, fdt, max_fds) != 0)
+		return NULL;
+	if (fd_idx >= max_fds)
+		return NULL;
+	if (BPF_CORE_READ_INTO(&fd_array, fdt, fd) != 0 || !fd_array)
+		return NULL;
+
+	probe_read(&file, sizeof(file), &fd_array[fd_idx]);
+	if (!file)
+		return NULL;
+
+	return _(&file->f_path);
+}
+
 FUNC_INLINE const struct path *get_path(long type, unsigned long arg, struct path *path_buf)
 {
 	const struct path *path_arg = 0;
@@ -2789,6 +2818,9 @@ FUNC_INLINE const struct path *get_path(long type, unsigned long arg, struct pat
 	case dentry_type:
 		path_from_dentry((struct dentry *)arg, path_buf);
 		path_arg = path_buf;
+		break;
+	case fd_ty:
+		path_arg = path_from_fd(arg);
 		break;
 #ifdef __LARGE_BPF_PROG
 	case linux_binprm_type: {

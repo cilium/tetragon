@@ -9,14 +9,18 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"syscall"
 
 	ebtf "github.com/cilium/ebpf/btf"
 	"golang.org/x/sys/unix"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
+	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
+	tpath "github.com/cilium/tetragon/pkg/reader/path"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
@@ -86,6 +90,101 @@ spec:
 		Name:         "check null pointer passed for string argument",
 		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(0),
 		EventChecker: ec.NewUnorderedEventChecker(argChecker),
+	}
+}).RegisterAtInit()
+
+type fdWriteTrigger struct {
+	dir  string
+	path string
+}
+
+func (t *fdWriteTrigger) Trigger(_ context.Context) error {
+	defer os.RemoveAll(t.dir)
+
+	file, err := os.OpenFile(t.path, os.O_WRONLY|os.O_APPEND, 0)
+	if err != nil {
+		return fmt.Errorf("open fd target: %w", err)
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString("hello fd\n"); err != nil {
+		return fmt.Errorf("write fd target: %w", err)
+	}
+	return nil
+}
+
+var _ = policytest.NewBuilder("kprobe-fd-arg").
+	WithLabels("kprobes").
+	WithParameter(policytest.Parameter{
+		Name:    "Hook",
+		Default: "kprobes",
+		Help:    "type of hook to use in the policy",
+	}).WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobe-fd-arg"
+spec:
+  {{ .Hook }}:
+  - call: "sys_write"
+    syscall: true
+    args:
+    - index: 0
+      type: "fd"
+    - index: 1
+      type: "char_buf"
+      sizeArgIndex: 3
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchArgs:
+      - operator: Postfix
+        index: 0
+        values:
+        - "/target"
+`).AddScenario(func(_ *policytest.Conf) *policytest.Scenario {
+	dir, err := os.MkdirTemp("", "kprobe-fd-arg")
+	if err != nil {
+		return &policytest.Scenario{
+			Name:    "failed to create temp dir",
+			Trigger: policytest.NewCmdTrigger("/usr/bin/false"),
+		}
+	}
+	filePath := filepath.Join(dir, "target")
+	if err := os.WriteFile(filePath, []byte{}, 0644); err != nil {
+		os.RemoveAll(dir)
+		return &policytest.Scenario{
+			Name:    "failed to create temp file",
+			Trigger: policytest.NewCmdTrigger("/usr/bin/false"),
+		}
+	}
+	st, err := os.Stat(filePath)
+	if err != nil {
+		os.RemoveAll(dir)
+		return &policytest.Scenario{
+			Name:    "failed to stat temp file",
+			Trigger: policytest.NewCmdTrigger("/usr/bin/false"),
+		}
+	}
+	permission := tpath.FilePathModeToStr(uint16(st.Mode() | syscall.S_IFREG))
+
+	checker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Suffix("sys_write")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().
+					WithPath(sm.Full(filePath)).
+					WithPermission(sm.Full(permission)),
+				),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello fd\n"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(9),
+			))
+
+	return &policytest.Scenario{
+		Name:         "file retrieval through fd type",
+		Trigger:      &fdWriteTrigger{dir: dir, path: filePath},
+		EventChecker: ec.NewUnorderedEventChecker(checker),
 	}
 }).RegisterAtInit()
 

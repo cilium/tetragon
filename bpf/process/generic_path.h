@@ -227,6 +227,7 @@ FUNC_INLINE bool should_offload_path(long type)
 	case path_ty:
 	case dentry_type:
 	case linux_binprm_type:
+	case fd_ty:
 		return true;
 	}
 	return false;
