@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/cilium/lumberjack/v2"
@@ -30,12 +31,16 @@ type ExportEncoder interface {
 }
 
 type Exporter struct {
-	ctx              context.Context
-	request          *tetragon.GetEventsRequest
-	server           *server.Server
-	encoder          ExportEncoder
-	closer           io.Closer
-	rateLimiter      *ratelimit.RateLimiter
+	ctx         context.Context
+	request     *tetragon.GetEventsRequest
+	server      *server.Server
+	encoder     ExportEncoder
+	closer      io.Closer
+	rateLimiter *ratelimit.RateLimiter
+	// mu protects rotateTimer and rotationInterval, which are accessed
+	// concurrently by Start(), rotate() (running in a timer goroutine),
+	// stopRotateTimer() and SetLogParams().
+	mu               sync.Mutex
 	rotateTimer      *time.Timer
 	logFile          string
 	logsDir          string
@@ -79,14 +84,17 @@ func NewExporter(
 }
 
 func (e *Exporter) Start() error {
-	// Start the rotation timer if needed
+	// Start the rotation timer if needed. Hold mu to honor the invariant that
+	// rotateTimer and rotationInterval are only accessed while holding it.
+	e.mu.Lock()
 	if e.rotationInterval > 0 {
-		_, ok := e.closer.(*lumberjack.Logger)
-		if !ok {
+		if _, ok := e.closer.(*lumberjack.Logger); !ok {
+			e.mu.Unlock()
 			return fmt.Errorf("writer must be of type lumberjack.Logger but got %T", e.closer)
 		}
 		e.rotateTimer = time.AfterFunc(e.rotationInterval, e.rotate)
 	}
+	e.mu.Unlock()
 
 	run, err := e.server.GetEventsListener(e.request, e, e.closer)
 	if err != nil {
@@ -96,6 +104,14 @@ func (e *Exporter) Start() error {
 		if err := run(); err != nil {
 			logger.GetLogger().Warn("JSON exporter terminated with error", logfields.Error, err)
 		}
+	}()
+
+	// Stop the self-rescheduling rotation timer once the exporter context is
+	// cancelled. Otherwise rotate() keeps rescheduling itself forever, leaking
+	// a timer (and, under virtual time, firing rotations unboundedly).
+	go func() {
+		<-e.ctx.Done()
+		e.stopRotateTimer()
 	}()
 	return nil
 }
@@ -107,7 +123,22 @@ func (e *Exporter) rotate() {
 	if rotationErr := writer.Rotate(); rotationErr != nil {
 		logger.GetLogger().Warn("Failed to rotate JSON export file", "file", option.Config.ExportFilename, logfields.Error, rotationErr)
 	}
-	e.rotateTimer = time.AfterFunc(e.rotationInterval, e.rotate)
+	e.mu.Lock()
+	// Do not reschedule once the context is cancelled, otherwise the timer
+	// keeps rescheduling itself forever even after the exporter is stopped.
+	if e.ctx.Err() == nil {
+		e.rotateTimer = time.AfterFunc(e.rotationInterval, e.rotate)
+	}
+	e.mu.Unlock()
+}
+
+// stopRotateTimer stops the self-rescheduling rotation timer, if any.
+func (e *Exporter) stopRotateTimer() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.rotateTimer != nil {
+		e.rotateTimer.Stop()
+	}
 }
 
 func (e *Exporter) Send(event *tetragon.GetEventsResponse) error {
@@ -165,6 +196,7 @@ func (e *Exporter) SetLogParams(params eventlog.Params) error {
 	}
 
 	if params.RotationInterval != nil {
+		e.mu.Lock()
 		if e.rotateTimer != nil {
 			e.rotateTimer.Stop()
 		}
@@ -173,6 +205,7 @@ func (e *Exporter) SetLogParams(params eventlog.Params) error {
 			e.rotationInterval,
 			e.rotate,
 		)
+		e.mu.Unlock()
 	}
 
 	return nil
