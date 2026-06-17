@@ -37,6 +37,12 @@ func GetState() (State, error) {
 	return glblState, glblError
 }
 
+// DisabledState returns an empty state for the non-k8s build, where
+// policyfilter is always disabled.
+func DisabledState() State {
+	return State{}
+}
+
 // see k8s.go
 func resetStateOnlyForTesting() {
 	glblState = State{}
