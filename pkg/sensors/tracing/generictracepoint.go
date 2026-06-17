@@ -1156,14 +1156,8 @@ func handleMsgGenericTracepoint(
 		case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
 			var arg tracingapi.MsgGenericKprobeArgFile
 			var flags uint32
-			var b int32
 			var mode uint16
 			var err error
-
-			/* Eat file descriptor its not used in userland */
-			if out.genericTypeId == gt.GenericFdType {
-				binary.Read(r, binary.LittleEndian, &b)
-			}
 
 			arg.Value, err = parseString(r)
 			if err != nil {
@@ -1185,7 +1179,7 @@ func handleMsgGenericTracepoint(
 				flags = 0
 			}
 
-			if out.genericTypeId == gt.GenericFileType || out.genericTypeId == gt.GenericKiocb {
+			if out.genericTypeId == gt.GenericFileType || out.genericTypeId == gt.GenericFdType || out.genericTypeId == gt.GenericKiocb {
 				err = binary.Read(r, binary.LittleEndian, &mode)
 				if err != nil {
 					mode = 0

@@ -182,13 +182,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 	case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
 		var arg api.MsgGenericKprobeArgFile
 		var flags uint32
-		var b int32
 		var mode uint16
-
-		/* Eat file descriptor its not used in userland */
-		if a.ty == gt.GenericFdType {
-			binary.Read(r, binary.LittleEndian, &b)
-		}
 
 		arg.Index = uint64(a.index)
 		arg.Value, err = parseString(r)
@@ -211,7 +205,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 			flags = 0
 		}
 
-		if a.ty == gt.GenericFileType || a.ty == gt.GenericKiocb {
+		if a.ty == gt.GenericFileType || a.ty == gt.GenericFdType || a.ty == gt.GenericKiocb {
 			err := binary.Read(r, binary.LittleEndian, &mode)
 			if err != nil {
 				mode = 0
