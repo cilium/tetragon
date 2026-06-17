@@ -60,9 +60,9 @@ __asm__ (
 );
 #endif
 
-#if defined(__x86_64__)
-static const char *test_3_string = "test_3_string_CASE";
+static const char *test_3_string __attribute__((used)) = "test_3_string_CASE";
 
+#if defined(__x86_64__)
 static __naked unsigned long test_3()
 {
 	asm volatile (
@@ -77,6 +77,20 @@ static __naked unsigned long test_3()
 		: [str] "m" (test_3_string)
 	);
 }
+#elif defined(__aarch64__)
+unsigned long test_3();
+__asm__ (
+    ".text\n"                                        /* asm follows a .data definition, force back to .text */
+    ".global test_3\n"
+    ".type test_3, %function\n"
+    "test_3:\n"
+	"adrp	x1, test_3_string\n"                 /* +0  load the string pointer into x1 */
+	"ldr	x1, [x1, #:lo12:test_3_string]\n"    /* +4                                  */
+	"mov	x0, #0x0\n"                          /* +8                                  */
+	"mov	x0, #0xff\n"                         /* +12                                 */
+	"ret\n"                                      /* +16                                 */
+    ".size test_3, .-test_3\n"
+);
 #else
 static unsigned long test_3()
 {
