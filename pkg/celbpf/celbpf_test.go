@@ -162,6 +162,11 @@ func TestArgExprs(t *testing.T) {
 			hookArgs: []any{int32(0), uint64(0), int32(42)},
 		},
 		{
+			expr:     "arg0 == int32(-1)",
+			ret:      1,
+			hookArgs: []any{int32(-1)},
+		},
+		{
 			expr:     "arg2 == int32(0)",
 			ret:      0,
 			hookArgs: []any{int32(0), uint64(0), int32(42)},
@@ -180,6 +185,11 @@ func TestArgExprs(t *testing.T) {
 			expr:     "arg2 - int32(10) == int32(2) + arg0",
 			ret:      1,
 			hookArgs: []any{int32(30), uint64(0), int32(42)},
+		},
+		{
+			expr:     "arg2 - int32(-10) == int32(12) + arg0",
+			ret:      1,
+			hookArgs: []any{int32(30), uint64(0), int32(32)},
 		},
 	}
 
@@ -237,10 +247,10 @@ func TestArgExprs(t *testing.T) {
 		defer prog.Close()
 		val, err := prog.Run(&ebpf.RunOptions{})
 		require.NoError(t, err)
-		require.Equal(t, tc.ret, val, "result of %q was %d and not %d", tc.expr, val, tc.ret)
 		if tc.ret != val {
 			t.Logf("insns:\n%s\n", insns)
 			dumpProg(t, prog)
 		}
+		require.Equal(t, tc.ret, val, "result of %q was %d and not %d", tc.expr, val, tc.ret)
 	}
 }
