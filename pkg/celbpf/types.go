@@ -22,6 +22,7 @@ var (
 	u64Ty         = cgTypes.UintType
 	s32Ty         = cgTypes.NewOpaqueType("s32")
 	u32Ty         = cgTypes.NewOpaqueType("u32")
+	boolTy        = cgTypes.BoolType
 	unsupportedTy = cgTypes.NewOpaqueType("unsupported")
 
 	addS32 = "add_s32"
