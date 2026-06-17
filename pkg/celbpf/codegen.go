@@ -77,22 +77,6 @@ func (g *codeGenerator) emitPopInt64(reg asm.Register) {
 	g.stackTop += 8
 }
 
-func (g *codeGenerator) emitBranchEquals(reg0 asm.Register, reg1 asm.Register) {
-	// make space to push a boolean (8 bytes)
-	g.stackTop -= 8
-	label := g.generateLabel()
-	g.emitRaw(
-		// check reg0 vs reg1, and then use reg0 for the result so that we can save it in
-		// the stack.
-		asm.JEq.Reg(reg0, reg1, label),
-		asm.LoadImm(reg0, 0, asm.DWord),
-		asm.Instruction{OpCode: asm.Ja.Op(asm.ImmSource), Offset: 2},
-		asm.LoadImm(reg0, 1, asm.DWord).WithSymbol(label),
-		asm.StoreMem(asm.R10, g.stackTop, reg0, asm.DWord),
-	)
-
-}
-
 func (g *codeGenerator) emitPopS32(reg asm.Register) {
 	g.emitRaw(asm.LoadMem(reg, asm.R10, g.stackTop, asm.DWord))
 	g.stackTop += 8
@@ -101,10 +85,6 @@ func (g *codeGenerator) emitPopS32(reg asm.Register) {
 func (g *codeGenerator) emitS32(reg asm.Register, regTy *cgTypes.Type) error {
 	switch regTy {
 	case s64Ty:
-		g.emitRaw(
-			asm.LSh.Imm(reg, 0x20),
-			asm.ArSh.Imm(reg, 0x20),
-		)
 	default:
 		return fmt.Errorf("emitS32: unknown/unsupported type %s", regTy)
 	}
@@ -125,10 +105,6 @@ func (g *codeGenerator) emitU32(reg asm.Register, regTy *cgTypes.Type) error {
 
 	switch regTy {
 	case u64Ty:
-		g.emitRaw(
-			asm.LSh.Imm(reg, 0x20),
-			asm.RSh.Imm(reg, 0x20),
-		)
 	default:
 		return fmt.Errorf("emitU32: unknown/unsupported type %s", regTy)
 	}
@@ -186,13 +162,19 @@ func (g *codeGenerator) emitSub(
 ) error {
 	switch {
 	case ty1.TypeName() == s64Ty.TypeName() && ty2.TypeName() == s64Ty.TypeName(),
-		ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
-		ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName(),
-		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
+		ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName():
 
 		g.stackTop -= 8
 		g.emitRaw(
 			asm.Sub.Reg(r1, r2),
+			asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
+		)
+
+	case ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
+		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
+		g.stackTop -= 8
+		g.emitRaw(
+			asm.Sub.Reg32(r1, r2),
 			asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
 		)
 
@@ -210,13 +192,19 @@ func (g *codeGenerator) emitAdd(
 ) error {
 	switch {
 	case ty1.TypeName() == s64Ty.TypeName() && ty2.TypeName() == s64Ty.TypeName(),
-		ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
-		ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName(),
-		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
+		ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName():
 
 		g.stackTop -= 8
 		g.emitRaw(
 			asm.Add.Reg(r1, r2),
+			asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
+		)
+
+	case ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
+		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
+		g.stackTop -= 8
+		g.emitRaw(
+			asm.Add.Reg32(r1, r2),
 			asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
 		)
 
@@ -260,7 +248,7 @@ func (g *codeGenerator) emitNot(r1 asm.Register, tmp asm.Register) error {
 	return nil
 }
 
-func (g *codeGenerator) emitInequality(
+func (g *codeGenerator) emitBranch(
 	reg1 asm.Register, ty1 *cgTypes.Type,
 	reg2 asm.Register, ty2 *cgTypes.Type,
 	op string,
@@ -268,19 +256,30 @@ func (g *codeGenerator) emitInequality(
 ) error {
 
 	var signed bool
+	var alu32 bool
 	switch {
-	case ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
-		ty1.TypeName() == s64Ty.TypeName() && ty2.TypeName() == s64Ty.TypeName():
+	case ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName():
 		signed = true
-	case ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName(),
-		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
-		signed = false
+		alu32 = true
+
+	case ty1.TypeName() == s64Ty.TypeName() && ty2.TypeName() == s64Ty.TypeName():
+		signed = true
+
+	case ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
+		alu32 = true
+
+	case ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName():
+
+	case ty1.TypeName() == boolTy.TypeName() && ty2.TypeName() == boolTy.TypeName() && op == cgOperators.Equals:
+
 	default:
-		return fmt.Errorf("inequality (%q) between types %s and %s is not supported", op, ty1.TypeName(), ty2.TypeName())
+		return fmt.Errorf("operation (%q) between types %s and %s is not supported", op, ty1.TypeName(), ty2.TypeName())
 	}
 
 	opcode := asm.InvalidJumpOp
 	switch op {
+	case cgOperators.Equals:
+		opcode = asm.JEq
 	case cgOperators.NotEquals:
 		opcode = asm.JNE
 	case cgOperators.Less:
@@ -313,9 +312,15 @@ func (g *codeGenerator) emitInequality(
 
 	g.stackTop -= 8
 	label := g.generateLabel()
+	jmpInst := func() asm.Instruction {
+		if alu32 {
+			return opcode.Reg32(reg1, reg2, label)
+		}
+		return opcode.Reg(reg1, reg2, label)
+	}
 	g.emitRaw(
 		asm.LoadImm(tmp, 1, asm.DWord),
-		opcode.Reg(reg1, reg2, label),
+		jmpInst(),
 		asm.LoadImm(tmp, 0, asm.DWord),
 		asm.StoreMem(asm.R10, g.stackTop, tmp, asm.DWord).WithSymbol(label),
 	)
