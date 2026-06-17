@@ -66,7 +66,9 @@ type fakeNotifier struct {
 func newFakeNotifier() *fakeNotifier {
 	return &fakeNotifier{
 		listeners: make(map[server.Listener]struct{}),
-		removed:   make(chan bool),
+		// Buffered so RemoveListener never blocks the producer goroutine if nobody
+		// is currently waiting on removed (e.g. after a polling loop breaks).
+		removed: make(chan bool, 1),
 	}
 }
 
@@ -79,8 +81,8 @@ func (f *fakeNotifier) AddListener(listener server.Listener) {
 func (f *fakeNotifier) RemoveListener(listener server.Listener) {
 	f.mux.Lock()
 	delete(f.listeners, listener)
-	f.removed <- true
 	f.mux.Unlock()
+	f.removed <- true
 }
 
 func (f *fakeNotifier) NotifyListener(_ any, processed *tetragon.GetEventsResponse) {
