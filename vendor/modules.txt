@@ -480,7 +480,7 @@ github.com/vladimirvivien/gexe/vars
 # github.com/x448/float16 v0.8.4
 ## explicit; go 1.11
 github.com/x448/float16
-# go.mongodb.org/mongo-driver v1.17.4
+# go.mongodb.org/mongo-driver v1.17.7
 ## explicit; go 1.18
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
