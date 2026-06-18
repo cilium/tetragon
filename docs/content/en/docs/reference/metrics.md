@@ -388,6 +388,19 @@ The number of loaded tracing policy by state.
 | ----- | ------ |
 | `state` | `disabled, enabled, error, load_error` |
 
+### `tetragon_tracingpolicy_selector_actions_total`
+
+The total number of tracing policy actions observed per selector.
+
+| label | values |
+| ----- | ------ |
+| `action` | `monitor_notify_enforcer, monitor_override, monitor_set, monitor_signal, nopost, notify_enforcer, override, post, set, signal` |
+| `hook ` | `example_kprobe` |
+| `hook_index` | `    0` |
+| `policy` | `example-tracingpolicy` |
+| `policy_namespace` | `example-namespace` |
+| `selector_index` | `    0` |
+
 ### `tetragon_watcher_delete_pod_cache_hits`
 
 The total hits for pod information in the deleted pod cache.
