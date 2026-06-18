@@ -5,6 +5,7 @@ package policymetrics
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,6 +44,19 @@ var policyKernelMemory = metrics.MustNewCustomGauge(metrics.NewOpts(
 	},
 ))
 
+var selectorActions = metrics.MustNewCustomCounter(metrics.NewOpts(
+	consts.MetricsNamespace, "", "tracingpolicy_selector_actions_total",
+	"The total number of tracing policy actions observed per selector.",
+	nil, nil, []metrics.UnconstrainedLabel{
+		metrics.LabelPolicy,
+		metrics.LabelPolicyNamespace,
+		{Name: "hook", ExampleValue: consts.ExampleKprobeLabel},
+		{Name: "hook_index", ExampleValue: "0"},
+		{Name: "selector_index", ExampleValue: "0"},
+		{Name: "action", ExampleValue: "post"},
+	},
+))
+
 // This metric collector converts the output of ListTracingPolicies into a few
 // gauges metrics on collection. Thus, it needs a sensor manager to query.
 func NewPolicyCollector() metrics.CollectorWithInit {
@@ -50,10 +64,47 @@ func NewPolicyCollector() metrics.CollectorWithInit {
 		metrics.CustomMetrics{
 			policyState,
 			policyKernelMemory,
+			selectorActions,
 		},
 		collect,
 		collectForDocs,
 	)
+}
+
+type actionCounterValue struct {
+	action string
+	count  uint64
+}
+
+var policyActionNames = []string{
+	"post",
+	"signal",
+	"monitor_signal",
+	"override",
+	"monitor_override",
+	"notify_enforcer",
+	"monitor_notify_enforcer",
+	"set",
+	"monitor_set",
+	"nopost",
+}
+
+func actionCounterValues(counters *tetragon.TracingPolicyActionCounters) []actionCounterValue {
+	if counters == nil {
+		return nil
+	}
+	return []actionCounterValue{
+		{action: "post", count: counters.GetPost()},
+		{action: "signal", count: counters.GetSignal()},
+		{action: "monitor_signal", count: counters.GetMonitorSignal()},
+		{action: "override", count: counters.GetOverride()},
+		{action: "monitor_override", count: counters.GetMonitorOverride()},
+		{action: "notify_enforcer", count: counters.GetNotifyEnforcer()},
+		{action: "monitor_notify_enforcer", count: counters.GetMonitorNotifyEnforcer()},
+		{action: "set", count: counters.GetSet()},
+		{action: "monitor_set", count: counters.GetMonitorSet()},
+		{action: "nopost", count: counters.GetNopost()},
+	}
 }
 
 func collect(ch chan<- prometheus.Metric) {
@@ -76,6 +127,7 @@ func collect(ch chan<- prometheus.Metric) {
 		state := policy.State
 		counters[state]++
 		ch <- policyKernelMemory.MustMetric(float64(policy.KernelMemoryBytes), policy.Name, policy.Namespace)
+		collectSelectorActions(ch, policy)
 	}
 
 	ch <- policyState.MustMetric(
@@ -96,9 +148,41 @@ func collect(ch chan<- prometheus.Metric) {
 	)
 }
 
+func collectSelectorActions(ch chan<- prometheus.Metric, policy *tetragon.TracingPolicyStatus) {
+	for _, selector := range policy.GetStats().GetSelectorActionCounters() {
+		selectorIndex := strconv.FormatUint(uint64(selector.GetSelectorIndex().Value), 10)
+		hookIndex := strconv.FormatUint(uint64(selector.GetHookIndex().Value), 10)
+		for _, counter := range actionCounterValues(selector.GetActionCounters()) {
+			if counter.count == 0 {
+				continue
+			}
+			ch <- selectorActions.MustMetric(
+				float64(counter.count),
+				policy.Name,
+				policy.Namespace,
+				selector.GetHook(),
+				hookIndex,
+				selectorIndex,
+				counter.action,
+			)
+		}
+	}
+}
+
 func collectForDocs(ch chan<- prometheus.Metric) {
 	for _, state := range stateLabel.Values {
 		ch <- policyState.MustMetric(0, state)
 	}
 	ch <- policyKernelMemory.MustMetric(0, consts.ExamplePolicyLabel, consts.ExampleNamespace)
+	for _, action := range policyActionNames {
+		ch <- selectorActions.MustMetric(
+			0,
+			consts.ExamplePolicyLabel,
+			consts.ExampleNamespace,
+			consts.ExampleKprobeLabel,
+			"0",
+			"0",
+			action,
+		)
+	}
 }
