@@ -5019,8 +5019,8 @@ func TestLoadKprobeSensor(t *testing.T) {
 			// generic_kprobe_actions
 			{Name: "override_tasks", Progs: []uint{5}},
 
-			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-			{Name: "config_map", Progs: []uint{0, 1, 2, 5}},
+			// kprobe config users
+			{Name: "config_map", Progs: []uint{0, 1, 2, 5, 6}},
 
 			// generic_kprobe_event
 			{Name: "tg_conf_map", Progs: []uint{0, 2, 4, 6, 10}},
@@ -5068,8 +5068,8 @@ func TestLoadKprobeSensor(t *testing.T) {
 			// all but generic_kprobe_output
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}})
 
-			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 5}})
+			// kprobe config users
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 5, 6}})
 
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 8, 10}})
@@ -5108,8 +5108,8 @@ func TestLoadKprobeSensor(t *testing.T) {
 			// all but generic_kprobe_output
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 12, 13}})
 
-			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 12}})
+			// kprobe config users
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 5, 6, 12}})
 
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 8}})
