@@ -166,6 +166,8 @@ func main() {
 	cmd.Flags().StringVar(&rcnf.testerConf.KernelVer, "kernel-ver", "", "kenel version")
 	cmd.Flags().BoolVar(&rcnf.detailedResults, "enable-detailed-results", false, "produce detailed results")
 	cmd.Flags().StringVar(&rcnf.RootDev, "root-dev", "vda", "type of root device (hda or vda)")
+	cmd.Flags().IntVar(&rcnf.CPU, "cpu", 2, "number of vCPUs for the VM")
+	cmd.Flags().StringVar(&rcnf.Mem, "mem", "4G", "memory for the VM (e.g. 4G, 2048M)")
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
