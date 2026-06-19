@@ -400,6 +400,7 @@ The total number of tracing policy actions observed per selector.
 | `policy` | `example-tracingpolicy` |
 | `policy_namespace` | `example-namespace` |
 | `selector_index` | `    0` |
+| `selector_label` | `example-selector` |
 
 ### `tetragon_watcher_delete_pod_cache_hits`
 
