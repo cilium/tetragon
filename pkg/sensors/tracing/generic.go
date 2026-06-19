@@ -235,6 +235,9 @@ func appendMacrosSelectors(selectors []v1alpha1.KProbeSelector, macros map[strin
 			if len(macro.Macros) > 0 {
 				return errors.New("macro definition cannot use other macros")
 			}
+			if selector.Label == "" {
+				selector.Label = macro.Label
+			}
 
 			var err error
 			selector.MatchPIDs, err = useMacro(selector.MatchPIDs, macro.MatchPIDs)
