@@ -2458,6 +2458,7 @@ Determines the behavior of a field filter
 | monitor_notify_enforcer | [uint64](#uint64) |  | number of enforcer notifications that did not occur because the policy was in monitor mode |
 | set | [uint64](#uint64) |  | number of set actions triggered from the policy |
 | monitor_set | [uint64](#uint64) |  | number of set actions that did not occur because the policy was in monitor mode |
+| nopost | [uint64](#uint64) |  | number of events suppressed by NoPost actions |
 
 
 
