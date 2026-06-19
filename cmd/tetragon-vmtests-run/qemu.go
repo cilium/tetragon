@@ -24,8 +24,6 @@ func buildQemuArgs(log slogger.Logger, rcnf RunConf) ([]string, error) {
 		}
 	}
 
-	rcnf.CPU = 2
-	rcnf.Mem = "4G"
 	// the new image is in the base image folder
 	rcnf.Image = filepath.Join(filepath.Dir(rcnf.baseImageFilename), rcnf.testImageFilename())
 
