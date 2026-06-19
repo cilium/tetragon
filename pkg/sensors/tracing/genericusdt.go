@@ -224,7 +224,7 @@ func createMultiUsdtSensor(
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
 	return progs, maps, nil
 }
@@ -295,7 +295,7 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
 	return progs, maps
 }

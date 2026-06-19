@@ -267,7 +267,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		maps = append(maps, overrideTasksMap)
 	}
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
@@ -1088,7 +1088,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		maps = append(maps, overrideTasksMap)
 	}
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
 	if kprobeEntry.loadArgs.retprobe {
 		pinRetProg := sensors.PathJoin(kprobeEntry.funcName + "_return")

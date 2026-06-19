@@ -639,7 +639,6 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data,
 		return false;
 	}
 
-	policy_stats_update(POLICY_POST);
 	return true;
 }
 
@@ -675,7 +674,6 @@ event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
 		return false;
 	}
 
-	policy_stats_update(POLICY_POST);
 	return true;
 }
 #else

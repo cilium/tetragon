@@ -1067,7 +1067,6 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	}
 
 	if (polacct != POLICY_INVALID_ACT_) {
-		policy_stats_update(polacct);
 		policy_selector_stats_update(polacct, generic_selector_stats_id(e));
 	}
 

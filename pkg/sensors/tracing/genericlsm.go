@@ -617,7 +617,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	overrideTasksMapOutput := program.MapBuilderProgram("override_tasks", loadOutput)
 	maps = append(maps, overrideTasksMapOutput)
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
 	if option.Config.EnableCgTrackerID {
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
