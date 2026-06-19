@@ -140,6 +140,7 @@
     - [SetDebugRequest](#tetragon-SetDebugRequest)
     - [SetDebugResponse](#tetragon-SetDebugResponse)
     - [TracingPolicyActionCounters](#tetragon-TracingPolicyActionCounters)
+    - [TracingPolicySelectorActionCounters](#tetragon-TracingPolicySelectorActionCounters)
     - [TracingPolicyStats](#tetragon-TracingPolicyStats)
     - [TracingPolicyStatus](#tetragon-TracingPolicyStatus)
   
@@ -2465,6 +2466,24 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-TracingPolicySelectorActionCounters"></a>
+
+### TracingPolicySelectorActionCounters
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| hook | [string](#string) |  | hook is the policy hook that owns the selector |
+| hook_index | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | hook_index is the hook index withing a policy |
+| selector_index | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | selector_index is the selector index within the hook |
+| action_counters | [TracingPolicyActionCounters](#tetragon-TracingPolicyActionCounters) |  | action counters for the selector |
+
+
+
+
+
+
 <a name="tetragon-TracingPolicyStats"></a>
 
 ### TracingPolicyStats
@@ -2474,6 +2493,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | action_counters | [TracingPolicyActionCounters](#tetragon-TracingPolicyActionCounters) |  |  |
+| selector_action_counters | [TracingPolicySelectorActionCounters](#tetragon-TracingPolicySelectorActionCounters) | repeated |  |
 
 
 
