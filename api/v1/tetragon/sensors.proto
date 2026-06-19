@@ -82,8 +82,20 @@ message TracingPolicyActionCounters {
   uint64 nopost = 10;
 }
 
+message TracingPolicySelectorActionCounters {
+  // hook is the policy hook that owns the selector
+  string hook = 1;
+  // hook_index is the hook index withing a policy
+  google.protobuf.UInt32Value hook_index = 2;
+  // selector_index is the selector index within the hook
+  google.protobuf.UInt32Value selector_index = 3;
+  // action counters for the selector
+  TracingPolicyActionCounters action_counters = 4;
+}
+
 message TracingPolicyStats {
   TracingPolicyActionCounters action_counters = 1;
+  repeated TracingPolicySelectorActionCounters selector_action_counters = 2;
 }
 
 message TracingPolicyStatus {
