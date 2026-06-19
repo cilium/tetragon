@@ -81,13 +81,36 @@ type genericKprobeData struct {
 	stackTraceMap *program.Map
 }
 
+type InstanceID int
+
+func (i InstanceID) PinProg(name string) string {
+	if i != 0 {
+		return fmt.Sprintf("%s:%d", name, i)
+	}
+	return name
+}
+
+type DupInstance struct {
+	dups map[string]InstanceID
+}
+
+func (d *DupInstance) GetID(name string) InstanceID {
+	// Make sure duplicate symbols got non zero instance value
+	instance, ok := d.dups[name]
+	if ok {
+		instance = instance + 1
+	}
+	d.dups[name] = instance
+	return instance
+}
+
 // internal genericKprobe info
 type genericKprobe struct {
 	loadArgs          kprobeLoadArgs
 	argSigPrinters    []argPrinter
 	argReturnPrinters []argPrinter
 	funcName          string
-	instance          int
+	instance          InstanceID
 
 	// for kprobes that have a retprobe, we maintain the enter events in
 	// the map, so that we can merge them when the return event is
@@ -613,7 +636,7 @@ func createGenericKprobeSensor(
 		celExprs:      celExprs,
 	}
 
-	dups := make(map[string]int)
+	dups := DupInstance{dups: make(map[string]InstanceID)}
 
 	for i := range kprobes {
 		if err := appendMacrosSelectors(kprobes[i].Selectors, spec.SelectorsMacros); err != nil {
@@ -629,14 +652,7 @@ func createGenericKprobeSensor(
 		kprobes[i].Syscall = syscall
 
 		for _, sym := range syms {
-			// Make sure duplicate symbols got non zero instance value
-			instance, ok := dups[sym]
-			if ok {
-				instance = instance + 1
-			}
-			dups[sym] = instance
-
-			id, err := addKprobe(sym, instance, &kprobes[i], &in, has)
+			id, err := addKprobe(sym, dups.GetID(sym), &kprobes[i], &in, has)
 			if err != nil {
 				return nil, err
 			}
@@ -703,7 +719,7 @@ func initEventConfig() *api.EventConfig {
 // addKprobe will, amongst other things, create a generic kprobe entry and add
 // it to the genericKprobeTable. The caller should make sure that this entry is
 // properly removed on kprobe removal.
-func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKprobeIn, has hasMaps) (id idtable.EntryID, err error) {
+func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in *addKprobeIn, has hasMaps) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinter
 	var argReturnPrinters []argPrinter
 	var setRetprobe bool
@@ -983,10 +999,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	loadProgName, loadProgRetName := config.GenericKprobeObjs(false)
 	isSecurityFunc := strings.HasPrefix(kprobeEntry.funcName, "security_")
 
-	pinProg := kprobeEntry.funcName
-	if kprobeEntry.instance != 0 {
-		pinProg = fmt.Sprintf("%s:%d", kprobeEntry.funcName, kprobeEntry.instance)
-	}
+	pinProg := kprobeEntry.instance.PinProg(kprobeEntry.funcName)
 
 	var load *program.Program
 
@@ -1105,10 +1118,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
 	if kprobeEntry.loadArgs.retprobe {
-		pinRetProg := sensors.PathJoin(kprobeEntry.funcName + "_return")
-		if kprobeEntry.instance != 0 {
-			pinRetProg = sensors.PathJoin(fmt.Sprintf("%s_return:%d", kprobeEntry.funcName, kprobeEntry.instance))
-		}
+		pinRetProg := kprobeEntry.instance.PinProg(sensors.PathJoin(kprobeEntry.funcName + "_return"))
 
 		var loadret *program.Program
 
