@@ -135,14 +135,6 @@ func newPolicyInfoFromSpec(
 	}, nil
 }
 
-func (pi *policyInfo) policyStatsMap(prog *program.Program) *program.Map {
-	if pi.policyStats != nil {
-		return program.MapUserFrom(pi.policyStats)
-	}
-	pi.policyStats = program.MapBuilderPolicy(policystats.PolicyStatsMapName, prog)
-	return pi.policyStats
-}
-
 func (pi *policyInfo) selectorStatsMap(prog *program.Program) *program.Map {
 	if pi.selectorStats != nil {
 		return program.MapUserFrom(pi.selectorStats)

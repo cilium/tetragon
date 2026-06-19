@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	PolicyStatsMapName         = "policy_stats"
 	PolicySelectorStatsMapName = "selector_stats"
 )
 
@@ -38,24 +37,6 @@ const (
 
 type PolicyStats struct {
 	ActionsCount [PolicyActionsNr]uint64
-}
-
-func StatsFromBPFMap(fname string) (*PolicyStats, error) {
-	return StatsFromBPFMapAtKey(fname, 0)
-}
-
-func StatsFromBPFMapAtKey(fname string, key uint32) (*PolicyStats, error) {
-	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{ReadOnly: true})
-	if err != nil {
-		return nil, fmt.Errorf("failed to open bpf map %s: %w", fname, err)
-	}
-	defer m.Close()
-
-	var ret PolicyStats
-	if err = m.Lookup(&key, &ret); err != nil {
-		return nil, fmt.Errorf("lookup failed: %w", err)
-	}
-	return &ret, nil
 }
 
 func StatsFromBPFMapRange(fname string) ([]*PolicyStats, error) {
@@ -87,8 +68,19 @@ func (s *PolicyStats) Empty() bool {
 }
 
 func GetPolicyStats(tp tracingpolicy.TracingPolicy) (*PolicyStats, error) {
-	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tp.TpNamespace(), tp.TpName()), PolicyStatsMapName)
-	return StatsFromBPFMap(fname)
+	stats, err := GetPolicySelectorStats(tp)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := &PolicyStats{}
+	for _, s := range stats {
+		for i := range PolicyActionsNr {
+			ret.ActionsCount[i] += s.ActionsCount[i]
+		}
+	}
+
+	return ret, nil
 }
 
 func GetPolicySelectorStats(tp tracingpolicy.TracingPolicy) ([]*PolicyStats, error) {
