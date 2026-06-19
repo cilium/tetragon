@@ -138,6 +138,8 @@ jobs:
                 --kernel ${kimage} \
                 --kernel-ver  ${{ matrix.kernel }} \
                 --base tests/vmtests/test-data/images/base.qcow2 \
+                --cpu 4 \
+                --mem 8G \
                 --enable-detailed-results \
                 --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
 
@@ -154,6 +156,8 @@ jobs:
                 --kernel-ver  ${{ matrix.kernel }} \
                 --btf-file ${btf} \
                 --base tests/vmtests/test-data/images/base.qcow2 \
+                --cpu 4 \
+                --mem 8G \
                 --enable-detailed-results \
                 --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
 
