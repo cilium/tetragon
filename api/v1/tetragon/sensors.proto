@@ -78,6 +78,8 @@ message TracingPolicyActionCounters {
   uint64 set = 8;
   // number of set actions that did not occur because the policy was in monitor mode
   uint64 monitor_set = 9;
+  // number of events suppressed by NoPost actions
+  uint64 nopost = 10;
 }
 
 message TracingPolicyStats {
