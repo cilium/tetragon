@@ -827,6 +827,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -2558,6 +2565,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -3958,6 +3972,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -5337,6 +5358,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -6695,6 +6723,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -8327,6 +8362,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -9692,6 +9734,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -11636,6 +11685,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -13367,6 +13423,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -14767,6 +14830,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -16146,6 +16216,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -17504,6 +17581,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -19136,6 +19220,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
@@ -20501,6 +20592,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Human-readable selector label used in status and metrics.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>macros</b></td>
         <td>[]string</td>
         <td>
