@@ -19,6 +19,7 @@ struct {
 	__uint(max_entries, 1); // will be resized by agent when needed
 	__type(key, __u64);
 	__type(value, struct preload_data);
+	__uint(map_flags, BPF_F_NO_PREALLOC);
 } sleepable_preload SEC(".maps");
 
 #if defined(GENERIC_UPROBE) || defined(GENERIC_USDT)
