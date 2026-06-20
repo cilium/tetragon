@@ -12,6 +12,7 @@ import (
 	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
 	bytesmatcher "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	listmatcher "github.com/cilium/tetragon/pkg/matchers/listmatcher"
+	mapmatcher "github.com/cilium/tetragon/pkg/matchers/mapmatcher"
 	stringmatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	timestampmatcher "github.com/cilium/tetragon/pkg/matchers/timestampmatcher"
 	slog "log/slog"
@@ -3038,14 +3039,14 @@ func (checker *ContainerChecker) FromContainer(event *tetragon.Container) *Conta
 
 // PodChecker implements a checker struct to check a Pod field
 type PodChecker struct {
-	Namespace      *stringmatcher.StringMatcher           `json:"namespace,omitempty"`
-	Name           *stringmatcher.StringMatcher           `json:"name,omitempty"`
-	Uid            *stringmatcher.StringMatcher           `json:"uid,omitempty"`
-	Container      *ContainerChecker                      `json:"container,omitempty"`
-	PodLabels      map[string]stringmatcher.StringMatcher `json:"podLabels,omitempty"`
-	Workload       *stringmatcher.StringMatcher           `json:"workload,omitempty"`
-	WorkloadKind   *stringmatcher.StringMatcher           `json:"workloadKind,omitempty"`
-	PodAnnotations map[string]stringmatcher.StringMatcher `json:"podAnnotations,omitempty"`
+	Namespace      *stringmatcher.StringMatcher                                       `json:"namespace,omitempty"`
+	Name           *stringmatcher.StringMatcher                                       `json:"name,omitempty"`
+	Uid            *stringmatcher.StringMatcher                                       `json:"uid,omitempty"`
+	Container      *ContainerChecker                                                  `json:"container,omitempty"`
+	PodLabels      mapmatcher.MapMatcher[string, string, stringmatcher.StringMatcher] `json:"podLabels,omitempty"`
+	Workload       *stringmatcher.StringMatcher                                       `json:"workload,omitempty"`
+	WorkloadKind   *stringmatcher.StringMatcher                                       `json:"workloadKind,omitempty"`
+	PodAnnotations mapmatcher.MapMatcher[string, string, stringmatcher.StringMatcher] `json:"podAnnotations,omitempty"`
 }
 
 // NewPodChecker creates a new PodChecker
@@ -3086,28 +3087,8 @@ func (checker *PodChecker) Check(event *tetragon.Pod) error {
 			}
 		}
 		{
-			var unmatched []string
-			matched := make(map[string]struct{})
-			for key, value := range event.PodLabels {
-				if len(checker.PodLabels) > 0 {
-					// Attempt to grab the matcher for this key
-					if matcher, ok := checker.PodLabels[key]; ok {
-						if err := matcher.Match(value); err != nil {
-							return fmt.Errorf("PodLabels[%s] (%s=%s) check failed: %w", key, key, value, err)
-						}
-						matched[key] = struct{}{}
-					}
-				}
-			}
-
-			// See if we have any unmatched values that we wanted to match
-			if len(matched) != len(checker.PodLabels) {
-				for k := range checker.PodLabels {
-					if _, ok := matched[k]; !ok {
-						unmatched = append(unmatched, k)
-					}
-				}
-				return fmt.Errorf("PodLabels unmatched: %v", unmatched)
+			if err := checker.PodLabels.Match(event.PodLabels); err != nil {
+				return fmt.Errorf("PodLabels check failed: %w", err)
 			}
 		}
 		if checker.Workload != nil {
@@ -3121,28 +3102,8 @@ func (checker *PodChecker) Check(event *tetragon.Pod) error {
 			}
 		}
 		{
-			var unmatched []string
-			matched := make(map[string]struct{})
-			for key, value := range event.PodAnnotations {
-				if len(checker.PodAnnotations) > 0 {
-					// Attempt to grab the matcher for this key
-					if matcher, ok := checker.PodAnnotations[key]; ok {
-						if err := matcher.Match(value); err != nil {
-							return fmt.Errorf("PodAnnotations[%s] (%s=%s) check failed: %w", key, key, value, err)
-						}
-						matched[key] = struct{}{}
-					}
-				}
-			}
-
-			// See if we have any unmatched values that we wanted to match
-			if len(matched) != len(checker.PodAnnotations) {
-				for k := range checker.PodAnnotations {
-					if _, ok := matched[k]; !ok {
-						unmatched = append(unmatched, k)
-					}
-				}
-				return fmt.Errorf("PodAnnotations unmatched: %v", unmatched)
+			if err := checker.PodAnnotations.Match(event.PodAnnotations); err != nil {
+				return fmt.Errorf("PodAnnotations check failed: %w", err)
 			}
 		}
 		return nil
@@ -3178,7 +3139,7 @@ func (checker *PodChecker) WithContainer(check *ContainerChecker) *PodChecker {
 }
 
 // WithPodLabels adds a PodLabels check to the PodChecker
-func (checker *PodChecker) WithPodLabels(check map[string]stringmatcher.StringMatcher) *PodChecker {
+func (checker *PodChecker) WithPodLabels(check mapmatcher.MapMatcher[string, string, stringmatcher.StringMatcher]) *PodChecker {
 	checker.PodLabels = check
 	return checker
 }
@@ -3196,7 +3157,7 @@ func (checker *PodChecker) WithWorkloadKind(check *stringmatcher.StringMatcher) 
 }
 
 // WithPodAnnotations adds a PodAnnotations check to the PodChecker
-func (checker *PodChecker) WithPodAnnotations(check map[string]stringmatcher.StringMatcher) *PodChecker {
+func (checker *PodChecker) WithPodAnnotations(check mapmatcher.MapMatcher[string, string, stringmatcher.StringMatcher]) *PodChecker {
 	checker.PodAnnotations = check
 	return checker
 }
@@ -3212,10 +3173,22 @@ func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	if event.Container != nil {
 		checker.Container = NewContainerChecker().FromContainer(event.Container)
 	}
-	// TODO: implement fromMap
+	{
+		checkerVar := make(mapmatcher.MapMatcher[string, string, stringmatcher.StringMatcher])
+		for k, v := range event.PodLabels {
+			checkerVar[k] = *stringmatcher.Full(v)
+		}
+		checker.PodLabels = checkerVar
+	}
 	checker.Workload = stringmatcher.Full(event.Workload)
 	checker.WorkloadKind = stringmatcher.Full(event.WorkloadKind)
-	// TODO: implement fromMap
+	{
+		checkerVar := make(mapmatcher.MapMatcher[string, string, stringmatcher.StringMatcher])
+		for k, v := range event.PodAnnotations {
+			checkerVar[k] = *stringmatcher.Full(v)
+		}
+		checker.PodAnnotations = checkerVar
+	}
 	return checker
 }
 
