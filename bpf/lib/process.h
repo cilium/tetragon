@@ -628,7 +628,7 @@ event_output_update_error_metric(u8 msg_op, long err)
 	}
 }
 
-FUNC_INLINE void
+FUNC_INLINE bool
 perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data, u64 size)
 {
 	long err;
@@ -636,10 +636,11 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data,
 	err = perf_event_output(ctx, map, flags, data, size);
 	if (err < 0) {
 		event_output_update_error_metric(msg_op, err);
-		return;
+		return false;
 	}
 
 	policy_stats_update(POLICY_POST);
+	return true;
 }
 
 #ifdef __V511_BPF_PROG
@@ -655,7 +656,7 @@ event_output(void *ctx, void *data, u64 size)
 	return ringbuf_output(&tg_rb_events, data, size, 0);
 }
 
-FUNC_INLINE void
+FUNC_INLINE bool
 event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
 {
 	struct tetragon_conf *conf;
@@ -664,18 +665,18 @@ event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
 
 	conf = map_lookup_elem(&tg_conf_map, &zero);
 	if (conf && conf->use_perf_ring_buf) {
-		perf_event_output_metric(ctx, msg_op, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
-		return;
+		return perf_event_output_metric(ctx, msg_op, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
 	}
 
 	err = ringbuf_output(&tg_rb_events, data, size, 0);
 
 	if (err < 0) {
 		event_output_update_error_metric(msg_op, err);
-		return;
+		return false;
 	}
 
 	policy_stats_update(POLICY_POST);
+	return true;
 }
 #else
 FUNC_INLINE long
@@ -684,10 +685,10 @@ event_output(void *ctx, void *data, u64 size)
 	return perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
 }
 
-FUNC_INLINE void
+FUNC_INLINE bool
 event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
 {
-	perf_event_output_metric(ctx, msg_op, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
+	return perf_event_output_metric(ctx, msg_op, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
 }
 #endif
 
