@@ -187,6 +187,19 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		}
 		a.Arg = &tetragon.KprobeArgument_SockaddrunArg{SockaddrunArg: sockaddrUnArg}
 		a.Label = e.Label
+	case tracingapi.MsgGenericKprobeArgDns:
+		a.Arg = &tetragon.KprobeArgument_DnsArg{DnsArg: &tetragon.KprobeDns{
+			QueryName:    e.Name,
+			QueryType:    uint32(e.Type),
+			QueryTypeStr: e.TypeStr,
+			QueryClass:   uint32(e.Class),
+			TxId:         uint32(e.TxId),
+			Flags:        uint32(e.Flags),
+			Response:     e.Response,
+			Truncated:    e.Truncated,
+			Parsed:       e.Parsed,
+		}}
+		a.Label = e.Label
 	case tracingapi.MsgGenericKprobeArgCred:
 		credArg := &tetragon.ProcessCredentials{
 			Uid:        &wrapperspb.UInt32Value{Value: e.Uid},
@@ -651,6 +664,21 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockaddrunArg{
 				SockaddrunArg: &address,
+			}})
+
+		case tracingapi.MsgGenericKprobeArgDns:
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_DnsArg{
+				DnsArg: &tetragon.KprobeDns{
+					QueryName:    v.Name,
+					QueryType:    uint32(v.Type),
+					QueryTypeStr: v.TypeStr,
+					QueryClass:   uint32(v.Class),
+					TxId:         uint32(v.TxId),
+					Flags:        uint32(v.Flags),
+					Response:     v.Response,
+					Truncated:    v.Truncated,
+					Parsed:       v.Parsed,
+				},
 			}})
 
 		case tracingapi.MsgGenericSyscallID:

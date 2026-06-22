@@ -323,6 +323,43 @@ func (m MsgGenericKprobeArgSockaddrUn) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
+const DnsMaxName = 255
+
+// MsgGenericKprobeDns must match struct dns_type in bpf/process/types/dns.h.
+type MsgGenericKprobeDns struct {
+	TxId      uint16
+	Flags     uint16
+	QType     uint16
+	QClass    uint16
+	QR        uint8
+	NameLen   uint8
+	Truncated uint8
+	Ok        uint8
+	Name      [DnsMaxName + 1]byte
+}
+
+type MsgGenericKprobeArgDns struct {
+	Index     uint64
+	Name      string
+	Type      uint16
+	TypeStr   string
+	Class     uint16
+	TxId      uint16
+	Flags     uint16
+	Response  bool
+	Truncated bool
+	Parsed    bool
+	Label     string
+}
+
+func (m MsgGenericKprobeArgDns) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgDns) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
 type MsgGenericSyscallID struct {
 	ID  uint32
 	ABI string
