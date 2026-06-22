@@ -48,6 +48,7 @@ List of described data types:
 - [`sockaddr`](#sockaddr)
 - [`sockaddr_un`](#sockaddr_un)
 - [`socket`](#socket)
+- [`dns`](#dns)
 - [`file`](#file)
 - [`dentry`](#dentry)
 - [`path`](#path)
@@ -306,6 +307,43 @@ layer), as opposed to `struct sock` (network layer).
 
 In `matchArgs` or `matchData`, use network operators: `SAddr`, `DAddr`, `SPort`, `DPort`,
 `Protocol`, `Family`, or `State`.
+
+## `dns`
+
+The `dns` data type parses the first question of a DNS-over-UDP message out
+of a kernel `struct msghdr *` argument. It is intended to be attached to
+kprobes on `udp_sendmsg`, `udp_recvmsg`, and their IPv6 variants, paired
+with a `sock` arg filtered on `DPort 53` (egress) or `SPort 53` (ingress).
+The parser runs entirely in BPF and exposes the following fields on the
+event:
+
+- `query_name` — lowercased, dot-separated FQDN (no trailing dot)
+- `query_type` / `query_type_str` — IANA QTYPE (e.g. `1`/`"A"`, `28`/`"AAAA"`,
+  `5`/`"CNAME"`, `12`/`"PTR"`); unknown values are reported as `"TYPEn"` per
+  RFC 3597
+- `query_class` — typically `1` (`IN`)
+- `tx_id`, `flags`, `response`, `truncated`, `parsed`
+
+In `matchArgs` or `matchData`, `query_name` supports `Equal`, `NotEqual`,
+`Prefix`, `NotPrefix`, `Postfix`, `NotPostfix`, `SubString` (v6.17+) and
+`SubStringIgnoreCase` (v6.19+). Suffix matching with `Postfix` is the
+natural way to match a whole zone (e.g. `Postfix example.com` matches both
+`example.com` and `www.example.com`). Matching on `query_type` and other
+DNS fields is currently only available through CEL on the userspace event.
+
+Example policy: see [examples/tracingpolicy/dns-egress.yaml](https://github.com/cilium/tetragon/blob/main/examples/tracingpolicy/dns-egress.yaml).
+
+{{< caution >}}
+v1 limitations:
+- UDP only — TCP, DoT and DoH are out of scope.
+- Only the first question is decoded; messages with `QDCOUNT > 1` set the
+  `truncated` flag.
+- EDNS0 is not supported; payloads are clamped to the RFC 1035 512-byte cap.
+- Compression pointers in the *question* section (illegal per RFC 1035
+  §4.1.4) cause the parser to emit an event with `parsed = false`.
+- Requires kernel features gated behind Tetragon's `__LARGE_BPF_PROG` build
+  variant. On older kernels the policy loads but the `dns` arg is empty.
+{{< /caution >}}
 
 ## `file`
 

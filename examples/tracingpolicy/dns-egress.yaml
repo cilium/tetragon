@@ -1,0 +1,43 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "dns-egress"
+spec:
+  kprobes:
+  - call: "udp_sendmsg"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    - index: 1
+      type: "dns"
+      label: "dns"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "DPort"
+        values:
+        - "53"
+      - index: 1
+        operator: "Postfix"
+        values:
+        - "example.com"
+
+  - call: "udpv6_sendmsg"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    - index: 1
+      type: "dns"
+      label: "dns"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "DPort"
+        values:
+        - "53"
+      - index: 1
+        operator: "Postfix"
+        values:
+        - "example.com"
