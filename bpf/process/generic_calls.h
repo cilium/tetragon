@@ -26,6 +26,18 @@
 
 #define MAX_TOTAL 9000
 
+FUNC_INLINE __u32
+generic_selector_stats_id(struct msg_generic_kprobe *e)
+{
+	struct event_config *config;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
+		return -1;
+
+	return config->selector_stats_base + (e->tailcall_index_selector & MAX_SELECTORS_MASK);
+}
+
 FUNC_INLINE int
 generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 {
@@ -1056,6 +1068,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 
 	if (polacct != POLICY_INVALID_ACT_) {
 		policy_stats_update(polacct);
+		policy_selector_stats_update(polacct, generic_selector_stats_id(e));
 	}
 
 	if (!err) {
@@ -1185,7 +1198,8 @@ generic_output(void *ctx, u8 op)
 		     "if %[total] < 9000 goto +1\n;"
 		     "%[total] = 9000;\n"
 		     : [total] "+r"(total));
-	event_output_metric(ctx, op, e, total);
+	if (event_output_metric(ctx, op, e, total))
+		policy_selector_stats_update(POLICY_POST, generic_selector_stats_id(e));
 	return 0;
 }
 

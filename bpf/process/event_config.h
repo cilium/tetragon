@@ -74,7 +74,7 @@ struct event_config {
 	 */
 	__u32 policy_id;
 	__u32 flags;
-	__u32 pad;
+	__u32 selector_stats_base;
 	struct config_btf_arg btf_arg[MAX_POSSIBLE_ARGS][MAX_BTF_ARG_DEPTH];
 	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_USDT_ARG];
 	struct config_reg_arg reg_arg[EVENT_CONFIG_MAX_REG_ARG];
