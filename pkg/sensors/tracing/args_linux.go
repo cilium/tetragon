@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	processapi "github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/dns"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
@@ -371,6 +372,33 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Index = uint64(a.index)
 		arg.Family = sockaddr.Family
 		arg.Path = decodeSockaddrUnPath(sockaddr.Path[:], sockaddr.PathLen, sockaddr.IsAbstract)
+		return arg
+	case gt.GenericDnsType:
+		var dnsEv api.MsgGenericKprobeDns
+		var arg api.MsgGenericKprobeArgDns
+
+		err := binary.Read(r, binary.LittleEndian, &dnsEv)
+		if err != nil {
+			l.LogAttrs(slog.LevelWarn, "dns type err", slog.Any(logfields.Error, err))
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Label = a.label
+		arg.Parsed = dnsEv.Ok != 0
+		if arg.Parsed {
+			n := int(dnsEv.NameLen)
+			if n > len(dnsEv.Name) {
+				n = len(dnsEv.Name)
+			}
+			arg.Name = strutils.UTF8FromBPFBytes(dnsEv.Name[:n])
+			arg.Type = dnsEv.QType
+			arg.TypeStr = dns.QTypeString(dnsEv.QType)
+			arg.Class = dnsEv.QClass
+			arg.TxId = dnsEv.TxId
+			arg.Flags = dnsEv.Flags
+			arg.Response = dnsEv.QR != 0
+			arg.Truncated = dnsEv.Truncated != 0
+		}
 		return arg
 	case gt.GenericS64Type:
 		var output int64
