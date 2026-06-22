@@ -95,6 +95,8 @@ type genericTracepoint struct {
 	// custom event handler
 	customHandler eventhandler.Handler
 
+	selectorStatsBase uint32
+
 	// is raw tracepoint
 	raw bool
 }
@@ -586,6 +588,7 @@ func createGenericTracepointSensor(
 	}
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
+	var selectorStatsBase uint32
 	for i, tpSpec := range confs {
 		err := tpValidateAndAdjustEnforcerAction(ret, &tpSpec, i, polInfo.name, spec)
 		if err != nil {
@@ -599,6 +602,8 @@ func createGenericTracepointSensor(
 		if err != nil {
 			return nil, err
 		}
+		tp.selectorStatsBase = selectorStatsBase
+		selectorStatsBase += uint32(len(tpSpec.Selectors))
 		tracepoints = append(tracepoints, tp)
 	}
 
@@ -657,7 +662,7 @@ func createGenericTracepointSensor(
 		selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", prog0)
 		maps = append(maps, selMatchBinariesMap)
 
-		maps = append(maps, polInfo.policyConfMap(prog0), polInfo.policyStatsMap(prog0))
+		maps = append(maps, polInfo.policyConfMap(prog0), polInfo.policyStatsMap(prog0), polInfo.selectorStatsMap(prog0))
 	}
 
 	maps = append(maps, program.MapUserFrom(base.ExecveMap))
@@ -750,6 +755,7 @@ func (tp *genericTracepoint) EventConfig() (*tracingapi.EventConfig, error) {
 	config := initEventConfig()
 	config.PolicyID = uint32(tp.policyID)
 	config.FuncId = uint32(tp.tableId.ID)
+	config.SelStatsBase = tp.selectorStatsBase
 
 	if tp.raw {
 		return tp.eventConfigRaw(config)

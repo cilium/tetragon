@@ -267,7 +267,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		maps = append(maps, overrideTasksMap)
 	}
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
 
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
@@ -500,6 +500,7 @@ type addKprobeIn struct {
 	customHandler eventhandler.Handler
 	selMaps       *selectors.KernelSelectorMaps
 	celExprs      *selectors.CelExprFunctions
+	selStatsBase  uint32
 }
 
 type hasMaps struct {
@@ -600,11 +601,15 @@ func createGenericKprobeSensor(
 	}
 
 	dups := make(map[string]int)
+	var selectorStatsBase uint32
 
 	for i := range kprobes {
 		if err := appendMacrosSelectors(kprobes[i].Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
+
+		in.selStatsBase = selectorStatsBase
+		selectorStatsBase += uint32(len(kprobes[i].Selectors))
 
 		if valInfo[i].ignore {
 			continue
@@ -707,6 +712,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 	eventConfig := initEventConfig()
 	eventConfig.PolicyID = uint32(in.policyID)
+	eventConfig.SelStatsBase = in.selStatsBase
 	if len(f.ReturnArgAction) > 0 {
 		if !config.EnableLargeProgs() {
 			return errFn(errors.New("ReturnArgAction requires kernel >=5.3"))
@@ -1082,7 +1088,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		maps = append(maps, overrideTasksMap)
 	}
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
 
 	if kprobeEntry.loadArgs.retprobe {
 		pinRetProg := sensors.PathJoin(kprobeEntry.funcName + "_return")

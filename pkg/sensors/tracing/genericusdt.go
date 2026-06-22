@@ -101,9 +101,10 @@ func genericUsdtTableGet(id idtable.EntryID) (*genericUsdt, error) {
 }
 
 type addUsdtIn struct {
-	sensorPath string
-	policyName string
-	useMulti   bool
+	sensorPath        string
+	policyName        string
+	useMulti          bool
+	selectorStatsBase uint32
 }
 
 func createGenericUsdtSensor(
@@ -127,10 +128,14 @@ func createGenericUsdtSensor(
 
 	hasSetAction := false
 
+	var selectorStatsBase uint32
 	for _, usdt := range spec.Usdts {
 		if err = appendMacrosSelectors(usdt.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
+
+		in.selectorStatsBase = selectorStatsBase
+		selectorStatsBase += uint32(len(usdt.Selectors))
 
 		ids, err = addUsdt(&usdt, &in, ids, &has)
 		if err != nil {
@@ -219,7 +224,7 @@ func createMultiUsdtSensor(
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
 
 	return progs, maps, nil
 }
@@ -290,7 +295,7 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
 
 	return progs, maps
 }
@@ -330,6 +335,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		}
 
 		config := &api.EventConfig{}
+		config.SelStatsBase = in.selectorStatsBase
 		found = true
 
 		if len(spec.Args) > api.EventConfigMaxArgs {

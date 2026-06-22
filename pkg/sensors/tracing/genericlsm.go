@@ -283,10 +283,11 @@ func preValidateLsmHooks(lsmHooks []v1alpha1.LsmHookSpec) error {
 }
 
 type addLsmIn struct {
-	sensorPath string
-	policyName string
-	policyID   policyfilter.PolicyID
-	selMaps    *selectors.KernelSelectorMaps
+	sensorPath        string
+	policyName        string
+	policyID          policyfilter.PolicyID
+	selMaps           *selectors.KernelSelectorMaps
+	selectorStatsBase uint32
 }
 
 func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err error) {
@@ -304,6 +305,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 
 	eventConfig := initEventConfig()
 	eventConfig.PolicyID = uint32(in.policyID)
+	eventConfig.SelStatsBase = in.selectorStatsBase
 
 	msgField, err := getPolicyMessage(f.Message)
 	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
@@ -431,10 +433,14 @@ func createGenericLsmSensor(
 		selMaps:    selMaps,
 	}
 
+	var selectorStatsBase uint32
 	for _, hook := range lsmHooks {
 		if err := appendMacrosSelectors(hook.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
+
+		in.selectorStatsBase = selectorStatsBase
+		selectorStatsBase += uint32(len(hook.Selectors))
 
 		id, err := addLsm(&hook, &in)
 		if err != nil {
@@ -611,7 +617,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	overrideTasksMapOutput := program.MapBuilderProgram("override_tasks", loadOutput)
 	maps = append(maps, overrideTasksMapOutput)
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
 
 	if option.Config.EnableCgTrackerID {
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
