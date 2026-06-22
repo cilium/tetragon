@@ -28,6 +28,8 @@ type policyInfo struct {
 	customHandler eventhandler.Handler
 	policyConf    *program.Map
 	policyStats   *program.Map
+	selectorStats *program.Map
+	selectorCount int
 	specOpts      *specOptions
 }
 
@@ -79,6 +81,30 @@ func hasEnforcementActions(spec *v1alpha1.TracingPolicySpec) bool {
 	return false
 }
 
+// count the total number of selectors inside a single tracing policy
+func countSelectors(spec *v1alpha1.TracingPolicySpec) int {
+	count := 0
+	for _, kprobe := range spec.KProbes {
+		count += len(kprobe.Selectors)
+	}
+	for _, fentry := range spec.Fentries {
+		count += len(fentry.Selectors)
+	}
+	for _, uprobe := range spec.UProbes {
+		count += len(uprobe.Selectors)
+	}
+	for _, tp := range spec.Tracepoints {
+		count += len(tp.Selectors)
+	}
+	for _, lsm := range spec.LsmHooks {
+		count += len(lsm.Selectors)
+	}
+	for _, usdt := range spec.Usdts {
+		count += len(usdt.Selectors)
+	}
+	return count
+}
+
 func newPolicyInfoFromSpec(
 	namespace, name string,
 	policyID policyfilter.PolicyID,
@@ -103,6 +129,8 @@ func newPolicyInfoFromSpec(
 		customHandler: customHandler,
 		policyConf:    nil,
 		policyStats:   nil,
+		selectorStats: nil,
+		selectorCount: countSelectors(spec),
 		specOpts:      opts,
 	}, nil
 }
@@ -113,6 +141,19 @@ func (pi *policyInfo) policyStatsMap(prog *program.Program) *program.Map {
 	}
 	pi.policyStats = program.MapBuilderPolicy(policystats.PolicyStatsMapName, prog)
 	return pi.policyStats
+}
+
+func (pi *policyInfo) selectorStatsMap(prog *program.Program) *program.Map {
+	if pi.selectorStats != nil {
+		return program.MapUserFrom(pi.selectorStats)
+	}
+	pi.selectorStats = program.MapBuilderPolicy(policystats.PolicySelectorStatsMapName, prog)
+	entries := pi.selectorCount
+	if entries == 0 {
+		entries = 1
+	}
+	pi.selectorStats.SetMaxEntries(entries)
+	return pi.selectorStats
 }
 
 func (pi *policyInfo) policyConfMap(prog *program.Program) *program.Map {

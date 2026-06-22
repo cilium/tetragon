@@ -412,10 +412,11 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 }
 
 type addUprobeIn struct {
-	sensorPath string
-	policyName string
-	useMulti   bool
-	celExprs   *selectors.CelExprFunctions
+	sensorPath        string
+	policyName        string
+	useMulti          bool
+	celExprs          *selectors.CelExprFunctions
+	selectorStatsBase uint32
 }
 
 type uprobeHas struct {
@@ -506,10 +507,14 @@ func createGenericUprobeSensor(
 		}
 	}
 
+	var selectorStatsBase uint32
 	for _, uprobe := range spec.UProbes {
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
+
+		in.selectorStatsBase = selectorStatsBase
+		selectorStatsBase += uint32(len(uprobe.Selectors))
 
 		ids, err = addUprobe(&uprobe, ids, &in, &has)
 		if err != nil {
@@ -787,6 +792,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	}
 
 	eventConfig := initEventConfig()
+	eventConfig.SelStatsBase = in.selectorStatsBase
 
 	// Parse ReturnArg, we have two types of return arg parsing. We
 	// support populating an uprobe buffer from uretprobe hooks. This
@@ -1007,7 +1013,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
@@ -1144,7 +1150,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		maps = append(maps, retFilterMap)
 	}
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.selectorStatsMap(load))
 
 	return progs, maps
 }
