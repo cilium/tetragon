@@ -34,6 +34,7 @@ enum policy_actions {
 	POLICY_MONITOR_NOTIFY_ENFORCER = 7, /* policy did not notify the enforcer because it was in monitor mode */
 	POLICY_SET = 8, /* policy set user-space values */
 	POLICY_MONITOR_SET = 9, /* policy did not set user-space values because it was in monitor mode */
+	POLICY_NOPOST = 10, /* policy suppressed an event */
 	POLICY_NACTIONS_,
 };
 
