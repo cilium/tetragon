@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -25,6 +26,19 @@ func Test_ioReaderClient_GetEvents(t *testing.T) {
 		_, err := getEventsClient.Recv()
 		require.NoError(t, err)
 	}
+	_, err = getEventsClient.Recv()
+	require.ErrorIs(t, err, io.EOF)
+}
+
+func Test_ioReaderClient_GetEventsSkipsInvalidJSON(t *testing.T) {
+	client := newIOReaderClient(strings.NewReader("not-json\n{\"process_exec\":{\"process\":{\"binary\":\"/usr/bin/netserver\"}}}\n"), false)
+	getEventsClient, err := client.GetEvents(context.Background(), &tetragon.GetEventsRequest{})
+	require.NoError(t, err)
+
+	res, err := getEventsClient.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, res.GetProcessExec())
+
 	_, err = getEventsClient.Recv()
 	require.ErrorIs(t, err, io.EOF)
 }
