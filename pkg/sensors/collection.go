@@ -6,10 +6,13 @@ package sensors
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 
 	"go.uber.org/multierr"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
@@ -102,6 +105,12 @@ type collection struct {
 	warnedOnStatsRetrievalFailure atomic.Bool
 }
 
+type selectorStatsMetadata struct {
+	hook          string
+	hookIndex     uint32
+	selectorIndex uint32
+}
+
 type collectionMap struct {
 	// map of sensor collections: name, namespace -> collection
 	c  map[collectionKey]*collection
@@ -160,9 +169,16 @@ func (c *collection) stats() *tetragon.TracingPolicyStats {
 		}
 		return nil
 	}
-	return &tetragon.TracingPolicyStats{
+
+	ret := &tetragon.TracingPolicyStats{
 		ActionCounters: actionCountersFromStats(stats),
 	}
+
+	selectorCounters := c.selectorActionCounters()
+	if len(selectorCounters) > 0 {
+		ret.SelectorActionCounters = selectorCounters
+	}
+	return ret
 }
 
 func actionCountersFromStats(stats *policystats.PolicyStats) *tetragon.TracingPolicyActionCounters {
@@ -178,6 +194,97 @@ func actionCountersFromStats(stats *policystats.PolicyStats) *tetragon.TracingPo
 		MonitorSet:            stats.ActionsCount[policystats.PolicyMonitorSet],
 		Nopost:                stats.ActionsCount[policystats.PolicyNoPost],
 	}
+}
+
+func (c *collection) selectorActionCounters() []*tetragon.TracingPolicySelectorActionCounters {
+	metadata := selectorStatsMetadataFromSpec(c.tracingpolicy.TpSpec())
+	if len(metadata) == 0 {
+		return nil
+	}
+
+	stats, err := policystats.GetPolicySelectorStats(c.tracingpolicy)
+	if err != nil {
+		if !c.warnedOnStatsRetrievalFailure.Load() {
+			c.warnedOnStatsRetrievalFailure.Store(true)
+			logger.GetLogger().Warn("failed to retrieve policy selector stats", "err", err, "policy", c.name)
+		}
+		return nil
+	}
+
+	ret := make([]*tetragon.TracingPolicySelectorActionCounters, 0, len(metadata))
+	for i, meta := range metadata {
+		if stats[i].Empty() {
+			continue
+		}
+		selectorIndex := meta.selectorIndex
+		ret = append(ret, &tetragon.TracingPolicySelectorActionCounters{
+			Hook:           meta.hook,
+			HookIndex:      wrapperspb.UInt32(meta.hookIndex),
+			SelectorIndex:  wrapperspb.UInt32(selectorIndex),
+			ActionCounters: actionCountersFromStats(stats[i]),
+		})
+	}
+	return ret
+}
+
+func selectorStatsMetadataFromSpec(spec *v1alpha1.TracingPolicySpec) []selectorStatsMetadata {
+	if spec == nil {
+		return nil
+	}
+
+	var ret []selectorStatsMetadata
+	for i, kprobe := range spec.KProbes {
+		ret = appendSelectorStatsMetadata(ret, "kprobe:"+kprobe.Call, uint32(i), kprobe.Selectors)
+	}
+	for i, fentry := range spec.Fentries {
+		ret = appendSelectorStatsMetadata(ret, "fentry:"+fentry.Call, uint32(i), fentry.Selectors)
+	}
+	for i, uprobe := range spec.UProbes {
+		ret = appendSelectorStatsMetadata(ret, uprobeStatsHook(uprobe), uint32(i), uprobe.Selectors)
+	}
+	for i, tp := range spec.Tracepoints {
+		ret = appendSelectorStatsMetadata(ret, "tracepoint:"+tp.Subsystem+"/"+tp.Event, uint32(i), tp.Selectors)
+	}
+	for i, lsm := range spec.LsmHooks {
+		ret = appendSelectorStatsMetadata(ret, "lsm:"+lsm.Hook, uint32(i), lsm.Selectors)
+	}
+	for i, usdt := range spec.Usdts {
+		ret = appendSelectorStatsMetadata(ret, "usdt:"+usdt.Path+":"+usdt.Provider+"/"+usdt.Name, uint32(i), usdt.Selectors)
+	}
+	return ret
+}
+
+func appendSelectorStatsMetadata(ret []selectorStatsMetadata, hook string, hookIndex uint32, selectors []v1alpha1.KProbeSelector) []selectorStatsMetadata {
+	for i := range selectors {
+		ret = append(ret, selectorStatsMetadata{
+			hook:          hook,
+			hookIndex:     hookIndex,
+			selectorIndex: uint32(i),
+		})
+	}
+	return ret
+}
+
+func uprobeStatsHook(spec v1alpha1.UProbeSpec) string {
+	p := "uprobe:" + spec.Path
+	if len(spec.Symbols) > 0 {
+		p += ":" + strings.Join(spec.Symbols, ",")
+	}
+	if len(spec.Offsets) > 0 {
+		p += ":offsets=" + uint64List(spec.Offsets)
+	}
+	if len(spec.Addrs) > 0 {
+		p += ":addrs=" + uint64List(spec.Addrs)
+	}
+	return p
+}
+
+func uint64List(values []uint64) string {
+	parts := make([]string, 0, len(values))
+	for _, value := range values {
+		parts = append(parts, strconv.FormatUint(value, 10))
+	}
+	return strings.Join(parts, ",")
 }
 
 func policyconfMode(mode tetragon.TracingPolicyMode) (policyconf.Mode, error) {
