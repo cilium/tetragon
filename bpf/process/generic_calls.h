@@ -954,6 +954,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	switch (action) {
 	case ACTION_NOPOST:
 		*post = false;
+		polacct = POLICY_NOPOST;
 		break;
 	case ACTION_POST: {
 		__u64 ratelimit_interval __maybe_unused = actions->act[++i];

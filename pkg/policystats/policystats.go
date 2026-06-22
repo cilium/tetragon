@@ -31,7 +31,8 @@ const (
 	PolicyMonitorNotifyEnforcer PolicyAction = 7
 	PolicySet                   PolicyAction = 8
 	PolicyMonitorSet            PolicyAction = 9
-	PolicyActionsNr                          = 10
+	PolicyNoPost                PolicyAction = 10
+	PolicyActionsNr                          = 11
 )
 
 type PolicyStats struct {
