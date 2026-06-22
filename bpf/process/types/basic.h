@@ -14,6 +14,7 @@
 #include "sockaddr_un.h"
 #endif
 #include "socket.h"
+#include "dns.h"
 #include "net_device.h"
 #include "../bpf_process_event.h"
 #include "bpfattr.h"
@@ -101,6 +102,8 @@ enum {
 	bpf_prog_type = 43,
 
 	sockaddr_un_type = 44,
+
+	dns_type = 45,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -436,6 +439,16 @@ FUNC_INLINE long copy_socket(char *args, unsigned long arg)
 	set_event_from_socket(sk_event, sock);
 
 	return sizeof(struct sk_type);
+}
+
+FUNC_INLINE long copy_dns(char *args, unsigned long arg)
+{
+	struct msghdr *msg = (struct msghdr *)arg;
+	struct dns_type *ev = (struct dns_type *)args;
+
+	set_event_from_msghdr(ev, msg);
+
+	return sizeof(struct dns_type);
 }
 
 FUNC_INLINE long copy_user_ns(char *args, unsigned long arg)
@@ -1297,6 +1310,55 @@ filter_sockaddr_un(struct selector_arg_filter *filter, char *args)
 }
 #endif
 
+#ifdef __LARGE_BPF_PROG
+FUNC_LOCAL long
+filter_dns(struct selector_arg_filter *filter, char *args)
+{
+	struct dns_type *ev = (struct dns_type *)args;
+	char *name = ev->name;
+	__u8 name_len = ev->name_len;
+
+	switch (filter->op) {
+	case op_substring_igncase:
+		if (bpf_ksym_exists(bpf_strncasestr))
+			return filter_char_substring(filter, name, name_len, true);
+		break;
+	case op_substring:
+		if (bpf_ksym_exists(bpf_strnstr))
+			return filter_char_substring(filter, name, name_len, false);
+		break;
+	case op_filter_str_prefix:
+	case op_filter_str_notprefix: {
+		long match = filter_char_buf_prefix(filter, name, name_len);
+
+		if (is_not_operator(filter->op))
+			return !match;
+		return match;
+	}
+	case op_filter_str_postfix:
+	case op_filter_str_notpostfix: {
+		long match = filter_char_buf_postfix(filter, name, name_len);
+
+		if (is_not_operator(filter->op))
+			return !match;
+		return match;
+	}
+	case op_filter_eq:
+	case op_filter_neq: {
+		long match = filter_char_buf_equal(filter, name, name_len);
+
+		if (is_not_operator(filter->op))
+			return !match;
+		return match;
+	}
+	default:
+		break;
+	}
+
+	return 0;
+}
+#endif
+
 FUNC_INLINE long
 __copy_char_iovec(long off, unsigned long arg, unsigned long cnt,
 		  unsigned long max, struct msg_generic_kprobe *e)
@@ -1974,6 +2036,8 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
 	case sockaddr_un_type:
 		return sizeof(struct sockaddr_un_type);
 #endif
+	case dns_type:
+		return sizeof(struct dns_type);
 	case cred_type:
 		return sizeof(struct msg_cred);
 	case size_type:
@@ -2266,6 +2330,10 @@ filter_arg_2(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 #if defined(__V511_BPF_PROG)
 	case sockaddr_un_type:
 		return filter_sockaddr_un(filter, args);
+#endif
+#ifdef __LARGE_BPF_PROG
+	case dns_type:
+		return filter_dns(filter, args);
 #endif
 	default:
 		return 1;
