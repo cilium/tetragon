@@ -77,6 +77,15 @@ func StatsFromBPFMapRange(fname string) ([]*PolicyStats, error) {
 	return ret, nil
 }
 
+func (s *PolicyStats) Empty() bool {
+	for _, cnt := range s.ActionsCount {
+		if cnt != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func GetPolicyStats(tp tracingpolicy.TracingPolicy) (*PolicyStats, error) {
 	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tp.TpNamespace(), tp.TpName()), PolicyStatsMapName)
 	return StatsFromBPFMap(fname)
