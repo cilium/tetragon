@@ -161,18 +161,22 @@ func (c *collection) stats() *tetragon.TracingPolicyStats {
 		return nil
 	}
 	return &tetragon.TracingPolicyStats{
-		ActionCounters: &tetragon.TracingPolicyActionCounters{
-			Post:                  stats.ActionsCount[policystats.PolicyPost],
-			Signal:                stats.ActionsCount[policystats.PolicySignal],
-			MonitorSignal:         stats.ActionsCount[policystats.PolicyMonitorSignal],
-			Override:              stats.ActionsCount[policystats.PolicyOverride],
-			MonitorOverride:       stats.ActionsCount[policystats.PolicyMonitorOverride],
-			NotifyEnforcer:        stats.ActionsCount[policystats.PolicyNotifyEnforcer],
-			MonitorNotifyEnforcer: stats.ActionsCount[policystats.PolicyMonitorNotifyEnforcer],
-			Set:                   stats.ActionsCount[policystats.PolicySet],
-			MonitorSet:            stats.ActionsCount[policystats.PolicyMonitorSet],
-			Nopost:                stats.ActionsCount[policystats.PolicyNoPost],
-		},
+		ActionCounters: actionCountersFromStats(stats),
+	}
+}
+
+func actionCountersFromStats(stats *policystats.PolicyStats) *tetragon.TracingPolicyActionCounters {
+	return &tetragon.TracingPolicyActionCounters{
+		Post:                  stats.ActionsCount[policystats.PolicyPost],
+		Signal:                stats.ActionsCount[policystats.PolicySignal],
+		MonitorSignal:         stats.ActionsCount[policystats.PolicyMonitorSignal],
+		Override:              stats.ActionsCount[policystats.PolicyOverride],
+		MonitorOverride:       stats.ActionsCount[policystats.PolicyMonitorOverride],
+		NotifyEnforcer:        stats.ActionsCount[policystats.PolicyNotifyEnforcer],
+		MonitorNotifyEnforcer: stats.ActionsCount[policystats.PolicyMonitorNotifyEnforcer],
+		Set:                   stats.ActionsCount[policystats.PolicySet],
+		MonitorSet:            stats.ActionsCount[policystats.PolicyMonitorSet],
+		Nopost:                stats.ActionsCount[policystats.PolicyNoPost],
 	}
 }
 
