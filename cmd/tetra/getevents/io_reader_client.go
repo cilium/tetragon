@@ -112,8 +112,10 @@ func (i *ioReaderClient) Recv() (*tetragon.GetEventsResponse, error) {
 		res := &tetragon.GetEventsResponse{}
 		line := i.scanner.Bytes()
 		err := i.unmarshaller.Unmarshal(line, res)
-		if err != nil && i.debug {
-			fmt.Fprintf(os.Stderr, "DEBUG: failed unmarshal: %s: %s\n", line, err)
+		if err != nil {
+			if i.debug {
+				fmt.Fprintf(os.Stderr, "DEBUG: failed unmarshal: %s: %s\n", line, err)
+			}
 			continue
 		}
 		if !filters.Apply(i.allowlist, nil, &event.Event{Event: res}) {
