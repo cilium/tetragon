@@ -154,6 +154,23 @@ func (se *SafeELFFile) OffsetFromAddr(addr uint64) (uint64, error) {
 	return offset, nil
 }
 
+func (se *SafeELFFile) SymbolSize(name string) (uint64, error) {
+	symbols, err := se.Symbols()
+	if err != nil {
+		return 0, err
+	}
+
+	for _, sym := range symbols {
+		if elf.ST_TYPE(sym.Info) != elf.STT_FUNC {
+			continue
+		}
+		if name == sym.Name {
+			return sym.Size, nil
+		}
+	}
+	return 0, fmt.Errorf("failed to find size for symbol %q", name)
+}
+
 // SectionsByType returns all sections in the file with the specified section type.
 func (se *SafeELFFile) SectionsByType(typ elf.SectionType) []*elf.Section {
 	sections := make([]*elf.Section, 0, 1)

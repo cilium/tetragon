@@ -53,17 +53,18 @@ func TestLSMObjectLoad(t *testing.T) {
 			4: {Name: "generic_lsm_process_filter", Type: ebpf.LSM},
 			5: {Name: "generic_lsm_actions", Type: ebpf.LSM},
 			6: {Name: "generic_lsm_output", Type: ebpf.LSM},
+			7: {Name: "generic_lsm_filter_caller", Type: ebpf.LSM},
 		}
 		sensorMaps = []tus.SensorMap{
 			// all LSM programs
-			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
+			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}},
 
 			// all but generic_lsm_output
-			{Name: "lsm_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+			{Name: "lsm_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}},
 
 			// generic_lsm_process_filter,generic_lsm_filter_arg,
-			// generic_lsm_actions
-			{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			// generic_lsm_actions,generic_lsm_filter_caller
+			{Name: "filter_map", Progs: []uint{3, 4, 5, 7}},
 
 			// generic_lsm_actions, generic_lsm_output
 			{Name: "override_tasks", Progs: []uint{5, 6}},
@@ -92,17 +93,18 @@ func TestLSMObjectLoad(t *testing.T) {
 			5: {Name: "generic_lsm_actions", Type: ebpf.LSM},
 			6: {Name: "generic_lsm_output", Type: ebpf.LSM},
 			7: {Name: "generic_lsm_path", Type: ebpf.LSM},
+			8: {Name: "generic_lsm_filter_caller", Type: ebpf.LSM},
 		}
 		sensorMaps = []tus.SensorMap{
 			// all LSM programs
-			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}},
+			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8}},
 
 			// all but generic_lsm_output
-			{Name: "lsm_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}},
+			{Name: "lsm_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 8}},
 
 			// generic_lsm_process_filter,generic_lsm_filter_arg,
-			// generic_lsm_actions
-			{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			// generic_lsm_actions,generic_lsm_filter_caller
+			{Name: "filter_map", Progs: []uint{3, 4, 5, 8}},
 
 			// generic_lsm_actions, generic_lsm_output
 			{Name: "override_tasks", Progs: []uint{5, 6}},

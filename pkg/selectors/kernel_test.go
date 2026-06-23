@@ -938,9 +938,9 @@ func TestMultipleSelectorsExample(t *testing.T) {
 
 	// value               absolute offset    explanation
 	expU32Push(2)                 // off: 0       number of selectors
-	expU32Push(8)                 // off: 4       relative ofset of 1st selector (4 + 8 = 12)
-	expU32Push(100)               // off: 8       relative ofset of 2nd selector (8 + 124 = 132)
-	expU32Push(96)                // off: 12      selector1: length (76 + 12 = 96)
+	expU32Push(8)                 // off: 4       relative offset of 1st selector
+	expU32Push(108)               // off: 8       relative offset of 2nd selector
+	expU32Push(104)               // off: 12      selector1: length
 	expU32Push(24)                // off: 16      selector1: MatchPIDs: len
 	expU32Push(SelectorOpNotIn)   // off: 20      selector1: MatchPIDs[0]: op
 	expU32Push(0)                 // off: 24      selector1: MatchPIDs[0]: flags
@@ -963,12 +963,14 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(gt.GenericIntType) // off: 116     selector1: matchArgs: arg0: type
 	expU32Push(10)                // off: 120     selector1: matchArgs: arg0: val0: 10
 	expU32Push(20)                // off: 124     selector1: matchArgs: arg0: val1: 20
-	expU32Push(4)                 // off: 128     selector1: matchActions: length
-	expU32Push(96)                // off: 132     selector2: length
+	expU32Push(8)                 // off: 128     selector1: matchCaller: len
+	expU32Push(4)                 // off: 132     selector1: matchCaller: BuildIDlen
+	expU32Push(4)                 // off: 136     selector1: matchActions: length
+	expU32Push(104)               // off: 140     selector2: length
 	// ... everything else should be the same as selector1 ...
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
-		t.Errorf("\ngot: %v\nexp: %v\n", expected[:expectedLen], b[:expectedLen])
+		t.Errorf("\ngot: %v\nexp: %v\n", b[:expectedLen], expected[:expectedLen])
 	}
 }
 
@@ -981,11 +983,11 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expectedSelsizeSmall := []byte{
-		0xC, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
+		0x14, 0x01, 0x00, 0x00, // size = pids + args + matchCallers + actions + namespaces + capabilities  + 4
 	}
 
 	expectedSelsizeLarge := []byte{
-		0x40, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		72, 0x01, 0x00, 0x00, // size = pids + args + matchCallers + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
 	expectedFilters := []byte{
@@ -1102,6 +1104,10 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, // value 1
 		0x02, 0x00, 0x00, 0x00, // value 2
 
+		// matchCaller header
+		8, 0x00, 0x00, 0x00, // size = sizeof(matchCaller)
+		4, 0x00, 0x00, 0x00, // matchCaller: offset of buildID
+
 		// actions header
 		28, 0x00, 0x00, 0x00, // size = (6 * sizeof(uint32) * number of actions) + args
 		0x00, 0x00, 0x00, 0x00, // post to userspace
@@ -1137,6 +1143,10 @@ func TestInitKernelSelectors(t *testing.T) {
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 513-1024
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 1025-2048
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 2049-4096
+
+		// matchCaller header
+		8, 0x00, 0x00, 0x00, // size = sizeof(matchCaller)
+		4, 0x00, 0x00, 0x00, // matchCaller: offset of buildID
 
 		// actions header
 		28, 0x00, 0x00, 0x00, // size = (6 * sizeof(uint32) * number of actions) + args + 4

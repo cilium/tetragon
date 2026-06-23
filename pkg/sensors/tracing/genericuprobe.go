@@ -21,6 +21,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
+	"github.com/cilium/tetragon/pkg/elf"
 
 	"github.com/cilium/tetragon/pkg/asm"
 
@@ -31,7 +32,6 @@ import (
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
-	"github.com/cilium/tetragon/pkg/elf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -631,11 +631,12 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 	// Parse Filters into kernel filter logic
 	uprobeSelectorState, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
-		Selectors: spec.Selectors,
-		Args:      spec.Args,
-		Data:      spec.Data,
-		IsUprobe:  true,
-		CelExprs:  in.celExprs,
+		Selectors:  spec.Selectors,
+		Args:       spec.Args,
+		Data:       spec.Data,
+		IsUprobe:   true,
+		CelExprs:   in.celExprs,
+		BinaryPath: spec.Path,
 	})
 	if err != nil {
 		return nil, err

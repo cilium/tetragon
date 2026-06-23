@@ -436,6 +436,7 @@ func TestLoadTracepointSensor(t *testing.T) {
 		3: {Name: "generic_tracepoint_filter", Type: ebpf.TracePoint},
 		4: {Name: "generic_tracepoint_actions", Type: ebpf.TracePoint},
 		5: {Name: "generic_tracepoint_output", Type: ebpf.TracePoint},
+		6: {Name: "generic_tracepoint_caller", Type: ebpf.TracePoint},
 	}
 
 	var sensorMaps = []tus.SensorMap{
@@ -445,13 +446,13 @@ func TestLoadTracepointSensor(t *testing.T) {
 
 	if config.EnableLargeProgs() {
 		// all programs
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}})
 
 		// all but generic_tracepoint_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4, 6}})
 
-		// all but generic_tracepoint_event,generic_tracepoint_filter
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2}})
+		// all but generic_tracepoint_event,generic_tracepoint_filter, generic_tracepoint_caller
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2, 6}})
 
 		// all kprobe but generic_tracepoint_filter
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 2, 4, 5}})
@@ -473,22 +474,22 @@ func TestLoadTracepointSensor(t *testing.T) {
 		sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_tracepoint_arg_2", Type: ebpf.TracePoint})
 
 		// all programs
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8}})
 
 		// all but generic_tracepoint_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4, 6, 7}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4, 6, 7, 8}})
 
 		// all but generic_tracepoint_event,generic_tracepoint_filter
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2, 6, 7}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2, 6, 7, 8}})
 
 		// all kprobe but generic_tracepoint_filter
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 2, 4, 5, 6}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 2, 4, 5, 7}})
 
 		// shared with base sensor
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{3}})
 
 		// only generic_tracepoint_event*
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{2, 6}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{2, 7}})
 
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 3}})
 	}

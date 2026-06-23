@@ -19,6 +19,7 @@
 #include "generic_arg.h"
 #include "event_config.h"
 #include "errmetrics.h"
+#include "builtins.h"
 
 #ifdef GENERIC_USDT
 #include "usdt_arg.h"
@@ -1448,7 +1449,8 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 				    bool is_entry, int arg)
 {
 	struct msg_generic_kprobe *e;
-	int selidx, pass, zero = 0;
+	int pass, zero = 0;
+	__u32 selidx = 0;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
@@ -1456,24 +1458,203 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 	selidx = e->tailcall_index_selector;
 	pass = filter_args(ctx, tailcalls, e, selidx & MAX_SELECTORS_MASK,
 			   is_entry, arg);
-	if (!pass) {
-		selidx = next_selidx(e, selidx);
-		if (selidx <= MAX_SELECTORS) {
-			e->tailcall_index_selector = selidx;
-			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
-		}
-		// reject if we did not attempt to tailcall, or if tailcall failed.
+
+	if (selidx > MAX_SELECTORS)
 		return filter_args_reject(e->func_id);
+	if (!pass) {
+		e->sel.active[selidx] = false;
+
+	} else {
+		e->pass = pass;
+		e->sel.active[selidx] = true;
 	}
 
+	/* Always advance to the next selector regardless of pass/fail, so that
+	 * all selectors have their arg filters evaluated before moving on.
+	 */
+	selidx = next_selidx(e, selidx);
+	if (selidx <= MAX_SELECTORS) {
+		e->tailcall_index_selector = selidx;
+		tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
+	}
+
+	/* All selectors have been checked. Find the first one still active. */
+	selidx = next_selidx(e, -1);
+	if (selidx > MAX_SELECTORS) // no selectors active, so reject.
+		return filter_args_reject(e->func_id);
+
+	e->tailcall_index_selector = selidx;
+
+	if (is_entry) {
+		// We could check here if there is an matchCaller filter and potentially
+		// skip this tailcall altogether.
+		tail_call(ctx, tailcalls, TAIL_CALL_CALLER);
+		return 0;
+	}
+
+	// For non-entry probes skip the caller filter and go directly to actions or send.
 	// If pass >1 then we need to consult the selector actions
 	// otherwise pass==1 indicates using default action.
-	if (pass > 1) {
-		e->pass = pass;
+	if (e->pass > 1)
 		tail_call(ctx, tailcalls, TAIL_CALL_ACTIONS);
-	}
 
 	tail_call(ctx, tailcalls, TAIL_CALL_SEND);
 	return 0;
+}
+
+#define BUILD_ID_SIZE 20
+FUNC_INLINE long generic_filter_caller(void *ctx, struct bpf_map_def *tailcalls)
+{
+	long seloff, matchoff, build_id_array_start;
+	__u32 selidx, callerlen, i = 0, k = 0;
+	__u32 match_depth = 0, match_build_id_ref;
+	__u64 match_start = 0, match_end = 0;
+	struct msg_generic_kprobe *e;
+	int ret_entries;
+	__u8 *f = NULL;
+	int zero = 0;
+	int ret;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	selidx = e->tailcall_index_selector;
+
+	f = map_lookup_elem(&filter_map, &e->idx);
+	if (!f)
+		return 0;
+
+	/* Navigate to the matchCallers section of the current selector.
+	 * This mirrors selector_arg_offset but stops before skipping matchCallers,
+	 * i.e. skips: matchPids, matchNamespaces, matchCapabilities,
+	 * matchNamespaceChanges, matchCapabilityChanges.
+	 */
+	seloff = 4; /* start of relative selector offsets */
+	seloff += (selidx * 4); /* relative offset for this selector */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK)); /* abs selector offset */
+	seloff += 4; /* skip selector size field */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK)); /* skip matchPids */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK)); /* skip matchNamespaces */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK)); /* skip matchCapabilities */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK)); /* skip matchNamespaceChanges */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK)); /* skip matchCapabilityChanges */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK)); /* skip matchArgs */
+
+	/* now pointing at the matchCallers section:
+	 * [length u32][CALoffset u32][BuildID1 [20]byte]...[BuildIDn][CAL1]...[CALn]
+	 */
+	callerlen = *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	if (callerlen <= 8)
+		goto hit; /* no matchCallers configured */
+
+	matchoff = seloff + 4; /* skip length field */
+	matchoff += *(__u32 *)((__u64)f + (matchoff & INDEX_MASK)); /* skip matchCaller BuildIDs */
+
+	ret = get_stack(ctx, &e->user_stack, sizeof(e->user_stack), BPF_F_USER_STACK | BPF_F_USER_BUILD_ID);
+	ret_entries = ret / sizeof(struct bpf_stack_build_id);
+	if (ret < 0 || ret_entries > MAX_STACK_DEPTH)
+		goto miss;
+
+#ifndef __LARGE_BPF_PROG
+#pragma unroll
+#endif
+	for (k = 0; k < 5; k++) {
+		if (matchoff >= callerlen + seloff)
+			goto hit; /* no more matchCallers, all previous matchCallers matched, so break and handle the match */
+
+		match_depth = *(__u32 *)((__u64)f + (matchoff & INDEX_MASK));
+		if (match_depth >= MAX_STACK_DEPTH)
+			goto miss;
+
+		match_build_id_ref = *(__u32 *)((__u64)f + ((matchoff + 4) & INDEX_MASK));
+
+		match_start = *(__u64 *)((__u64)f + ((matchoff + 8) & INDEX_MASK));
+		match_end = *(__u64 *)((__u64)f + ((matchoff + 16) & INDEX_MASK));
+
+		if (match_start == 0 && match_end == 0)
+			goto hit; /* matchCallers configured but no range means match any caller */
+
+		/* Starting from the selector, we need to skip both the overall and the buildID u32 length fields */
+		build_id_array_start = seloff + 4 + 4;
+
+		void *match_build_id =
+			(void *)((__u64)f +
+				 ((build_id_array_start + BUILD_ID_SIZE * match_build_id_ref) & INDEX_MASK));
+
+		if (match_depth == 0) {
+#ifndef __LARGE_BPF_PROG
+			/* clang doesn't like unrolling this loop, so this fails on 4.19.
+			 * Therefore, we don't support match_depth == 0 on 4.19
+			 * and ignore the entry by skipping to the next matchCaller entry.
+			 * Since we don't have a define guard for eBPF loops (5.3), use
+			 * large progs (5.2) instead. 5.3 is EOL anyway.
+			 * Note that we additionally have checks in Go to prevent the user
+			 * from applying a TRacingPolicy with match_depth == 0 on 4.19.
+			 */
+			goto miss;
+#endif
+			for (i = 0; i < MAX_STACK_DEPTH; i++) {
+				if (i >= ret_entries)
+					goto miss;
+
+				if (e->user_stack[i].status != BPF_STACK_BUILD_ID_VALID)
+					goto miss;
+
+				if (e->user_stack[i].ip < match_start ||
+				    e->user_stack[i].ip > match_end)
+					continue;
+
+				if (memcmp(e->user_stack[i].build_id,
+					   match_build_id,
+					   sizeof(e->user_stack[i].build_id)) != 0)
+					continue;
+
+				break; /* found a match for this entry, continue with the next */
+			}
+			/* If we didn't find a match, then we need to skip to the next matchCaller entry. */
+			if (i >= MAX_STACK_DEPTH)
+				goto miss;
+
+		} else {
+			match_depth &= MAX_STACK_DEPTH - 1;
+
+			if (e->user_stack[match_depth].status != BPF_STACK_BUILD_ID_VALID)
+				goto miss;
+
+			if (e->user_stack[match_depth].ip < match_start ||
+			    e->user_stack[match_depth].ip > match_end)
+				goto miss;
+
+			if (memcmp(e->user_stack[match_depth].build_id,
+				   match_build_id,
+				   sizeof(e->user_stack[match_depth].build_id)) != 0)
+				goto miss;
+		}
+
+		matchoff += 24; /* goto next matchCaller entry */
+	}
+
+hit:
+	/* Set e->pass to the action offset for this specific selector. */
+	e->pass = seloff + callerlen;
+
+	if (e->pass > 1)
+		tail_call(ctx, tailcalls, TAIL_CALL_ACTIONS);
+	tail_call(ctx, tailcalls, TAIL_CALL_SEND);
+
+miss:
+	/* This selector failed the caller filter. Deactivate and try the next one. */
+	if (selidx > MAX_SELECTORS)
+		return filter_args_reject(e->func_id);
+
+	e->sel.active[selidx] = false;
+	selidx = next_selidx(e, selidx);
+	if (selidx <= MAX_SELECTORS) {
+		e->tailcall_index_selector = selidx;
+		tail_call(ctx, tailcalls, TAIL_CALL_CALLER);
+	}
+	/* No more selectors to try, so reject. */
+	return filter_args_reject(e->func_id);
 }
 #endif /* __GENERIC_CALLS_H__ */

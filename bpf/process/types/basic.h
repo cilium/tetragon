@@ -148,6 +148,7 @@ enum {
 	TAIL_CALL_PATH = 6,
 	TAIL_CALL_PROCESS_2 = 7,
 	TAIL_CALL_ARGS_2 = 8,
+	TAIL_CALL_CALLER = 9,
 };
 
 struct selector_action {
@@ -726,7 +727,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	else
 		with_errmetrics(probe_read, &heap[2], len, arg_str);
 #else
-	with_errmetrics(probe_read, &heap[1], len, arg_str);
+	probe_read(&heap[1], len, arg_str);
 #endif
 
 	// Pad string to multiple of key increment size
@@ -740,7 +741,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 		else
 			with_errmetrics(probe_read, heap + len + 2, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #else
-		with_errmetrics(probe_read, heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+		probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #endif
 	}
 
@@ -2320,6 +2321,7 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 		/* skip the matchCapabilityChanges by reading its length */
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+		/* don't skip matchCallers as they are located after the matchArgs section. */
 	}
 
 	/* Making binary selectors fixes size helps on some kernels */
@@ -2327,7 +2329,7 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 	filters = (struct selector_arg_filters *)&f[seloff];
 
 	if (filters->arglen <= sizeof(struct selector_arg_filters)) // no filters
-		return seloff;
+		return seloff + filters->arglen;
 
 #ifdef __LARGE_BPF_PROG
 	for (i = 0; i < 5; i++)
@@ -2338,7 +2340,7 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 			     : [argsoff] "+r"(argsoff));
 
 		if (argsoff <= 0)
-			return seloff;
+			return seloff + filters->arglen;
 
 		margsoff = (seloff + argsoff) & INDEX_MASK;
 		filter = (struct selector_arg_filter *)&f[margsoff];
@@ -2390,6 +2392,7 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		if (!filter_arg(e, filter, args, arg))
 			return 0;
 	}
+
 	return seloff + filters->arglen;
 }
 

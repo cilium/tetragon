@@ -21,6 +21,7 @@ int generic_rawtp_process_event(void *ctx);
 int generic_rawtp_process_filter(void *ctx);
 int generic_rawtp_filter_arg(void *ctx);
 int generic_rawtp_filter_arg_2(void *ctx);
+int generic_rawtp_filter_caller(void *ctx);
 int generic_rawtp_actions(void *ctx);
 int generic_rawtp_output(void *ctx);
 int generic_rawtp_path(void *ctx);
@@ -36,6 +37,7 @@ struct {
 		[TAIL_CALL_PROCESS] = (void *)&generic_rawtp_process_event,
 		[TAIL_CALL_FILTER] = (void *)&generic_rawtp_process_filter,
 		[TAIL_CALL_ARGS] = (void *)&generic_rawtp_filter_arg,
+		[TAIL_CALL_CALLER] = (void *)&generic_rawtp_filter_caller,
 		[TAIL_CALL_ACTIONS] = (void *)&generic_rawtp_actions,
 		[TAIL_CALL_SEND] = (void *)&generic_rawtp_output,
 #ifndef __V61_BPF_PROG
@@ -129,6 +131,12 @@ generic_rawtp_filter_arg_2(void *ctx)
 				  __FILTER_ARG_2);
 }
 #endif
+
+__attribute__((section("raw_tp"), used)) int
+generic_rawtp_filter_caller(void *ctx)
+{
+	return generic_filter_caller(ctx, (struct bpf_map_def *)&tp_calls);
+}
 
 __attribute__((section("raw_tp"), used)) int
 generic_rawtp_actions(void *ctx)

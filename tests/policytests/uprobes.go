@@ -295,3 +295,157 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(up1Checker, up2Checker),
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-caller").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-caller"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-caller" }}
+    symbols:
+    - "func2"
+    selectors:
+    - matchCallers:
+      - depth: "2"
+        symbol: "main"
+    - matchActions:
+      - action: NoPost
+    message: "shouldTrigger"
+  - path: {{ testBinary "uprobe-caller" }}
+    symbols:
+    - "func2"
+    selectors:
+    - matchCallers:
+      - depth: "2"
+        symbol: "func1"
+    - matchActions:
+      - action: NoPost
+    message: "shouldNotTrigger"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	uprobeCaller := c.TestBinary("uprobe-caller")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-caller").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobeCaller))).
+		WithSymbol(sm.Full("func2"))
+
+	postCnt := uint64(1)
+	return &policytest.Scenario{
+		Name:         "execute uprobe-caller, check matchCallers",
+		Trigger:      policytest.NewCmdTrigger(uprobeCaller).ExpectExitCode(3),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Post: &postCnt,
+		},
+	}
+}).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-caller-mixed").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-caller-mixed"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-caller" }}
+    symbols:
+    - "func2"
+    selectors:
+    - matchCallers:
+      - depth: "any"
+        symbol: "func3" # is not a caller of func2
+      matchActions:
+      - action: Override
+        argError: 123
+    - matchActions:
+      - action: NoPost
+    message: "shouldNotTrigger1"
+  - path: {{ testBinary "uprobe-caller" }}
+    symbols:
+    - "func3"
+    selectors:
+    - matchCallers:
+      - depth: "5" # wrong depth
+        symbol: "func2"
+      - depth: "any"
+        symbol: "main"
+      matchActions:
+      - action: Override
+        argError: 123
+    - matchActions:
+      - action: NoPost
+    message: "shouldNotTrigger2"
+  - path: {{ testBinary "uprobe-caller" }}
+    symbols:
+    - "func3"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchCallers:
+      - depth: "1"
+        symbol: "func2"
+      - depth: "2"
+        startRange: 0x1194 # equivalent to 'symbol: "func1"'
+        endRange: 0x11ae
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "-1" # wrong arg value
+    message: "shouldNotTrigger3"
+  - path: {{ testBinary "uprobe-caller" }}
+    symbols:
+    - "func3"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchCallers:
+      - depth: "1"
+        symbol: "func2"
+      - depth: "2"
+        startRange: 0x1194 # equivalent to 'symbol: "func1"' via 'gdb -batch -ex 'file ./contrib/tester-progs/uprobe-caller' -ex 'disassemble func1''
+        endRange: 0x11ae
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "1"
+      matchActions:
+      - action: Override
+        argError: 42
+    - matchActions:
+      - action: NoPost
+    message: "shouldTrigger"
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	// skip if uprobe_regs_change is not supported
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	uprobeCaller := c.TestBinary("uprobe-caller")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-caller").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobeCaller))).
+		WithSymbol(sm.Full("func3")).
+		WithMessage(sm.Contains("shouldTrigger"))
+
+	exitCode := 44
+	if c.TestConf != nil && c.TestConf.MonitorMode {
+		exitCode = 3
+	}
+	postCnt := uint64(1)
+	overrideCount := uint64(1)
+	return &policytest.Scenario{
+		Name:         "execute uprobe-caller, check matchCallers",
+		Trigger:      policytest.NewCmdTrigger(uprobeCaller).ExpectExitCode(exitCode),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Post:     &postCnt,
+			Override: &overrideCount,
+		},
+	}
+}).RegisterAtInit()

@@ -40,6 +40,7 @@ PROGS = sigkill-tester \
 	regs-override \
 	usdt-args \
 	uprobe-null \
+	uprobe-caller \
 	uprobe-simple \
 	pclntab-unstripped \
 	pclntab-stripped \
@@ -124,6 +125,13 @@ usdt-resolve: usdt-resolve.c
 
 uprobe-resolve: uprobe-resolve.c tester-lib.h libtester.so
 	$(GCC) -ggdb3 -O2 -Wall $< -o $@ $(CURDIR)/libtester.so
+	pahole -J $@
+	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@
+	llvm-objcopy -I binary -O elf64-x86-64 --rename-section .data=.BTF $@.btf.tmp $@.btf
+	rm $@.btf.tmp
+
+uprobe-caller: uprobe-caller.c libuprobe.so
+	$(GCC) -ggdb3 -O0 -Wall $< -o $@ -L . -luprobe -Wl,-rpath,'$$ORIGIN' -Wl,-T,buildid-first.ld
 	pahole -J $@
 	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@
 	llvm-objcopy -I binary -O elf64-x86-64 --rename-section .data=.BTF $@.btf.tmp $@.btf
