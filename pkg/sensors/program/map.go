@@ -237,19 +237,19 @@ func (m *Map) Unload(unpin bool) error {
 		log.Debug("Reference exists, not unloading map yet", "count", count)
 		return nil
 	}
-	log.Debug("map was unloaded")
-	if m.MapHandle != nil {
-		if m.IsOwner() && unpin {
-			m.MapHandle.Unpin()
-			if m.Type == MapTypeGlobal {
-				DeleteGlobMap(m.Name)
-			}
-		}
-		err := m.MapHandle.Close()
-		m.MapHandle = nil
-		return err
+	if m.MapHandle == nil {
+		return nil
 	}
-	return nil
+	log.Debug("map was unloaded")
+	if m.IsOwner() && unpin {
+		m.MapHandle.Unpin()
+		if m.Type == MapTypeGlobal {
+			DeleteGlobMap(m.Name)
+		}
+	}
+	err := m.MapHandle.Close()
+	m.MapHandle = nil
+	return err
 }
 
 func (m *Map) New(spec *ebpf.MapSpec) error {
