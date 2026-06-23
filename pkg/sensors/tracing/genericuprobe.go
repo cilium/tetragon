@@ -880,6 +880,32 @@ func ignoreDigestVerificationFailure(uprobe *v1alpha1.UProbeSpec) bool {
 	return uprobe.Ignore.DigestVerificationFailure
 }
 
+// preValidateUprobes validates a uprobe policy spec before any sensor is
+// created. It is the uprobe analogue of preValidateKprobes. The podSelector
+// and containerSelector rules are also enforced by CEL on TracingPolicySpec
+// (see pkg/k8s/apis/cilium.io/v1alpha1/tracing_policy_types.go); this covers
+// specs that never pass through API-server validation.
+func preValidateUprobes(spec *v1alpha1.TracingPolicySpec) error {
+	for i := range spec.UProbes {
+		if !spec.UProbes[i].ResolvePathInContainer {
+			continue
+		}
+		// resolvePathInContainer resolves the path inside selected containers, so
+		// a podSelector is required to know which containers to attach to.
+		if spec.PodSelector == nil {
+			return fmt.Errorf("uprobe[%d]: resolvePathInContainer requires a podSelector", i)
+		}
+		// The reconciler matches pods only: with a containerSelector it would
+		// still resolve, parse and attach in excluded containers (and charge
+		// them against the per-policy cap), so reject the combination instead
+		// of attaching more widely than the policy asks for.
+		if spec.ContainerSelector != nil {
+			return fmt.Errorf("uprobe[%d]: resolvePathInContainer does not support containerSelector", i)
+		}
+	}
+	return nil
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
