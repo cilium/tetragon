@@ -23,55 +23,97 @@ import (
 )
 
 // Takes arg.Resolve as input and return the path in []string
-// Input   : my.super.field[123].my.sub.field
-// Output  : []string{"my", "super", "field", "[123]", "my", "sub", "field"}
+// Input   : my.super.((char*)field)[123].my.sub.field
+// Output  : []string{"my", "super", "field", "(char*)", "[123]", "my", "sub", "field"}
 func formatBTFPath(resolvePath string) ([]string, error) {
 	var path []string
-	var buffer strings.Builder
-	inBracket := false
-	invalidFormat := false
+	i := 0
+	lastWasDot := false
 
-	for i, r := range resolvePath {
-		switch r {
-		case '.':
-			if inBracket || i > 0 && resolvePath[i-1] == '.' {
-				invalidFormat = true
-				break
+	var parse func(stopAtCloseParen bool) error
+	parse = func(stopAtCloseParen bool) error {
+		for i < len(resolvePath) {
+			tail := resolvePath[i:]
+
+			switch {
+			case stopAtCloseParen && tail[0] == ')':
+				if len(path) == 0 {
+					return errors.New("empty cast expression")
+				}
+				i++ // Consume the ')'
+				return nil
+
+			case strings.HasPrefix(tail, "(("):
+				castEnd := strings.IndexByte(tail, ')')
+				if castEnd <= 2 || strings.ContainsAny(tail[2:castEnd], "()") {
+					return errors.New("invalid prefixed cast")
+				}
+				castToken := tail[1 : castEnd+1]
+
+				i += castEnd + 1 // Move the cursor after the "((cast)"
+				if err := parse(true); err != nil {
+					return err
+				}
+
+				path = append(path, castToken)
+				lastWasDot = false
+
+			case tail[0] == '[':
+				if lastWasDot {
+					return errors.New("dot followed by '['")
+				}
+				end := strings.IndexByte(tail, ']')
+				if end <= 1 || strings.ContainsAny(tail[1:end], ".[()") {
+					return errors.New("invalid index token")
+				}
+				path = append(path, tail[:end+1])
+				i += end + 1
+				lastWasDot = false
+
+			case tail[0] == '(':
+				return errors.New("type casts must use ((cast)field)")
+			case tail[0] == ')':
+				return errors.New("mismatched closing parenthesis")
+
+			case tail[0] == '.':
+				if lastWasDot {
+					return errors.New("consecutive dots")
+				}
+				lastWasDot = true
+				i++
+
+			default:
+				end := strings.IndexAny(tail, ".[()]")
+				var ident string
+				if end == -1 {
+					ident = tail
+					i += len(tail)
+				} else {
+					ident = tail[:end]
+					i += end
+				}
+
+				if ident == "" || strings.ContainsAny(ident, "])") {
+					return errors.New("invalid or mismatched identifier")
+				}
+				if i < len(resolvePath) && resolvePath[i] == '(' {
+					return errors.New("type casts must use ((cast)field)")
+				}
+				path = append(path, ident)
+				lastWasDot = false
 			}
-			if buffer.Len() > 0 {
-				path = append(path, buffer.String())
-				buffer.Reset()
-			}
-		case '[':
-			if inBracket || i > 0 && resolvePath[i-1] == '.' {
-				invalidFormat = true
-				break
-			}
-			if buffer.Len() > 0 {
-				path = append(path, buffer.String())
-				buffer.Reset()
-			}
-			inBracket = true
-			buffer.WriteRune(r)
-		case ']':
-			if !inBracket || i > 0 && resolvePath[i-1] == '[' {
-				invalidFormat = true
-				break
-			}
-			buffer.WriteRune(r)
-			inBracket = false
-			path = append(path, buffer.String())
-			buffer.Reset()
-		default:
-			buffer.WriteRune(r)
 		}
+
+		if stopAtCloseParen {
+			return errors.New("missing closing parenthesis")
+		}
+		return nil
 	}
-	if invalidFormat || inBracket {
-		return []string{}, fmt.Errorf("invalid format for resolve path: %q", resolvePath)
+
+	if err := parse(false); err != nil {
+		return nil, fmt.Errorf("invalid format for resolve path %q: %w", resolvePath, err)
 	}
-	if buffer.Len() > 0 {
-		path = append(path, buffer.String())
-	}
+
 	return path, nil
 }
 

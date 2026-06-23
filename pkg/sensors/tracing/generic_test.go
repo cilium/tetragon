@@ -44,6 +44,42 @@ func TestFormatBTFPath(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:    "reject suffix type cast",
+			input:   "rsp(char*)[16]",
+			want:    []string{"rsp", "[16]"},
+			wantErr: true,
+		},
+		{
+			name:    "reject suffix pointer to array type cast",
+			input:   "rsp(*char[64])[16]",
+			want:    []string{"rsp", "(*char[64])", "[16]"},
+			wantErr: true,
+		},
+		{
+			name:    "prefixed type cast before indexed field path",
+			input:   "((char*)field)[123].my.sub.field",
+			want:    []string{"field", "(char*)", "[123]", "my", "sub", "field"},
+			wantErr: false,
+		},
+		{
+			name:    "prefixed struct pointer cast around indexed field",
+			input:   "((struct task_struct*)field[123]).my.sub.field",
+			want:    []string{"field", "[123]", "(struct task_struct*)", "my", "sub", "field"},
+			wantErr: false,
+		},
+		{
+			name:    "nested prefixed type casts with index",
+			input:   "((struct task_struct*)((char*)field)[123]).my.sub.field",
+			want:    []string{"field", "(char*)", "[123]", "(struct task_struct*)", "my", "sub", "field"},
+			wantErr: false,
+		},
+		{
+			name:    "reject bare type cast prefix",
+			input:   "(char*)field[123].my.sub.field",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
 			name:    "dot inside bracket",
 			input:   "my.super.field[.123]",
 			want:    []string{},
