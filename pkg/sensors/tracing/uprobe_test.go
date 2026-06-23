@@ -10,12 +10,15 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/cilium/ebpf"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
@@ -24,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	"github.com/cilium/tetragon/pkg/selectors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -1280,4 +1284,97 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestUprobeSleepablePreloadMapConfig(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("skipping, no string preload support")
+	}
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping, x86_64 only test")
+	}
+
+	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+
+	// uprobe policy with a preload data argument; opts is the options block (may be empty)
+	policy := func(opts string) string {
+		return `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "preload"
+spec:` + opts + `
+  uprobes:
+  - path: "` + testBinary + `"
+    symbols:
+    - "test_3+12"
+    data:
+    - index: 0
+      type: "string"
+      source: "pt_regs"
+      resolve: "rdi"
+`
+	}
+
+	loadSensors := func(t *testing.T, config string) []*sensors.Sensor {
+		createCrdFile(t, config)
+		sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile,
+			tus.Conf().TetragonLib, observertesthelper.WithKeepCollection())
+		require.NoError(t, err)
+		return sens
+	}
+
+	unloadSensors := func(sens []*sensors.Sensor) {
+		sensi := make([]sensors.SensorIface, 0, len(sens))
+		for _, s := range sens {
+			sensi = append(sensi, s)
+		}
+		sensors.UnloadSensors(sensi)
+	}
+
+	findPreloadMap := func(sens []*sensors.Sensor) *program.Map {
+		for _, s := range sens {
+			for _, m := range s.Maps {
+				if m.Name == "sleepable_preload" {
+					return m
+				}
+			}
+		}
+		return nil
+	}
+
+	getMaxEntries := func(m *program.Map) uint32 {
+		path := filepath.Join(bpf.MapPrefixPath(), m.PinPath)
+		val, err := program.GetMaxEntriesPinnedMap(path)
+		require.NoError(t, err)
+		return val
+	}
+
+	// sleepable_preload as MapShared at global scope (/sys/fs/bpf/tetragon/sleepable_preload)
+	t.Run("shared", func(t *testing.T) {
+		sens := loadSensors(t, policy(""))
+		defer unloadSensors(sens)
+
+		m := findPreloadMap(sens)
+		require.NotNil(t, m, "sleepable_preload map not found in sensor")
+
+		assert.Equal(t, "sleepable_preload", m.PinPath)
+		assert.Equal(t, uint32(sleepablePreloadMaxEntries), getMaxEntries(m))
+	})
+
+	// sleepable_preload as MapBuilderProgram at program scope (.../policy/sensor/prog/sleepable_preload)
+	t.Run("program", func(t *testing.T) {
+		sens := loadSensors(t, policy(`
+  options:
+  - name: "sleepable-preload-size"
+    value: "1024"`))
+		defer unloadSensors(sens)
+
+		m := findPreloadMap(sens)
+		require.NotNil(t, m, "sleepable_preload map not found in sensor")
+
+		assert.NotEqual(t, "sleepable_preload", m.PinPath)
+		assert.Equal(t, "sleepable_preload", filepath.Base(m.PinPath))
+		assert.Equal(t, uint32(1024), getMaxEntries(m))
+	})
 }
