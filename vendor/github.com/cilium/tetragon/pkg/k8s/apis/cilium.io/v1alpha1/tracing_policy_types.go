@@ -80,6 +80,7 @@ func (tp *TracingPolicyNamespaced) TpNamespace() string {
 	return tp.ObjectMeta.Namespace
 }
 
+// +kubebuilder:validation:XValidation:rule="!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer) || has(self.podSelector)",message="uprobe resolvePathInContainer requires a podSelector"
 type TracingPolicySpec struct {
 	// +kubebuilder:validation:Optional
 	// A list of kprobe specs.

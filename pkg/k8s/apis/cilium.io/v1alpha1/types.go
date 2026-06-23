@@ -437,9 +437,18 @@ type UProbeSpec struct {
 	// +kubebuilder:validation:Optional
 	// BinaryDigests specifies a set of digests for the traced binary.
 	// The uprobe is installed only if the digest of the traced binary matches a digest in the set.
-	// Currently, if the digest is not matched, the policy is rejected. Subsequent work will skip
-	// loading the uprobe instead of rejecting the policy.
+	// For a regular uprobe a mismatch rejects the policy at load; for a
+	// resolvePathInContainer uprobe the digest is checked per container and a
+	// mismatching container is skipped without failing the policy.
 	BinaryDigests []string `json:"binaryDigests,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	// ResolvePathInContainer resolves Path in the root filesystem of each
+	// container selected by the policy's podSelector and attaches the uprobe
+	// per matching container, instead of in the agent's mount namespace.
+	// Requires a podSelector; container roots are resolved via runtime hooks
+	// and/or CRI.
+	ResolvePathInContainer bool `json:"resolvePathInContainer"`
 }
 
 type UsdtSpec struct {

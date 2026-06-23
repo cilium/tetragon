@@ -856,6 +856,22 @@ func verifyBinaryDigests(uprobe *v1alpha1.UProbeSpec, entryFile *os.File) error 
 	}
 }
 
+// preValidateUprobes validates a uprobe policy spec before any sensor is
+// created. It is the uprobe analogue of preValidateKprobes.
+func preValidateUprobes(spec *v1alpha1.TracingPolicySpec) error {
+	for i := range spec.UProbes {
+		if !spec.UProbes[i].ResolvePathInContainer {
+			continue
+		}
+		// resolvePathInContainer resolves the path inside selected containers, so
+		// a podSelector is required to know which containers to attach to.
+		if spec.PodSelector == nil {
+			return fmt.Errorf("uprobe[%d]: resolvePathInContainer requires a podSelector", i)
+		}
+	}
+	return nil
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
