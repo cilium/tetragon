@@ -899,7 +899,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1078,14 +1078,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -1282,14 +1282,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -1647,14 +1647,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -2630,7 +2630,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2809,14 +2809,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -3013,14 +3013,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -3378,14 +3378,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -4030,7 +4030,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4209,14 +4209,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -4413,14 +4413,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -4778,14 +4778,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -5318,7 +5318,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5497,14 +5497,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -5701,14 +5701,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -6066,14 +6066,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -6676,7 +6676,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6855,14 +6855,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -7059,14 +7059,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -7424,14 +7424,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -8308,7 +8308,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8487,14 +8487,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -8691,14 +8691,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -9056,14 +9056,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -9673,7 +9673,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9852,14 +9852,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -10056,14 +10056,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -10421,14 +10421,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -11601,7 +11601,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11780,14 +11780,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -11984,14 +11984,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -12349,14 +12349,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -13332,7 +13332,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13511,14 +13511,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -13715,14 +13715,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -14080,14 +14080,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -14732,7 +14732,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14911,14 +14911,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -15115,14 +15115,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -15480,14 +15480,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -16020,7 +16020,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16199,14 +16199,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -16403,14 +16403,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -16768,14 +16768,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -17378,7 +17378,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17557,14 +17557,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -17761,14 +17761,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -18126,14 +18126,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -19010,7 +19010,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -19189,14 +19189,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -19393,14 +19393,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -19758,14 +19758,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -20375,7 +20375,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -20554,14 +20554,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -20758,14 +20758,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -21123,14 +21123,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>

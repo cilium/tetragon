@@ -149,7 +149,7 @@ type KProbeSelector struct {
 	// A list of actions to execute when this selector matches
 	MatchActions []ActionSelector `json:"matchActions,omitempty"`
 	// +kubebuilder:validation:Optional
-	// A list of argument filters. MatchArgs are ANDed.
+	// A list of argument filters. MatchReturnArgs are ANDed.
 	MatchReturnArgs []ArgSelector `json:"matchReturnArgs,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A list of actions to execute when MatchReturnArgs selector matches
@@ -255,11 +255,11 @@ type PIDSelector struct {
 type ArgSelector struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
-	// Position of the argument (in function prototype) to apply fhe filter to.
+	// Position of the argument (in function prototype) to apply the filter to.
 	Index uint32 `json:"index"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:items:Minimum=0
-	// Position of the operator arguments (in spec file) to apply fhe filter to.
+	// Position of the operator arguments (in spec file) to apply the filter to.
 	Args []uint32 `json:"args,omitempty"`
 	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;NotPrefix;Postfix;NotPostfix;GreaterThan;LessThan;GT;LT;Mask;SPort;NotSPort;SPortPriv;NotSportPriv;DPort;NotDPort;DPortPriv;NotDPortPriv;SAddr;NotSAddr;DAddr;NotDAddr;Protocol;Family;State;InMap;NotInMap;CapabilitiesGained;InRange;NotInRange;SubString;SubStringIgnCase;CelExpr;FileType;NotFileType
 	// Filter operation.

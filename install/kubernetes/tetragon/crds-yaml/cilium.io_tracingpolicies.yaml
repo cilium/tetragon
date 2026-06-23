@@ -602,7 +602,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -610,7 +610,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -766,7 +766,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -774,7 +774,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -1033,13 +1033,13 @@ spec:
                               type: object
                             type: array
                           matchReturnArgs:
-                            description: A list of argument filters. MatchArgs are
-                              ANDed.
+                            description: A list of argument filters. MatchReturnArgs
+                              are ANDed.
                             items:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -1047,7 +1047,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -1852,7 +1852,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -1860,7 +1860,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -2016,7 +2016,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -2024,7 +2024,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -2283,13 +2283,13 @@ spec:
                               type: object
                             type: array
                           matchReturnArgs:
-                            description: A list of argument filters. MatchArgs are
-                              ANDed.
+                            description: A list of argument filters. MatchReturnArgs
+                              are ANDed.
                             items:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -2297,7 +2297,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -2824,7 +2824,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -2832,7 +2832,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -2988,7 +2988,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -2996,7 +2996,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -3255,13 +3255,13 @@ spec:
                               type: object
                             type: array
                           matchReturnArgs:
-                            description: A list of argument filters. MatchArgs are
-                              ANDed.
+                            description: A list of argument filters. MatchReturnArgs
+                              are ANDed.
                             items:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -3269,7 +3269,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -3692,7 +3692,7 @@ spec:
                         properties:
                           args:
                             description: Position of the operator arguments (in spec
-                              file) to apply fhe filter to.
+                              file) to apply the filter to.
                             items:
                               format: int32
                               minimum: 0
@@ -3700,7 +3700,7 @@ spec:
                             type: array
                           index:
                             description: Position of the argument (in function prototype)
-                              to apply fhe filter to.
+                              to apply the filter to.
                             format: int32
                             minimum: 0
                             type: integer
@@ -3855,7 +3855,7 @@ spec:
                         properties:
                           args:
                             description: Position of the operator arguments (in spec
-                              file) to apply fhe filter to.
+                              file) to apply the filter to.
                             items:
                               format: int32
                               minimum: 0
@@ -3863,7 +3863,7 @@ spec:
                             type: array
                           index:
                             description: Position of the argument (in function prototype)
-                              to apply fhe filter to.
+                              to apply the filter to.
                             format: int32
                             minimum: 0
                             type: integer
@@ -4118,12 +4118,13 @@ spec:
                         type: object
                       type: array
                     matchReturnArgs:
-                      description: A list of argument filters. MatchArgs are ANDed.
+                      description: A list of argument filters. MatchReturnArgs are
+                        ANDed.
                       items:
                         properties:
                           args:
                             description: Position of the operator arguments (in spec
-                              file) to apply fhe filter to.
+                              file) to apply the filter to.
                             items:
                               format: int32
                               minimum: 0
@@ -4131,7 +4132,7 @@ spec:
                             type: array
                           index:
                             description: Position of the argument (in function prototype)
-                              to apply fhe filter to.
+                              to apply the filter to.
                             format: int32
                             minimum: 0
                             type: integer
@@ -4609,7 +4610,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -4617,7 +4618,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -4773,7 +4774,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -4781,7 +4782,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -5040,13 +5041,13 @@ spec:
                               type: object
                             type: array
                           matchReturnArgs:
-                            description: A list of argument filters. MatchArgs are
-                              ANDed.
+                            description: A list of argument filters. MatchReturnArgs
+                              are ANDed.
                             items:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -5054,7 +5055,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -5804,7 +5805,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -5812,7 +5813,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -5968,7 +5969,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -5976,7 +5977,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -6235,13 +6236,13 @@ spec:
                               type: object
                             type: array
                           matchReturnArgs:
-                            description: A list of argument filters. MatchArgs are
-                              ANDed.
+                            description: A list of argument filters. MatchReturnArgs
+                              are ANDed.
                             items:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -6249,7 +6250,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -6758,7 +6759,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -6766,7 +6767,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -6922,7 +6923,7 @@ spec:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -6930,7 +6931,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -7189,13 +7190,13 @@ spec:
                               type: object
                             type: array
                           matchReturnArgs:
-                            description: A list of argument filters. MatchArgs are
-                              ANDed.
+                            description: A list of argument filters. MatchReturnArgs
+                              are ANDed.
                             items:
                               properties:
                                 args:
                                   description: Position of the operator arguments
-                                    (in spec file) to apply fhe filter to.
+                                    (in spec file) to apply the filter to.
                                   items:
                                     format: int32
                                     minimum: 0
@@ -7203,7 +7204,7 @@ spec:
                                   type: array
                                 index:
                                   description: Position of the argument (in function
-                                    prototype) to apply fhe filter to.
+                                    prototype) to apply the filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
