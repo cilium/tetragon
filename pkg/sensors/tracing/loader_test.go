@@ -53,7 +53,12 @@ spec:
 		t.Fatalf("Failed to open test binary: %v\n", err)
 	}
 
-	id, err := elfpkg.ParseBuildId(file)
+	safeELF, err := elfpkg.NewSafeELFFile(file)
+	if err != nil {
+		t.Fatalf("Failed to parse ELF: %v\n", err)
+	}
+
+	id, err := safeELF.ParseBuildId()
 	file.Close()
 	if err != nil {
 		t.Fatalf("Failed to ParseBuildId: %v\n", err)
