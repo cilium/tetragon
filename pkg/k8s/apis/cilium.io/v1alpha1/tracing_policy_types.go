@@ -121,6 +121,10 @@ type TracingPolicySpec struct {
 	HostSelector *slimv1.LabelSelector `json:"hostSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// NodeSelector selects nodes that this policy applies to.
+	NodeSelector *slimv1.LabelSelector `json:"nodeSelector,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	// A list of list specs.
 	Lists []ListSpec `json:"lists,omitempty"`
 
