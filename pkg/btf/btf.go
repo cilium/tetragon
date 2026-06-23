@@ -309,6 +309,12 @@ func (r *btfResolver) resolve(
 	i int,
 ) (*btf.Type, error) {
 	currentType = ResolveNestedTypes(currentType)
+	if castType, ok, err := r.parseBTFTypeCast(i); ok {
+		if err != nil {
+			return nil, err
+		}
+		return r.resolve(castType, i)
+	}
 	switch t := currentType.(type) {
 	case *btf.Struct:
 		return r.processMembers(currentType, t.Members, i)
@@ -429,4 +435,29 @@ func (r *btfResolver) processArray(
 		r.btfArgs[i].IsPointer = uint16(1)
 	}
 	return &targetType, nil
+}
+
+func (r *btfResolver) parseBTFTypeCast(i int) (btf.Type, bool, error) {
+	pathElem := r.pathToFound[i]
+
+	if !strings.HasPrefix(pathElem, "(") || !strings.HasSuffix(pathElem, ")") {
+		if strings.ContainsAny(pathElem, "()") {
+			return nil, true, fmt.Errorf("invalid BTF type cast %q (must be: \"(type)\")", pathElem)
+		}
+		return nil, false, nil
+	}
+
+	typeExpr := strings.TrimSpace(pathElem[1 : len(pathElem)-1])
+	if typeExpr == "" {
+		return nil, true, errors.New("empty BTF type cast")
+	}
+
+	ty, err := ParseBTFType(r.spec, typeExpr)
+	if err != nil {
+		return nil, true, err
+	}
+
+	r.pathToFound = append(r.pathToFound[:i], r.pathToFound[i+1:]...)
+
+	return ty, true, nil
 }

@@ -681,6 +681,111 @@ func TestParseArrayIdxStr(t *testing.T) {
 	}
 }
 
+func TestParseBTFTypeCast(t *testing.T) {
+	primitiveSpec := &btf.Spec{}
+
+	tests := []struct {
+		name    string
+		input   []string
+		idx     int
+		spec    *btf.Spec
+		wantOK  bool
+		wantErr bool
+	}{
+		{
+			name:    "Valid cast - char pointer",
+			input:   []string{"field", "(char*)", "[1]"},
+			idx:     1,
+			spec:    primitiveSpec,
+			wantOK:  true,
+			wantErr: false,
+		},
+		{
+			name:    "Valid cast - pointer to char array",
+			input:   []string{"field", "(*char[64])", "[1]"},
+			idx:     1,
+			spec:    primitiveSpec,
+			wantOK:  true,
+			wantErr: false,
+		},
+		{
+			name:    "Not a cast",
+			input:   []string{"field"},
+			idx:     0,
+			wantOK:  false,
+			wantErr: false,
+		},
+		{
+			name:    "Invalid format - trailing token",
+			input:   []string{"field", "(char ')*"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid type name",
+			input:   []string{"field", "(-_char*)"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - unopened cast",
+			input:   []string{"field", "char*)"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - unclosed cast",
+			input:   []string{"field", "(char*"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - empty cast",
+			input:   []string{"field", "()"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - blank cast",
+			input:   []string{"field", "( )"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolver := btfResolver{
+				pathToFound: append([]string(nil), tt.input...),
+				spec:        tt.spec,
+			}
+
+			_, ok, err := resolver.parseBTFTypeCast(tt.idx)
+
+			require.Equal(t, tt.wantOK, ok)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			wantPath := tt.input
+			if tt.wantOK && !tt.wantErr {
+				require.NotNil(t, resolver.spec, "should have initialized resolver.spec")
+				wantPath = append(append([]string(nil), tt.input[:tt.idx]...), tt.input[tt.idx+1:]...)
+			}
+
+			require.Equal(t, wantPath, resolver.pathToFound)
+		})
+	}
+}
+
 func TestResolveBTFPathZeroLengthArray(t *testing.T) {
 	u8Ty := &btf.Int{Name: "unsigned char", Size: 1}
 	root := &btf.Struct{
