@@ -1,0 +1,75 @@
+# Least-privilege RBAC for running `tetra policytest run --kube`.
+#
+# The runner (operator or CI principal) needs two sets of permissions:
+#   - in the TEST namespace (here: policytest): manage the throwaway test pod
+#     and the copied TLS secret, and read the pod's logs for the results.
+#   - in the AGENT namespace (here: tetragon): list pods to discover a
+#     node-local Tetragon agent, and read the agent's gRPC TLS secret to copy
+#     it into the test namespace.
+#
+# Adjust the namespaces and the secret name to match your install. Bind to your
+# own user/group instead of the ServiceAccount if you run tetra from outside the
+# cluster.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: policytest-runner
+  namespace: policytest
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: policytest-runner
+  namespace: policytest
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["create", "get", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: policytest-runner
+  namespace: policytest
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: policytest-runner
+subjects:
+  - kind: ServiceAccount
+    name: policytest-runner
+    namespace: policytest
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: policytest-runner
+  namespace: tetragon
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+    resourceNames: ["tetragon-server-certs"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: policytest-runner
+  namespace: tetragon
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: policytest-runner
+subjects:
+  - kind: ServiceAccount
+    name: policytest-runner
+    namespace: policytest

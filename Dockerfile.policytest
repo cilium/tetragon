@@ -1,0 +1,28 @@
+# Image for running Tetragon policy tests from within a Kubernetes cluster.
+# It bundles the `tetra` CLI and the contrib/tester-progs trigger binaries so a
+# test pod can run `tetra policytest run-inpod` against the node-local agent.
+
+# Builder: compile tetra (Go) and the tester-progs (C + Go).
+FROM docker.io/library/golang:1.26.4 AS builder
+WORKDIR /go/src/github.com/cilium/tetragon
+# tester-progs need a C toolchain: 32-bit static (gcc-multilib), libcap
+# (-lcap), pahole (dwarves) and llvm-objcopy (llvm) for the BTF-generating
+# programs. Some programs use llvm-objcopy unversioned, so symlink it.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc-multilib \
+        libcap-dev \
+        dwarves \
+        llvm \
+    && ln -sf "$(ls /usr/bin/llvm-objcopy* | head -n1)" /usr/bin/llvm-objcopy \
+    && rm -rf /var/lib/apt/lists/*
+COPY . .
+RUN make tetra && make tester-progs
+
+# Runtime: minimal image with tetra and the tester-progs.
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libcap2 \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/tetra
+COPY --from=builder /go/src/github.com/cilium/tetragon/contrib/tester-progs/ /usr/local/lib/tetragon/tester-progs/
+ENTRYPOINT ["tetra"]
