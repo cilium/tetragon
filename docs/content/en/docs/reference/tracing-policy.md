@@ -78,6 +78,8 @@ Resource Types:
         <td>object</td>
         <td>
           Tracing policy specification.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer) || has(self.podSelector): uprobe resolvePathInContainer requires a podSelector</li>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -7817,6 +7819,21 @@ in the event output to inform users what is going on.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>resolvePathInContainer</b></td>
+        <td>boolean</td>
+        <td>
+          ResolvePathInContainer interprets Path as relative to the root filesystem of
+each container selected by the policy's podSelector, and attaches the
+uprobe per matching container rather than in the Tetragon agent's own
+mount namespace. Requires a podSelector, and requires runtime hooks and/or
+CRI (--enable-cri) to be enabled so the agent can resolve each container's
+root filesystem. Defaults to false, which preserves the legacy behavior of
+opening Path in the agent namespace.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>return</b></td>
         <td>boolean</td>
         <td>
@@ -10780,6 +10797,8 @@ merge patch.<br/>
         <td>object</td>
         <td>
           Tracing policy specification.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer) || has(self.podSelector): uprobe resolvePathInContainer requires a podSelector</li>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -18516,6 +18535,21 @@ in the event output to inform users what is going on.<br/>
         <td>[]integer</td>
         <td>
           List of the traced ref_ctr_offsets<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resolvePathInContainer</b></td>
+        <td>boolean</td>
+        <td>
+          ResolvePathInContainer interprets Path as relative to the root filesystem of
+each container selected by the policy's podSelector, and attaches the
+uprobe per matching container rather than in the Tetragon agent's own
+mount namespace. Requires a podSelector, and requires runtime hooks and/or
+CRI (--enable-cri) to be enabled so the agent can resolve each container's
+root filesystem. Defaults to false, which preserves the legacy behavior of
+opening Path in the agent namespace.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr><tr>

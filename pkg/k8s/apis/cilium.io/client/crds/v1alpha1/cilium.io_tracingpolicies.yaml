@@ -5576,6 +5576,17 @@ spec:
                         format: int64
                         type: integer
                       type: array
+                    resolvePathInContainer:
+                      default: false
+                      description: |-
+                        ResolvePathInContainer interprets Path as relative to the root filesystem of
+                        each container selected by the policy's podSelector, and attaches the
+                        uprobe per matching container rather than in the Tetragon agent's own
+                        mount namespace. Requires a podSelector, and requires runtime hooks and/or
+                        CRI (--enable-cri) to be enabled so the agent can resolve each container's
+                        root filesystem. Defaults to false, which preserves the legacy behavior of
+                        opening Path in the agent namespace.
+                      type: boolean
                     return:
                       default: false
                       description: Indicates whether to collect return value of the
@@ -7456,6 +7467,10 @@ spec:
                   type: object
                 type: array
             type: object
+            x-kubernetes-validations:
+            - message: uprobe resolvePathInContainer requires a podSelector
+              rule: '!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer)
+                || has(self.podSelector)'
         required:
         - metadata
         - spec

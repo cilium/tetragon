@@ -402,6 +402,16 @@ type UProbeSpec struct {
 	// +kubebuilder:validation:Optional
 	// A return argument to include in the trace output.
 	ReturnArg *KProbeArg `json:"returnArg,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	// ResolvePathInContainer interprets Path as relative to the root filesystem of
+	// each container selected by the policy's podSelector, and attaches the
+	// uprobe per matching container rather than in the Tetragon agent's own
+	// mount namespace. Requires a podSelector, and requires runtime hooks and/or
+	// CRI (--enable-cri) to be enabled so the agent can resolve each container's
+	// root filesystem. Defaults to false, which preserves the legacy behavior of
+	// opening Path in the agent namespace.
+	ResolvePathInContainer bool `json:"resolvePathInContainer,omitempty"`
 }
 
 type UsdtSpec struct {
