@@ -2291,6 +2291,10 @@ filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, cha
 		return filter_arg_2(e, filter, args);
 }
 
+/* selector_arg_offset returns
+ * - the offset immediately after the argument filters, or
+ * - 0 if an argument does not match.
+ */
 FUNC_INLINE int
 selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		    __u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
@@ -2330,7 +2334,7 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 	filters = (struct selector_arg_filters *)&f[seloff];
 
 	if (filters->arglen <= sizeof(struct selector_arg_filters)) // no filters
-		return seloff;
+		return seloff + filters->arglen;
 
 #ifdef __LARGE_BPF_PROG
 	for (i = 0; i < 5; i++)
@@ -2341,7 +2345,7 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 			     : [argsoff] "+r"(argsoff));
 
 		if (argsoff <= 0)
-			return seloff;
+			return seloff + filters->arglen;
 
 		margsoff = (seloff + argsoff) & INDEX_MASK;
 		filter = (struct selector_arg_filter *)&f[margsoff];
@@ -2393,7 +2397,7 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		if (!filter_arg(e, filter, args, arg))
 			return 0;
 	}
-	return seloff;
+	return seloff + filters->arglen;
 }
 
 FUNC_INLINE int filter_args_reject(u64 id)

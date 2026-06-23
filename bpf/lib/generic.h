@@ -38,7 +38,7 @@ _Static_assert(MAX_ACCESSIBLE_ARGS - 1 <= MAX_ACCESSIBLE_ARGS_MASK, "Need to upd
 
 struct msg_selector_data {
 	__u64 curr;
-	bool pass;
+	bool pass; // Verdict of the process filter.
 	bool active[MAX_CONFIGURED_SELECTORS];
 #ifdef __NS_CHANGES_FILTER
 	__u64 match_ns;
@@ -87,7 +87,7 @@ struct msg_generic_kprobe {
 	__u32 idx; // attach cookie index
 	__u32 tailcall_index_process; // recursion index for generic_process_event
 	__u32 tailcall_index_selector; // recursion index for filter_read_arg
-	int pass;
+	int action_offset; // do_action expects this value to be the offset where matchActions begin
 	union {
 		struct {
 			bool post; // true if event needs to be posted
