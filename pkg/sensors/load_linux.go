@@ -6,6 +6,7 @@ package sensors
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/cilium/ebpf"
@@ -42,6 +43,14 @@ func (s *Sensor) preLoadMaps(bpfDir string, loadedMaps []*program.Map) ([]*progr
 	return loadedMaps, nil
 }
 
+func isFirstShared(m *program.Map, pinPath string) bool {
+	if !m.IsShared() {
+		return false
+	}
+	_, err := os.Stat(pinPath)
+	return err != nil
+}
+
 // loadMap loads BPF map in the sensor.
 func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map) error {
 	l := logger.GetLogger()
@@ -67,7 +76,7 @@ func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map
 	s.setMapPinPath(m)
 	pinPath := filepath.Join(bpfDir, m.PinPath)
 
-	if m.IsOwner() {
+	if m.IsOwner() || isFirstShared(m, pinPath) {
 		// If map is the owner we set configured maximum entries
 		// directly to map spec.
 		if maximum, ok := m.GetMaxEntries(); ok {

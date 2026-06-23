@@ -58,6 +58,11 @@
 //  Map user object object is just using the pinned map and follows its
 //  setup and will fail if the pinned map differs in spec or configured
 //  max entries value.
+//
+//  MapShared creates a shared map pinned at the global scope
+//  (/sys/fs/bpf/tetragon/<name>). The first sensor to load it creates and
+//  pins the map; subsequent sensors reuse the existing pin. The pin is
+//  removed only when the last sensor using it unloads.
 
 package program
 
@@ -103,6 +108,7 @@ type Map struct {
 	InnerEntries MaxEntries
 	Type         MapType
 	Owner        bool
+	Shared       bool
 }
 
 func (m *Map) String() string {
@@ -146,6 +152,24 @@ func DeleteGlobMap(name string) {
 	delete(globalMaps.maps, name)
 }
 
+// sharedMapRefs tracks the number of sensors currently using each shared map,
+// without locking because sensor load/unload is serialized by the sensor manager.
+var sharedMapRefs = map[string]int{}
+
+func sharedMapIncRef(pinPath string) int {
+	sharedMapRefs[pinPath]++
+	return sharedMapRefs[pinPath]
+}
+
+func sharedMapDecRef(pinPath string) bool {
+	sharedMapRefs[pinPath]--
+	last := sharedMapRefs[pinPath] <= 0
+	if last {
+		delete(sharedMapRefs, pinPath)
+	}
+	return last
+}
+
 // Map holds pointer to Program object as a source of its ebpf object
 // file. We assume all the programs sharing the map have same map
 // definition, so it's ok to use the first program if there's more.
@@ -159,12 +183,12 @@ func DeleteGlobMap(name string) {
 //	p.PinMap["map2"] = &map2
 //	...
 //	p.PinMap["mapX"] = &mapX
-func mapBuilder(name string, ty MapType, owner bool, lds ...*Program) *Map {
+func mapBuilder(name string, ty MapType, owner bool, shared bool, lds ...*Program) *Map {
 	var prog *Program
 	if len(lds) != 0 {
 		prog = lds[0]
 	}
-	m := &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner}
+	m := &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner, shared}
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
@@ -172,31 +196,35 @@ func mapBuilder(name string, ty MapType, owner bool, lds ...*Program) *Map {
 }
 
 func MapBuilder(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeGlobal, true, lds...)
+	return mapBuilder(name, MapTypeGlobal, true, false, lds...)
 }
 
 func MapBuilderProgram(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeProgram, true, lds...)
+	return mapBuilder(name, MapTypeProgram, true, false, lds...)
 }
 
 func MapBuilderSensor(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeSensor, true, lds...)
+	return mapBuilder(name, MapTypeSensor, true, false, lds...)
 }
 
 func MapBuilderPolicy(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypePolicy, true, lds...)
+	return mapBuilder(name, MapTypePolicy, true, false, lds...)
 }
 
 func MapBuilderType(name string, ty MapType, lds ...*Program) *Map {
-	return mapBuilder(name, ty, true, lds...)
+	return mapBuilder(name, ty, true, false, lds...)
 }
 
 func MapBuilderOpts(name string, opts MapOpts, lds ...*Program) *Map {
-	return mapBuilder(name, opts.Type, opts.Owner, lds...)
+	return mapBuilder(name, opts.Type, opts.Owner, false, lds...)
+}
+
+func MapShared(name string, lds ...*Program) *Map {
+	return mapBuilder(name, MapTypeGlobal, false, true, lds...)
 }
 
 func mapUser(name string, ty MapType, prog *Program) *Map {
-	return &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false}
+	return &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false, false}
 }
 
 func MapUser(name string, prog *Program) *Map {
@@ -227,6 +255,10 @@ func (m *Map) IsOwner() bool {
 	return m.Owner
 }
 
+func (m *Map) IsShared() bool {
+	return m.Shared
+}
+
 func (m *Map) Unload(unpin bool) error {
 	log := logger.GetLogger().With("map", m.Name, "pin", m.PinPath)
 	if !m.PinState.IsLoaded() {
@@ -241,7 +273,10 @@ func (m *Map) Unload(unpin bool) error {
 		return nil
 	}
 	log.Debug("map was unloaded")
-	if m.IsOwner() && unpin {
+	if m.IsShared() && sharedMapDecRef(m.PinPath) && unpin {
+		m.MapHandle.Unpin()
+		DeleteGlobMap(m.Name)
+	} else if m.IsOwner() && unpin {
 		m.MapHandle.Unpin()
 		if m.Type == MapTypeGlobal {
 			DeleteGlobMap(m.Name)
@@ -289,7 +324,7 @@ func (m *Map) LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) error
 		m.MapHandle.Close()
 	}
 
-	mh, err := LoadOrCreatePinnedMap(pinPath, mapSpec, m.IsOwner())
+	mh, err := LoadOrCreatePinnedMap(pinPath, mapSpec, m.IsOwner() || m.IsShared())
 	if err != nil {
 		return err
 	}
@@ -298,6 +333,9 @@ func (m *Map) LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) error
 	m.PinState.RefInc()
 	if m.Type == MapTypeGlobal {
 		AddGlobalMap(m.Name)
+	}
+	if m.IsShared() {
+		sharedMapIncRef(m.PinPath)
 	}
 	return nil
 }
