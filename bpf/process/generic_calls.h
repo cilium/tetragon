@@ -1116,10 +1116,9 @@ do_actions(void *ctx, struct selector_action *actions)
 FUNC_INLINE long
 generic_actions(void *ctx, struct bpf_map_def *calls)
 {
-	struct selector_arg_filters *arg;
 	struct selector_action *actions;
 	struct msg_generic_kprobe *e;
-	int actoff, pass, zero = 0;
+	int actoff, zero = 0;
 	bool postit;
 	__u8 *f;
 
@@ -1127,20 +1126,14 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 	if (!e)
 		return 0;
 
-	pass = e->pass;
-	if (pass <= 1)
+	if (e->action_offset <= 1)
 		return 0;
 
 	f = map_lookup_elem(&filter_map, &e->idx);
 	if (!f)
 		return 0;
 
-	asm volatile("%[pass] &= 0x7ff;\n"
-		     : [pass] "+r"(pass)
-		     :);
-	arg = (struct selector_arg_filters *)&f[pass];
-
-	actoff = pass + arg->arglen;
+	actoff = e->action_offset;
 	asm volatile("%[actoff] &= 0x7ff;\n"
 		     : [actoff] "+r"(actoff)
 		     :);
@@ -1380,6 +1373,11 @@ FUNC_INLINE int generic_process_filter(void)
 	return PFILTER_CONTINUE; /* will iterate to the next selector */
 }
 
+/* filter_args returns
+ * - 0 if the selector does not match,
+ * - 1 if no filters or active selectors could be found, or
+ * - the offset immediately after the argument filters.
+ */
 FUNC_INLINE int filter_args(void *ctx, struct bpf_map_def *tailcalls,
 			    struct msg_generic_kprobe *e, int selidx, bool is_entry,
 			    int arg)
@@ -1476,7 +1474,7 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 	// If pass >1 then we need to consult the selector actions
 	// otherwise pass==1 indicates using default action.
 	if (pass > 1) {
-		e->pass = pass;
+		e->action_offset = pass;
 		tail_call(ctx, tailcalls, TAIL_CALL_ACTIONS);
 	}
 
