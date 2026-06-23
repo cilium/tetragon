@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -677,6 +678,109 @@ func TestParseArrayIdxStr(t *testing.T) {
 			if !tt.wantErr && got != tt.want {
 				t.Errorf("parseArrayIdxStr() got = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestParseBTFTypeCast(t *testing.T) {
+	primitiveSpec := &btf.Spec{}
+
+	// parseBTFTypeCast has three distinct outcomes:
+	//   success      — returns (type, nil);        path element at idx is removed
+	//   wantNotCast  — returns (nil, errNotACast); path is unchanged (sentinel, not a real error)
+	//   wantErr      — returns (nil, someError);   path is unchanged
+	tests := []struct {
+		name        string
+		input       []string
+		idx         int
+		spec        *btf.Spec
+		wantErr     bool
+		wantNotCast bool
+	}{
+		{
+			name:  "Valid cast - char pointer",
+			input: []string{"field", "(char*)", "[1]"},
+			idx:   1,
+			spec:  primitiveSpec,
+		},
+		{
+			name:  "Valid cast - pointer to char array",
+			input: []string{"field", "(*char[64])", "[1]"},
+			idx:   1,
+			spec:  primitiveSpec,
+		},
+		{
+			name:        "Not a cast",
+			input:       []string{"field"},
+			idx:         0,
+			wantNotCast: true,
+		},
+		{
+			name:    "Invalid format - trailing token",
+			input:   []string{"field", "(char ')*"},
+			idx:     1,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid type name",
+			input:   []string{"field", "(-_char*)"},
+			idx:     1,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - unopened cast",
+			input:   []string{"field", "char*)"},
+			idx:     1,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - unclosed cast",
+			input:   []string{"field", "(char*"},
+			idx:     1,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - empty cast",
+			input:   []string{"field", "()"},
+			idx:     1,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - blank cast",
+			input:   []string{"field", "( )"},
+			idx:     1,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolver := btfResolver{
+				pathToFind: append([]string(nil), tt.input...),
+				spec:       tt.spec,
+			}
+
+			_, err := resolver.parseBTFTypeCast(tt.idx)
+
+			switch {
+			case tt.wantErr:
+				require.Error(t, err)
+				require.NotErrorIs(t, err, errNotACast, "expected a real error, not the sentinel errNotACast")
+			case tt.wantNotCast:
+				require.ErrorIs(t, err, errNotACast)
+			default:
+				require.NoError(t, err)
+			}
+
+			// Path is modified only on success: the cast element at idx is removed.
+			// For errors and the not-a-cast sentinel the path must be unchanged.
+			var wantPath []string
+			if !tt.wantErr && !tt.wantNotCast {
+				wantPath = slices.Concat(tt.input[:tt.idx], tt.input[tt.idx+1:])
+			} else {
+				wantPath = tt.input
+			}
+			require.Equal(t, wantPath, resolver.pathToFind)
 		})
 	}
 }
