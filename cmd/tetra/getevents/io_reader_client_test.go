@@ -42,3 +42,17 @@ func Test_ioReaderClient_GetEventsSkipsInvalidJSON(t *testing.T) {
 	_, err = getEventsClient.Recv()
 	require.ErrorIs(t, err, io.EOF)
 }
+
+func Test_ioReaderClient_GetEventsLargeJSONLine(t *testing.T) {
+	largeBinary := strings.Repeat("a", 70*1024)
+	client := newIOReaderClient(strings.NewReader("{\"process_exec\":{\"process\":{\"binary\":\""+largeBinary+"\"}}}\n"), false)
+	getEventsClient, err := client.GetEvents(context.Background(), &tetragon.GetEventsRequest{})
+	require.NoError(t, err)
+
+	res, err := getEventsClient.Recv()
+	require.NoError(t, err)
+	require.Equal(t, largeBinary, res.GetProcessExec().GetProcess().GetBinary())
+
+	_, err = getEventsClient.Recv()
+	require.ErrorIs(t, err, io.EOF)
+}

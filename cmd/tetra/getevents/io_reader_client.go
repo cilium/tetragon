@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/filters"
@@ -31,8 +32,12 @@ type ioReaderClient struct {
 }
 
 func newIOReaderClient(reader io.Reader, debug bool) *ioReaderClient {
+	scanner := bufio.NewScanner(reader)
+	maxEventSize := max(bufio.MaxScanTokenSize, common.MaxRecvMsgSize)
+	scanner.Buffer(make([]byte, bufio.MaxScanTokenSize), maxEventSize)
+
 	return &ioReaderClient{
-		scanner:      bufio.NewScanner(reader),
+		scanner:      scanner,
 		unmarshaller: protojson.UnmarshalOptions{DiscardUnknown: true},
 		debug:        debug,
 	}
