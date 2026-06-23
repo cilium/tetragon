@@ -358,6 +358,38 @@ func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
+func attachMultiUpobeLink(load *Program, prog *ebpf.Program, path string,
+	attach *MultiUprobeAttachSymbolsCookies, bpfDir string,
+	idx int, extra ...string) (link.Link, error) {
+
+	exec, err := link.OpenExecutable(path)
+	if err != nil {
+		return nil, err
+	}
+	opts := &link.UprobeMultiOptions{
+		Addresses:     attach.Addresses,
+		Offsets:       attach.Offsets,
+		RefCtrOffsets: attach.RefCtrOffsets,
+		Cookies:       attach.Cookies,
+	}
+	var lnk link.Link
+	if load.RetProbe {
+		lnk, err = exec.UretprobeMulti(attach.Symbols, prog, opts)
+	} else {
+		lnk, err = exec.UprobeMulti(attach.Symbols, prog, opts)
+	}
+	if err != nil {
+		return nil, err
+	}
+	pinExtra := append(extra, strconv.Itoa(idx))
+	err = LinkPin(lnk, bpfDir, load, pinExtra...)
+	if err != nil {
+		lnk.Close()
+		return nil, err
+	}
+	return lnk, nil
+}
+
 func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	bpfDir string, extra ...string) (unloader.Unloader, error) {
 
@@ -368,32 +400,11 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 
 	linkFn := func() ([]link.Link, error) {
 		var links []link.Link
-		var lnk link.Link
 
 		idx := 0
 		for path, attach := range data.Attach {
-			exec, err := link.OpenExecutable(path)
+			lnk, err := attachMultiUpobeLink(load, prog, path, attach, bpfDir, idx, extra...)
 			if err != nil {
-				return nil, err
-			}
-			opts := &link.UprobeMultiOptions{
-				Addresses:     attach.Addresses,
-				Offsets:       attach.Offsets,
-				RefCtrOffsets: attach.RefCtrOffsets,
-				Cookies:       attach.Cookies,
-			}
-			if load.RetProbe {
-				lnk, err = exec.UretprobeMulti(attach.Symbols, prog, opts)
-			} else {
-				lnk, err = exec.UprobeMulti(attach.Symbols, prog, opts)
-			}
-			if err != nil {
-				return nil, err
-			}
-			pinExtra := append(extra, strconv.Itoa(idx))
-			err = LinkPin(lnk, bpfDir, load, pinExtra...)
-			if err != nil {
-				lnk.Close()
 				return nil, err
 			}
 			links = append(links, lnk)
