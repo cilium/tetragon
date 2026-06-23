@@ -15,6 +15,8 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/asm"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	conf "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/generictypes"
@@ -142,6 +144,44 @@ func hasCurrentTaskSource(arg *v1alpha1.KProbeArg) bool {
 
 func hasPtRegsSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "pt_regs"
+}
+
+func resolvePtRegsArg(resolve string) (api.ConfigRegArg, [api.MaxBTFArgDepth]api.ConfigBTFArg, bool, error) {
+	var (
+		regArg api.ConfigRegArg
+		btfArg [api.MaxBTFArgDepth]api.ConfigBTFArg
+	)
+
+	path, err := formatBTFPath(resolve)
+	if err != nil {
+		return regArg, btfArg, false, err
+	}
+	if len(path) == 0 {
+		return regArg, btfArg, false, errors.New("empty register argument resolve path")
+	}
+
+	var ok bool
+	regArg.Offset, regArg.Size, ok = asm.RegOffsetSize(path[0])
+	if !ok {
+		return regArg, btfArg, false, fmt.Errorf("failed to retrieve register argument %q", resolve)
+	}
+
+	path = path[1:]
+	if len(path) == 0 {
+		return regArg, btfArg, false, nil
+	}
+	if !bpf.HasProgramLargeSize() {
+		return regArg, btfArg, false, errors.New("resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
+	}
+	if len(path) > api.MaxBTFArgDepth {
+		return regArg, btfArg, false, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", resolve, api.MaxBTFArgDepth)
+	}
+
+	_, err = btf.ResolveBTFPath(&btfArg, &ebtf.Void{}, path, nil)
+	if err != nil {
+		return regArg, btfArg, false, fmt.Errorf("failed to resolve pt_regs path %q: %w", resolve, err)
+	}
+	return regArg, btfArg, true, nil
 }
 
 func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {

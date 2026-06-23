@@ -22,8 +22,6 @@ import (
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 
-	"github.com/cilium/tetragon/pkg/asm"
-
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -627,11 +625,13 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		if data {
 			// Data specific config
 			if hasPtRegsSource(a) {
-				var ok bool
-
-				regArg[i].Offset, regArg[i].Size, ok = asm.RegOffsetSize(a.Resolve)
-				if !ok {
-					return fmt.Errorf("error: Failed to retrieve register argument '%s'", a.Resolve)
+				reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve)
+				if err != nil {
+					return fmt.Errorf("error resolving pt_regs argument %q: %w", a.Resolve, err)
+				}
+				regArg[i] = reg
+				if hasBTFArg {
+					allBTFArgs[i] = btfArg
 				}
 
 				// If we are getting string type from pt_regs register we can safely assume
