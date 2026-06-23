@@ -43,10 +43,11 @@ func overrideMethodParse(s string) OverrideMethod {
 }
 
 type specOptions struct {
-	DisableKprobeMulti bool
-	DisableUprobeMulti bool
-	OverrideMethod     OverrideMethod
-	policyMode         policyconf.Mode
+	DisableKprobeMulti   bool
+	DisableUprobeMulti   bool
+	SleepablePreloadSize int
+	OverrideMethod       OverrideMethod
+	policyMode           policyconf.Mode
 }
 
 type opt struct {
@@ -91,6 +92,19 @@ var opts = map[string]opt{
 				return err
 			}
 			options.policyMode = mode
+			return nil
+		},
+	},
+	option.KeySleepablePreloadSize: {
+		set: func(str string, options *specOptions) (err error) {
+			size, err := strconv.Atoi(str)
+			if err != nil {
+				return err
+			}
+			if size <= 0 {
+				return fmt.Errorf("sleepable-preload-size must be positive, got %d", size)
+			}
+			options.SleepablePreloadSize = size
 			return nil
 		},
 	},

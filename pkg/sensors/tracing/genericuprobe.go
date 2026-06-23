@@ -418,9 +418,10 @@ type addUprobeIn struct {
 }
 
 type uprobeHas struct {
-	sleepableOffload bool
-	sleepablePreload bool
-	substring        bool
+	sleepableOffload     bool
+	sleepablePreload     bool
+	substring            bool
+	sleepablePreloadSize int
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -635,6 +636,9 @@ func createGenericUprobeSensor(
 	// - it's not disabled by spec option
 	// - there's support detected
 	useMulti := !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti()
+
+	// user sleepable_preload override
+	has.sleepablePreloadSize = polInfo.specOpts.SleepablePreloadSize
 
 	if useMulti {
 		// if we are using multi-uprobe, CEL expressions are shared across all uprobes
@@ -1055,6 +1059,19 @@ func multiUprobePinPath(sensorPath string) string {
 	return sensors.PathJoin(sensorPath, "multi_uprobe")
 }
 
+func getSleepablePreloadMap(userSize int, load *program.Program) *program.Map {
+	var m *program.Map
+
+	if userSize != 0 {
+		m = program.MapBuilderProgram("sleepable_preload", load)
+		m.SetMaxEntries(userSize)
+	} else {
+		m = program.MapShared("sleepable_preload", load)
+		m.SetMaxEntries(sleepablePreloadMaxEntries)
+	}
+	return m
+}
+
 func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []idtable.EntryID, has uprobeHas) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
@@ -1115,8 +1132,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	}
 
 	if has.sleepablePreload {
-		sleepablePreloadMap := program.MapBuilderProgram("sleepable_preload", load)
-		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
+		sleepablePreloadMap := getSleepablePreloadMap(has.sleepablePreloadSize, load)
 		maps = append(maps, sleepablePreloadMap)
 	}
 
@@ -1226,8 +1242,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	}
 
 	if has.sleepablePreload {
-		sleepablePreloadMap := program.MapBuilderProgram("sleepable_preload", load)
-		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
+		sleepablePreloadMap := getSleepablePreloadMap(has.sleepablePreloadSize, load)
 		maps = append(maps, sleepablePreloadMap)
 	}
 

@@ -90,6 +90,8 @@ const (
 	KeyDisableKprobeMulti = "disable-kprobe-multi"
 	KeyDisableUprobeMulti = "disable-uprobe-multi"
 
+	KeySleepablePreloadSize = "sleepable-preload-size"
+
 	KeyUsePerfRingBuffer = "use-perf-ring-buffer"
 	KeyRBSize            = "rb-size"
 	KeyRBSizeTotal       = "rb-size-total"
