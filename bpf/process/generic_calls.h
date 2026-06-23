@@ -1116,10 +1116,9 @@ do_actions(void *ctx, struct selector_action *actions)
 FUNC_INLINE long
 generic_actions(void *ctx, struct bpf_map_def *calls)
 {
-	struct selector_arg_filters *arg;
 	struct selector_action *actions;
 	struct msg_generic_kprobe *e;
-	int actoff, pass, zero = 0;
+	int actoff, zero = 0;
 	bool postit;
 	__u8 *f;
 
@@ -1127,20 +1126,14 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 	if (!e)
 		return 0;
 
-	pass = e->pass;
-	if (pass <= 1)
+	if (e->pass <= 1)
 		return 0;
 
 	f = map_lookup_elem(&filter_map, &e->idx);
 	if (!f)
 		return 0;
 
-	asm volatile("%[pass] &= 0x7ff;\n"
-		     : [pass] "+r"(pass)
-		     :);
-	arg = (struct selector_arg_filters *)&f[pass];
-
-	actoff = pass + arg->arglen;
+	actoff = e->pass;
 	asm volatile("%[actoff] &= 0x7ff;\n"
 		     : [actoff] "+r"(actoff)
 		     :);

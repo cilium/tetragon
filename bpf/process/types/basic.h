@@ -2390,7 +2390,7 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		if (!filter_arg(e, filter, args, arg))
 			return 0;
 	}
-	return seloff;
+	return seloff + filters->arglen;
 }
 
 FUNC_INLINE int filter_args_reject(u64 id)
