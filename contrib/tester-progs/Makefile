@@ -37,6 +37,7 @@ PROGS = sigkill-tester \
 	usdt-resolve \
 	uretprobe \
 	uprobe-resolve \
+	uprobe-stack \
 	regs-override \
 	usdt-args \
 	uprobe-null \
@@ -145,6 +146,9 @@ resolve-nested-anon-struct: resolve-nested-anon-struct.c
 
 regs-override: regs-override.c
 	$(GCC) -Wall -fcf-protection=none $< -o $@
+
+uprobe-stack: uprobe-stack.c
+	$(GCC) -Wall -O2 -fcf-protection=none $< -o $@
 
 uretprobe: uretprobe.c
 	$(GCC) -Wall $< -O2 -o $@

@@ -820,6 +820,87 @@ func TestUprobePtRegsDataNotMatch(t *testing.T) {
 	testUprobePtRegsMatch(t, 10, true)
 }
 
+func TestUprobeResolveFromStackPtr(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
+	}
+
+	if runtime.GOARCH != "amd64" {
+		t.Skip("skipping, x86_64 only test")
+	}
+
+	testBinary := testutils.RepoRootPath("contrib/tester-progs/uprobe-stack")
+
+	expectedValue := uint64(1337)
+
+	// Put uprobe in stack_slot_value function at:
+	//
+	//      <+0>:  sub    rsp,0x28
+	//      <+4>:  pxor   xmm0,xmm0
+	//      <+8>:  movaps XMMWORD PTR [rsp],xmm0
+	//      <+12>: mov    QWORD PTR [rsp+0x10],0x0
+	//      <+21>: mov    rax,QWORD PTR [rip+0x2df4]        # stack_source
+	//      <+28>: mov    QWORD PTR [rsp+0x10],rax
+	//      <+33>: call   stack_slot_barrier
+	// -->  <+38>: mov    rax,QWORD PTR [rsp+0x10]
+	//      <+43>: add    rsp,0x28
+	//      <+47>: ret
+	//
+	// Make sure we resolve the expected value from the stack slot
+	// at [rsp+0x10] via the current stack pointer.
+	symbol := "stack_slot_value+38"
+
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + testBinary + `"
+    symbols:
+    - "` + symbol + `"
+    data:
+    - index: 0
+      type: "uint64"
+      source: "pt_regs"
+      resolve: "((char*)rsp)[16]"
+`
+
+	createCrdFile(t, pathHook)
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testBinary))).
+		WithSymbol(sm.Full(symbol)).
+		WithData(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSizeArg(expectedValue),
+			))
+
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(testBinary, strconv.Itoa(int(expectedValue)))
+	cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+	require.NoError(t, cmdErr)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
 func testUprobePtRegsPreload(t *testing.T, multi bool) {
 	if !bpf.HasKfunc("bpf_copy_from_user_str") {
 		t.Skip("skipping")
