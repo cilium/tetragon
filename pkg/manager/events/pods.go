@@ -22,3 +22,9 @@ type PodEventSource interface {
 	OnPodUpdate(handler func(oldPod, newPod *corev1.Pod)) error
 	OnPodDelete(handler func(pod *corev1.Pod)) error
 }
+
+// PodLister exposes the pod informer's current cache for consumers repairing
+// missed events; separate from PodEventSource so event-only fakes stay minimal.
+type PodLister interface {
+	ListPods() []*corev1.Pod
+}
