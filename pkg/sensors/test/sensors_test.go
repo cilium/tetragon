@@ -756,6 +756,78 @@ func TestCleanup(t *testing.T) {
 	})
 }
 
+func TestMapShared(t *testing.T) {
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.Verbosity = 5
+
+	p1 := program.Builder(
+		"bpf_map_test_p1.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p1",
+		"kprobe",
+	)
+	p2 := program.Builder(
+		"bpf_map_test_p2.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p2",
+		"kprobe",
+	)
+
+	verifyExists := func(files ...string) {
+		for _, f := range files {
+			_, err := os.Stat(filepath.Join(bpf.MapPrefixPath(), f))
+			t.Logf("Exists checking path: '%s'\n", f)
+			require.NoError(t, err)
+		}
+	}
+	verifyRemoved := func(files ...string) {
+		for _, f := range files {
+			_, err := os.Stat(filepath.Join(bpf.MapPrefixPath(), f))
+			t.Logf("Removed checking path: '%s'\n", f)
+			require.Error(t, err)
+		}
+	}
+
+	// Each sensor has its own MapShared object, both naming the same map.
+	m1a := program.MapShared("m1", p1)
+	m1b := program.MapShared("m1", p2)
+
+	s1 := &sensors.Sensor{
+		Name:   "sensor1",
+		Progs:  []*program.Program{p1},
+		Maps:   []*program.Map{m1a},
+		Policy: "policy",
+	}
+	s2 := &sensors.Sensor{
+		Name:   "sensor2",
+		Progs:  []*program.Program{p2},
+		Maps:   []*program.Map{m1b},
+		Policy: "policy",
+	}
+
+	// s1 loads first — map is created and pinned, global ref = 1.
+	err := s1.Load(bpf.MapPrefixPath())
+	require.NoError(t, err)
+	verifyExists("m1")
+
+	// s2 loads — map is opened (not recreated), global ref = 2.
+	err = s2.Load(bpf.MapPrefixPath())
+	require.NoError(t, err)
+	verifyExists("m1")
+
+	// s1 unloads — global ref drops to 1, pin must survive.
+	err = s1.Unload(true)
+	require.NoError(t, err)
+	verifyExists("m1")
+
+	// s2 unloads — global ref drops to 0, pin is removed.
+	err = s2.Unload(true)
+	require.NoError(t, err)
+	verifyRemoved("m1")
+}
+
 func TestNamespace(t *testing.T) {
 	p1 := program.Builder(
 		"bpf_map_test_p1.o",
