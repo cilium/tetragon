@@ -693,6 +693,46 @@ spec:
                               type: object
                             maxItems: 1
                             type: array
+                          matchCallers:
+                            description: A list of caller filters. MatchCallers are
+                              ANDed.
+                            items:
+                              properties:
+                                depth:
+                                  description: |-
+                                    Depth is the distance from the probed function to the caller.
+                                    Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+                                    Depth of "any" means any of the last 15 callers in the stack.
+                                  pattern: ^(any|[1-9][0-9]*)$
+                                  type: string
+                                endRange:
+                                  description: StartRange and EndRange specify a range
+                                    of caller address to match. Both should be specified
+                                    together.
+                                  format: int64
+                                  type: integer
+                                path:
+                                  description: |-
+                                    Path to the binary of the caller function.
+                                    If not specified, the symbol will be looked up in the binary located at the path of the probe.
+                                    This is used if the caller function is in a different binary from the probed function, e.g.,
+                                    when probing a function in a shared library.
+                                  type: string
+                                startRange:
+                                  description: |-
+                                    StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+                                    You can get those values from the binary's symbol table.
+                                  format: int64
+                                  type: integer
+                                symbol:
+                                  description: |-
+                                    Symbol of the caller function in the binary specified by Path.
+                                    If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+                                  type: string
+                              required:
+                              - depth
+                              type: object
+                            type: array
                           matchCapabilities:
                             description: A list of capabilities and IDs
                             items:
@@ -1943,6 +1983,46 @@ spec:
                               type: object
                             maxItems: 1
                             type: array
+                          matchCallers:
+                            description: A list of caller filters. MatchCallers are
+                              ANDed.
+                            items:
+                              properties:
+                                depth:
+                                  description: |-
+                                    Depth is the distance from the probed function to the caller.
+                                    Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+                                    Depth of "any" means any of the last 15 callers in the stack.
+                                  pattern: ^(any|[1-9][0-9]*)$
+                                  type: string
+                                endRange:
+                                  description: StartRange and EndRange specify a range
+                                    of caller address to match. Both should be specified
+                                    together.
+                                  format: int64
+                                  type: integer
+                                path:
+                                  description: |-
+                                    Path to the binary of the caller function.
+                                    If not specified, the symbol will be looked up in the binary located at the path of the probe.
+                                    This is used if the caller function is in a different binary from the probed function, e.g.,
+                                    when probing a function in a shared library.
+                                  type: string
+                                startRange:
+                                  description: |-
+                                    StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+                                    You can get those values from the binary's symbol table.
+                                  format: int64
+                                  type: integer
+                                symbol:
+                                  description: |-
+                                    Symbol of the caller function in the binary specified by Path.
+                                    If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+                                  type: string
+                              required:
+                              - depth
+                              type: object
+                            type: array
                           matchCapabilities:
                             description: A list of capabilities and IDs
                             items:
@@ -2915,6 +2995,46 @@ spec:
                               type: object
                             maxItems: 1
                             type: array
+                          matchCallers:
+                            description: A list of caller filters. MatchCallers are
+                              ANDed.
+                            items:
+                              properties:
+                                depth:
+                                  description: |-
+                                    Depth is the distance from the probed function to the caller.
+                                    Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+                                    Depth of "any" means any of the last 15 callers in the stack.
+                                  pattern: ^(any|[1-9][0-9]*)$
+                                  type: string
+                                endRange:
+                                  description: StartRange and EndRange specify a range
+                                    of caller address to match. Both should be specified
+                                    together.
+                                  format: int64
+                                  type: integer
+                                path:
+                                  description: |-
+                                    Path to the binary of the caller function.
+                                    If not specified, the symbol will be looked up in the binary located at the path of the probe.
+                                    This is used if the caller function is in a different binary from the probed function, e.g.,
+                                    when probing a function in a shared library.
+                                  type: string
+                                startRange:
+                                  description: |-
+                                    StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+                                    You can get those values from the binary's symbol table.
+                                  format: int64
+                                  type: integer
+                                symbol:
+                                  description: |-
+                                    Symbol of the caller function in the binary specified by Path.
+                                    If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+                                  type: string
+                              required:
+                              - depth
+                              type: object
+                            type: array
                           matchCapabilities:
                             description: A list of capabilities and IDs
                             items:
@@ -3782,6 +3902,44 @@ spec:
                         - values
                         type: object
                       maxItems: 1
+                      type: array
+                    matchCallers:
+                      description: A list of caller filters. MatchCallers are ANDed.
+                      items:
+                        properties:
+                          depth:
+                            description: |-
+                              Depth is the distance from the probed function to the caller.
+                              Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+                              Depth of "any" means any of the last 15 callers in the stack.
+                            pattern: ^(any|[1-9][0-9]*)$
+                            type: string
+                          endRange:
+                            description: StartRange and EndRange specify a range of
+                              caller address to match. Both should be specified together.
+                            format: int64
+                            type: integer
+                          path:
+                            description: |-
+                              Path to the binary of the caller function.
+                              If not specified, the symbol will be looked up in the binary located at the path of the probe.
+                              This is used if the caller function is in a different binary from the probed function, e.g.,
+                              when probing a function in a shared library.
+                            type: string
+                          startRange:
+                            description: |-
+                              StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+                              You can get those values from the binary's symbol table.
+                            format: int64
+                            type: integer
+                          symbol:
+                            description: |-
+                              Symbol of the caller function in the binary specified by Path.
+                              If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+                            type: string
+                        required:
+                        - depth
+                        type: object
                       type: array
                     matchCapabilities:
                       description: A list of capabilities and IDs
@@ -4700,6 +4858,46 @@ spec:
                               - values
                               type: object
                             maxItems: 1
+                            type: array
+                          matchCallers:
+                            description: A list of caller filters. MatchCallers are
+                              ANDed.
+                            items:
+                              properties:
+                                depth:
+                                  description: |-
+                                    Depth is the distance from the probed function to the caller.
+                                    Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+                                    Depth of "any" means any of the last 15 callers in the stack.
+                                  pattern: ^(any|[1-9][0-9]*)$
+                                  type: string
+                                endRange:
+                                  description: StartRange and EndRange specify a range
+                                    of caller address to match. Both should be specified
+                                    together.
+                                  format: int64
+                                  type: integer
+                                path:
+                                  description: |-
+                                    Path to the binary of the caller function.
+                                    If not specified, the symbol will be looked up in the binary located at the path of the probe.
+                                    This is used if the caller function is in a different binary from the probed function, e.g.,
+                                    when probing a function in a shared library.
+                                  type: string
+                                startRange:
+                                  description: |-
+                                    StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+                                    You can get those values from the binary's symbol table.
+                                  format: int64
+                                  type: integer
+                                symbol:
+                                  description: |-
+                                    Symbol of the caller function in the binary specified by Path.
+                                    If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+                                  type: string
+                              required:
+                              - depth
+                              type: object
                             type: array
                           matchCapabilities:
                             description: A list of capabilities and IDs
@@ -5896,6 +6094,46 @@ spec:
                               type: object
                             maxItems: 1
                             type: array
+                          matchCallers:
+                            description: A list of caller filters. MatchCallers are
+                              ANDed.
+                            items:
+                              properties:
+                                depth:
+                                  description: |-
+                                    Depth is the distance from the probed function to the caller.
+                                    Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+                                    Depth of "any" means any of the last 15 callers in the stack.
+                                  pattern: ^(any|[1-9][0-9]*)$
+                                  type: string
+                                endRange:
+                                  description: StartRange and EndRange specify a range
+                                    of caller address to match. Both should be specified
+                                    together.
+                                  format: int64
+                                  type: integer
+                                path:
+                                  description: |-
+                                    Path to the binary of the caller function.
+                                    If not specified, the symbol will be looked up in the binary located at the path of the probe.
+                                    This is used if the caller function is in a different binary from the probed function, e.g.,
+                                    when probing a function in a shared library.
+                                  type: string
+                                startRange:
+                                  description: |-
+                                    StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+                                    You can get those values from the binary's symbol table.
+                                  format: int64
+                                  type: integer
+                                symbol:
+                                  description: |-
+                                    Symbol of the caller function in the binary specified by Path.
+                                    If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+                                  type: string
+                              required:
+                              - depth
+                              type: object
+                            type: array
                           matchCapabilities:
                             description: A list of capabilities and IDs
                             items:
@@ -6849,6 +7087,46 @@ spec:
                               - values
                               type: object
                             maxItems: 1
+                            type: array
+                          matchCallers:
+                            description: A list of caller filters. MatchCallers are
+                              ANDed.
+                            items:
+                              properties:
+                                depth:
+                                  description: |-
+                                    Depth is the distance from the probed function to the caller.
+                                    Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+                                    Depth of "any" means any of the last 15 callers in the stack.
+                                  pattern: ^(any|[1-9][0-9]*)$
+                                  type: string
+                                endRange:
+                                  description: StartRange and EndRange specify a range
+                                    of caller address to match. Both should be specified
+                                    together.
+                                  format: int64
+                                  type: integer
+                                path:
+                                  description: |-
+                                    Path to the binary of the caller function.
+                                    If not specified, the symbol will be looked up in the binary located at the path of the probe.
+                                    This is used if the caller function is in a different binary from the probed function, e.g.,
+                                    when probing a function in a shared library.
+                                  type: string
+                                startRange:
+                                  description: |-
+                                    StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+                                    You can get those values from the binary's symbol table.
+                                  format: int64
+                                  type: integer
+                                symbol:
+                                  description: |-
+                                    Symbol of the caller function in the binary specified by Path.
+                                    If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+                                  type: string
+                              required:
+                              - depth
+                              type: object
                             type: array
                           matchCapabilities:
                             description: A list of capabilities and IDs
