@@ -5,6 +5,11 @@
 
 package policytest
 
+import (
+	"slices"
+	"strings"
+)
+
 type RegisteredPolicyTests struct {
 	tests []*T
 }
@@ -26,6 +31,9 @@ func (rpt *RegisteredPolicyTests) GetByFunction(fn func(t *T) bool) []*T {
 			ret = append(ret, t)
 		}
 	}
+	slices.SortFunc(ret, func(a, b *T) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 	return ret
 }
 
