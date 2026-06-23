@@ -8,7 +8,6 @@ import (
 	"debug/elf"
 	"encoding/binary"
 	"io"
-	"os"
 )
 
 // Integer represents all possible integer types.
@@ -57,13 +56,8 @@ func parseNote(dat []byte) ([]byte, bool) {
 	}
 }
 
-func ParseBuildId(file *os.File) ([]byte, error) {
-	f, err := elf.NewFile(file)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	for _, ph := range f.Progs {
+func (se *SafeELFFile) ParseBuildId() ([]byte, error) {
+	for _, ph := range se.Progs {
 		if ph.Type != elf.PT_NOTE {
 			continue
 		}
