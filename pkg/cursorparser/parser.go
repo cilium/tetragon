@@ -71,6 +71,21 @@ func (p *Parser) ReadUntil(ch byte) (string, bool) {
 	return str, true
 }
 
+// ReadUntilAny returns the text from the current cursor up to the first byte
+// that appears in stopChars, leaving the cursor at that byte.
+// If no stop byte is found the rest of the string is returned and the cursor
+// advances to the end.
+func (p *Parser) ReadUntilAny(stopChars string) string {
+	start := p.pos
+	for p.pos < len(p.str) {
+		if strings.IndexByte(stopChars, p.str[p.pos]) >= 0 {
+			break
+		}
+		p.pos++
+	}
+	return p.str[start:p.pos]
+}
+
 // ReadRest returns the remaining expression text and moves the cursor
 // to the end.
 func (p *Parser) ReadRest() string {
@@ -83,4 +98,14 @@ func (p *Parser) ReadRest() string {
 func (p *Parser) Done() bool {
 	p.skipSpace()
 	return p.pos == len(p.str)
+}
+
+// Pos returns the current cursor offset within the (trimmed) input string.
+func (p *Parser) Pos() int {
+	return p.pos
+}
+
+// Input returns the trimmed string this parser was created with.
+func (p *Parser) Input() string {
+	return p.str
 }
