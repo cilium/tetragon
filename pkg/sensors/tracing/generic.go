@@ -8,6 +8,8 @@ package tracing
 import (
 	"errors"
 	"fmt"
+	"slices"
+	"strconv"
 	"strings"
 
 	ebtf "github.com/cilium/ebpf/btf"
@@ -22,57 +24,199 @@ import (
 	"github.com/cilium/tetragon/pkg/selectors"
 )
 
-// Takes arg.Resolve as input and return the path in []string
-// Input   : my.super.field[123].my.sub.field
-// Output  : []string{"my", "super", "field", "[123]", "my", "sub", "field"}
+// formatBTFPath parses resolvePath into a token slice for the BTF resolver.
+//
+// A bare cast may only open the path, where its operand is the whole trailing
+// chain. Anywhere else it must use the grouped form ((type*)target), which
+// carries its own operand bounds.
+//
+// Example:
+//
+//	input:  "my.super.((struct my_struct *)((char*)field)[123]).my.sub.field"
+//	output: []string{"my", "super", "field", "(char*)", "[123]", "(struct my_struct *)", "my", "sub", "field"}
 func formatBTFPath(resolvePath string) ([]string, error) {
-	var path []string
-	var buffer strings.Builder
-	inBracket := false
-	invalidFormat := false
+	var pathToFind []string
+	var pendingCast string // deferred cast token from a leading bare or paren-target cast
 
-	for i, r := range resolvePath {
-		switch r {
-		case '.':
-			if inBracket || i > 0 && resolvePath[i-1] == '.' {
-				invalidFormat = true
-				break
-			}
-			if buffer.Len() > 0 {
-				path = append(path, buffer.String())
-				buffer.Reset()
-			}
+	for i, step := range strings.Split(resolvePath, ".") {
+		if step == "" {
+			return nil, fmt.Errorf("invalid resolve path %q: empty segment", resolvePath)
+		}
+		if i > 0 && step[0] == '[' {
+			return nil, fmt.Errorf("invalid resolve path %q: dot before '['", resolvePath)
+		}
+
+		var (
+			tokens     []string
+			newPending string
+			err        error
+		)
+		switch step[0] {
+		case '(':
+			tokens, newPending, err = parseCastSegment(step)
 		case '[':
-			if inBracket || i > 0 && resolvePath[i-1] == '.' {
-				invalidFormat = true
-				break
-			}
-			if buffer.Len() > 0 {
-				path = append(path, buffer.String())
-				buffer.Reset()
-			}
-			inBracket = true
-			buffer.WriteRune(r)
-		case ']':
-			if !inBracket || i > 0 && resolvePath[i-1] == '[' {
-				invalidFormat = true
-				break
-			}
-			buffer.WriteRune(r)
-			inBracket = false
-			path = append(path, buffer.String())
-			buffer.Reset()
+			tokens, err = parseArrays(step)
 		default:
-			buffer.WriteRune(r)
+			tokens, err = parseIdentAndArrays(step)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("invalid resolve path %q: %w", resolvePath, err)
+		}
+		pathToFind = append(pathToFind, tokens...)
+		if newPending != "" {
+			// Deferring a cast across a dot only reads unambiguously when the
+			// cast opens the path: there, its operand is everything that
+			// follows. Mid-path, the grouped form must say where it ends.
+			if i > 0 {
+				return nil, fmt.Errorf("invalid resolve path %q: a cast that does not open the path must be grouped, e.g. ((type*)target)", resolvePath)
+			}
+			pendingCast = newPending
 		}
 	}
-	if invalidFormat || inBracket {
-		return []string{}, fmt.Errorf("invalid format for resolve path: %q", resolvePath)
+
+	if pendingCast != "" {
+		pathToFind = append(pathToFind, pendingCast)
 	}
-	if buffer.Len() > 0 {
-		path = append(path, buffer.String())
+	return pathToFind, nil
+}
+
+// matchingParenDepth returns the index of the ')' that closes the '(' at s[0].
+// Returns -1 if not found.
+func matchingParenDepth(s string) int {
+	depth := 0
+	for i, c := range s {
+		switch c {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
 	}
-	return path, nil
+	return -1
+}
+
+// parseArrays parses one or more "[N]" tokens from s, e.g. "[0][1]" → ["[0]", "[1]"].
+// N must be a decimal uint32.
+func parseArrays(s string) ([]string, error) {
+	var tokens []string
+	for len(s) > 0 {
+		if s[0] != '[' {
+			return nil, fmt.Errorf("unexpected character %q, expected '['", s[0])
+		}
+		inner, rest, found := strings.Cut(s[1:], "]")
+		if !found {
+			return nil, fmt.Errorf("unclosed bracket: %q", s)
+		}
+		if inner == "" {
+			return nil, errors.New("empty bracket")
+		}
+		if _, err := strconv.ParseUint(inner, 10, 32); err != nil {
+			return nil, fmt.Errorf("invalid bracket content %q: must be a decimal uint32", inner)
+		}
+		tokens = append(tokens, "["+inner+"]")
+		s = rest
+	}
+	return tokens, nil
+}
+
+// parseIdentAndArrays parses an identifier followed by optional "[N]" arrays,
+// e.g. "field[0][1]" → ["field", "[0]", "[1]"].
+func parseIdentAndArrays(s string) ([]string, error) {
+	ident, arraySuffix, hasArraySuffix := strings.Cut(s, "[")
+
+	if strings.ContainsAny(ident, "()[]]") {
+		return nil, fmt.Errorf("invalid identifier: %q", ident)
+	}
+
+	if !hasArraySuffix {
+		return []string{ident}, nil
+	}
+
+	// Re-prepend the '[' that Cut consumed before delegating to parseArrays.
+	arrays, err := parseArrays("[" + arraySuffix)
+	if err != nil {
+		return nil, err
+	}
+	return slices.Concat([]string{ident}, arrays), nil
+}
+
+func parseCastSegment(s string) (tokens []string, pendingCast string, err error) {
+	if s[0] != '(' {
+		tokens, err = parseIdentAndArrays(s)
+		return
+	}
+
+	var grouped []string
+	didStrip := false
+
+	// Peel grouped casts: ((T*)p)[n] → strip outer parens, accumulate trailing
+	// arrays innermost-first. Each level prepends its arrays before the outer ones.
+	for {
+		idx := strings.IndexAny(s[1:], "()")
+		if idx < 0 {
+			return nil, "", fmt.Errorf("unclosed cast: %q", s)
+		}
+		castEnd := idx + 1
+		if s[castEnd] != '(' {
+			break
+		}
+		outerEnd := matchingParenDepth(s)
+		if outerEnd < 0 {
+			return nil, "", errors.New("unclosed outer parenthesis")
+		}
+		var arrays []string
+		if arrays, err = parseArrays(s[outerEnd+1:]); err != nil {
+			return nil, "", err
+		}
+		grouped = append(arrays, grouped...)
+		s, didStrip = s[1:outerEnd], true
+	}
+
+	idx := strings.IndexAny(s[1:], "()")
+	castEnd := idx + 1
+	castType := strings.TrimSpace(s[1:castEnd])
+	if len(castType) == 0 {
+		return nil, "", fmt.Errorf("empty cast type: %q", s[:castEnd+1])
+	}
+	castToken := "(" + castType + ")"
+
+	rest := s[castEnd+1:]
+	if len(rest) == 0 {
+		return nil, "", errors.New("cast with no target: expected (type*)target or (type*)(target)")
+	}
+
+	inner, postSuffix := rest, ""
+	if rest[0] == '(' {
+		targetEnd := matchingParenDepth(rest)
+		if targetEnd < 0 {
+			return nil, "", errors.New("unclosed target parenthesis")
+		}
+		inner, postSuffix = rest[1:targetEnd], rest[targetEnd+1:]
+		if inner == "" {
+			return nil, "", errors.New("empty cast target")
+		}
+	}
+
+	var innerTokens []string
+	var innerPending string
+	if innerTokens, innerPending, err = parseCastSegment(inner); err != nil {
+		return nil, "", err
+	}
+	if innerPending != "" {
+		innerTokens = append(innerTokens, innerPending)
+	}
+
+	var postArrays []string
+	if postArrays, err = parseArrays(postSuffix); err != nil {
+		return nil, "", err
+	}
+	if didStrip {
+		return slices.Concat(innerTokens, postArrays, []string{castToken}, grouped), "", nil
+	}
+	return slices.Concat(innerTokens, postArrays), castToken, nil
 }
 
 // First argument is added to enforce the method to be called on a pointer type
