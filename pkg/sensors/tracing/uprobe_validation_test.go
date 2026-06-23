@@ -58,6 +58,56 @@ spec:
 		"resolvePathInContainer should default to false when omitted")
 }
 
+// TestUprobeValidationResolvePathInContainerRequiresPodSelector verifies that a
+// uprobe policy with resolvePathInContainer: true is rejected at load time when
+// the policy has no podSelector, and accepted when a podSelector is present.
+func TestUprobeValidationResolvePathInContainerRequiresPodSelector(t *testing.T) {
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+
+	// resolvePathInContainer without a podSelector must be rejected. The CRD (CEL)
+	// catches this at parse time, so assert on FromYAML directly.
+	noSelector := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + uprobe + `"
+    symbols:
+    - "test_1"
+    resolvePathInContainer: true
+`
+	_, err := tracingpolicy.FromYAML(noSelector)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "podSelector")
+
+	// With a podSelector, the policy must pass the podSelector gate. The rest
+	// of the pipeline may still fail in this environment (e.g. the tester
+	// binary is not built, or per-container ELF resolution is not yet wired
+	// up), but it must not be rejected for the missing-podSelector reason.
+	withSelector := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  podSelector:
+    matchLabels:
+      app: sshd
+  uprobes:
+  - path: "` + uprobe + `"
+    symbols:
+    - "test_1"
+    resolvePathInContainer: true
+`
+	err = checkCrd(t, withSelector)
+	if err != nil {
+		require.NotContains(t, err.Error(), "podSelector",
+			"a policy with a podSelector must not be rejected for the missing-podSelector reason")
+	}
+}
+
 func TestUprobeValidationMultiplePreloadArguments(t *testing.T) {
 
 	// Using multiple preload arguments
