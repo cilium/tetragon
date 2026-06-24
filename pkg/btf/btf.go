@@ -272,6 +272,7 @@ type btfResolver struct {
 	btfArgs     *[api.MaxBTFArgDepth]api.ConfigBTFArg
 	currentType btf.Type
 	pathToFound []string
+	spec        *btf.Spec
 }
 
 // ResolveBTFPath function recursively search in a btf structure in order to
@@ -292,11 +293,13 @@ func ResolveBTFPath(
 	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
 	currentType btf.Type,
 	pathToFound []string,
+	spec *btf.Spec,
 ) (*btf.Type, error) {
 	resolver := btfResolver{
 		btfArgs:     btfArgs,
 		currentType: currentType,
 		pathToFound: pathToFound,
+		spec:        spec,
 	}
 	return resolver.resolve(currentType, 0)
 }
