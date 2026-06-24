@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -74,6 +75,8 @@ type Sensor struct {
 	DestroyHook SensorHook
 	// DisablePolicyNotAllowed indicates whether the sensor cannot be disabled.
 	DisablePolicyNotAllowed bool
+	// Statuses contains per-hook status
+	Statuses []*tetragon.HookStatus
 }
 
 func (s *Sensor) AddPostUnloadHook(hook SensorHook) {
@@ -116,6 +119,11 @@ type SensorIface interface {
 	TotalMemlock() uint64
 	Overhead() ([]ProgOverhead, bool)
 	DisableNotAllowed() bool
+	SetStatus(policyStatus *tetragon.TracingPolicyStatus)
+}
+
+func (s *Sensor) SetStatus(policyStatus *tetragon.TracingPolicyStatus) {
+	policyStatus.HookStatuses = append(policyStatus.HookStatuses, s.Statuses...)
 }
 
 func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
