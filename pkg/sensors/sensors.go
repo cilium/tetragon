@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -76,6 +77,8 @@ type Sensor struct {
 	// If non-empty, this string is the reason why the sensor cannot be disabled.
 	// If empty, the sensor can be disabled.
 	DisableNotAllowedReason string
+	// Statuses contains per-hook status
+	Statuses []*tetragon.HookStatus
 }
 
 func (s *Sensor) AddPostUnloadHook(hook SensorHook) {
@@ -118,6 +121,11 @@ type SensorIface interface {
 	TotalMemlock() uint64
 	Overhead() ([]ProgOverhead, bool)
 	DisableNotAllowed() string
+	HookStatus() []*tetragon.HookStatus
+}
+
+func (s *Sensor) HookStatus() []*tetragon.HookStatus {
+	return s.Statuses
 }
 
 func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
