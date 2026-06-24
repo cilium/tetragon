@@ -634,7 +634,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		if data {
 			// Data specific config
 			if hasPtRegsSource(a) {
-				reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve)
+				reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve, userBTFSpec)
 				if err != nil {
 					return fmt.Errorf("error resolving pt_regs argument %q: %w", a.Resolve, err)
 				}
@@ -658,7 +658,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				if !bpf.HasProgramLargeSize() {
 					return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
 				}
-				lastBTFType, btfArg, err := resolveBTFArg("", a, false)
+				lastBTFType, btfArg, err := resolveBTFArg("", a, false, userBTFSpec)
 				if err != nil {
 					return fmt.Errorf("can't resolve current_task source: %s", a.Resolve)
 				}
