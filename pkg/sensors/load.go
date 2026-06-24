@@ -226,6 +226,12 @@ func (s *Sensor) Unload(unpin bool) error {
 func (s *Sensor) Destroy(unpin bool) error {
 	var errs error
 
+	// If a sensor fails to load, it will be destroyed immediately, in order to clean up its associated resources.
+	// If/when the sensor's policy is removed, this function will be called again when its collection is destroyed.
+	if s.Destroyed {
+		return nil
+	}
+
 	err := s.Unload(unpin)
 	if err != nil {
 		// do not return on error but just log since Unload can only error on
