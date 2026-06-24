@@ -7,6 +7,7 @@ package tracing
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -177,6 +178,81 @@ spec:
 	require.Equal(t, 11, cmd.ProcessState.ExitCode())
 
 	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUprobeResolveCast(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
+	}
+
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve")
+	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve.btf")
+
+	tt := []struct {
+		argTy     string
+		resolve   string
+		filterVal int
+		kpArgs    []*ec.KprobeArgumentChecker
+	}{
+		{"uint32", "((struct mysubstruct*)subvoid).v32", 1337, []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithUintArg(1337),
+		}},
+	}
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + uprobe + `"
+    btfPath: "` + uprobeBtf + `"
+    symbols:
+    - "func"
+    args:
+    - index: 1
+      btfType: "mystruct"
+      type: "` + tt[0].argTy + `"
+      resolve: "` + tt[0].resolve + `"
+`
+
+	createCrdFile(t, uprobeHook)
+
+	var checkers []ec.EventChecker
+	for i := range tt {
+		checkers = append(checkers, ec.NewProcessUprobeChecker("uprobe-resolve").
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Full(uprobe)).
+				WithArguments(
+					sm.Suffix(fmt.Sprintf("%q %d", tt[i].resolve, tt[i].filterVal)),
+				),
+			).WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(tt[i].kpArgs...)))
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	for i := range tt {
+		cmd := exec.Command(uprobe, tt[i].resolve, strconv.Itoa(tt[i].filterVal))
+		cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+		require.NoError(t, cmdErr)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
 }
 
