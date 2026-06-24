@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+	ebtf "github.com/cilium/ebpf/btf"
 	lru "github.com/hashicorp/golang-lru/v2"
 
 	"github.com/cilium/tetragon/pkg/celbpf"
@@ -615,6 +616,14 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
+	var userBTFSpec *ebtf.Spec
+	if spec.BTFPath != "" {
+		userBTFSpec, err = ebtf.LoadSpec(spec.BTFPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load user BTF spec %q: %w", spec.BTFPath, err)
+		}
+	}
+
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 	var preload bool
 
@@ -659,7 +668,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		} else {
 			// Args specific config
 			if a.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(a, spec.BTFPath)
+				lastBTFType, btfArg, err := resolveUserBTFArg(a, userBTFSpec)
 				if err != nil {
 					return err
 				}
