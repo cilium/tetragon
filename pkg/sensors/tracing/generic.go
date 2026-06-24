@@ -199,7 +199,7 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 }
 
 func resolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType ebtf.Type, path []string) (*ebtf.Type, error) {
-	return btf.ResolveBTFPath(btfArg, rootType, path, 0)
+	return btf.ResolveBTFPath(btfArg, rootType, path)
 }
 
 func findTypeFromBTFType(arg *v1alpha1.KProbeArg, btfType *ebtf.Type) int {
