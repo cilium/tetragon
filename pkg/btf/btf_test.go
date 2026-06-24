@@ -436,7 +436,7 @@ func buildResolveBTFConfig(t *testing.T, rootType btf.Type, pathStr string) [api
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 
 	path := buildPathFromString(t, rootType, pathStr)
-	_, err := ResolveBTFPath(&btfArgs, rootType, path)
+	_, err := ResolveBTFPath(&btfArgs, rootType, path, nil)
 	fatalOnError(t, err)
 
 	return btfArgs
@@ -451,7 +451,7 @@ func testPathIsAccessible(rootType btf.Type, strPath string) (*[api.MaxBTFArgDep
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 	path := strings.Split(strPath, ".")
 
-	lastBTFType, err := ResolveBTFPath(&btfArgs, ResolveNestedTypes(rootType), path)
+	lastBTFType, err := ResolveBTFPath(&btfArgs, ResolveNestedTypes(rootType), path, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -709,7 +709,7 @@ func TestResolveBTFPathZeroLengthArray(t *testing.T) {
 		t.Run(tt.path, func(t *testing.T) {
 			var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 
-			ty, err := ResolveBTFPath(&btfArgs, root, []string{"sa_data", tt.path})
+			ty, err := ResolveBTFPath(&btfArgs, root, []string{"sa_data", tt.path}, nil)
 			require.NoError(t, err)
 			require.NotNil(t, ty)
 
@@ -764,7 +764,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		}
 
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
-		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"})
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, nil)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, `attribute "y" not found in structure "inner"`)
 	})
@@ -801,7 +801,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 		// Two-element path: "x" is not the last child, so finding it in anon2 triggers
 		// ResolveBTFPath(int, path, 1) which returns a non-resolveError.
-		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"})
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, nil)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, `unexpected type : "x" has type "int"`)
 	})
@@ -843,7 +843,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		}
 
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
-		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"})
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, nil)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, `attribute "y" not found in structure "inner"`)
 	})
@@ -876,7 +876,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		}
 
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
-		ty, err := ResolveBTFPath(&btfArgs, outer, []string{"x"})
+		ty, err := ResolveBTFPath(&btfArgs, outer, []string{"x"}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, ty)
 	})
