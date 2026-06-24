@@ -768,7 +768,7 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 		if data {
 			// Data specific config
 			if hasPtRegsSource(a) {
-				reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve)
+				reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve, userBTFSpec)
 				if err != nil {
 					return fmt.Errorf("error resolving pt_regs argument %q: %w", a.Resolve, err)
 				}
@@ -792,7 +792,8 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 				if !bpf.HasProgramLargeSize() {
 					return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
 				}
-				lastBTFType, btfArg, err := resolveBTFArg("", a, false)
+				// Spec is nil because it's loaded later. We want kernel BTF, not userBTFSpec
+				lastBTFType, btfArg, err := resolveBTFArg("", a, false, nil)
 				if err != nil {
 					return fmt.Errorf("can't resolve current_task source: %s", a.Resolve)
 				}

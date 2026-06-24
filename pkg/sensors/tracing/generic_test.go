@@ -183,7 +183,7 @@ spec:
 	successHook := policy.TpSpec().KProbes[:3]
 	for _, hook := range successHook {
 		for _, arg := range hook.Args {
-			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false)
+			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false, nil)
 
 			if err != nil {
 				t.Fatal(hook.Call, err)
@@ -198,7 +198,7 @@ spec:
 
 	failHook := policy.TpSpec().KProbes[3]
 	for _, arg := range failHook.Args {
-		_, _, err := resolveBTFArg(failHook.Call, &arg, false)
+		_, _, err := resolveBTFArg(failHook.Call, &arg, false, nil)
 
 		require.ErrorContains(t, err, "The maximum depth allowed is", "The path %q must have len < %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
@@ -266,7 +266,7 @@ spec:
 			require.True(t, ok, "missing test case for %q", arg.Label)
 
 			t.Run(arg.Label, func(t *testing.T) {
-				lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false)
+				lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false, nil)
 				require.NoError(t, err, hook.Call)
 				require.NotNil(t, lastBTFType)
 
@@ -294,7 +294,7 @@ func TestResolveBTFArgWithBTFTypeModule(t *testing.T) {
 		Resolve:       "sun_family",
 	}
 
-	_, _, err := resolveBTFArg("security_socket_connect", &arg, false)
+	_, _, err := resolveBTFArg("security_socket_connect", &arg, false, nil)
 	require.ErrorContains(t, err, `failed to find BTF type "sockaddr_un" in module "tetragon_test_module_that_does_not_exist"`)
 }
 
