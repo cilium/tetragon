@@ -130,13 +130,20 @@ func TestReconcilerRegistryStaleUnregisterKeepsNewer(t *testing.T) {
 
 	reg.register("policyA", rOld, matchAllPods)
 	rOld.onContainerAdd("pod1/c1")
-	// Same-name re-registration wins over the old entry and detaches it.
+	// Same-name re-registration claims the routing slot but must NOT detach the
+	// stale reconciler inline (that would deadlock under the manager load lock);
+	// the stale reconciler is torn down by its own unregister.
 	reg.register("policyA", rNew, matchAllPods)
-	require.Empty(t, attOld.attachedKeys(), "overwritten registration must be detached")
+	require.Equal(t, []string{"pod1/c1"}, attOld.attachedKeys(),
+		"overwrite must not detach the stale reconciler inline")
+	require.ElementsMatch(t, []*containerUprobeReconciler{rNew},
+		reg.matchingReconcilers("any", nil), "new reconciler owns the routing slot")
 	rNew.onContainerAdd("pod1/c1")
 
-	// The old teardown arrives late: it must not remove the new registration.
+	// The stale reconciler's own (late) unregister detaches it without removing
+	// the newer registration.
 	reg.unregister("policyA", rOld)
+	require.Empty(t, attOld.attachedKeys(), "stale reconciler detached by its unregister")
 	require.ElementsMatch(t, []*containerUprobeReconciler{rNew},
 		reg.matchingReconcilers("any", nil))
 	require.Equal(t, []string{"pod1/c1"}, attNew.attachedKeys())

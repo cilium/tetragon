@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -92,6 +91,5 @@ func resolveBinaryUnderRoot(root, path string) (string, func(), error) {
 		}
 	}
 
-	attachPath := "/proc/self/fd/" + strconv.Itoa(fd)
-	return attachPath, func() { unix.Close(fd) }, nil
+	return procSelfFDPath(uintptr(fd)), func() { unix.Close(fd) }, nil
 }

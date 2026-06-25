@@ -140,7 +140,19 @@ func pclntabToGosymtab(f *elf.File) (*gosym.Table, error) {
 		return nil, fmt.Errorf("read %s: %w", secGopclntab, err)
 	}
 
-	if err := pclntabRejectPreGo126(pclntab); err != nil {
+	// Read multi-byte header fields with the byte order gosym will infer from
+	// the magic, so a container-crafted big-endian pclntab cannot make our
+	// guards read a different (small) value than gosym allocates.
+	bo, err := pclntabByteOrder(pclntab)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := pclntabRejectPreGo126(pclntab, bo); err != nil {
+		return nil, err
+	}
+
+	if err := pclntabRejectOversizedFunctab(pclntab, bo); err != nil {
 		return nil, err
 	}
 
@@ -157,10 +169,39 @@ func pclntabToGosymtab(f *elf.File) (*gosym.Table, error) {
 	return table, nil
 }
 
+// pclntabByteOrder detects the pclntab's byte order from its magic, mirroring
+// debug/gosym: the magic only decodes to a known value in the binary's native
+// byte order, so guards read header fields exactly as gosym will.
+func pclntabByteOrder(pclntab []byte) (binary.ByteOrder, error) {
+	if len(pclntab) < 4 {
+		return nil, errors.New("pclntab too short for magic")
+	}
+	le := binary.LittleEndian.Uint32(pclntab)
+	switch {
+	case isGoPclntabMagic(le):
+		return binary.LittleEndian, nil
+	case isGoPclntabMagic(binary.BigEndian.Uint32(pclntab)):
+		return binary.BigEndian, nil
+	default:
+		return nil, fmt.Errorf("unrecognized pclntab magic %#x", le)
+	}
+}
+
+// isGoPclntabMagic reports whether m is a known Go pclntab magic (Go 1.2, 1.16,
+// 1.18, 1.20+; see internal/abi and debug/gosym).
+func isGoPclntabMagic(m uint32) bool {
+	switch m {
+	case 0xfffffffb, 0xfffffffa, 0xfffffff0, 0xfffffff1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Rejects binaries compiled before Go 1.26 by checking whether the
 // pclntab header's textStart field is zero (zeroed in Go 1.26+, see
 // https://github.com/golang/go/commit/0e1bd8b5f17e337df0ffb57af03419b96c695fe4)
-func pclntabRejectPreGo126(pclntab []byte) error {
+func pclntabRejectPreGo126(pclntab []byte, bo binary.ByteOrder) error {
 	//  0       4     6   7   8       8+P     8+2P
 	// +-------+-----+---+---+-------+-------+-----------+
 	// | magic | pad |mLC|psz| nfunc | nfiles| textStart |
@@ -180,12 +221,36 @@ func pclntabRejectPreGo126(pclntab []byte) error {
 	}
 	var textStart uint64
 	if ptrSize == 8 {
-		textStart = binary.LittleEndian.Uint64(pclntab[off:])
+		textStart = bo.Uint64(pclntab[off:])
 	} else {
-		textStart = uint64(binary.LittleEndian.Uint32(pclntab[off:]))
+		textStart = uint64(bo.Uint32(pclntab[off:]))
 	}
 	if textStart != 0 {
 		return errors.New("pre-Go 1.26 binary (textStart != 0)")
+	}
+	return nil
+}
+
+// Rejects a pclntab whose function count cannot fit in the section: gosym does
+// make([]Func, nfunctab), so an inflated count is a fatal, uncatchable OOM.
+// The parsed ELF may be container-controlled (resolvePathInContainer); bound
+// the count to the bytes present (nfunctab*2+1 uint32 functab entries).
+func pclntabRejectOversizedFunctab(pclntab []byte, bo binary.ByteOrder) error {
+	ptrSize := int(pclntab[7]) // validated by pclntabRejectPreGo126
+	if len(pclntab) < 8+ptrSize {
+		return errors.New("pclntab header truncated")
+	}
+	// gosym reads nfunctab as uint32(uintptr) in the magic-derived byte order;
+	// mirror that exactly (width and endianness) so the bound matches.
+	var nfunctab uint64
+	if ptrSize == 8 {
+		nfunctab = uint64(uint32(bo.Uint64(pclntab[8:])))
+	} else {
+		nfunctab = uint64(bo.Uint32(pclntab[8:]))
+	}
+	const functabFieldSize = 4 // Go 1.18+ functab entries are uint32
+	if (nfunctab*2+1)*functabFieldSize > uint64(len(pclntab)) {
+		return fmt.Errorf("pclntab function count %d does not fit in %d-byte section", nfunctab, len(pclntab))
 	}
 	return nil
 }

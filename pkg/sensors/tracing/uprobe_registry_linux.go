@@ -57,19 +57,25 @@ func (reg *uprobeReconcilerRegistry) beginSnapshot() reconcilerSnapshot {
 	return out
 }
 
-// register associates a reconciler with a loaded policy. match must be non-nil.
-// The caller must unregister before re-registering a policy key; detach any
-// stale entry defensively so a violated invariant leaks a warning, not BPF
-// attachments.
+// register claims the routing slot for a loaded policy. match must be non-nil.
+// The caller normally unregisters before re-registering a key; a concurrent
+// delete+re-add of the same key can still race a stale entry in here.
+//
+// Do NOT detach the stale reconciler inline: register runs under the manager
+// load lock (postLoad), while detachAll re-enters the manager and takes the
+// stale reconciler's lock, which a concurrent onContainerAdd holds while
+// blocked on the load lock — an AB-BA deadlock. The stale reconciler is torn
+// down by its own policy's PreUnload hook (unregister), which runs off the load
+// lock and, seeing this newer registration, detaches it without disturbing the
+// slot. detachAll is idempotent, so a redundant teardown is harmless.
 func (reg *uprobeReconcilerRegistry) register(policy string, r *containerUprobeReconciler, match podMatcher) {
 	reg.mu.Lock()
 	old := reg.reconcilers[policy]
 	reg.reconcilers[policy] = &registeredReconciler{r: r, match: match}
 	reg.mu.Unlock()
 	if old != nil && old.r != r {
-		logger.GetLogger().Warn("uprobe reconciler registry: overwriting an active registration, detaching stale reconciler",
+		logger.GetLogger().Warn("uprobe reconciler registry: overwriting an active registration; stale reconciler will be detached by its own unregister",
 			"policy", policy)
-		old.r.detachAll()
 	}
 }
 

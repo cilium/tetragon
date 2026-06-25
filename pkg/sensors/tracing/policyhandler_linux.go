@@ -24,6 +24,7 @@ import (
 type policyInfo struct {
 	name          string
 	namespace     string
+	domain        string
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
 	policyConf    *program.Map
@@ -37,14 +38,20 @@ func newPolicyInfo(
 	policy tracingpolicy.TracingPolicy,
 	policyID policyfilter.PolicyID,
 ) (*policyInfo, error) {
-	return newPolicyInfoFromSpec(
+	pi, err := newPolicyInfoFromSpec(
 		policy.TpNamespace(),
 		policy.TpName(),
 		policyID,
 		policy.TpSpec(),
 		eventhandler.GetCustomEventhandler(policy),
 	)
-
+	if err != nil {
+		return nil, err
+	}
+	// domain distinguishes policies that share a namespace/name across domains
+	// (e.g. k8s vs static); the resolvePathInContainer registry keys on it.
+	pi.domain = policy.TpDomain()
+	return pi, nil
 }
 
 func hasEnforcementActions(spec *v1alpha1.TracingPolicySpec) bool {
@@ -253,7 +260,7 @@ func (h policyHandler) PolicyHandler(
 		if err := preValidateUprobes(spec); err != nil {
 			return nil, fmt.Errorf("uprobe validation failed: %w", err)
 		}
-		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo)
+		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo, nil)
 	}
 	if len(spec.Usdts) > 0 {
 		return createGenericUsdtSensor(spec, "generic_usdt", polInfo)

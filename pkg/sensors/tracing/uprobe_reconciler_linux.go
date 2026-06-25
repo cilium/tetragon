@@ -295,8 +295,17 @@ func (r *containerUprobeReconciler) attachResolvedLocked(key string, resolved []
 			}
 			if err := r.att.Attach(attachKey, resolved[i:i+1]); err != nil {
 				r.releaseProbesLocked(identities)
-				logger.GetLogger().Warn("uprobe reconciler: failed to attach uprobe in container, skipping container",
-					logfields.Error, err, "key", key)
+				// A digest mismatch is an expected skip (a container running a
+				// different build), like a missing path; Debug so the resync
+				// does not spam Warn.
+				var mismatch *DigestMismatchError
+				if errors.As(err, &mismatch) {
+					logger.GetLogger().Debug("uprobe reconciler: container binary digest mismatch, skipping container",
+						logfields.Error, err, "key", key)
+				} else {
+					logger.GetLogger().Warn("uprobe reconciler: failed to attach uprobe in container, skipping container",
+						logfields.Error, err, "key", key)
+				}
 				return
 			}
 			probe = &attachedUprobe{key: attachKey}
