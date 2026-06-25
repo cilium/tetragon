@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -117,6 +118,15 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	col.sensors = append(col.sensors, sensors...)
 	col.state = LoadingState
 
+	notAllowedReasons := make([]string, 0, len(col.sensors))
+	for _, s := range col.sensors {
+		notAllowedReason := s.DisableNotAllowed()
+		if notAllowedReason != "" {
+			notAllowedReasons = append(notAllowedReasons, notAllowedReason)
+		}
+	}
+	col.disableNotAllowed = strings.Join(notAllowedReasons, "; ")
+
 	// unlock so that policyLister can access the collections (read-only) while we are loading.
 	h.collections.mu.Unlock()
 	err = h.load(&col)
@@ -160,6 +170,10 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 func (h *handler) doDisableTracingPolicy(col *collection) error {
 	if col.state != EnabledState {
 		return fmt.Errorf("tracing policy %s is not enabled", col.name)
+	}
+
+	if col.disableNotAllowed != "" {
+		return fmt.Errorf("tracing policy %s cannot be disabled: %s", col.name, col.disableNotAllowed)
 	}
 
 	col.state = UnloadingState
