@@ -103,6 +103,7 @@ type collection struct {
 
 	warnedOnModeRetrievalFailure  atomic.Bool
 	warnedOnStatsRetrievalFailure atomic.Bool
+	disableNotAllowed             bool
 }
 
 type selectorStatsMetadata struct {
