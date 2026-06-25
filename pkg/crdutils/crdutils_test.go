@@ -202,6 +202,9 @@ spec:
       type: "string"
     - index: 4
       type: "skb"
+    returnArg:
+      index: 0
+      type: "int"
   - call: "another_func"
     return: false
     syscall: false
@@ -289,6 +292,10 @@ var expectedData = GenericTracingPolicy{
 						Index: 4,
 						Type:  "skb",
 					},
+				},
+				ReturnArg: &v1alpha1.KProbeArg{
+					Index: 0,
+					Type:  "int",
 				},
 			},
 			{
