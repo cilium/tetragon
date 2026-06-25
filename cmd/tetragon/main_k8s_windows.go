@@ -11,3 +11,8 @@ import "github.com/cilium/tetragon/pkg/manager/events"
 // package is unavailable there. The shape matches the unix variant so the
 // caller in main_k8s.go can call it unconditionally.
 func EnableCgIDmap(_ events.PodEventSource) error { return nil }
+
+// EnableUprobeResolvePathInContainer is a no-op on Windows because the tracing
+// package's pod-event handlers are unavailable there. The shape matches the
+// unix variant so the caller in main_k8s.go can call it unconditionally.
+func EnableUprobeResolvePathInContainer(_ events.PodEventSource) error { return nil }

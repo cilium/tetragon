@@ -108,6 +108,65 @@ spec:
 	}
 }
 
+// TestUprobeValidationMultipleResolvePathInContainerAllowed verifies that a policy
+// with more than one resolvePathInContainer uprobe is accepted: they are attached
+// together as one per-container sensor, so the old >1 limit is lifted.
+func TestUprobeValidationMultipleResolvePathInContainerAllowed(t *testing.T) {
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  podSelector:
+    matchLabels:
+      app: sshd
+  uprobes:
+  - path: "` + uprobe + `"
+    symbols:
+    - "test_1"
+    resolvePathInContainer: true
+  - path: "` + uprobe + `"
+    symbols:
+    - "test_2"
+    resolvePathInContainer: true
+`
+	// May still fail later in this environment (e.g. tester binary not built),
+	// but must no longer be rejected for the >1-resolvePathInContainer reason.
+	if err := checkCrd(t, crd); err != nil {
+		require.NotContains(t, err.Error(), "at most one",
+			"multiple resolvePathInContainer uprobes must no longer be rejected")
+	}
+}
+
+// TestUprobeValidationResolvePathInContainerBTFPathAllowed verifies that a
+// resolvePathInContainer uprobe with btfPath is accepted (not rejected). btfPath is
+// resolved from the agent namespace (host), not in-container.
+func TestUprobeValidationResolvePathInContainerBTFPathAllowed(t *testing.T) {
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  podSelector:
+    matchLabels:
+      app: sshd
+  uprobes:
+  - path: "` + uprobe + `"
+    btfPath: "/usr/lib/btf/payload.btf"
+    symbols:
+    - "test_1"
+    resolvePathInContainer: true
+`
+	if err := checkCrd(t, crd); err != nil {
+		require.NotContains(t, err.Error(), "btfPath",
+			"resolvePathInContainer with btfPath must no longer be rejected")
+	}
+}
+
 func TestUprobeValidationMultiplePreloadArguments(t *testing.T) {
 
 	// Using multiple preload arguments
