@@ -183,6 +183,6 @@ pclntab-stripped: FORCE
 
 .PHONY: clean
 clean:
-	rm -f $(PROGS) $(LIBS)
+	rm -f $(PROGS) $(LIBS) *.btf
 
 FORCE:
