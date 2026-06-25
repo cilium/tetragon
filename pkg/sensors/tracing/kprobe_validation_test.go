@@ -333,8 +333,15 @@ spec:
     syscall: true
 `
 
-	err := checkCrd(t, crd)
-	require.Error(t, err)
+	if build.K8sEnabled() {
+		// We have k8s x-validation
+		_, err := tracingpolicy.FromYAML(crd)
+		require.Error(t, err)
+	} else {
+		// We fallback at generickprobe code validation
+		err := checkCrd(t, crd)
+		require.Error(t, err)
+	}
 }
 
 func TestKprobeLTOp(t *testing.T) {
