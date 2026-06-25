@@ -70,6 +70,12 @@ type containerUprobeReconciler struct {
 	attached map[string][]string        // container key -> policy-spec/inode identities
 	probes   map[string]*attachedUprobe // policy-spec/inode identity -> shared attachment
 	wanted   map[string]struct{}        // keys actively desired (add received, no delete yet)
+	// mismatched remembers identities whose binary failed digest verification.
+	// The policy's digest list is fixed and the identity pins the inode, so
+	// that verdict cannot change: without this the resync re-hashes the same
+	// binary every interval, forever. Bounded by the distinct binaries the
+	// policy's containers run.
+	mismatched map[string]struct{}
 	// closed is set by detachAll; further adds are no-ops so a late snapshot
 	// cannot attach and leak a container.
 	closed bool
@@ -95,6 +101,7 @@ func newContainerUprobeReconciler(procFS string, targets []string, att Attacher,
 		attached:      map[string][]string{},
 		probes:        map[string]*attachedUprobe{},
 		wanted:        map[string]struct{}{},
+		mismatched:    map[string]struct{}{},
 	}
 }
 
@@ -290,14 +297,28 @@ func (r *containerUprobeReconciler) attachResolvedLocked(key string, resolved []
 		identity := resolvedAttachmentID(resolved[i].targetIndex, resolved[i].fileID)
 		probe := r.probes[identity]
 		if probe == nil {
+			if _, bad := r.mismatched[identity]; bad {
+				r.releaseProbesLocked(identities)
+				return
+			}
 			attachKey := key
 			if len(resolved) > 1 {
 				attachKey = fmt.Sprintf("%s#%d", key, resolved[i].targetIndex)
 			}
 			if err := r.att.Attach(attachKey, resolved[i:i+1]); err != nil {
 				r.releaseProbesLocked(identities)
-				logger.GetLogger().Warn("uprobe reconciler: failed to attach uprobe in container, skipping container",
-					logfields.Error, err, "key", key)
+				// A digest mismatch is an expected skip (a container running a
+				// different build), like a missing path; Debug so the resync
+				// does not spam Warn.
+				var mismatch *DigestMismatchError
+				if errors.As(err, &mismatch) {
+					r.mismatched[identity] = struct{}{}
+					logger.GetLogger().Debug("uprobe reconciler: container binary digest mismatch, skipping container",
+						logfields.Error, err, "key", key)
+				} else {
+					logger.GetLogger().Warn("uprobe reconciler: failed to attach uprobe in container, skipping container",
+						logfields.Error, err, "key", key)
+				}
 				return
 			}
 			probe = &attachedUprobe{key: attachKey}
@@ -444,4 +465,5 @@ func (r *containerUprobeReconciler) detachAll() {
 	clear(r.probes)
 	clear(r.attached)
 	clear(r.wanted)
+	clear(r.mismatched)
 }

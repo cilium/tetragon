@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -65,6 +64,29 @@ func checkResolvedTarget(path string) error {
 	}
 	return checkTargetFile(fmt.Sprintf("resolved path %q", path),
 		st.Mode&unix.S_IFMT == unix.S_IFREG, int64(st.Size))
+}
+
+// hasOpenat2InRoot reports whether the kernel confines path resolution with
+// openat2(RESOLVE_IN_ROOT) (5.6+). Without it resolveBinaryUnderRoot falls back
+// to a lexical join, so a symlink planted in the container can redirect the
+// attach outside its root. Probed rather than derived from the kernel version,
+// which distributions backport.
+func hasOpenat2InRoot() bool {
+	dirfd, err := unix.Open("/", unix.O_PATH|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
+	if err != nil {
+		return false
+	}
+	defer unix.Close(dirfd)
+
+	fd, err := openat2(dirfd, ".", &unix.OpenHow{
+		Flags:   unix.O_PATH | unix.O_CLOEXEC,
+		Resolve: unix.RESOLVE_IN_ROOT | unix.RESOLVE_NO_MAGICLINKS,
+	})
+	if err != nil {
+		return false
+	}
+	unix.Close(fd)
+	return true
 }
 
 // resolveBinaryUnderRoot resolves path inside root and returns an attach path
@@ -142,7 +164,7 @@ func resolveBinaryUnderRoot(root, path string) (string, func(), error) {
 
 	// Reject anything but a regular file before the caller opens it: a
 	// container-planted FIFO would block the ELF/digest open forever.
-	attachPath := "/proc/self/fd/" + strconv.Itoa(fd)
+	attachPath := procSelfFDPath(uintptr(fd))
 	if err := checkResolvedTarget(attachPath); err != nil {
 		unix.Close(fd)
 		return "", noop, err
