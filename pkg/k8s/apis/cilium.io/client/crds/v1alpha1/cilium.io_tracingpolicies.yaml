@@ -1332,6 +1332,9 @@ spec:
                   required:
                   - call
                   type: object
+                  x-kubernetes-validations:
+                  - message: ReturnArg not specified with Return=true.
+                    rule: '!self.return || has(self.returnArg)'
                 type: array
               hostSelector:
                 description: |-
@@ -2611,6 +2614,9 @@ spec:
                   required:
                   - call
                   type: object
+                  x-kubernetes-validations:
+                  - message: ReturnArg not specified with Return=true.
+                    rule: '!self.return || has(self.returnArg)'
                 type: array
               lists:
                 description: A list of list specs.
@@ -6687,6 +6693,13 @@ spec:
                   required:
                   - path
                   type: object
+                  x-kubernetes-validations:
+                  - message: uprobe needs at most one of symbols, addrs or offsets
+                      defined
+                    rule: '!(has(self.symbols) && has(self.addrs)) && !(has(self.symbols)
+                      && has(self.offsets)) && !(has(self.addrs) && has(self.offsets))'
+                  - message: ReturnArg not specified with Return=true.
+                    rule: '!self.return || has(self.returnArg)'
                 type: array
               usdts:
                 description: A list of usdt specs.
