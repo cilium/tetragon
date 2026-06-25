@@ -67,6 +67,7 @@
 package program
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -152,20 +153,29 @@ func DeleteGlobMap(name string) {
 	delete(globalMaps.maps, name)
 }
 
-// sharedMapRefs tracks the number of sensors currently using each shared map,
-// without locking because sensor load/unload is serialized by the sensor manager.
-var sharedMapRefs = map[string]int{}
+// sharedMapRefs tracks the number of sensors currently using each shared map.
+// Guarded by its own mutex: loads run under the manager's muLoad, but
+// per-container child sensor removal (RemoveSensor -> destroy) unloads
+// without it, so the two can run concurrently.
+var sharedMapRefs = struct {
+	sync.Mutex
+	refs map[string]int
+}{refs: map[string]int{}}
 
 func sharedMapIncRef(pinPath string) int {
-	sharedMapRefs[pinPath]++
-	return sharedMapRefs[pinPath]
+	sharedMapRefs.Lock()
+	defer sharedMapRefs.Unlock()
+	sharedMapRefs.refs[pinPath]++
+	return sharedMapRefs.refs[pinPath]
 }
 
 func sharedMapDecRef(pinPath string) bool {
-	sharedMapRefs[pinPath]--
-	last := sharedMapRefs[pinPath] <= 0
+	sharedMapRefs.Lock()
+	defer sharedMapRefs.Unlock()
+	sharedMapRefs.refs[pinPath]--
+	last := sharedMapRefs.refs[pinPath] <= 0
 	if last {
-		delete(sharedMapRefs, pinPath)
+		delete(sharedMapRefs.refs, pinPath)
 	}
 	return last
 }
@@ -353,6 +363,13 @@ func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec, create bool) (
 	if _, err = os.Stat(pinPath); err == nil {
 		m, err := ebpf.LoadPinnedMap(pinPath, nil)
 		if err != nil {
+			// A concurrent unload of the last user of a shared map can unpin
+			// pinPath between the stat above and this load (child-sensor teardown
+			// runs off the manager load lock). Recreate rather than fail the
+			// load; this loader is a new user, so the map should exist.
+			if create && errors.Is(err, os.ErrNotExist) {
+				return createPinnedMap(pinPath, mapSpec)
+			}
 			return nil, fmt.Errorf("loading pinned map from path '%s' failed: %w", pinPath, err)
 		}
 		if err := mapSpec.Compatible(m); err != nil {

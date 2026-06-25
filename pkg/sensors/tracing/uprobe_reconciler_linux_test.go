@@ -26,6 +26,7 @@ type fakeAttacher struct {
 	attached map[string][]resolvedUprobe // key -> resolved uprobes
 	failOn   map[string]error            // resolved attach path -> error to return from Attach
 	detached []string                    // keys detached, in order
+	attempts int                         // Attach calls, including failed ones
 }
 
 func newFakeAttacher() *fakeAttacher {
@@ -38,6 +39,7 @@ func newFakeAttacher() *fakeAttacher {
 func (f *fakeAttacher) Attach(key string, resolved []resolvedUprobe) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.attempts++
 	for _, r := range resolved {
 		if err := f.failOn[r.attachPath]; err != nil {
 			return err
@@ -54,6 +56,12 @@ func (f *fakeAttacher) Detach(key string) {
 		delete(f.attached, key)
 		f.detached = append(f.detached, key)
 	}
+}
+
+func (f *fakeAttacher) attachCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.attempts
 }
 
 func (f *fakeAttacher) attachedKeys() []string {
@@ -445,4 +453,29 @@ func (f *raceCheckAttacher) failures() []string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.errs)
+}
+
+// A digest mismatch is fixed for a given binary and policy, so the reconciler
+// must remember it: the 10s resync would otherwise re-hash the same binary
+// forever.
+func TestReconcilerDoesNotRetryDigestMismatch(t *testing.T) {
+	att := newFakeAttacher()
+	r := newTestReconciler(att)
+	att.failOn["/procRoot/c1/root/usr/lib64/libpam.so.0.85.1"] = &DigestMismatchError{Detail: "digest mismatch"}
+
+	r.onContainerAdd("podA/c1")
+	require.Empty(t, att.attachedKeys(), "a mismatching binary must not attach")
+	require.Equal(t, 1, att.attachCount())
+
+	// Resync retries the container; the attach must not be attempted again.
+	r.onContainerAdd("podA/c1")
+	require.Equal(t, 1, att.attachCount(), "digest mismatch must not be re-verified")
+
+	// A non-digest failure stays retryable: it can succeed on a later resync.
+	att2 := newFakeAttacher()
+	r2 := newTestReconciler(att2)
+	att2.failOn["/procRoot/c2/root/usr/lib64/libpam.so.0.85.1"] = errTestAttach
+	r2.onContainerAdd("podB/c2")
+	r2.onContainerAdd("podB/c2")
+	require.Equal(t, 2, att2.attachCount(), "a transient failure must be retried")
 }

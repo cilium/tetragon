@@ -42,12 +42,22 @@ func ParseBuildIdFromNotes(dat []byte, order binary.ByteOrder) ([]byte, bool) {
 			return []byte{}, false
 		}
 
-		name := make([]byte, align(note.Namesz, 4))
+		// Namesz/Descsz come from the file and are only bounded by uint32, so
+		// size them in 64-bit (uint32 alignment can wrap) and reject anything
+		// longer than the bytes left: a crafted note would otherwise make us
+		// allocate gigabytes before the read fails.
+		nameLen := align(uint64(note.Namesz), 4)
+		descLen := align(uint64(note.Descsz), 4)
+		if nameLen+descLen > uint64(dr.Len()) {
+			return []byte{}, false
+		}
+
+		name := make([]byte, nameLen)
 		if err := binary.Read(dr, order, name); err != nil {
 			return []byte{}, false
 		}
 
-		desc := make([]byte, align(note.Descsz, 4))
+		desc := make([]byte, descLen)
 		if err := binary.Read(dr, order, desc); err != nil {
 			return []byte{}, false
 		}
@@ -61,10 +71,28 @@ func ParseBuildIdFromNotes(dat []byte, order binary.ByteOrder) ([]byte, bool) {
 	}
 }
 
+// maxNoteSize bounds a PT_NOTE segment we will read: notes are small (a
+// build-id note is ~36 bytes), so an implausibly large Filesz is a crafted or
+// corrupt ELF. A resolvePathInContainer build-id target is container-supplied,
+// so bound the allocation rather than trust the header.
+const maxNoteSize = 1 << 20 // 1 MiB
+
+// maxTotalNoteSize bounds the notes read across all PT_NOTE segments: a file
+// can declare tens of thousands of program headers pointing at the same bytes,
+// which would otherwise turn a small file into gigabytes of reads.
+const maxTotalNoteSize = 4 << 20 // 4 MiB
+
 func (se *SafeELFFile) ParseBuildID() ([]byte, error) {
+	var total uint64
 	for _, ph := range se.Progs {
 		if ph.Type != elf.PT_NOTE {
 			continue
+		}
+		if ph.Filesz > maxNoteSize {
+			continue
+		}
+		if total += ph.Filesz; total > maxTotalNoteSize {
+			break
 		}
 		dat := make([]byte, ph.Filesz)
 		if _, err := io.ReadFull(ph.Open(), dat); err != nil {

@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -142,7 +141,7 @@ func resolveBinaryUnderRoot(root, path string) (string, func(), error) {
 
 	// Reject anything but a regular file before the caller opens it: a
 	// container-planted FIFO would block the ELF/digest open forever.
-	attachPath := "/proc/self/fd/" + strconv.Itoa(fd)
+	attachPath := procSelfFDPath(uintptr(fd))
 	if err := checkResolvedTarget(attachPath); err != nil {
 		unix.Close(fd)
 		return "", noop, err
