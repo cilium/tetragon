@@ -24,10 +24,6 @@ spec:
         operator: "Postfix"
         values:
         - "strange.txt"
-      matchActions:
-      - action: FollowFD
-        argFd: 0
-        argName: 1
   - call: "sys_write"
     syscall: true
     args:

@@ -2052,10 +2052,6 @@ func testKprobeObjectFileWriteHook(pidStr string) string {
           operator: "Postfix"
           values:
           - "testfile"
-        matchActions:
-        - action: FollowFD
-          argFd: 0
-          argName: 1
     - call: "sys_write"
       syscall: true
       args:
@@ -2106,10 +2102,6 @@ func testKprobeObjectFileWriteFilteredHook(pidStr string, dir string) string {
           operator: "Postfix"
           values:
           - "` + dir + `/testfile"
-        matchActions:
-        - action: FollowFD
-          argFd: 0
-          argName: 1
     - call: "sys_write"
       syscall: true
       args:
@@ -3494,10 +3486,7 @@ spec:
 		fmt.Fprintf(&configHook, "\n        - \"%s\"", vals[i])
 	}
 	configHook.WriteString("\n")
-	configHook.WriteString(`      matchActions:
-      - action: FollowFD
-        argFd: 0
-        argName: 1
+	configHook.WriteString(`
   - call: "sys_close"
     syscall: true
     args:
@@ -3512,10 +3501,7 @@ spec:
 		fmt.Fprintf(&configHook, "\n        - \"%s\"", vals[i])
 	}
 	configHook.WriteString("\n")
-	configHook.WriteString(`      matchActions:
-      - action: UnfollowFD
-        argFd: 0
-        argName: 0
+	configHook.WriteString(`
   - call: "sys_read"
     syscall: true
     args:
@@ -6593,7 +6579,7 @@ func TestMissedProgStatsKprobeMulti(t *testing.T) {
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "syswritefollowfdpsswd"
+  name: "syswritepsswd"
 spec:
   kprobes:
   - call: "sys_read"
@@ -6626,7 +6612,7 @@ spec:
 	expected := strings.NewReader(` # HELP tetragon_missed_prog_probes_total The total number of Tetragon probe missed by program.
 # TYPE tetragon_missed_prog_probes_total counter
 tetragon_missed_prog_probes_total{attach="acct_process",policy="__base__"} 0
-tetragon_missed_prog_probes_total{attach="kprobe_multi (2 functions)",policy="syswritefollowfdpsswd"} 1
+tetragon_missed_prog_probes_total{attach="kprobe_multi (2 functions)",policy="syswritepsswd"} 1
 tetragon_missed_prog_probes_total{attach="sched/sched_process_exec",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="socket",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="security_bprm_committing_creds",policy="__base__"} 0
