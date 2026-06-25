@@ -633,13 +633,13 @@ spec:
 	sensor1, err := gEnforcerPolicy.PolicyHandler(policy1, policyfilter.NoFilterID)
 	require.NoError(t, err)
 
-	sensor2, err := policyHandler{}.PolicyHandler(policy1, policyfilter.NoFilterID)
+	sensor2, err := tracepointPolicyHandler{}.PolicyHandler(policy1, policyfilter.NoFilterID)
 	require.NoError(t, err)
 
 	sensor3, err := gEnforcerPolicy.PolicyHandler(policy2, policyfilter.NoFilterID)
 	require.NoError(t, err)
 
-	sensor4, err := policyHandler{}.PolicyHandler(policy2, policyfilter.NoFilterID)
+	sensor4, err := tracepointPolicyHandler{}.PolicyHandler(policy2, policyfilter.NoFilterID)
 	require.NoError(t, err)
 
 	// Loading all policies
