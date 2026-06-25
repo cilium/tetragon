@@ -358,7 +358,7 @@ func TestEnforcerSecuritySigKill(t *testing.T) {
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "syswritefollowfdpsswd"
+  name: "syswritepsswd"
 spec:
   options:
     - name: "override-method"
@@ -380,10 +380,6 @@ spec:
         operator: "Equal"
         values:
         - "` + tempFile + `"
-      matchActions:
-      - action: FollowFD
-        argFd: 0
-        argName: 1
   - call: "sys_close"
     syscall: true
     args:
@@ -395,10 +391,6 @@ spec:
         operator: "Equal"
         values:
         - "` + tempFile + `"
-      matchActions:
-      - action: UnfollowFD
-        argFd: 0
-        argName: 0
   - call: "sys_pwrite64"
     syscall: true
     args:
@@ -450,7 +442,7 @@ func TestEnforcerSecurityNotifyEnforcer(t *testing.T) {
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "syswritefollowfdpsswd"
+  name: "syswritepsswd"
 spec:
   options:
     - name: "override-method"
@@ -472,10 +464,6 @@ spec:
         operator: "Equal"
         values:
         - "` + tempFile + `"
-      matchActions:
-      - action: FollowFD
-        argFd: 0
-        argName: 1
   - call: "sys_close"
     syscall: true
     args:
@@ -487,10 +475,6 @@ spec:
         operator: "Equal"
         values:
         - "` + tempFile + `"
-      matchActions:
-      - action: UnfollowFD
-        argFd: 0
-        argName: 0
   - call: "sys_pwrite64"
     syscall: true
     args:
