@@ -103,6 +103,8 @@ type collection struct {
 
 	warnedOnModeRetrievalFailure  atomic.Bool
 	warnedOnStatsRetrievalFailure atomic.Bool
+	// if non-empty, this indicates that the collection cannot be disabled, and the string is the reason why
+	disableNotAllowed string
 }
 
 type selectorStatsMetadata struct {

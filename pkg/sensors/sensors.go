@@ -72,6 +72,10 @@ type Sensor struct {
 	// when removing the sensor, sensor cannot be loaded again after this hook
 	// being triggered and must be recreated.
 	DestroyHook SensorHook
+	// DisableNotAllowedReason indicates whether the sensor cannot be disabled.
+	// If non-empty, this string is the reason why the sensor cannot be disabled.
+	// If empty, the sensor can be disabled.
+	DisableNotAllowedReason string
 }
 
 func (s *Sensor) AddPostUnloadHook(hook SensorHook) {
@@ -113,6 +117,7 @@ type SensorIface interface {
 	// the sensor's programs.
 	TotalMemlock() uint64
 	Overhead() ([]ProgOverhead, bool)
+	DisableNotAllowed() string
 }
 
 func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
@@ -146,6 +151,10 @@ func (s *Sensor) GetName() string {
 
 func (s *Sensor) IsLoaded() bool {
 	return s.Loaded
+}
+
+func (s *Sensor) DisableNotAllowed() string {
+	return s.DisableNotAllowedReason
 }
 
 func (s Sensor) TotalMemlock() uint64 {
