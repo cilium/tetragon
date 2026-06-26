@@ -19,7 +19,12 @@ func getStatus(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
 		fmt.Printf("status error: %s\n", err)
 		return
 	}
-	fmt.Printf("Health Status: %s\n", response.GetHealthStatus()[0].Details)
+	healthStatus := response.GetHealthStatus()
+	if len(healthStatus) == 0 {
+		fmt.Println("Health Status: no status available")
+		return
+	}
+	fmt.Printf("Health Status: %s\n", healthStatus[0].Details)
 }
 
 func New() *cobra.Command {
