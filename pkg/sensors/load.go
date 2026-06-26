@@ -169,9 +169,6 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 		}
 	}
 
-	// cleanup the BTF once we have loaded all sensor's program
-	flushKernelSpec()
-
 	l.Info("Loaded sensor successfully", "sensor", s.Name)
 	l.Debug("Loaded sensor BPF maps and programs", "sensor", s.Name, "maps", loadedMaps, "progs", loadedProgs)
 	s.Loaded = true

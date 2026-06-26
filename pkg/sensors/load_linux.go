@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	"github.com/cilium/ebpf"
-	"github.com/cilium/ebpf/btf"
 
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -186,10 +185,6 @@ func observerMinReqs() (bool, error) {
 		return false, errors.New("kernel version lookup failed, required for kprobe")
 	}
 	return true, nil
-}
-
-func flushKernelSpec() {
-	btf.FlushKernelSpec()
 }
 
 func getCachedBTFFile() string {
