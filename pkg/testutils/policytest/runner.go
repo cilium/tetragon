@@ -173,14 +173,14 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 
 	polHandler, err := r.AddPolicy(l, test)
 	if err != nil {
-		return &Result{Err: err}
+		return &Result{Err: JSONError{Err: err}}
 	}
 
 	if testConf.MonitorMode {
 		err := polHandler.Configure(l, r.cli, nil, new(tetragon.TracingPolicyMode_TP_MODE_MONITOR))
 		if err != nil {
 			err = errors.Join(err, polHandler.Cleanup(l, r.conf, r.cli))
-			return &Result{Err: err}
+			return &Result{Err: JSONError{Err: err}}
 		}
 	}
 
@@ -189,10 +189,10 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 		scenario := sc(r.conf)
 		scRes := r.RunScenario(l, scenario, polHandler, testConf)
 		if scenario.ExpectCheckerFailure {
-			if scRes.CheckerErr == nil {
-				scRes.CheckerErr = errors.New("expected failure did not occur")
+			if scRes.CheckerErr.Err == nil {
+				scRes.CheckerErr.Err = errors.New("expected failure did not occur")
 			} else {
-				scRes.CheckerErr = nil
+				scRes.CheckerErr.Err = nil
 			}
 		}
 		res.ScenariosRes = append(res.ScenariosRes, scRes)
@@ -200,7 +200,7 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 
 	err = polHandler.Cleanup(l, r.conf, r.cli)
 	if err != nil {
-		res.Err = errors.Join(res.Err, fmt.Errorf("failed to cleanup policy: %w", err))
+		res.Err.Err = errors.Join(res.Err.Err, fmt.Errorf("failed to cleanup policy: %w", err))
 	}
 	return &res
 }
@@ -249,9 +249,9 @@ func (r *LocalRunner) RunScenario(
 
 	return ScenarioRes{
 		Name:            scenario.Name,
-		TriggerErr:      triggerErr,
-		CheckerErr:      checkerRet.err,
-		ActionCountsErr: actionCountsErr,
+		TriggerErr:      JSONError{Err: triggerErr},
+		CheckerErr:      JSONError{Err: checkerRet.err},
+		ActionCountsErr: JSONError{Err: actionCountsErr},
 	}
 }
 

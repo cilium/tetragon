@@ -8,7 +8,9 @@ package policytest
 import (
 
 	// import tests
+
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"iter"
@@ -21,6 +23,13 @@ import (
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	_ "github.com/cilium/tetragon/tests/policytests" // so that tests can be registered
+)
+
+type outputFmt int
+
+const (
+	outputText outputFmt = iota
+	outputJSON
 )
 
 func New() *cobra.Command {
@@ -123,6 +132,7 @@ func runCmd() *cobra.Command {
 	monitorMode := false
 	allParams := false
 	var params map[string]string
+	var outputFormat = outputText
 	cmd := cobra.Command{
 		Use:   "run",
 		Short: "Run Tetragon policy test(s)",
@@ -191,7 +201,19 @@ func runCmd() *cobra.Command {
 				}
 			}
 			runner.Close()
-			policytest.DumpResults(cmd.OutOrStdout(), results)
+
+			switch outputFormat {
+			case outputJSON:
+				for _, res := range results {
+					b, err := json.Marshal(res)
+					if err != nil {
+						return fmt.Errorf("failed to generate json: %w", err)
+					}
+					cmd.Println(string(b))
+				}
+			case outputText:
+				policytest.DumpResults(cmd.OutOrStdout(), results)
+			}
 			return nil
 		},
 	}
@@ -201,5 +223,34 @@ func runCmd() *cobra.Command {
 	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
 	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
 	flags.BoolVar(&allParams, "all-params", allParams, "Run policy tests using all available parameters")
+	flags.Var(&outputFormat, "output", "output format (text|json)")
 	return &cmd
+}
+
+func (of *outputFmt) Set(v string) error {
+	switch v {
+	case "text":
+		*of = outputText
+	case "json":
+		*of = outputJSON
+	default:
+		return errors.New("output format must be either \"text\" or \"json\"")
+	}
+
+	return nil
+}
+
+func (of *outputFmt) String() string {
+	switch *of {
+	case outputText:
+		return "text"
+	case outputJSON:
+		return "json"
+	default:
+		return ""
+	}
+}
+
+func (of *outputFmt) Type() string {
+	return "output"
 }

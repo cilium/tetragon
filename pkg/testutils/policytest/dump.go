@@ -13,9 +13,9 @@ import (
 
 type NamedResult struct {
 	// Name is a policytest identifier
-	Name string
+	Name string `json:"name"`
 	// Results for the policytest
-	Result *Result
+	Result *Result `json:"result"`
 }
 
 func DumpResults(out io.Writer, results []*NamedResult) {
@@ -24,7 +24,7 @@ func DumpResults(out io.Writer, results []*NamedResult) {
 		res := result.Result
 		var note string
 		var icon string
-		if res.Err != nil {
+		if res.Err.Err != nil {
 			icon = "❌"
 			note = res.Err.Error()
 		} else if res.Skipped != "" {
