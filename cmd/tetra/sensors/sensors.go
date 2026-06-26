@@ -25,8 +25,13 @@ func New() *cobra.Command {
 	sensorsListCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List available sensors",
-		Run: func(_ *cobra.Command, _ []string) {
-			common.CliRun(listSensors)
+		RunE: func(_ *cobra.Command, _ []string) error {
+			c, err := common.NewClientWithDefaultContextAndAddress()
+			if err != nil {
+				return err
+			}
+			defer c.Close()
+			return listSensors(c.Ctx, c.Client)
 		},
 	}
 	sensorsCmd.AddCommand(sensorsListCmd)
@@ -35,11 +40,13 @@ func New() *cobra.Command {
 		Use:   "enable <sensor>",
 		Short: "Enable sensor",
 		Args:  cobra.ExactArgs(1),
-		Run: func(_ *cobra.Command, args []string) {
-			sensor := args[0]
-			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-				enableSensor(ctx, cli, sensor)
-			})
+		RunE: func(_ *cobra.Command, args []string) error {
+			c, err := common.NewClientWithDefaultContextAndAddress()
+			if err != nil {
+				return err
+			}
+			defer c.Close()
+			return enableSensor(c.Ctx, c.Client, args[0])
 		},
 	}
 	sensorsCmd.AddCommand(sensorEnableCmd)
@@ -48,11 +55,13 @@ func New() *cobra.Command {
 		Use:   "disable <sensor>",
 		Short: "Disable sensor",
 		Args:  cobra.ExactArgs(1),
-		Run: func(_ *cobra.Command, args []string) {
-			sensor := args[0]
-			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-				disableSensor(ctx, cli, sensor)
-			})
+		RunE: func(_ *cobra.Command, args []string) error {
+			c, err := common.NewClientWithDefaultContextAndAddress()
+			if err != nil {
+				return err
+			}
+			defer c.Close()
+			return disableSensor(c.Ctx, c.Client, args[0])
 		},
 	}
 	sensorsCmd.AddCommand(sensorDisableCmd)
@@ -61,10 +70,13 @@ func New() *cobra.Command {
 		Use:   "rm <sensor_name>",
 		Short: "remove a sensor",
 		Args:  cobra.ExactArgs(1),
-		Run: func(_ *cobra.Command, args []string) {
-			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-				removeSensor(ctx, cli, args[0])
-			})
+		RunE: func(_ *cobra.Command, args []string) error {
+			c, err := common.NewClientWithDefaultContextAndAddress()
+			if err != nil {
+				return err
+			}
+			defer c.Close()
+			return removeSensor(c.Ctx, c.Client, args[0])
 		},
 	}
 	sensorsCmd.AddCommand(sensorRmCmd)
@@ -72,16 +84,15 @@ func New() *cobra.Command {
 	return sensorsCmd
 }
 
-func listSensors(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
+func listSensors(ctx context.Context, client tetragon.FineGuidanceSensorsClient) error {
 	// ignore deprecation warnings
 	//nolint:staticcheck
 	sensors, err := client.ListSensors(ctx, &tetragon.ListSensorsRequest{})
 	if err != nil {
-		fmt.Printf("error: %s\n", err)
-		return
-	} else if sensors == nil {
-		fmt.Printf("error: sensors is nil\n")
-		return
+		return fmt.Errorf("failed to list sensors: %w", err)
+	}
+	if sensors == nil {
+		return fmt.Errorf("sensors is nil")
 	}
 
 	for _, sensor := range sensors.Sensors {
@@ -93,37 +104,39 @@ func listSensors(ctx context.Context, client tetragon.FineGuidanceSensorsClient)
 		}
 		fmt.Printf("%s %s %s\n", sensor.Name, enabled, sensor.Collection)
 	}
+	return nil
 }
 
-func removeSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) {
+func removeSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) error {
 	// ignore deprecation warnings
 	//nolint:staticcheck
 	_, err := client.RemoveSensor(ctx, &tetragon.RemoveSensorRequest{
 		Name: sensor,
 	})
 	if err != nil {
-		fmt.Printf("failed to remove tracing policy: %s\n", err)
+		return fmt.Errorf("failed to remove sensor: %w", err)
 	}
+	return nil
 }
 
-func enableSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) {
+func enableSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) error {
 	// ignore deprecation warnings
 	//nolint:staticcheck
 	_, err := client.EnableSensor(ctx, &tetragon.EnableSensorRequest{Name: sensor})
-	if err == nil {
-		fmt.Printf("sensor %s enabled\n", sensor)
-	} else {
-		fmt.Printf("failed to enable sensor %s: %s\n", sensor, err)
+	if err != nil {
+		return fmt.Errorf("failed to enable sensor %s: %w", sensor, err)
 	}
+	fmt.Printf("sensor %s enabled\n", sensor)
+	return nil
 }
 
-func disableSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) {
+func disableSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) error {
 	// ignore deprecation warnings
 	//nolint:staticcheck
 	_, err := client.DisableSensor(ctx, &tetragon.DisableSensorRequest{Name: sensor})
-	if err == nil {
-		fmt.Printf("sensor %s disabled\n", sensor)
-	} else {
-		fmt.Printf("failed to disable sensor %s: %s\n", sensor, err)
+	if err != nil {
+		return fmt.Errorf("failed to disable sensor %s: %w", sensor, err)
 	}
+	fmt.Printf("sensor %s disabled\n", sensor)
+	return nil
 }
