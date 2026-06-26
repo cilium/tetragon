@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	"github.com/cilium/tetragon/pkg/selectors"
+	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
@@ -38,8 +39,8 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
+	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
-	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -1377,4 +1378,60 @@ spec:` + opts + `
 		assert.Equal(t, "sleepable_preload", filepath.Base(m.PinPath))
 		assert.Equal(t, uint32(1024), getMaxEntries(m))
 	})
+}
+
+// Some uprobes configurations (ie digest verification) disallow disable/re-enable of a policy.
+// This test ensures that we can disable and re-enable a policy when
+// policy configuration allows it.
+func TestDisableEnablePolicyUprobe(t *testing.T) {
+	const (
+		uprobeNoopPolicyName      = "uprobe-noop"
+		uprobeNoopPolicyNamespace = ""
+		uprobeNoopPolicyPath      = "/bin/bash"
+	)
+
+	uprobeNoopPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "` + uprobeNoopPolicyName + `"
+spec:
+  uprobes:
+  - path: "` + uprobeNoopPolicyPath + `"
+    symbols:
+    - "main"
+`
+	tp, err := tracingpolicy.FromYAML(uprobeNoopPolicy)
+	require.NoError(t, err)
+	createCrdFile(t, uprobeNoopPolicy)
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobeNoopPolicyPath))).
+		WithSymbol(sm.Full("main"))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	err = observer.GetSensorManager().DisableTracingPolicy(ctx, uprobeNoopPolicyName, uprobeNoopPolicyNamespace, tp.TpDomain())
+	require.NoError(t, err)
+	err = observer.GetSensorManager().EnableTracingPolicy(ctx, uprobeNoopPolicyName, uprobeNoopPolicyNamespace, tp.TpDomain())
+	require.NoError(t, err)
+
+	if err := exec.Command(uprobeNoopPolicyPath).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+
 }
