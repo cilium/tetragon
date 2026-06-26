@@ -8,6 +8,7 @@ package policytest
 import (
 	"context"
 	"fmt"
+	"iter"
 	"strings"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
@@ -114,4 +115,9 @@ type Result struct {
 	Skipped      string // if not empty, the policy was skipped and the string contains the reason
 	Err          error
 	ScenariosRes []ScenarioRes
+}
+
+// AllParamValues returns a sequence of
+func (t *T) AllParamValues() iter.Seq[ParamVals] {
+	return allParamValues(t.Params)
 }
