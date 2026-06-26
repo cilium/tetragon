@@ -273,7 +273,7 @@ func tpListDomainsCmd() *cobra.Command {
 				}
 				cmd.Println(string(b))
 			case "text":
-				fmt.Println(res.Domains)
+				cmd.Println(res.Domains)
 			}
 
 			return nil

@@ -43,12 +43,12 @@ func cgroupGetIDCommand() *cobra.Command {
 		Use:   "cgroupid",
 		Short: "retrieve cgroup id from file",
 		Args:  cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			cgID, err := cgroups.GetCgroupIdFromPath(args[0])
 			if err != nil {
 				return fmt.Errorf("failed to parse cgroup: %w", err)
 			}
-			fmt.Printf("%d\n", cgID)
+			cmd.Printf("%d\n", cgID)
 			return nil
 		},
 	}
@@ -64,8 +64,8 @@ func dumpCmd() *cobra.Command {
 		Use:   "dump",
 		Short: "dump policyfilter state",
 		Args:  cobra.ExactArgs(0),
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return debug.PolicyfilterState(mapFname)
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return debug.PolicyfilterState(cmd, mapFname)
 		},
 	}
 

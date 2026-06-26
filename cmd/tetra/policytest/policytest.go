@@ -40,14 +40,14 @@ func listCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:   "list",
 		Short: "list Tetragon policy tests",
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			for i := range policytest.AllPolicyTests.Len() {
 				pt := policytest.AllPolicyTests.Get(i)
-				fmt.Printf("%s %v\n", pt.Name, pt.Labels)
+				cmd.Printf("%s %v\n", pt.Name, pt.Labels)
 				if listParams && len(pt.Params) > 0 {
-					fmt.Printf(" parameters:\n")
+					cmd.Println(" parameters:")
 					for _, param := range pt.Params {
-						fmt.Printf("    %s: %s (default:%s)\n", param.Name, param.Help, param.Default)
+						cmd.Printf("    %s: %s (default:%s)\n", param.Name, param.Help, param.Default)
 					}
 				}
 			}

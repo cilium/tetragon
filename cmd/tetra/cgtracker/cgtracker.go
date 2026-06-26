@@ -6,7 +6,6 @@
 package cgtracker
 
 import (
-	"fmt"
 	"log"
 	"path/filepath"
 
@@ -39,7 +38,7 @@ func dumpCmd() *cobra.Command {
 		Use:   "dump",
 		Short: "dump cgtracker map state",
 		Args:  cobra.ExactArgs(0),
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			m, err := cgtracker.OpenMap(mapFname)
 			if err != nil {
 				log.Fatal(err)
@@ -51,7 +50,7 @@ func dumpCmd() *cobra.Command {
 				return err
 			}
 			for tracker, tracked := range vals {
-				fmt.Printf("%d: %v\n", tracker, tracked)
+				cmd.Printf("%d: %v\n", tracker, tracked)
 			}
 			return nil
 		},

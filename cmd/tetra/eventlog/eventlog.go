@@ -65,7 +65,7 @@ func getCmd() *cobra.Command {
 		Use:   "get",
 		Short: "get logging parameters",
 		Args:  cobra.ExactArgs(0),
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			c, err := NewClient()
 			if err != nil {
 				return fmt.Errorf("failed to create gRPC client: %w", err)
@@ -76,7 +76,7 @@ func getCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Current logging parameters: %+v\n", params)
+			cmd.Printf("Current logging parameters: %+v\n", params)
 			return nil
 		},
 	}
