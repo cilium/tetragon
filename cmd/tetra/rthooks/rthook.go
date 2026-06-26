@@ -4,7 +4,6 @@
 package rthooks
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -31,10 +30,28 @@ func New() *cobra.Command {
 	add := &cobra.Command{
 		Use:   "create-container --container-id=<containerID> --root-dir=<rootDir>",
 		Short: "trigger create-container hook",
-		Run: func(_ *cobra.Command, _ []string) {
-			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-				createContainer(ctx, cli, &cnf)
-			})
+		RunE: func(_ *cobra.Command, _ []string) error {
+			c, err := common.NewClientWithDefaultContextAndAddress()
+			if err != nil {
+				return fmt.Errorf("failed to create gRPC client: %w", err)
+			}
+			defer c.Close()
+
+			req := &tetragon.RuntimeHookRequest{
+				Event: &tetragon.RuntimeHookRequest_CreateContainer{
+					CreateContainer: &tetragon.CreateContainer{
+						CgroupsPath: cnf.containerID,
+						RootDir:     cnf.rootDir,
+						Annotations: cnf.annotations,
+					},
+				},
+			}
+
+			_, err = c.Client.RuntimeHook(c.Ctx, req)
+			if err != nil {
+				return fmt.Errorf("failed to trigger create-container hook: %w", err)
+			}
+			return nil
 		},
 	}
 
@@ -45,21 +62,4 @@ func New() *cobra.Command {
 
 	ret.AddCommand(add)
 	return ret
-}
-
-func createContainer(ctx context.Context, client tetragon.FineGuidanceSensorsClient, cnf *addContainerConf) {
-	req := &tetragon.RuntimeHookRequest{
-		Event: &tetragon.RuntimeHookRequest_CreateContainer{
-			CreateContainer: &tetragon.CreateContainer{
-				CgroupsPath: cnf.containerID,
-				RootDir:     cnf.rootDir,
-				Annotations: cnf.annotations,
-			},
-		},
-	}
-
-	_, err := client.RuntimeHook(ctx, req)
-	if err != nil {
-		fmt.Printf("triggering create-container hook failed: %s", err)
-	}
 }
