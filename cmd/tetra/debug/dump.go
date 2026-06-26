@@ -94,6 +94,7 @@ func dumpExecveMap(cmd *cobra.Command, fname string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open execve map: %w", err)
 	}
+	defer m.Close()
 
 	data := make(map[execvemap.ExecveKey]execvemap.ExecveValue)
 	iter := m.Iterate()
