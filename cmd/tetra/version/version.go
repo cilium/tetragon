@@ -42,6 +42,7 @@ func New() *cobra.Command {
 						res, err := cli.GetVersion(ctx, &tetragon.GetVersionRequest{})
 						if err != nil {
 							logger.GetLogger().Error("error retrieving server version", logfields.Error, err)
+							return
 						}
 						fmt.Printf("Server version: %s\n", res.Version)
 					},
