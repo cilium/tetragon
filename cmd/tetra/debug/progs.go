@@ -425,7 +425,7 @@ func getTetragonProgs(base string) ([]*prog, error) {
 
 		id, ok := info.ID()
 		if !ok {
-			return nil, err
+			return nil, errors.New("failed to get program ID")
 		}
 
 		stats, err := p.Stats()
