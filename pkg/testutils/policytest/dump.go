@@ -11,10 +11,17 @@ import (
 	"text/tabwriter"
 )
 
-func DumpResults(out io.Writer, ptNames []string, results []*Result) {
+type NamedResult struct {
+	// Name is a policytest identifier
+	Name string
+	// Results for the policytest
+	Result *Result
+}
+
+func DumpResults(out io.Writer, results []*NamedResult) {
 	w := tabwriter.NewWriter(out, 0, 0, 3, ' ', 0)
-	for i, res := range results {
-		ptName := ptNames[i]
+	for _, result := range results {
+		res := result.Result
 		var note string
 		var icon string
 		if res.Err != nil {
@@ -41,7 +48,7 @@ func DumpResults(out io.Writer, ptNames []string, results []*Result) {
 			}
 			note = fmt.Sprintf("%d/%d scenario(s) succeeded", nSuccesses, nScenarios)
 		}
-		fmt.Fprintf(w, "P: %-40s\t%s\t%s\n", ptName, icon, note)
+		fmt.Fprintf(w, "P: %-40s\t%s\t%s\n", result.Name, icon, note)
 		for i, sc := range res.ScenariosRes {
 			scIcon := "🟢"
 			scNote := ""
