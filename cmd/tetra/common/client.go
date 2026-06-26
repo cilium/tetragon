@@ -58,20 +58,6 @@ func RetryPolicy(retries int) string {
 	}]}`, maxAttempt)
 }
 
-func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient), fnErr func(err error)) {
-	c, err := NewClientWithDefaultContextAndAddress()
-	if err != nil {
-		fnErr(err)
-		return
-	}
-	defer c.Close()
-	fn(c.Ctx, c.Client)
-}
-
-func CliRun(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient)) {
-	CliRunErr(fn, func(_ error) {})
-}
-
 type ClientWithContext struct {
 	Client tetragon.FineGuidanceSensorsClient
 	// Ctx is a combination of the signal context and the timeout context
