@@ -176,13 +176,14 @@ func runCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to start local runner: %w", err)
 			}
-			var results []*policytest.Result
-			var ptNames []string
+
+			var results []*policytest.NamedResult
 			for _, t := range tests {
 				for paramValues := range getParamValues(t) {
-					ptName := fmt.Sprintf("%s (%s)", t.Name, paramValues)
-					ptNames = append(ptNames, ptName)
-					res := runner.RunTest(log, t, &policytest.TestConf{
+					res := &policytest.NamedResult{
+						Name: fmt.Sprintf("%s (%s)", t.Name, paramValues),
+					}
+					res.Result = runner.RunTest(log, t, &policytest.TestConf{
 						MonitorMode: monitorMode,
 						ParamValues: paramValues,
 					})
@@ -190,7 +191,7 @@ func runCmd() *cobra.Command {
 				}
 			}
 			runner.Close()
-			policytest.DumpResults(cmd.OutOrStdout(), ptNames, results)
+			policytest.DumpResults(cmd.OutOrStdout(), results)
 			return nil
 		},
 	}
