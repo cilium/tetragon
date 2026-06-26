@@ -515,14 +515,15 @@ type addKprobeIn struct {
 }
 
 type hasMaps struct {
-	stackTrace bool
-	rateLimit  bool
-	fdInstall  bool
-	enforcer   bool
-	override   bool
-	sockTrack  bool
-	selector   bool
-	fentry     bool
+	stackTrace     bool
+	rateLimit      bool
+	fdInstall      bool
+	enforcer       bool
+	override       bool
+	sockTrack      bool
+	selector       bool
+	fentry         bool
+	parentBinaries bool
 }
 
 // hasMapsSetup setups the has maps for the per policy maps. The per kprobe maps
@@ -536,6 +537,7 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec, kprobes []v1alpha1.KProbeSpe
 		has.sockTrack = has.sockTrack || selectors.HasSockTrack(&kprobe)
 		has.override = has.override || selectors.HasOverride(kprobe.Selectors)
 		has.selector = has.selector || selectors.HasSelector(&kprobe)
+		has.parentBinaries = has.parentBinaries || selectors.HasMatchParentBinaries(kprobe.Selectors)
 	}
 	return has
 }
@@ -660,9 +662,7 @@ func createGenericKprobeSensor(
 		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
 	}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
-	}
+	maps = setParentsMap(progs, maps, has.parentBinaries)
 
 	return &sensors.Sensor{
 		Name:      name,
