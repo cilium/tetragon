@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"slices"
 	"sort"
@@ -64,16 +63,13 @@ Examples:
 			}
 			return cobra.ExactArgs(1)(cmd, args)
 		},
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if listMode {
 				listResources(cmd.OutOrStdout())
-				return
+				return nil
 			}
 
-			if err := runExplain(cmd.OutOrStdout(), args[0]); err != nil {
-				fmt.Fprintf(cmd.OutOrStderr(), "Error: %v\n", err)
-				os.Exit(1)
-			}
+			return runExplain(cmd.OutOrStdout(), args[0])
 		},
 	}
 
