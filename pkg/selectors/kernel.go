@@ -12,6 +12,7 @@ import (
 	"math"
 	"net"
 	"net/netip"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -50,6 +51,7 @@ const (
 	ActionTypeNotifyEnforcer              = 12
 	ActionTypeCleanupEnforcerNotification = 13
 	ActionTypeSet                         = 14
+	ActionTypeOverrideCall                = 15
 )
 
 var actionTypeTable = map[string]uint32{
@@ -68,6 +70,7 @@ var actionTypeTable = map[string]uint32{
 	"notifyenforcer":              ActionTypeNotifyEnforcer,
 	"cleanupenforcernotification": ActionTypeCleanupEnforcerNotification,
 	"set":                         ActionTypeSet,
+	"overridecall":                ActionTypeOverrideCall,
 }
 
 var actionTypeStringTable = map[uint32]string{
@@ -85,6 +88,7 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeUntrackSock:                 "untracksock",
 	ActionTypeCleanupEnforcerNotification: "cleanupenforcernotification",
 	ActionTypeSet:                         "set",
+	ActionTypeOverrideCall:                "overridecall",
 }
 
 const (
@@ -1199,7 +1203,7 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		WriteSelectorUint32(&k.data, action.ArgName)
 	case ActionTypeOverride:
 		if k.isUprobe {
-			id, err := parseOverrideRegs(k, action.ArgRegs, uint64(action.ArgError))
+			id, err := parseOverrideRegs(k, action.ArgRegs, uint64(action.ArgError), KernelRegsActionOverrideIdx)
 			if err != nil {
 				return err
 			}
@@ -1259,6 +1263,28 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	case ActionTypeSet:
 		WriteSelectorUint32(&k.data, action.ArgIndex)
 		WriteSelectorUint32(&k.data, action.ArgValue)
+	case ActionTypeOverrideCall:
+		// Only supported for entry uprobes right now
+		if k.isUprobe && action.NewOffset != 0 {
+			var values []string
+
+			// reg offset
+			switch runtime.GOARCH {
+			case "amd64":
+				values = []string{fmt.Sprintf("rip=%d%%rip", action.NewOffset)}
+			case "arm64":
+				values = []string{fmt.Sprintf("pc=%d%%pc", action.NewOffset)}
+			}
+
+			if len(values) > 0 {
+				// third param unused
+				id, err := parseOverrideRegs(k, values, 0, KernelRegsActionOverrideCallIdx)
+				if err != nil {
+					return err
+				}
+				WriteSelectorUint32(&k.data, id)
+			}
+		}
 	default:
 		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
 	}
@@ -1808,6 +1834,18 @@ func HasOverride(selectors []v1alpha1.KProbeSelector) bool {
 		for _, action := range s.MatchActions {
 			act := actionTypeTable[strings.ToLower(action.Action)]
 			if act == ActionTypeOverride {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func HasOverrideCall(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
+		for _, action := range s.MatchActions {
+			act := actionTypeTable[strings.ToLower(action.Action)]
+			if act == ActionTypeOverrideCall {
 				return true
 			}
 		}
