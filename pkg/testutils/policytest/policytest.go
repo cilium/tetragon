@@ -78,22 +78,22 @@ type T struct {
 }
 
 type ScenarioRes struct {
-	Name            string
-	TriggerErr      error
-	CheckerErr      error
-	ActionCountsErr error
+	Name            string    `json:"name"`
+	TriggerErr      JSONError `json:"trigger_error"`
+	CheckerErr      JSONError `json:"checker_error"`
+	ActionCountsErr JSONError `json:"action_counts_error"`
 }
 
 func (sr *ScenarioRes) Err() error {
 	var err error
-	if sr.TriggerErr != nil {
-		err = fmt.Errorf("trigger error: %w", sr.TriggerErr)
+	if sr.TriggerErr.Err != nil {
+		err = fmt.Errorf("trigger error: %w", sr.TriggerErr.Err)
 	}
-	if sr.CheckerErr != nil {
-		err = addErr(err, "checker error", sr.CheckerErr)
+	if sr.CheckerErr.Err != nil {
+		err = addErr(err, "checker error", sr.CheckerErr.Err)
 	}
-	if sr.ActionCountsErr != nil {
-		err = addErr(err, "action counts error", sr.ActionCountsErr)
+	if sr.ActionCountsErr.Err != nil {
+		err = addErr(err, "action counts error", sr.ActionCountsErr.Err)
 	}
 	return err
 }
@@ -112,9 +112,9 @@ func addErr(err error, prefix1 string, err1 error) error {
 
 // Result of a policytest (T)
 type Result struct {
-	Skipped      string // if not empty, the policy was skipped and the string contains the reason
-	Err          error
-	ScenariosRes []ScenarioRes
+	Skipped      string        `json:"skipped,omitempty"` // if not empty, the policy was skipped and the string contains the reason
+	Err          JSONError     `json:"error"`
+	ScenariosRes []ScenarioRes `json:"scenarios"`
 }
 
 // AllParamValues returns a sequence of
