@@ -65,8 +65,8 @@ func dumpCmd() *cobra.Command {
 		Use:   "dump",
 		Short: "dump policyfilter state",
 		Args:  cobra.ExactArgs(0),
-		Run: func(_ *cobra.Command, _ []string) {
-			debug.PolicyfilterState(mapFname)
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return debug.PolicyfilterState(mapFname)
 		},
 	}
 
