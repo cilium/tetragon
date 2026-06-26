@@ -31,6 +31,7 @@ var _ = policytest.NewBuilder("kprobe-lseek").WithLabels("kprobes").
 	WithParameter(policytest.Parameter{
 		Name:    "Hook",
 		Default: "kprobes",
+		Values:  []any{"kprobes", "fentries"},
 		Help:    "type of hook to use in the policy",
 	}).WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1

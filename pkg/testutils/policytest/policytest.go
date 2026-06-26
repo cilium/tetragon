@@ -8,6 +8,7 @@ package policytest
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/tetragoninfo"
@@ -39,6 +40,20 @@ type Parameter struct {
 	Name    string
 	Default any
 	Help    string
+	// Values, if set, is used to generate values for this parameter when testing.
+	// Values is meant to hold all values (including the one specified by Default)
+	Values []any
+}
+
+func (p *Parameter) HelpString() string {
+	if len(p.Values) == 0 {
+		return fmt.Sprintf("%s: %s (default:%s)", p.Name, p.Help, p.Default)
+	}
+	values := make([]string, 0, len(p.Values))
+	for _, v := range p.Values {
+		values = append(values, fmt.Sprintf("%v", v))
+	}
+	return fmt.Sprintf("%s: %s (values:%q default:%q)", p.Name, p.Help, strings.Join(values, ","), p.Default)
 }
 
 // T defines a policy test

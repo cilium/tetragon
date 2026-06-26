@@ -47,7 +47,7 @@ func listCmd() *cobra.Command {
 				if listParams && len(pt.Params) > 0 {
 					cmd.Println(" parameters:")
 					for _, param := range pt.Params {
-						cmd.Printf("    %s: %s (default:%s)\n", param.Name, param.Help, param.Default)
+						cmd.Printf("   %s\n", param.HelpString())
 					}
 				}
 			}
