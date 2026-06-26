@@ -13,8 +13,6 @@ import (
 	"github.com/cilium/tetragon/cmd/tetra/debug"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/defaults"
-	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 )
 
@@ -45,12 +43,13 @@ func cgroupGetIDCommand() *cobra.Command {
 		Use:   "cgroupid",
 		Short: "retrieve cgroup id from file",
 		Args:  cobra.ExactArgs(1),
-		Run: func(_ *cobra.Command, args []string) {
+		RunE: func(_ *cobra.Command, args []string) error {
 			cgID, err := cgroups.GetCgroupIdFromPath(args[0])
 			if err != nil {
-				logger.Fatal(logger.GetLogger(), "Failed to parse cgroup", logfields.Error, err)
+				return fmt.Errorf("failed to parse cgroup: %w", err)
 			}
 			fmt.Printf("%d\n", cgID)
+			return nil
 		},
 	}
 
@@ -82,10 +81,10 @@ func addCommand() *cobra.Command {
 		Use:   "add [policy id] [cgroup]",
 		Short: "add policyfilter entry",
 		Args:  cobra.ExactArgs(2),
-		Run: func(_ *cobra.Command, args []string) {
+		RunE: func(_ *cobra.Command, args []string) error {
 			x, err := strconv.ParseUint(args[0], 10, 32)
 			if err != nil {
-				logger.Fatal(logger.GetLogger(), "Failed to parse policy id", logfields.Error, err)
+				return fmt.Errorf("failed to parse policy id: %w", err)
 			}
 			polID := policyfilter.PolicyID(x)
 
@@ -96,14 +95,23 @@ func addCommand() *cobra.Command {
 			case "id":
 				cgID, err = strconv.ParseUint(args[1], 10, 32)
 			default:
-				logger.Fatal(logger.GetLogger(), "Unknown type", "type", argType)
+				return fmt.Errorf("unknown type: %s", argType)
 			}
 
 			if err != nil {
-				logger.Fatal(logger.GetLogger(), "Failed to parse cgroup", logfields.Error, err)
+				return fmt.Errorf("failed to parse cgroup: %w", err)
 			}
 
-			addCgroup(mapFname, polID, policyfilter.CgroupID(cgID))
+			m, err := policyfilter.OpenMap(mapFname)
+			if err != nil {
+				return fmt.Errorf("failed to open policyfilter map: %w", err)
+			}
+			defer m.Close()
+
+			if err := m.AddCgroup(polID, policyfilter.CgroupID(cgID)); err != nil {
+				return fmt.Errorf("failed to add cgroup id: %w", err)
+			}
+			return nil
 		},
 	}
 
@@ -111,19 +119,4 @@ func addCommand() *cobra.Command {
 	flags.StringVar(&argType, "arg-type", "file", "cgroup type (id,file)")
 	flags.StringVar(&mapFname, "map-fname", mapFname, "policyfilter map filename")
 	return ret
-}
-
-func addCgroup(fname string, polID policyfilter.PolicyID, cgID policyfilter.CgroupID) {
-	m, err := policyfilter.OpenMap(fname)
-	if err != nil {
-		logger.Fatal(logger.GetLogger(), "Failed to open policyfilter map", logfields.Error, err)
-		return
-	}
-	defer m.Close()
-
-	err = m.AddCgroup(polID, cgID)
-	if err != nil {
-		logger.Fatal(logger.GetLogger(), "Failed to add cgroup id", logfields.Error, err)
-	}
-
 }
