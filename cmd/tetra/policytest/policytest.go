@@ -9,7 +9,9 @@ import (
 
 	// import tests
 	"context"
+	"errors"
 	"fmt"
+	"iter"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -119,6 +121,7 @@ func runCmd() *cobra.Command {
 	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
 	dumpPolicyPath := ""
 	monitorMode := false
+	allParams := false
 	var params map[string]string
 	cmd := cobra.Command{
 		Use:   "run",
@@ -136,10 +139,24 @@ func runCmd() *cobra.Command {
 				},
 			))
 
-			// NB: parameters are applied to all policies
-			paramValues := make(map[string]any)
-			for k, v := range params {
-				paramValues[k] = v
+			var getParamValues func(t *policytest.T) iter.Seq[policytest.ParamVals]
+			if len(params) > 0 && allParams {
+				return errors.New("setting --params conflicts with --all-params")
+			} else if allParams {
+				getParamValues = func(t *policytest.T) iter.Seq[policytest.ParamVals] {
+					return t.AllParamValues()
+				}
+			} else {
+				// NB: parameters are applied to all policies
+				paramValues := make(map[string]any)
+				for k, v := range params {
+					paramValues[k] = v
+				}
+				getParamValues = func(_ *policytest.T) iter.Seq[policytest.ParamVals] {
+					return func(yield func(policytest.ParamVals) bool) {
+						yield(paramValues)
+					}
+				}
 			}
 
 			ctx := context.Background()
@@ -162,12 +179,15 @@ func runCmd() *cobra.Command {
 			var results []*policytest.Result
 			var ptNames []string
 			for _, t := range tests {
-				ptNames = append(ptNames, t.Name)
-				res := runner.RunTest(log, t, &policytest.TestConf{
-					MonitorMode: monitorMode,
-					ParamValues: paramValues,
-				})
-				results = append(results, res)
+				for paramValues := range getParamValues(t) {
+					ptName := fmt.Sprintf("%s (%s)", t.Name, paramValues)
+					ptNames = append(ptNames, ptName)
+					res := runner.RunTest(log, t, &policytest.TestConf{
+						MonitorMode: monitorMode,
+						ParamValues: paramValues,
+					})
+					results = append(results, res)
+				}
 			}
 			runner.Close()
 			policytest.DumpResults(cmd.OutOrStdout(), ptNames, results)
@@ -179,5 +199,6 @@ func runCmd() *cobra.Command {
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policy in the provided path")
 	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
 	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
+	flags.BoolVar(&allParams, "all-params", allParams, "Run policy tests using all available parameters")
 	return &cmd
 }
