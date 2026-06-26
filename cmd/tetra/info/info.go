@@ -24,6 +24,7 @@ func New() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to create client: %w", err)
 			}
+			defer cli.Close()
 
 			res, err := cli.Client.GetInfo(cli.Ctx, &tetragon.GetInfoRequest{})
 			if err != nil {
