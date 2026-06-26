@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -120,7 +119,7 @@ Examples:
   # tetra debug progs --once --timeout 10
 `,
 
-		Run: func(_ *cobra.Command, _ []string) {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
@@ -132,7 +131,7 @@ Examples:
 
 			if cfg.bpffs == "" {
 				if cfg.bpffs, err = detectBpffs(); err != nil {
-					log.Fatal(err)
+					return err
 				}
 			}
 
@@ -146,9 +145,7 @@ Examples:
 				}
 			}
 
-			if err = runProgs(ctx); err != nil {
-				log.Fatal(err)
-			}
+			return runProgs(ctx)
 		},
 	}
 
