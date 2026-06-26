@@ -58,8 +58,8 @@ func execveMapCmd() *cobra.Command {
 		Use:   "execve",
 		Short: "dump execve map",
 		Args:  cobra.ExactArgs(0),
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return dumpExecveMap(mapFname)
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return dumpExecveMap(cmd, mapFname)
 		},
 	}
 
@@ -76,8 +76,8 @@ func policyfilterCmd() *cobra.Command {
 		Use:   "policyfilter",
 		Short: "dump policyfilter state",
 		Args:  cobra.ExactArgs(0),
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return PolicyfilterState(mapFname)
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return PolicyfilterState(cmd, mapFname)
 		},
 	}
 
@@ -87,7 +87,7 @@ func policyfilterCmd() *cobra.Command {
 	return ret
 }
 
-func dumpExecveMap(fname string) error {
+func dumpExecveMap(cmd *cobra.Command, fname string) error {
 	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{
 		ReadOnly: true,
 	})
@@ -109,12 +109,12 @@ func dumpExecveMap(fname string) error {
 	}
 
 	if len(data) == 0 {
-		fmt.Printf("(empty)")
+		cmd.Print("(empty)")
 		return nil
 	}
 
 	for k, v := range data {
-		fmt.Printf("%d %+v\n", k, v)
+		cmd.Printf("%d %+v\n", k, v)
 	}
 	return nil
 }
@@ -159,7 +159,7 @@ func processCacheCmd() *cobra.Command {
 	return ret
 }
 
-func PolicyfilterState(fname string) error {
+func PolicyfilterState(cmd *cobra.Command, fname string) error {
 	m, err := policyfilter.OpenMap(fname)
 	if err != nil {
 		return fmt.Errorf("failed to open policyfilter map: %w", err)
@@ -171,10 +171,10 @@ func PolicyfilterState(fname string) error {
 		return fmt.Errorf("failed to dump policyfilter map: %w", err)
 	}
 
-	fmt.Println("--- PolicyID to CgroupIDs mapping ---")
+	cmd.Println("--- PolicyID to CgroupIDs mapping ---")
 
 	if len(data.Policy) == 0 {
-		fmt.Printf("(empty)\n")
+		cmd.Println("(empty)")
 	}
 
 	for polId, cgIDs := range data.Policy {
@@ -182,14 +182,14 @@ func PolicyfilterState(fname string) error {
 		for id := range cgIDs {
 			ids = append(ids, strconv.FormatUint(uint64(id), 10))
 		}
-		fmt.Printf("%d: %s\n", polId, strings.Join(ids, ","))
+		cmd.Printf("%d: %s\n", polId, strings.Join(ids, ","))
 	}
 
 	if data.Cgroup != nil {
-		fmt.Println("--- CgroupID to PolicyIDs mapping ---")
+		cmd.Println("--- CgroupID to PolicyIDs mapping ---")
 
 		if len(data.Cgroup) == 0 {
-			fmt.Printf("(empty)\n")
+			cmd.Println("(empty)")
 		}
 
 		for cgIDs, polIds := range data.Cgroup {
@@ -197,7 +197,7 @@ func PolicyfilterState(fname string) error {
 			for id := range polIds {
 				ids = append(ids, strconv.FormatUint(uint64(id), 10))
 			}
-			fmt.Printf("%d: %s\n", cgIDs, strings.Join(ids, ","))
+			cmd.Printf("%d: %s\n", cgIDs, strings.Join(ids, ","))
 		}
 	}
 	return nil

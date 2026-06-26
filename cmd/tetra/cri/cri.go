@@ -54,7 +54,7 @@ func versionCmd(flagVals *criFlags) *cobra.Command {
 		Use:   "version",
 		Short: "retrieve CRI version",
 		Args:  cobra.ExactArgs(0),
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := context.Background()
 			client, err := cri.NewClient(ctx, flagVals.endpoint)
 			if err != nil {
@@ -68,13 +68,13 @@ func versionCmd(flagVals *criFlags) *cobra.Command {
 
 			switch flagVals.output {
 			case "raw":
-				fmt.Printf("%v\n", res)
+				cmd.Printf("%v\n", res)
 			case "json":
 				b, err := json.Marshal(res)
 				if err != nil {
 					return fmt.Errorf("failed to generate json: %w", err)
 				}
-				fmt.Println(string(b))
+				cmd.Println(string(b))
 			}
 			return nil
 		},
@@ -87,7 +87,7 @@ func cgroupPathCmd(flagVals *criFlags) *cobra.Command {
 		Use:   "cgroup_path",
 		Short: "retrieve cgroup path for container",
 		Args:  cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 			client, err := cri.NewClient(ctx, flagVals.endpoint)
 			if err != nil {
@@ -98,7 +98,7 @@ func cgroupPathCmd(flagVals *criFlags) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Println(ret)
+			cmd.Println(ret)
 			return nil
 		},
 	}
