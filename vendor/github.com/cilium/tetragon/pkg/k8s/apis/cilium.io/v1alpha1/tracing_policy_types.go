@@ -121,6 +121,19 @@ type TracingPolicySpec struct {
 	HostSelector *slimv1.LabelSelector `json:"hostSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// NodeSelector selects the nodes, by label, on which Tetragon agents load
+	// this policy. If empty or unset, the policy is loaded on all nodes. This differs in
+	// purpose from hostSelector: nodeSelector controls where a policy is loaded
+	// (on which nodes), whereas hostSelector controls which workloads a loaded
+	// policy applies to (host vs pod workloads) and does not affect whether the
+	// policy is loaded on a node. Use nodeSelector to target a node group such
+	// as GPU nodes, a specific architecture or OS, or a canary pool; use
+	// hostSelector to scope a loaded policy to host workloads. Unlike
+	// hostSelector, nodeSelector supports arbitrary matchLabels and
+	// matchExpressions.
+	NodeSelector *slimv1.LabelSelector `json:"nodeSelector,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	// A list of list specs.
 	Lists []ListSpec `json:"lists,omitempty"`
 

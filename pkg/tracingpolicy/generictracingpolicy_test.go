@@ -94,6 +94,36 @@ func TestEmptyTracingPolicy(t *testing.T) {
 	require.Error(t, err)
 }
 
+const tpNodeSelector = `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tracepoint-lseek"
+spec:
+  nodeSelector:
+    matchLabels:
+      node-role: gpu
+    matchExpressions:
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+          - amd64
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+`
+
+func TestYamlNodeSelector(t *testing.T) {
+	build.SkipIfK8sDisabled(t)
+	tp, err := FromYAML(tpNodeSelector)
+	require.NoError(t, err)
+	sel := tp.TpSpec().NodeSelector
+	require.NotNil(t, sel, "nodeSelector should be parsed")
+	require.Equal(t, "gpu", sel.MatchLabels["node-role"])
+	require.Len(t, sel.MatchExpressions, 1)
+	require.Equal(t, "kubernetes.io/arch", sel.MatchExpressions[0].Key)
+}
+
 const tpLabels = `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
