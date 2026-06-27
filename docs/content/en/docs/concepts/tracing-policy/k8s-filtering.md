@@ -62,6 +62,63 @@ Kubernetes namespace, any non-null `hostSelector` will trigger an error.
 
 Based on these, the user can choose on which workloads does a policy apply.
 
+## Node filtering
+
+The selectors above (`podSelector`, `containerSelector`, `hostSelector`) filter
+*which workloads* a policy applies to; the policy is still loaded by the
+Tetragon agent on every node. To instead control *which nodes* load a policy at
+all, use the `nodeSelector` field.
+
+`nodeSelector` is a standard Kubernetes label selector matched against the
+labels of the node each Tetragon agent runs on. An agent loads the policy only
+when its own node's labels match. This is useful for policies that are
+expensive, noisy, or only relevant on a subset of nodes — for example GPU
+nodes, a specific architecture or OS, or a canary node pool.
+
+Unlike `hostSelector`, arbitrary `matchLabels` and `matchExpressions` are
+supported. If `nodeSelector` is empty (`{}`) or omitted, the policy is loaded on
+all nodes, preserving the default behavior. `nodeSelector` is supported on both
+`TracingPolicy` and `TracingPolicyNamespaced`.
+
+The following example loads the policy only on nodes labeled `nodepool: gpu`
+with an `amd64` architecture:
+
+```yaml
+spec:
+  nodeSelector:
+    matchLabels:
+      nodepool: gpu
+    matchExpressions:
+    - key: kubernetes.io/arch
+      operator: In
+      values:
+      - amd64
+  kprobes:
+```
+
+When a node is relabeled at runtime, each agent re-evaluates its policies and
+loads or unloads them accordingly.
+
+{{< note >}}
+`nodeSelector` is evaluated by the Tetragon agent against the Kubernetes node it
+runs on, so it only applies to policies managed through the Kubernetes API
+(`TracingPolicy` and `TracingPolicyNamespaced`). Policies loaded directly from a
+file or through the gRPC API are not subject to `nodeSelector`.
+
+If the agent cannot evaluate the selector (for example, the node object is
+temporarily unavailable), it loads the policy on that node — `nodeSelector`
+fails open so a transient error never silently drops a policy.
+{{< /note >}}
+
+{{< warning >}}
+Because `nodeSelector` keys are read from the node's labels, any principal that
+can edit node labels can change which policies an agent loads — including
+unloading an enforcement policy by relabeling the node. When gating enforcement
+policies (for example `Sigkill`), restrict who can modify the node labels used
+in the selector, and prefer labels that are set at node provisioning time and
+not writable by untrusted workloads.
+{{< /warning >}}
+
 ## Filtering semantics
 
 The following table summarizes how different combinations of `hostSelector`, `podSelector`, and `containerSelector` behave.
