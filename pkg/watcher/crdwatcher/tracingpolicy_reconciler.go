@@ -8,10 +8,13 @@ package crdwatcher
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -63,6 +66,15 @@ func (r *TracingPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if delErr := r.Sensors.DeleteTracingPolicy(ctx, tp.TpName(), "", tp.TpDomain()); delErr != nil {
 		log.Debug("delete-before-add returned an error", logfields.Error, delErr)
 	}
+
+	// spec.nodeSelector gates per-node loading. The Delete above already
+	// unloaded any prior instance, so a policy whose nodeSelector stops matching
+	// after an update is correctly left unloaded on this node.
+	if skipForNode(ctx, r.Client, log, tp.Spec.NodeSelector) {
+		log.Info("skipping tracing policy: node does not match spec.nodeSelector")
+		return ctrl.Result{}, nil
+	}
+
 	log.Info("adding tracing policy", "info", tp.TpInfo())
 	if addErr := r.Sensors.AddTracingPolicy(ctx, tp); addErr != nil {
 		log.Error("adding tracing policy failed", logfields.Error, addErr)
@@ -79,7 +91,38 @@ func (r *TracingPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.TracingPolicy{},
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		// Re-evaluate every policy's nodeSelector when the local node is
+		// relabeled. Filter to the local node, and to label changes only so
+		// frequent status/heartbeat updates do not trigger reloads.
+		Watches(&corev1.Node{},
+			handler.EnqueueRequestsFromMapFunc(r.mapNodeToPolicies),
+			builder.WithPredicates(
+				predicate.LabelChangedPredicate{},
+				predicate.NewPredicateFuncs(isLocalNode),
+			)).
 		Complete(r)
+}
+
+// mapNodeToPolicies enqueues every TracingPolicy that uses a nodeSelector. It is
+// wired to the local Node (filtered to label changes) so a relabel re-evaluates
+// each such policy. Policies without a nodeSelector always match, so they are
+// skipped to avoid needlessly reloading them on every relabel.
+func (r *TracingPolicyReconciler) mapNodeToPolicies(ctx context.Context, _ client.Object) []reconcile.Request {
+	var list v1alpha1.TracingPolicyList
+	if err := r.Client.List(ctx, &list); err != nil {
+		logger.GetLogger().Warn("nodeSelector: listing tracing policies after node change failed", logfields.Error, err)
+		return nil
+	}
+	reqs := make([]reconcile.Request, 0, len(list.Items))
+	for i := range list.Items {
+		if list.Items[i].Spec.NodeSelector == nil {
+			continue
+		}
+		reqs = append(reqs, reconcile.Request{
+			NamespacedName: types.NamespacedName{Name: list.Items[i].Name},
+		})
+	}
+	return reqs
 }
 
 // RegisterTracingPolicyReconciler installs the cluster-scoped TracingPolicy
