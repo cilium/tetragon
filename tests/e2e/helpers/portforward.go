@@ -99,10 +99,23 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 			gopsPorts[pod.Name] = gopsPort + i
 		}
 
+		// The gRPC connections are relayed through per-node bridge pods, but
+		// callers look them up by agent pod name (as promPorts/gopsPorts are),
+		// so key each connection by the agent co-located with its bridge pod.
+		agentPodByNode := make(map[string]string, len(tetragonPods.Items))
+		for _, pod := range tetragonPods.Items {
+			agentPodByNode[pod.Spec.NodeName] = pod.Name
+		}
+
 		grpcPorts := make(map[string]int)
 		grpcConns := make(map[string]*grpc.ClientConn)
 		for i, pod := range bridgePods.Items {
 			localPort := grpcbridge.SocatPort + i
+			// Fall back to the bridge pod name if the agent cannot be resolved.
+			key := agentPodByNode[pod.Spec.NodeName]
+			if key == "" {
+				key = pod.Name
+			}
 			if ctx, err = PortForwardPod(
 				testenv,
 				&pod,
@@ -113,7 +126,7 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 				func() error {
 					conn, err := multiplexer.ConnectAttempt(ctx, fmt.Sprintf("localhost:%d", localPort))
 					if err == nil {
-						grpcConns[pod.Name] = conn
+						grpcConns[key] = conn
 					}
 					return err
 				},
@@ -121,7 +134,7 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 			)(ctx, cfg); err != nil {
 				return ctx, fmt.Errorf("gRPC bridge portforwarding failed: %w", err)
 			}
-			grpcPorts[pod.Name] = localPort
+			grpcPorts[key] = localPort
 		}
 
 		ctx = context.WithValue(ctx, state.GrpcForwardedPorts, grpcPorts)
