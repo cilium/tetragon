@@ -593,11 +593,37 @@ func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *upro
 	return nil
 }
 
+func cleanupUprobeEntries(ids []idtable.EntryID) error {
+	var errs error
+
+	for _, id := range ids {
+		uprobeEntry, err := genericUprobeTableGet(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+			continue
+		}
+
+		if err = selectors.CleanupKernelSelectorState(uprobeEntry.loadArgs.selectors.entry); err != nil {
+			errs = errors.Join(errs, err)
+		}
+		if err = selectors.CleanupKernelSelectorState(uprobeEntry.loadArgs.selectors.retrn); err != nil {
+			errs = errors.Join(errs, err)
+		}
+
+		_, err = uprobeTable.RemoveEntry(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+
+	return errs
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
 	polInfo *policyInfo,
-) (*sensors.Sensor, error) {
+) (retSensor *sensors.Sensor, retErr error) {
 	var progs []*program.Program
 	var maps []*program.Map
 	var ids []idtable.EntryID
@@ -625,6 +651,14 @@ func createGenericUprobeSensor(
 			return nil, err
 		}
 	}
+
+	defer func() {
+		if retErr != nil {
+			if cleanupErr := cleanupUprobeEntries(ids); cleanupErr != nil {
+				retErr = errors.Join(retErr, cleanupErr)
+			}
+		}
+	}()
 
 	var selectorStatsBase uint32
 	for _, uprobe := range spec.UProbes {
@@ -667,25 +701,7 @@ func createGenericUprobeSensor(
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
 		DestroyHook: func() error {
-			var errs error
-
-			for _, id := range ids {
-				uprobeEntry, err := genericUprobeTableGet(id)
-				if err != nil {
-					errs = errors.Join(errs, err)
-					continue
-				}
-
-				if err = selectors.CleanupKernelSelectorState(uprobeEntry.loadArgs.selectors.entry); err != nil {
-					errs = errors.Join(errs, err)
-				}
-
-				_, err = uprobeTable.RemoveEntry(id)
-				if err != nil {
-					errs = errors.Join(errs, err)
-				}
-			}
-			return errs
+			return cleanupUprobeEntries(ids)
 		},
 	}, nil
 }
@@ -941,54 +957,54 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 
 	f, err := elf.OpenSafeELFFile(spec.Path)
 	if err != nil {
-		return nil, err
+		return ids, err
 	}
 	defer f.Close()
 
 	if state.symbols != 0 && f.IsStrippedPureGoBinary() {
 		tbl, err := f.Pclntab()
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse pclntab: %w", err)
+			return ids, fmt.Errorf("failed to parse pclntab: %w", err)
 		}
 		for idx, sym := range spec.Symbols {
 			if err := checkSymbol(sym); err != nil {
-				return nil, fmt.Errorf("failed to parse symbol: %w", err)
+				return ids, fmt.Errorf("failed to parse symbol: %w", err)
 			}
 			off, ok := tbl.OffsetByName(sym)
 			if !ok {
-				return nil, fmt.Errorf("failed to resolve symbol: %w", err)
+				return ids, fmt.Errorf("failed to resolve symbol: %w", err)
 			}
 			err = addUprobeEntry(sym, off, idx)
 			if err != nil {
-				return nil, err
+				return ids, err
 			}
 		}
 	} else if state.symbols != 0 {
 		for idx, sym := range spec.Symbols {
 			if err := checkSymbol(sym); err != nil {
-				return nil, fmt.Errorf("failed to parse symbol: %w", err)
+				return ids, fmt.Errorf("failed to parse symbol: %w", err)
 			}
 			err = addUprobeEntry(sym, 0, idx)
 			if err != nil {
-				return nil, err
+				return ids, err
 			}
 		}
 	} else if state.offsets != 0 {
 		for idx, off := range spec.Offsets {
 			err = addUprobeEntry("", off, idx)
 			if err != nil {
-				return nil, err
+				return ids, err
 			}
 		}
 	} else if state.addrs != 0 {
 		for idx, addr := range spec.Addrs {
 			off, err := f.OffsetFromAddr(addr)
 			if err != nil {
-				return nil, err
+				return ids, err
 			}
 			err = addUprobeEntry("", off, idx)
 			if err != nil {
-				return nil, err
+				return ids, err
 			}
 		}
 	}
@@ -996,29 +1012,40 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 	return ids, nil
 }
 
-func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) ([]idtable.EntryID, error) {
+func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) (retIDs []idtable.EntryID, retErr error) {
 	state := uprobeConfigState{
 		policyName: in.policyName,
 	}
 
+	defer func() {
+		if retErr != nil {
+			if cleanupErr := selectors.CleanupKernelSelectorState(state.selectors.entry); cleanupErr != nil {
+				retErr = errors.Join(retErr, cleanupErr)
+			}
+			if cleanupErr := selectors.CleanupKernelSelectorState(state.selectors.retrn); cleanupErr != nil {
+				retErr = errors.Join(retErr, cleanupErr)
+			}
+		}
+	}()
+
 	if err := validateUprobeSpec(spec, &state); err != nil {
-		return nil, err
+		return ids, err
 	}
 
 	if err := validateUprobeFeatures(spec, has); err != nil {
-		return nil, err
+		return ids, err
 	}
 
 	if err := initUprobeSelectors(spec, in, &state); err != nil {
-		return nil, err
+		return ids, err
 	}
 
 	if err := initUprobeMisc(spec, &state); err != nil {
-		return nil, err
+		return ids, err
 	}
 
 	if err := initUprobeArgs(spec, has, in, &state); err != nil {
-		return nil, err
+		return ids, err
 	}
 
 	return addUprobeEntries(spec, ids, &state)
