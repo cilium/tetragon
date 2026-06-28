@@ -412,9 +412,7 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 }
 
 type addUprobeIn struct {
-	sensorPath        string
 	policyName        string
-	useMulti          bool
 	celExprs          *selectors.CelExprFunctions
 	selectorStatsBase uint32
 }
@@ -494,14 +492,11 @@ func createGenericUprobeSensor(
 	}
 
 	in := addUprobeIn{
-		sensorPath: name,
 		policyName: polInfo.name,
-
-		useMulti: useMulti,
-		celExprs: celExprs,
+		celExprs:   celExprs,
 	}
 
-	if in.useMulti {
+	if useMulti {
 		if err = validateMultiUprobeConsistency(spec.UProbes); err != nil {
 			return nil, err
 		}
@@ -522,7 +517,7 @@ func createGenericUprobeSensor(
 		}
 	}
 
-	if in.useMulti {
+	if useMulti {
 		progs, maps, err = createMultiUprobeSensor(polInfo, name, ids, has)
 	} else {
 		progs, maps, err = createSingleUprobeSensor(polInfo, ids, has)
