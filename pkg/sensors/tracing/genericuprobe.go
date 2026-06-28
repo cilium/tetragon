@@ -484,6 +484,8 @@ type uprobeConfigState struct {
 	setRetprobe       bool
 	argPrinters       []argPrinter
 	argReturnPrinters []argPrinter
+
+	policyName string
 }
 
 type uprobeArgConfig struct {
@@ -688,7 +690,7 @@ func createGenericUprobeSensor(
 	}, nil
 }
 
-func initUprobeMisc(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState) error {
+func initUprobeMisc(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) error {
 	var err error
 
 	state.message, err = getPolicyMessage(spec.Message)
@@ -696,7 +698,7 @@ func initUprobeMisc(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeCon
 		return err
 	} else if errors.Is(err, ErrMsgSyntaxLong) {
 		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen),
-			"policy-name", in.policyName)
+			"policy-name", state.policyName)
 	}
 
 	state.tags, err = GetPolicyTags(spec.Tags)
@@ -895,7 +897,7 @@ func getUprobeReturnArg(spec *v1alpha1.UProbeSpec, argCfg uprobeArgConfig, event
 	return setRetprobe, argReturnPrinters, nil
 }
 
-func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, state *uprobeConfigState) ([]idtable.EntryID, error) {
+func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *uprobeConfigState) ([]idtable.EntryID, error) {
 	addUprobeEntry := func(sym string, offset uint64, idx int) error {
 		var refCtrOffset uint64
 		var err error
@@ -915,7 +917,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addU
 			symbol:            sym,
 			address:           offset,
 			refCtrOffset:      refCtrOffset,
-			policyName:        in.policyName,
+			policyName:        state.policyName,
 			message:           state.message,
 			argPrinters:       state.argPrinters,
 			argReturnPrinters: state.argReturnPrinters,
@@ -995,7 +997,9 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addU
 }
 
 func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) ([]idtable.EntryID, error) {
-	state := uprobeConfigState{}
+	state := uprobeConfigState{
+		policyName: in.policyName,
+	}
 
 	if err := validateUprobeSpec(spec, &state); err != nil {
 		return nil, err
@@ -1009,7 +1013,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
-	if err := initUprobeMisc(spec, in, &state); err != nil {
+	if err := initUprobeMisc(spec, &state); err != nil {
 		return nil, err
 	}
 
@@ -1017,7 +1021,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
-	return addUprobeEntries(spec, ids, in, &state)
+	return addUprobeEntries(spec, ids, &state)
 }
 
 func multiUprobePinPath(sensorPath string) string {
