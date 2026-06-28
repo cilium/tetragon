@@ -34,6 +34,12 @@ const configPath = "/tmp/tetragon-e2e-kind.yaml"
 const kindConfig = `
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+# Enable NRI so the tetragon-rthooks plugin can deliver the CreateContainer hook
+# (used by the resolvePathInContainer e2e test); harmless without that plugin.
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.nri.v1.nri"]
+    disable = false
 nodes:
 - role: control-plane
   extraMounts:
