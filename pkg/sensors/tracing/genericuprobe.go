@@ -479,6 +479,26 @@ type uprobeConfigState struct {
 
 	message string
 	tags    []string
+
+	eventConfig       *api.EventConfig
+	setRetprobe       bool
+	argPrinters       []argPrinter
+	argReturnPrinters []argPrinter
+}
+
+type uprobeArgConfig struct {
+	argTypes [api.EventConfigMaxArgs]int32
+	argMeta  [api.EventConfigMaxArgs]uint32
+	argIdx   [api.EventConfigMaxArgs]int32
+
+	argPrinters []argPrinter
+
+	regArg     [api.EventConfigMaxRegArgs]api.ConfigRegArg
+	allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
+
+	argRetprobe    *v1alpha1.KProbeArg
+	argRetprobeIdx int
+	preload        bool
 }
 
 func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) error {
@@ -683,12 +703,200 @@ func initUprobeMisc(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeCon
 	return err
 }
 
+func initUprobeArgs(spec *v1alpha1.UProbeSpec, has *uprobeHas, in *addUprobeIn, state *uprobeConfigState) error {
+	argCfg, err := getUprobeArgConfig(spec, has)
+	if err != nil {
+		return err
+	}
+
+	eventConfig := initEventConfig()
+	eventConfig.SelStatsBase = in.selectorStatsBase
+	eventConfig.ArgType = argCfg.argTypes
+	eventConfig.ArgMeta = argCfg.argMeta
+	eventConfig.ArgIndex = argCfg.argIdx
+	eventConfig.BTFArg = argCfg.allBTFArgs
+	eventConfig.RegArg = argCfg.regArg
+
+	setRetprobe, argReturnPrinters, err := getUprobeReturnArg(spec, argCfg, eventConfig)
+	if err != nil {
+		return err
+	}
+
+	state.eventConfig = eventConfig
+	state.setRetprobe = setRetprobe
+	state.argPrinters = argCfg.argPrinters
+	state.argReturnPrinters = argReturnPrinters
+	return nil
+}
+
+func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgConfig, error) {
+	var cfg uprobeArgConfig
+
+	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
+		var preloadArg bool
+		argType := gt.GenericTypeFromString(a.Type)
+
+		if data {
+			// Data specific config
+			if hasPtRegsSource(a) {
+				var ok bool
+
+				cfg.regArg[i].Offset, cfg.regArg[i].Size, ok = asm.RegOffsetSize(a.Resolve)
+				if !ok {
+					return fmt.Errorf("error: Failed to retrieve register argument '%s'", a.Resolve)
+				}
+
+				// If we are getting string type from pt_regs register we can safely assume
+				// it's from user address, so we need to read it through preload.
+				if argType == gt.GenericStringType {
+					if !bpf.HasKfunc("bpf_copy_from_user_str") {
+						return fmt.Errorf("can't preload string for argument %d", i)
+					}
+					if cfg.preload {
+						return errors.New("error: can't preload more than one argument")
+					}
+					preloadArg = true
+				}
+			} else if hasCurrentTaskSource(a) {
+				if !bpf.HasProgramLargeSize() {
+					return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
+				}
+				lastBTFType, btfArg, err := resolveBTFArg("", a, false)
+				if err != nil {
+					return fmt.Errorf("can't resolve current_task source: %s", a.Resolve)
+				}
+				cfg.allBTFArgs[i] = btfArg
+				argType = findTypeFromBTFType(a, lastBTFType)
+			}
+		} else {
+			// Args specific config
+			if a.Resolve != "" {
+				lastBTFType, btfArg, err := resolveUserBTFArg(a, spec.BTFPath)
+				if err != nil {
+					return err
+				}
+
+				cfg.allBTFArgs[i] = btfArg
+				argType = findTypeFromBTFType(a, lastBTFType)
+			}
+
+			if argType == gt.GenericStringType {
+				if !bpf.HasKfunc("bpf_copy_from_user_str") {
+					return fmt.Errorf("can't preload string for argument %d", i)
+				}
+				if cfg.preload {
+					return errors.New("error: can't preload more than one argument")
+				}
+				preloadArg = true
+			}
+		}
+
+		cfg.preload = cfg.preload || preloadArg
+
+		has.sleepablePreload = has.sleepablePreload || cfg.preload
+
+		if argType == gt.GenericInvalidType {
+			return fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
+		}
+		argMValue, err := getUserMetaValue(a, preloadArg)
+		if err != nil {
+			return err
+		}
+		if argReturnCopy(argMValue) {
+			cfg.argRetprobe = &spec.Args[i]
+			cfg.argRetprobeIdx = i
+		}
+		if a.Index > 4 {
+			return fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
+				a.Type, int(a.Index))
+		}
+
+		cfg.argTypes[i] = int32(argType)
+		cfg.argMeta[i] = uint32(argMValue)
+		cfg.argIdx[i] = int32(a.Index)
+
+		cfg.argPrinters = append(cfg.argPrinters, argPrinter{index: i, ty: argType, data: data})
+		return nil
+	}
+
+	var i int
+
+	// Parse Arguments
+	for _, arg := range spec.Args {
+		if arg.Source != "" {
+			return cfg, fmt.Errorf("standard argument can't have source set '%s'", arg.Source)
+		}
+		if err := addArg(i, &arg, false); err != nil {
+			return cfg, err
+		}
+		i = i + 1
+	}
+
+	// Parse Data
+	for _, data := range spec.Data {
+		if !hasPtRegsSource(&data) && !hasCurrentTaskSource(&data) {
+			return cfg, fmt.Errorf("data argument has wrong source '%s'", data.Source)
+		}
+		if data.Resolve == "" {
+			return cfg, errors.New("data argument missing 'resolve' setup")
+		}
+		if err := addArg(i, &data, true); err != nil {
+			return cfg, err
+		}
+		i = i + 1
+	}
+
+	return cfg, nil
+}
+
+func getUprobeReturnArg(spec *v1alpha1.UProbeSpec, argCfg uprobeArgConfig, eventConfig *api.EventConfig) (bool, []argPrinter, error) {
+	var argReturnPrinters []argPrinter
+
+	// Parse ReturnArg, we have two types of return arg parsing. We
+	// support populating an uprobe buffer from uretprobe hooks. This
+	// is used to capture data that is populated by the function hoooked.
+	// For example Read calls supply a buffer to the syscall, but we
+	// wont have its contents until uretprobe is run. The other type is
+	// the f.Return case. These capture the return value of the function
+	// without context from the uprobe hook. The BTF argument 'argreturn'
+	// instructs the BPF uretprobe program which type of copy to use. And
+	// argReturnPrinters tell golang printer piece how to print the event.
+	if spec.Return {
+		if spec.ReturnArg == nil {
+			return false, nil, errors.New("ReturnArg not specified with Return=true")
+		}
+		argType := gt.GenericTypeFromString(spec.ReturnArg.Type)
+		if argType == gt.GenericInvalidType {
+			if spec.ReturnArg.Type == "" {
+				return false, nil, errors.New("ReturnArg not specified with Return=true")
+			}
+			return false, nil, fmt.Errorf("ReturnArg type '%s' unsupported", spec.ReturnArg.Type)
+		}
+		eventConfig.ArgReturn = int32(argType)
+		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
+		argReturnPrinters = append(argReturnPrinters, argP)
+	} else {
+		eventConfig.ArgReturn = int32(gt.GenericUnsetType)
+	}
+
+	setRetprobe := spec.Return
+	if argCfg.argRetprobe != nil {
+		setRetprobe = true
+
+		argType := gt.GenericTypeFromString(argCfg.argRetprobe.Type)
+		eventConfig.ArgReturnCopy = int32(argType)
+
+		argP := argPrinter{index: argCfg.argRetprobeIdx, ty: argType, label: argCfg.argRetprobe.Label}
+		argReturnPrinters = append(argReturnPrinters, argP)
+	} else {
+		eventConfig.ArgReturnCopy = int32(gt.GenericUnsetType)
+	}
+
+	return setRetprobe, argReturnPrinters, nil
+}
+
 func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) ([]idtable.EntryID, error) {
 	state := uprobeConfigState{}
-
-	var argRetprobe *v1alpha1.KProbeArg
-	var argRetprobeIdx int
-	var setRetprobe bool
 
 	if err := validateUprobeSpec(spec, &state); err != nil {
 		return nil, err
@@ -706,175 +914,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
-	var (
-		argTypes [api.EventConfigMaxArgs]int32
-		argMeta  [api.EventConfigMaxArgs]uint32
-		argIdx   [api.EventConfigMaxArgs]int32
-
-		argPrinters       []argPrinter
-		argReturnPrinters []argPrinter
-
-		regArg [api.EventConfigMaxRegArgs]api.ConfigRegArg
-	)
-
-	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
-	var preload bool
-
-	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
-		var preloadArg bool
-		argType := gt.GenericTypeFromString(a.Type)
-
-		if data {
-			// Data specific config
-			if hasPtRegsSource(a) {
-				var ok bool
-
-				regArg[i].Offset, regArg[i].Size, ok = asm.RegOffsetSize(a.Resolve)
-				if !ok {
-					return fmt.Errorf("error: Failed to retrieve register argument '%s'", a.Resolve)
-				}
-
-				// If we are getting string type from pt_regs register we can safely assume
-				// it's from user address, so we need to read it through preload.
-				if argType == gt.GenericStringType {
-					if !bpf.HasKfunc("bpf_copy_from_user_str") {
-						return fmt.Errorf("can't preload string for argument %d", i)
-					}
-					if preload {
-						return errors.New("error: can't preload more than one argument")
-					}
-					preloadArg = true
-				}
-			} else if hasCurrentTaskSource(a) {
-				if !bpf.HasProgramLargeSize() {
-					return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
-				}
-				lastBTFType, btfArg, err := resolveBTFArg("", a, false)
-				if err != nil {
-					return fmt.Errorf("can't resolve current_task source: %s", a.Resolve)
-				}
-				allBTFArgs[i] = btfArg
-				argType = findTypeFromBTFType(a, lastBTFType)
-			}
-		} else {
-			// Args specific config
-			if a.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(a, spec.BTFPath)
-				if err != nil {
-					return err
-				}
-
-				allBTFArgs[i] = btfArg
-				argType = findTypeFromBTFType(a, lastBTFType)
-			}
-
-			if argType == gt.GenericStringType {
-				if !bpf.HasKfunc("bpf_copy_from_user_str") {
-					return fmt.Errorf("can't preload string for argument %d", i)
-				}
-				if preload {
-					return errors.New("error: can't preload more than one argument")
-				}
-				preloadArg = true
-			}
-		}
-
-		preload = preload || preloadArg
-
-		has.sleepablePreload = has.sleepablePreload || preload
-
-		if argType == gt.GenericInvalidType {
-			return fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
-		}
-		argMValue, err := getUserMetaValue(a, preloadArg)
-		if err != nil {
-			return err
-		}
-		if argReturnCopy(argMValue) {
-			argRetprobe = &spec.Args[i]
-			argRetprobeIdx = i
-		}
-		if a.Index > 4 {
-			return fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
-				a.Type, int(a.Index))
-		}
-
-		argTypes[i] = int32(argType)
-		argMeta[i] = uint32(argMValue)
-		argIdx[i] = int32(a.Index)
-
-		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType, data: data})
-		return nil
-	}
-
-	var i int
-
-	// Parse Arguments
-	for _, arg := range spec.Args {
-		if arg.Source != "" {
-			return nil, fmt.Errorf("standard argument can't have source set '%s'", arg.Source)
-		}
-		if err := addArg(i, &arg, false); err != nil {
-			return nil, err
-		}
-		i = i + 1
-	}
-
-	// Parse Data
-	for _, data := range spec.Data {
-		if !hasPtRegsSource(&data) && !hasCurrentTaskSource(&data) {
-			return nil, fmt.Errorf("data argument has wrong source '%s'", data.Source)
-		}
-		if data.Resolve == "" {
-			return nil, errors.New("data argument missing 'resolve' setup")
-		}
-		if err := addArg(i, &data, true); err != nil {
-			return nil, err
-		}
-		i = i + 1
-	}
-
-	eventConfig := initEventConfig()
-	eventConfig.SelStatsBase = in.selectorStatsBase
-
-	// Parse ReturnArg, we have two types of return arg parsing. We
-	// support populating an uprobe buffer from uretprobe hooks. This
-	// is used to capture data that is populated by the function hoooked.
-	// For example Read calls supply a buffer to the syscall, but we
-	// wont have its contents until uretprobe is run. The other type is
-	// the f.Return case. These capture the return value of the function
-	// without context from the uprobe hook. The BTF argument 'argreturn'
-	// instructs the BPF uretprobe program which type of copy to use. And
-	// argReturnPrinters tell golang printer piece how to print the event.
-	if spec.Return {
-		if spec.ReturnArg == nil {
-			return nil, errors.New("ReturnArg not specified with Return=true")
-		}
-		argType := gt.GenericTypeFromString(spec.ReturnArg.Type)
-		if argType == gt.GenericInvalidType {
-			if spec.ReturnArg.Type == "" {
-				return nil, errors.New("ReturnArg not specified with Return=true")
-			}
-			return nil, fmt.Errorf("ReturnArg type '%s' unsupported", spec.ReturnArg.Type)
-		}
-		eventConfig.ArgReturn = int32(argType)
-		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
-		argReturnPrinters = append(argReturnPrinters, argP)
-	} else {
-		eventConfig.ArgReturn = int32(gt.GenericUnsetType)
-	}
-
-	setRetprobe = spec.Return
-	if argRetprobe != nil {
-		setRetprobe = true
-
-		argType := gt.GenericTypeFromString(argRetprobe.Type)
-		eventConfig.ArgReturnCopy = int32(argType)
-
-		argP := argPrinter{index: argRetprobeIdx, ty: argType, label: argRetprobe.Label}
-		argReturnPrinters = append(argReturnPrinters, argP)
-	} else {
-		eventConfig.ArgReturnCopy = int32(gt.GenericUnsetType)
+	if err := initUprobeArgs(spec, has, in, &state); err != nil {
+		return nil, err
 	}
 
 	addUprobeEntry := func(sym string, offset uint64, idx int) error {
@@ -885,16 +926,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			refCtrOffset = spec.RefCtrOffsets[idx]
 		}
 
-		eventConfig.ArgType = argTypes
-		eventConfig.ArgMeta = argMeta
-		eventConfig.ArgIndex = argIdx
-		eventConfig.BTFArg = allBTFArgs
-		eventConfig.RegArg = regArg
-
 		uprobeEntry := &genericUprobe{
 			loadArgs: uprobeLoadArgs{
-				retprobe:  setRetprobe,
-				config:    eventConfig,
+				retprobe:  state.setRetprobe,
+				config:    state.eventConfig,
 				selectors: state.selectors,
 			},
 			tableId:           idtable.UninitializedEntryID,
@@ -904,8 +939,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			refCtrOffset:      refCtrOffset,
 			policyName:        in.policyName,
 			message:           state.message,
-			argPrinters:       argPrinters,
-			argReturnPrinters: argReturnPrinters,
+			argPrinters:       state.argPrinters,
+			argReturnPrinters: state.argReturnPrinters,
 			tags:              state.tags,
 			pendingEvents:     nil,
 		}
@@ -918,7 +953,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		uprobeTable.AddEntry(uprobeEntry)
 		id := uprobeEntry.tableId
 
-		eventConfig.FuncId = uint32(id.ID)
+		state.eventConfig.FuncId = uint32(id.ID)
 
 		ids = append(ids, id)
 		return nil
