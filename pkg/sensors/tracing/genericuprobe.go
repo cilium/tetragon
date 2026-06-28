@@ -476,6 +476,9 @@ type uprobeConfigState struct {
 	refCtrOffsets int
 
 	selectors kprobeSelectors
+
+	message string
+	tags    []string
 }
 
 func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) error {
@@ -665,6 +668,21 @@ func createGenericUprobeSensor(
 	}, nil
 }
 
+func initUprobeMisc(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState) error {
+	var err error
+
+	state.message, err = getPolicyMessage(spec.Message)
+	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
+		return err
+	} else if errors.Is(err, ErrMsgSyntaxLong) {
+		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen),
+			"policy-name", in.policyName)
+	}
+
+	state.tags, err = GetPolicyTags(spec.Tags)
+	return err
+}
+
 func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) ([]idtable.EntryID, error) {
 	state := uprobeConfigState{}
 
@@ -684,12 +702,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
-	msgField, err := getPolicyMessage(spec.Message)
-	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
+	if err := initUprobeMisc(spec, in, &state); err != nil {
 		return nil, err
-	} else if errors.Is(err, ErrMsgSyntaxLong) {
-		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen),
-			"policy-name", in.policyName)
 	}
 
 	var (
@@ -702,11 +716,6 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 		regArg [api.EventConfigMaxRegArgs]api.ConfigRegArg
 	)
-
-	tagsField, err := GetPolicyTags(spec.Tags)
-	if err != nil {
-		return nil, err
-	}
 
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 	var preload bool
@@ -870,6 +879,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 	addUprobeEntry := func(sym string, offset uint64, idx int) error {
 		var refCtrOffset uint64
+		var err error
 
 		if state.refCtrOffsets != 0 {
 			refCtrOffset = spec.RefCtrOffsets[idx]
@@ -893,10 +903,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			address:           offset,
 			refCtrOffset:      refCtrOffset,
 			policyName:        in.policyName,
-			message:           msgField,
+			message:           state.message,
 			argPrinters:       argPrinters,
 			argReturnPrinters: argReturnPrinters,
-			tags:              tagsField,
+			tags:              state.tags,
 			pendingEvents:     nil,
 		}
 
