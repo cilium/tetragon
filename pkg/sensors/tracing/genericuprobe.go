@@ -511,6 +511,31 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 	return nil
 }
 
+func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
+	if selectors.HasOverride(spec.Selectors) {
+		if !bpf.HasUprobeRegsChange() {
+			return errors.New("can't use override regs action, no kernel support")
+		}
+		has.sleepableOffload = true
+	}
+
+	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubString) {
+		if !bpf.HasKfunc("bpf_strnstr") {
+			return errors.New("can't use SubString operator, no kernel support")
+		}
+		has.substring = true
+	}
+
+	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubStringIgnCase) {
+		if !bpf.HasKfunc("bpf_strncasestr") {
+			return errors.New("can't use SubStringIgnCase operator, no kernel support")
+		}
+		has.substring = true
+	}
+
+	return nil
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -619,25 +644,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
-	if selectors.HasOverride(spec.Selectors) {
-		if !bpf.HasUprobeRegsChange() {
-			return nil, errors.New("can't use override regs action, no kernel support")
-		}
-		has.sleepableOffload = true
-	}
-
-	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubString) {
-		if !bpf.HasKfunc("bpf_strnstr") {
-			return nil, errors.New("can't use SubString operator, no kernel support")
-		}
-		has.substring = true
-	}
-
-	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubStringIgnCase) {
-		if !bpf.HasKfunc("bpf_strncasestr") {
-			return nil, errors.New("can't use SubStringIgnCase operator, no kernel support")
-		}
-		has.substring = true
+	if err := validateUprobeFeatures(spec, has); err != nil {
+		return nil, err
 	}
 
 	// Parse Filters into kernel filter logic
