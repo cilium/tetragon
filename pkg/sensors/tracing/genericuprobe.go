@@ -474,6 +474,8 @@ type uprobeConfigState struct {
 	offsets       int
 	addrs         int
 	refCtrOffsets int
+
+	selectors kprobeSelectors
 }
 
 func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) error {
@@ -533,6 +535,36 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 		has.substring = true
 	}
 
+	return nil
+}
+
+func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState) error {
+	entry, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
+		Selectors: spec.Selectors,
+		Args:      spec.Args,
+		Data:      spec.Data,
+		IsUprobe:  true,
+		CelExprs:  in.celExprs,
+	})
+	if err != nil {
+		return err
+	}
+
+	state.selectors = kprobeSelectors{
+		entry: entry,
+	}
+
+	var retrn *selectors.KernelSelectorState
+	if spec.Return {
+		retrn, err = selectors.InitKernelReturnSelectorState(spec.Selectors, spec.ReturnArg,
+			nil, nil, nil)
+		if err != nil {
+			// we rely on addUprobe cleanup for entry selector
+			return err
+		}
+	}
+
+	state.selectors.retrn = retrn
 	return nil
 }
 
@@ -648,25 +680,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
-	// Parse Filters into kernel filter logic
-	uprobeSelectorState, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
-		Selectors: spec.Selectors,
-		Args:      spec.Args,
-		Data:      spec.Data,
-		IsUprobe:  true,
-		CelExprs:  in.celExprs,
-	})
-	if err != nil {
+	if err := initUprobeSelectors(spec, in, &state); err != nil {
 		return nil, err
-	}
-
-	var uprobeRetSelectorState *selectors.KernelSelectorState
-	if spec.Return {
-		uprobeRetSelectorState, err = selectors.InitKernelReturnSelectorState(spec.Selectors, spec.ReturnArg,
-			nil, nil, nil)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	msgField, err := getPolicyMessage(spec.Message)
@@ -868,12 +883,9 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 		uprobeEntry := &genericUprobe{
 			loadArgs: uprobeLoadArgs{
-				retprobe: setRetprobe,
-				config:   eventConfig,
-				selectors: kprobeSelectors{
-					entry: uprobeSelectorState,
-					retrn: uprobeRetSelectorState,
-				},
+				retprobe:  setRetprobe,
+				config:    eventConfig,
+				selectors: state.selectors,
 			},
 			tableId:           idtable.UninitializedEntryID,
 			path:              spec.Path,
