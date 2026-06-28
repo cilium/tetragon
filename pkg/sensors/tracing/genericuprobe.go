@@ -895,29 +895,7 @@ func getUprobeReturnArg(spec *v1alpha1.UProbeSpec, argCfg uprobeArgConfig, event
 	return setRetprobe, argReturnPrinters, nil
 }
 
-func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) ([]idtable.EntryID, error) {
-	state := uprobeConfigState{}
-
-	if err := validateUprobeSpec(spec, &state); err != nil {
-		return nil, err
-	}
-
-	if err := validateUprobeFeatures(spec, has); err != nil {
-		return nil, err
-	}
-
-	if err := initUprobeSelectors(spec, in, &state); err != nil {
-		return nil, err
-	}
-
-	if err := initUprobeMisc(spec, in, &state); err != nil {
-		return nil, err
-	}
-
-	if err := initUprobeArgs(spec, has, in, &state); err != nil {
-		return nil, err
-	}
-
+func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, state *uprobeConfigState) ([]idtable.EntryID, error) {
 	addUprobeEntry := func(sym string, offset uint64, idx int) error {
 		var refCtrOffset uint64
 		var err error
@@ -1014,6 +992,32 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	}
 
 	return ids, nil
+}
+
+func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) ([]idtable.EntryID, error) {
+	state := uprobeConfigState{}
+
+	if err := validateUprobeSpec(spec, &state); err != nil {
+		return nil, err
+	}
+
+	if err := validateUprobeFeatures(spec, has); err != nil {
+		return nil, err
+	}
+
+	if err := initUprobeSelectors(spec, in, &state); err != nil {
+		return nil, err
+	}
+
+	if err := initUprobeMisc(spec, in, &state); err != nil {
+		return nil, err
+	}
+
+	if err := initUprobeArgs(spec, has, in, &state); err != nil {
+		return nil, err
+	}
+
+	return addUprobeEntries(spec, ids, in, &state)
 }
 
 func multiUprobePinPath(sensorPath string) string {
