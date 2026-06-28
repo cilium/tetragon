@@ -469,6 +469,48 @@ func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
 	return nil
 }
 
+type uprobeConfigState struct {
+	symbols       int
+	offsets       int
+	addrs         int
+	refCtrOffsets int
+}
+
+func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) error {
+	state.symbols = len(spec.Symbols)
+	state.offsets = len(spec.Offsets)
+	state.addrs = len(spec.Addrs)
+	state.refCtrOffsets = len(spec.RefCtrOffsets)
+
+	numAddressMethods := 0
+	if state.symbols != 0 {
+		numAddressMethods++
+	}
+	if state.offsets != 0 {
+		numAddressMethods++
+	}
+	if state.addrs != 0 {
+		numAddressMethods++
+	}
+
+	if numAddressMethods != 1 {
+		return errors.New("uprobe needs exactly one of either Symbols, Offsets or Addrs defined")
+	}
+
+	if state.refCtrOffsets != 0 {
+		if state.symbols != 0 && state.symbols != state.refCtrOffsets {
+			return fmt.Errorf("RefCtrOffsets(%d) has different dimension than Symbols(%d)",
+				state.refCtrOffsets, state.symbols)
+		}
+		if state.offsets != 0 && state.offsets != state.refCtrOffsets {
+			return fmt.Errorf("RefCtrOffsets(%d) has different dimension than Offsets(%d)",
+				state.refCtrOffsets, state.offsets)
+		}
+	}
+
+	return nil
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -567,40 +609,14 @@ func createGenericUprobeSensor(
 }
 
 func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) ([]idtable.EntryID, error) {
+	state := uprobeConfigState{}
+
 	var argRetprobe *v1alpha1.KProbeArg
 	var argRetprobeIdx int
 	var setRetprobe bool
 
-	symbols := len(spec.Symbols)
-	offsets := len(spec.Offsets)
-	addrs := len(spec.Addrs)
-	refCtrOffsets := len(spec.RefCtrOffsets)
-
-	// uprobe definition spec sanity check
-	numAddressMethods := 0
-	if symbols != 0 {
-		numAddressMethods++
-	}
-	if offsets != 0 {
-		numAddressMethods++
-	}
-	if addrs != 0 {
-		numAddressMethods++
-	}
-
-	if numAddressMethods != 1 {
-		return nil, errors.New("uprobe needs exactly one of either Symbols, Offsets or Addrs defined")
-	}
-
-	if refCtrOffsets != 0 {
-		if symbols != 0 && symbols != refCtrOffsets {
-			return nil, fmt.Errorf("RefCtrOffsets(%d) has different dimension than Symbols(%d)",
-				refCtrOffsets, symbols)
-		}
-		if offsets != 0 && offsets != refCtrOffsets {
-			return nil, fmt.Errorf("RefCtrOffsets(%d) has different dimension than Offsets(%d)",
-				refCtrOffsets, offsets)
-		}
+	if err := validateUprobeSpec(spec, &state); err != nil {
+		return nil, err
 	}
 
 	if selectors.HasOverride(spec.Selectors) {
@@ -832,7 +848,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	addUprobeEntry := func(sym string, offset uint64, idx int) error {
 		var refCtrOffset uint64
 
-		if refCtrOffsets != 0 {
+		if state.refCtrOffsets != 0 {
 			refCtrOffset = spec.RefCtrOffsets[idx]
 		}
 
@@ -884,7 +900,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	}
 	defer f.Close()
 
-	if symbols != 0 && f.IsStrippedPureGoBinary() {
+	if state.symbols != 0 && f.IsStrippedPureGoBinary() {
 		tbl, err := f.Pclntab()
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse pclntab: %w", err)
@@ -902,7 +918,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				return nil, err
 			}
 		}
-	} else if symbols != 0 {
+	} else if state.symbols != 0 {
 		for idx, sym := range spec.Symbols {
 			if err := checkSymbol(sym); err != nil {
 				return nil, fmt.Errorf("failed to parse symbol: %w", err)
@@ -912,14 +928,14 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				return nil, err
 			}
 		}
-	} else if offsets != 0 {
+	} else if state.offsets != 0 {
 		for idx, off := range spec.Offsets {
 			err = addUprobeEntry("", off, idx)
 			if err != nil {
 				return nil, err
 			}
 		}
-	} else if addrs != 0 {
+	} else if state.addrs != 0 {
 		for idx, addr := range spec.Addrs {
 			off, err := f.OffsetFromAddr(addr)
 			if err != nil {
