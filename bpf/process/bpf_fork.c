@@ -57,7 +57,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	curr->key.pid = tgid;
 	curr->key.ktime = tg_get_ktime();
 	curr->nspid = get_task_pid_vnr_by_task(task);
-	memcpy(&curr->bin, &parent->bin, sizeof(curr->bin));
+	__bpf_memcpy_builtin(&curr->bin, &parent->bin, sizeof(curr->bin));
 	curr->pkey = parent->key;
 
 	/* Store the thread leader capabilities so we can check later
