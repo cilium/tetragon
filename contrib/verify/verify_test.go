@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/selectors"
 )
@@ -30,6 +31,10 @@ const (
 )
 
 func TestVerifyTetragonPrograms(t *testing.T) {
+
+	// Init the BTF cache like the agent does, otherwise bpf.HasKfunc() always
+	// returns false and we'd verify a different variant than production loads.
+	require.NoError(t, btf.InitCachedBTF("", ""), "failed to initialize BTF cache")
 
 	tetragonDir := os.Getenv("TETRAGONDIR")
 	if tetragonDir == "" {
@@ -128,17 +133,18 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			}
 		}
 
-		if strings.HasPrefix(fileName, "bpf_generic_kprobe") {
-			if fileName != "bpf_generic_kprobe.o" { // 4.19 version does not need to be rewritten
-				for _, prog := range spec.Programs {
-					var exprs selectors.CelExprFunctions
-					if prog.Name == "generic_kprobe_filter_arg" {
-						err := exprs.RewriteProg(prog)
-						require.NoError(t, err, "failed to rewrite program for empty CEL expressions")
-					}
-				}
+		// Resolve cel_expr_N references in *_filter_arg programs, as the agent
+		// does at load time.
+		for _, prog := range spec.Programs {
+			if !programReferencesCelExpr(prog) {
+				continue
 			}
+			var exprs selectors.CelExprFunctions
+			err := exprs.RewriteProg(prog)
+			require.NoError(t, err, "failed to rewrite program %s for empty CEL expressions", prog.Name)
 		}
+
+		rewriteConfigConstants(t, spec)
 
 		collection, err := ebpf.NewCollection(spec)
 		if err != nil {
@@ -155,6 +161,30 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 
 		collection.Close()
 	}
+}
+
+// rewriteConfigConstants sets CONFIG_ITER_NUM as the production loader does
+// (see rewriteConstants in pkg/sensors/program/loader_linux.go): the numeric
+// iterator must be enabled on >=6.9 kernels, otherwise the fallback loop blows
+// the 1M-instruction verifier limit.
+func rewriteConfigConstants(t *testing.T, spec *ebpf.CollectionSpec) {
+	v, ok := spec.Variables["CONFIG_ITER_NUM"]
+	if !ok || !v.Constant() {
+		return
+	}
+
+	enabled := bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
+	require.NoError(t, v.Set(enabled), "failed to set CONFIG_ITER_NUM")
+}
+
+// programReferencesCelExpr reports whether prog calls any cel_expr function.
+func programReferencesCelExpr(prog *ebpf.ProgramSpec) bool {
+	for _, ins := range prog.Instructions {
+		if strings.HasPrefix(ins.Reference(), "cel_expr") {
+			return true
+		}
+	}
+	return false
 }
 
 func isDebugEnabled() bool {
