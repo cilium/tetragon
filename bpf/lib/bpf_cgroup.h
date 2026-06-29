@@ -402,7 +402,7 @@ __get_cgrp_tracking_val_heap(cgroup_state state, __u32 hierarchy_id,
 	if (!heap)
 		return heap;
 
-	memset(heap, 0, sizeof(struct cgroup_tracking_value));
+	__bpf_memset_builtin(heap, 0, sizeof(struct cgroup_tracking_value));
 	heap->state = state;
 	heap->hierarchy_id = hierarchy_id;
 	heap->level = level;
