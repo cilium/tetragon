@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -182,12 +183,12 @@ redirection of events to the stdin. Examples:
 
 			for _, v := range Options.EventTypes {
 				if _, found := tetragon.EventType_value[v]; !found {
-					var supportedEventTypes string
-					for _, v := range tetragon.EventType_name {
-						supportedEventTypes += v + ", "
+					supported := make([]string, 0, len(tetragon.EventType_value))
+					for name := range tetragon.EventType_value {
+						supported = append(supported, name)
 					}
-					supportedEventTypes = strings.TrimSuffix(supportedEventTypes, ", ")
-					return fmt.Errorf("invalid value for %q flag: %s. Supported are %s", "event-types", v, supportedEventTypes)
+					sort.Strings(supported)
+					return fmt.Errorf("invalid value for %q flag: %s. Supported are %s", "event-types", v, strings.Join(supported, ", "))
 				}
 			}
 
