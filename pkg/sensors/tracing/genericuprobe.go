@@ -19,7 +19,6 @@ import (
 	"github.com/cilium/ebpf"
 	lru "github.com/hashicorp/golang-lru/v2"
 
-	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 
 	"github.com/cilium/tetragon/pkg/asm"
@@ -203,13 +202,7 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeArgs) error {
 	load := args.Load
 
-	rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
-	if entry := uprobeEntry.loadArgs.selectors.entry; entry != nil {
-		if celbpf.EnabledInBPF() {
-			rewriteProg["generic_uprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
-		}
-	}
-	load.RewriteProg = rewriteProg
+	setupCelExpr(load, uprobeEntry.loadArgs.selectors, "generic_uprobe_filter_arg")
 
 	// config_map data
 	var configData bytes.Buffer
@@ -318,15 +311,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 			return errors.New("failed to match id")
 		}
 
-		rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
-
-		if entry := uprobeEntry.loadArgs.selectors.entry; entry != nil {
-			if celbpf.EnabledInBPF() {
-				rewriteProg["generic_uprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
-			}
-		}
-
-		load.RewriteProg = rewriteProg
+		setupCelExpr(load, uprobeEntry.loadArgs.selectors, "generic_uprobe_filter_arg")
 
 		// config_map data
 		var configData bytes.Buffer

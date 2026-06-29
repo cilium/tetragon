@@ -30,7 +30,6 @@ import (
 	"github.com/cilium/tetragon/pkg/asm"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
-	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/eventhandler"
@@ -1194,13 +1193,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 		return err
 	}
 
-	rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
-	if entry := gk.loadArgs.selectors.entry; entry != nil {
-		if celbpf.EnabledInBPF() {
-			rewriteProg["generic_kprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
-		}
-	}
-	load.RewriteProg = rewriteProg
+	setupCelExpr(load, gk.loadArgs.selectors, "generic_kprobe_filter_arg")
 
 	load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, 0)...)
 
@@ -1238,13 +1231,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 			return err
 		}
 
-		rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
-		if entry := gk.loadArgs.selectors.entry; entry != nil {
-			if celbpf.EnabledInBPF() {
-				rewriteProg["generic_kprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
-			}
-		}
-		load.RewriteProg = rewriteProg
+		setupCelExpr(load, gk.loadArgs.selectors, "generic_kprobe_filter_arg")
 
 		load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, uint32(index))...)
 

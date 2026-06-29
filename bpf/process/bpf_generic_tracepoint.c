@@ -335,7 +335,7 @@ generic_tracepoint_actions(void *ctx)
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_output(void *ctx)
 {
-	return generic_output(ctx, MSG_OP_GENERIC_TRACEPOINT);
+	return generic_output(ctx);
 }
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";

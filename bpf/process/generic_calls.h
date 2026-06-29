@@ -1140,7 +1140,7 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 }
 
 FUNC_INLINE long
-generic_output(void *ctx, u8 op)
+generic_output(void *ctx)
 {
 	struct msg_generic_kprobe *e;
 	int zero = 0;
@@ -1184,7 +1184,7 @@ generic_output(void *ctx, u8 op)
 		     "if %[total] < 9000 goto +1\n;"
 		     "%[total] = 9000;\n"
 		     : [total] "+r"(total));
-	event_output_metric(ctx, op, e, total);
+	event_output_metric(ctx, e->common.op, e, total);
 	return 0;
 }
 
@@ -1370,13 +1370,6 @@ FUNC_INLINE int filter_args(void *ctx, struct bpf_map_def *tailcalls,
 			    struct msg_generic_kprobe *e, int selidx, bool is_entry,
 			    int arg)
 {
-	__u8 *f;
-
-	/* No filters and no selectors so just accepts */
-	f = map_lookup_elem(&filter_map, &e->idx);
-	if (!f)
-		return 1;
-
 	/* No selectors, accept by default */
 	if (!e->sel.active[SELECTORS_ACTIVE])
 		return 1;
@@ -1389,7 +1382,7 @@ FUNC_INLINE int filter_args(void *ctx, struct bpf_map_def *tailcalls,
 		return filter_args_reject(e->func_id);
 
 	if (e->sel.active[selidx]) {
-		int pass = selector_arg_offset(ctx, tailcalls, f, e, selidx, is_entry, arg);
+		int pass = selector_arg_offset(ctx, tailcalls, selidx, is_entry, arg);
 
 		if (pass)
 			return pass;
