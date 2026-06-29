@@ -6,6 +6,7 @@
 
 #include "bpf_helpers.h"
 #include "config.h"
+#include "builtins.h"
 
 #define ENAMETOOLONG 36 /* File name too long */
 
@@ -93,7 +94,7 @@ prepend(char **buffer, int *buflen, const char *str, int namelen)
 	if (*buflen < 0) // will never happen - check function comment
 		return -ENAMETOOLONG;
 	*buffer -= namelen;
-	memcpy(*buffer, str, namelen);
+	__bpf_memcpy_builtin(*buffer, str, namelen);
 	return 0;
 }
 
