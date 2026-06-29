@@ -230,9 +230,12 @@ FUNC_INLINE int return_error(int *s, int err)
 FUNC_INLINE char *
 args_off(struct msg_generic_kprobe *e, unsigned long off)
 {
+	char *args = e->args;
+
 	asm volatile("%[off] &= 0x3fff;\n"
-		     : [off] "+r"(off));
-	return e->args + (off & 0x3fff);
+		     "%[args] += %[off];\n"
+		     : [args] "+r"(args), [off] "+r"(off));
+	return args;
 }
 
 /* Error writer for use when pointer *s is lost to stack and can not
@@ -2111,7 +2114,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 			prefix_key = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_maps_heap, &zero);
 			if (!prefix_key)
 				return 0;
-			memset(prefix_key, 0, sizeof(*prefix_key));
+			__bpf_memset_builtin(prefix_key, 0, sizeof(*prefix_key));
 			prefix_key->prefixlen = bin->path_length * 8; // prefixlen is in bits
 			if (probe_read(prefix_key->data, bin->path_length & (STRING_PREFIX_MAX_LENGTH - 1), bin->path) < 0)
 				return 0;
