@@ -136,9 +136,8 @@ func (c *collection) mode() tetragon.TracingPolicyMode {
 	}
 	mode, err := policyconf.PolicyMode(c.tracingpolicy)
 	if err != nil {
-		if !c.warnedOnModeRetrievalFailure.Load() {
+		if c.warnedOnModeRetrievalFailure.CompareAndSwap(false, true) {
 			logger.GetLogger().Warn("failed to retrieve policy mode", "err", err, "policy", c.name)
-			c.warnedOnModeRetrievalFailure.Store(true)
 		}
 		return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
 	}
@@ -163,8 +162,7 @@ func (c *collection) stats() *tetragon.TracingPolicyStats {
 
 	stats, err := policystats.GetPolicyStats(c.tracingpolicy)
 	if err != nil {
-		if !c.warnedOnStatsRetrievalFailure.Load() {
-			c.warnedOnStatsRetrievalFailure.Store(true)
+		if c.warnedOnStatsRetrievalFailure.CompareAndSwap(false, true) {
 			logger.GetLogger().Warn("failed to retrieve policy stats", "err", err, "policy", c.name)
 		}
 		return nil
@@ -204,8 +202,7 @@ func (c *collection) selectorActionCounters() []*tetragon.TracingPolicySelectorA
 
 	stats, err := policystats.GetPolicySelectorStats(c.tracingpolicy)
 	if err != nil {
-		if !c.warnedOnStatsRetrievalFailure.Load() {
-			c.warnedOnStatsRetrievalFailure.Store(true)
+		if c.warnedOnStatsRetrievalFailure.CompareAndSwap(false, true) {
 			logger.GetLogger().Warn("failed to retrieve policy selector stats", "err", err, "policy", c.name)
 		}
 		return nil
