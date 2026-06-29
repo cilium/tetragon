@@ -284,20 +284,6 @@ static int BPF_FUNC(get_func_arg, void *ctx, __u32 n, __u64 *value);
 static int BPF_FUNC(get_func_ret, void *ctx, __u64 *value);
 static long BPF_FUNC(get_func_ip, void *ctx);
 
-/** LLVM built-ins, mem*() routines work for constant size */
-
-#ifndef memset
-# define memset(s, c, n)	__builtin_memset((s), (c), (n))
-#endif
-
-#ifndef memcpy
-# define memcpy(d, s, n)	__builtin_memcpy((d), (s), (n))
-#endif
-
-#ifndef memmove
-# define memmove(d, s, n)	__builtin_memmove((d), (s), (n))
-#endif
-
 /**
  * atomic add is support from before 4.19 on both arm and x86,
  * x86 has other atomics support from 5.11, arm from 5.17
