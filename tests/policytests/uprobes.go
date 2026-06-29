@@ -132,7 +132,7 @@ spec:
         - "true"
 `).WithSkip(func(si *policytest.SkipInfo) string {
 	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
-		return "need 5.3 or newer kernel"
+		return "need 5.2 or newer kernel"
 	}
 
 	if !si.AgentInfo.Probes[bpf.UprobeRefCtrOffsetProbe] {
@@ -194,7 +194,7 @@ spec:
         - "true"
 `).WithSkip(func(si *policytest.SkipInfo) string {
 	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
-		return "need 5.3 or newer kernel"
+		return "need 5.2 or newer kernel"
 	}
 
 	if !si.AgentInfo.Probes[bpf.UprobeRefCtrOffsetProbe] {
@@ -245,7 +245,7 @@ spec:
       BTFType: "mystruct"
 `).WithSkip(func(si *policytest.SkipInfo) string {
 	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
-		return "need 5.3 or newer kernel"
+		return "need 5.2 or newer kernel"
 	}
 	return ""
 }).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
