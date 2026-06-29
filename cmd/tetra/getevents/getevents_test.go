@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,6 +57,24 @@ func Test_GetEvents_EventTypes(t *testing.T) {
 
 		err := cmd.Execute()
 		require.Error(t, err)
+	})
+
+	t.Run("FilterInexistentSortedError", func(t *testing.T) {
+		cmd := New()
+		cmd.SetArgs([]string{"--event-types", "INEXISTENT"})
+
+		var devNull bytes.Buffer
+		cmd.SetErr(&devNull)
+		cmd.SetOut(&devNull)
+
+		err := cmd.Execute()
+		require.Error(t, err)
+		msg := err.Error()
+		// Supported event types must be listed in alphabetical order.
+		require.Less(t, strings.Index(msg, "PROCESS_EXEC"), strings.Index(msg, "PROCESS_EXIT"),
+			"PROCESS_EXEC should appear before PROCESS_EXIT in sorted output")
+		require.Less(t, strings.Index(msg, "PROCESS_EXIT"), strings.Index(msg, "UNDEF"),
+			"PROCESS_EXIT should appear before UNDEF in sorted output")
 	})
 }
 
