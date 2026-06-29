@@ -199,8 +199,8 @@ redirection of events to the stdin. Examples:
 			return nil
 		},
 		RunE: func(_ *cobra.Command, _ []string) error {
-			fi, _ := os.Stdin.Stat()
-			if fi.Mode()&os.ModeNamedPipe != 0 {
+			fi, err := os.Stdin.Stat()
+			if err == nil && fi.Mode()&os.ModeNamedPipe != 0 {
 				// read events from stdin
 				return getEvents(context.Background(), newIOReaderClient(os.Stdin, common.Debug))
 			}

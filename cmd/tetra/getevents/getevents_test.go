@@ -6,6 +6,7 @@ package getevents
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -171,4 +172,22 @@ func Test_GetEvents_FilterFields(t *testing.T) {
 			assert.Equal(t, "deathstar", class)
 		}
 	})
+}
+
+func Test_GetEvents_ClosedStdinNoNilPanic(t *testing.T) {
+	oldStdin := os.Stdin
+	t.Cleanup(func() { os.Stdin = oldStdin })
+
+	// os.NewFile with an invalid fd causes Stat() to return (nil, error).
+	// Before the fix RunE would panic on fi.Mode() when fi is nil.
+	os.Stdin = os.NewFile(^uintptr(0), "closed")
+
+	cmd := New()
+	cmd.SetArgs([]string{})
+	var buf bytes.Buffer
+	cmd.SetErr(&buf)
+	cmd.SetOut(&buf)
+
+	// Must not panic; falls through to gRPC and gets a connection error instead.
+	require.NotPanics(t, func() { cmd.Execute() })
 }
