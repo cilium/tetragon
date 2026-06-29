@@ -96,11 +96,12 @@ func dumpPolicyCmd() *cobra.Command {
 			}
 
 			for _, t := range tests {
-				pol, err := t.Policy(&conf)
+				pol, cleanup, err := t.Policy(&conf)
 				if err != nil {
 					return err
 				}
 				cmd.OutOrStdout().Write([]byte(pol))
+				cleanup()
 			}
 			return nil
 		},
