@@ -58,10 +58,10 @@ spec:
 		t.Fatalf("Failed to parse ELF: %v\n", err)
 	}
 
-	id, err := safeELF.ParseBuildId()
+	id, err := safeELF.ParseBuildID()
 	file.Close()
 	if err != nil {
-		t.Fatalf("Failed to ParseBuildId: %v\n", err)
+		t.Fatalf("Failed to ParseBuildID: %v\n", err)
 	}
 
 	loaderChecker := ec.NewProcessLoaderChecker("").
