@@ -29,7 +29,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const grpcDomain = "grpc"
+const GrpcDomain = "grpc"
 
 type Listener interface {
 	Notify(res *tetragon.GetEventsResponse)
@@ -234,7 +234,7 @@ type GRPCTracingPolicy struct {
 
 func (gtp *GRPCTracingPolicy) TpDomain() string {
 	if gtp.Domain == "" {
-		return grpcDomain
+		return GrpcDomain
 	}
 	return gtp.Domain
 }
@@ -268,7 +268,7 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 func (s *Server) DeleteTracingPolicy(ctx context.Context, req *tetragon.DeleteTracingPolicyRequest) (*tetragon.DeleteTracingPolicyResponse, error) {
 	logger.GetLogger().Debug("Received a DeleteTracingPolicy request", "name", req.GetName())
 
-	domain := grpcDomain
+	domain := GrpcDomain
 	if req.GetDomain() != "" {
 		domain = req.GetDomain()
 	}
@@ -288,7 +288,7 @@ func (s *Server) EnableTracingPolicy(ctx context.Context, req *tetragon.EnableTr
 
 	logger.GetLogger().Debug("Received a EnableTracingPolicy request", "name", req.GetName())
 
-	domain := grpcDomain
+	domain := GrpcDomain
 	if req.GetDomain() != "" {
 		domain = req.GetDomain()
 	}
@@ -304,7 +304,7 @@ func (s *Server) ConfigureTracingPolicy(ctx context.Context, req *tetragon.Confi
 
 	// Enforce default value
 	if req.GetDomain() == "" {
-		req.Domain = grpcDomain
+		req.Domain = GrpcDomain
 	}
 
 	if err := s.observer.ConfigureTracingPolicy(ctx, req); err != nil {
@@ -322,7 +322,7 @@ func (s *Server) DisableTracingPolicy(ctx context.Context, req *tetragon.Disable
 
 	logger.GetLogger().Debug("Received a DisableTracingPolicy request", "name", req.GetName())
 
-	domain := grpcDomain
+	domain := GrpcDomain
 	if req.GetDomain() != "" {
 		domain = req.GetDomain()
 	}

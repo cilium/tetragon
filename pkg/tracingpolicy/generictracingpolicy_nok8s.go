@@ -47,5 +47,5 @@ func (gtp *GenericTracingPolicy) TpSpec() *v1alpha1.TracingPolicySpec {
 }
 
 func (gtp *GenericTracingPolicy) TpDomain() string {
-	return staticDomain
+	return StaticDomain
 }
