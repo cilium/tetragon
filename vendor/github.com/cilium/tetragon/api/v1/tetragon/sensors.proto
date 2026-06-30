@@ -91,6 +91,8 @@ message TracingPolicySelectorActionCounters {
   google.protobuf.UInt32Value selector_index = 3;
   // action counters for the selector
   TracingPolicyActionCounters action_counters = 4;
+  // selector_label is an optional user-provided selector label
+  string selector_label = 5;
 }
 
 message TracingPolicyStats {
