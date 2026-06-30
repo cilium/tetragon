@@ -339,6 +339,25 @@
         "v1.7",
       ]
     },
+    {
+      // update lvh-images patch/digest for stable branches
+      "enabled": true,
+      "matchPackageNames": [
+        "quay.io/lvh-images/kernel-images",
+        "quay.io/lvh-images/kind"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "patch",
+        "pin",
+        "pinDigest"
+      ],
+      "matchBaseBranches": [
+        "v1.5",
+        "v1.6",
+        "v1.7",
+      ]
+    },
     // ignore deps section
     {
       // Avoid updating patch releases of golang in go.mod
