@@ -17,12 +17,11 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+	ebtf "github.com/cilium/ebpf/btf"
 	lru "github.com/hashicorp/golang-lru/v2"
 
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
-
-	"github.com/cilium/tetragon/pkg/asm"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
@@ -669,6 +668,14 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
+	var userBTFSpec *ebtf.Spec
+	if spec.BTFPath != "" {
+		userBTFSpec, err = ebtf.LoadSpec(spec.BTFPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load user BTF spec %q: %w", spec.BTFPath, err)
+		}
+	}
+
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 	var preload bool
 
@@ -679,11 +686,13 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		if data {
 			// Data specific config
 			if hasPtRegsSource(a) {
-				var ok bool
-
-				regArg[i].Offset, regArg[i].Size, ok = asm.RegOffsetSize(a.Resolve)
-				if !ok {
-					return fmt.Errorf("error: Failed to retrieve register argument '%s'", a.Resolve)
+				reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve, userBTFSpec)
+				if err != nil {
+					return fmt.Errorf("error resolving pt_regs argument %q: %w", a.Resolve, err)
+				}
+				regArg[i] = reg
+				if hasBTFArg {
+					allBTFArgs[i] = btfArg
 				}
 
 				// If we are getting string type from pt_regs register we can safely assume
@@ -701,7 +710,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				if !bpf.HasProgramLargeSize() {
 					return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
 				}
-				lastBTFType, btfArg, err := resolveBTFArg("", a, false)
+				lastBTFType, btfArg, err := resolveBTFArg("", a, false, userBTFSpec)
 				if err != nil {
 					return fmt.Errorf("can't resolve current_task source: %s", a.Resolve)
 				}
@@ -711,7 +720,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		} else {
 			// Args specific config
 			if a.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(a, spec.BTFPath)
+				lastBTFType, btfArg, err := resolveUserBTFArg(a, userBTFSpec)
 				if err != nil {
 					return err
 				}

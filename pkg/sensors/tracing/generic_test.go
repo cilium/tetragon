@@ -44,6 +44,42 @@ func TestFormatBTFPath(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:    "reject suffix type cast",
+			input:   "rsp(char*)[16]",
+			want:    []string{"rsp", "[16]"},
+			wantErr: true,
+		},
+		{
+			name:    "reject suffix pointer to array type cast",
+			input:   "rsp(*char[64])[16]",
+			want:    []string{"rsp", "(*char[64])", "[16]"},
+			wantErr: true,
+		},
+		{
+			name:    "prefixed type cast before indexed field path",
+			input:   "((char*)field)[123].my.sub.field",
+			want:    []string{"field", "(char*)", "[123]", "my", "sub", "field"},
+			wantErr: false,
+		},
+		{
+			name:    "prefixed struct pointer cast around indexed field",
+			input:   "((struct task_struct*)field[123]).my.sub.field",
+			want:    []string{"field", "[123]", "(struct task_struct*)", "my", "sub", "field"},
+			wantErr: false,
+		},
+		{
+			name:    "nested prefixed type casts with index",
+			input:   "((struct task_struct*)((char*)field)[123]).my.sub.field",
+			want:    []string{"field", "(char*)", "[123]", "(struct task_struct*)", "my", "sub", "field"},
+			wantErr: false,
+		},
+		{
+			name:    "reject bare type cast prefix",
+			input:   "(char*)field[123].my.sub.field",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
 			name:    "dot inside bracket",
 			input:   "my.super.field[.123]",
 			want:    []string{},
@@ -147,7 +183,7 @@ spec:
 	successHook := policy.TpSpec().KProbes[:3]
 	for _, hook := range successHook {
 		for _, arg := range hook.Args {
-			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false)
+			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false, nil)
 
 			if err != nil {
 				t.Fatal(hook.Call, err)
@@ -162,7 +198,7 @@ spec:
 
 	failHook := policy.TpSpec().KProbes[3]
 	for _, arg := range failHook.Args {
-		_, _, err := resolveBTFArg(failHook.Call, &arg, false)
+		_, _, err := resolveBTFArg(failHook.Call, &arg, false, nil)
 
 		require.ErrorContains(t, err, "The maximum depth allowed is", "The path %q must have len < %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
@@ -230,7 +266,7 @@ spec:
 			require.True(t, ok, "missing test case for %q", arg.Label)
 
 			t.Run(arg.Label, func(t *testing.T) {
-				lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false)
+				lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false, nil)
 				require.NoError(t, err, hook.Call)
 				require.NotNil(t, lastBTFType)
 
@@ -258,7 +294,7 @@ func TestResolveBTFArgWithBTFTypeModule(t *testing.T) {
 		Resolve:       "sun_family",
 	}
 
-	_, _, err := resolveBTFArg("security_socket_connect", &arg, false)
+	_, _, err := resolveBTFArg("security_socket_connect", &arg, false, nil)
 	require.ErrorContains(t, err, `failed to find BTF type "sockaddr_un" in module "tetragon_test_module_that_does_not_exist"`)
 }
 

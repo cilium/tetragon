@@ -15,6 +15,8 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/asm"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	conf "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/generictypes"
@@ -23,55 +25,97 @@ import (
 )
 
 // Takes arg.Resolve as input and return the path in []string
-// Input   : my.super.field[123].my.sub.field
-// Output  : []string{"my", "super", "field", "[123]", "my", "sub", "field"}
+// Input   : my.super.((char*)field)[123].my.sub.field
+// Output  : []string{"my", "super", "field", "(char*)", "[123]", "my", "sub", "field"}
 func formatBTFPath(resolvePath string) ([]string, error) {
 	var path []string
-	var buffer strings.Builder
-	inBracket := false
-	invalidFormat := false
+	i := 0
+	lastWasDot := false
 
-	for i, r := range resolvePath {
-		switch r {
-		case '.':
-			if inBracket || i > 0 && resolvePath[i-1] == '.' {
-				invalidFormat = true
-				break
+	var parse func(stopAtCloseParen bool) error
+	parse = func(stopAtCloseParen bool) error {
+		for i < len(resolvePath) {
+			tail := resolvePath[i:]
+
+			switch {
+			case stopAtCloseParen && tail[0] == ')':
+				if len(path) == 0 {
+					return errors.New("empty cast expression")
+				}
+				i++ // Consume the ')'
+				return nil
+
+			case strings.HasPrefix(tail, "(("):
+				castEnd := strings.IndexByte(tail, ')')
+				if castEnd <= 2 || strings.ContainsAny(tail[2:castEnd], "()") {
+					return errors.New("invalid prefixed cast")
+				}
+				castToken := tail[1 : castEnd+1]
+
+				i += castEnd + 1 // Move the cursor after the "((cast)"
+				if err := parse(true); err != nil {
+					return err
+				}
+
+				path = append(path, castToken)
+				lastWasDot = false
+
+			case tail[0] == '[':
+				if lastWasDot {
+					return errors.New("dot followed by '['")
+				}
+				end := strings.IndexByte(tail, ']')
+				if end <= 1 || strings.ContainsAny(tail[1:end], ".[()") {
+					return errors.New("invalid index token")
+				}
+				path = append(path, tail[:end+1])
+				i += end + 1
+				lastWasDot = false
+
+			case tail[0] == '(':
+				return errors.New("type casts must use ((cast)field)")
+			case tail[0] == ')':
+				return errors.New("mismatched closing parenthesis")
+
+			case tail[0] == '.':
+				if lastWasDot {
+					return errors.New("consecutive dots")
+				}
+				lastWasDot = true
+				i++
+
+			default:
+				end := strings.IndexAny(tail, ".[()]")
+				var ident string
+				if end == -1 {
+					ident = tail
+					i += len(tail)
+				} else {
+					ident = tail[:end]
+					i += end
+				}
+
+				if ident == "" || strings.ContainsAny(ident, "])") {
+					return errors.New("invalid or mismatched identifier")
+				}
+				if i < len(resolvePath) && resolvePath[i] == '(' {
+					return errors.New("type casts must use ((cast)field)")
+				}
+				path = append(path, ident)
+				lastWasDot = false
 			}
-			if buffer.Len() > 0 {
-				path = append(path, buffer.String())
-				buffer.Reset()
-			}
-		case '[':
-			if inBracket || i > 0 && resolvePath[i-1] == '.' {
-				invalidFormat = true
-				break
-			}
-			if buffer.Len() > 0 {
-				path = append(path, buffer.String())
-				buffer.Reset()
-			}
-			inBracket = true
-			buffer.WriteRune(r)
-		case ']':
-			if !inBracket || i > 0 && resolvePath[i-1] == '[' {
-				invalidFormat = true
-				break
-			}
-			buffer.WriteRune(r)
-			inBracket = false
-			path = append(path, buffer.String())
-			buffer.Reset()
-		default:
-			buffer.WriteRune(r)
 		}
+
+		if stopAtCloseParen {
+			return errors.New("missing closing parenthesis")
+		}
+		return nil
 	}
-	if invalidFormat || inBracket {
-		return []string{}, fmt.Errorf("invalid format for resolve path: %q", resolvePath)
+
+	if err := parse(false); err != nil {
+		return nil, fmt.Errorf("invalid format for resolve path %q: %w", resolvePath, err)
 	}
-	if buffer.Len() > 0 {
-		path = append(path, buffer.String())
-	}
+
 	return path, nil
 }
 
@@ -102,7 +146,45 @@ func hasPtRegsSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "pt_regs"
 }
 
-func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolvePtRegsArg(resolve string, userBTFSpec *ebtf.Spec) (api.ConfigRegArg, [api.MaxBTFArgDepth]api.ConfigBTFArg, bool, error) {
+	var (
+		regArg api.ConfigRegArg
+		btfArg [api.MaxBTFArgDepth]api.ConfigBTFArg
+	)
+
+	path, err := formatBTFPath(resolve)
+	if err != nil {
+		return regArg, btfArg, false, err
+	}
+	if len(path) == 0 {
+		return regArg, btfArg, false, errors.New("empty register argument resolve path")
+	}
+
+	var ok bool
+	regArg.Offset, regArg.Size, ok = asm.RegOffsetSize(path[0])
+	if !ok {
+		return regArg, btfArg, false, fmt.Errorf("failed to retrieve register argument %q", resolve)
+	}
+
+	path = path[1:]
+	if len(path) == 0 {
+		return regArg, btfArg, false, nil
+	}
+	if !bpf.HasProgramLargeSize() {
+		return regArg, btfArg, false, errors.New("resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
+	}
+	if len(path) > api.MaxBTFArgDepth {
+		return regArg, btfArg, false, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", resolve, api.MaxBTFArgDepth)
+	}
+
+	_, err = btf.ResolveBTFPath(&btfArg, &ebtf.Void{}, path, userBTFSpec)
+	if err != nil {
+		return regArg, btfArg, false, fmt.Errorf("failed to resolve pt_regs path %q: %w", resolve, err)
+	}
+	return regArg, btfArg, true, nil
+}
+
+func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type, spec *ebtf.Spec) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
 	pathBase, err := formatBTFPath(arg.Resolve)
 	if err != nil {
@@ -113,23 +195,18 @@ func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.Max
 		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
 
-	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path)
+	lastBTFType, err := btf.ResolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path, spec)
 	return lastBTFType, btfArg, err
 }
 
-func resolveUserBTFArg(arg *v1alpha1.KProbeArg, btfPath string) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
-	spec, err := ebtf.LoadSpec(btfPath)
-	if err != nil {
-		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
-	}
-
+func resolveUserBTFArg(arg *v1alpha1.KProbeArg, userBTFSpec *ebtf.Spec) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	var st *ebtf.Struct
-	err = spec.TypeByName(arg.BTFType, &st)
+	err := userBTFSpec.TypeByName(arg.BTFType, &st)
 	if err != nil {
 		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 	}
 	ty := ebtf.Type(st)
-	return resolveBTFType(arg, ty)
+	return resolveBTFType(arg, ty, userBTFSpec)
 }
 
 func findBTFTypeStruct(hook string, arg *v1alpha1.KProbeArg) (*ebtf.Struct, error) {
@@ -156,7 +233,7 @@ func findBTFTypeStruct(hook string, arg *v1alpha1.KProbeArg) (*ebtf.Struct, erro
 	return nil, fmt.Errorf("failed to find BTF type %q in kernel BTF or module %q: %w", arg.BTFType, module, errors.Join(err, moduleErr))
 }
 
-func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool, spec *ebtf.Spec) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	// tracepoints have extra first internal argument, so we need to adjust the index
 	index := int(arg.Index)
 	if tp {
@@ -195,11 +272,7 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 			}
 		}
 	}
-	return resolveBTFType(arg, ty)
-}
-
-func resolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType ebtf.Type, path []string) (*ebtf.Type, error) {
-	return btf.ResolveBTFPath(btfArg, rootType, path, 0)
+	return resolveBTFType(arg, ty, spec)
 }
 
 func findTypeFromBTFType(arg *v1alpha1.KProbeArg, btfType *ebtf.Type) int {

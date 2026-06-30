@@ -436,7 +436,7 @@ func buildResolveBTFConfig(t *testing.T, rootType btf.Type, pathStr string) [api
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 
 	path := buildPathFromString(t, rootType, pathStr)
-	_, err := ResolveBTFPath(&btfArgs, rootType, path, 0)
+	_, err := ResolveBTFPath(&btfArgs, rootType, path, nil)
 	fatalOnError(t, err)
 
 	return btfArgs
@@ -451,7 +451,7 @@ func testPathIsAccessible(rootType btf.Type, strPath string) (*[api.MaxBTFArgDep
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 	path := strings.Split(strPath, ".")
 
-	lastBTFType, err := ResolveBTFPath(&btfArgs, ResolveNestedTypes(rootType), path, 0)
+	lastBTFType, err := ResolveBTFPath(&btfArgs, ResolveNestedTypes(rootType), path, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -681,6 +681,111 @@ func TestParseArrayIdxStr(t *testing.T) {
 	}
 }
 
+func TestParseBTFTypeCast(t *testing.T) {
+	primitiveSpec := &btf.Spec{}
+
+	tests := []struct {
+		name    string
+		input   []string
+		idx     int
+		spec    *btf.Spec
+		wantOK  bool
+		wantErr bool
+	}{
+		{
+			name:    "Valid cast - char pointer",
+			input:   []string{"field", "(char*)", "[1]"},
+			idx:     1,
+			spec:    primitiveSpec,
+			wantOK:  true,
+			wantErr: false,
+		},
+		{
+			name:    "Valid cast - pointer to char array",
+			input:   []string{"field", "(*char[64])", "[1]"},
+			idx:     1,
+			spec:    primitiveSpec,
+			wantOK:  true,
+			wantErr: false,
+		},
+		{
+			name:    "Not a cast",
+			input:   []string{"field"},
+			idx:     0,
+			wantOK:  false,
+			wantErr: false,
+		},
+		{
+			name:    "Invalid format - trailing token",
+			input:   []string{"field", "(char ')*"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid type name",
+			input:   []string{"field", "(-_char*)"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - unopened cast",
+			input:   []string{"field", "char*)"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - unclosed cast",
+			input:   []string{"field", "(char*"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - empty cast",
+			input:   []string{"field", "()"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - blank cast",
+			input:   []string{"field", "( )"},
+			idx:     1,
+			wantOK:  true,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolver := btfResolver{
+				pathToFound: append([]string(nil), tt.input...),
+				spec:        tt.spec,
+			}
+
+			_, ok, err := resolver.parseBTFTypeCast(tt.idx)
+
+			require.Equal(t, tt.wantOK, ok)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			wantPath := tt.input
+			if tt.wantOK && !tt.wantErr {
+				require.NotNil(t, resolver.spec, "should have initialized resolver.spec")
+				wantPath = append(append([]string(nil), tt.input[:tt.idx]...), tt.input[tt.idx+1:]...)
+			}
+
+			require.Equal(t, wantPath, resolver.pathToFound)
+		})
+	}
+}
+
 func TestResolveBTFPathZeroLengthArray(t *testing.T) {
 	u8Ty := &btf.Int{Name: "unsigned char", Size: 1}
 	root := &btf.Struct{
@@ -709,7 +814,7 @@ func TestResolveBTFPathZeroLengthArray(t *testing.T) {
 		t.Run(tt.path, func(t *testing.T) {
 			var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 
-			ty, err := ResolveBTFPath(&btfArgs, root, []string{"sa_data", tt.path}, 0)
+			ty, err := ResolveBTFPath(&btfArgs, root, []string{"sa_data", tt.path}, nil)
 			require.NoError(t, err)
 			require.NotNil(t, ty)
 
@@ -764,7 +869,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		}
 
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
-		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, 0)
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, nil)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, `attribute "y" not found in structure "inner"`)
 	})
@@ -801,7 +906,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 		// Two-element path: "x" is not the last child, so finding it in anon2 triggers
 		// ResolveBTFPath(int, path, 1) which returns a non-resolveError.
-		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, 0)
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, nil)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, `unexpected type : "x" has type "int"`)
 	})
@@ -843,7 +948,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		}
 
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
-		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, 0)
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, nil)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, `attribute "y" not found in structure "inner"`)
 	})
@@ -876,7 +981,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		}
 
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
-		ty, err := ResolveBTFPath(&btfArgs, outer, []string{"x"}, 0)
+		ty, err := ResolveBTFPath(&btfArgs, outer, []string{"x"}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, ty)
 	})
