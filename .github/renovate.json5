@@ -340,17 +340,11 @@
       ]
     },
     {
-      // update lvh-images patch/digest for stable branches
+      // update lvh-images for stable branches
       "enabled": true,
       "matchPackageNames": [
         "quay.io/lvh-images/kernel-images",
         "quay.io/lvh-images/kind"
-      ],
-      "matchUpdateTypes": [
-        "digest",
-        "patch",
-        "pin",
-        "pinDigest"
       ],
       "matchBaseBranches": [
         "v1.5",
