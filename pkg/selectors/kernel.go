@@ -1766,6 +1766,10 @@ func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnAr
 func CleanupKernelSelectorState(state *KernelSelectorState) error {
 	var errs error
 
+	if state == nil || state.Destroyed() {
+		return nil
+	}
+
 	for selectorID, paths := range state.MatchBinariesPaths() {
 		sel := state.MatchBinaries()[selectorID]
 		if sel.MBSetID == mbset.InvalidID {
