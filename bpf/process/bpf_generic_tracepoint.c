@@ -80,6 +80,7 @@ FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 	}
 
 	case nop_s32_ty:
+	case int_type:
 	case s32_ty: {
 		s32 ret;
 
