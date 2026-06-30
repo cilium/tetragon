@@ -324,16 +324,14 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 			"policy-name", in.policyName)
 	}
 
-	var (
-		argPrinters []argPrinter
-		found       bool
-	)
+	var found bool
 
 	for _, target := range targets {
 		if spec.Provider != target.Spec.Provider || spec.Name != target.Spec.Name {
 			continue
 		}
 
+		var argPrinters []argPrinter
 		config := &api.EventConfig{}
 		config.SelStatsBase = in.selectorStatsBase
 		found = true
