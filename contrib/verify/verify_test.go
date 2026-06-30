@@ -145,16 +145,15 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			}
 		}
 
-		if strings.HasPrefix(fileName, "bpf_generic_kprobe") {
-			if fileName != "bpf_generic_kprobe.o" { // 4.19 version does not need to be rewritten
-				for _, prog := range spec.Programs {
-					var exprs selectors.CelExprFunctions
-					if prog.Name == "generic_kprobe_filter_arg" {
-						err := exprs.RewriteProg(prog)
-						require.NoError(t, err, "failed to rewrite program for empty CEL expressions")
-					}
-				}
+		// Resolve cel_expr references the way the agent does at load time:
+		// rewrite any program that references a cel_expr function.
+		for _, prog := range spec.Programs {
+			if !programReferencesCelExpr(prog) {
+				continue
 			}
+			var exprs selectors.CelExprFunctions
+			err := exprs.RewriteProg(prog)
+			require.NoError(t, err, "failed to rewrite program %s for empty CEL expressions", prog.Name)
 		}
 
 		require.NoError(t, rewriteConfigConstants(spec), "failed to set CONFIG_ITER_NUM")
@@ -188,6 +187,16 @@ func rewriteConfigConstants(spec *ebpf.CollectionSpec) error {
 
 	enabled := bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
 	return v.Set(enabled)
+}
+
+// programReferencesCelExpr reports whether prog calls any cel_expr function.
+func programReferencesCelExpr(prog *ebpf.ProgramSpec) bool {
+	for _, ins := range prog.Instructions {
+		if strings.HasPrefix(ins.Reference(), "cel_expr") {
+			return true
+		}
+	}
+	return false
 }
 
 func isDebugEnabled() bool {
