@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"debug/elf"
 	"encoding/binary"
+	"errors"
 	"io"
 )
 
@@ -24,12 +25,13 @@ func align[I Integer](n, alignment I) I {
 type note struct {
 	Namesz uint32
 	Descsz uint32
-	Typ    uint32
+	Type   uint32
 }
 
 func parseNote(dat []byte) ([]byte, bool) {
 	var note note
 
+	const NT_GNU_BUILD_ID = 3
 	dr := bytes.NewReader(dat)
 
 	for {
@@ -47,7 +49,7 @@ func parseNote(dat []byte) ([]byte, bool) {
 			return []byte{}, false
 		}
 
-		if note.Typ == 3 &&
+		if note.Type == NT_GNU_BUILD_ID &&
 			note.Namesz == 4 &&
 			bytes.Equal(name, []byte{'G', 'N', 'U', 0}) &&
 			note.Descsz > 0 {
@@ -56,20 +58,18 @@ func parseNote(dat []byte) ([]byte, bool) {
 	}
 }
 
-func (se *SafeELFFile) ParseBuildId() ([]byte, error) {
+func (se *SafeELFFile) ParseBuildID() ([]byte, error) {
 	for _, ph := range se.Progs {
 		if ph.Type != elf.PT_NOTE {
 			continue
 		}
 		dat := make([]byte, ph.Filesz)
-		_, err := io.ReadFull(ph.Open(), dat)
-		if err != nil {
+		if _, err := io.ReadFull(ph.Open(), dat); err != nil {
 			continue
 		}
-		bid, ok := parseNote(dat)
-		if ok {
+		if bid, ok := parseNote(dat); ok {
 			return bid, nil
 		}
 	}
-	return []byte{}, nil
+	return []byte{}, errors.New("failed to find build ID note")
 }
