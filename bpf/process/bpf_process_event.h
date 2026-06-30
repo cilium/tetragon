@@ -263,7 +263,9 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 			probe_read(&msg->user_inum, sizeof(msg->user_inum),
 				   _(&user_ns->ns.inum));
 		} else {
-			msg->user_inum = 0;
+			// Since kernel 7.1 user_ns was dropped from mm_struct;
+			// read it from the task credentials instead.
+			msg->user_inum = BPF_CORE_READ(task, cred, user_ns, ns.inum);
 		}
 	}
 }
