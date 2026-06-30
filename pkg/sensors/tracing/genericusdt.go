@@ -324,6 +324,16 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 			"policy-name", in.policyName)
 	}
 
+	// Parse Filters into kernel filter logic
+	state, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
+		Selectors: spec.Selectors,
+		Args:      spec.Args,
+		Data:      []v1alpha1.KProbeArg{},
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	var found bool
 
 	for _, target := range targets {
@@ -339,16 +349,6 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		if len(spec.Args) > api.EventConfigMaxArgs {
 			return nil, fmt.Errorf("failed to configure usdt '%s/%s', too many arguments (%d) allowed %d",
 				spec.Provider, spec.Name, len(spec.Args), api.EventConfigMaxArgs)
-		}
-
-		// Parse Filters into kernel filter logic
-		state, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
-			Selectors: spec.Selectors,
-			Args:      spec.Args,
-			Data:      []v1alpha1.KProbeArg{},
-		})
-		if err != nil {
-			return nil, err
 		}
 
 		// Validate argument for set action
