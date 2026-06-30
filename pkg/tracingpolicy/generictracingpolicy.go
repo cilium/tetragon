@@ -39,7 +39,7 @@ func (gtp *GenericTracingPolicy) TpInfo() string {
 }
 
 func (gtp *GenericTracingPolicy) TpDomain() string {
-	return staticDomain
+	return StaticDomain
 }
 
 func (gtp *GenericTracingPolicy) GetObjectMetaStruct() *metav1.ObjectMeta {
@@ -71,7 +71,7 @@ func (gtp *GenericTracingPolicyNamespaced) TpInfo() string {
 }
 
 func (gtp *GenericTracingPolicyNamespaced) TpDomain() string {
-	return staticDomain
+	return StaticDomain
 }
 
 func (gtp *GenericTracingPolicyNamespaced) GetObjectMetaStruct() *metav1.ObjectMeta {
