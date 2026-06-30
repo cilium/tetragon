@@ -141,6 +141,8 @@ type KernelSelectorState struct {
 	celExprFunctions *CelExprFunctions
 
 	matchWorkloadIDs map[int]policyfilter.PolicyID
+
+	destroyed bool
 }
 
 func NewKernelSelectorState(
@@ -164,6 +166,15 @@ func NewKernelSelectorState(
 		celExprFunctions:   celExprs,
 		matchWorkloadIDs:   make(map[int]policyfilter.PolicyID),
 	}
+}
+
+func (k *KernelSelectorState) Destroyed() bool {
+	// We do not allow concurent changes to the selector so this does
+	// not need to be atomical, it only serves as a flag to indicate
+	// the CleanupKernelSelectorState was called
+	destroyed := k.destroyed
+	k.destroyed = true
+	return destroyed
 }
 
 func (k KernelSelectorState) MatchBinaries() map[int]MatchBinariesSelectorOptions {
