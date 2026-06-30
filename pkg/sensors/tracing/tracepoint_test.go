@@ -289,6 +289,69 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
 }
 
+func TestGenericTracepointArgFilterLseekIntType(t *testing.T) {
+	fdU := int32(100)
+	fd := 100
+	whenceU := int32(whenceBogusValue)
+	whenceStr := strconv.Itoa(whenceBogusValue)
+	whence := whenceBogusValue
+
+	tracepointConf := v1alpha1.TracepointSpec{
+		Subsystem: "syscalls",
+		Event:     "sys_enter_lseek",
+		Args: []v1alpha1.KProbeArg{
+			{
+				Index: 7, Type: "int", /* whence, forced generic int type */
+			},
+			{
+				Index: 5, Type: "sint32", /* fd */
+			},
+		},
+		Selectors: []v1alpha1.KProbeSelector{
+			{
+				MatchArgs: []v1alpha1.ArgSelector{
+					{
+						Index:    7,
+						Operator: "Equal",
+						Values:   []string{whenceStr},
+					},
+				},
+			},
+		},
+	}
+
+	op := func() {
+		t.Logf("Calling lseek...\n")
+		unix.Seek(fd, 0, whence)
+		unix.Seek(fd, 0, whence+1)
+	}
+
+	check := func(event *tetragon.ProcessTracepoint) error {
+		if len(event.Args) != 2 {
+			return fmt.Errorf("unexpected number of arguments: %d", len(event.Args))
+		}
+		arg0, ok := event.Args[0].GetArg().(*tetragon.KprobeArgument_IntArg)
+		if !ok {
+			return fmt.Errorf("unexpected first arg: %s", event.Args[0])
+		}
+		xwhence := arg0.IntArg
+		if xwhence != whenceU {
+			return fmt.Errorf("unexpected arg val. got:%d expecting:%d", xwhence, whence)
+		}
+		arg1, ok := event.Args[1].GetArg().(*tetragon.KprobeArgument_IntArg)
+		if !ok {
+			return fmt.Errorf("unexpected second arg: %s", event.Args[1])
+		}
+		xfd := arg1.IntArg
+		if xfd != fdU {
+			return fmt.Errorf("unexpected arg val. got:%d expecting:%d", xfd, fd)
+		}
+		return nil
+	}
+
+	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
+}
+
 func TestGenericTracepointMeta(t *testing.T) {
 	// We want to write to a file so we can filter by non-stdout fd and thus avoid
 	// catching all the writes to test logs
