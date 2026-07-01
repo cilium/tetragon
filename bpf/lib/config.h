@@ -7,7 +7,8 @@
 
 struct rodata_config {
 	__u8 ITER_NUM;
-       __u8 pad[7];
+	__u8 PARENTS_MAP_ENABLED;
+	__u8 pad[6];
 };
 
 volatile const struct rodata_config rodata_config

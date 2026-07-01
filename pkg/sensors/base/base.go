@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/execvemapupdater"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/mbset"
@@ -159,7 +160,7 @@ func setupSensor() {
 		Execve.RewriteConstants["ENV_VARS_ENABLED"] = uint8(1)
 	}
 
-	if option.Config.ParentsMapEnabled {
+	if kernels.IsKernelVersionLessThan("5.11.0") && option.Config.ParentsMapEnabled {
 		Execve.RewriteConstants["PARENTS_MAP_ENABLED"] = uint8(1)
 	}
 
