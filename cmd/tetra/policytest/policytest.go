@@ -41,8 +41,7 @@ func listCmd() *cobra.Command {
 		Use:   "list",
 		Short: "list Tetragon policy tests",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			for i := range policytest.AllPolicyTests.Len() {
-				pt := policytest.AllPolicyTests.Get(i)
+			for _, pt := range policytest.AllPolicyTests.GetByNames([]string{}) {
 				cmd.Printf("%s %v\n", pt.Name, pt.Labels)
 				if listParams && len(pt.Params) > 0 {
 					cmd.Println(" parameters:")
@@ -76,14 +75,7 @@ func dumpPolicyCmd() *cobra.Command {
 				paramValues[k] = v
 			}
 
-			names := make(map[string]struct{})
-			for _, arg := range args {
-				names[arg] = struct{}{}
-			}
-			tests := policytest.AllPolicyTests.GetByFunction(func(t *policytest.T) bool {
-				_, ok := names[t.Name]
-				return ok
-			})
+			tests := policytest.AllPolicyTests.GetByNames(args)
 
 			conf := policytest.Conf{
 				GrpcAddr:       common.ServerAddress,
@@ -143,14 +135,8 @@ func runCmd() *cobra.Command {
 			}
 
 			ctx := context.Background()
-			names := make(map[string]struct{})
-			for _, arg := range args {
-				names[arg] = struct{}{}
-			}
-			tests := policytest.AllPolicyTests.GetByFunction(func(t *policytest.T) bool {
-				_, ok := names[t.Name]
-				return ok
-			})
+			tests := policytest.AllPolicyTests.GetByNames(args)
+
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
 				GrpcAddr:       common.ServerAddress,
 				BinsDir:        testBinsPath,
