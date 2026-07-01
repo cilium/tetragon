@@ -894,6 +894,23 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 	return nil
 }
 
+func initConfig(spec *ebpf.CollectionSpec) error {
+	v, ok := spec.Variables["CONFIG_ITER_NUM"]
+	if !ok {
+		return nil
+	}
+
+	// We can't use numeric iterator until we get following fix from 6.9 kernel:
+	//   4f81c16f50ba bpf: Recognize that two registers are safe when their ranges match
+	// otherwise our loop code crosses 1mil instructions verifier limit.
+	iterNum := bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
+
+	if err := v.Set(iterNum); err != nil {
+		return fmt.Errorf("failed to set config variable '%s': %w", v, err)
+	}
+	return nil
+}
+
 func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 	var missing []string
 
@@ -910,27 +927,6 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 
 		if err := v.Set(c); err != nil {
 			return fmt.Errorf("rewriting constant %s: %w", n, err)
-		}
-	}
-
-	confs := map[string]func(v *ebpf.VariableSpec) error{
-		"CONFIG_ITER_NUM": func(v *ebpf.VariableSpec) error {
-			// We can't use numeric iterator until we get following fix from 6.9 kernel:
-			//   4f81c16f50ba bpf: Recognize that two registers are safe when their ranges match
-			// otherwise our loop code crosses 1mil instructions verifier limit.
-			enabled := bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
-			if err := v.Set(enabled); err != nil {
-				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
-			}
-			return nil
-		},
-	}
-
-	for n, c := range spec.Variables {
-		if conf, ok := confs[n]; ok {
-			if err := conf(c); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -972,6 +968,10 @@ func doLoadProgram(
 				return nil, fmt.Errorf("failed to rewrite program %s: %w", prog.Name, err)
 			}
 		}
+	}
+
+	if err := initConfig(spec); err != nil {
+		return nil, fmt.Errorf("rewritting constants in spec failed: %w", err)
 	}
 
 	if load.RewriteConstants != nil {
