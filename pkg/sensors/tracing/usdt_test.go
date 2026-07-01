@@ -49,19 +49,21 @@ func TestUsdtLoadSensor(t *testing.T) {
 			4: {Name: "generic_usdt_process_filter", Type: ebpf.Kprobe},
 			5: {Name: "generic_usdt_actions", Type: ebpf.Kprobe},
 			6: {Name: "generic_usdt_output", Type: ebpf.Kprobe},
+			7: {Name: "generic_usdt_filter_caller", Type: ebpf.Kprobe},
 		}
 
 		sensorMaps = []tus.SensorMap{
 			// all usdt programs
-			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
+			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}},
 
 			// all but generic_usdt_output
-			{Name: "usdt_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+			{Name: "usdt_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}},
 
 			// generic_usdt_process_filter
 			// generic_usdt_filter_arg
 			// generic_usdt_actions
-			{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			// generic_usdt_filter_caller
+			{Name: "filter_map", Progs: []uint{3, 4, 5, 7}},
 
 			// generic_usdt_process_event
 			// generic_usdt_output
@@ -84,19 +86,21 @@ func TestUsdtLoadSensor(t *testing.T) {
 			5: {Name: "generic_usdt_actions", Type: ebpf.Kprobe},
 			6: {Name: "generic_usdt_output", Type: ebpf.Kprobe},
 			7: {Name: "generic_usdt_path", Type: ebpf.Kprobe},
+			8: {Name: "generic_usdt_filter_caller", Type: ebpf.Kprobe},
 		}
 
 		sensorMaps = []tus.SensorMap{
 			// all usdt programs
-			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}},
+			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8}},
 
 			// all but generic_usdt_output
-			{Name: "usdt_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}},
+			{Name: "usdt_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 8}},
 
 			// generic_usdt_process_filter
 			// generic_usdt_filter_arg
 			// generic_usdt_actions
-			{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			// generic_usdt_filter_caller
+			{Name: "filter_map", Progs: []uint{3, 4, 5, 8}},
 
 			// generic_usdt_process_event
 			// generic_usdt_output

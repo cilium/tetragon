@@ -3,7 +3,7 @@
 
 //go:build linux
 
-package elf
+package elf_test
 
 import (
 	"debug/elf"
@@ -11,6 +11,7 @@ import (
 	"slices"
 	"testing"
 
+	telf "github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/testutils"
 )
 
@@ -27,9 +28,9 @@ func pclntabSkipIfNoBins(t *testing.T) (stripped, unstripped string) {
 	return stripped, unstripped
 }
 
-func openSafe(t *testing.T, path string) *SafeELFFile {
+func openSafe(t *testing.T, path string) *telf.SafeELFFile {
 	t.Helper()
-	f, err := OpenSafeELFFile(path)
+	f, err := telf.OpenSafeELFFile(path)
 	if err != nil {
 		t.Fatalf("open %s: %v", path, err)
 	}
@@ -46,7 +47,7 @@ func TestIsStrippedPureGoBinary(t *testing.T) {
 	if openSafe(t, unstripped).IsStrippedPureGoBinary() {
 		t.Fatal("expected unstripped binary to NOT be detected as stripped")
 	}
-	if f, err := OpenSafeELFFile("/bin/sh"); err == nil {
+	if f, err := telf.OpenSafeELFFile("/bin/sh"); err == nil {
 		defer f.Close()
 		if f.IsStrippedPureGoBinary() {
 			t.Fatal("expected /bin/sh to NOT be detected as stripped Go binary")
@@ -89,7 +90,7 @@ func TestPclntabOffsetByNameDedup(t *testing.T) {
 
 	// runtime.newproc has both ABIInternal and ABI0 entries in pclntab;
 	// AllFuncs returns both, OffsetByName should return the larger one
-	var allNewproc []UprobeOffset
+	var allNewproc []telf.UprobeOffset
 	for _, fn := range tbl.AllFuncs() {
 		if fn.Name == "runtime.newproc" {
 			allNewproc = append(allNewproc, fn)
@@ -128,7 +129,7 @@ func TestPclntabOffsetByNameDedup(t *testing.T) {
 }
 
 func TestPclntabOpenNotGo(t *testing.T) {
-	f, err := OpenSafeELFFile("/bin/sh")
+	f, err := telf.OpenSafeELFFile("/bin/sh")
 	if err != nil {
 		t.Skipf("/bin/sh not available: %v", err)
 	}

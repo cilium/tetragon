@@ -7,6 +7,7 @@
 #include "common.h"
 #include "msg_types.h"
 #include "process.h"
+#include "vmlinux.h"
 
 /* The namespace and capability changes filters require later kernels */
 #ifdef __LARGE_BPF_PROG
@@ -20,6 +21,7 @@
 #define MAX_POSSIBLE_SELECTORS	 31
 #define SELECTORS_ACTIVE	 31
 #define MAX_CONFIGURED_SELECTORS MAX_POSSIBLE_SELECTORS + 1
+#define MAX_STACK_DEPTH		 16
 
 /* convenience mask for verifier appeasing*/
 #define MAX_POSSIBLE_ARGS_MASK 0x7
@@ -38,6 +40,7 @@ _Static_assert(MAX_ACCESSIBLE_ARGS - 1 <= MAX_ACCESSIBLE_ARGS_MASK, "Need to upd
 
 struct msg_selector_data {
 	__u64 curr;
+	// Verdict of the process filter.
 	bool pass;
 	bool active[MAX_CONFIGURED_SELECTORS];
 #ifdef __NS_CHANGES_FILTER
@@ -80,6 +83,7 @@ struct msg_generic_kprobe {
 	__u64 user_stack_id; // User Stack trace ID
 	/* anything above is shared with the userspace so it should match structs MsgGenericKprobe and MsgGenericTracepoint in Go */
 	char args[24000];
+	struct bpf_stack_build_id user_stack[MAX_STACK_DEPTH];
 	unsigned long a0, a1, a2, a3, a4;
 	long argsoff[MAX_POSSIBLE_ARGS];
 	arg_status_t arg_status[MAX_POSSIBLE_ARGS];
@@ -87,6 +91,7 @@ struct msg_generic_kprobe {
 	__u32 idx; // attach cookie index
 	__u32 tailcall_index_process; // recursion index for generic_process_event
 	__u32 tailcall_index_selector; // recursion index for filter_read_arg
+	// pass is the matchedSelector used to lookup the action
 	int pass;
 	union {
 		struct {

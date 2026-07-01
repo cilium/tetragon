@@ -3956,11 +3956,11 @@ spec:
     - matchArgs:
       - index: 0
         operator: "Prefix"
-        values: 
+        values:
         - "/etc/"
       - index: 0
         operator: "NotPrefix"
-        values: 
+        values:
         - "/etc/passwd"
         - "/etc/group"`
 
@@ -4988,33 +4988,32 @@ func TestLoadKprobeSensor(t *testing.T) {
 
 	if config.EnableV61Progs() {
 		sensorProgs = []tus.SensorProg{
-			// kprobe
-			0: {Name: "generic_kprobe_event", Type: ebpf.Kprobe},
-			1: {Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
-			2: {Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
-			3: {Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
-			4: {Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
-			5: {Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
-			6: {Name: "generic_kprobe_output", Type: ebpf.Kprobe},
-			// retkprobe
+			0:  {Name: "generic_kprobe_event", Type: ebpf.Kprobe},
+			1:  {Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
+			2:  {Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
+			3:  {Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
+			4:  {Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
+			5:  {Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
+			6:  {Name: "generic_kprobe_output", Type: ebpf.Kprobe},
 			7:  {Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
 			8:  {Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
 			9:  {Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
 			10: {Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
+			11: {Name: "generic_kprobe_filter_caller", Type: ebpf.Kprobe},
 		}
 		sensorMaps = []tus.SensorMap{
 			// all kprobe programs
-			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
 
 			// all but generic_kprobe_output
-			{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+			{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 11}},
 
 			// generic_retkprobe_event
 			{Name: "retkprobe_calls", Progs: []uint{7, 8, 9}},
 
 			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
-			// generic_kprobe_actions,generic_kprobe_output
-			{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			// generic_kprobe_actions,generic_kprobe_output,generic_kprobe_filter_caller
+			{Name: "filter_map", Progs: []uint{3, 4, 5, 11}},
 
 			// generic_kprobe_actions
 			{Name: "override_tasks", Progs: []uint{5}},
@@ -5054,6 +5053,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 			9:  {Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
 			10: {Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
 			11: {Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
+			12: {Name: "generic_kprobe_filter_caller", Type: ebpf.Kprobe},
 		}
 
 		sensorMaps = []tus.SensorMap{
@@ -5063,10 +5063,10 @@ func TestLoadKprobeSensor(t *testing.T) {
 
 		if config.EnableLargeProgs() {
 			// all kprobe programs
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}})
 
 			// all but generic_kprobe_output
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 12}})
 
 			// kprobe config users
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 5, 6}})
@@ -5084,8 +5084,8 @@ func TestLoadKprobeSensor(t *testing.T) {
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{8, 9, 10}})
 
 			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
-			// generic_kprobe_actions,generic_kprobe_output
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}})
+			// generic_kprobe_actions, generic_kprobe_filter_caller
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5, 12}})
 
 			if config.EnableV511Progs() {
 				// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
@@ -5103,13 +5103,13 @@ func TestLoadKprobeSensor(t *testing.T) {
 			sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_retkprobe_filter_arg_2", Type: ebpf.Kprobe})
 
 			// all kprobe programs
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}})
 
 			// all but generic_kprobe_output
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 12, 13}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 12, 13, 14}})
 
 			// kprobe config users
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 5, 6, 12}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 5, 6, 13}})
 
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 8}})
@@ -5121,11 +5121,11 @@ func TestLoadKprobeSensor(t *testing.T) {
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 4}})
 
 			// generic_retkprobe_event
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{8, 9, 10, 14}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{8, 9, 10, 15}})
 
 			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
-			// generic_kprobe_actions,generic_kprobe_output
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5, 13}})
+			// generic_kprobe_actions,generic_kprobe_filter_caller
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5, 12, 14}})
 		}
 	}
 
@@ -6157,7 +6157,7 @@ spec:
       index: 0
       type: "int"
     selectors:
-    - matchArgs:      
+    - matchArgs:
       - index: 0
         operator: "Equal"
         values:

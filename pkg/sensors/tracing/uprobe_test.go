@@ -59,17 +59,19 @@ func TestLoadUprobeSensor(t *testing.T) {
 			4: {Name: "generic_uprobe_process_filter", Type: ebpf.Kprobe},
 			5: {Name: "generic_uprobe_actions", Type: ebpf.Kprobe},
 			6: {Name: "generic_uprobe_output", Type: ebpf.Kprobe},
+			7: {Name: "generic_uprobe_filter_caller", Type: ebpf.Kprobe},
 		}
 
 		sensorMaps = []tus.SensorMap{
 			// all uprobe programs
-			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
+			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}},
 
 			// all but generic_uprobe_output
-			{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+			{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}},
 
-			// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
-			{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			// generic_uprobe_process_filter,generic_uprobe_filter_arg*
+			// generic_uprobe_actions,generic_uprobe_filter_caller
+			{Name: "filter_map", Progs: []uint{3, 4, 5, 7}},
 
 			// generic_uprobe_output
 			{Name: "tcpmon_map", Progs: []uint{6}},
@@ -92,6 +94,7 @@ func TestLoadUprobeSensor(t *testing.T) {
 			5: {Name: "generic_uprobe_actions", Type: ebpf.Kprobe},
 			6: {Name: "generic_uprobe_output", Type: ebpf.Kprobe},
 			7: {Name: "generic_uprobe_path", Type: ebpf.Kprobe},
+			8: {Name: "generic_uprobe_filter_caller", Type: ebpf.Kprobe},
 		}
 
 		sensorMaps = []tus.SensorMap{
@@ -101,16 +104,17 @@ func TestLoadUprobeSensor(t *testing.T) {
 
 		if config.EnableLargeProgs() {
 			// all uprobe programs
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8}})
 
 			// all but generic_uprobe_output
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 8}})
 
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}})
 
-			// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}})
+			// generic_uprobe_process_filter,generic_uprobe_filter_arg*
+			// generic_uprobe_actions,generic_uprobe_filter_caller
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5, 8}})
 
 			if config.EnableV511Progs() {
 				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 4, 6}})
@@ -123,17 +127,18 @@ func TestLoadUprobeSensor(t *testing.T) {
 			sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_uprobe_filter_arg_2", Type: ebpf.Kprobe})
 
 			// all uprobe programs
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}})
 
 			// all but generic_uprobe_output
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 8, 9}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 8, 9, 10}})
 
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4}})
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 4}})
 
-			// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5, 9}})
+			// generic_uprobe_process_filter,generic_uprobe_filter_arg*
+			// generic_uprobe_actions,generic_uprobe_filter_caller
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5, 8, 10}})
 		}
 	}
 

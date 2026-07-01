@@ -20,6 +20,7 @@ int generic_fentry_setup_event(void *ctx);
 int generic_fentry_process_event(void *ctx);
 int generic_fentry_process_filter(void *ctx);
 int generic_fentry_filter_arg(void *ctx);
+int generic_fentry_filter_caller(void *ctx);
 int generic_fentry_actions(void *ctx);
 int generic_fentry_output(void *ctx);
 int generic_fentry_path(void *ctx);
@@ -35,6 +36,7 @@ struct {
 		[TAIL_CALL_PROCESS] = (void *)&generic_fentry_process_event,
 		[TAIL_CALL_FILTER] = (void *)&generic_fentry_process_filter,
 		[TAIL_CALL_ARGS] = (void *)&generic_fentry_filter_arg,
+		[TAIL_CALL_CALLER] = (void *)&generic_fentry_filter_caller,
 		[TAIL_CALL_ACTIONS] = (void *)&generic_fentry_actions,
 		[TAIL_CALL_SEND] = (void *)&generic_fentry_output,
 #ifndef __V61_BPF_PROG
@@ -87,6 +89,12 @@ __attribute__((section(SECTION_TAIL), used)) int
 generic_fentry_filter_arg(void *ctx)
 {
 	return generic_filter_arg(ctx, (struct bpf_map_def *)&fentry_calls, true, __FILTER_ARG_ALL);
+}
+
+__attribute__((section(SECTION_TAIL), used)) int
+generic_fentry_filter_caller(void *ctx)
+{
+	return generic_filter_caller(ctx, (struct bpf_map_def *)&fentry_calls);
 }
 
 __attribute__((section(SECTION_TAIL), used)) int

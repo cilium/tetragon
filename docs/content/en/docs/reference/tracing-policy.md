@@ -840,6 +840,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -899,7 +906,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1078,14 +1085,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -1140,6 +1147,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1282,14 +1354,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -1647,14 +1719,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -2571,6 +2643,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -2630,7 +2709,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2809,14 +2888,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -2871,6 +2950,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3013,14 +3157,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -3378,14 +3522,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -3971,6 +4115,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -4030,7 +4181,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4209,14 +4360,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -4271,6 +4422,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4413,14 +4629,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -4778,14 +4994,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -5259,6 +5475,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -5318,7 +5541,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5497,14 +5720,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -5559,6 +5782,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5701,14 +5989,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -6066,14 +6354,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -6617,6 +6905,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -6676,7 +6971,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6855,14 +7150,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -6917,6 +7212,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7059,14 +7419,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -7424,14 +7784,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -8249,6 +8609,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -8308,7 +8675,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8487,14 +8854,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -8549,6 +8916,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8691,14 +9123,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -9056,14 +9488,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -9614,6 +10046,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -9673,7 +10112,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9852,14 +10291,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -9914,6 +10353,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10056,14 +10560,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -10421,14 +10925,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -11542,6 +12046,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -11601,7 +12112,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11780,14 +12291,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -11842,6 +12353,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11984,14 +12560,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -12349,14 +12925,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -13273,6 +13849,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -13332,7 +13915,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13511,14 +14094,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -13573,6 +14156,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13715,14 +14363,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -14080,14 +14728,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -14673,6 +15321,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -14732,7 +15387,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14911,14 +15566,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -14973,6 +15628,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -15115,14 +15835,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -15480,14 +16200,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -15961,6 +16681,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -16020,7 +16747,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16199,14 +16926,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -16261,6 +16988,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -16403,14 +17195,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -16768,14 +17560,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -17319,6 +18111,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -17378,7 +18177,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17557,14 +18356,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -17619,6 +18418,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -17761,14 +18625,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -18126,14 +18990,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -18951,6 +19815,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -19010,7 +19881,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -19189,14 +20060,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -19251,6 +20122,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -19393,14 +20329,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -19758,14 +20694,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -20316,6 +21252,13 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchcallersindex">matchCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchCallers are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -20375,7 +21318,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
         <td>[]object</td>
         <td>
-          A list of argument filters. MatchArgs are ANDed.<br/>
+          A list of argument filters. MatchReturnArgs are ANDed.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -20554,14 +21497,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -20616,6 +21559,71 @@ Only valid with the post action and with a rateLimit specified.<br/>
           In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -20758,14 +21766,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
@@ -21123,14 +22131,14 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>args</b></td>
         <td>[]integer</td>
         <td>
-          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+          Position of the operator arguments (in spec file) to apply the filter to.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>index</b></td>
         <td>integer</td>
         <td>
-          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          Position of the argument (in function prototype) to apply the filter to.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>

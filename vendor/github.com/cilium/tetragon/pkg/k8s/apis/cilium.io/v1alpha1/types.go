@@ -149,7 +149,7 @@ type KProbeSelector struct {
 	// A list of actions to execute when this selector matches
 	MatchActions []ActionSelector `json:"matchActions,omitempty"`
 	// +kubebuilder:validation:Optional
-	// A list of argument filters. MatchArgs are ANDed.
+	// A list of argument filters. MatchReturnArgs are ANDed.
 	MatchReturnArgs []ArgSelector `json:"matchReturnArgs,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A list of actions to execute when MatchReturnArgs selector matches
@@ -177,6 +177,9 @@ type KProbeSelector struct {
 	// +kubebuilder:validation:Optional
 	// Workloads to match
 	MatchWorkloads *WorkloadsSelector `json:"matchWorkloads,omitempty"`
+	// +kubebuilder:validation:Optional
+	// A list of caller filters. MatchCallers are ANDed.
+	MatchCallers []CallerSelector `json:"matchCallers,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A list of macros names, defined in spec.selectorsMacros.
 	// Filters specified in macros will be appended to corresponding filters of the selector.
@@ -236,6 +239,31 @@ type WorkloadsSelector struct {
 	HostSelector *slimv1.LabelSelector `json:"hostSelector"`
 }
 
+type CallerSelector struct {
+	// +kubebuilder:validation:Pattern=`^(any|[1-9][0-9]*)$`
+	// Depth is the distance from the probed function to the caller.
+	// Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+	// Depth of "any" means any of the last 15 callers in the stack.
+	Depth string `json:"depth"`
+	// +kubebuilder:validation:Optional
+	// Path to the binary of the caller function.
+	// If not specified, the symbol will be looked up in the binary located at the path of the probe.
+	// This is used if the caller function is in a different binary from the probed function, e.g.,
+	// when probing a function in a shared library.
+	Path string `json:"path"`
+	// +kubebuilder:validation:Optional
+	// Symbol of the caller function in the binary specified by Path.
+	// If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+	Symbol string `json:"symbol"`
+	// +kubebuilder:validation:Optional
+	// StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+	// You can get those values from the binary's symbol table.
+	StartRange uint64 `json:"startRange,omitempty"`
+	// +kubebuilder:validation:Optional
+	// StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+	EndRange uint64 `json:"endRange,omitempty"`
+}
+
 type PIDSelector struct {
 	// +kubebuilder:validation:Enum=In;NotIn
 	// PID selector operator.
@@ -255,11 +283,11 @@ type PIDSelector struct {
 type ArgSelector struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
-	// Position of the argument (in function prototype) to apply fhe filter to.
+	// Position of the argument (in function prototype) to apply the filter to.
 	Index uint32 `json:"index"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:items:Minimum=0
-	// Position of the operator arguments (in spec file) to apply fhe filter to.
+	// Position of the operator arguments (in spec file) to apply the filter to.
 	Args []uint32 `json:"args,omitempty"`
 	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;NotPrefix;Postfix;NotPostfix;GreaterThan;LessThan;GT;LT;Mask;SPort;NotSPort;SPortPriv;NotSportPriv;DPort;NotDPort;DPortPriv;NotDPortPriv;SAddr;NotSAddr;DAddr;NotDAddr;Protocol;Family;State;InMap;NotInMap;CapabilitiesGained;InRange;NotInRange;SubString;SubStringIgnCase;CelExpr;FileType;NotFileType
 	// Filter operation.

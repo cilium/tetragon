@@ -21,6 +21,7 @@ int generic_tracepoint_process_event(void *ctx);
 int generic_tracepoint_filter(void *ctx);
 int generic_tracepoint_arg(void *ctx);
 int generic_tracepoint_arg_2(void *ctx);
+int generic_tracepoint_caller(void *ctx);
 int generic_tracepoint_actions(void *ctx);
 int generic_tracepoint_output(void *ctx);
 int generic_tracepoint_process_event_2(void *ctx);
@@ -35,6 +36,7 @@ struct {
 		[TAIL_CALL_PROCESS] = (void *)&generic_tracepoint_process_event,
 		[TAIL_CALL_FILTER] = (void *)&generic_tracepoint_filter,
 		[TAIL_CALL_ARGS] = (void *)&generic_tracepoint_arg,
+		[TAIL_CALL_CALLER] = (void *)&generic_tracepoint_caller,
 		[TAIL_CALL_ACTIONS] = (void *)&generic_tracepoint_actions,
 		[TAIL_CALL_SEND] = (void *)&generic_tracepoint_output,
 #ifndef __LARGE_BPF_PROG
@@ -324,6 +326,12 @@ generic_tracepoint_arg_2(void *ctx)
 				  __FILTER_ARG_2);
 }
 #endif
+
+__attribute__((section("tracepoint"), used)) int
+generic_tracepoint_caller(void *ctx)
+{
+	return generic_filter_caller(ctx, (struct bpf_map_def *)&tp_calls);
+}
 
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_actions(void *ctx)
