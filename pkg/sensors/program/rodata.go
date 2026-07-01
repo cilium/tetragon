@@ -28,7 +28,8 @@ const (
 type rodataConfig struct {
 	IterNum           uint8
 	ParentsMapEnabled uint8
-	Pad               [6]uint8
+	EnvVarsEnabled    uint8
+	Pad               [5]uint8
 }
 
 func currentRodataConfig() rodataConfig {
@@ -45,9 +46,15 @@ func currentRodataConfig() rodataConfig {
 		parentsMapEnabled = 1
 	}
 
+	envVarsEnabled := uint8(0)
+	if option.Config.EnableProcessEnvironmentVariables {
+		envVarsEnabled = 1
+	}
+
 	return rodataConfig{
 		IterNum:           iterNum,
 		ParentsMapEnabled: parentsMapEnabled,
+		EnvVarsEnabled:    envVarsEnabled,
 	}
 }
 
