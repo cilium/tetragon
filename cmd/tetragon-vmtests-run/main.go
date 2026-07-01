@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/vmtests"
+
 	"github.com/cilium/little-vm-helper/pkg/arch"
 	"github.com/cilium/little-vm-helper/pkg/runner"
 	"github.com/cilium/little-vm-helper/pkg/slogger"
@@ -158,6 +160,8 @@ func main() {
 	cmd.Flags().BoolVar(&rcnf.justBuildImage, "just-build-image", false, "Just build an image. Do not actually run any tests or boot the VM.")
 	cmd.Flags().BoolVar(&rcnf.testerConf.NoPowerOff, "no-poweroff", false, "Do not poweroff the VM at the end of the run")
 	cmd.Flags().StringVar(&rcnf.testerConf.TestsFile, "testsfile", "", "list of tests to run")
+	cmd.Flags().StringVar(&rcnf.testerConf.PolicyTests, "policytests", vmtests.PolicyTestAll, fmt.Sprintf("policy tests to run: %s or a path to a file with test names (one per line)", vmtests.PolicyTestAll))
+	cmd.Flags().BoolVar(&rcnf.testerConf.SkipGoTests, "skip-gotests", false, "skip the compiled Go tests (useful when running only policy tests)")
 	cmd.Flags().StringVar(&rcnf.btfFile, "btf-file", "", "BTF file to use.")
 	cmd.Flags().BoolVar(&rcnf.testerConf.FailFast, "fail-fast", false, "Exit as soon as an error is encountered.")
 	cmd.Flags().BoolVar(&rcnf.keepAllLogs, "keep-all-logs", false, "Normally, logs are kept only for failed tests. This switch keeps all logs.")
