@@ -175,6 +175,9 @@ type Program struct {
 
 	Link link.Link
 	Prog *ebpf.Program
+	// hasRodataConfigPin indicates this program holds a reference to the shared
+	// rodata config pin and should release it on unload.
+	hasRodataConfigPin bool
 
 	// policy name the program belongs to
 	Policy string
@@ -237,6 +240,10 @@ func (p *Program) Unload(unpin bool) error {
 	}
 	p.unloader = nil
 	p.unloaderOverride = nil
+	if p.hasRodataConfigPin {
+		releaseRodataConfigPin(unpin)
+		p.hasRodataConfigPin = false
+	}
 	// The above unloader can succeed while not removing a pin to the program
 	// because of option.Config.KeepSensorsOnExit, and thus the maps remain.
 	if !p.Prog.IsPinned() {
