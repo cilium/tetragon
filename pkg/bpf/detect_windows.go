@@ -33,6 +33,10 @@ func HasLinkPin() bool {
 	return false
 }
 
+func HasKfunc(string) bool {
+	return false
+}
+
 func HasKprobeMulti() bool {
 	return false
 }
