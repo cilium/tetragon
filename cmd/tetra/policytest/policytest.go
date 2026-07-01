@@ -9,6 +9,7 @@ import (
 
 	// import tests
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -157,7 +158,19 @@ func runCmd() *cobra.Command {
 			}
 			runner.Close()
 			policytest.DumpResults(cmd.OutOrStdout(), ptNames, results)
-			return nil
+
+			var resErr error
+			for _, res := range results {
+				if res.Err != nil {
+					resErr = errors.Join(resErr, res.Err)
+				}
+				for _, sc := range res.ScenariosRes {
+					if sc.Err() != nil {
+						resErr = errors.Join(resErr, fmt.Errorf("scenario %s failed: %w", sc.Name, sc.Err()))
+					}
+				}
+			}
+			return resErr
 		},
 	}
 	flags := cmd.Flags()
