@@ -105,6 +105,7 @@ clean: cli-clean tarball-clean
 	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./alignchecker ./tetragon.exe
 	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
 	$(MAKE) -C $(TESTER_PROGS_DIR) clean
+	rm -f tests/vmtests/tetragon-tester tests/vmtests/tetragon-vmtests-run
 
 ##@ Build and install
 
@@ -380,6 +381,11 @@ e2e-test-minikube: image-rthooks
 	EXIT_CODE=$$?; \
 	minikube delete; \
 	exit $$EXIT_CODE
+
+.PHONY: vmtests
+vmtests: tetragon-bpf tetra tetragon test-compile tester-progs  ## Run VM tests.
+	$(GO) build -o ./tests/vmtests/ ./cmd/tetragon-tester
+	$(GO) build -o ./tests/vmtests/ ./cmd/tetragon-vmtests-run
 
 ##@ Development
 

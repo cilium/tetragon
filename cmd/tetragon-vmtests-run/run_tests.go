@@ -77,7 +77,7 @@ func runTests(
 	for _, res := range results {
 		// NB: res.Skip means that the test was never executed, so we cannot print detailed
 		// results.
-		if rcnf.detailedResults && res.Outfile != "" && !res.Skip {
+		if rcnf.detailedResults && res.Outfile != "" && !res.Skip && !res.IsPolicyTest {
 			updateResultsDetailed(w, &res, &out)
 		} else {
 			updateResultsSimple(w, &res, &out)
