@@ -126,6 +126,7 @@
     - [GetInfoResponse.Probe](#tetragon-GetInfoResponse-Probe)
     - [GetVersionRequest](#tetragon-GetVersionRequest)
     - [GetVersionResponse](#tetragon-GetVersionResponse)
+    - [HookStatus](#tetragon-HookStatus)
     - [ListDomainsRequest](#tetragon-ListDomainsRequest)
     - [ListDomainsResponse](#tetragon-ListDomainsResponse)
     - [ListSensorsRequest](#tetragon-ListSensorsRequest)
@@ -145,6 +146,7 @@
     - [TracingPolicyStatus](#tetragon-TracingPolicyStatus)
   
     - [ConfigFlag](#tetragon-ConfigFlag)
+    - [HookState](#tetragon-HookState)
     - [LogLevel](#tetragon-LogLevel)
     - [TracingPolicyMode](#tetragon-TracingPolicyMode)
     - [TracingPolicyState](#tetragon-TracingPolicyState)
@@ -2254,6 +2256,24 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-HookStatus"></a>
+
+### HookStatus
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| section | [string](#string) |  | hook&#39;s section within the policy |
+| state | [HookState](#tetragon-HookState) |  | hook state |
+| hook_description | [string](#string) |  | description of hook |
+| hook_idx | [uint32](#uint32) |  | the index at which this hook is configured within its section |
+
+
+
+
+
+
 <a name="tetragon-ListDomainsRequest"></a>
 
 ### ListDomainsRequest
@@ -2521,6 +2541,7 @@ Determines the behavior of a field filter
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) |  | current mode of the tracing policy |
 | stats | [TracingPolicyStats](#tetragon-TracingPolicyStats) | optional | stats of the tracing policy |
 | domain | [string](#string) |  | domain of the policy |
+| hook_statuses | [HookStatus](#tetragon-HookStatus) | repeated | status of policy&#39;s hooks |
 
 
 
@@ -2538,6 +2559,19 @@ For now, we only want to support debug-related config flags to be configurable.
 | ---- | ------ | ----------- |
 | CONFIG_FLAG_LOG_LEVEL | 0 |  |
 | CONFIG_FLAG_DUMP_PROCESS_CACHE | 1 |  |
+
+
+
+<a name="tetragon-HookState"></a>
+
+### HookState
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| STATUS_UNSPECIFIED | 0 | unknown or unspecified state |
+| STATUS_LOADED | 1 | probe was loaded |
+| STATUS_DIGEST_REJECTED | 2 | probe was not loaded due to digest mismatch |
 
 
 

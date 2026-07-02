@@ -5436,6 +5436,12 @@ spec:
                         - type
                         type: object
                       type: array
+                    binaryDigests:
+                      description: Digests of the traced binary. If any digest matches,
+                        verification passes.
+                      items:
+                        type: string
+                      type: array
                     btfPath:
                       description: path for a BTF file for the traced binary
                       type: string
