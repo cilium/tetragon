@@ -199,14 +199,9 @@ func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.Max
 	return lastBTFType, btfArg, err
 }
 
-func resolveUserBTFArg(arg *v1alpha1.KProbeArg, btfPath string) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
-	spec, err := ebtf.LoadSpec(btfPath)
-	if err != nil {
-		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
-	}
-
+func resolveUserBTFArg(arg *v1alpha1.KProbeArg, userBTFSpec *ebtf.Spec) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	var st *ebtf.Struct
-	err = spec.TypeByName(arg.BTFType, &st)
+	err := userBTFSpec.TypeByName(arg.BTFType, &st)
 	if err != nil {
 		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 	}

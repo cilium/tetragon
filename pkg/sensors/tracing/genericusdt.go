@@ -15,6 +15,7 @@ import (
 	"path"
 
 	"github.com/cilium/ebpf"
+	ebtf "github.com/cilium/ebpf/btf"
 
 	"github.com/cilium/tetragon/pkg/cgtracker"
 
@@ -380,6 +381,14 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 			}
 		}
 
+		var userBTFSpec *ebtf.Spec
+		if spec.BTFPath != "" {
+			userBTFSpec, err = ebtf.LoadSpec(spec.BTFPath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load user BTF spec %q: %w", spec.BTFPath, err)
+			}
+		}
+
 		var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 		var preload bool
 		for cfgIdx, arg := range spec.Args {
@@ -400,7 +409,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 
 			argType := gt.GenericTypeFromString(arg.Type)
 			if arg.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(&arg, spec.BTFPath)
+				lastBTFType, btfArg, err := resolveUserBTFArg(&arg, userBTFSpec)
 				if err != nil {
 					return nil, err
 				}
