@@ -122,99 +122,103 @@ func (s *Server) removeNotifierAndDrain(l *getEventsListener) {
 		}
 	}
 }
+
+// ListenerFunc is the event-loop function returned by GetEventsListener. It
+// blocks until the event loop terminates, returning nil on graceful shutdown or
+// an error if the loop exits unexpectedly.
+type ListenerFunc func() error
+
 func (s *Server) GetEvents(request *tetragon.GetEventsRequest, server tetragon.FineGuidanceSensors_GetEventsServer) error {
-	return s.GetEventsWG(request, server, nil, nil)
+	run, err := s.GetEventsListener(request, server, nil)
+	if err != nil {
+		return err
+	}
+	return run()
 }
 
-func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon.FineGuidanceSensors_GetEventsServer, closer io.Closer, readyWG *sync.WaitGroup) error {
+// GetEventsListener builds the filter and aggregation setup for a GetEvents
+// request, registers the event listener with the notifier and returns a run
+// function that drives the event loop. Registering synchronously ensures that
+// events delivered between the call to GetEventsListener and the start of the
+// returned function are not lost. Separating setup from execution lets callers
+// distinguish setup errors (bad filter config, invalid aggregation options)
+// from runtime errors (send failures, context cancellation). Callers must
+// invoke the returned ListenerFunc to drain events and clean up the listener.
+func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server tetragon.FineGuidanceSensors_GetEventsServer, closer io.Closer) (ListenerFunc, error) {
 	logger.GetLogger().Debug("Received a GetEvents request",
 		"events.allow_list", request.GetAllowList(),
 		"events.deny_list", request.GetDenyList(),
 		"events.field_filters", request.GetFieldFilters(),
 		"events.aggregation_options", request.GetAggregationOptions())
+
 	allowList, err := filters.BuildFilterList(s.ctx, request.AllowList, filters.Filters)
 	if err != nil {
-		if readyWG != nil {
-			readyWG.Done()
-		}
-		return err
+		return nil, err
 	}
 	denyList, err := filters.BuildFilterList(s.ctx, request.DenyList, filters.Filters)
 	if err != nil {
-		if readyWG != nil {
-			readyWG.Done()
-		}
-		return err
+		return nil, err
 	}
-	aggregator, err := aggregator.NewAggregator(server, request.AggregationOptions)
+	agg, err := aggregator.NewAggregator(server, request.AggregationOptions)
 	if err != nil {
-		if readyWG != nil {
-			readyWG.Done()
-		}
-		return err
-	}
-	if aggregator != nil {
-		go aggregator.Start()
+		return nil, err
 	}
 
 	l := newListener()
 	s.notifier.AddListener(l)
-	defer s.removeNotifierAndDrain(l)
-	if readyWG != nil {
-		readyWG.Done()
-	}
 	s.ctxCleanupWG.Add(1)
-	defer s.ctxCleanupWG.Done()
-	for {
-		select {
-		case event := <-l.events:
-			if !filters.Apply(allowList, denyList, &pkgEvent.Event{Event: event}) {
-				// Event is filtered out. Nothing to do here. Continue.
-				continue
-			}
 
-			// Get field filters
-			filters, err := fieldfilters.FieldFiltersFromGetEventsRequest(request)
-			if err != nil {
-				return fmt.Errorf("failed to create field filters: %w", err)
-			}
-
-			// Apply field filters
-			for _, filter := range filters {
-				ev, err := filter.Filter(event)
-				if err != nil {
-					logger.GetLogger().Warn("Failed to apply field filter", "filter", filter, logfields.Error, err)
+	return func() error {
+		defer s.ctxCleanupWG.Done()
+		defer s.removeNotifierAndDrain(l)
+		if agg != nil {
+			go agg.Start()
+		}
+		for {
+			select {
+			case event := <-l.events:
+				if !filters.Apply(allowList, denyList, &pkgEvent.Event{Event: event}) {
 					continue
 				}
-				event = ev
-			}
 
-			if aggregator != nil {
-				// Send event to aggregator.
-				select {
-				case aggregator.GetEventChannel() <- event:
-				default:
-					logger.GetLogger().Warn("Aggregator buffer is full. Consider increasing AggregatorOptions.channel_buffer_size.",
-						"request", request)
+				fieldFilters, err := fieldfilters.FieldFiltersFromGetEventsRequest(request)
+				if err != nil {
+					return fmt.Errorf("failed to create field filters: %w", err)
 				}
-			} else {
-				// No need to aggregate. Directly send out the response.
-				if err = server.Send(event); err != nil {
-					return err
+				for _, filter := range fieldFilters {
+					ev, err := filter.Filter(event)
+					if err != nil {
+						logger.GetLogger().Warn("Failed to apply field filter", "filter", filter, logfields.Error, err)
+						continue
+					}
+					event = ev
 				}
+
+				if agg != nil {
+					select {
+					case agg.GetEventChannel() <- event:
+					default:
+						logger.GetLogger().Warn("Aggregator buffer is full. Consider increasing AggregatorOptions.channel_buffer_size.",
+							"request", request)
+					}
+				} else {
+					if err = server.Send(event); err != nil {
+						return err
+					}
+				}
+			case <-server.Context().Done():
+				if closer != nil {
+					closer.Close()
+				}
+				return server.Context().Err()
+			case <-s.ctx.Done():
+				if closer != nil {
+					closer.Close()
+				}
+				return s.ctx.Err()
 			}
-		case <-server.Context().Done():
-			if closer != nil {
-				closer.Close()
-			}
-			return server.Context().Err()
-		case <-s.ctx.Done():
-			if closer != nil {
-				closer.Close()
-			}
-			return s.ctx.Err()
 		}
-	}
+	}, nil
 }
 
 func (s *Server) GetHealth(_ context.Context, request *tetragon.GetHealthStatusRequest) (*tetragon.GetHealthStatusResponse, error) {
