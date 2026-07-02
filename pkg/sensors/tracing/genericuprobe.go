@@ -505,10 +505,11 @@ func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
 }
 
 type uprobeConfigState struct {
-	symbols       int
-	offsets       int
-	addrs         int
-	refCtrOffsets int
+	symbols        int
+	offsets        int
+	addrs          int
+	refCtrOffsets  int
+	overrideSymbol bool
 
 	selectors kprobeSelectors
 
@@ -572,6 +573,11 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		}
 	}
 
+	numArgNewArgs := selectors.CountOverrideArgNewSymbolAddrOffset(spec.Selectors)
+	if numArgNewArgs > 1 {
+		return fmt.Errorf("uprobe Override action needs exactly one of either argNewSymbol, argNewOffset or argNewAddr defined; %d found", numArgNewArgs)
+	}
+	state.overrideSymbol = numArgNewArgs == 1
 	return nil
 }
 
@@ -600,14 +606,74 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 	return nil
 }
 
-func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState, nextIdx int) error {
+func computeArgNewOffset(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAddr uint64) (int64, error) {
+	var err error
+	for _, sel := range spec.Selectors {
+		for _, matchAct := range sel.MatchActions {
+			if matchAct.Action == "Override" {
+				// Load override-symbol VA
+				var overrideSymbAddr uint64
+				if matchAct.ArgNewSymbol != "" {
+					overrideSymbAddr, err = f.Address(matchAct.ArgNewSymbol)
+				} else if matchAct.ArgNewAddr != 0 {
+					overrideSymbAddr = matchAct.ArgNewAddr
+				} else {
+					overrideSymbAddr, err = f.AddrFromOffset(uint64(matchAct.ArgNewOffset))
+				}
+				if err != nil {
+					return 0, err
+				}
+
+				// Store the relative-to-traced-symbol delta.
+				// This is computed based on virtual address for both symbols.
+				// Since ASLR just changes the base address,
+				// the relative delta are stable.
+				// In bpf, we will compute the override symbol address as:
+				// * curr_ip = PT_REGS_IP(ctx);
+				// * next_ip = curr_ip + delta
+				return int64(overrideSymbAddr - symbolAddr), nil
+			}
+		}
+	}
+	return 0, errors.New("state.overrideSymbol is true but no corresponding Override action found in spec.Selectors")
+}
+
+func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigState, f *elf.SafeELFFile) (int64, error) {
+	if !state.overrideSymbol {
+		return 0, nil
+	}
+
+	// Load probed symbol offset
+	var (
+		symbolAddr uint64
+		err        error
+	)
+	if state.symbols > 0 {
+		symbolAddr, err = f.Address(spec.Symbols[0])
+	} else if state.addrs > 0 {
+		symbolAddr = spec.Addrs[0]
+	} else {
+		symbolAddr, err = f.AddrFromOffset(spec.Offsets[0])
+	}
+	if err != nil {
+		return 0, err
+	}
+	return computeArgNewOffset(spec, f, symbolAddr)
+}
+
+func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState, f *elf.SafeELFFile, nextIdx int) error {
+	ipDelta, err := initOverrideSymbolOffset(spec, state, f)
+	if err != nil {
+		return err
+	}
 	entry, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
-		Selectors: spec.Selectors,
-		Args:      spec.Args,
-		Data:      spec.Data,
-		IsUprobe:  true,
-		UprobeID:  nextIdx,
-		CelExprs:  in.celExprs,
+		Selectors:             spec.Selectors,
+		Args:                  spec.Args,
+		Data:                  spec.Data,
+		IsUprobe:              true,
+		UprobeID:              nextIdx,
+		OverrideActionIPDelta: ipDelta,
+		CelExprs:              in.celExprs,
 	})
 	if err != nil {
 		return err
@@ -1131,7 +1197,7 @@ func getLinkPath(file *os.File, targetPath string) string {
 	return targetPath
 }
 
-func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *uprobeConfigState, has *uprobeHas) ([]idtable.EntryID, error) {
+func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *uprobeConfigState, has *uprobeHas, f *elf.SafeELFFile) ([]idtable.EntryID, error) {
 	addUprobeEntry := func(sym string, offset uint64, idx int) error {
 		var refCtrOffset uint64
 		var err error
@@ -1182,22 +1248,6 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 		return nil
 	}
 
-	var f *elf.SafeELFFile
-	var err error
-	if state.entryFile != nil {
-		f, err = elf.NewSafeELFFile(state.entryFile)
-	} else {
-		f, err = elf.OpenSafeELFFile(spec.Path)
-	}
-
-	if err != nil {
-		return ids, err
-	}
-
-	if state.entryFile == nil {
-		defer f.Close()
-	}
-
 	if state.symbols != 0 && f.IsStrippedPureGoBinary() {
 		tbl, err := f.Pclntab()
 		if err != nil {
@@ -1221,14 +1271,14 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 			if err := checkSymbol(sym); err != nil {
 				return ids, fmt.Errorf("failed to parse symbol: %w", err)
 			}
-			err = addUprobeEntry(sym, 0, idx)
+			err := addUprobeEntry(sym, 0, idx)
 			if err != nil {
 				return ids, err
 			}
 		}
 	} else if state.offsets != 0 {
 		for idx, off := range spec.Offsets {
-			err = addUprobeEntry("", off, idx)
+			err := addUprobeEntry("", off, idx)
 			if err != nil {
 				return ids, err
 			}
@@ -1266,6 +1316,22 @@ func addUprobe(spec *v1alpha1.UProbeSpec, entryFile *os.File, ids []idtable.Entr
 		}
 	}()
 
+	var f *elf.SafeELFFile
+	var err error
+	if state.entryFile != nil {
+		f, err = elf.NewSafeELFFile(state.entryFile)
+	} else {
+		f, err = elf.OpenSafeELFFile(spec.Path)
+	}
+
+	if err != nil {
+		return ids, err
+	}
+
+	if state.entryFile == nil {
+		defer f.Close()
+	}
+
 	if err := validateUprobeSpec(spec, &state); err != nil {
 		return ids, err
 	}
@@ -1274,7 +1340,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, entryFile *os.File, ids []idtable.Entr
 		return ids, err
 	}
 
-	if err := initUprobeSelectors(spec, in, &state, len(ids)); err != nil {
+	if err := initUprobeSelectors(spec, in, &state, f, len(ids)); err != nil {
 		return ids, err
 	}
 
@@ -1286,7 +1352,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, entryFile *os.File, ids []idtable.Entr
 		return ids, err
 	}
 
-	return addUprobeEntries(spec, ids, &state, has)
+	return addUprobeEntries(spec, ids, &state, has, f)
 }
 
 func multiUprobePinPath(sensorPath string) string {
