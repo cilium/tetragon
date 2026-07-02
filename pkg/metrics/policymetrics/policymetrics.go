@@ -53,6 +53,7 @@ var selectorActions = metrics.MustNewCustomCounter(metrics.NewOpts(
 		{Name: "hook", ExampleValue: consts.ExampleKprobeLabel},
 		{Name: "hook_index", ExampleValue: "0"},
 		{Name: "selector_index", ExampleValue: "0"},
+		{Name: "selector_label", ExampleValue: "example-selector"},
 		{Name: "action", ExampleValue: "post"},
 	},
 ))
@@ -163,6 +164,7 @@ func collectSelectorActions(ch chan<- prometheus.Metric, policy *tetragon.Tracin
 				selector.GetHook(),
 				hookIndex,
 				selectorIndex,
+				selector.GetSelectorLabel(),
 				counter.action,
 			)
 		}
@@ -182,6 +184,7 @@ func collectForDocs(ch chan<- prometheus.Metric) {
 			consts.ExampleKprobeLabel,
 			"0",
 			"0",
+			"example-selector",
 			action,
 		)
 	}

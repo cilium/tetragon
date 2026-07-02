@@ -283,6 +283,7 @@ func TestAppendMacrosSelectors(t *testing.T) {
 			},
 			macros: map[string]v1alpha1.KProbeSelector{
 				"testMacro": {
+					Label: "macro-label",
 					MatchArgs: []v1alpha1.ArgSelector{
 						{
 							Index:    0,
@@ -294,6 +295,7 @@ func TestAppendMacrosSelectors(t *testing.T) {
 			},
 			expectedSelectors: []v1alpha1.KProbeSelector{
 				{
+					Label: "macro-label",
 					MatchBinaries: []v1alpha1.BinarySelector{
 						{
 							Operator: "In",

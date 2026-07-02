@@ -137,6 +137,9 @@ type BinarySelector struct {
 // results of MatchPIDs and MatchArgs are ANDed.
 type KProbeSelector struct {
 	// +kubebuilder:validation:Optional
+	// Human-readable selector label used in status and metrics.
+	Label string `json:"label,omitempty"`
+	// +kubebuilder:validation:Optional
 	// A list of process ID filters. MatchPIDs are ANDed.
 	MatchPIDs []PIDSelector `json:"matchPIDs,omitempty"`
 	// +kubebuilder:validation:Optional
