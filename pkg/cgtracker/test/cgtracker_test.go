@@ -215,6 +215,11 @@ func doProgTest(t *testing.T, cgfsPath string) {
 // TestCgTrackerPolicyFilter checks that cgroup tracking works with policyfilter
 func TestCgTrackerPolicyFilter(t *testing.T) {
 	build.SkipIfK8sDisabled(t)
+	oldEnableK8s := option.Config.EnableK8s
+	option.Config.EnableK8s = true
+	t.Cleanup(func() {
+		option.Config.EnableK8s = oldEnableK8s
+	})
 
 	cgfsPath := "/sys/fs/cgroup"
 	testutils.CaptureLog(t, logger.GetLogger())

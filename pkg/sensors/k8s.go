@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -23,6 +24,18 @@ import (
 //	policyfilter.PolicyID(tpID), nil if filtering is needed and policyfilter has been successfully set up
 //	_, err if an error occurred
 func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64) (policyfilter.PolicyID, error) {
+	if !option.K8SControlPlaneEnabled() {
+		if ps := tp.TpSpec().PodSelector; ps != nil {
+			return policyfilter.NoFilterID, errors.New("podSelector not allowed in non-k8s environment")
+		}
+
+		if ps := tp.TpSpec().ContainerSelector; ps != nil {
+			return policyfilter.NoFilterID, errors.New("containerSelector not allowed in non-k8s environment")
+		}
+
+		return policyfilter.NoFilterID, nil
+	}
+
 	namespace := tp.TpNamespace()
 	podSelector := tp.TpSpec().PodSelector
 	containerSelector := tp.TpSpec().ContainerSelector
