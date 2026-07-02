@@ -74,6 +74,20 @@ type Sensor struct {
 	DestroyHook SensorHook
 }
 
+func (s *Sensor) AddPostLoadHook(hook SensorHook) {
+	if s.PostLoadHook == nil {
+		s.PostLoadHook = hook
+		return
+	}
+
+	oldLoadHook := s.PostLoadHook
+	s.PostLoadHook = func() error {
+		err1 := oldLoadHook()
+		err2 := hook()
+		return errors.Join(err1, err2)
+	}
+}
+
 func (s *Sensor) AddPostUnloadHook(hook SensorHook) {
 	if s.PostUnloadHook == nil {
 		s.PostUnloadHook = hook

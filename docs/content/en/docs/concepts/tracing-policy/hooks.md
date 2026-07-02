@@ -366,6 +366,67 @@ sensitive command input.
 For more details on available selectors and their usage, see the
 [Selectors]({{< ref "/docs/concepts/tracing-policy/selectors" >}}) documentation.
 
+### Resolving paths inside other pods
+
+By default the `path` of a uprobe is opened in the Tetragon agent's own mount
+namespace. In Kubernetes the kernel is shared across pods but filesystems are
+not, so the agent cannot see a library such as `libpam.so` that lives inside
+another pod, and registering the policy fails.
+
+Setting `resolvePathInContainer: true` changes this: `path` is interpreted relative
+to the root filesystem of each container selected by the policy's
+`podSelector`, and the uprobe is attached
+per matching container. Pods that start after the policy is applied are
+attached automatically, and the uprobe is detached when a pod stops. A
+`podSelector` is required when `resolvePathInContainer` is set.
+
+To do this the agent resolves each container's root filesystem from the
+container runtime, so the feature requires at least one of the following to be
+enabled:
+
+- **Runtime (OCI/NRI) hooks** resolve containers created *after* the policy is
+  applied. See [Configure Runtime Hooks]({{< ref "/docs/installation/runtime-hooks" >}}).
+- **CRI** (agent flag `--enable-cri`, Helm value `tetragon.cri.enabled`)
+  additionally discovers and resolves containers that already exist when the
+  policy loads.
+
+Enabling CRI is recommended, as it covers both already-running and newly created
+containers; runtime hooks alone cover only containers created after the policy
+is applied. If neither is enabled, containers cannot be resolved: they are
+skipped and a warning is logged once when the policy loads.
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-pod"
+spec:
+  podSelector:
+    matchLabels:
+      app: sshd
+  uprobes:
+  - path: "/usr/lib64/libpam.so.0.85.1"
+    symbols:
+    - "pam_authenticate"
+    resolvePathInContainer: true
+```
+
+Because uprobes are tied to a specific binary version, the `path` and symbol
+must exist in the selected containers' images; a container missing the path is
+skipped (with a warning) without failing the policy for the other containers.
+
+{{< note >}}
+If your goal is to observe authentication or privilege changes (who logged in,
+success or failure, identity) rather than a specific user-space function's
+behavior, consider kernel-side kprobe/LSM policies instead (for example the
+`security_bprm_committed_creds` LSM hook and process-credential monitoring).
+Kernel hooks are namespace-agnostic — one policy covers all pods with no
+per-container path resolution — and are not tied to a library version. Use
+`resolvePathInContainer` uprobes when you specifically need a user-space
+function's arguments or return value (such as the result of `pam_authenticate`)
+that the kernel cannot observe.
+{{< /note >}}
+
 ## USDTs
 
 Tetragon allows to attach and monitor USDT (User Statically-Defined Tracing) probes.

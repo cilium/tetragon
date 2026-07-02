@@ -57,6 +57,9 @@ func initK8s(ctx context.Context) (watcher.PodAccessor, error) {
 				if err := EnableCgIDmap(podEvents); err != nil {
 					return nil, err
 				}
+				if err := EnableUprobeResolvePathInContainer(podEvents); err != nil {
+					return nil, err
+				}
 				if option.Config.EnablePolicyFilter {
 					if pfState, pfErr := policyfilter.GetState(); pfErr == nil {
 						if err := pfState.RegisterPodHandlers(podEvents); err != nil {

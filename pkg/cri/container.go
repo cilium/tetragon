@@ -84,7 +84,9 @@ func ParseCgroupsPath(cgroupPath string) (string, error) {
 	return "", fmt.Errorf("unknown cgroup path: %s", cgroupPath)
 }
 
-func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerID string) (string, error) {
+// containerInfoJSON returns the verbose ContainerStatus info JSON for a
+// container, the payload ContainerPID and CgroupPath extract fields from.
+func containerInfoJSON(ctx context.Context, cli criapi.RuntimeServiceClient, containerID string) (string, error) {
 	req := criapi.ContainerStatusRequest{
 		ContainerId: containerID,
 		Verbose:     true,
@@ -94,20 +96,99 @@ func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerI
 		return "", err
 	}
 
-	info := res.GetInfo()
-	if info == nil {
-		return "", errors.New("no container info")
-	}
-
-	var path, json string
-	if infoJson, ok := info["info"]; ok {
-		json = infoJson
-		path = "runtimeSpec.linux.cgroupsPath"
-	} else {
+	json, ok := res.GetInfo()["info"]
+	if !ok {
 		return "", errors.New("could not find info")
 	}
+	return json, nil
+}
 
-	ret := gjson.Get(json, path).String()
+// ContainerPID returns the host-namespace PID of the container's main process,
+// from the runtime's verbose ContainerStatus info. It is authoritative (keyed
+// by container id), unlike picking a process from the process cache.
+func ContainerPID(ctx context.Context, cli criapi.RuntimeServiceClient, containerID string) (uint32, error) {
+	json, err := containerInfoJSON(ctx, cli, containerID)
+	if err != nil {
+		return 0, fmt.Errorf("CRI ContainerStatus for %s: %w", containerID, err)
+	}
+
+	pid := gjson.Get(json, "pid").Int()
+	if pid <= 0 {
+		return 0, errors.New("failed to find pid in container info")
+	}
+	return uint32(pid), nil
+}
+
+// RunningContainer describes a running container joined with its pod sandbox:
+// enough to apply a pod selector (namespace + pod labels) and build an attach
+// key (pod uid + container id).
+type RunningContainer struct {
+	ID        string // CRI container id (bare, matches the stripped k8s container id)
+	PodUID    string
+	Namespace string
+	PodLabels map[string]string
+}
+
+// RunningContainers lists the running containers known to the CRI runtime,
+// joined with their ready pod sandboxes to recover the pod namespace and labels
+// (the sandbox carries the pod's labels — both the user labels a podSelector
+// matches and kubelet-internal io.kubernetes.* keys — which ListContainers does
+// not). It is the discovery source for containers that already exist when a
+// policy loads.
+func RunningContainers(ctx context.Context, cli criapi.RuntimeServiceClient) ([]RunningContainer, error) {
+	sbResp, err := cli.ListPodSandbox(ctx, &criapi.ListPodSandboxRequest{
+		Filter: &criapi.PodSandboxFilter{
+			State: &criapi.PodSandboxStateValue{State: criapi.PodSandboxState_SANDBOX_READY},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("CRI ListPodSandbox failed: %w", err)
+	}
+	sandboxes := make(map[string]*criapi.PodSandbox, len(sbResp.GetItems()))
+	for _, sb := range sbResp.GetItems() {
+		sandboxes[sb.GetId()] = sb
+	}
+
+	cResp, err := cli.ListContainers(ctx, &criapi.ListContainersRequest{
+		Filter: &criapi.ContainerFilter{
+			State: &criapi.ContainerStateValue{State: criapi.ContainerState_CONTAINER_RUNNING},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("CRI ListContainers failed: %w", err)
+	}
+
+	out := make([]RunningContainer, 0, len(cResp.GetContainers()))
+	for _, c := range cResp.GetContainers() {
+		sb := sandboxes[c.GetPodSandboxId()]
+		if sb == nil {
+			// container without a known sandbox: cannot recover pod metadata to
+			// match a selector, so skip it.
+			continue
+		}
+		md := sb.GetMetadata()
+		if c.GetId() == "" || md.GetUid() == "" {
+			// Without both ids the attach key (podUID/containerID) would be
+			// malformed and could never be detached on pod delete; skip.
+			continue
+		}
+		out = append(out, RunningContainer{
+			ID:        c.GetId(),
+			PodUID:    md.GetUid(),
+			Namespace: md.GetNamespace(),
+			PodLabels: sb.GetLabels(),
+		})
+	}
+	return out, nil
+}
+
+func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerID string) (string, error) {
+	json, err := containerInfoJSON(ctx, cli, containerID)
+	if err != nil {
+		return "", err
+	}
+
+	ret := gjson.Get(json, "runtimeSpec.linux.cgroupsPath").String()
 	if ret == "" {
 		return "", errors.New("failed to find cgroupsPath in json")
 	}

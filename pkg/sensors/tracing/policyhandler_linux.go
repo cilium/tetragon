@@ -250,7 +250,10 @@ func (h policyHandler) PolicyHandler(
 		return createGenericLsmSensor(spec, "generic_lsm", polInfo)
 	}
 	if len(spec.UProbes) > 0 {
-		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo)
+		if err := preValidateUprobes(spec); err != nil {
+			return nil, fmt.Errorf("uprobe validation failed: %w", err)
+		}
+		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo, nil)
 	}
 	if len(spec.Usdts) > 0 {
 		return createGenericUsdtSensor(spec, "generic_usdt", polInfo)

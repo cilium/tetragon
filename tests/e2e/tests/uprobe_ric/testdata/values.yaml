@@ -1,0 +1,19 @@
+# Helm values for the uprobe resolvePathInContainer e2e test: with CRI disabled, a
+# container's root is resolved only from the CreateContainer hook's RootDir cache.
+tetragon:
+  exportAllowList: "" # export all events; the checker needs them
+  enablePolicyFilter: true
+  cri:
+    enabled: false # CRI off: rthook RootDir is the only resolver
+# Make the container overlay rootfs (the reported RootDir) openable by the agent.
+extraHostPathMounts:
+  - name: containerd-run
+    mountPath: /run/containerd
+    readOnly: true
+    mountPropagation: HostToContainer
+rthooks:
+  enabled: true
+  interface: "nri-hook" # kind runs containerd; deliver the hook over NRI
+  # Fail-open: don't block container creation. Other CreateContainer callbacks
+  # (e.g. cgidmap) can error on kind; the RootDir cache is still populated.
+  failAllowNamespacesRegex: [".*"]

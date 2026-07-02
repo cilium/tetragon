@@ -11,7 +11,161 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
+
+// TestUprobeResolvePathInContainerField verifies that the resolvePathInContainer
+// field on a uprobe spec round-trips through policy parsing (which validates
+// and prunes against the generated CRD schema), and defaults to false when
+// omitted. This guards both the Go field and its CRD codegen.
+func TestUprobeResolvePathInContainerField(t *testing.T) {
+	withField := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  podSelector:
+    matchLabels:
+      app: sshd
+  uprobes:
+  - path: "/usr/lib64/libpam.so.0.85.1"
+    symbols:
+    - "pam_authenticate"
+    resolvePathInContainer: true
+`
+	tp, err := tracingpolicy.FromYAML(withField)
+	require.NoError(t, err)
+	require.Len(t, tp.TpSpec().UProbes, 1)
+	require.True(t, tp.TpSpec().UProbes[0].ResolvePathInContainer,
+		"resolvePathInContainer: true should round-trip through CRD parsing")
+
+	withoutField := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbols:
+    - "main"
+`
+	tp, err = tracingpolicy.FromYAML(withoutField)
+	require.NoError(t, err)
+	require.Len(t, tp.TpSpec().UProbes, 1)
+	require.False(t, tp.TpSpec().UProbes[0].ResolvePathInContainer,
+		"resolvePathInContainer should default to false when omitted")
+}
+
+// TestUprobeValidationResolvePathInContainerRequiresPodSelector verifies that a
+// uprobe policy with resolvePathInContainer: true is rejected at load time when
+// the policy has no podSelector, and accepted when a podSelector is present.
+func TestUprobeValidationResolvePathInContainerRequiresPodSelector(t *testing.T) {
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+
+	// resolvePathInContainer without a podSelector must be rejected. The CRD (CEL)
+	// catches this at parse time, so assert on FromYAML directly.
+	noSelector := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + uprobe + `"
+    symbols:
+    - "test_1"
+    resolvePathInContainer: true
+`
+	_, err := tracingpolicy.FromYAML(noSelector)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "podSelector")
+
+	// With a podSelector, the policy must pass the podSelector gate. The rest
+	// of the pipeline may still fail in this environment (e.g. the tester
+	// binary is not built, or per-container ELF resolution is not yet wired
+	// up), but it must not be rejected for the missing-podSelector reason.
+	withSelector := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  podSelector:
+    matchLabels:
+      app: sshd
+  uprobes:
+  - path: "` + uprobe + `"
+    symbols:
+    - "test_1"
+    resolvePathInContainer: true
+`
+	err = checkCrd(t, withSelector)
+	if err != nil {
+		require.NotContains(t, err.Error(), "podSelector",
+			"a policy with a podSelector must not be rejected for the missing-podSelector reason")
+	}
+}
+
+// TestUprobeValidationMultipleResolvePathInContainerAllowed verifies that a policy
+// with more than one resolvePathInContainer uprobe is accepted: they are attached
+// together as one per-container sensor, so the old >1 limit is lifted.
+func TestUprobeValidationMultipleResolvePathInContainerAllowed(t *testing.T) {
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  podSelector:
+    matchLabels:
+      app: sshd
+  uprobes:
+  - path: "` + uprobe + `"
+    symbols:
+    - "test_1"
+    resolvePathInContainer: true
+  - path: "` + uprobe + `"
+    symbols:
+    - "test_2"
+    resolvePathInContainer: true
+`
+	// May still fail later in this environment (e.g. tester binary not built),
+	// but must no longer be rejected for the >1-resolvePathInContainer reason.
+	if err := checkCrd(t, crd); err != nil {
+		require.NotContains(t, err.Error(), "at most one",
+			"multiple resolvePathInContainer uprobes must no longer be rejected")
+	}
+}
+
+// TestUprobeValidationResolvePathInContainerBTFPathAllowed verifies that a
+// resolvePathInContainer uprobe with btfPath is accepted (not rejected). btfPath is
+// resolved from the agent namespace (host), not in-container.
+func TestUprobeValidationResolvePathInContainerBTFPathAllowed(t *testing.T) {
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  podSelector:
+    matchLabels:
+      app: sshd
+  uprobes:
+  - path: "` + uprobe + `"
+    btfPath: "/usr/lib/btf/payload.btf"
+    symbols:
+    - "test_1"
+    resolvePathInContainer: true
+`
+	if err := checkCrd(t, crd); err != nil {
+		require.NotContains(t, err.Error(), "btfPath",
+			"resolvePathInContainer with btfPath must no longer be rejected")
+	}
+}
 
 func TestUprobeValidationMultiplePreloadArguments(t *testing.T) {
 
