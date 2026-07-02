@@ -118,11 +118,11 @@ func PopulateLogOpts(o LogOptions, level, format, file string) {
 }
 
 // SetupLogging setup logger options taking into consideration the debug flag.
-func SetupLogging(o LogOptions, debug bool) error {
+func SetupLogging(o LogOptions, debug bool, useStdout bool) error {
 	if debug {
 		o[LevelOpt] = slog.LevelDebug.String()
 	}
-	initializeSlog(o, true)
+	initializeSlog(o, useStdout)
 
 	// always suppress the default logger so libraries don't print things
 	slog.SetLogLoggerLevel(LevelPanic)

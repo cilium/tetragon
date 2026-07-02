@@ -412,7 +412,10 @@ tetragonOperator:
       scrapeInterval: 60s
 # -- Tetragon events export settings
 export:
-  # "stdout". "" to disable.
+  # Selects the export mode. Supported values:
+  #   "stdout":        Events are written to a log file and a sidecar container tails it to stdout (default).
+  #   "direct-stdout": Events are written directly to the tetragon container stdout. No sidecar or volume needed.
+  #   "":              Disables event export entirely.
   mode: "stdout"
   resources: {}
   securityContext: {}

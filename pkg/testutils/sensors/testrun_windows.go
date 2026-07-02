@@ -50,7 +50,7 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 	flag.Parse()
 
 	if config.Debug {
-		if err := logger.SetupLogging(option.Config.LogOpts, true); err != nil {
+		if err := logger.SetupLogging(option.Config.LogOpts, true, true); err != nil {
 			log.Fatal(err)
 		}
 	}
