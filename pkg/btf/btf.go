@@ -271,7 +271,7 @@ func getSizeofType(t btf.Type) uint32 {
 type btfResolver struct {
 	btfArgs     *[api.MaxBTFArgDepth]api.ConfigBTFArg
 	currentType btf.Type
-	pathToFound []string
+	pathToFind  []string
 	spec        *btf.Spec
 }
 
@@ -286,19 +286,19 @@ type btfResolver struct {
 // @btfArgs: dest array for storing btf informations to reach the target on the
 // bpf side.
 // @currentType: The current type being proccessed, starts with root type.
-// @pathToFound: The string representation of the path to reach in the structures.
+// @pathToFind: The string representation of the path to reach in the structures.
 //
 // Return: The last type found matching the path, or error.
 func ResolveBTFPath(
 	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
 	currentType btf.Type,
-	pathToFound []string,
+	pathToFind []string,
 	spec *btf.Spec,
 ) (*btf.Type, error) {
 	resolver := btfResolver{
 		btfArgs:     btfArgs,
 		currentType: currentType,
-		pathToFound: pathToFound,
+		pathToFind:  pathToFind,
 		spec:        spec,
 	}
 	return resolver.resolve(currentType, 0)
@@ -320,14 +320,14 @@ func (r *btfResolver) resolve(
 			// dereferencing, we mark the previous element as pointer.
 			r.btfArgs[i-1].IsPointer = uint16(1)
 		}
-		if idx, err := parseArrayIdxStr(r.pathToFound[i]); err == nil {
+		if idx, err := parseArrayIdxStr(r.pathToFind[i]); err == nil {
 			// To stay ahead on the dereferecing, we mark the current btfArg as pointer
 			r.btfArgs[i].IsPointer = uint16(1)
 			return r.processArray(t.Target, i, idx)
 		}
 		return r.resolve(t.Target, i)
 	case *btf.Array:
-		idx, err := parseArrayIdxStr(r.pathToFound[i])
+		idx, err := parseArrayIdxStr(r.pathToFind[i])
 		if err != nil {
 			return nil, fmt.Errorf("fail parsing array index : %w", err)
 		}
@@ -342,9 +342,9 @@ func (r *btfResolver) resolve(
 		if len(ty) == 0 {
 			ty = reflect.TypeOf(currentType).String()
 		}
-		currentPath := r.pathToFound[i]
+		currentPath := r.pathToFind[i]
 		if i > 0 {
-			currentPath = r.pathToFound[i-1]
+			currentPath = r.pathToFind[i-1]
 		}
 		return nil, fmt.Errorf("unexpected type : %q has type %q", currentPath, ty)
 	}
@@ -382,12 +382,12 @@ func (r *btfResolver) processMembers(
 			r.btfArgs[i].Offset += member.Offset.Bytes()
 			return lastTy, nil
 		}
-		if member.Name != r.pathToFound[i] {
+		if member.Name != r.pathToFind[i] {
 			continue
 		}
 		r.btfArgs[i].Offset = member.Offset.Bytes()
 		r.btfArgs[i].IsInitialized = uint16(1)
-		if i < len(r.pathToFound)-1 && i < api.MaxBTFArgDepth {
+		if i < len(r.pathToFind)-1 && i < api.MaxBTFArgDepth {
 			return r.resolve(member.Type, i+1)
 		}
 		memberType := ResolveNestedTypes(member.Type)
@@ -405,7 +405,7 @@ func (r *btfResolver) processMembers(
 	}
 	return nil, &resolveError{i, fmt.Sprintf(
 		"attribute %q not found in structure %q",
-		r.pathToFound[i],
+		r.pathToFind[i],
 		currentType.TypeName(),
 	)}
 }
@@ -418,7 +418,7 @@ func (r *btfResolver) processArray(
 	targetType = ResolveNestedTypes(targetType)
 	r.btfArgs[i].IsInitialized = uint16(1)
 	r.btfArgs[i].Offset = getSizeofType(targetType) * idx
-	if len(r.pathToFound) > i+1 {
+	if len(r.pathToFind) > i+1 {
 		return r.resolve(targetType, i+1)
 	}
 	switch t := targetType.(type) {
