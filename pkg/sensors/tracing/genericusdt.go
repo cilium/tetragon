@@ -147,6 +147,7 @@ func createGenericUsdtSensor(
 		err   error
 		has   usdtHas
 	)
+	openedFiles := make(map[string]*os.File)
 
 	in := addUsdtIn{
 		sensorPath: name,
@@ -179,7 +180,7 @@ func createGenericUsdtSensor(
 		}
 		usdt.Path = absPath
 
-		entryFile, err := os.Open(absPath)
+		entryFile, err := getOrOpenFile(absPath, openedFiles)
 		if err != nil {
 			return nil, err
 		}

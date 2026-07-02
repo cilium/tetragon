@@ -645,6 +645,7 @@ func createGenericUprobeSensor(
 	var err error
 	var has uprobeHas
 	var celExprs *selectors.CelExprFunctions
+	openedFiles := make(map[string]*os.File)
 
 	// use multi uprobe only if:
 	// - it's not disabled by spec option
@@ -693,7 +694,7 @@ func createGenericUprobeSensor(
 		}
 		uprobe.Path = absPath
 
-		entryFile, err := os.Open(absPath)
+		entryFile, err := getOrOpenFile(absPath, openedFiles)
 		if err != nil {
 			return nil, err
 		}
