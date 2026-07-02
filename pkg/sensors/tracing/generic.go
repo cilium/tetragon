@@ -8,6 +8,7 @@ package tracing
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	ebtf "github.com/cilium/ebpf/btf"
@@ -21,6 +22,20 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/selectors"
 )
+
+func getOrOpenFile(path string, openedFiles map[string]*os.File) (*os.File, error) {
+	if f, ok := openedFiles[path]; ok {
+		return f, nil
+	}
+
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	openedFiles[path] = f
+	return f, nil
+}
 
 // Takes arg.Resolve as input and return the path in []string
 // Input   : my.super.field[123].my.sub.field

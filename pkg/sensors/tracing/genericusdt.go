@@ -12,7 +12,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/cilium/ebpf"
 
@@ -54,7 +56,7 @@ var (
 type genericUsdt struct {
 	tableId idtable.EntryID
 	config  *api.EventConfig
-	path    string
+	file    *os.File
 	target  *elf.UsdtTarget
 	// policyName is the name of the policy that this uprobe belongs to
 	policyName string
@@ -75,7 +77,7 @@ func (g *genericUsdt) SetID(id idtable.EntryID) {
 func (g *genericUsdt) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
 	attrs = append(attrs,
 		slog.Attr{Key: "policy_name", Value: slog.StringValue(g.policyName)},
-		slog.Attr{Key: "path", Value: slog.StringValue(g.path)},
+		slog.Attr{Key: "path", Value: slog.StringValue(g.file.Name())},
 	)
 	logger.GetLogger().LogAttrs(context.Background(), level, msg, attrs...)
 }
@@ -107,11 +109,37 @@ type addUsdtIn struct {
 	selectorStatsBase uint32
 }
 
+func cleanupUsdtEntries(ids []idtable.EntryID) error {
+	var errs error
+
+	for _, id := range ids {
+		usdtEntry, err := genericUsdtTableGet(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+			continue
+		}
+		if err = selectors.CleanupKernelSelectorState(usdtEntry.selectors); err != nil {
+			errs = errors.Join(errs, err)
+		}
+
+		if err := usdtEntry.file.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+			errs = errors.Join(errs, err)
+		}
+
+		_, err = usdtTable.RemoveEntry(id)
+		if err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+
+	return errs
+}
+
 func createGenericUsdtSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
 	polInfo *policyInfo,
-) (*sensors.Sensor, error) {
+) (retSensor *sensors.Sensor, retError error) {
 	var (
 		progs []*program.Program
 		maps  []*program.Map
@@ -119,6 +147,7 @@ func createGenericUsdtSensor(
 		err   error
 		has   usdtHas
 	)
+	openedFiles := make(map[string]*os.File)
 
 	in := addUsdtIn{
 		sensorPath: name,
@@ -127,6 +156,14 @@ func createGenericUsdtSensor(
 	}
 
 	hasSetAction := false
+
+	defer func() {
+		if retError != nil {
+			if cleanupErr := cleanupUsdtEntries(ids); cleanupErr != nil {
+				retError = errors.Join(retError, cleanupErr)
+			}
+		}
+	}()
 
 	var selectorStatsBase uint32
 	for _, usdt := range spec.Usdts {
@@ -137,8 +174,21 @@ func createGenericUsdtSensor(
 		in.selectorStatsBase = selectorStatsBase
 		selectorStatsBase += uint32(len(usdt.Selectors))
 
-		ids, err = addUsdt(&usdt, &in, ids, &has)
+		absPath, err := filepath.Abs(usdt.Path)
 		if err != nil {
+			return nil, fmt.Errorf("failed to resolve absolute path for %q: %w", usdt.Path, err)
+		}
+		usdt.Path = absPath
+
+		entryFile, err := getOrOpenFile(absPath, openedFiles)
+		if err != nil {
+			return nil, err
+		}
+
+		if ids, err = addUsdt(&usdt, entryFile, &in, ids, &has); err != nil {
+			if closeErr := entryFile.Close(); closeErr != nil && !errors.Is(closeErr, os.ErrClosed) {
+				err = errors.Join(err, closeErr)
+			}
 			return nil, err
 		}
 		hasSetAction = hasSetAction || selectors.HasSet(&usdt)
@@ -171,6 +221,23 @@ func createGenericUsdtSensor(
 		Maps:      maps,
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
+		DestroyHook: func() error {
+			return cleanupUsdtEntries(ids)
+		},
+		PostLoadHook: func() error {
+			var errs error
+			for _, id := range ids {
+				usdtEntry, err := genericUsdtTableGet(id)
+				if err != nil {
+					errs = errors.Join(errs, err)
+					continue
+				}
+				if err = usdtEntry.file.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+					errs = errors.Join(errs, fmt.Errorf("problem closing path %q: %w", usdtEntry.file.Name(), err))
+				}
+			}
+			return errs
+		},
 	}, nil
 }
 
@@ -250,14 +317,14 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	loadProgName := config.GenericUsdtObjs(false)
 
 	attachData := &program.UprobeAttachData{
-		Path:         usdtEntry.path,
+		File:         usdtEntry.file,
 		Address:      usdtEntry.target.IpRel,
 		RefCtrOffset: usdtEntry.target.SemaOff,
 	}
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
-		fmt.Sprintf("%s %s %s", usdtEntry.path, usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name),
+		fmt.Sprintf("%s %s %s", usdtEntry.file.Name(), usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name),
 		"uprobe/generic_usdt",
 		fmt.Sprintf("%s_%s_%d", usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name, usdtEntry.tableId.ID),
 		"generic_usdt").
@@ -300,32 +367,42 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	return progs, maps
 }
 
-func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has *usdtHas) ([]idtable.EntryID, error) {
-	se, err := elf.OpenSafeELFFile(spec.Path)
+func addUsdt(spec *v1alpha1.UsdtSpec, entryFile *os.File, in *addUsdtIn, ids []idtable.EntryID, has *usdtHas) (retIDs []idtable.EntryID, retErr error) {
+	var state *selectors.KernelSelectorState
+
+	defer func() {
+		if retErr != nil {
+			if cleanupErr := selectors.CleanupKernelSelectorState(state); cleanupErr != nil {
+				retErr = errors.Join(retErr, cleanupErr)
+			}
+		}
+	}()
+
+	se, err := elf.NewSafeELFFile(entryFile)
 	if err != nil {
-		return nil, err
+		return ids, err
 	}
 
 	targets, err := se.UsdtTargets()
 	if err != nil {
-		return nil, err
+		return ids, err
 	}
 
 	tagsField, err := GetPolicyTags(spec.Tags)
 	if err != nil {
-		return nil, err
+		return ids, err
 	}
 
 	msgField, err := getPolicyMessage(spec.Message)
 	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
-		return nil, err
+		return ids, err
 	} else if errors.Is(err, ErrMsgSyntaxLong) {
 		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen),
 			"policy-name", in.policyName)
 	}
 
 	// Parse Filters into kernel filter logic
-	state, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
+	state, err = selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,
 		Args:      spec.Args,
 		Data:      []v1alpha1.KProbeArg{},
@@ -347,7 +424,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		found = true
 
 		if len(spec.Args) > api.EventConfigMaxArgs {
-			return nil, fmt.Errorf("failed to configure usdt '%s/%s', too many arguments (%d) allowed %d",
+			return ids, fmt.Errorf("failed to configure usdt '%s/%s', too many arguments (%d) allowed %d",
 				spec.Provider, spec.Name, len(spec.Args), api.EventConfigMaxArgs)
 		}
 
@@ -355,27 +432,27 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		if ok, idx := selectors.HasSetArgIndex(spec); ok {
 			// argument index is within usdt args in spec
 			if idx > uint32(len(spec.Args)) {
-				return nil, fmt.Errorf("failed to configure usdt '%s/%s', set action argument spec index %d out of bounds",
+				return ids, fmt.Errorf("failed to configure usdt '%s/%s', set action argument spec index %d out of bounds",
 					spec.Provider, spec.Name, idx)
 			}
 
 			// usdt spec argument points to existing usdt defined in elf note
 			arg := spec.Args[idx]
 			if arg.Index > uint32(len(target.Spec.Args)) {
-				return nil, fmt.Errorf("failed to configure usdt '%s/%s', argument index %d out of bounds",
+				return ids, fmt.Errorf("failed to configure usdt '%s/%s', argument index %d out of bounds",
 					spec.Provider, spec.Name, arg.Index)
 			}
 
 			// output argument must be 'deref' type
 			tgtArg := &target.Spec.Args[arg.Index]
 			if tgtArg.Type != elf.USDT_ARG_TYPE_REG_DEREF {
-				return nil, fmt.Errorf("failed to configure usdt '%s/%s', set action argument is not 'deref' type: '%s'",
+				return ids, fmt.Errorf("failed to configure usdt '%s/%s', set action argument is not 'deref' type: '%s'",
 					spec.Provider, spec.Name, tgtArg.Str)
 			}
 
 			// output argument is only allowed to be exactly 4 bytes
 			if tgtArg.Size != 4 {
-				return nil, fmt.Errorf("failed to configure usdt '%s/%s', set action argument must have size of 4 bytes, current is: %d",
+				return ids, fmt.Errorf("failed to configure usdt '%s/%s', set action argument must have size of 4 bytes, current is: %d",
 					spec.Provider, spec.Name, tgtArg.Size)
 			}
 		}
@@ -385,7 +462,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		for cfgIdx, arg := range spec.Args {
 			tgtIdx := arg.Index
 			if tgtIdx > target.Spec.ArgsCnt {
-				return nil, fmt.Errorf("failed to configure usdt '%s/%s', argument index %d out of bounds",
+				return ids, fmt.Errorf("failed to configure usdt '%s/%s', argument index %d out of bounds",
 					spec.Provider, spec.Name, tgtIdx)
 			}
 			tgtArg := &target.Spec.Args[tgtIdx]
@@ -402,7 +479,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 			if arg.Resolve != "" {
 				lastBTFType, btfArg, err := resolveUserBTFArg(&arg, spec.BTFPath)
 				if err != nil {
-					return nil, err
+					return ids, err
 				}
 
 				allBTFArgs[cfgIdx] = btfArg
@@ -417,17 +494,17 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 
 			if argType == gt.GenericStringType {
 				if !bpf.HasKfunc("bpf_copy_from_user_str") {
-					return nil, fmt.Errorf("can't preload string for argument %d", cfgIdx)
+					return ids, fmt.Errorf("can't preload string for argument %d", cfgIdx)
 				}
 
 				if preload {
-					return nil, errors.New("preloading multiple arguments per hook point is not supported")
+					return ids, errors.New("preloading multiple arguments per hook point is not supported")
 				}
 
 				preload = true
 				argMValue, err := getUserMetaValue(&arg, true)
 				if err != nil {
-					return nil, err
+					return ids, err
 				}
 				config.ArgMeta[cfgIdx] = uint32(argMValue)
 			}
@@ -444,7 +521,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		usdtEntry := &genericUsdt{
 			tableId:     idtable.UninitializedEntryID,
 			config:      config,
-			path:        spec.Path,
+			file:        entryFile,
 			target:      target,
 			policyName:  in.policyName,
 			argPrinters: argPrinters,
@@ -462,7 +539,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 	}
 
 	if !found {
-		return nil, fmt.Errorf("failed to configure usdt '%s/%s', not found in the binary: '%s'",
+		return ids, fmt.Errorf("failed to configure usdt '%s/%s', not found in the binary: '%s'",
 			spec.Provider, spec.Name, spec.Path)
 	}
 	return ids, nil
@@ -514,14 +591,14 @@ func loadSingleUsdtSensor(usdtEntry *genericUsdt, args sensors.LoadProbeArgs) er
 	}
 
 	logger.GetLogger().Info(fmt.Sprintf("Loaded generic usdt sensor: %s -> %s [%s/%s]",
-		args.Load.Name, usdtEntry.path, usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name))
+		args.Load.Name, usdtEntry.file.Name(), usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name))
 	return nil
 }
 
 func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) error {
 	load := args.Load
 	data := &program.MultiUprobeAttachData{}
-	data.Attach = make(map[string]*program.MultiUprobeAttachSymbolsCookies)
+	data.Attach = make(map[*os.File]*program.MultiUprobeAttachSymbolsCookies)
 
 	for index, id := range ids {
 		usdtEntry, err := genericUsdtTableGet(id)
@@ -555,7 +632,7 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 
 		load.MapLoad = append(load.MapLoad, selectorsMaploads(usdtEntry.selectors, uint32(index))...)
 
-		attach, ok := data.Attach[usdtEntry.path]
+		attach, ok := data.Attach[usdtEntry.file]
 		if !ok {
 			attach = &program.MultiUprobeAttachSymbolsCookies{}
 		}
@@ -564,7 +641,7 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 		attach.RefCtrOffsets = append(attach.RefCtrOffsets, usdtEntry.target.SemaOff)
 		attach.Cookies = append(attach.Cookies, uint64(index))
 
-		data.Attach[usdtEntry.path] = attach
+		data.Attach[usdtEntry.file] = attach
 	}
 
 	load.SetAttachData(data)
@@ -595,7 +672,7 @@ func handleGenericUsdt(r *bytes.Reader) ([]observer.Event, error) {
 
 	unix := &tracing.MsgGenericUsdtUnix{}
 	unix.Msg = &m
-	unix.Path = uprobeUsdt.path
+	unix.Path = uprobeUsdt.file.Name()
 	unix.Provider = uprobeUsdt.target.Spec.Provider
 	unix.Name = uprobeUsdt.target.Spec.Name
 	unix.PolicyName = uprobeUsdt.policyName
