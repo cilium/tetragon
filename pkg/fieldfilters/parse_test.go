@@ -23,3 +23,8 @@ func TestParseFieldFilterList(t *testing.T) {
 	require.NoError(t, err, "must parse")
 	assert.Equal(t, "process.start_time", filters[0].Fields.Paths[0])
 }
+
+func TestParseFieldFilterListRejectsMalformedJSON(t *testing.T) {
+	_, err := ParseFieldFilterList(`{"fields":"process.pid","action":"INCLUDE"`)
+	require.Error(t, err, "must reject malformed JSON")
+}
