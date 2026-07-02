@@ -295,3 +295,41 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(up1Checker, up2Checker),
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-override-new-symbol").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-selector"
+spec:
+  uprobes:
+  - path: {{ testBinary "libuprobe.so" }}
+    symbols:
+    - "uprobe_test_lib_string_arg_empty"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - {{ testBinary "uprobe-test-1" }}
+      matchActions:
+      - action: Override
+        argNewSymbol: "uprobe_test_lib_string_arg__"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-test-1")
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_SELECTOR_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("uprobe_test_lib_string_arg_empty"))
+
+	return &policytest.Scenario{
+		Name: "check call was overridden",
+		// See uprobe-lib.c/uprobe-test.c return code for uprobe_test_lib_string_arg__().
+		// It will return 100 when the symbol is overridden.
+		// It will be considered an error by `cmd.Run()`.
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(100),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
