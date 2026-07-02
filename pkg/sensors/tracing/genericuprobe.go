@@ -60,6 +60,20 @@ var (
 	uprobeTable idtable.Table
 )
 
+func getOrOpenFile(path string, openedFilesMap map[string]*os.File) (*os.File, error) {
+	if f, ok := openedFilesMap[path]; ok {
+		return f, nil
+	}
+
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	openedFilesMap[path] = f
+	return f, nil
+}
+
 // DigestMismatchError indicates that a calculated digest does not match the
 // configured digest value.
 type DigestMismatchError struct {
@@ -617,7 +631,7 @@ func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *upro
 	return nil
 }
 
-func cleanupUprobeEntries(ids []idtable.EntryID, openedFiles []*os.File) error {
+func cleanupUprobeEntries(ids []idtable.EntryID, openedFiles map[string]*os.File) error {
 	var errs error
 
 	for _, id := range ids {
@@ -640,9 +654,9 @@ func cleanupUprobeEntries(ids []idtable.EntryID, openedFiles []*os.File) error {
 		}
 	}
 
-	for _, entryFile := range openedFiles {
+	for path, entryFile := range openedFiles {
 		if err := entryFile.Close(); err != nil {
-			errs = errors.Join(errs, fmt.Errorf("problem closing path %q: %w", entryFile.Name(), err))
+			errs = errors.Join(errs, fmt.Errorf("problem closing path %q: %w", path, err))
 		}
 	}
 
@@ -812,7 +826,7 @@ func createGenericUprobeSensor(
 		}
 	}
 
-	var openedFiles []*os.File
+	openedFiles := make(map[string]*os.File)
 
 	defer func() {
 		if retErr != nil {
@@ -840,11 +854,10 @@ func createGenericUprobeSensor(
 		var entryFile *os.File
 
 		if len(uprobe.BinaryDigests) != 0 {
-			entryFile, err = os.Open(absPath)
+			entryFile, err = getOrOpenFile(absPath, openedFiles)
 			if err != nil {
 				return nil, err
 			}
-			openedFiles = append(openedFiles, entryFile)
 		}
 
 		if err := verifyBinaryDigests(&uprobe, entryFile); err != nil {
@@ -887,9 +900,9 @@ func createGenericUprobeSensor(
 		},
 		PostLoadHook: func() error {
 			var errs error
-			for _, entryFile := range openedFiles {
+			for path, entryFile := range openedFiles {
 				if err = entryFile.Close(); err != nil {
-					errs = errors.Join(errs, fmt.Errorf("problem closing path %q: %w", entryFile.Name(), err))
+					errs = errors.Join(errs, fmt.Errorf("problem closing path %q: %w", path, err))
 				}
 			}
 			return errs
