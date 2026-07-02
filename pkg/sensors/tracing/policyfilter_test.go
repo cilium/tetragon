@@ -107,6 +107,12 @@ func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupI
 // TestNamespacedPolicies tests namespace filtering on tracepoints and kprobes
 func TestNamespacedPolicies(t *testing.T) {
 	build.SkipIfK8sDisabled(t)
+	oldEnableK8s := option.Config.EnableK8s
+	option.Config.EnableK8s = true
+	t.Cleanup(func() {
+		option.Config.EnableK8s = oldEnableK8s
+	})
+
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
