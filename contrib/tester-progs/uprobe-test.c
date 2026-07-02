@@ -34,7 +34,11 @@ int main(void)
 	uprobe_test_lib_arg4(-321, -2, 'b', (void *) 1);
 	uprobe_test_lib_arg5(1, 'c', 0xcafe, 1234, (void *) 2);
 	uprobe_test_lib_string_arg(pageout(str_arg, strlen(str_arg) + 1));
-	uprobe_test_lib_string_arg_empty("");
+	if (uprobe_test_lib_string_arg_empty("") != 0) {
+		// we are testing the override argNewSymbol for uprobe
+		// return 100 to signal that the symbol was indeed overridden.
+		return 100;
+	}
 	uprobe_test_lib_string_arg_null(NULL);
 	uprobe_test_lib_string_arg_substring("test");
 	uprobe_test_lib_string_arg0("one", 2, 3, 4, 5);
