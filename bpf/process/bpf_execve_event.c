@@ -126,8 +126,6 @@ read_args(void *ctx, struct msg_execve_event *event)
 }
 
 #ifdef __LARGE_BPF_PROG
-volatile const __u8 ENV_VARS_ENABLED;
-
 FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
 {
 	struct msg_process *p = &event->process;
@@ -139,7 +137,7 @@ FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
 	char *envs;
 	int err;
 
-	if (!ENV_VARS_ENABLED)
+	if (!CONFIG(ENV_VARS_ENABLED))
 		return 0;
 
 	envs = (char *)p + p->size;

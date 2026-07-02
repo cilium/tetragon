@@ -17,7 +17,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
@@ -913,27 +912,6 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 		}
 	}
 
-	confs := map[string]func(v *ebpf.VariableSpec) error{
-		"CONFIG_ITER_NUM": func(v *ebpf.VariableSpec) error {
-			// We can't use numeric iterator until we get following fix from 6.9 kernel:
-			//   4f81c16f50ba bpf: Recognize that two registers are safe when their ranges match
-			// otherwise our loop code crosses 1mil instructions verifier limit.
-			enabled := bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
-			if err := v.Set(enabled); err != nil {
-				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
-			}
-			return nil
-		},
-	}
-
-	for n, c := range spec.Variables {
-		if conf, ok := confs[n]; ok {
-			if err := conf(c); err != nil {
-				return err
-			}
-		}
-	}
-
 	if len(missing) != 0 {
 		return fmt.Errorf("rewrite constants: %w", &MissingConstantsError{Constants: missing})
 	}
@@ -974,6 +952,10 @@ func doLoadProgram(
 		}
 	}
 
+	if err := initConfig(spec); err != nil {
+		return nil, fmt.Errorf("rewritting constants in spec failed: %w", err)
+	}
+
 	if load.RewriteConstants != nil {
 		if err := rewriteConstants(spec, load.RewriteConstants); err != nil {
 			return nil, fmt.Errorf("rewritting constants in spec failed: %w", err)
@@ -984,6 +966,28 @@ func doLoadProgram(
 		if err := loadOpts.Open(spec); err != nil {
 			return nil, fmt.Errorf("open spec function failed: %w", err)
 		}
+	}
+
+	sharedCfg, err := setupSharedRodataConfig(bpfDir, spec)
+	if err != nil {
+		return nil, fmt.Errorf("setting up shared rodata config failed: %w", err)
+	}
+
+	// Acquire the shared rodata config pin as soon as we have it, and roll the
+	// acquisition back unless this load makes it all the way to success. This
+	// keeps the refcount accurate even if a later step in this function fails,
+	// instead of leaking an untracked pin.
+	loadSucceeded := false
+	if sharedCfg != nil {
+		defer sharedCfg.m.Close()
+		acquireRodataConfigPin(sharedCfg.pinPath)
+		load.hasRodataConfigPin = true
+		defer func() {
+			if !loadSucceeded {
+				releaseRodataConfigPin(true)
+				load.hasRodataConfigPin = false
+			}
+		}()
 	}
 
 	// We have following maps available for loading:
@@ -1064,7 +1068,14 @@ func doLoadProgram(
 	}
 
 	pinnedMaps := make(map[string]*ebpf.Map)
+	if sharedCfg != nil {
+		pinnedMaps[sharedRodataConfigMap] = sharedCfg.m
+	}
 	for name := range refMaps {
+		if name == sharedRodataConfigMap {
+			continue
+		}
+
 		var m *ebpf.Map
 		var err error
 		var mapPath string
@@ -1234,6 +1245,8 @@ func doLoadProgram(
 	// from kernel modules. At this point we don't need that anymore, so we can release
 	// the memory from it.
 	load.KernelTypes = nil
+
+	loadSucceeded = true
 
 	// Copy the loaded collection before it's destroyed
 	if keepCollection {

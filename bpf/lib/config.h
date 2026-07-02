@@ -5,8 +5,15 @@
 
 #ifdef __V511_BPF_PROG
 
-#define DECLARE_CONFIG(type, name) \
-	volatile const type CONFIG_##name;
+struct rodata_config {
+	__u8 ITER_NUM;
+	__u8 PARENTS_MAP_ENABLED;
+	__u8 ENV_VARS_ENABLED;
+	__u8 pad[5];
+};
+
+volatile const struct rodata_config rodata_config
+	__attribute__((section(".rodata.config"), used));
 
 /*
  * Reconstruct the rodata pointer on each access to prevent the compiler
@@ -21,18 +28,30 @@
  * blocks, so opt for a direct symbol reference instead. We need the
  * pointer reconstructed in bytecode on every access.
  */
-#define CONFIG(name)                                                  \
-	(*({                                                          \
+#define RODATA_CONFIG_PTR()                                           \
+        ({                                                            \
 		void *out;                                            \
-		asm volatile("%0 = " __stringify(CONFIG_##name) " ll" \
+		asm volatile("%0 = rodata_config ll"                  \
 			     : "=r"(out));                            \
-		(typeof(CONFIG_##name) *)out;                         \
-	}))
+		(volatile const struct rodata_config *)out;           \
+	})
 
-DECLARE_CONFIG(bool, ITER_NUM);
+#define CONFIG(name) (RODATA_CONFIG_PTR()->name)
 
 #else
 
+/*
+ * We allow to set ENV_VARS_ENABLED/PARENTS_MAP_ENABLED in
+ * large programs, ITER_NUM is disabled.
+ * v4.19 has everything disabled.
+ */
+#ifdef __LARGE_BPF_PROG
+volatile const __u8 ENV_VARS_ENABLED;
+volatile const __u8 PARENTS_MAP_ENABLED;
+#define ITER_NUM 0
+#define CONFIG(name) name
+#else
 #define CONFIG(name) 0
+#endif /* __LARGE_BPF_PROG */
 
 #endif /* __V511_BPF_PROG */
