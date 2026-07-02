@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/server"
@@ -183,6 +184,12 @@ func TestAddPolicyLoadError(t *testing.T) {
 func TestPolicyFilterDisabled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	oldEnableK8s := option.Config.EnableK8s
+	option.Config.EnableK8s = true
+	t.Cleanup(func() {
+		option.Config.EnableK8s = oldEnableK8s
+	})
 
 	mgr, err := StartSensorManagerWithPF("", policyfilter.DisabledState())
 	require.NoError(t, err)
