@@ -459,6 +459,18 @@ message SyscallId {
   string abi = 2;
 }
 
+message KprobeDns {
+  string query_name = 1;
+  uint32 query_type = 2;
+  string query_type_str = 3;
+  uint32 query_class = 4;
+  uint32 tx_id = 5;
+  uint32 flags = 6;
+  bool response = 7;
+  bool truncated = 8;
+  bool parsed = 9;
+}
+
 message KprobeArgument {
   oneof arg {
     string string_arg = 1;
@@ -493,6 +505,7 @@ message KprobeArgument {
     KprobeBpfProg bpf_prog_arg = 31;
     KprobeError error_arg = 32;
     KprobeSockaddrUn sockaddrun_arg = 33;
+    KprobeDns dns_arg = 34;
   }
   string label = 18;
 }

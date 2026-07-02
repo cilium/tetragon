@@ -337,6 +337,11 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 		size = copy_sockaddr_un(args, arg);
 		break;
 #endif
+#ifdef __LARGE_BPF_PROG
+	case dns_type:
+		size = copy_dns(args, arg);
+		break;
+#endif
 	default:
 		size = 0;
 		break;

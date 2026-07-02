@@ -70,6 +70,8 @@ const (
 	GenericBpfProgType    = 43
 	GenericSockaddrUnType = 44
 
+	GenericDnsType = 45
+
 	GenericUnsetType = 0
 
 	GenericNopType     = -1
@@ -133,6 +135,7 @@ var genericStringToType = map[string]int{
 	"socket":          GenericSocketType,
 	"dentry":          GenericDentryType,
 	"bpf_prog":        GenericBpfProgType,
+	"dns":             GenericDnsType,
 }
 
 var genericTypeToStringTable = map[int]string{
@@ -180,6 +183,7 @@ var genericTypeToStringTable = map[int]string{
 	GenericSocketType:      "socket",
 	GenericDentryType:      "dentry",
 	GenericBpfProgType:     "bpf_prog",
+	GenericDnsType:         "dns",
 	GenericInvalidType:     "",
 }
 
