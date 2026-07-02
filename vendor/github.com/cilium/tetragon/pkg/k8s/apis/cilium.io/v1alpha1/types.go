@@ -271,9 +271,23 @@ type ArgSelector struct {
 	Values []string `json:"values,omitempty"`
 }
 
+// +kubebuilder:validation:XValidation:rule="!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))",message="override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined"
 type ActionSelector struct {
 	// +kubebuilder:validation:Enum=Post;Sigkill;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification;Set
 	// Action to execute.
+	// The Override action has three variants, depending on what arguments are set
+	//   1. Override the return value of function
+	//        Supported hooks: kprobes, uprobes, lsm
+	//        Arguments: ArgError (return value)
+	//   2. Override the value of a register
+	//        Supported hooks: uprobes
+	//        Arguments: ArgRegs
+	//   3. Override a function call
+	//        Supported hooks: uprobes
+	//        Arguments: One of:
+	//        - ArgNewSymbol: override call to a new symbol (in the binary)
+	//	      - ArgNewAddr: override call to a new address (in the binary)
+	//	      - ArgNewOffset: override call to an offset (in the binary)
 	Action string `json:"action"`
 	// +kubebuilder:validation:Optional
 	// A URL for the getUrl action
@@ -297,8 +311,23 @@ type ActionSelector struct {
 	// An arg value for the set action
 	ArgValue uint32 `json:"argValue"`
 	// +kubebuilder:validation:Optional
-	// An arg value for the regs action
+	// An arg value for the override action, uprobe only.
 	ArgRegs []string `json:"argRegs,omitempty"`
+	// +kubebuilder:validation:Optional
+	// An arg value for the override action, uprobe only.
+	// The new symbol name.
+	// Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+	ArgNewSymbol string `json:"argNewSymbol,omitempty"`
+	// +kubebuilder:validation:Optional
+	// An arg value for the override action, uprobe only.
+	// The new symbol's address.
+	// Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+	ArgNewAddr uint64 `json:"argNewAddr,omitempty"`
+	// +kubebuilder:validation:Optional
+	// An arg value for the override action, uprobe only.
+	// The new symbol's offset.
+	// Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
+	ArgNewOffset int64 `json:"argNewOffset,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A time period within which repeated messages will not be posted. Can be
 	// specified in seconds (default or with 's' suffix), minutes ('m' suffix)
