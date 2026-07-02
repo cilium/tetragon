@@ -32,7 +32,7 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 	params map[string]any,
 ) {
 	t.Helper()
-	pts := rpt.GetByName(testpolicyName)
+	pts := rpt.GetByNames([]string{testpolicyName})
 	if len(pts) == 0 {
 		t.Fatalf("no testpolicy with name %q found", testpolicyName)
 	} else if len(pts) > 1 {

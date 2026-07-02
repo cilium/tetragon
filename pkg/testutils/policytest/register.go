@@ -5,6 +5,8 @@
 
 package policytest
 
+import "slices"
+
 type RegisteredPolicyTests struct {
 	tests []*T
 }
@@ -13,9 +15,13 @@ func (rpt *RegisteredPolicyTests) Len() int {
 	return len(rpt.tests)
 }
 
-func (rpt *RegisteredPolicyTests) GetByName(name string) []*T {
+func (rpt *RegisteredPolicyTests) GetByNames(names []string) []*T {
 	return rpt.GetByFunction(func(t *T) bool {
-		return name == t.Name
+		// Return all tests if no names are specified
+		if len(names) == 0 {
+			return true
+		}
+		return slices.Contains(names, t.Name)
 	})
 }
 

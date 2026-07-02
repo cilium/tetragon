@@ -41,8 +41,7 @@ jobs:
         GOPATH: /home/runner/work/tetragon/tetragon/go
       run: |
         cd go/src/github.com/cilium/tetragon/
-        make -j3 tetragon-bpf tester-progs test-compile
-        make -C tests/vmtests
+        make -j$(nproc) vmtests
 
     - name: Split tests
       run: |
@@ -141,7 +140,8 @@ jobs:
                 --cpu 4 \
                 --mem 8G \
                 --enable-detailed-results \
-                --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
+                --testsfile ./tests/vmtests/test-group-${{ matrix.group }} \
+                --policytests all
 
     - name: test kernel ${{ matrix.kernel }} with btf file
       if: ${{ startsWith(matrix.kernel, '4.19') }}
@@ -159,7 +159,8 @@ jobs:
                 --cpu 4 \
                 --mem 8G \
                 --enable-detailed-results \
-                --testsfile ./tests/vmtests/test-group-${{ matrix.group }}
+                --testsfile ./tests/vmtests/test-group-${{ matrix.group }} \
+                --policytests all
 
     - name: Chmod test results on failure or cancelation
       if: failure() || cancelled()

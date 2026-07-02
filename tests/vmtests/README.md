@@ -11,11 +11,9 @@ NOTE: For now, commands need to be executed from the top-level tetragon director
 Build everything:
 
 ```
-$ make -C tests/vmtests
-make: Entering directory '/home/kkourt/src/tetragon/tests/vmtests'
+$ make vmtests
 go build ../cmd/tetragon-tester
 go build ../cmd/tetragon-vmtests-run
-make: Leaving directory '/home/kkourt/src/tetragon/tests/vmtests'
 ```
 
 

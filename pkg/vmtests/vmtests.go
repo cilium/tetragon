@@ -13,6 +13,7 @@
 package vmtests
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -31,26 +32,31 @@ var (
 	bugtoolFname = "/tmp/tetragon-bugtool.tar.gz"
 )
 
+const POLICY_TEST_ALL = "all"
+
 // Conf configures the tester
 type Conf struct {
-	NoPowerOff  bool   `json:"no-poweroff"`  // do not power-off the machine when done
-	TetragonDir string `json:"tetragon-dir"` // tetragon source dir
-	ResultsDir  string `json:"results-dir"`  // directory to place the results
-	TestsFile   string `json:"tests-file"`   // file describing which tests to run
-	BTFFile     string `json:"btf-file"`     // btf file to use
-	FailFast    bool   `json:"fail-fast"`
-	KeepAllLogs bool   `json:"keep-all-logs"`
-	KernelVer   string `json:"kernel-ver"` // kernel version
+	NoPowerOff      bool   `json:"no-poweroff"`  // do not power-off the machine when done
+	TetragonDir     string `json:"tetragon-dir"` // tetragon source dir
+	ResultsDir      string `json:"results-dir"`  // directory to place the results
+	TestsFile       string `json:"tests-file"`   // file describing which tests to run
+	BTFFile         string `json:"btf-file"`     // btf file to use
+	FailFast        bool   `json:"fail-fast"`
+	KeepAllLogs     bool   `json:"keep-all-logs"`
+	KernelVer       string `json:"kernel-ver"`    // kernel version
+	SkipGoTests     bool   `json:"skip-go-tests"` // skip the compiled go tests
+	PolicyTestsFile string `json:"policytests"`   // policy tests to run: "all" or a path to a file listing test names
 }
 
 // Result is the result of a single test
 type Result struct {
-	Name       string        `json:"name"`
-	Skip       bool          `json:"skip"`
-	Error      bool          `json:"error"`
-	Outfile    string        `json:"outfile,omitempty"`
-	Duration   time.Duration `json:"duration"`
-	BugtoolOut string        `json:"bugtool-out,omitempty"`
+	Name         string        `json:"name"`
+	Skip         bool          `json:"skip"`
+	Error        bool          `json:"error"`
+	Outfile      string        `json:"outfile,omitempty"`
+	Duration     time.Duration `json:"duration"`
+	BugtoolOut   string        `json:"bugtool-out,omitempty"`
+	IsPolicyTest bool          `json:"is-policy-test,omitempty"`
 }
 
 func copyBugTool(cnf *Conf, res *Result) error {
@@ -109,7 +115,9 @@ func Run(cnf *Conf) error {
 	}
 
 	var tests []GoTest
-	if cnf.TestsFile == "" {
+	if cnf.SkipGoTests {
+		tests = nil
+	} else if cnf.TestsFile == "" {
 		var err error
 		tests, err = ListTests(testDir, false, nil)
 		if err != nil {
@@ -174,7 +182,142 @@ func Run(cnf *Conf) error {
 		}
 	}
 
+	if cnf.PolicyTestsFile != "" {
+		if err := runPolicyTests(cnf, doRunTest); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+// runPolicyTests starts a tetragon daemon, then runs the policy tests via the
+// tetra CLI and records results using doRunTest.
+// Currently, the tetragon daemon is shared between all policy tests.
+// If things go terribly wrong, one test might affect the other.
+// Moreover, the tetragon log that we capture contains all policy tests.
+func runPolicyTests(cnf *Conf, doRunTest func(string, string, ...string) (*Result, error)) error {
+	tetragonBin := filepath.Join(cnf.TetragonDir, "tetragon")
+	tetraBin := filepath.Join(cnf.TetragonDir, "tetra")
+	bpfLibDir := filepath.Join(cnf.TetragonDir, "bpf", "objs")
+
+	tetragonLogF, err := os.CreateTemp(cnf.ResultsDir, "policytests-tetragon-daemon.")
+	if err != nil {
+		return fmt.Errorf("failed to create tetragon daemon log file: %w", err)
+	}
+	defer tetragonLogF.Close()
+
+	tetragonArgs := []string{
+		"--bpf-lib", bpfLibDir,
+		"--log-level", "warn",
+	}
+	if cnf.BTFFile != "" {
+		tetragonArgs = append(tetragonArgs, "--btf", cnf.BTFFile)
+	}
+
+	tetragonCmd := exec.Command(tetragonBin, tetragonArgs...)
+	tetragonCmd.Stdout = tetragonLogF
+	tetragonCmd.Stderr = tetragonLogF
+	if err := tetragonCmd.Start(); err != nil {
+		return fmt.Errorf("failed to start tetragon daemon: %w", err)
+	}
+	defer func() {
+		tetragonCmd.Process.Kill()
+		tetragonCmd.Wait()
+	}()
+
+	if err := waitForTetragon(tetraBin, 60*time.Second); err != nil {
+		return fmt.Errorf("tetragon daemon did not become ready: %w", err)
+	}
+
+	// Resolve the list of policy test names to run.
+	var names []string
+	if cnf.PolicyTestsFile == POLICY_TEST_ALL {
+		var err error
+		names, err = listPolicyTests(tetraBin)
+		if err != nil {
+			return fmt.Errorf("failed to list policy tests: %w", err)
+		}
+	} else {
+		var err error
+		names, err = loadPolicyTestNames(cnf.PolicyTestsFile)
+		if err != nil {
+			return fmt.Errorf("failed to load policy test names from %s: %w", cnf.PolicyTestsFile, err)
+		}
+	}
+
+	bindir := filepath.Join(cnf.TetragonDir, "contrib", "tester-progs")
+	for _, name := range names {
+		if _, err := doRunTest("policytests."+name, tetraBin,
+			"policytest", "run",
+			"--debug", // We need to enable debug output otherwise we don't even get the info logs containing why a check failed.
+			"--bindir", bindir,
+			name,
+		); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// waitForTetragon runs "tetra status" repeatedly until it succeeds or the timeout expires.
+// tetra reads the server address from tetragon-info.json written by the daemon, so this
+// works for both TCP and Unix socket listeners without any hardcoded address.
+func waitForTetragon(tetraBin string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err := exec.CommandContext(ctx, tetraBin, "status").Run()
+		cancel()
+		if err == nil {
+			return nil
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return fmt.Errorf("timeout waiting for tetragon to become ready, lastErr: %w", fmt.Errorf("failed to run %s status after %s", tetraBin, timeout))
+}
+
+// listPolicyTests runs "tetra policytest list" and returns the test names.
+// The list output has the format "<name> [label ...]" — one test per line.
+func listPolicyTests(tetraBin string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, tetraBin, "policytest", "list").Output()
+	if err != nil {
+		return nil, fmt.Errorf("tetra policytest list failed: %w", err)
+	}
+	var names []string
+	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		// first field is the test name
+		name := strings.Fields(line)[0]
+		names = append(names, name)
+	}
+	return names, scanner.Err()
+}
+
+// loadPolicyTestNames reads a file containing policy test names (one per line, # comments allowed).
+func loadPolicyTestNames(fname string) ([]string, error) {
+	f, err := os.Open(fname)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var names []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" && !strings.HasPrefix(line, "#") {
+			names = append(names, line)
+		}
+	}
+	return names, scanner.Err()
 }
 
 // gather log files created by pkg/testutils/filenames:CreateExportFile()
@@ -262,10 +405,11 @@ func runTest(cnf *Conf, testName string, cmd string, args ...string) (*Result, e
 	}
 
 	res := Result{
-		Name:     testName,
-		Error:    testErr != nil,
-		Outfile:  outFname,
-		Duration: elapsed,
+		Name:         testName,
+		Error:        testErr != nil,
+		Outfile:      outFname,
+		Duration:     elapsed,
+		IsPolicyTest: strings.Contains(testName, "policytests"),
 	}
 
 	return &res, nil
