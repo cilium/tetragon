@@ -162,6 +162,22 @@ For now only ~ (none) and {} (all) is supported.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecnodeselector">nodeSelector</a></b></td>
+        <td>object</td>
+        <td>
+          NodeSelector selects, by node label, which nodes' Tetragon agents load
+this policy; if empty or unset it is loaded on all nodes. This differs in
+purpose from hostSelector: nodeSelector controls where a policy is loaded
+(on which nodes), whereas hostSelector controls which workloads a loaded
+policy applies to (host vs pod workloads) and does not affect whether the
+policy is loaded on a node. Use nodeSelector to target a node group such
+as GPU nodes, a specific architecture or OS, or a canary pool; use
+hostSelector to scope a loaded policy to host workloads. Unlike
+hostSelector, nodeSelector supports arbitrary matchLabels and
+matchExpressions.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecoptionsindex">options</a></b></td>
         <td>[]object</td>
         <td>
@@ -5053,6 +5069,97 @@ operator is "In", and the values array contains only "value". The requirements a
 
 ### TracingPolicy.spec.lsmhooks[index].selectors[index].matchWorkloads.podSelector.matchExpressions[index]
 <sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindexmatchworkloadspodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.nodeSelector
+<sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
+
+
+NodeSelector selects, by node label, which nodes' Tetragon agents load
+this policy; if empty or unset it is loaded on all nodes. This differs in
+purpose from hostSelector: nodeSelector controls where a policy is loaded
+(on which nodes), whereas hostSelector controls which workloads a loaded
+policy applies to (host vs pod workloads) and does not affect whether the
+policy is loaded on a node. Use nodeSelector to target a node group such
+as GPU nodes, a specific architecture or OS, or a canary pool; use
+hostSelector to scope a loaded policy to host workloads. Unlike
+hostSelector, nodeSelector supports arbitrary matchLabels and
+matchExpressions.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecnodeselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.nodeSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecnodeselector)</sup></sup>
 
 
 A label selector requirement is a selector that contains values, a key, and an operator that
@@ -10864,6 +10971,22 @@ For now only ~ (none) and {} (all) is supported.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecnodeselector">nodeSelector</a></b></td>
+        <td>object</td>
+        <td>
+          NodeSelector selects, by node label, which nodes' Tetragon agents load
+this policy; if empty or unset it is loaded on all nodes. This differs in
+purpose from hostSelector: nodeSelector controls where a policy is loaded
+(on which nodes), whereas hostSelector controls which workloads a loaded
+policy applies to (host vs pod workloads) and does not affect whether the
+policy is loaded on a node. Use nodeSelector to target a node group such
+as GPU nodes, a specific architecture or OS, or a canary pool; use
+hostSelector to scope a loaded policy to host workloads. Unlike
+hostSelector, nodeSelector supports arbitrary matchLabels and
+matchExpressions.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecoptionsindex">options</a></b></td>
         <td>[]object</td>
         <td>
@@ -15755,6 +15878,97 @@ operator is "In", and the values array contains only "value". The requirements a
 
 ### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchWorkloads.podSelector.matchExpressions[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchworkloadspodselector)</sup></sup>
+
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          operator represents a key's relationship to a set of values.
+Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Exists, DoesNotExist<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,
+the values array must be non-empty. If the operator is Exists or DoesNotExist,
+the values array must be empty. This array is replaced during a strategic
+merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.nodeSelector
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
+
+
+NodeSelector selects, by node label, which nodes' Tetragon agents load
+this policy; if empty or unset it is loaded on all nodes. This differs in
+purpose from hostSelector: nodeSelector controls where a policy is loaded
+(on which nodes), whereas hostSelector controls which workloads a loaded
+policy applies to (host vs pod workloads) and does not affect whether the
+policy is loaded on a node. Use nodeSelector to target a node group such
+as GPU nodes, a specific architecture or OS, or a canary pool; use
+hostSelector to scope a loaded policy to host workloads. Unlike
+hostSelector, nodeSelector supports arbitrary matchLabels and
+matchExpressions.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecnodeselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is "key", the
+operator is "In", and the values array contains only "value". The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.nodeSelector.matchExpressions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecnodeselector)</sup></sup>
 
 
 A label selector requirement is a selector that contains values, a key, and an operator that

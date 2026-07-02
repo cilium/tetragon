@@ -126,43 +126,41 @@ func GetMinKernelVersion(t *testing.T, testenv env.Environment) string {
 	return *version
 }
 
-func writeKindConfig() error {
-	f, err := os.Create(configPath)
-	if err != nil {
-		return err
+// createTempKindCluster writes kindCfg to configPath and creates a temporary
+// kind cluster from it, registering automatic cleanup. When a kubeconfig is
+// provided on the command line it attaches to that existing cluster instead.
+func createTempKindCluster(testenv env.Environment, namePrefix, kindCfg string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		if cfg.KubeconfigFile() != "" {
+			return ctx, nil
+		}
+		name := envconf.RandomName(namePrefix, 16)
+		clusterName = name
+		klog.Infof("No kubeconfig specified, creating temporary kind cluster %s", name)
+		if err := os.WriteFile(configPath, []byte(kindCfg), 0o600); err != nil {
+			return ctx, err
+		}
+		ctx, err := envfuncs.CreateClusterWithConfig(kind.NewProvider(), name, configPath, kind.WithImage(clusterImage))(ctx, cfg)
+		if err != nil {
+			return ctx, err
+		}
+		// Automatically clean up the cluster when the test finishes
+		testenv.Finish(deleteTempKindCluster(name))
+		return context.WithValue(ctx, state.ClusterName, name), nil
 	}
-
-	_, err = f.WriteString(kindConfig)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // MaybeCreateTempKindCluster creates a new temporary kind cluster in case no kubeconfig file is
 // specified on the command line.
 func MaybeCreateTempKindCluster(testenv env.Environment, namePrefix string) env.Func {
-	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		if cfg.KubeconfigFile() == "" {
-			name := envconf.RandomName(namePrefix, 16)
-			clusterName = name
-			klog.Infof("No kubeconfig specified, creating temporary kind cluster %s", name)
-			var err error
-			err = writeKindConfig()
-			if err != nil {
-				return ctx, err
-			}
-			ctx, err = envfuncs.CreateClusterWithConfig(kind.NewProvider(), name, configPath, kind.WithImage(clusterImage))(ctx, cfg)
-			if err != nil {
-				return ctx, err
-			}
-			// Automatically clean up the cluster when the test finishes
-			testenv.Finish(deleteTempKindCluster(name))
-			return context.WithValue(ctx, state.ClusterName, name), nil
-		}
-		return ctx, nil
-	}
+	return createTempKindCluster(testenv, namePrefix, kindConfig)
+}
+
+// MaybeCreateTempKindClusterWithConfig behaves like MaybeCreateTempKindCluster but
+// creates the temporary cluster from the supplied kind config YAML (e.g. a
+// multi-node config). Tests that require more nodes than are present should skip.
+func MaybeCreateTempKindClusterWithConfig(testenv env.Environment, namePrefix, kindCfg string) env.Func {
+	return createTempKindCluster(testenv, namePrefix, kindCfg)
 }
 
 // deleteTempKindCluster deletes a new temporary kind cluster previously created using
