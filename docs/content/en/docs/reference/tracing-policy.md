@@ -955,7 +955,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -986,10 +999,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1524,7 +1568,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -1555,10 +1612,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2693,7 +2781,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -2724,10 +2825,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3262,7 +3394,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -3293,10 +3438,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4100,7 +4276,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -4131,10 +4320,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4669,7 +4889,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -4700,10 +4933,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5486,7 +5750,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -5517,10 +5794,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6055,7 +6363,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -6086,10 +6407,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6851,7 +7203,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -6882,10 +7247,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7420,7 +7816,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -7451,10 +7860,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8500,7 +8940,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -8531,10 +8984,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9069,7 +9553,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -9100,10 +9597,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9872,7 +10400,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -9903,10 +10444,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10441,7 +11013,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -10472,10 +11057,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11823,7 +12439,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -11854,10 +12483,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12392,7 +13052,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -12423,10 +13096,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13561,7 +14265,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -13592,10 +14309,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14130,7 +14878,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -14161,10 +14922,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14968,7 +15760,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -14999,10 +15804,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15537,7 +16373,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -15568,10 +16417,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16354,7 +17234,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -16385,10 +17278,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16923,7 +17847,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -16954,10 +17891,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17719,7 +18687,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -17750,10 +18731,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -18288,7 +19300,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -18319,10 +19344,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -19368,7 +20424,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -19399,10 +20468,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -19937,7 +21037,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -19968,10 +21081,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -20740,7 +21884,20 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -20771,10 +21928,41 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -21309,7 +22497,20 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>action</b></td>
         <td>enum</td>
         <td>
-          Action to execute.<br/>
+          Action to execute.
+The Override action has three variants, depending on what arguments are set
+  1. Override the return value of function
+       Supported hooks: kprobes, uprobes, lsm
+       Arguments: ArgError (return value)
+  2. Override the value of a register
+       Supported hooks: uprobes
+       Arguments: ArgRegs
+  3. Override a function call
+       Supported hooks: uprobes
+       Arguments: One of:
+       - ArgNewSymbol: override call to a new symbol (in the binary)
+	      - ArgNewAddr: override call to a new address (in the binary)
+	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
             <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
@@ -21340,10 +22541,41 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argNewAddr</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's address.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewOffset</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol's offset.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argNewSymbol</b></td>
+        <td>string</td>
+        <td>
+          An arg value for the override action, uprobe only.
+The new symbol name.
+Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argRegs</b></td>
         <td>[]string</td>
         <td>
-          An arg value for the regs action<br/>
+          An arg value for the override action, uprobe only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
