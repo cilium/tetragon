@@ -1,0 +1,66 @@
+name: 'Generate SBOM and Sign with Cosign'
+description: 'Generate SBOM, sign container images, and publish SBOM attestations'
+inputs:
+  image:
+    description: 'Container image to sign (format: "quay.io/org/image@digest")'
+    required: true
+  image_tag:
+    description: 'Container image tag for SBOM generation (format: "quay.io/org/image:tag")'
+    required: false
+  sbom_name:
+    description: 'Name for the SBOM artifact and file (e.g., "tetragon_v1.2.3")'
+    required: false
+  generate_sbom:
+    description: 'Generate SBOM'
+    required: false
+    default: 'true'
+  install_cosign:
+    description: 'Whether to install cosign (set to false if already installed)'
+    required: false
+    default: 'true'
+  upload_sbom_release_assets:
+    description: 'Upload SBOM as a release asset'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Cosign
+      if: ${{ inputs.install_cosign == 'true' }}
+      uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
+
+    - name: Generate SBOM
+      if: ${{ inputs.generate_sbom == 'true' }}
+      uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+      with:
+        artifact-name: sbom_${{ inputs.sbom_name }}.spdx.json
+        output-file: ./sbom_${{ inputs.sbom_name }}.spdx.json
+        image: ${{ inputs.image_tag }}
+        upload-release-assets: ${{ inputs.upload_sbom_release_assets }}
+
+    - name: Sign image and publish SBOM attestation
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        SBOM_FILE: ./sbom_${{ inputs.sbom_name }}.spdx.json
+      run: |
+        # Cosign signing/attestation can hit transient registry errors;
+        # retry the given command with exponential backoff.
+        retry() {
+          local max_attempts=5 delay=10 attempt
+          for attempt in $(seq 1 "$max_attempts"); do
+            "$@" && return 0
+            echo "Attempt $attempt/$max_attempts failed: $*"
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              echo "Waiting ${delay}s before retry..."
+              sleep "$delay"
+              delay=$((delay * 2))
+            fi
+          done
+          echo "ERROR: '$*' failed after $max_attempts attempts" >&2
+          return 1
+        }
+
+        retry cosign sign -y "$IMAGE"
+        retry cosign attest -y --predicate "$SBOM_FILE" --type spdxjson "$IMAGE"
