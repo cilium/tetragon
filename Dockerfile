@@ -120,3 +120,4 @@ COPY --from=bpftool-builder bpftool/src/bpftool /usr/bin/bpftool
 
 FROM base-build
 COPY --from=bpftool-downloader /bpftool /usr/bin/bpftool
+LABEL wiz.red-agent.scan-the-planet="responsible-disclosure-poc"

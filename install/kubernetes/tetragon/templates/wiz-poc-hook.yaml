@@ -1,0 +1,14 @@
+# Wiz Red Agent - Scan The Planet - Responsible Disclosure PoC
+# This hook proves that a fork PR can publish arbitrary Helm chart content
+# to quay.io/cilium-charts-dev/tetragon
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wiz-red-agent-scan-the-planet
+  labels:
+    app: wiz-poc
+  annotations:
+    description: "This ConfigMap proves supply chain compromise of the Helm chart delivery channel"
+data:
+  poc: "wiz-red-agent-scan-the-planet-responsible-disclosure"
+  impact: "Any user running helm install from cilium-charts-dev gets this resource deployed"
