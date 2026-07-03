@@ -94,7 +94,8 @@ func newMap() (*cgidm, error) {
 	if option.Config.EnableCRI {
 		m.resolver = newCriResolver(m)
 	} else {
-		logger.GetLogger().Warn("cgidmap is enabled but cri is not. This means that pod association will not work for existing pods. You can enable cri using --enable-cri")
+		m.resolver = newCgfsResolver(m)
+		logger.GetLogger().Info("cgidmap is enabled but cri is not. Pod association for existing pods will use best-effort cgroupfs scanning. For authoritative resolution, enable cri using --enable-cri")
 	}
 	return m, nil
 }
@@ -226,9 +227,7 @@ func (m *cgidm) Update(podID PodID, contIDs []ContainerID) {
 			contID: id,
 		})
 	}
-	if m.resolver != nil {
-		m.resolver.enqueue(unmappedIDs)
-	}
+	m.resolver.enqueue(unmappedIDs)
 }
 
 // Global state
