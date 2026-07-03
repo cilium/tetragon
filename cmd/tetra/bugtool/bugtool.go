@@ -43,8 +43,8 @@ func New() *Command {
 	bugtoolCmd.command = &cobra.Command{
 		Use:   "bugtool",
 		Short: "Produce a tar archive with debug information",
-		Run: func(_ *cobra.Command, _ []string) {
-			bugtool.Bugtool(outFile, bpfTool, gops, common.MaxRecvMsgSize, bugtoolCmd.CommandActions, bugtoolCmd.GRPCActions)
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return bugtool.Bugtool(outFile, bpfTool, gops, common.MaxRecvMsgSize, bugtoolCmd.CommandActions, bugtoolCmd.GRPCActions)
 		},
 	}
 
