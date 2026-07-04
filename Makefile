@@ -196,6 +196,10 @@ image-rthooks:
 	@echo "Push like this when ready:"
 	@echo "${CONTAINER_ENGINE} push cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
 
+.PHONY: image-tester-progs
+image-tester-progs: ## Build the tester-progs workload image for e2e tests.
+	$(CONTAINER_ENGINE) build -f contrib/tester-progs/Dockerfile -t "$(E2E_TESTER_PROGS)" --platform=linux/${TARGET_ARCH} contrib/tester-progs
+
 .PHONY: image-test
 image-test: image-clang
 	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
@@ -326,6 +330,8 @@ E2E_AGENT ?= "cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 E2E_OPERATOR ?= "cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 # RTHooks image to use for end-to-end tests
 E2E_RTHOOKS ?= "cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
+# Tester-progs workload image to use for end-to-end tests
+E2E_TESTER_PROGS ?= "cilium/tetragon-tester-progs:$(DOCKER_IMAGE_TAG)"
 # BTF file to use in the E2E test. Set to nothing to use system BTF.
 E2E_BTF ?= ""
 # Actual flags to use for BTF file in e2e test. Use E2E_BTF instead.
