@@ -6,7 +6,10 @@
 package helpers
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -26,6 +29,7 @@ import (
 	"sigs.k8s.io/e2e-framework/support/kind"
 
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/tests/e2e/flags"
 	"github.com/cilium/tetragon/tests/e2e/state"
 )
 
@@ -34,6 +38,12 @@ const configPath = "/tmp/tetragon-e2e-kind.yaml"
 const kindConfig = `
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+# Enable NRI so the tetragon-rthooks plugin can deliver the CreateContainer hook
+# (used by the resolvePathInContainer e2e test); harmless without that plugin.
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.nri.v1.nri"]
+    disable = false
 nodes:
 - role: control-plane
   extraMounts:
@@ -184,6 +194,42 @@ func GetTempKindClusterName(ctx context.Context) string {
 		return name
 	}
 	return ""
+}
+
+// LoadTesterProgsImage loads the tester-progs workload image (see
+// -tetragon.tester-progs-image) into the temporary kind cluster. Tests
+// deploying workloads from that image call this in a Setup. No-op when
+// running against an existing cluster, where the image must be pullable
+// instead.
+func LoadTesterProgsImage() env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		image := flags.Opts.TesterProgsImage
+		clusterName := GetTempKindClusterName(ctx)
+		if flags.Opts.Minikube {
+			clusterName = "minikube"
+		} else if clusterName == "" {
+			klog.InfoS("No temporary kind cluster, skipping tester-progs image load", "image", image)
+			return ctx, nil
+		}
+		klog.InfoS("Loading tester-progs image", "cluster", clusterName, "image", image)
+		return envfuncs.LoadDockerImageToCluster(clusterName, image)(ctx, cfg)
+	}
+}
+
+// TesterProgsBinaryDigest returns the "sha256:<hex>" digest of a binary inside
+// the tester-progs image, read through the local Docker daemon where the image
+// was built. It lets an e2e policy pin the exact binary Tetragon resolves in
+// the container, so a passing uprobe assertion also proves digest verification.
+func TesterProgsBinaryDigest(ctx context.Context, image, binaryPath string) (string, error) {
+	cmd := exec.CommandContext(ctx, "docker", "run", "--rm", "--entrypoint", "/bin/cat", image, binaryPath)
+	var out, errBuf bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &errBuf
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("reading %s from image %s: %w: %s", binaryPath, image, err, errBuf.String())
+	}
+	sum := sha256.Sum256(out.Bytes())
+	return "sha256:" + hex.EncodeToString(sum[:]), nil
 }
 
 // LoadImageToMinikubeEnvFunc loads a container image into the minikube cluster via

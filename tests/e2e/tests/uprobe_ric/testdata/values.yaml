@@ -1,0 +1,13 @@
+# Helm values for the uprobe resolvePathInContainer e2e test:
+# CRI off, NRI rthook, fail-open.
+tetragon:
+  exportAllowList: "" # export all events for the checker
+  enablePolicyFilter: true
+  cri:
+    enabled: false # CRI off: runtime-hook discovery uses the standard host proc mount
+rthooks:
+  enabled: true
+  interface: "nri-hook" # kind runs containerd; deliver the hook over NRI
+  # Fail-open: other CreateContainer callbacks (e.g. cgidmap) can error on
+  # kind; the RootDir cache is still populated.
+  failAllowNamespacesRegex: [".*"]
