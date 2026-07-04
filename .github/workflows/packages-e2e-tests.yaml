@@ -79,7 +79,7 @@ jobs:
         working-directory: ./build/${{ matrix.arch }}/linux-tarball/
 
       - name: Wait for Tetragon service
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_seconds: 30
           max_attempts: 5
@@ -95,7 +95,7 @@ jobs:
         run: sudo journalctl -b -u tetragon --no-pager
 
       - name: Test Tetragon
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_seconds: 30
           max_attempts: 5
@@ -120,7 +120,7 @@ jobs:
           sudo systemctl start tetragon
 
       - name: Test Tetragon with a different tracing-policy-dir
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_seconds: 60
           max_attempts: 5
