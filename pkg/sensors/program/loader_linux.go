@@ -1078,10 +1078,7 @@ func doLoadProgram(
 		return nil, fmt.Errorf("program for section '%s' not found", load.Label)
 	}
 
-	pinnedMaps := make(map[string]*ebpf.Map)
-	for name := range refMaps {
-		var m *ebpf.Map
-		var err error
+	resolveRefMap := func(name string) (*ebpf.Map, error) {
 		var mapPath string
 
 		if pm, ok := resolveMap(name); ok {
@@ -1089,7 +1086,12 @@ func doLoadProgram(
 		} else {
 			mapPath = filepath.Join(bpfDir, name)
 		}
-		m, err = ebpf.LoadPinnedMap(mapPath, nil)
+		return ebpf.LoadPinnedMap(mapPath, nil)
+	}
+
+	pinnedMaps := make(map[string]*ebpf.Map)
+	for name := range refMaps {
+		m, err := resolveRefMap(name)
 		if err == nil {
 			defer m.Close()
 			pinnedMaps[name] = m
