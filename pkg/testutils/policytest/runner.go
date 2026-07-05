@@ -64,7 +64,11 @@ func NewLocalRunner(
 		}
 	}
 
-	cli, err := cli.NewClient(ctx, cnf.GrpcAddr, time.Second*20)
+	timeout := cnf.Timeout
+	if timeout <= 0 {
+		timeout = DefaultTimeout
+	}
+	cli, err := cli.NewClient(ctx, cnf.GrpcAddr, timeout)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %w", err)
 	}
@@ -113,11 +117,38 @@ func (r *LocalRunner) Close() {
 	r.wg.Wait()
 }
 
-func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error) {
-	// generate policy
-	pol, err := test.Policy(r.conf)
+// preparePolicy generates the test's policy and, when the runner is configured
+// for pod scoping, rewrites it into a namespaced policy constrained to the test
+// pod (see ScopePolicy). It returns the policy YAML to load along with the name
+// and namespace used to load and later delete it. An empty policy (len 0) means
+// the test has no policy.
+func preparePolicy(conf *Conf, test *T) (Policy, string, string, error) {
+	pol, err := test.Policy(conf)
 	if err != nil {
-		err = fmt.Errorf("failed to create policy for test %q: %w", test.Name, err)
+		return "", "", "", fmt.Errorf("failed to create policy for test %q: %w", test.Name, err)
+	}
+
+	// allow for tests that do not have a policy
+	if len(pol) == 0 {
+		return "", "", "", nil
+	}
+
+	pol, err = ScopePolicy(conf, pol)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to scope policy for test %q: %w", test.Name, err)
+	}
+
+	tp, err := tracingpolicy.FromYAML(string(pol))
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to parse policy for test %q: %w", test.Name, err)
+	}
+
+	return pol, tp.TpName(), tp.TpNamespace(), nil
+}
+
+func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error) {
+	pol, tpName, tpNamespace, err := preparePolicy(r.conf, test)
+	if err != nil {
 		return nil, err
 	}
 
@@ -126,21 +157,19 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 		return nil, nil
 	}
 
-	// TODO: no need to parse the full policy here. We just need to verify its kind and get the
-	// policy name so that we can delete it when done.
-	tp, err := tracingpolicy.FromYAML(string(pol))
-	if err != nil {
-		err = fmt.Errorf("failed to parse policy for test %q: %w", test.Name, err)
-		return nil, err
-	}
-	tpName := tp.TpName()
-
 	if r.conf.DumpPolicyPath != "" {
 		err := os.WriteFile(r.conf.DumpPolicyPath, []byte(pol), 0644)
 		if err != nil {
 			l.Warn("failed to dump policy", "err", err)
 		}
 	}
+
+	// Best-effort: remove any policy with the same name left over by a previous
+	// interrupted run, so loading doesn't fail with "already exists".
+	_, _ = r.cli.Client.DeleteTracingPolicy(r.cli.Ctx, &tetragon.DeleteTracingPolicyRequest{
+		Name:      tpName,
+		Namespace: tpNamespace,
+	})
 
 	_, err = r.cli.Client.AddTracingPolicy(r.cli.Ctx, &tetragon.AddTracingPolicyRequest{
 		Yaml: string(pol),
@@ -149,11 +178,11 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 		err = fmt.Errorf("failed to load policy for test %q: %w", test.Name, err)
 		return nil, err
 	}
-	l.Debug("policy loaded", "name", tpName)
+	l.Debug("policy loaded", "name", tpName, "namespace", tpNamespace)
 
 	return &PolicyHandler{
 		tpName:      tpName,
-		tpNamespace: "", // TODO: change this when we add support for namespaced policies
+		tpNamespace: tpNamespace,
 	}, nil
 }
 

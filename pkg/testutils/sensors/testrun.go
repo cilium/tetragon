@@ -41,6 +41,13 @@ func Conf() *Config {
 	return config
 }
 
+// SetConf initializes the test sensors config for callers that run outside the
+// `go test` sensor harness (e.g. the `tetra policytest` CLI), so Conf() does not
+// panic. TestSensorsRun() still owns initialization for sensor tests.
+func SetConf(c *Config) {
+	config = c
+}
+
 // TetragonBpfPath retrieves bpf code path
 func TetragonBpfPath() string {
 	_, testFname, _, _ := runtime.Caller(0)

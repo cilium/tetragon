@@ -119,6 +119,16 @@ jobs:
           docker pull ${{ needs.prepare.outputs.agentImage }}
           docker pull ${{ needs.prepare.outputs.operatorImage }}
 
+    # The policytest image bundles tetra + the tester-progs that the policytest
+    # e2e test triggers from inside the cluster. Built only for the policytest
+    # package, and amd64 only for now (Dockerfile.policytest needs the arm
+    # 32-bit cross-compiler before it can build on arm64).
+    - name: Build policytest image
+      if: matrix.package.s == 'policytest' && matrix.os == 'ubuntu-22.04'
+      run: |
+        cd go/src/github.com/cilium/tetragon
+        make image-policytest
+
     - name: Run e2e Tests
       run: |
         cd go/src/github.com/cilium/tetragon

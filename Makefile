@@ -208,6 +208,12 @@ image-clang:
 	@echo "Push like this when ready:"
 	@echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
 
+.PHONY: image-policytest
+image-policytest: ## Build the Tetragon policytest container image (tetra + tester-progs).
+	$(CONTAINER_ENGINE) build -f Dockerfile.policytest -t "cilium/tetragon-policytest:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
+	@echo "Push like this when ready:"
+	@echo "${CONTAINER_ENGINE} push cilium/tetragon-policytest:$(DOCKER_IMAGE_TAG)"
+
 .PHONY: images
 images: image image-operator ## Convenience alias for image and image-operator.
 

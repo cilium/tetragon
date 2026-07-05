@@ -18,6 +18,7 @@ import (
 
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	_ "github.com/cilium/tetragon/tests/policytests" // so that tests can be registered
 )
 
@@ -30,6 +31,7 @@ func New() *cobra.Command {
 	tpCmd.AddCommand(
 		listCmd(),
 		runCmd(),
+		inpodCmd(),
 		dumpPolicyCmd(),
 	)
 	return tpCmd
@@ -120,11 +122,17 @@ func runCmd() *cobra.Command {
 	dumpPolicyPath := ""
 	monitorMode := false
 	var params map[string]string
+	useKube := false
+	kf := defaultKubeFlags()
 	cmd := cobra.Command{
 		Use:   "run",
 		Short: "Run Tetragon policy test(s)",
-		Long:  "Run Tetragon policy test(s)",
+		Long:  "Run Tetragon policy test(s). With --kube, run them on a Kubernetes cluster by deploying a test pod on a node running a Tetragon agent.",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if useKube {
+				return runKube(cmd, args, &kf)
+			}
+
 			logLevel := slog.LevelInfo
 			if common.Debug {
 				logLevel = slog.LevelDebug
@@ -151,6 +159,9 @@ func runCmd() *cobra.Command {
 				_, ok := names[t.Name]
 				return ok
 			})
+			// Initialize tus.Conf() so policytests that read it don't panic
+			// outside the `go test` sensor harness.
+			tus.SetConf(&tus.ConfigDefaults)
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
 				GrpcAddr:       common.ServerAddress,
 				BinsDir:        testBinsPath,
@@ -179,5 +190,7 @@ func runCmd() *cobra.Command {
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policy in the provided path")
 	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
 	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
+	flags.BoolVar(&useKube, "kube", useKube, "run the test(s) on a Kubernetes cluster (see the --kube flags below)")
+	addKubeFlags(flags, &kf)
 	return &cmd
 }
