@@ -133,6 +133,7 @@ func runCmd() *cobra.Command {
 	allParams := false
 	var params map[string]string
 	var outputFormat = outputText
+	var outputFile = ""
 	cmd := cobra.Command{
 		Use:   "run",
 		Short: "Run Tetragon policy test(s)",
@@ -202,6 +203,16 @@ func runCmd() *cobra.Command {
 			}
 			runner.Close()
 
+			out := cmd.OutOrStdout()
+			if outputFile != "" {
+				f, err := os.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+				if err != nil {
+					return fmt.Errorf("error opening output file: %w", err)
+				}
+				defer f.Close()
+				out = f
+			}
+
 			switch outputFormat {
 			case outputJSON:
 				for _, res := range results {
@@ -209,10 +220,10 @@ func runCmd() *cobra.Command {
 					if err != nil {
 						return fmt.Errorf("failed to generate json: %w", err)
 					}
-					cmd.Println(string(b))
+					fmt.Fprintln(out, string(b))
 				}
 			case outputText:
-				policytest.DumpResults(cmd.OutOrStdout(), results)
+				policytest.DumpResults(out, results)
 			}
 			return nil
 		},
@@ -224,6 +235,7 @@ func runCmd() *cobra.Command {
 	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
 	flags.BoolVar(&allParams, "all-params", allParams, "Run policy tests using all available parameters")
 	flags.Var(&outputFormat, "output", "output format (text|json)")
+	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
 	return &cmd
 }
 
