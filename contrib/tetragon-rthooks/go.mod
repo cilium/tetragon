@@ -14,7 +14,7 @@ require (
 	github.com/opencontainers/cgroups v0.0.7
 	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/pelletier/go-toml v1.9.5
-	github.com/pelletier/go-toml/v2 v2.4.2
+	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/grpc v1.82.0
 )
