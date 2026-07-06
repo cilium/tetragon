@@ -131,6 +131,7 @@ func runCmd() *cobra.Command {
 	dumpPolicyPath := ""
 	monitorMode := false
 	allParams := false
+	allTests := false
 	var params map[string]string
 	var outputFormat = outputText
 	var outputFile = ""
@@ -171,14 +172,22 @@ func runCmd() *cobra.Command {
 			}
 
 			ctx := context.Background()
-			names := make(map[string]struct{})
-			for _, arg := range args {
-				names[arg] = struct{}{}
+			var ptFilterFn func(t *policytest.T) bool
+			if allTests {
+				ptFilterFn = func(_ *policytest.T) bool {
+					return true
+				}
+			} else {
+				names := make(map[string]struct{})
+				for _, arg := range args {
+					names[arg] = struct{}{}
+				}
+				ptFilterFn = func(t *policytest.T) bool {
+					_, ok := names[t.Name]
+					return ok
+				}
 			}
-			tests := policytest.AllPolicyTests.GetByFunction(func(t *policytest.T) bool {
-				_, ok := names[t.Name]
-				return ok
-			})
+			tests := policytest.AllPolicyTests.GetByFunction(ptFilterFn)
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
 				GrpcAddr:       common.ServerAddress,
 				BinsDir:        testBinsPath,
@@ -236,6 +245,7 @@ func runCmd() *cobra.Command {
 	flags.BoolVar(&allParams, "all-params", allParams, "Run policy tests using all available parameters")
 	flags.Var(&outputFormat, "output", "output format (text|json)")
 	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
+	flags.BoolVar(&allTests, "all-tests", allTests, "Run all available policy tests")
 	return &cmd
 }
 
