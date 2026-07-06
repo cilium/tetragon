@@ -92,6 +92,7 @@ jobs:
           persist-credentials: false
           ref: ${{ steps.tag.outputs.tag }}
           fetch-depth: 0
+          allow-unsafe-pr-checkout: true
 
       - name: Login to quay.io for CI
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
@@ -168,6 +169,7 @@ jobs:
           submodules: true
           persist-credentials: false
           fetch-depth: 0
+          allow-unsafe-pr-checkout: true
 
       - name: Push OCI Helm dev chart
         uses: cilium/reusable-workflows/.github/actions/push-helm-chart@6ae27958f2f37545bf48e44106b73df05b1f6d12 # v0.1.0
