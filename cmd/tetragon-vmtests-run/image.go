@@ -74,7 +74,7 @@ StandardOutput=tty
 WantedBy=multi-user.target
 `
 
-func buildTesterService(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
+func buildTesterService(rcnf *GoTestConf, tmpDir string) ([]images.Action, error) {
 	service := fmt.Sprintf(tetragonTesterService, TetragonTesterVmBin, rcnf.testerOut)
 	var b bytes.Buffer
 	b.WriteString(service)
@@ -103,7 +103,7 @@ func buildTesterService(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
 	return actions, nil
 }
 
-func buildTesterActions(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
+func buildTesterActions(rcnf *GoTestConf, tmpDir string) ([]images.Action, error) {
 	absTesterBin, err := filepath.Abs(TetragonTesterBin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tetragon-tester full path: %w", err)
@@ -215,7 +215,7 @@ func (rc *NoNetworkCommand) ToSteps(s *images.StepConf) ([]step.Step, error) {
 	}}, nil
 }
 
-func buildTestImage(log slogger.Logger, rcnf *RunConf) error {
+func buildTestImage(log slogger.Logger, rcnf *GoTestConf) error {
 
 	imagesDir, baseImage := filepath.Split(rcnf.baseImageFilename)
 
