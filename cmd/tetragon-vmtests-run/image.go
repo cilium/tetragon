@@ -74,7 +74,8 @@ WantedBy=multi-user.target
 `
 
 func buildTesterService(tmpDir string) ([]images.Action, error) {
-	service := fmt.Sprintf(tetragonTesterService, TetragonTesterVmBin)
+	execStart := TetragonTesterVmBin + " gotest"
+	service := fmt.Sprintf(tetragonTesterService, execStart)
 	var b bytes.Buffer
 	b.WriteString(service)
 
