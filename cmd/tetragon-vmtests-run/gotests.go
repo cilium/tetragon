@@ -11,14 +11,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/cilium/little-vm-helper/pkg/arch"
 	"github.com/cilium/little-vm-helper/pkg/runner"
 	"github.com/cilium/little-vm-helper/pkg/slogger"
 	"github.com/spf13/cobra"
-	"golang.org/x/sys/unix"
 )
 
 func goTestCmd() *cobra.Command {
@@ -95,28 +93,14 @@ func goTestCmd() *cobra.Command {
 			}
 
 			if rcnf.qemuPrint {
-				var sb strings.Builder
-				sb.WriteString(qemuBin)
-				for _, arg := range qemuArgs {
-					sb.WriteString(" ")
-					if len(arg) > 0 && arg[0] == '-' {
-						sb.WriteString("\\\n\t")
-					}
-					sb.WriteString(arg)
-				}
-
-				fmt.Printf("%s\n", sb.String())
+				qemuPrintCmd(qemuBin, qemuArgs)
 				return nil
 			}
 
 			// if we don't need to run tests, just exec() so that user will be able to
 			// login to the VM.
 			if rcnf.justBoot {
-				bin := filepath.Join("/usr/bin/", qemuBin)
-				args := []string{qemuBin}
-				args = append(args, qemuArgs...)
-				env := []string{}
-				return unix.Exec(bin, args, env)
+				return qemuJustBoot(qemuBin, qemuArgs)
 			}
 
 			results, err := runTests(&rcnf, qemuBin, qemuArgs)
