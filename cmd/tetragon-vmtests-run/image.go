@@ -66,7 +66,6 @@ After=network.target
 ExecStart=%s
 Type=oneshot
 # https://www.freedesktop.org/software/systemd/man/systemd.exec.html
-# StandardOutput=file:%s
 StandardOutput=tty
 # StandardOutput=journal+console
 
@@ -74,8 +73,8 @@ StandardOutput=tty
 WantedBy=multi-user.target
 `
 
-func buildTesterService(rcnf *GoTestConf, tmpDir string) ([]images.Action, error) {
-	service := fmt.Sprintf(tetragonTesterService, TetragonTesterVmBin, rcnf.testerOut)
+func buildTesterService(tmpDir string) ([]images.Action, error) {
+	service := fmt.Sprintf(tetragonTesterService, TetragonTesterVmBin)
 	var b bytes.Buffer
 	b.WriteString(service)
 
@@ -145,7 +144,7 @@ func buildTesterActions(rcnf *GoTestConf, tmpDir string) ([]images.Action, error
 	})
 
 	if !rcnf.useTetragonTesterInit && !rcnf.justBoot {
-		acts, err := buildTesterService(rcnf, tmpDir)
+		acts, err := buildTesterService(tmpDir)
 		if err != nil {
 			return nil, err
 		}
