@@ -18,6 +18,7 @@ func main() {
 	}
 
 	cmd.AddCommand(goTestCmd())
+	cmd.AddCommand(policyTestCmd())
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
