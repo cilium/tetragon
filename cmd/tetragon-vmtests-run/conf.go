@@ -13,7 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/vmtests"
 )
 
-type RunConf struct {
+type GoTestConf struct {
 	runner.RunConf
 	vmName                string
 	baseImageFilename     string
@@ -32,7 +32,7 @@ type RunConf struct {
 	filesystems []QemuFS
 }
 
-func (rc RunConf) testImageFilename() string {
+func (rc GoTestConf) testImageFilename() string {
 	if ext := filepath.Ext(rc.vmName); ext == "" {
 		return rc.vmName + ".qcow2"
 	}
