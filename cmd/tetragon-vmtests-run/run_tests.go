@@ -29,7 +29,7 @@ type runTestsResults struct {
 	totalDuration                         time.Duration
 }
 
-func runTests(
+func runGoTests(
 	rcnf *GoTestConf, qemuBin string, qemuArgs []string,
 ) (*runTestsResults, error) {
 

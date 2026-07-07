@@ -103,7 +103,7 @@ func goTestCmd() *cobra.Command {
 				return qemuJustBoot(qemuBin, qemuArgs)
 			}
 
-			results, err := runTests(&rcnf, qemuBin, qemuArgs)
+			results, err := runGoTests(&rcnf, qemuBin, qemuArgs)
 			if err != nil {
 				return err
 			}
