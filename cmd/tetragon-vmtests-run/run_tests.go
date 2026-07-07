@@ -30,7 +30,7 @@ type runTestsResults struct {
 }
 
 func runTests(
-	rcnf *RunConf, qemuBin string, qemuArgs []string,
+	rcnf *GoTestConf, qemuBin string, qemuArgs []string,
 ) (*runTestsResults, error) {
 
 	ctx := context.Background()

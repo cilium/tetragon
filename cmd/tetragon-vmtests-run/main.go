@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	var rcnf RunConf
+	var rcnf GoTestConf
 	var ports []string
 
 	cmd := &cobra.Command{
