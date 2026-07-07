@@ -134,7 +134,7 @@ jobs:
         ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
         kimage=$(find tests/vmtests/test-data/kernels -path "*vmlinuz*" -type f)
         echo "Using: kernel:$kimage"
-        sudo ./tests/vmtests/tetragon-vmtests-run \
+        sudo ./tests/vmtests/tetragon-vmtests-run gotest \
                 --kernel ${kimage} \
                 --kernel-ver  ${{ matrix.kernel }} \
                 --base tests/vmtests/test-data/images/base.qcow2 \
@@ -151,7 +151,7 @@ jobs:
         kimage=$(find tests/vmtests/test-data/kernels -path "*vmlinuz*" -type f)
         btf=$(find tests/vmtests/test-data/kernels -path "*btf*" -type f)
         echo "Using: kernel:$kimage bptf:$btf"
-        sudo ./tests/vmtests/tetragon-vmtests-run \
+        sudo ./tests/vmtests/tetragon-vmtests-run gotest \
                 --kernel ${kimage} \
                 --kernel-ver  ${{ matrix.kernel }} \
                 --btf-file ${btf} \
