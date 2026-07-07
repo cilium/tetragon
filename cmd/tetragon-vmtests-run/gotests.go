@@ -89,7 +89,7 @@ func goTestCmd() *cobra.Command {
 			}
 			qemuBin := runtimeArch.QemuBinary()
 
-			qemuArgs, err := buildQemuArgs(log, rcnf)
+			qemuArgs, err := buildQemuArgs(log, rcnf.testConf)
 			if err != nil {
 				return fmt.Errorf("failed to build qemu args: %w", err)
 			}
