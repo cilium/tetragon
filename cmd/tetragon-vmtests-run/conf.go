@@ -14,6 +14,13 @@ import (
 )
 
 type GoTestConf struct {
+	testConf
+	testerConf      vmtests.Conf
+	detailedResults bool
+	keepAllLogs     bool
+}
+
+type testConf struct {
 	runner.RunConf
 	vmName                string
 	baseImageFilename     string
@@ -24,9 +31,6 @@ type GoTestConf struct {
 	justBuildImage        bool
 	btfFile               string
 	disableUnifiedCgroups bool
-	testerConf            vmtests.Conf
-	detailedResults       bool
-	keepAllLogs           bool
 
 	filesystems []QemuFS
 }
