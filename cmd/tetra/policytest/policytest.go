@@ -6,9 +6,6 @@
 package policytest
 
 import (
-
-	// import tests
-
 	"context"
 	"encoding/json"
 	"errors"
