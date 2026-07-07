@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/cilium/lumberjack/v2"
@@ -89,18 +88,16 @@ func (e *Exporter) Start() error {
 		e.rotateTimer = time.AfterFunc(e.rotationInterval, e.rotate)
 	}
 
-	// Start the events processor
-	var readyWG sync.WaitGroup
-	var exporterStartErr error
-	readyWG.Add(1)
+	run, err := e.server.GetEventsListener(e.request, e, e.closer)
+	if err != nil {
+		return fmt.Errorf("error starting JSON exporter: %w", err)
+	}
 	go func() {
-		if err := e.server.GetEventsWG(e.request, e, e.closer, &readyWG); err != nil {
-			exporterStartErr = fmt.Errorf("error starting JSON exporter: %w", err)
+		if err := run(); err != nil {
+			logger.GetLogger().Warn("JSON exporter terminated with error", logfields.Error, err)
 		}
 	}()
-	readyWG.Wait()
-
-	return exporterStartErr
+	return nil
 }
 
 func (e *Exporter) rotate() {
