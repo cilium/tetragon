@@ -58,7 +58,6 @@ func main() {
 				)
 				rcnf.testerConf.TetragonDir = cwd
 				testingDir := filepath.Join(cwd, "tests", "vmtests")
-				rcnf.testerOut = filepath.Join(testingDir, "tester-tetragon.out")
 				// NB: this is awkward, but if the user just
 				// wants to build an image or use an existing
 				// image to run tests, using a random results

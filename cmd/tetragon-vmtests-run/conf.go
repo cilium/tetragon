@@ -19,7 +19,6 @@ type GoTestConf struct {
 	baseImageFilename     string
 	dontRebuildImage      bool
 	useTetragonTesterInit bool
-	testerOut             string
 	qemuPrint             bool
 	justBoot              bool
 	justBuildImage        bool
