@@ -52,9 +52,9 @@ func cmdAddTestConfFlags(cmd *cobra.Command, cnf *testConf) {
 	cmd.Flags().StringVar(&cnf.Mem, "mem", "4G", "memory for the VM (e.g. 4G, 2048M)")
 }
 
-func (rc GoTestConf) testImageFilename() string {
-	if ext := filepath.Ext(rc.vmName); ext == "" {
-		return rc.vmName + ".qcow2"
+func (tc testConf) testImageFilename() string {
+	if ext := filepath.Ext(tc.vmName); ext == "" {
+		return tc.vmName + ".qcow2"
 	}
-	return rc.vmName
+	return tc.vmName
 }
