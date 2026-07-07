@@ -14,7 +14,7 @@ import (
 
 // buildQemuArgs is a wrapper around LVH's runner.BuildQemuArgs and also handles
 // custom configuration from vmtests
-func buildQemuArgs(log slogger.Logger, rcnf GoTestConf) ([]string, error) {
+func buildQemuArgs(log slogger.Logger, rcnf testConf) ([]string, error) {
 	if rcnf.KernelFname != "" {
 		if rcnf.disableUnifiedCgroups {
 			rcnf.KernelAppendArgs = append(rcnf.KernelAppendArgs, "systemd.unified_cgroup_hierarchy=0")
