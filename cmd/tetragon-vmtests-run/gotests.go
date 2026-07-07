@@ -145,16 +145,7 @@ func goTestCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&rcnf.baseImageFilename, "base", "", "base image filename")
-	cmd.MarkFlagRequired("base")
-	cmd.Flags().StringVar(&rcnf.vmName, "name", "tetragon", "new vm (and basis for the image name). New vm image will be in the directory of the base image")
-	cmd.Flags().StringVar(&rcnf.KernelFname, "kernel", "", "kernel filename to boot with. (if empty no -kernel option will be passed to qemu)")
-	cmd.Flags().BoolVar(&rcnf.dontRebuildImage, "dont-rebuild-image", false, "dont rebuild image")
-	cmd.Flags().BoolVar(&rcnf.useTetragonTesterInit, "use-tetragon-init", false, "use tetragon-vmtests-init as init process in the VM")
-	cmd.Flags().BoolVar(&rcnf.qemuPrint, "qemu-cmd-print", false, "Do not run the qemu command, just print it")
-	cmd.Flags().BoolVar(&rcnf.DisableHardwareAccel, "qemu-disable-kvm", false, "Do not use KVM acceleration, even if /dev/kvm exists")
-	cmd.Flags().BoolVar(&rcnf.justBoot, "just-boot", false, "Do not actually run any tests. Just setup everything and start the VM. User will be able to login to the VM.")
-	cmd.Flags().BoolVar(&rcnf.justBuildImage, "just-build-image", false, "Just build an image. Do not actually run any tests or boot the VM.")
+	cmdAddTestConfFlags(cmd, &rcnf.testConf)
 	cmd.Flags().BoolVar(&rcnf.testerConf.NoPowerOff, "no-poweroff", false, "Do not poweroff the VM at the end of the run")
 	cmd.Flags().StringVar(&rcnf.testerConf.TestsFile, "testsfile", "", "list of tests to run")
 	cmd.Flags().StringVar(&rcnf.btfFile, "btf-file", "", "BTF file to use.")
@@ -164,9 +155,6 @@ func goTestCmd() *cobra.Command {
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&rcnf.testerConf.KernelVer, "kernel-ver", "", "kenel version")
 	cmd.Flags().BoolVar(&rcnf.detailedResults, "enable-detailed-results", false, "produce detailed results")
-	cmd.Flags().StringVar(&rcnf.RootDev, "root-dev", "vda", "type of root device (hda or vda)")
-	cmd.Flags().IntVar(&rcnf.CPU, "cpu", 2, "number of vCPUs for the VM")
-	cmd.Flags().StringVar(&rcnf.Mem, "mem", "4G", "memory for the VM (e.g. 4G, 2048M)")
 
 	return cmd
 }
