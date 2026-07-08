@@ -106,7 +106,7 @@ usdt: usdt.c
 	$(GCC) -Wall $< -o $@
 
 usdt-args: usdt-args.c tester-lib.h libtester.so
-	$(GCC) -Wall $< -o $@ $(CURDIR)/libtester.so
+	$(GCC) -Wall $< -o $@ -L . -ltester -Wl,-rpath,'$$ORIGIN'
 
 capabilities-ioperm: capabilities-ioperm.c
 	$(GCC) -Wall $< -o $@
@@ -123,7 +123,7 @@ usdt-resolve: usdt-resolve.c
 	rm $@.btf.tmp
 
 uprobe-resolve: uprobe-resolve.c tester-lib.h libtester.so
-	$(GCC) -ggdb3 -O2 -Wall $< -o $@ $(CURDIR)/libtester.so
+	$(GCC) -ggdb3 -O2 -Wall $< -o $@ -L . -ltester -Wl,-rpath,'$$ORIGIN'
 	pahole -J $@
 	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@
 	llvm-objcopy -I binary -O elf64-x86-64 --rename-section .data=.BTF $@.btf.tmp $@.btf
