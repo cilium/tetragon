@@ -497,6 +497,309 @@ func TestCompactEncoder_EncodeWithTimestamp(t *testing.T) {
 	assert.Equal(t, "1970-01-01T00:00:00.000000000Z 🚀 process kube-system/tetragon /usr/bin/curl cilium.io\n", b.String())
 }
 
+func TestCompactEncoder_EscapeSpecialCharacters(t *testing.T) {
+	p := NewCompactEncoder(os.Stdout, Never, false, false, false)
+
+	t.Run("binary", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
+						Binary:    "/usr/bin/\x1b[31mmalicious\x1b[0m",
+						Arguments: "normal-args",
+						Pod: &tetragon.Pod{
+							Namespace: "kube-system",
+							Name:      "tetragon",
+						},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"/usr/bin/\\x1b[31mmalicious\\x1b[0m\"")
+		assert.NotContains(t, result, "\x1b")
+	})
+
+	t.Run("args", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
+						Binary:    "/bin/sh",
+						Arguments: "echo \x00null\rbyte",
+						Pod: &tetragon.Pod{
+							Namespace: "default",
+							Name:      "pod",
+						},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"echo \\x00null\\rbyte\"")
+		assert.NotContains(t, result, "\x00")
+		assert.NotContains(t, result, "\r")
+	})
+
+	t.Run("hostname", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{
+						Binary:    "/usr/bin/test",
+						Arguments: "args",
+					},
+				},
+			},
+			NodeName: "host\nwith\nnewlines",
+		})
+		require.NoError(t, err)
+		// Verify hostname is escaped when no pod info is present
+		assert.Contains(t, result, "\"host\\nwith\\nnewlines\"")
+		assert.NotContains(t, result, "host\nwith\nnewlines")
+	})
+
+	t.Run("file", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessKprobe{
+				ProcessKprobe: &tetragon.ProcessKprobe{
+					Process: &tetragon.Process{
+						Binary: "/usr/bin/cat",
+						Pod: &tetragon.Pod{
+							Namespace: "default",
+							Name:      "test",
+						},
+					},
+					FunctionName: "fd_install",
+					Args: []*tetragon.KprobeArgument{
+						nil,
+						{Arg: &tetragon.KprobeArgument_FileArg{FileArg: &tetragon.KprobeFile{Path: "/tmp/file\nwith\nnewlines"}}},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"/tmp/file\\nwith\\nnewlines\"")
+		assert.NotContains(t, result, "/tmp/file\nwith\nnewlines")
+	})
+
+	t.Run("cgroup", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessThrottle{
+				ProcessThrottle: &tetragon.ProcessThrottle{
+					Type:   tetragon.ThrottleType_THROTTLE_START,
+					Cgroup: "/sys/fs/cgroup\nmalicious",
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"/sys/fs/cgroup\\nmalicious\"")
+		assert.NotContains(t, result, "/sys/fs/cgroup\nmalicious")
+	})
+
+	t.Run("loader", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessLoader{
+				ProcessLoader: &tetragon.ProcessLoader{
+					Process: &tetragon.Process{
+						Binary: "/usr/bin/loader",
+						Pod: &tetragon.Pod{
+							Namespace: "default",
+							Name:      "test",
+						},
+					},
+					Path: "/lib/evil\x1b[31m.so",
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"/lib/evil\\x1b[31m.so\"")
+		assert.NotContains(t, result, "\x1b")
+	})
+
+	t.Run("stringarg", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessKprobe{
+				ProcessKprobe: &tetragon.ProcessKprobe{
+					Process: &tetragon.Process{
+						Binary: "/usr/bin/cat",
+						Pod: &tetragon.Pod{
+							Namespace: "default",
+							Name:      "test",
+						},
+					},
+					FunctionName: "sys_openat",
+					Args: []*tetragon.KprobeArgument{
+						nil,
+						{Arg: &tetragon.KprobeArgument_StringArg{StringArg: "/etc/bad\nfile"}},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"/etc/bad\\nfile\"")
+		assert.NotContains(t, result, "/etc/bad\nfile")
+	})
+
+	t.Run("filearg", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessKprobe{
+				ProcessKprobe: &tetragon.ProcessKprobe{
+					Process: &tetragon.Process{
+						Binary: "/usr/bin/write",
+						Pod: &tetragon.Pod{
+							Namespace: "default",
+							Name:      "test",
+						},
+					},
+					FunctionName: "__x64_sys_write",
+					Args: []*tetragon.KprobeArgument{
+						{Arg: &tetragon.KprobeArgument_FileArg{
+							FileArg: &tetragon.KprobeFile{Path: "/var/log/bad\rfile"},
+						}},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"/var/log/bad\\rfile\"")
+		assert.NotContains(t, result, "\r")
+	})
+
+	t.Run("patharg", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessKprobe{
+				ProcessKprobe: &tetragon.ProcessKprobe{
+					Process: &tetragon.Process{
+						Binary: "/usr/bin/truncate",
+						Pod: &tetragon.Pod{
+							Namespace: "default",
+							Name:      "test",
+						},
+					},
+					FunctionName: "security_path_truncate",
+					Args: []*tetragon.KprobeArgument{
+						{Arg: &tetragon.KprobeArgument_PathArg{
+							PathArg: &tetragon.KprobePath{Path: "/data/bad\nfile"},
+						}},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"/data/bad\\nfile\"")
+		assert.NotContains(t, result, "/data/bad\nfile")
+	})
+
+	t.Run("uprobe", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessUprobe{
+				ProcessUprobe: &tetragon.ProcessUprobe{
+					Process: &tetragon.Process{
+						Binary: "/usr/bin/test",
+						Pod: &tetragon.Pod{
+							Namespace: "default",
+							Name:      "test",
+						},
+					},
+					Path:   "/lib/\x1b[31mevil\x1b[0m.so",
+					Symbol: "function_name",
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"/lib/\\x1b[31mevil\\x1b[0m.so\"")
+		assert.NotContains(t, result, "\x1b")
+	})
+
+	t.Run("symbol", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessUprobe{
+				ProcessUprobe: &tetragon.ProcessUprobe{
+					Process: &tetragon.Process{
+						Binary: "/usr/bin/test",
+						Pod: &tetragon.Pod{
+							Namespace: "default",
+							Name:      "test",
+						},
+					},
+					Path:   "/lib/test.so",
+					Symbol: "func\nname",
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"func\\nname\"")
+		assert.NotContains(t, result, "func\nname")
+	})
+
+	t.Run("usdt", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessUsdt{
+				ProcessUsdt: &tetragon.ProcessUsdt{
+					Process: &tetragon.Process{
+						Binary: "/usr/bin/test",
+						Pod: &tetragon.Pod{
+							Namespace: "default",
+							Name:      "test",
+						},
+					},
+					Path:     "/usr/lib/bad\x00path",
+					Provider: "provider",
+					Name:     "probe",
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"/usr/lib/bad\\x00path\"")
+		assert.NotContains(t, result, "\x00")
+	})
+
+	t.Run("provider", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessUsdt{
+				ProcessUsdt: &tetragon.ProcessUsdt{
+					Process: &tetragon.Process{
+						Binary: "/usr/bin/test",
+						Pod: &tetragon.Pod{
+							Namespace: "default",
+							Name:      "test",
+						},
+					},
+					Path:     "/usr/lib/test.so",
+					Provider: "prov\nider",
+					Name:     "probe",
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"prov\\nider\"")
+		assert.NotContains(t, result, "prov\nider")
+	})
+
+	t.Run("name", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessUsdt{
+				ProcessUsdt: &tetragon.ProcessUsdt{
+					Process: &tetragon.Process{
+						Binary: "/usr/bin/test",
+						Pod: &tetragon.Pod{
+							Namespace: "default",
+							Name:      "test",
+						},
+					},
+					Path:     "/usr/lib/test.so",
+					Provider: "provider",
+					Name:     "probe\tname",
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"probe\\tname\"")
+		assert.NotContains(t, result, "\t")
+	})
+}
+
 func FuzzProtojsonCompatibility(f *testing.F) {
 	for _, n := range []int64{
 		1337,
