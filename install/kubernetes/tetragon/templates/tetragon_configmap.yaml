@@ -23,6 +23,7 @@ data:
   enable-process-ns: {{ .Values.tetragon.enableProcessNs | quote }}
   enable-ancestors: {{ .Values.tetragon.processAncestors.enabled | quote }}
   process-cache-size: {{ .Values.tetragon.processCacheSize | quote }}
+  deleted-pod-cache-size: {{ .Values.tetragon.deletedPodCacheSize | quote }}
 {{- if .Values.tetragon.exportFilename }}
   export-filename: {{ .Values.exportDirectory}}/{{ .Values.tetragon.exportFilename }}
   export-file-perm: {{ .Values.tetragon.exportFilePerm | quote }}

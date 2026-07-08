@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
+	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
@@ -32,6 +33,7 @@ const (
 	KeyVerbosity              = "verbose"
 	KeyProcessCacheSize       = "process-cache-size"
 	KeyDataCacheSize          = "data-cache-size"
+	KeyDeletedPodCacheSize    = "deleted-pod-cache-size"
 	KeyProcessCacheGCInterval = "process-cache-gc-interval"
 	KeyForceSmallProgs        = "force-small-progs"
 	KeyForceLargeProgs        = "force-large-progs"
@@ -236,6 +238,7 @@ func ReadAndSetFlags() error {
 
 	Config.ProcessCacheSize = viper.GetInt(KeyProcessCacheSize)
 	Config.DataCacheSize = viper.GetInt(KeyDataCacheSize)
+	Config.DeletedPodCacheSize = viper.GetInt(KeyDeletedPodCacheSize)
 	Config.ProcessCacheGCInterval = viper.GetDuration(KeyProcessCacheGCInterval)
 
 	if Config.ProcessCacheGCInterval <= 0 {
@@ -457,6 +460,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Int(KeyVerbosity, 0, "set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
 	flags.Int(KeyProcessCacheSize, 65536, "Size of the process cache")
 	flags.Int(KeyDataCacheSize, 1024, "Size of the data events cache")
+	flags.Int(KeyDeletedPodCacheSize, constants.WatcherDeletedPodCacheSize, "Size of the deleted pod cache")
 	flags.Duration(KeyProcessCacheGCInterval, defaults.DefaultProcessCacheGCInterval, "Time between checking the process cache for old entries")
 	flags.Bool(KeyForceSmallProgs, false, "Force loading small programs, even in kernels with >= 5.3 versions")
 	flags.Bool(KeyForceLargeProgs, false, "Force loading large programs, even in kernels with < 5.3 versions")

@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 type deletedPodCacheEntry struct {
@@ -24,7 +25,7 @@ type DeletedPodCache struct {
 }
 
 func NewDeletedPodCache() (*DeletedPodCache, error) {
-	c, err := lru.New[string, deletedPodCacheEntry](128)
+	c, err := lru.New[string, deletedPodCacheEntry](option.Config.DeletedPodCacheSize)
 	if err != nil {
 		return nil, err
 	}

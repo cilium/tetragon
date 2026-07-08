@@ -29,6 +29,9 @@ options:
       shorthand: d
       default_value: "false"
       usage: Enable debug messages. Equivalent to '--log-level=debug'
+    - name: deleted-pod-cache-size
+      default_value: "1024"
+      usage: Size of the deleted pod cache
     - name: disable-kprobe-multi
       default_value: "false"
       usage: Allow to disable kprobe multi interface
