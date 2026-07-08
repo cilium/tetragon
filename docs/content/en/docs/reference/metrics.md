@@ -402,6 +402,10 @@ The total number of tracing policy actions observed per selector.
 | `selector_index` | `    0` |
 | `selector_label` | `example-selector` |
 
+### `tetragon_watcher_delete_pod_cache_evictions`
+
+The total evictions from the deleted pod cache.
+
 ### `tetragon_watcher_delete_pod_cache_hits`
 
 The total hits for pod information in the deleted pod cache.
