@@ -41,6 +41,7 @@ metrics-label-filter:
 netns-dir: /var/run/docker/netns/
 pprof-address:
 process-cache-size: 65536
+deleted-pod-cache-size: 1024
 procfs: /proc/
 rb-size: 0
 rb-size-total: 0

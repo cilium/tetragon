@@ -82,6 +82,7 @@ Helm chart for Tetragon
 | tetragon.cri | object | `{"enabled":false,"socketHostPath":""}` | Configure tetragon pod so that it can contact the CRI running on the host |
 | tetragon.cri.socketHostPath | string | `""` | path of the CRI socket on the host. This will typically be "/run/containerd/containerd.sock" for containerd or "/var/run/crio/crio.sock"  for crio. |
 | tetragon.debug | bool | `false` | If you want to run Tetragon in debug mode change this value to true |
+| tetragon.deletedPodCacheSize | int | `1024` | Tetragon keeps recently deleted pod/container mappings in an LRU cache to resolve pod metadata for late-arriving events. |
 | tetragon.enableK8sAPI | bool | `true` | Access Kubernetes API to associate Tetragon events with Kubernetes pods. |
 | tetragon.enableKeepSensorsOnExit | bool | `false` | Persistent enforcement to allow the enforcement policy to continue running even when its Tetragon process is gone. |
 | tetragon.enableMsgHandlingLatency | bool | `false` | Enable latency monitoring in message handling |

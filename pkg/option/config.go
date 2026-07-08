@@ -14,6 +14,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 
+	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
@@ -67,6 +68,7 @@ type config struct {
 
 	ProcessCacheSize       int
 	DataCacheSize          int
+	DeletedPodCacheSize    int
 	ProcessCacheGCInterval time.Duration
 
 	MetricsServer      string
@@ -186,6 +188,9 @@ var (
 
 		// Set default value for sleepable preload maps.
 		SleepablePreloadSize: defaults.DefaultSleepablePreloadSize,
+
+		// Set default value for deleted pod lru cache
+		DeletedPodCacheSize: constants.WatcherDeletedPodCacheSize,
 	}
 )
 

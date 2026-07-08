@@ -63,6 +63,9 @@ tetragon:
   # -- Tetragon puts processes in an LRU cache. The cache is used to find ancestors
   # for subsequently exec'ed processes.
   processCacheSize: 65536
+  # -- Tetragon keeps recently deleted pod/container mappings in an LRU cache to
+  # resolve pod metadata for late-arriving events.
+  deletedPodCacheSize: 1024
   # -- If you want to run Tetragon in debug mode change this value to true
   debug: false
   # -- JSON export filename. Set it to an empty string to disable JSON export altogether.
