@@ -38,6 +38,7 @@ func NewDeletedPodCache() (*DeletedPodCache, error) {
 			"pod.namespace", podNamespace,
 			"pod.name", podName,
 		)
+		watchermetrics.GetWatcherDeletedPodCacheEvictions().Inc()
 	})
 	if err != nil {
 		return nil, err

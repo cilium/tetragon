@@ -61,12 +61,19 @@ var (
 		"The total hits for pod information in the deleted pod cache.",
 		nil, nil, nil,
 	), nil)
+
+	WatcherDeletedPodCacheEvictions = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "watcher_delete_pod_cache_evictions",
+		"The total evictions from the deleted pod cache.",
+		nil, nil, nil,
+	), nil)
 )
 
 func RegisterMetrics(group metrics.Group) {
 	group.MustRegister(WatcherErrors)
 	group.MustRegister(WatcherEvents)
 	group.MustRegister(WatcherDeletedPodCacheHits)
+	group.MustRegister(WatcherDeletedPodCacheEvictions)
 }
 
 func InitMetrics() {
@@ -74,6 +81,7 @@ func InitMetrics() {
 	GetWatcherEvents(K8sWatcher).Add(0)
 	GetWatcherErrors(K8sWatcher, FailedToGetPodError).Add(0)
 	GetWatcherDeletedPodCacheHits().Add(0)
+	GetWatcherDeletedPodCacheEvictions().Add(0)
 }
 
 // Get a new handle on an WatcherEvents metric for a watcher type
@@ -88,4 +96,8 @@ func GetWatcherErrors(watcherType Watcher, watcherError ErrorType) prometheus.Co
 
 func GetWatcherDeletedPodCacheHits() prometheus.Counter {
 	return WatcherDeletedPodCacheHits.WithLabelValues()
+}
+
+func GetWatcherDeletedPodCacheEvictions() prometheus.Counter {
+	return WatcherDeletedPodCacheEvictions.WithLabelValues()
 }
