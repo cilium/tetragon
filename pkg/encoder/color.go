@@ -104,11 +104,11 @@ func processCaps(c *tetragon.Capabilities) string {
 }
 
 func (c *Colorer) ProcessInfo(host string, process *tetragon.Process) (string, string) {
-	source := c.Green.Sprint(host)
+	source := c.Green.Sprint(maybeQuote(host))
 	if process.Pod != nil {
 		source = c.Green.Sprint(process.Pod.Namespace, "/", process.Pod.Name)
 	}
-	proc := c.Magenta.Sprint(process.Binary)
+	proc := c.Magenta.Sprint(maybeQuote(process.Binary))
 	caps := c.Magenta.Sprint(processCaps(process.Cap))
 	return fmt.Sprintf("%s %s", source, proc), caps
 }
