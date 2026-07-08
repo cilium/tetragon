@@ -6,7 +6,9 @@
 package main
 
 import (
+	"archive/tar"
 	"bufio"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,8 +17,10 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/cilium/little-vm-helper/pkg/arch"
@@ -36,6 +40,7 @@ var (
 type PolicyTestConf struct {
 	testConf
 	tetragonInstallDir string
+	tetragonTarball    string
 	testerProgsDir     string
 	resultsDir         string
 }
@@ -143,7 +148,7 @@ func policyTestCmd() *cobra.Command {
 
 	cmdAddTestConfFlags(cmd, &cnf.testConf)
 	cmd.Flags().StringVar(&cnf.tetragonInstallDir, "tetragon-dir", "", "tetragon install directory")
-	cmd.MarkFlagRequired("tetragon-dir")
+	cmd.Flags().StringVar(&cnf.tetragonTarball, "tetragon-tarball", "", "tetragon install tarball")
 	cmd.Flags().StringVar(&cnf.testerProgsDir, "tester-progs-dir", "", "tetragon tester progs")
 	cmd.MarkFlagRequired("tester-progs-dir")
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
@@ -151,22 +156,110 @@ func policyTestCmd() *cobra.Command {
 	return cmd
 }
 
-func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Action, error) {
-	ret := []images.Action{
-		// install.sh
-		{Op: &images.CopyInCommand{
-			LocalPath: filepath.Join(ptConf.tetragonInstallDir, "usr", "local"),
-			RemoteDir: "/usr",
-		}},
-		// tetragon systemd service
-		{Op: &images.CopyInCommand{
-			LocalPath: mustMakeTetragonServiceFile(filepath.Join(tmpDir, tetragonService)),
-			RemoteDir: "/etc/systemd/system/",
-		}},
-		{Op: &images.RunCommand{Cmd: "systemctl enable " + tetragonService}},
-		// install tester progs
-		mustCopyTesterProgsCmd(ptConf.testerProgsDir, tmpDir),
+func tarballInstallPath(tarball string) (string, error) {
+	f, err := os.Open(tarball)
+	if err != nil {
+		return "", err
 	}
+	defer f.Close()
+	tr := tar.NewReader(f)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			return "", errors.New("could not find install.sh")
+		}
+		if err != nil {
+			return "", err
+		}
+
+		if hdr.Typeflag != tar.TypeReg {
+			continue
+		}
+		if path.Base(hdr.Name) == "install.sh" {
+			return hdr.Name, nil
+		}
+	}
+}
+
+func decompressToTemp(fname, tmpDir string) (string, error) {
+	in, err := os.Open(fname)
+	if err != nil {
+		return "", err
+	}
+	defer in.Close()
+
+	gz, err := gzip.NewReader(in)
+	if err != nil {
+		return "", err
+	}
+	defer gz.Close()
+
+	tmp, err := os.CreateTemp(tmpDir, "tetragon-*.tar")
+	if err != nil {
+		return "", err
+	}
+
+	if _, err := io.Copy(tmp, gz); err != nil {
+		tmp.Close()
+		os.Remove(tmp.Name()) // clean up on failure
+		return "", err
+	}
+
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmp.Name())
+		return "", err
+	}
+
+	return tmp.Name(), nil
+}
+
+func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Action, error) {
+	ret := make([]images.Action, 0)
+
+	if ptConf.tetragonInstallDir != "" && ptConf.tetragonTarball != "" {
+		return nil, errors.New("you need to define exactly one of --tetragon-install-dir and --tetragon-tarball")
+	} else if ptConf.tetragonInstallDir != "" {
+		ret = append(ret,
+			// install.sh
+			images.Action{Op: &images.CopyInCommand{
+				LocalPath: filepath.Join(ptConf.tetragonInstallDir, "usr", "local"),
+				RemoteDir: "/usr",
+			}},
+			// tetragon systemd service
+			images.Action{Op: &images.CopyInCommand{
+				LocalPath: mustMakeTetragonServiceFile(filepath.Join(tmpDir, tetragonService)),
+				RemoteDir: "/etc/systemd/system/",
+			}},
+			images.Action{Op: &images.RunCommand{Cmd: "systemctl enable " + tetragonService}},
+		)
+	} else if ptConf.tetragonTarball != "" {
+		tarball := ptConf.tetragonTarball
+		if strings.HasSuffix(tarball, ".gz") || strings.HasSuffix(tarball, ".tgz") {
+			var err error
+			tarball, err = decompressToTemp(tarball, tmpDir)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		tetragonInstallSh, err := tarballInstallPath(tarball)
+		if err != nil {
+			return nil, err
+		}
+		remoteDir := "/tmp"
+		ret = append(ret,
+			images.Action{Op: &images.TarInCommand{
+				TarFile:   tarball,
+				RemoteDir: remoteDir,
+			}},
+			images.Action{Op: &images.RunCommand{Cmd: filepath.Join(remoteDir, tetragonInstallSh)}},
+		)
+	} else {
+		return nil, errors.New("you need to define exactly one of --tetragon-install-dir and --tetragon-tarball")
+	}
+
+	// install tester progs
+	ret = append(ret, mustCopyTesterProgsCmd(ptConf.testerProgsDir, tmpDir))
 
 	if !ptConf.justBoot {
 		// tetragon policytester systemd service
