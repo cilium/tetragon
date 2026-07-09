@@ -122,7 +122,7 @@ func doLoadProgram(
 	load *Program,
 	loadOpts *LoadOpts,
 	_ int,
-	keepCollection bool,
+	_ bool,
 ) (*LoadedCollection, error) {
 
 	coll, err := bpf.GetCollectionByPath(load.Name)
@@ -248,9 +248,5 @@ func doLoadProgram(
 	// the memory from it.
 	load.KernelTypes = nil
 
-	// Copy the loaded collection before it's destroyed
-	if keepCollection {
-		return copyLoadedCollection(coll)
-	}
 	return nil, nil
 }
