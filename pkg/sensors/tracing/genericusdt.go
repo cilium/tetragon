@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path"
+	"path/filepath"
 
 	"github.com/cilium/ebpf"
 
@@ -166,6 +167,12 @@ func createGenericUsdtSensor(
 
 		in.selectorStatsBase = selectorStatsBase
 		selectorStatsBase += uint32(len(usdt.Selectors))
+
+		absPath, err := filepath.Abs(usdt.Path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve absolute path for %q: %w", usdt.Path, err)
+		}
+		usdt.Path = absPath
 
 		ids, err = addUsdt(&usdt, &in, ids, &has)
 		if err != nil {
