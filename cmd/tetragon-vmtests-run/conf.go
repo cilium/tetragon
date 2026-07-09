@@ -6,8 +6,13 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
 	"path/filepath"
 
+	"github.com/cilium/little-vm-helper/pkg/images"
 	"github.com/cilium/little-vm-helper/pkg/runner"
 	"github.com/spf13/cobra"
 
@@ -25,6 +30,7 @@ type testConf struct {
 	runner.RunConf
 	vmName                string
 	baseImageFilename     string
+	pullBaseImage         bool
 	dontRebuildImage      bool
 	useTetragonTesterInit bool
 	qemuPrint             bool
@@ -39,6 +45,7 @@ type testConf struct {
 func cmdAddTestConfFlags(cmd *cobra.Command, cnf *testConf) {
 	cmd.Flags().StringVar(&cnf.baseImageFilename, "base", "", "base image filename")
 	cmd.MarkFlagRequired("base")
+	cmd.Flags().BoolVar(&cnf.pullBaseImage, "enable-pull-base", true, "pull base image from an OCI repo, if it is not found locally")
 	cmd.Flags().StringVar(&cnf.vmName, "name", "tetragon", "new vm (and basis for the image name). New vm image will be in the directory of the base image")
 	cmd.Flags().StringVar(&cnf.KernelFname, "kernel", "", "kernel filename to boot with. (if empty no -kernel option will be passed to qemu)")
 	cmd.Flags().BoolVar(&cnf.dontRebuildImage, "dont-rebuild-image", false, "dont rebuild image")
@@ -57,4 +64,32 @@ func (tc testConf) testImageFilename() string {
 		return tc.vmName + ".qcow2"
 	}
 	return tc.vmName
+}
+
+// if the base image does not exist, attempt to pull it (if pullBaseImage is set)
+func (tc *testConf) maybePullBaseImage(dirName string) error {
+	if !tc.pullBaseImage {
+		return nil
+	}
+
+	if _, err := os.Stat(tc.baseImageFilename); !errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+
+	// Not a local file reference, could this be an OCI image?
+	ctx := context.Background()
+	pcnf := images.PullConf{
+		Image:     tc.baseImageFilename,
+		TargetDir: dirName,
+		Platform:  tc.QemuArch,
+	}
+	if err := images.PullImage(ctx, pcnf); err != nil {
+		return fmt.Errorf("unable to pull image: %w (%+v)", err, pcnf)
+	}
+	result, err := images.ExtractImage(ctx, pcnf)
+	if err != nil {
+		return fmt.Errorf("unable to extract image: %w (%+v)", err, pcnf)
+	}
+	tc.baseImageFilename = result.Images[0]
+	return nil
 }

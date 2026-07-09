@@ -95,7 +95,17 @@ func policyTestCmd() *cobra.Command {
 				)
 			}
 
-			err = buildPolicyTestImage(log, &cnf)
+			tmpDir, err := os.MkdirTemp("", "tetragon-policytests-")
+			if err != nil {
+				return err
+			}
+			defer os.RemoveAll(tmpDir)
+
+			if err := cnf.maybePullBaseImage(tmpDir); err != nil {
+				return err
+			}
+
+			err = buildPolicyTestImage(log, &cnf, tmpDir)
 			if err != nil || cnf.justBuildImage {
 				return err
 			}
@@ -297,14 +307,8 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 	return ret, nil
 }
 
-func buildPolicyTestImage(log slogger.Logger, ptConf *PolicyTestConf) error {
+func buildPolicyTestImage(log slogger.Logger, ptConf *PolicyTestConf, tmpDir string) error {
 	imagesDir, baseImage := filepath.Split(ptConf.baseImageFilename)
-	tmpDir, err := os.MkdirTemp("", "tetragon-policytests-")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmpDir)
-
 	fsActions, err := buildFilesystemActions(ptConf.filesystems, tmpDir)
 	if err != nil {
 		return err
