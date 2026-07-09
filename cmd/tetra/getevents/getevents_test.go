@@ -210,3 +210,17 @@ func Test_GetEvents_ClosedStdinNoNilPanic(t *testing.T) {
 	// Must not panic; falls through to gRPC and gets a connection error instead.
 	require.NotPanics(t, func() { cmd.Execute() })
 }
+
+func Test_GetEvents_RegularFileStdin(t *testing.T) {
+	oldStdin := os.Stdin
+	t.Cleanup(func() { os.Stdin = oldStdin })
+
+	events, err := os.Open(testutils.RepoRootPath("testdata/events.json"))
+	require.NoError(t, err)
+	t.Cleanup(func() { events.Close() })
+	os.Stdin = events
+
+	cmd := New()
+	output := testutils.RedirectStdoutExecuteCmd(t, cmd)
+	assert.Equal(t, 3, bytes.Count(output, []byte("\n")))
+}
