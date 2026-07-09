@@ -690,6 +690,12 @@ func createGenericUprobeSensor(
 		in.selectorStatsBase = selectorStatsBase
 		selectorStatsBase += uint32(len(uprobe.Selectors))
 
+		absPath, err := filepath.Abs(uprobe.Path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve absolute path for %q: %w", uprobe.Path, err)
+		}
+		uprobe.Path = absPath
+
 		var entryFile *os.File
 
 		ids, err = addUprobe(&uprobe, entryFile, ids, &in, &has)
