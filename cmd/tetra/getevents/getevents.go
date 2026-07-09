@@ -201,7 +201,7 @@ redirection of events to the stdin. Examples:
 		},
 		RunE: func(_ *cobra.Command, _ []string) error {
 			fi, err := os.Stdin.Stat()
-			if err == nil && fi.Mode()&os.ModeNamedPipe != 0 {
+			if err == nil && fi.Mode()&os.ModeCharDevice == 0 {
 				// read events from stdin
 				return getEvents(context.Background(), newIOReaderClient(os.Stdin, common.Debug))
 			}
