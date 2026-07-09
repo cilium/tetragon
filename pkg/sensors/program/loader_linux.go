@@ -1252,7 +1252,7 @@ func doLoadProgram(
 
 	// Copy the loaded collection before it's destroyed
 	if keepCollection {
-		return copyLoadedCollection(coll)
+		return copyLoadedCollection(coll, refMaps)
 	}
 	return nil, nil
 }
