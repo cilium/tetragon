@@ -38,6 +38,7 @@ var actionOpInstances = []ActionOp{
 	&AppendLineCommand{},
 	&LinkCommand{},
 	&InstallKernelCommand{},
+	&TarInCommand{},
 }
 
 type VirtCustomizeAction struct {
@@ -210,4 +211,21 @@ func (c *InstallKernelCommand) ToSteps(s *StepConf) ([]step.Step, error) {
 		&VirtCustomizeStep{StepConf: s, Args: []string{"--copy-in", fmt.Sprintf("%s/lib/modules:/lib/", installDir)}},
 		&VirtCustomizeStep{StepConf: s, Args: []string{"--link", fmt.Sprintf("%s:%s", kernelPath, "/vmlinuz")}},
 	}, nil
+}
+
+// TarInCommand copies local files in the image (recursively)
+type TarInCommand struct {
+	TarFile   string
+	RemoteDir string
+}
+
+func (c *TarInCommand) ActionOpName() string {
+	return "tar-in"
+}
+
+func (c *TarInCommand) ToSteps(s *StepConf) ([]step.Step, error) {
+	return []step.Step{&VirtCustomizeStep{
+		StepConf: s,
+		Args:     []string{"--tar-in", fmt.Sprintf("%s:%s", c.TarFile, c.RemoteDir)},
+	}}, nil
 }
