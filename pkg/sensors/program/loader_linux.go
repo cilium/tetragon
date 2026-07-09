@@ -555,7 +555,7 @@ func LSMOpen(load *Program) OpenFunc {
 	}
 }
 
-func LSMAttach() AttachFunc {
+func LSMAttach(load *Program, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
@@ -567,6 +567,10 @@ func LSMAttach() AttachFunc {
 		lnk, err := linkFn()
 		if err != nil {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		if err := LinkPin(lnk, bpfDir, load, spec.Name); err != nil {
+			lnk.Close()
+			return nil, err
 		}
 		return &unloader.RelinkUnloader{
 			UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
@@ -779,7 +783,7 @@ func LoadTracingProgram(bpfDir string, load *Program, maps []*Map, verbose int) 
 
 func LoadLSMProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
-		Attach: LSMAttach(),
+		Attach: LSMAttach(load, bpfDir),
 		Open:   LSMOpen(load),
 		Maps:   maps,
 	}
@@ -788,7 +792,7 @@ func LoadLSMProgram(bpfDir string, load *Program, maps []*Map, verbose int) erro
 
 func LoadLSMProgramSimple(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
-		Attach: LSMAttach(),
+		Attach: LSMAttach(load, bpfDir),
 		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
