@@ -42,6 +42,7 @@ type PolicyTestConf struct {
 	tetragonInstallDir string
 	tetragonTarball    string
 	testerProgsDir     string
+	testerProgsTarball string
 	resultsDir         string
 }
 
@@ -149,8 +150,8 @@ func policyTestCmd() *cobra.Command {
 	cmdAddTestConfFlags(cmd, &cnf.testConf)
 	cmd.Flags().StringVar(&cnf.tetragonInstallDir, "tetragon-dir", "", "tetragon install directory")
 	cmd.Flags().StringVar(&cnf.tetragonTarball, "tetragon-tarball", "", "tetragon install tarball")
-	cmd.Flags().StringVar(&cnf.testerProgsDir, "tester-progs-dir", "", "tetragon tester progs")
-	cmd.MarkFlagRequired("tester-progs-dir")
+	cmd.Flags().StringVar(&cnf.testerProgsDir, "tester-progs-dir", "", "tetragon tester progs directory")
+	cmd.Flags().StringVar(&cnf.testerProgsTarball, "tester-progs-tarball", "", "tetragon tester progs tarball")
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&mountHostPath, "mount-host-path", "", "host path to mount inside VM")
 	return cmd
@@ -259,7 +260,27 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 	}
 
 	// install tester progs
-	ret = append(ret, mustCopyTesterProgsCmd(ptConf.testerProgsDir, tmpDir))
+	if ptConf.testerProgsDir != "" && ptConf.testerProgsTarball != "" {
+		return nil, errors.New("you need to define exactly one of --tester-progs-dir and --tetragon-progs-tarball")
+	} else if ptConf.testerProgsDir != "" {
+		ret = append(ret, mustCopyTesterProgsCmd(ptConf.testerProgsDir, tmpDir))
+	} else if ptConf.testerProgsTarball != "" {
+		tarball := ptConf.testerProgsTarball
+		if strings.HasSuffix(tarball, ".gz") || strings.HasSuffix(tarball, ".tgz") {
+			var err error
+			tarball, err = decompressToTemp(tarball, tmpDir)
+			if err != nil {
+				return nil, err
+			}
+		}
+		ret = append(ret,
+			images.Action{Op: &images.TarInCommand{
+				TarFile:   tarball,
+				RemoteDir: filepath.Dir(policytestsVmTestProgsDir),
+			}})
+	} else {
+		return nil, errors.New("you need to define exactly one of --tester-progs-dir and --tetragon-progs-tarball")
+	}
 
 	if !ptConf.justBoot {
 		// tetragon policytester systemd service
