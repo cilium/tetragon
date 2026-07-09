@@ -244,6 +244,11 @@ tarball-release: tarball ## Build Tetragon release tarball.
 tarball-clean:
 	rm -fr $(BUILD_PKG_DIR)
 
+.PHONY: tester-progs-tarball ## Buld Tetragon tester progs tarball
+tester-progs-tarball: tester-progs
+	tar -C contrib/tester-progs -cvzf tester-progs.tar.gz --transform 's:^:tester-progs/:' $(shell make -s -C contrib/tester-progs all-files)
+
+
 ##@ Test
 
 # renovate: datasource=docker
