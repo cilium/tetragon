@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -18,16 +17,18 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
+	"github.com/cilium/tetragon/pkg/option"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/encoder"
 )
 
 type Opts struct {
-	Output         string
-	Color          string
+	Output         *option.Enum
+	Color          *option.Enum
 	IncludeFields  []string
-	EventTypes     []string
+	EventTypes     *option.SliceEnum
 	ExcludeFields  []string
 	Namespaces     []string
 	Namespace      []string // deprecated: use Namespaces
@@ -86,10 +87,10 @@ var GetFilter = func() *tetragon.Filter {
 	}
 
 	// Is used to filter on the event types i.e. PROCESS_EXEC, PROCESS_EXIT etc.
-	if len(Options.EventTypes) > 0 {
+	if len(Options.EventTypes.Values) > 0 {
 		var eventType tetragon.EventType
 
-		for _, v := range Options.EventTypes {
+		for _, v := range Options.EventTypes.Values {
 			eventType = tetragon.EventType(tetragon.EventType_value[v])
 			filter.EventSet = append(filter.EventSet, eventType)
 		}
@@ -140,7 +141,7 @@ func getEvents(ctx context.Context, client tetragon.FineGuidanceSensorsClient) e
 	if err != nil {
 		return fmt.Errorf("failed to call GetEvents: %w", err)
 	}
-	eventEncoder := GetEncoder(os.Stdout, encoder.ColorMode(Options.Color), Options.Timestamps, Options.Output == "compact", Options.TTYEncode, Options.StackTraces, Options.ImaHash)
+	eventEncoder := GetEncoder(os.Stdout, encoder.ColorMode(Options.Color.Value), Options.Timestamps, Options.Output.Value == "compact", Options.TTYEncode, Options.StackTraces, Options.ImaHash)
 	for {
 		res, err := stream.Recv()
 		if err != nil {
@@ -174,24 +175,6 @@ redirection of events to the stdin. Examples:
   # Include only process and parent.pod fields
   tetra getevents -f process,parent.pod`,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			if Options.Output != "json" && Options.Output != "compact" {
-				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, Options.Output)
-			}
-			if Options.Color != "auto" && Options.Color != "always" && Options.Color != "never" {
-				return fmt.Errorf("invalid value for %q flag: %s", "color", Options.Color)
-			}
-
-			for _, v := range Options.EventTypes {
-				if _, found := tetragon.EventType_value[v]; !found {
-					supported := make([]string, 0, len(tetragon.EventType_value))
-					for name := range tetragon.EventType_value {
-						supported = append(supported, name)
-					}
-					sort.Strings(supported)
-					return fmt.Errorf("invalid value for %q flag: %s. Supported are %s", "event-types", v, strings.Join(supported, ", "))
-				}
-			}
-
 			// merge deprecated to new flags, appending since order does not matter
 			Options.Namespaces = append(Options.Namespace, Options.Namespaces...)
 			Options.Pods = append(Options.Pod, Options.Pods...)
@@ -234,11 +217,21 @@ redirection of events to the stdin. Examples:
 		},
 	}
 
+	// Prepare enum-like flags
+	Options.Output, _ = option.NewEnum([]string{"json", "compact"}, "json")
+	Options.Color, _ = option.NewEnum([]string{"auto", "always", "never"}, "auto")
+	supported := make([]string, 0, len(tetragon.EventType_value))
+	for name := range tetragon.EventType_value {
+		supported = append(supported, name)
+	}
+	sort.Strings(supported)
+	Options.EventTypes, _ = option.NewSliceEnum(supported, nil)
+
 	flags := cmd.Flags()
-	flags.StringVarP(&Options.Output, common.KeyOutput, "o", "json", "Output format. json or compact")
-	flags.StringVar(&Options.Color, "color", "auto", "Colorize compact output. auto, always, or never")
+	flags.VarP(Options.Output, common.KeyOutput, "o", "Output format "+Options.Output.Allowed())
+	flags.Var(Options.Color, "color", "Colorize compact output "+Options.Color.Allowed())
 	flags.StringSliceVarP(&Options.IncludeFields, "include-fields", "f", nil, "Include only fields in events")
-	flags.StringSliceVarP(&Options.EventTypes, "event-types", "e", nil, "Include only events of given types")
+	flags.VarP(Options.EventTypes, "event-types", "e", "Include only events of given types")
 	flags.StringSliceVarP(&Options.ExcludeFields, "exclude-fields", "F", nil, "Exclude fields from events")
 
 	flags.StringSliceVarP(&Options.Namespace, "namespace", "n", nil, "Get events by Kubernetes namespace")
