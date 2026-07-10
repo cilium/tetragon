@@ -1,0 +1,94 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "accept"
+spec:
+  options:
+  - name: "disable-kprobe-multi"
+    value: "1"
+  kprobes:
+  - call: "sk_alloc"
+    syscall: false
+    return: true
+    args:
+    - index: 1
+      type: int
+      label: "Family"
+    returnArg:
+      index: 0
+      type: sock
+    returnArgAction: TrackSock
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "2"
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/sbin/sshd"
+        - "/usr/sbin/tcpserver"
+  - call: "sk_free"
+    syscall: false
+    args:
+    - index: 0
+      type: sock
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Family"
+        values:
+        - "AF_INET"
+      matchActions:
+      - action: UntrackSock
+        argSock: 0
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/sbin/sshd"
+        - "/usr/sbin/tcpserver"
+  - call: "tcp_set_state"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    - index: 1
+      type: "int"
+      label: "state"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "State"
+        values:
+        - "TCP_SYN_RECV"
+      - index: 1
+        operator: "Equal"
+        values:
+        - "1"
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/sbin/sshd"
+        - "/usr/sbin/tcpserver"
+  - call: "tcp_close"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+  - call: "tcp_create_openreq_child"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "sock"
+    returnArg:
+      index: 0
+      type: sock
+    returnArgAction: TrackSock
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/sbin/sshd"
+        - "/usr/sbin/tcpserver"
