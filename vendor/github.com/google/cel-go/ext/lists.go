@@ -779,6 +779,9 @@ func trackListSelfCompare(l traits.Lister) *uint64 {
 // trackAllocatingListCall computes costs as a function of the size of the result list with a baseline cost
 // for the call dispatch and the associated list allocation.
 func trackAllocatingListCall(costFactor float64, size uint64) *uint64 {
+	if costFactor < 0.0 {
+		costFactor = 1.0
+	}
 	cost := safeAdd(uint64(float64(size)*costFactor), callCost, common.ListCreateBaseCost)
 	return &cost
 }
