@@ -73,23 +73,33 @@ func SensorsFromPolicy(tp tracingpolicy.TracingPolicy, filterID policyfilter.Pol
 
 // revive:enable:exported
 
-func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
-	h.collections.mu.Lock()
-	defer h.collections.mu.Unlock()
+// registerNewCollection allocates a policy ID for op and adds the resulting
+// collection to the map.
+// Should be called with h.collections.mu locked (for writing).
+func (h *handler) registerNewCollection(op *tracingPolicyAdd) (*collection, error) {
 	collections := h.collections.c
 	// allow overriding existing policy collection that resulted in an error
 	// during the loading state
 	if col, exists := collections[op.ck]; exists && col.state != LoadErrorState {
-		return fmt.Errorf("failed to add tracing policy %s, a sensor collection with the key already exists", op.ck)
+		return nil, fmt.Errorf("failed to add tracing policy %s, a sensor collection with the key already exists", op.ck)
 	}
-	tpID := h.allocPolicyID()
 
-	col := collection{
+	col := &collection{
 		name:            op.ck.name,
 		tracingpolicy:   op.tp,
-		tracingpolicyID: uint64(tpID),
+		tracingpolicyID: h.allocPolicyID(),
 	}
-	collections[op.ck] = &col
+	collections[op.ck] = col
+	return col, nil
+}
+
+func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	col, err := h.registerNewCollection(op)
+	if err != nil {
+		return err
+	}
 
 	// update policy filter state before loading the sensors of the policy.
 	//
@@ -100,7 +110,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	// to work if no filtering is needed. A sensor that does not support
 	// policyfilter should return an error on PolicyHandler if a filter id
 	// other than filterID is passed.
-	filterID, err := h.updatePolicyFilter(op.tp, tpID)
+	filterID, err := h.updatePolicyFilter(op.tp, col.tracingpolicyID)
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
@@ -129,7 +139,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 
 	// unlock so that policyLister can access the collections (read-only) while we are loading.
 	h.collections.mu.Unlock()
-	err = h.load(&col)
+	err = h.load(col)
 	h.collections.mu.Lock()
 
 	if err != nil {
