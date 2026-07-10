@@ -20,10 +20,9 @@ import (
 	"github.com/cilium/tetragon/pkg/tetragoninfo"
 )
 
-var getSkipInfo = sync.OnceValue(func() *SkipInfo {
+var getAgentInfo = sync.OnceValue(func() *tetragoninfo.Info {
 	res := tetragoninfo.Gather()
-	info := tetragoninfo.Decode(res)
-	return &SkipInfo{info}
+	return tetragoninfo.Decode(res)
 })
 
 func (rpt *RegisteredPolicyTests) DoObserverTest(
@@ -41,7 +40,8 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 	pt := pts[0]
 
 	if pt.ShouldSkip != nil {
-		if skipReason := pt.ShouldSkip(getSkipInfo()); skipReason != "" {
+		skipInfo := SkipInfo{getAgentInfo(), ParamVals(params)}
+		if skipReason := pt.ShouldSkip(&skipInfo); skipReason != "" {
 			t.Skip(skipReason)
 		}
 	}
