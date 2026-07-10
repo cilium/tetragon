@@ -11,6 +11,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/cilium/tetragon/pkg/option"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/cmd/tetra/tracingpolicy/generate"
@@ -201,7 +203,7 @@ func tpDisableCmd() *cobra.Command {
 
 func tpListCmd() *cobra.Command {
 	var (
-		output string
+		output *option.Enum
 		domain string
 	)
 	ret := &cobra.Command{
@@ -209,12 +211,6 @@ func tpListCmd() *cobra.Command {
 		Short: "list loaded tracing policies",
 		Long:  "List loaded tracing policies, use the JSON output format for full output.",
 		Args:  cobra.ExactArgs(0),
-		PreRunE: func(_ *cobra.Command, _ []string) error {
-			if output != "json" && output != "text" {
-				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, output)
-			}
-			return nil
-		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			c, err := common.NewClientWithDefaultContextAndAddress()
 			if err != nil {
@@ -227,7 +223,7 @@ func tpListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list tracing policies: %w", err)
 			}
 
-			switch output {
+			switch output.Value {
 			case "json":
 				b, err := res.MarshalJSON()
 				if err != nil {
@@ -241,8 +237,10 @@ func tpListCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	output, _ = option.NewEnum([]string{"text", "json"}, "text")
 	flags := ret.Flags()
-	flags.StringVarP(&output, common.KeyOutput, "o", "text", "Output format. text or json")
+	flags.VarP(output, common.KeyOutput, "o", "Output format "+output.Allowed())
 	flags.StringVarP(&domain, "domain", "", "", "Domain to be used. Use k8s to act on CRD policies. By default only acts against grpc domain.")
 	return ret
 }
