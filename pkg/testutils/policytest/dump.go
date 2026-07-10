@@ -65,3 +65,39 @@ func DumpResults(out io.Writer, results []*NamedResult) {
 	}
 	w.Flush()
 }
+
+type ResultsSummary struct {
+	Total   int
+	Skipped int
+	Errs    int
+}
+
+func NewResultsSummary() *ResultsSummary {
+	return &ResultsSummary{}
+}
+
+func (s *ResultsSummary) Update(res *Result) {
+	s.Total++
+	if res.Err.Err != nil {
+		s.Errs++
+		return
+	}
+	if res.Skipped != "" {
+		s.Skipped++
+		return
+	}
+
+	for _, sr := range res.ScenariosRes {
+		if sr.Err() != nil {
+			s.Errs++
+			return
+		}
+	}
+}
+
+func (s *ResultsSummary) Err() error {
+	if s.Errs == 0 {
+		return nil
+	}
+	return fmt.Errorf("result errors: %d/%d", s.Errs, s.Total)
+}
