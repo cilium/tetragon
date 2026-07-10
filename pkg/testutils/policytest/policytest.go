@@ -36,7 +36,8 @@ type PolicyCleanupFn func()
 type Label string
 
 type SkipInfo struct {
-	AgentInfo *tetragoninfo.Info
+	AgentInfo   *tetragoninfo.Info
+	ParamValues ParamVals
 }
 
 type Parameter struct {
