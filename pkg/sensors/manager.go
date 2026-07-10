@@ -116,17 +116,25 @@ type TracingPolicy interface {
 	TpInfo() string
 }
 
-// AddTracingPolicy adds a new sensor based on a tracing policy
-func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error {
+// newTracingPolicyAdd builds the add operation for tp.
+func newTracingPolicyAdd(ctx context.Context, tp tracingpolicy.TracingPolicy) (*tracingPolicyAdd, error) {
 	ck, err := newCollectionKey(tp.TpName(), tp.TpNamespace(), tp.TpDomain())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	op := &tracingPolicyAdd{
+	return &tracingPolicyAdd{
 		ctx: ctx,
 		ck:  ck,
 		tp:  tp,
+	}, nil
+}
+
+// AddTracingPolicy adds a new sensor based on a tracing policy
+func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error {
+	op, err := newTracingPolicyAdd(ctx, tp)
+	if err != nil {
+		return err
 	}
 
 	return h.handler.addTracingPolicy(op)
