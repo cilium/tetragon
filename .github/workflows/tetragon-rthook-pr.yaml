@@ -98,7 +98,7 @@ jobs:
       uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
       with:
         # renovate: datasource=github-releases depName=helm/helm
-        version: v4.2.2
+        version: v4.2.3
 
     - name: Install Minikube
       uses: medyagh/setup-minikube@e9e035a86bbc3caea26a450bd4dbf9d0c453682e # v0.0.21
