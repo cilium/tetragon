@@ -28,12 +28,20 @@ import (
 // This file contains tests on kernel functions.
 
 var _ = policytest.NewBuilder("kprobe-lseek").WithLabels("kprobes").
-	WithParameter(policytest.Parameter{
-		Name:    "Hook",
-		Default: "kprobes",
-		Values:  []any{"kprobes", "fentries"},
-		Help:    "type of hook to use in the policy",
-	}).WithPolicyTemplate(`
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if si.ParamValues["Hook"] == "fentries" {
+			if !si.AgentInfo.Probes[bpf.Fentry] {
+				return "fentry hook depends on fentry support"
+			}
+			return ""
+		}
+		return ""
+	}).WithParameter(policytest.Parameter{
+	Name:    "Hook",
+	Default: "kprobes",
+	Values:  []any{"kprobes", "fentries"},
+	Help:    "type of hook to use in the policy",
+}).WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
