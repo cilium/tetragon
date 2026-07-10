@@ -27,23 +27,27 @@ type note struct {
 	Typ    uint32
 }
 
-func parseNote(dat []byte) ([]byte, bool) {
+// ParseBuildIdFromNotes returns the GNU build ID found in a raw ELF notes blob,
+// decoded with the given byte order. Callers holding notes without an ELF
+// container around them, such as the running kernel's /sys/kernel/notes, can use
+// this directly; ParseBuildId wraps it for a parsed ELF file.
+func ParseBuildIdFromNotes(dat []byte, order binary.ByteOrder) ([]byte, bool) {
 	var note note
 
 	dr := bytes.NewReader(dat)
 
 	for {
-		if err := binary.Read(dr, binary.LittleEndian, &note); err != nil {
+		if err := binary.Read(dr, order, &note); err != nil {
 			return []byte{}, false
 		}
 
 		name := make([]byte, align(note.Namesz, 4))
-		if err := binary.Read(dr, binary.LittleEndian, name); err != nil {
+		if err := binary.Read(dr, order, name); err != nil {
 			return []byte{}, false
 		}
 
 		desc := make([]byte, align(note.Descsz, 4))
-		if err := binary.Read(dr, binary.LittleEndian, desc); err != nil {
+		if err := binary.Read(dr, order, desc); err != nil {
 			return []byte{}, false
 		}
 
@@ -66,7 +70,7 @@ func (se *SafeELFFile) ParseBuildId() ([]byte, error) {
 		if err != nil {
 			continue
 		}
-		bid, ok := parseNote(dat)
+		bid, ok := ParseBuildIdFromNotes(dat, se.ByteOrder)
 		if ok {
 			return bid, nil
 		}
