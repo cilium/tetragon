@@ -99,6 +99,11 @@ spec:
 When a node is relabeled at runtime, each agent re-evaluates its policies and
 loads or unloads them accordingly.
 
+A policy that a node does not load because its `nodeSelector` does not match is
+not silently dropped: it is reported with the `skipped` state (rather than being
+absent) in `tetra tracingpolicy list`, so a gated-out policy is distinguishable
+from a missing one.
+
 {{< note >}}
 `nodeSelector` is evaluated by the Tetragon agent against the Kubernetes node it
 runs on, so it only applies to policies managed through the Kubernetes API

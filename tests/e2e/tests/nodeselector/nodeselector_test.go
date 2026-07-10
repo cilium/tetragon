@@ -38,8 +38,9 @@ import (
 // a policy must be loaded only on agents whose node labels match the selector.
 // Verification is per-agent via the ListTracingPolicies gRPC (the feature gates
 // loading, not events), reusing the per-pod connections the runner sets up. A
-// non-matching node must not have the policy at all (absent), not merely
-// disabled — a present-but-errored policy would indicate a gate failure.
+// non-matching node tracks the policy as skipped (TP_STATE_SKIPPED) rather than
+// loading it, so a gated-out policy is distinguishable from a missing one — any
+// other state there, or an error string, would indicate a gate failure.
 //
 // The label used to group nodes is an arbitrary test label ("nodegroup"): the
 // two workers are labelled a and b, the control-plane is left unlabelled.
@@ -243,39 +244,45 @@ func tetragonConnForNode(ctx context.Context, c *envconf.Config, nodeName string
 	return conn, nil
 }
 
-// policyStatus reports whether policyName is present in the agent reachable
-// through conn and, if so, whether it is enabled (loaded with no error). A
-// gated-out node should have it absent (present == false), not merely disabled.
-func policyStatus(ctx context.Context, conn *grpc.ClientConn, policyName string) (present, enabled bool, err error) {
+// policyStatus reports the state of policyName in the agent reachable through
+// conn. A policy the agent does not track at all reports TP_STATE_UNKNOWN: the
+// agent always sets a real state before a collection becomes visible, so that
+// value never collides with a tracked policy. A policy carrying an error string
+// is returned along with that error, so a gate failure cannot masquerade as a
+// healthy state.
+func policyStatus(ctx context.Context, conn *grpc.ClientConn, policyName string) (tetragon.TracingPolicyState, error) {
 	rpcCtx, cancel := context.WithTimeout(ctx, rpcTimeout)
 	defer cancel()
 	res, err := tetragon.NewFineGuidanceSensorsClient(conn).
 		ListTracingPolicies(rpcCtx, &tetragon.ListTracingPoliciesRequest{})
 	if err != nil {
-		return false, false, err
+		return tetragon.TracingPolicyState_TP_STATE_UNKNOWN, err
 	}
 	for _, pol := range res.GetPolicies() {
 		if pol.GetName() == policyName {
-			return true, pol.State == tetragon.TracingPolicyState_TP_STATE_ENABLED && pol.Error == "", nil
+			if pol.Error != "" {
+				return pol.State, fmt.Errorf("policy %q reports error: %s", policyName, pol.Error)
+			}
+			return pol.State, nil
 		}
 	}
-	return false, false, nil
+	return tetragon.TracingPolicyState_TP_STATE_UNKNOWN, nil
 }
 
 // waitPolicyOnNode resolves the agent on nodeName once, then polls until
-// policyName reaches the wanted state, or fails after maxTries. want==true
-// means the policy must be present and enabled; want==false means it must be
-// absent (not just disabled).
-func waitPolicyOnNode(ctx context.Context, c *envconf.Config, policyName, nodeName string, want bool, maxTries int) error {
+// policyName reaches wantState, or fails after maxTries. A gated-out policy is
+// tracked as TP_STATE_SKIPPED rather than being absent, so every agent that
+// received the policy reports some state for it.
+func waitPolicyOnNode(ctx context.Context, c *envconf.Config, policyName, nodeName string, wantState tetragon.TracingPolicyState, maxTries int) error {
 	conn, err := tetragonConnForNode(ctx, c, nodeName)
 	if err != nil {
 		return err
 	}
-	var present, enabled bool
+	var state tetragon.TracingPolicyState
 	var lastErr error
 	for range maxTries {
-		present, enabled, lastErr = policyStatus(ctx, conn, policyName)
-		if lastErr == nil && ((want && present && enabled) || (!want && !present)) {
+		state, lastErr = policyStatus(ctx, conn, policyName)
+		if lastErr == nil && state == wantState {
 			return nil
 		}
 		select {
@@ -284,8 +291,8 @@ func waitPolicyOnNode(ctx context.Context, c *envconf.Config, policyName, nodeNa
 		case <-time.After(time.Second):
 		}
 	}
-	msg := fmt.Sprintf("policy %q on node %s did not reach loaded=%v (present=%v enabled=%v)",
-		policyName, nodeName, want, present, enabled)
+	msg := fmt.Sprintf("policy %q on node %s did not reach state %s (state=%s)",
+		policyName, nodeName, wantState, state)
 	if lastErr != nil {
 		return fmt.Errorf("%s: %w", msg, lastErr)
 	}
@@ -313,7 +320,7 @@ func nodeSelectorPolicy(t *testing.T, name string, sel *slimv1.LabelSelector) st
 }
 
 // runCase installs a policy, asserts it loads on every node in matchNodes and
-// is absent on all others, then uninstalls it.
+// is tracked as skipped on all others, then uninstalls it.
 func runCase(t *testing.T, name string, sel *slimv1.LabelSelector, matchNodes []string) {
 	if skipReason != "" {
 		t.Skip(skipReason)
@@ -341,23 +348,26 @@ func runCase(t *testing.T, name string, sel *slimv1.LabelSelector, matchNodes []
 		}).
 		Assess("loaded on matching nodes", func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
 			for _, n := range matchNodes {
-				require.NoError(t, waitPolicyOnNode(ctx, c, name, n, true, 30),
+				require.NoError(t, waitPolicyOnNode(ctx, c, name, n, tetragon.TracingPolicyState_TP_STATE_ENABLED, 30),
 					"policy %s must load on matching node %s", name, n)
 			}
 			return ctx
 		}).
-		Assess("absent on non-matching nodes", func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
-			// Matching nodes are confirmed loaded; give all agents a moment to
-			// settle, then assert the gated agents never even receive it.
-			time.Sleep(3 * time.Second)
+		Assess("skipped on non-matching nodes", func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
 			for _, n := range others {
+				require.NoError(t, waitPolicyOnNode(ctx, c, name, n, tetragon.TracingPolicyState_TP_STATE_SKIPPED, 30),
+					"policy %s must be tracked as skipped on non-matching node %s", name, n)
+
+				// Skipped is a terminal state for a gated agent: it must never
+				// go on to load the policy.
 				conn, err := tetragonConnForNode(ctx, c, n)
 				require.NoError(t, err)
 				for range 3 {
-					present, _, err := policyStatus(ctx, conn, name)
-					require.NoError(t, err)
-					require.False(t, present, "policy %s must be absent on non-matching node %s", name, n)
 					time.Sleep(time.Second)
+					state, err := policyStatus(ctx, conn, name)
+					require.NoError(t, err)
+					require.Equal(t, tetragon.TracingPolicyState_TP_STATE_SKIPPED, state,
+						"policy %s must stay skipped on non-matching node %s", name, n)
 				}
 			}
 			return ctx
@@ -435,23 +445,23 @@ func TestNodeSelectorRelabel(t *testing.T) {
 			cfg = c
 			ctx, err := helpers.LoadCRDString("", policyYAML, false)(ctx, c)
 			require.NoError(t, err)
-			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeA, true, 30))
-			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeB, false, 10))
+			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeA, tetragon.TracingPolicyState_TP_STATE_ENABLED, 30))
+			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeB, tetragon.TracingPolicyState_TP_STATE_SKIPPED, 10))
 			return ctx
 		}).
 		Assess("relabel node B -> a (now loads there too)", func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
 			require.NoError(t, labelNode(ctx, c, nodeB, nodegroupLabel, "a"))
-			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeB, true, 30),
+			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeB, tetragon.TracingPolicyState_TP_STATE_ENABLED, 30),
 				"relabelled node must load the policy")
-			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeA, true, 10),
+			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeA, tetragon.TracingPolicyState_TP_STATE_ENABLED, 10),
 				"originally-matching node must stay loaded")
 			return ctx
 		}).
 		Assess("remove label from node A (unloads there)", func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
 			require.NoError(t, labelNode(ctx, c, nodeA, nodegroupLabel, ""))
-			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeA, false, 30),
-				"node that no longer matches must unload the policy")
-			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeB, true, 10),
+			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeA, tetragon.TracingPolicyState_TP_STATE_SKIPPED, 30),
+				"node that no longer matches must unload the policy and track it as skipped")
+			require.NoError(t, waitPolicyOnNode(ctx, c, name, nodeB, tetragon.TracingPolicyState_TP_STATE_ENABLED, 10),
 				"still-matching node must stay loaded")
 			return ctx
 		}).

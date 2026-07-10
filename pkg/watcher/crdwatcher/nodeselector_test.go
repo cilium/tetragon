@@ -7,6 +7,7 @@ package crdwatcher
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -122,7 +123,23 @@ func TestReconcile_NodeSelector(t *testing.T) {
 			_, err := r.Reconcile(context.Background(), k.request)
 			require.NoError(t, err)
 			require.Empty(t, sensors.addCalls, "non-matching node must not load the policy")
+			require.Len(t, sensors.skippedCalls, 1, "non-matching policy is tracked as skipped")
 			require.Len(t, sensors.deleteCalls, 1, "delete-before-add still unloads any prior instance")
+		})
+
+		t.Run(k.name+"/nomatch_skip_error_requeues", func(t *testing.T) {
+			tp := k.newObject(k.request.Name)
+			setNodeSelector(t, tp, &slimv1.LabelSelector{MatchLabels: map[string]string{"node-role": "cpu"}})
+			wantErr := errors.New("boom")
+			sensors := &fakeSensors{skippedErr: wantErr}
+			cli := fake.NewClientBuilder().WithScheme(newScheme(t)).WithObjects(tp, localNode).Build()
+			r := k.newReconciler(cli, sensors)
+
+			// A non-terminal error is returned so the policy is retried rather
+			// than left untracked.
+			_, err := r.Reconcile(context.Background(), k.request)
+			require.ErrorIs(t, err, wantErr)
+			require.NotErrorIs(t, err, reconcile.TerminalError(nil))
 		})
 
 		t.Run(k.name+"/failopen_on_node_read_error", func(t *testing.T) {

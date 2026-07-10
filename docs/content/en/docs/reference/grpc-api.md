@@ -1571,6 +1571,7 @@ For now, we only want to support debug-related config flags to be configurable.
 | TP_STATE_ERROR | 4 | failed during lifetime |
 | TP_STATE_LOADING | 5 | in the process of loading |
 | TP_STATE_UNLOADING | 6 | in the process of unloading |
+| TP_STATE_SKIPPED | 7 | tracked but not loaded on this node, e.g. its nodeSelector does not match |
 
 <a name="tetragon-FineGuidanceSensors"></a>
 

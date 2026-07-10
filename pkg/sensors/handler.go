@@ -78,9 +78,10 @@ func SensorsFromPolicy(tp tracingpolicy.TracingPolicy, filterID policyfilter.Pol
 // Should be called with h.collections.mu locked (for writing).
 func (h *handler) registerNewCollection(op *tracingPolicyAdd) (*collection, error) {
 	collections := h.collections.c
-	// allow overriding existing policy collection that resulted in an error
-	// during the loading state
-	if col, exists := collections[op.ck]; exists && col.state != LoadErrorState {
+	// allow overriding an existing policy collection that holds no BPF state:
+	// one that resulted in an error during the loading state, or one that was
+	// skipped on this node
+	if col, exists := collections[op.ck]; exists && col.state != LoadErrorState && col.state != SkippedState {
 		return nil, fmt.Errorf("failed to add tracing policy %s, a sensor collection with the key already exists", op.ck)
 	}
 
@@ -149,6 +150,20 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		return err
 	}
 	col.state = EnabledState
+	return nil
+}
+
+// addSkippedTracingPolicy tracks a policy that is not loaded on this node, so
+// that it is reported as skipped instead of being absent. No sensors and no
+// policyfilter state are created.
+func (h *handler) addSkippedTracingPolicy(op *tracingPolicyAdd) error {
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	col, err := h.registerNewCollection(op)
+	if err != nil {
+		return err
+	}
+	col.state = SkippedState
 	return nil
 }
 
@@ -238,6 +253,11 @@ func (h *handler) configureTracingPolicy(
 	col, exists := collections[ck]
 	if !exists {
 		return fmt.Errorf("tracing policy %s does not exist", ck)
+	}
+
+	// a skipped policy has no sensors and no BPF maps to configure
+	if col.state == SkippedState {
+		return fmt.Errorf("tracing policy %s is skipped: it is not loaded on this node", ck)
 	}
 
 	var err error

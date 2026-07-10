@@ -55,6 +55,100 @@ func TestAddPolicy(t *testing.T) {
 	assert.Equal(t, []SensorStatus{{Name: "dummy-sensor", Enabled: true, Collection: "test-policy (object:0/) (type:/)"}}, *l)
 }
 
+// TestAddSkippedTracingPolicy verifies a skipped policy is tracked and
+// reported as TP_STATE_SKIPPED without loading any sensor, and can be deleted.
+func TestAddSkippedTracingPolicy(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	RegisterPolicyHandlerAtInit("dummy", &dummyHandler{s: &Sensor{Name: "dummy-sensor"}})
+	t.Cleanup(func() {
+		delete(registeredPolicyHandlers, "dummy")
+	})
+
+	mgr, err := StartSensorManager("")
+	require.NoError(t, err)
+
+	policy := v1alpha1.TracingPolicy{}
+	policy.Name = "skipped-policy"
+	err = mgr.AddSkippedTracingPolicy(ctx, &policy)
+	require.NoError(t, err)
+
+	// Reported as skipped.
+	l, err := mgr.ListTracingPolicies(ctx, "")
+	require.NoError(t, err)
+	require.Len(t, l.Policies, 1)
+	assert.Equal(t, "skipped-policy", l.Policies[0].Name)
+	assert.Equal(t, tetragon.TracingPolicyState_TP_STATE_SKIPPED, l.Policies[0].State)
+
+	// No sensor was loaded.
+	sl, err := mgr.ListSensors(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, *sl)
+
+	// A skipped policy has no BPF state to configure.
+	err = mgr.EnableTracingPolicy(ctx, "skipped-policy", "", policy.TpDomain())
+	require.ErrorContains(t, err, "is skipped")
+	err = mgr.DisableTracingPolicy(ctx, "skipped-policy", "", policy.TpDomain())
+	require.ErrorContains(t, err, "is skipped")
+
+	// A skipped policy holds no state, so tracking it again is not an error.
+	err = mgr.AddSkippedTracingPolicy(ctx, &policy)
+	require.NoError(t, err)
+
+	// A skipped policy can be deleted like any tracked policy.
+	err = mgr.DeleteTracingPolicy(ctx, "skipped-policy", "", policy.TpDomain())
+	require.NoError(t, err)
+	l, err = mgr.ListTracingPolicies(ctx, "")
+	require.NoError(t, err)
+	assert.Empty(t, l.Policies)
+}
+
+// TestSkippedTracingPolicyLoaded covers the transition the reconcilers rely on
+// when a node is relabelled. A skipped policy holds no BPF state, so it can be
+// loaded either after a delete, or by overriding it directly.
+func TestSkippedTracingPolicyLoaded(t *testing.T) {
+	for _, tc := range []struct {
+		name            string
+		deleteBeforeAdd bool
+	}{
+		{name: "delete_before_add", deleteBeforeAdd: true},
+		{name: "override_skipped", deleteBeforeAdd: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			RegisterPolicyHandlerAtInit("dummy", &dummyHandler{s: &Sensor{Name: "dummy-sensor"}})
+			t.Cleanup(func() {
+				delete(registeredPolicyHandlers, "dummy")
+			})
+
+			mgr, err := StartSensorManager("")
+			require.NoError(t, err)
+
+			policy := v1alpha1.TracingPolicy{}
+			policy.Name = "test-policy"
+			require.NoError(t, mgr.AddSkippedTracingPolicy(ctx, &policy))
+
+			if tc.deleteBeforeAdd {
+				require.NoError(t, mgr.DeleteTracingPolicy(ctx, "test-policy", "", policy.TpDomain()))
+			}
+			require.NoError(t, mgr.AddTracingPolicy(ctx, &policy))
+
+			l, err := mgr.ListTracingPolicies(ctx, "")
+			require.NoError(t, err)
+			require.Len(t, l.Policies, 1)
+			assert.Equal(t, tetragon.TracingPolicyState_TP_STATE_ENABLED, l.Policies[0].State)
+
+			sl, err := mgr.ListSensors(ctx)
+			require.NoError(t, err)
+			require.Len(t, *sl, 1)
+			assert.Equal(t, "dummy-sensor", (*sl)[0].Name)
+		})
+	}
+}
+
 // TestAddPolicies tests the addition of a policy with two dummy sensors
 func TestAddPolicies(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

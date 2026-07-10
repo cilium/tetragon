@@ -37,10 +37,12 @@ import (
 // fakeSensors records calls into sensors.Manager so tests can assert the
 // Reconcile decision tree without spinning up the real BPF loader.
 type fakeSensors struct {
-	addCalls    []addCall
-	deleteCalls []deleteCall
-	addErr      error
-	deleteErr   error
+	addCalls     []addCall
+	skippedCalls []addCall
+	deleteCalls  []deleteCall
+	addErr       error
+	skippedErr   error
+	deleteErr    error
 }
 
 type addCall struct {
@@ -56,6 +58,11 @@ type deleteCall struct {
 func (f *fakeSensors) AddTracingPolicy(_ context.Context, tp tracingpolicy.TracingPolicy) error {
 	f.addCalls = append(f.addCalls, addCall{tp.TpName(), tp.TpNamespace()})
 	return f.addErr
+}
+
+func (f *fakeSensors) AddSkippedTracingPolicy(_ context.Context, tp tracingpolicy.TracingPolicy) error {
+	f.skippedCalls = append(f.skippedCalls, addCall{tp.TpName(), tp.TpNamespace()})
+	return f.skippedErr
 }
 
 func (f *fakeSensors) DeleteTracingPolicy(_ context.Context, name, namespace, _ string) error {

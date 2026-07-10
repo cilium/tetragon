@@ -21,20 +21,22 @@ import (
 )
 
 func Test_policyStatusCollector_Collect(t *testing.T) {
-	expectedMetrics := func(disabled, enabled, err, load_error int) io.Reader {
+	expectedMetrics := func(disabled, enabled, err, load_error, skipped int) io.Reader {
 		return strings.NewReader(fmt.Sprintf(`# HELP tetragon_tracingpolicy_kernel_memory_bytes The amount of kernel memory in bytes used by policy's sensors non-shared BPF maps (memlock).
 # TYPE tetragon_tracingpolicy_kernel_memory_bytes gauge
 tetragon_tracingpolicy_kernel_memory_bytes{policy="pizza", policy_namespace=""} 0
 tetragon_tracingpolicy_kernel_memory_bytes{policy="amazing-one", policy_namespace=""} 0
 tetragon_tracingpolicy_kernel_memory_bytes{policy="amazing-one", policy_namespace="default"} 0
 tetragon_tracingpolicy_kernel_memory_bytes{policy="amazing-one", policy_namespace="kube-system"} 0
+tetragon_tracingpolicy_kernel_memory_bytes{policy="salad", policy_namespace=""} 0
 # HELP tetragon_tracingpolicy_loaded The number of loaded tracing policy by state.
 # TYPE tetragon_tracingpolicy_loaded gauge
 tetragon_tracingpolicy_loaded{state="disabled"} %d
 tetragon_tracingpolicy_loaded{state="enabled"} %d
 tetragon_tracingpolicy_loaded{state="error"} %d
 tetragon_tracingpolicy_loaded{state="load_error"} %d
-`, disabled, enabled, err, load_error))
+tetragon_tracingpolicy_loaded{state="skipped"} %d
+`, disabled, enabled, err, load_error, skipped))
 	}
 
 	reg := prometheus.NewRegistry()
@@ -84,11 +86,21 @@ tetragon_tracingpolicy_loaded{state="load_error"} %d
 	}
 	err = manager.AddTracingPolicy(context.TODO(), &tp4)
 	require.NoError(t, err)
-	err = testutil.CollectAndCompare(collector, expectedMetrics(0, 4, 0, 0))
+
+	// A policy gated out by its nodeSelector is counted as skipped
+	tp5 := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "salad",
+		},
+	}
+	err = manager.AddSkippedTracingPolicy(context.TODO(), &tp5)
+	require.NoError(t, err)
+
+	err = testutil.CollectAndCompare(collector, expectedMetrics(0, 4, 0, 0, 1))
 	require.NoError(t, err)
 
 	err = manager.DisableTracingPolicy(context.TODO(), "pizza", "", tp1.TpDomain())
 	require.NoError(t, err)
-	err = testutil.CollectAndCompare(collector, expectedMetrics(1, 3, 0, 0))
+	err = testutil.CollectAndCompare(collector, expectedMetrics(1, 3, 0, 0, 1))
 	require.NoError(t, err)
 }
