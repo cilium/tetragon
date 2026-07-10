@@ -19,14 +19,26 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 )
 
+// policyStates are the states reported by the tracingpolicy_loaded metric.
+var policyStates = []tetragon.TracingPolicyState{
+	tetragon.TracingPolicyState_TP_STATE_LOAD_ERROR,
+	tetragon.TracingPolicyState_TP_STATE_ERROR,
+	tetragon.TracingPolicyState_TP_STATE_DISABLED,
+	tetragon.TracingPolicyState_TP_STATE_ENABLED,
+}
+
+// policyStateNames is the metric label value of each policyStates entry, in order.
+var policyStateNames = func() []string {
+	names := make([]string, len(policyStates))
+	for i, state := range policyStates {
+		names[i] = strings.TrimPrefix(strings.ToLower(state.String()), "tp_state_")
+	}
+	return names
+}()
+
 var stateLabel = metrics.ConstrainedLabel{
-	Name: "state",
-	Values: []string{
-		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_LOAD_ERROR.String()), "tp_state_"),
-		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_ERROR.String()), "tp_state_"),
-		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_DISABLED.String()), "tp_state_"),
-		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_ENABLED.String()), "tp_state_"),
-	},
+	Name:   "state",
+	Values: policyStateNames,
 }
 
 var policyState = metrics.MustNewCustomGauge(metrics.NewOpts(
@@ -131,22 +143,9 @@ func collect(ch chan<- prometheus.Metric) {
 		collectSelectorActions(ch, policy)
 	}
 
-	ch <- policyState.MustMetric(
-		float64(counters[tetragon.TracingPolicyState_TP_STATE_LOAD_ERROR]),
-		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_LOAD_ERROR.String()), "tp_state_"),
-	)
-	ch <- policyState.MustMetric(
-		float64(counters[tetragon.TracingPolicyState_TP_STATE_ERROR]),
-		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_ERROR.String()), "tp_state_"),
-	)
-	ch <- policyState.MustMetric(
-		float64(counters[tetragon.TracingPolicyState_TP_STATE_DISABLED]),
-		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_DISABLED.String()), "tp_state_"),
-	)
-	ch <- policyState.MustMetric(
-		float64(counters[tetragon.TracingPolicyState_TP_STATE_ENABLED]),
-		strings.TrimPrefix(strings.ToLower(tetragon.TracingPolicyState_TP_STATE_ENABLED.String()), "tp_state_"),
-	)
+	for i, state := range policyStates {
+		ch <- policyState.MustMetric(float64(counters[state]), policyStateNames[i])
+	}
 }
 
 func collectSelectorActions(ch chan<- prometheus.Metric, policy *tetragon.TracingPolicyStatus) {
