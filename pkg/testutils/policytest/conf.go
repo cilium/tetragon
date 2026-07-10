@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 type ParamVals map[string]any
@@ -51,6 +52,9 @@ type Conf struct {
 	// filename
 	tempFiles   map[string]string
 	tempFilesMu sync.Mutex
+
+	// Timeout for the policy tests
+	Timeout *time.Duration
 }
 
 func (c *Conf) TestBinary(s string) string {

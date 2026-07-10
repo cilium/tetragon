@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -180,11 +181,15 @@ func runCmd() *cobra.Command {
 					return ok
 				}
 			}
+
 			tests := policytest.AllPolicyTests.GetByFunction(ptFilterFn)
+			runnerTimeout := time.Minute * time.Duration(len(tests))
+
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
 				GrpcAddr:       common.ServerAddress,
 				BinsDir:        testBinsPath,
 				DumpPolicyPath: dumpPolicyPath,
+				Timeout:        &runnerTimeout,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to start local runner: %w", err)
