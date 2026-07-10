@@ -45,6 +45,12 @@ func (r *recordingSensors) AddTracingPolicy(_ context.Context, tp tracingpolicy.
 	return nil
 }
 
+// AddSkippedTracingPolicy satisfies sensorManager. No policy here sets a
+// nodeSelector, so it is never called; nodeselector_test.go covers that path.
+func (r *recordingSensors) AddSkippedTracingPolicy(_ context.Context, _ tracingpolicy.TracingPolicy) error {
+	return nil
+}
+
 func (r *recordingSensors) DeleteTracingPolicy(_ context.Context, name, _, _ string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

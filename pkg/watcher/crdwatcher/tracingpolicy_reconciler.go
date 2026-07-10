@@ -28,6 +28,7 @@ import (
 // Defined where it is consumed so the Reconciler can be unit-tested with a fake.
 type sensorManager interface {
 	AddTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error
+	AddSkippedTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error
 	DeleteTracingPolicy(ctx context.Context, name string, namespace string, domain string) error
 }
 
@@ -69,9 +70,16 @@ func (r *TracingPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// spec.nodeSelector gates per-node loading. The Delete above already
 	// unloaded any prior instance, so a policy whose nodeSelector stops matching
-	// after an update is correctly left unloaded on this node.
+	// after an update is correctly left unloaded on this node, but still tracked
+	// as skipped.
 	if skipForNode(ctx, r.Client, log, tp.Spec.NodeSelector) {
 		log.Info("skipping tracing policy: node does not match spec.nodeSelector")
+		// unlike a load failure below, this is not terminal: requeue so the
+		// policy does not stay untracked
+		if addErr := r.Sensors.AddSkippedTracingPolicy(ctx, tp); addErr != nil {
+			log.Warn("tracking skipped tracing policy failed", logfields.Error, addErr)
+			return ctrl.Result{}, addErr
+		}
 		return ctrl.Result{}, nil
 	}
 

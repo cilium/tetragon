@@ -140,6 +140,17 @@ func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tracing
 	return h.handler.addTracingPolicy(op)
 }
 
+// AddSkippedTracingPolicy tracks tp as skipped, without loading any BPF, so
+// that it is reported instead of being absent on this node.
+func (h *Manager) AddSkippedTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error {
+	op, err := newTracingPolicyAdd(ctx, tp)
+	if err != nil {
+		return err
+	}
+
+	return h.handler.addSkippedTracingPolicy(op)
+}
+
 // DeleteTracingPolicy deletes a new sensor based on a tracing policy
 func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespace string, domain string) error {
 	ck, err := newCollectionKey(name, namespace, domain)

@@ -58,9 +58,16 @@ func (r *TracingPolicyNamespacedReconciler) Reconcile(ctx context.Context, req c
 
 	// spec.nodeSelector gates per-node loading. The Delete above already
 	// unloaded any prior instance, so a policy whose nodeSelector stops matching
-	// after an update is correctly left unloaded on this node.
+	// after an update is correctly left unloaded on this node, but still tracked
+	// as skipped.
 	if skipForNode(ctx, r.Client, log, tp.Spec.NodeSelector) {
 		log.Info("skipping namespaced tracing policy: node does not match spec.nodeSelector")
+		// unlike a load failure below, this is not terminal: requeue so the
+		// policy does not stay untracked
+		if addErr := r.Sensors.AddSkippedTracingPolicy(ctx, tp); addErr != nil {
+			log.Warn("tracking skipped namespaced tracing policy failed", logfields.Error, addErr)
+			return ctrl.Result{}, addErr
+		}
 		return ctrl.Result{}, nil
 	}
 

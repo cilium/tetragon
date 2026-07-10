@@ -25,6 +25,7 @@ var policyStates = []tetragon.TracingPolicyState{
 	tetragon.TracingPolicyState_TP_STATE_ERROR,
 	tetragon.TracingPolicyState_TP_STATE_DISABLED,
 	tetragon.TracingPolicyState_TP_STATE_ENABLED,
+	tetragon.TracingPolicyState_TP_STATE_SKIPPED,
 }
 
 // policyStateNames is the metric label value of each policyStates entry, in order.

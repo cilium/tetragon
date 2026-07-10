@@ -50,6 +50,8 @@ enum TracingPolicyState {
   TP_STATE_LOADING = 5;
   // in the process of unloading
   TP_STATE_UNLOADING = 6;
+  // tracked but not loaded on this node, e.g. its nodeSelector does not match
+  TP_STATE_SKIPPED = 7;
 }
 
 enum TracingPolicyMode {
