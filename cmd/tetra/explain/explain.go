@@ -63,6 +63,9 @@ Examples:
 			}
 			return cobra.ExactArgs(1)(cmd, args)
 		},
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			return validateOutputFormat(outputFormat)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if listMode {
 				listResources(cmd.OutOrStdout())
@@ -80,6 +83,15 @@ Examples:
 	cmd.Flags().StringVar(&apiVersion, "api-version", "", "Specify the API version to use")
 
 	return cmd
+}
+
+func validateOutputFormat(format string) error {
+	switch format {
+	case "", "json", "yaml":
+		return nil
+	default:
+		return fmt.Errorf("invalid value for %q flag: %s", "output", format)
+	}
 }
 
 func listResources(w io.Writer) {
