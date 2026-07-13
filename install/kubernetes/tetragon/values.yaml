@@ -338,6 +338,10 @@ tetragonOperator:
     create: true
     annotations: {}
     name: ""
+  # -- Run the Tetragon Operator Deployment Pods in the host user namespace.
+  # The operator needs no host access, set to false to run it in a user
+  # namespace. Requires Kubernetes 1.33 or later.
+  hostUsers: true
   # -- securityContext for the Tetragon Operator Deployment Pods.
   podSecurityContext: {}
   # -- securityContext for the Tetragon Operator Deployment Pod container.
@@ -567,6 +571,10 @@ certgen:
   # -- Whether the certgen invocation should generate a CA when one isn't
   # found in the configured CA Secret.
   generateCA: true
+  # -- Run the certgen pods in the host user namespace. certgen needs no host
+  # access, set to false to run it in a user namespace. Requires Kubernetes
+  # 1.33 or later.
+  hostUsers: true
   # -- Pod labels added to certgen pods.
   podLabels: {}
   # -- Annotations applied to certgen Job/CronJob objects.

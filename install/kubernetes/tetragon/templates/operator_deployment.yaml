@@ -102,6 +102,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "tetragon-operator.serviceAccount" . }}
+      {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
+      hostUsers: {{ .Values.tetragonOperator.hostUsers }}
+      {{- end }}
       terminationGracePeriodSeconds: 10
       volumes:
         - name: tetragon-operator-config
