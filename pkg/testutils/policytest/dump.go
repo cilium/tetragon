@@ -48,7 +48,7 @@ func DumpResults(out io.Writer, results []*NamedResult) {
 			}
 			note = fmt.Sprintf("%d/%d scenario(s) succeeded", nSuccesses, nScenarios)
 		}
-		fmt.Fprintf(w, "P: %-40s\t%s\t%s\n", result.Name, icon, note)
+		fmt.Fprintf(w, "P: %-40s\t%s\t%s (%.2fs)\n", result.Name, icon, note, result.Result.TotalTime.Seconds())
 		for i, sc := range res.ScenariosRes {
 			scIcon := "🟢"
 			scNote := ""

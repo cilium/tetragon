@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"iter"
 	"strings"
+	"time"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/tetragoninfo"
@@ -118,6 +119,7 @@ type Result struct {
 	Skipped      string        `json:"skipped,omitempty"` // if not empty, the policy was skipped and the string contains the reason
 	Err          JSONError     `json:"error"`
 	ScenariosRes []ScenarioRes `json:"scenarios"`
+	TotalTime    time.Duration `json:"total_time"`
 }
 
 // AllParamValues returns a sequence of
