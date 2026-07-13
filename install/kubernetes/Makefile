@@ -25,12 +25,18 @@ K8S_VERSION = master
 #
 # -- Variables
 #
-HELM_VALUES_OVERRIDE = helm_lint_values_override.yaml
+# Each values file in this directory is validated as a separate scenario, on
+# top of the chart defaults. Add a file to cover more of the chart.
+HELM_VALUES_DIR = kubeconform
+HELM_VALUES_FILES = $(notdir $(wildcard $(HELM_VALUES_DIR)/*.yaml))
 ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 TETRAGON_CHART = tetragon
 CRDS_RELATIVE_DIR = pkg/k8s/apis/cilium.io/client/crds/v1alpha1
 CRDS := $(ROOT_DIR)/$(CRDS_RELATIVE_DIR)
 JSON_SCHEMAS := $(ROOT_DIR)/install/kubernetes/schemas
+# Shared by every scenario, so the upstream schemas are fetched once, not once
+# per scenario.
+SCHEMAS_CACHE := $(ROOT_DIR)/install/kubernetes/schemas-cache
 
 #
 # -- Commands
@@ -42,7 +48,7 @@ PYTHON := docker run --rm \
 		$(PYTHON_IMAGE)
 HELM := docker run --rm -u $(shell id -u):$(shell id -g) \
 		-v $(CURDIR)/$(TETRAGON_CHART):/apps \
-		-v $(CURDIR)/$(HELM_VALUES_OVERRIDE):/$(HELM_VALUES_OVERRIDE) \
+		-v $(CURDIR)/$(HELM_VALUES_DIR):/$(HELM_VALUES_DIR) \
 		$(HELM_IMAGE)
 
 #
@@ -102,24 +108,44 @@ check-images-tags: ## Verify all image:tag references in values.yaml exist in th
 # To validate potentially included Tetragon CRs in the Helm chart (using
 # openapi2jsonschema.py), we need to have the JSON schema of the TracingPolicy
 # CRD. Skip validating the Tetragon CRDs themselves (circular dependency).
+# Skip the cert-manager Certificate too: its schema belongs to cert-manager and
+# is not available here.
 kubeconform: ## Validate Helm chart using kubeconform
 kubeconform:
-	mkdir -p $(JSON_SCHEMAS)/
+	mkdir -p $(JSON_SCHEMAS)/ $(SCHEMAS_CACHE)/
 	$(PYTHON) /bin/bash -c "pip install pyyaml && python /code/install/kubernetes/openapi2jsonschema.py /code/$(CRDS_RELATIVE_DIR)/*"
 	mv $(ROOT_DIR)/install/kubernetes/*-cilium.io.json $(JSON_SCHEMAS)/
-	@echo "## Testing Helm chart: \"$(TETRAGON_CHART)\""
-	$(HELM) template $(TETRAGON_CHART) . \
-	-f values.yaml \
-	-f /$(HELM_VALUES_OVERRIDE) \
-	| docker run --rm -i -v $(JSON_SCHEMAS):/schemas $(KUBECONFORM_IMAGE) \
-		-summary \
-		-verbose \
-		-schema-location default \
-		-schema-location '/schemas/{{ .ResourceKind }}-{{ .Group }}.json' \
-		-skip CustomResourceDefinition \
-		-strict \
-		-kubernetes-version $(K8S_VERSION)
-	rm -rf $(JSON_SCHEMAS)/
+	@failed=""; \
+	for values in $(HELM_VALUES_FILES); do \
+		echo ""; \
+		echo "==> $$values (Kubernetes $(K8S_VERSION))"; \
+		if $(HELM) template $(TETRAGON_CHART) . \
+			-f values.yaml \
+			-f /$(HELM_VALUES_DIR)/$$values \
+			| docker run --rm -i -u $(shell id -u):$(shell id -g) \
+				-v $(JSON_SCHEMAS):/schemas \
+				-v $(SCHEMAS_CACHE):/cache \
+				$(KUBECONFORM_IMAGE) \
+				-summary \
+				-verbose \
+				-cache /cache \
+				-schema-location default \
+				-schema-location '/schemas/{{ .ResourceKind }}-{{ .Group }}.json' \
+				-skip CustomResourceDefinition,Certificate \
+				-strict \
+				-kubernetes-version $(K8S_VERSION); then \
+			echo "==> PASS: $$values"; \
+		else \
+			echo "==> FAIL: $$values"; \
+			failed="$$failed $$values"; \
+		fi; \
+	done; \
+	rm -rf $(JSON_SCHEMAS)/ $(SCHEMAS_CACHE)/; \
+	if [ -n "$$failed" ]; then \
+		echo ""; \
+		echo "kubeconform failed for:$$failed"; \
+		exit 1; \
+	fi
 
 ##@ Documentation
 

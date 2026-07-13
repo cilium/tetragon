@@ -1,0 +1,13 @@
+# Renders the cert-manager Certificate for the gRPC TLS listener
+# (auto.method=certmanager).
+tetragon:
+  grpc:
+    address: localhost:54321
+    tls:
+      enabled: true
+      auto:
+        method: certmanager
+        certManagerIssuerRef:
+          group: cert-manager.io
+          kind: ClusterIssuer
+          name: tetragon-ca-issuer

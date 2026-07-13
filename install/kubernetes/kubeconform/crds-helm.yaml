@@ -1,0 +1,3 @@
+# Renders the CRDs through Helm instead of the operator, which is the default.
+crds:
+  installMethod: helm
