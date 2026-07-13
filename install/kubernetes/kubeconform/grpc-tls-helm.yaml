@@ -1,0 +1,8 @@
+# Renders the gRPC TLS Secrets that Helm issues itself (auto.method=helm).
+tetragon:
+  grpc:
+    address: localhost:54321
+    tls:
+      enabled: true
+      auto:
+        method: helm

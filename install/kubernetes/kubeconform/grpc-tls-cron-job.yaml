@@ -1,0 +1,9 @@
+# Renders the gRPC TLS resources that the default values leave out: the certgen
+# Job and CronJob, their RBAC, and the agent with the TLS Secret mounted.
+tetragon:
+  grpc:
+    address: localhost:54321
+    tls:
+      enabled: true
+      auto:
+        method: cronJob
