@@ -20,7 +20,7 @@ permissions:
   pull-requests: write
 
 env:
-  MIN_K8S_VERSION: "1.23.0"
+  MIN_K8S_VERSION: "1.30.0"
   # renovate: datasource=python-version
   PYTHON_VERSION: "3.12"
 
