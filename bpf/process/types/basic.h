@@ -729,7 +729,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	else
 		with_errmetrics(probe_read, &heap[2], len, arg_str);
 #else
-	with_errmetrics(probe_read, &heap[1], len, arg_str);
+	probe_read(&heap[1], len, arg_str);
 #endif
 
 	// Pad string to multiple of key increment size
@@ -743,7 +743,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 		else
 			with_errmetrics(probe_read, heap + len + 2, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #else
-		with_errmetrics(probe_read, heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+		probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #endif
 	}
 
