@@ -11,8 +11,7 @@ tetragon gRPC TLS listener.
 template:
   metadata:
     labels:
-      {{- include "tetragon.labels" . | nindent 6 }}
-      app.kubernetes.io/component: certgen
+      {{- include "tetragon-certgen.labels" . | nindent 6 }}
       {{- with .Values.certgen.podLabels }}
       {{- toYaml . | nindent 6 }}
       {{- end }}

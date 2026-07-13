@@ -63,6 +63,11 @@ app.kubernetes.io/component: operator
 {{ include "commonLabels" . }}
 app.kubernetes.io/component: rthooks
 {{- end }}
+{{- define "tetragon-certgen.labels" -}}
+{{ include "tetragon.selectorLabels" . }}
+{{ include "commonLabels" . }}
+app.kubernetes.io/component: certgen
+{{- end }}
 
 {{/*
 Selector labels

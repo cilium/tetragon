@@ -5,8 +5,7 @@ metadata:
   name: {{ include "tetragon.name" . }}-certgen
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "tetragon.labels" . | nindent 4 }}
-    app.kubernetes.io/component: certgen
+    {{- include "tetragon-certgen.labels" . | nindent 4 }}
   {{- with .Values.certgen.annotations.cronJob }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -19,8 +18,7 @@ spec:
   jobTemplate:
     metadata:
       labels:
-        {{- include "tetragon.labels" . | nindent 8 }}
-        app.kubernetes.io/component: certgen
+        {{- include "tetragon-certgen.labels" . | nindent 8 }}
     spec:
       {{- include "tetragon.certgen.jobSpec" . | nindent 6 }}
 {{- end }}
