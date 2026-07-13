@@ -340,7 +340,8 @@
       ]
     },
     {
-      // update lvh-images for stable branches
+      // update lvh-images for stable branches, once a month is enough as we
+      // rarely cut patch releases.
       "enabled": true,
       "matchPackageNames": [
         "quay.io/lvh-images/kernel-images",
@@ -350,7 +351,9 @@
         "v1.5",
         "v1.6",
         "v1.7",
-      ]
+      ],
+      // Any day in the first week of the month.
+      "schedule": ["* * 1-7 * *"]
     },
     // ignore deps section
     {
