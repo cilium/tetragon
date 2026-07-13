@@ -911,13 +911,19 @@ this action for enforcement.
 
 ### Override action
 
-Override action is defined for kprobe and uprobe selectors.
+Override action is defined for kprobe, uprobe and lsmhooks selectors, each one
+of them supporting different arguments:
+| Hook   | Arguments |
+| ------ | --------- |
+| kprobe | `argError` |
+| uprobe | `argError,argRegs,argNewSymbol,argNewAddr,argNewOffset` |
+| lsmhooks | `argError` |
 
-#### Override action for kprobe
+#### Override action for kprobe and lsmhooks
 
 `Override` action allows to modify the return value of call. While `Sigkill`
 will terminate the entire process responsible for making the call, `Override`
-will run in place of the original kprobed function and return the value
+will run in place of the original probed function and return the value
 specified in the `argError` field. It's then up to the code path or the user
 space process handling the returned value to whether stop or proceed with the
 execution.
@@ -971,8 +977,6 @@ ensure they properly follow the [Error Injectable Functions](https://docs.kernel
 Beware, here be dragons!!! Use with caution, it could easily crash traced application.
 {{< /warning >}}
 
-Note that `Override` action can be used only on `x86_64` architecture.
-
 Similar to kprobe, the uprobe `Override` action allows to modify the return value
 of user space call with `argError` argument, like:
 
@@ -988,9 +992,57 @@ uprobes:
 ```
 
 Note that it can be successfully used only when following conditions are met:
-- uprobe is attached to the beggining of the user space function;
+- uprobe is attached to the beginning of the user space function;
 - user space function is called via `call` instruction;
-- user space function returns `int` type.
+- user space function returns `int` type;
+- kernel support to manipulate raw registers is available (6.18+).
+
+It's also possible to override the traced symbol with a new symbol call, like:
+```yaml
+uprobes:
+- path: "test"
+  symbols:
+  - "malloc"
+  selectors:
+  - matchActions:
+    - action: Override
+      argNewSymbol: "malloc_patched"
+```
+
+or even with a new symbol offset or address, eg:
+```yaml
+uprobes:
+- path: "test"
+  symbols:
+  - "malloc"
+  selectors:
+  - matchActions:
+    - action: Override
+      argNewOffset: "0x0000115c"
+```
+
+or:
+
+```yaml
+uprobes:
+- path: "test"
+  symbols:
+  - "malloc"
+  selectors:
+  - matchActions:
+    - action: Override
+      argNewAddr: "0x00001137"
+```
+
+There are, however, some restrictions:
+- kernel support to manipulate raw registers is required (6.18+);
+- new symbol must be already present in the binary;
+- new symbol must have the same signature as the original symbol.
+
+{{< warning >}}
+Since tetragon enforces no verification for the last point, this can lead to
+crashing the traced application.
+{{< /warning >}}
 
 It's possible to override specific registers with arbitrary value with `argRegs`
 argument, like:
