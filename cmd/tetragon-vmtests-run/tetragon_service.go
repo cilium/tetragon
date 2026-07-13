@@ -24,7 +24,7 @@ After=network.target local-fs.target
 Environment="PATH=/usr/local/lib/tetragon/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 User=root
 Group=root
-ExecStart={{ .tetragonBinary }} --bpf-lib {{ .tetragonBpfLib }}
+ExecStart={{ .tetragonBinary }} --bpf-lib {{ .tetragonBpfLib }} {{ .additionalArgs }}
 Restart=on-failure
 RestartSec=5
 
@@ -32,7 +32,7 @@ RestartSec=5
 WantedBy=multi-user.target
 `
 
-func makeTetragonServiceFile(fname string) (string, error) {
+func makeTetragonServiceFile(fname, additionalArgs string) (string, error) {
 	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE, 0722)
 	if err != nil {
 		return "", err
@@ -42,6 +42,7 @@ func makeTetragonServiceFile(fname string) (string, error) {
 	data := map[string]string{
 		"tetragonBinary": "/usr/local/bin/tetragon",
 		"tetragonBpfLib": "/usr/local/lib/tetragon/bpf",
+		"additionalArgs": additionalArgs,
 	}
 
 	t := template.Must(template.New("tetragon-service").Parse(tetragonServiceTemplate))
@@ -51,8 +52,8 @@ func makeTetragonServiceFile(fname string) (string, error) {
 	return fname, nil
 }
 
-func mustMakeTetragonServiceFile(fname string) string {
-	fname, err := makeTetragonServiceFile(fname)
+func mustMakeTetragonServiceFile(fname, additionalArgs string) string {
+	fname, err := makeTetragonServiceFile(fname, additionalArgs)
 	if err != nil {
 		panic(err)
 	}

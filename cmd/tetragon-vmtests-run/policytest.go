@@ -164,6 +164,7 @@ func policyTestCmd() *cobra.Command {
 	cmd.Flags().StringVar(&cnf.testerProgsTarball, "tester-progs-tarball", "", "tetragon tester progs tarball")
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&mountHostPath, "mount-host-path", "", "host path to mount inside VM")
+	cmd.Flags().StringVar(&cnf.btfFile, "btf-file", "", "BTF file to use.")
 	return cmd
 }
 
@@ -227,9 +228,29 @@ func decompressToTemp(fname, tmpDir string) (string, error) {
 func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Action, error) {
 	ret := make([]images.Action, 0)
 
+	// copy BTF file to the VM
+	vmBTFFile := ""
+	if btfFile := ptConf.btfFile; btfFile != "" {
+		absBTFFile, err := filepath.Abs(btfFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get btf file full path: %w", err)
+		}
+		ret = append(ret, images.Action{
+			Op: &images.CopyInCommand{
+				LocalPath: absBTFFile,
+				RemoteDir: "/boot/",
+			},
+		})
+		vmBTFFile = "/boot/" + filepath.Base(btfFile)
+	}
+
 	if ptConf.tetragonInstallDir != "" && ptConf.tetragonTarball != "" {
 		return nil, errors.New("you need to define exactly one of --tetragon-install-dir and --tetragon-tarball")
 	} else if ptConf.tetragonInstallDir != "" {
+		additionalArgs := ""
+		if ptConf.btfFile != "" {
+			additionalArgs = "--btf " + vmBTFFile
+		}
 		ret = append(ret,
 			// install.sh
 			images.Action{Op: &images.CopyInCommand{
@@ -238,7 +259,7 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 			}},
 			// tetragon systemd service
 			images.Action{Op: &images.CopyInCommand{
-				LocalPath: mustMakeTetragonServiceFile(filepath.Join(tmpDir, tetragonService)),
+				LocalPath: mustMakeTetragonServiceFile(filepath.Join(tmpDir, tetragonService), additionalArgs),
 				RemoteDir: "/etc/systemd/system/",
 			}},
 			images.Action{Op: &images.RunCommand{Cmd: "systemctl enable " + tetragonService}},
@@ -264,6 +285,10 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 				RemoteDir: remoteDir,
 			}},
 			images.Action{Op: &images.RunCommand{Cmd: filepath.Join(remoteDir, tetragonInstallSh)}},
+			images.Action{Op: &images.AppendLineCommand{
+				File: "/etc/tetragon/tetragon.conf.d/btf",
+				Line: vmBTFFile,
+			}},
 		)
 	} else {
 		return nil, errors.New("you need to define exactly one of --tetragon-install-dir and --tetragon-tarball")
