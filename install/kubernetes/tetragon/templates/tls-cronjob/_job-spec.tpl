@@ -18,6 +18,9 @@ template:
   spec:
     restartPolicy: OnFailure
     serviceAccountName: {{ include "tetragon.name" . }}-certgen
+    {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
+    hostUsers: {{ .Values.certgen.hostUsers }}
+    {{- end }}
     securityContext:
       runAsNonRoot: true
       runAsUser: 65534

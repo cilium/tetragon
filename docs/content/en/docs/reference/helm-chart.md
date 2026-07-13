@@ -27,12 +27,13 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
-| certgen | object | `{"affinity":{},"annotations":{"cronJob":{},"job":{}},"cronJob":{"failedJobsHistoryLimit":1,"successfulJobsHistoryLimit":1},"generateCA":true,"image":{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/certgen","tag":"v0.4.6"},"nodeSelector":{},"podLabels":{},"resources":{},"tolerations":[],"ttlSecondsAfterFinished":1800}` | cilium-certgen settings used by tetragon.grpc.tls.auto.method=cronJob. Mirrors the same block in cilium/cilium so operators familiar with the hubble TLS workflow find consistent knobs. |
+| certgen | object | `{"affinity":{},"annotations":{"cronJob":{},"job":{}},"cronJob":{"failedJobsHistoryLimit":1,"successfulJobsHistoryLimit":1},"generateCA":true,"hostUsers":true,"image":{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/certgen","tag":"v0.4.6"},"nodeSelector":{},"podLabels":{},"resources":{},"tolerations":[],"ttlSecondsAfterFinished":1800}` | cilium-certgen settings used by tetragon.grpc.tls.auto.method=cronJob. Mirrors the same block in cilium/cilium so operators familiar with the hubble TLS workflow find consistent knobs. |
 | certgen.affinity | object | `{}` | Affinity for certgen pods. |
 | certgen.annotations | object | `{"cronJob":{},"job":{}}` | Annotations applied to certgen Job/CronJob objects. |
 | certgen.cronJob.failedJobsHistoryLimit | int | `1` | Number of failed CronJob runs to retain. |
 | certgen.cronJob.successfulJobsHistoryLimit | int | `1` | Number of successful CronJob runs to retain. |
 | certgen.generateCA | bool | `true` | Whether the certgen invocation should generate a CA when one isn't found in the configured CA Secret. |
+| certgen.hostUsers | bool | `true` | Run the certgen pods in the host user namespace. certgen needs no host access, set to false to run it in a user namespace. Requires Kubernetes 1.33 or later. |
 | certgen.nodeSelector | object | `{}` | Node selector for certgen pods. |
 | certgen.podLabels | object | `{}` | Pod labels added to certgen pods. |
 | certgen.resources | object | `{}` | Resource requests/limits for the certgen container. |
@@ -189,6 +190,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragonOperator.failoverLease.leaseRetryPeriod | string | `"2s"` | The timeout between retries if renewal fails |
 | tetragonOperator.failoverLease.namespace | string | `""` | Kubernetes Namespace in which the Lease resource is created. Defaults to the namespace where Tetragon is deployed in, if it's empty. |
 | tetragonOperator.forceUpdateCRDs | bool | `false` |  |
+| tetragonOperator.hostUsers | bool | `true` | Run the Tetragon Operator Deployment Pods in the host user namespace. The operator needs no host access, set to false to run it in a user namespace. Requires Kubernetes 1.33 or later. |
 | tetragonOperator.image | object | `{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.7.0"}` | tetragon-operator image. |
 | tetragonOperator.nameOverride | string | `""` | The name of the Tetragon Operator deployment. |
 | tetragonOperator.nodeSelector | object | `{}` | Steer the Tetragon Operator Deployment Pod placement via nodeSelector, tolerations and affinity rules. |

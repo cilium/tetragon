@@ -29,6 +29,9 @@ K8S_VERSION = master
 # top of the chart defaults. Add a file to cover more of the chart.
 HELM_VALUES_DIR = kubeconform
 HELM_VALUES_FILES = $(notdir $(wildcard $(HELM_VALUES_DIR)/*.yaml))
+# Render for the version we validate against, so that version-gated fields
+# match the schema. "master" is not a semver, let Helm use its own default.
+HELM_KUBE_VERSION = $(if $(filter master,$(K8S_VERSION)),,--kube-version $(K8S_VERSION))
 ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 TETRAGON_CHART = tetragon
 CRDS_RELATIVE_DIR = pkg/k8s/apis/cilium.io/client/crds/v1alpha1
@@ -120,6 +123,7 @@ kubeconform:
 		echo ""; \
 		echo "==> $$values (Kubernetes $(K8S_VERSION))"; \
 		if $(HELM) template $(TETRAGON_CHART) . \
+			$(HELM_KUBE_VERSION) \
 			-f values.yaml \
 			-f /$(HELM_VALUES_DIR)/$$values \
 			| docker run --rm -i -u $(shell id -u):$(shell id -g) \

@@ -72,6 +72,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       hostNetwork: {{ .Values.hostNetwork }}
+      {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
+      hostUsers: true
+      {{- end }}
       dnsPolicy: {{ .Values.dnsPolicy }}
       terminationGracePeriodSeconds: 1
       volumes:
