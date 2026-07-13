@@ -21,11 +21,13 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/yaml"
 
+	"github.com/cilium/tetragon/pkg/option"
+
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
 )
 
 var (
-	outputFormat string
+	outputFormat *option.Enum
 	recursive    bool
 	showExample  bool
 	listMode     bool
@@ -73,7 +75,8 @@ Examples:
 		},
 	}
 
-	cmd.Flags().StringVarP(&outputFormat, "output", "o", "", "Output format. One of: json|yaml")
+	outputFormat, _ = option.NewEnum([]string{"text", "json", "yaml"}, "text")
+	cmd.Flags().VarP(outputFormat, "output", "o", "Output format "+outputFormat.Allowed())
 	cmd.Flags().BoolVarP(&recursive, "recursive", "R", false, "Print the fields of fields recursively")
 	cmd.Flags().BoolVar(&showExample, "example", false, "Show example usage")
 	cmd.Flags().BoolVar(&listMode, "list", false, "List all supported resources")
@@ -251,7 +254,7 @@ func runExplain(w io.Writer, path string) error {
 	}
 
 	// Handle different output formats
-	switch outputFormat {
+	switch outputFormat.Value {
 	case "json":
 		return outputJSON(w, current)
 	case "yaml":
