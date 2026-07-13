@@ -21,5 +21,6 @@ spec:
       labels:
         {{- include "tetragon.labels" . | nindent 8 }}
         app.kubernetes.io/component: certgen
-    {{- include "tetragon.certgen.jobSpec" . | nindent 4 }}
+    spec:
+      {{- include "tetragon.certgen.jobSpec" . | nindent 6 }}
 {{- end }}
