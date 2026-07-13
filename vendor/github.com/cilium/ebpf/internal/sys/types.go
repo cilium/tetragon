@@ -260,7 +260,10 @@ const (
 	BPF_TRACE_KPROBE_SESSION           AttachType = 56
 	BPF_TRACE_UPROBE_SESSION           AttachType = 57
 	BPF_TRACE_FSESSION                 AttachType = 58
-	__MAX_BPF_ATTACH_TYPE              AttachType = 59
+	BPF_TRACE_FENTRY_MULTI             AttachType = 59
+	BPF_TRACE_FEXIT_MULTI              AttachType = 60
+	BPF_TRACE_FSESSION_MULTI           AttachType = 61
+	__MAX_BPF_ATTACH_TYPE              AttachType = 62
 )
 
 type Cmd uint32
@@ -552,7 +555,8 @@ const (
 	BPF_LINK_TYPE_UPROBE_MULTI   LinkType = 12
 	BPF_LINK_TYPE_NETKIT         LinkType = 13
 	BPF_LINK_TYPE_SOCKMAP        LinkType = 14
-	__MAX_BPF_LINK_TYPE          LinkType = 15
+	BPF_LINK_TYPE_TRACING_MULTI  LinkType = 15
+	__MAX_BPF_LINK_TYPE          LinkType = 16
 )
 
 type MapType uint32
@@ -1088,6 +1092,26 @@ type LinkCreateTracingAttr struct {
 }
 
 func LinkCreateTracing(attr *LinkCreateTracingAttr) (*FD, error) {
+	fd, err := BPF(BPF_LINK_CREATE, unsafe.Pointer(attr), unsafe.Sizeof(*attr))
+	if err != nil {
+		return nil, err
+	}
+	return NewFD(int(fd))
+}
+
+type LinkCreateTracingMultiAttr struct {
+	_          structs.HostLayout
+	ProgFd     uint32
+	TargetFd   uint32
+	AttachType AttachType
+	Flags      uint32
+	Ids        TypedPointer[TypeID]
+	Cookies    TypedPointer[uint64]
+	Count      uint32
+	_          [28]byte
+}
+
+func LinkCreateTracingMulti(attr *LinkCreateTracingMultiAttr) (*FD, error) {
 	fd, err := BPF(BPF_LINK_CREATE, unsafe.Pointer(attr), unsafe.Sizeof(*attr))
 	if err != nil {
 		return nil, err
