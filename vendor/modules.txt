@@ -27,7 +27,7 @@ github.com/blang/semver/v4
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/ebpf v0.22.0
+# github.com/cilium/ebpf v0.22.0 => github.com/olsajiri/ebpf v0.9.1-0.20260725103026-daa01e0e8fbe
 ## explicit; go 1.25.0
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm
@@ -38,6 +38,7 @@ github.com/cilium/ebpf/internal/efw
 github.com/cilium/ebpf/internal/epoll
 github.com/cilium/ebpf/internal/kallsyms
 github.com/cilium/ebpf/internal/kconfig
+github.com/cilium/ebpf/internal/kfunc
 github.com/cilium/ebpf/internal/linux
 github.com/cilium/ebpf/internal/mountinfo
 github.com/cilium/ebpf/internal/platform
@@ -1436,5 +1437,6 @@ sigs.k8s.io/structured-merge-diff/v6/value
 # sigs.k8s.io/yaml v1.6.0
 ## explicit; go 1.22
 sigs.k8s.io/yaml
+# github.com/cilium/ebpf => github.com/olsajiri/ebpf v0.9.1-0.20260725103026-daa01e0e8fbe
 # github.com/cilium/tetragon/api => ./api
 # github.com/cilium/tetragon/pkg/k8s => ./pkg/k8s
