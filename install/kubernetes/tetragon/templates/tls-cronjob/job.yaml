@@ -13,8 +13,7 @@ metadata:
   name: {{ include "tetragon.name" . }}-certgen-{{ $jobHash }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "tetragon.labels" . | nindent 4 }}
-    app.kubernetes.io/component: certgen
+    {{- include "tetragon-certgen.labels" . | nindent 4 }}
   {{- with .Values.certgen.annotations.job }}
   annotations:
     {{- toYaml . | nindent 4 }}
