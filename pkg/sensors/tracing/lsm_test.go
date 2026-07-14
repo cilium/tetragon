@@ -32,6 +32,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
@@ -453,4 +454,8 @@ spec:
 		return true
 	}
 	require.Condition(t, checkFunc)
+}
+
+func TestLSMDuplicateHooks(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "lsm-dup-hooks", nil)
 }
