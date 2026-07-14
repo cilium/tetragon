@@ -17,16 +17,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/cilium/tetragon/pkg/option"
+
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	_ "github.com/cilium/tetragon/tests/policytests" // so that tests can be registered
-)
-
-type outputFmt int
-
-const (
-	outputText outputFmt = iota
-	outputJSON
 )
 
 func New() *cobra.Command {
@@ -131,8 +126,8 @@ func runCmd() *cobra.Command {
 	allParams := false
 	allTests := false
 	var params map[string]string
-	var outputFormat = outputText
 	var outputFile = ""
+	outputFmt, _ := option.NewEnum([]string{"text", "json"}, "text")
 	cmd := cobra.Command{
 		Use:   "run",
 		Short: "Run Tetragon policy test(s)",
@@ -220,8 +215,8 @@ func runCmd() *cobra.Command {
 				out = f
 			}
 
-			switch outputFormat {
-			case outputJSON:
+			switch outputFmt.Value {
+			case "json":
 				for _, res := range results {
 					b, err := json.Marshal(res)
 					if err != nil {
@@ -229,7 +224,7 @@ func runCmd() *cobra.Command {
 					}
 					fmt.Fprintln(out, string(b))
 				}
-			case outputText:
+			case "text":
 				policytest.DumpResults(out, results)
 			}
 			return nil
@@ -241,36 +236,8 @@ func runCmd() *cobra.Command {
 	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
 	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
 	flags.BoolVar(&allParams, "all-params", allParams, "Run policy tests using all available parameters")
-	flags.Var(&outputFormat, "output", "output format (text|json)")
+	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
 	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
 	flags.BoolVar(&allTests, "all-tests", allTests, "Run all available policy tests")
 	return &cmd
-}
-
-func (of *outputFmt) Set(v string) error {
-	switch v {
-	case "text":
-		*of = outputText
-	case "json":
-		*of = outputJSON
-	default:
-		return errors.New("output format must be either \"text\" or \"json\"")
-	}
-
-	return nil
-}
-
-func (of *outputFmt) String() string {
-	switch *of {
-	case outputText:
-		return "text"
-	case outputJSON:
-		return "json"
-	default:
-		return ""
-	}
-}
-
-func (of *outputFmt) Type() string {
-	return "output"
 }
