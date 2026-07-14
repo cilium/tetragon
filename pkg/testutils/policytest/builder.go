@@ -13,7 +13,8 @@ import (
 
 // Builder offers an ergonomic way to build policy tests (using method chaining)
 type Builder struct {
-	policytest *T
+	policytest    *T
+	templateFuncs template.FuncMap
 }
 
 func NewBuilder(name string) *Builder {
@@ -52,7 +53,7 @@ func (b *Builder) WithPolicyTemplate(tmpl string) *Builder {
 			},
 		}
 
-		t, err := template.New("testpolicy").Funcs(funcMap).Parse(tmpl)
+		t, err := template.New("testpolicy").Funcs(funcMap).Funcs(b.templateFuncs).Parse(tmpl)
 
 		// Clean up any temp files created if this function returns due to an
 		// error
@@ -94,6 +95,14 @@ func (b *Builder) WithSkip(fn func(*SkipInfo) string) *Builder {
 // Add a scenario to the builder
 func (b *Builder) AddScenario(fn func(c *Conf) *Scenario) *Builder {
 	b.policytest.Scenarios = append(b.policytest.Scenarios, fn)
+	return b
+}
+
+func (b *Builder) WithTemplateFunc(name string, fn any) *Builder {
+	if b.templateFuncs == nil {
+		b.templateFuncs = make(template.FuncMap)
+	}
+	b.templateFuncs[name] = fn
 	return b
 }
 
