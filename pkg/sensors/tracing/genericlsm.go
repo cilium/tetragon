@@ -74,6 +74,8 @@ type genericLsm struct {
 	tags []string
 	// is IMA hash collector program needed to load
 	imaProgLoad bool
+	// instance identifier to mitigate duplicate hooks at same location
+	instance int
 }
 
 func (g *genericLsm) SetID(id idtable.EntryID) {
@@ -289,7 +291,7 @@ type addLsmIn struct {
 	selMaps    *selectors.KernelSelectorMaps
 }
 
-func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err error) {
+func addLsm(f *v1alpha1.LsmHookSpec, instance int, in *addLsmIn) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinter
 	var argsBTFSet [api.MaxArgsSupported]bool
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
@@ -377,6 +379,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		message:     msgField,
 		tags:        tagsField,
 		imaProgLoad: false,
+		instance:    instance,
 	}
 
 	for _, sel := range f.Selectors {
@@ -431,12 +434,19 @@ func createGenericLsmSensor(
 		selMaps:    selMaps,
 	}
 
+	dups := make(map[string]int)
 	for _, hook := range lsmHooks {
 		if err := appendMacrosSelectors(hook.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
 
-		id, err := addLsm(&hook, &in)
+		instance, ok := dups[hook.Hook]
+		if ok {
+			instance++
+		}
+		dups[hook.Hook] = instance
+
+		id, err := addLsm(&hook, instance, &in)
 		if err != nil {
 			return nil, err
 		}
@@ -531,6 +541,10 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
 
 	loadProgCoreName, loadProgOutputName := config.GenericLsmObjs()
+	pinName := lsmEntry.hook
+	if lsmEntry.instance != 0 {
+		pinName = fmt.Sprintf("%s:%d", lsmEntry.hook, lsmEntry.instance)
+	}
 
 	/* We need to load LSM programs in the following order:
 	   1. bpf_generic_lsm_output
@@ -541,7 +555,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 		path.Join(option.Config.HubbleLib, loadProgOutputName),
 		lsmEntry.hook,
 		"lsm/generic_lsm_output",
-		lsmEntry.hook,
+		pinName,
 		"generic_lsm").
 		SetLoaderData(lsmEntry.tableId).
 		SetPolicy(lsmEntry.policyName)
@@ -551,7 +565,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 		path.Join(option.Config.HubbleLib, loadProgCoreName),
 		lsmEntry.hook,
 		"lsm/generic_lsm_core",
-		lsmEntry.hook,
+		pinName,
 		"generic_lsm").
 		SetLoaderData(lsmEntry.tableId).
 		SetPolicy(lsmEntry.policyName)
@@ -565,7 +579,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 				path.Join(option.Config.HubbleLib, loadProgImaName),
 				lsmEntry.hook,
 				"lsm.s/generic_lsm_ima_"+loadProgImaType,
-				lsmEntry.hook,
+				pinName,
 				"generic_lsm").
 				SetLoaderData(lsmEntry.tableId).
 				SetPolicy(lsmEntry.policyName)
