@@ -8367,9 +8367,9 @@ merge patch.<br/>
         <td>[]string</td>
         <td>
           BinaryDigests specifies a set of digests for the traced binary.
-The uprobe is installed only if the digest of the traced binary matches a digest in the set.
-Currently, if the digest is not matched, the policy is rejected. Subsequent work will skip
-loading the uprobe instead of rejecting the policy.<br/>
+The uprobe/hook is installed only if the digest of the traced binary matches a digest in the set.
+Tetragon's tracing policy status API can be used to see each hook's status in order to determine
+if the hook was attached or not.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8384,6 +8384,13 @@ loading the uprobe instead of rejecting the policy.<br/>
         <td>[]object</td>
         <td>
           A list of data to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexignore">ignore</a></b></td>
+        <td>object</td>
+        <td>
+          Conditions for ignoring this uprobe<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8674,6 +8681,32 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td>string</td>
         <td>
           Source of the data, if missing the default if function arguments<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].ignore
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindex)</sup></sup>
+
+
+Conditions for ignoring this uprobe
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>digestVerificationFailure</b></td>
+        <td>boolean</td>
+        <td>
+          Ignores uprobe where the digest verification of the traced binary fails<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -19851,9 +19884,9 @@ merge patch.<br/>
         <td>[]string</td>
         <td>
           BinaryDigests specifies a set of digests for the traced binary.
-The uprobe is installed only if the digest of the traced binary matches a digest in the set.
-Currently, if the digest is not matched, the policy is rejected. Subsequent work will skip
-loading the uprobe instead of rejecting the policy.<br/>
+The uprobe/hook is installed only if the digest of the traced binary matches a digest in the set.
+Tetragon's tracing policy status API can be used to see each hook's status in order to determine
+if the hook was attached or not.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -19868,6 +19901,13 @@ loading the uprobe instead of rejecting the policy.<br/>
         <td>[]object</td>
         <td>
           A list of data to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexignore">ignore</a></b></td>
+        <td>object</td>
+        <td>
+          Conditions for ignoring this uprobe<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -20158,6 +20198,32 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td>string</td>
         <td>
           Source of the data, if missing the default if function arguments<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].ignore
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindex)</sup></sup>
+
+
+Conditions for ignoring this uprobe
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>digestVerificationFailure</b></td>
+        <td>boolean</td>
+        <td>
+          Ignores uprobe where the digest verification of the traced binary fails<br/>
         </td>
         <td>false</td>
       </tr></tbody>
