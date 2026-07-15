@@ -386,7 +386,7 @@ The number of loaded tracing policy by state.
 
 | label | values |
 | ----- | ------ |
-| `state` | `disabled, enabled, error, load_error, skipped` |
+| `state` | `disabled, enabled, error, load_error, partially_enabled, skipped` |
 
 ### `tetragon_tracingpolicy_selector_actions_total`
 
