@@ -390,12 +390,14 @@ spec:
         - "sha256:1111111111111111111111111111111111111111111111111111111111111111"
         - "sha256:2222222222222222222222222222222222222222222222222222222222222222"
 ```
-When the above policy is loaded, Tetragon will calculate the sha256 hash of
-`/bin/example-target-binary` and compare it against all configured binary
-digests. The policy will be rejected in its entirety if the calculated digest
-does not match any configured `binaryDigests`. This results in the policy
-status being `load_err`, which is equivalent to what happens when the target
-binary path does not exist.
+When the above policy is loaded, Tetragon calculates the sha256 hash of
+`/bin/example-target-binary` and compares it against all configured binary
+digests. The policy is partially loaded if the calculated digest does not
+match any configured `binaryDigests`. Only uprobes/hooks that fail digest
+verification are not loaded. The rest of the uprobes/hooks that do not fail
+digest verification are loaded. The tracing policy status API exposes each
+hook's status, so users can determine which uprobes/hooks were actually
+attached.
 
 As you can see from the above example, the format of the entries in the
 `binaryDigests` list is `<digest type>:<digest>`.
