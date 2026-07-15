@@ -386,16 +386,28 @@ spec:
     - path: "/bin/example-target-binary"
       symbols:
       - "main"
+      ignore:
+        digestVerificationFailure: true
       binaryDigests:
         - "sha256:1111111111111111111111111111111111111111111111111111111111111111"
         - "sha256:2222222222222222222222222222222222222222222222222222222222222222"
 ```
-When the above policy is loaded, Tetragon will calculate the sha256 hash of
-`/bin/example-target-binary` and compare it against all configured binary
-digests. The policy will be rejected in its entirety if the calculated digest
-does not match any configured `binaryDigests`. This results in the policy
-status being `load_err`, which is equivalent to what happens when the target
-binary path does not exist.
+When the above policy is added, Tetragon calculates the sha256 hash of
+`/bin/example-target-binary` and compares it against all configured binary
+digests. If none of the configured digests match the binary's calculated
+digest, digest verification fails, and Tetragon will not attach to the
+binary.
+
+The `ignore.digestVerificationFailure` field controls how verification
+failure is handled. If set to `true`, a hook that fails digest verification
+is skipped and the policy is partially loaded. If not set, the policy is
+rejected in its entirety (no hooks are attached).
+
+If the policy is not rejected, Tetragon's tracing policy status API
+(`TracingPolicyStatus`) exposes each hook's status. This way, users can
+determine which uprobes/hooks were actually attached. In addition to
+this hook status, the policy's `TracingPolicyState` will be set to
+`TP_STATE_PARTIALLY_ENABLED` when the policy is partially loaded.
 
 As you can see from the above example, the format of the entries in the
 `binaryDigests` list is `<digest type>:<digest>`.

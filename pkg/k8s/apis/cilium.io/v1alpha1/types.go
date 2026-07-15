@@ -436,9 +436,9 @@ type UProbeSpec struct {
 	ReturnArg *KProbeArg `json:"returnArg,omitempty"`
 	// +kubebuilder:validation:Optional
 	// BinaryDigests specifies a set of digests for the traced binary.
-	// The uprobe is installed only if the digest of the traced binary matches a digest in the set.
-	// Currently, if the digest is not matched, the policy is rejected. Subsequent work will skip
-	// loading the uprobe instead of rejecting the policy.
+	// The uprobe/hook is installed only if the digest of the traced binary matches a digest in the set.
+	// Tetragon's tracing policy status API can be used to see each hook's status in order to determine
+	// if the hook was attached or not.
 	BinaryDigests []string `json:"binaryDigests,omitempty"`
 }
 
