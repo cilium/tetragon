@@ -25,6 +25,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/policystore"
 	"github.com/cilium/tetragon/pkg/rthooks"
+	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/server/eventlog"
 
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -226,6 +227,77 @@ func openGRPCPolicyStore() (*policystore.Store, error) {
 		"policies", len(store.List()))
 
 	return store, nil
+}
+
+type persistedTracingPolicy struct {
+	policy  tracingpolicy.TracingPolicy
+	enabled bool
+}
+
+func restoreGRPCPolicies(ctx context.Context, store *policystore.Store, manager *sensors.Manager) error {
+	if store == nil {
+		return nil
+	}
+
+	// Validate all records before loading any of them. This avoids partially
+	// restoring a store when a later record is malformed.
+	records := store.List()
+	log.Info("Starting persisted gRPC policy restoration",
+		"policies", len(records))
+	policies := make([]persistedTracingPolicy, 0, len(records))
+	for _, entry := range records {
+		policy, err := tracingpolicy.FromYAML(entry.Pol.YAML)
+		if err != nil {
+			return fmt.Errorf("restore persisted gRPC policy %s: parse YAML: %w", entry.ID.Name, err)
+		}
+		if policy.TpName() != entry.ID.Name || policy.TpNamespace() != entry.ID.Namespace {
+			return fmt.Errorf(
+				"restore persisted gRPC policy %s: record identity does not match YAML identity %s/%s",
+				entry.ID.Name, policy.TpNamespace(), policy.TpName())
+		}
+
+		policies = append(policies, persistedTracingPolicy{
+			policy: &server.GRPCTracingPolicy{
+				TracingPolicy: policy,
+				Domain:        entry.ID.Domain,
+			},
+			enabled: entry.Pol.Enabled,
+		})
+	}
+
+	for i, persisted := range policies {
+		policy := persisted.policy
+		state := sensors.DisabledState
+		if persisted.enabled {
+			state = sensors.EnabledState
+		}
+		log.Info("Loading persisted gRPC policy",
+			"name", policy.TpName(),
+			"namespace", policy.TpNamespace(),
+			"domain", policy.TpDomain(),
+			"enabled", persisted.enabled)
+		if err := manager.AddTracingPolicyWithState(ctx, policy, state); err != nil {
+			// as we want all-or-nothing semantics a single policy load error has to
+			// delete all previously loaded policies
+			var rollbackErr error
+			for j := i - 1; j >= 0; j-- {
+				restored := policies[j].policy
+				if err := manager.DeleteTracingPolicy(ctx, restored.TpName(), restored.TpNamespace(), restored.TpDomain()); err != nil {
+					rollbackErr = errors.Join(rollbackErr, fmt.Errorf("roll back restored gRPC policy %s: %w", tracingpolicy.TpLongname(restored), err))
+				}
+			}
+			return errors.Join(fmt.Errorf("restore persisted gRPC policy %s: load: %w", tracingpolicy.TpLongname(policy), err), rollbackErr)
+		}
+		log.Info("Restored persisted gRPC policy",
+			"name", policy.TpName(),
+			"namespace", policy.TpNamespace(),
+			"domain", policy.TpDomain(),
+			"enabled", persisted.enabled)
+	}
+	log.Info("Completed persisted gRPC policy restoration",
+		"policies", len(policies))
+
+	return nil
 }
 
 func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready func()) error {
@@ -480,11 +552,14 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	if err = loadInitialSensor(ctx); err != nil {
 		return err
 	}
-	observer.GetSensorManager().LogSensorsAndProbes(ctx)
 	defer func() {
 		observer.RemoveSensors(ctx)
 		os.Remove(observerDir)
 	}()
+	if err = restoreGRPCPolicies(ctx, grpcPolicyStore, observer.GetSensorManager()); err != nil {
+		return err
+	}
+	observer.GetSensorManager().LogSensorsAndProbes(ctx)
 
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
