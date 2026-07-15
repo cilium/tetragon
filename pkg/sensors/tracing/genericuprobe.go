@@ -628,7 +628,7 @@ func cleanupUprobeEntries(ids []idtable.EntryID, openedFiles []*os.File) error {
 	}
 
 	for _, entryFile := range openedFiles {
-		if err := entryFile.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+		if err := entryFile.Close(); err != nil {
 			errs = errors.Join(errs, fmt.Errorf("problem closing path %q: %w", entryFile.Name(), err))
 		}
 	}
@@ -699,18 +699,13 @@ func createGenericUprobeSensor(
 
 		var entryFile *os.File
 
-		ids, err = addUprobe(&uprobe, entryFile, ids, &in, &has)
-		if err != nil {
-			if entryFile != nil {
-				if closeErr := entryFile.Close(); closeErr != nil && !errors.Is(closeErr, os.ErrClosed) {
-					err = errors.Join(err, closeErr)
-				}
-			}
-			return nil, err
-		}
-
 		if entryFile != nil {
 			openedFiles = append(openedFiles, entryFile)
+		}
+
+		ids, err = addUprobe(&uprobe, entryFile, ids, &in, &has)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -746,7 +741,7 @@ func createGenericUprobeSensor(
 		PostLoadHook: func() error {
 			var errs error
 			for _, entryFile := range openedFiles {
-				if err = entryFile.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+				if err = entryFile.Close(); err != nil {
 					errs = errors.Join(errs, fmt.Errorf("problem closing path %q: %w", entryFile.Name(), err))
 				}
 			}
