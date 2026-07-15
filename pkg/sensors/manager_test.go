@@ -71,7 +71,7 @@ func TestAddSkippedTracingPolicy(t *testing.T) {
 
 	policy := v1alpha1.TracingPolicy{}
 	policy.Name = "skipped-policy"
-	err = mgr.AddSkippedTracingPolicy(ctx, &policy)
+	err = mgr.AddTracingPolicyWithState(ctx, &policy, SkippedState)
 	require.NoError(t, err)
 
 	// Reported as skipped.
@@ -93,7 +93,7 @@ func TestAddSkippedTracingPolicy(t *testing.T) {
 	require.ErrorContains(t, err, "is skipped")
 
 	// A skipped policy holds no state, so tracking it again is not an error.
-	err = mgr.AddSkippedTracingPolicy(ctx, &policy)
+	err = mgr.AddTracingPolicyWithState(ctx, &policy, SkippedState)
 	require.NoError(t, err)
 
 	// A skipped policy can be deleted like any tracked policy.
@@ -129,7 +129,7 @@ func TestSkippedTracingPolicyLoaded(t *testing.T) {
 
 			policy := v1alpha1.TracingPolicy{}
 			policy.Name = "test-policy"
-			require.NoError(t, mgr.AddSkippedTracingPolicy(ctx, &policy))
+			require.NoError(t, mgr.AddTracingPolicyWithState(ctx, &policy, SkippedState))
 
 			if tc.deleteBeforeAdd {
 				require.NoError(t, mgr.DeleteTracingPolicy(ctx, "test-policy", "", policy.TpDomain()))

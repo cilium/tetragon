@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -60,7 +61,7 @@ func (f *fakeSensors) AddTracingPolicy(_ context.Context, tp tracingpolicy.Traci
 	return f.addErr
 }
 
-func (f *fakeSensors) AddSkippedTracingPolicy(_ context.Context, tp tracingpolicy.TracingPolicy) error {
+func (f *fakeSensors) AddTracingPolicyWithState(_ context.Context, tp tracingpolicy.TracingPolicy, _ sensors.TracingPolicyState) error {
 	f.skippedCalls = append(f.skippedCalls, addCall{tp.TpName(), tp.TpNamespace()})
 	return f.skippedErr
 }

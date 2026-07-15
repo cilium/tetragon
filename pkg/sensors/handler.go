@@ -101,6 +101,10 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		return err
 	}
+	if op.state == SkippedState {
+		col.state = SkippedState
+		return nil
+	}
 
 	// update policy filter state before loading the sensors of the policy.
 	//
@@ -127,6 +131,10 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	}
 	col.sensors = make([]SensorIface, 0, len(sensors))
 	col.sensors = append(col.sensors, sensors...)
+	if op.state == DisabledState {
+		col.state = DisabledState
+		return nil
+	}
 	col.state = LoadingState
 
 	notAllowedReasons := make([]string, 0, len(col.sensors))
@@ -150,20 +158,6 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		return err
 	}
 	col.state = EnabledState
-	return nil
-}
-
-// addSkippedTracingPolicy tracks a policy that is not loaded on this node, so
-// that it is reported as skipped instead of being absent. No sensors and no
-// policyfilter state are created.
-func (h *handler) addSkippedTracingPolicy(op *tracingPolicyAdd) error {
-	h.collections.mu.Lock()
-	defer h.collections.mu.Unlock()
-	col, err := h.registerNewCollection(op)
-	if err != nil {
-		return err
-	}
-	col.state = SkippedState
 	return nil
 }
 

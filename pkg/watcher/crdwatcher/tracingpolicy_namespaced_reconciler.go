@@ -21,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/sensors"
 )
 
 // TracingPolicyNamespacedReconciler reconciles namespaced TracingPolicy
@@ -64,7 +65,7 @@ func (r *TracingPolicyNamespacedReconciler) Reconcile(ctx context.Context, req c
 		log.Info("skipping namespaced tracing policy: node does not match spec.nodeSelector")
 		// unlike a load failure below, this is not terminal: requeue so the
 		// policy does not stay untracked
-		if addErr := r.Sensors.AddSkippedTracingPolicy(ctx, tp); addErr != nil {
+		if addErr := r.Sensors.AddTracingPolicyWithState(ctx, tp, sensors.SkippedState); addErr != nil {
 			log.Warn("tracking skipped namespaced tracing policy failed", logfields.Error, addErr)
 			return ctrl.Result{}, addErr
 		}

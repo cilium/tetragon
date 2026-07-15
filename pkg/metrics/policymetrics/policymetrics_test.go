@@ -16,6 +16,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/sensors"
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -93,7 +94,7 @@ tetragon_tracingpolicy_loaded{state="skipped"} %d
 			Name: "salad",
 		},
 	}
-	err = manager.AddSkippedTracingPolicy(context.TODO(), &tp5)
+	err = manager.AddTracingPolicyWithState(context.TODO(), &tp5, sensors.SkippedState)
 	require.NoError(t, err)
 
 	err = testutil.CollectAndCompare(collector, expectedMetrics(0, 4, 0, 0, 1))
