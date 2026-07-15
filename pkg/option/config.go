@@ -117,7 +117,9 @@ type config struct {
 	HealthServerAddress  string
 	HealthServerInterval int
 
-	KeepSensorsOnExit bool
+	KeepSensorsOnExit      bool
+	PersistGRPCPolicies    bool
+	PersistGRPCPoliciesDir string
 
 	EnableCRI   bool
 	CRIEndpoint string

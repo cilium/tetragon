@@ -125,7 +125,9 @@ const (
 
 	KeyBpfDir = "bpf-dir"
 
-	KeyKeepSensorsOnExit = "keep-sensors-on-exit"
+	KeyKeepSensorsOnExit      = "keep-sensors-on-exit"
+	KeyPersistGRPCPolicies    = "persist-grpc-policies"
+	KeyPersistGRPCPoliciesDir = "persist-grpc-policies-dir"
 
 	KeyEnableCRI   = "enable-cri"
 	KeyCRIEndpoint = "cri-endpoint"
@@ -299,6 +301,8 @@ func ReadAndSetFlags() error {
 	Config.BpfDir = viper.GetString(KeyBpfDir)
 
 	Config.KeepSensorsOnExit = viper.GetBool(KeyKeepSensorsOnExit)
+	Config.PersistGRPCPolicies = viper.GetBool(KeyPersistGRPCPolicies)
+	Config.PersistGRPCPoliciesDir = viper.GetString(KeyPersistGRPCPoliciesDir)
 
 	Config.EnableCRI = viper.GetBool(KeyEnableCRI)
 	Config.CRIEndpoint = viper.GetString(KeyCRIEndpoint)
@@ -563,6 +567,8 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyBpfDir, defaults.DefaultMapPrefix, "Set tetragon bpf directory (default 'tetragon')")
 
 	flags.Bool(KeyKeepSensorsOnExit, false, "Do not unload sensors on exit")
+	flags.Bool(KeyPersistGRPCPolicies, false, "Persist tracing policies installed over gRPC across agent restarts")
+	flags.String(KeyPersistGRPCPoliciesDir, defaults.DefaultGRPCPolicyDir, "Directory in which to persist tracing policies installed over gRPC")
 
 	flags.Bool(KeyEnableCRI, false, "enable CRI client for tetragon")
 	flags.String(KeyCRIEndpoint, "", "CRI endpoint")
