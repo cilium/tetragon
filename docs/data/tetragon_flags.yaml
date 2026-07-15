@@ -217,6 +217,14 @@ options:
       usage: Set entries for parents_map table (default 32768)
     - name: parents-map-size
       usage: Set size for parents_map table (allows K/M/G suffix)
+    - name: persist-grpc-policies
+      default_value: "false"
+      usage: |
+        Persist tracing policies installed over gRPC across agent restarts
+    - name: persist-grpc-policies-dir
+      default_value: /var/run/tetragon/grpc-policies
+      usage: |
+        Directory in which to persist tracing policies installed over gRPC
     - name: pprof-address
       usage: |
         Serves runtime profile data via HTTP (e.g. 'localhost:6060'). Disabled by default
