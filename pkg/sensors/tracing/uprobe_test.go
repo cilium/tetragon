@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	"github.com/cilium/tetragon/pkg/selectors"
@@ -41,6 +42,7 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -1288,6 +1290,14 @@ spec:
 }
 
 func TestUprobeSleepablePreloadMapConfig(t *testing.T) {
+	testUprobeSleepablePreloadMapConfig(t, false)
+}
+
+func TestUprobeSleepablePreloadMapConfigWithMax(t *testing.T) {
+	testUprobeSleepablePreloadMapConfig(t, true)
+}
+
+func testUprobeSleepablePreloadMapConfig(t *testing.T, withMax bool) {
 	if !bpf.HasKfunc("bpf_copy_from_user_str") {
 		t.Skip("skipping, no string preload support")
 	}
@@ -1351,6 +1361,12 @@ spec:` + opts + `
 		return val
 	}
 
+	if withMax {
+		originalSize := option.Config.SleepablePreloadSize
+		option.Config.SleepablePreloadSize = 2048
+		t.Cleanup(func() { option.Config.SleepablePreloadSize = originalSize })
+	}
+
 	// sleepable_preload as MapShared at global scope (/sys/fs/bpf/tetragon/sleepable_preload)
 	t.Run("shared", func(t *testing.T) {
 		sens := loadSensors(t, policy(""))
@@ -1360,7 +1376,11 @@ spec:` + opts + `
 		require.NotNil(t, m, "sleepable_preload map not found in sensor")
 
 		assert.Equal(t, "sleepable_preload", m.PinPath)
-		assert.Equal(t, uint32(sleepablePreloadMaxEntries), getMaxEntries(m))
+		if withMax {
+			assert.Equal(t, uint32(2048), getMaxEntries(m))
+		} else {
+			assert.Equal(t, uint32(defaults.DefaultSleepablePreloadSize), getMaxEntries(m))
+		}
 	})
 
 	// sleepable_preload as MapBuilderProgram at program scope (.../policy/sensor/prog/sleepable_preload)
