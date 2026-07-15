@@ -374,6 +374,41 @@ func TestPolicyStates(t *testing.T) {
 		assert.Len(t, l.Policies, 1)
 		assert.Equal(t, DisabledState.ToTetragonState(), l.Policies[0].State)
 	})
+
+	t.Run("InitiallyDisabled", func(t *testing.T) {
+		RegisterPolicyHandlerAtInit("dummy", &dummyHandler{s: &Sensor{Name: "dummy-sensor"}})
+		t.Cleanup(func() {
+			delete(registeredPolicyHandlers, "dummy")
+		})
+
+		policy := v1alpha1.TracingPolicy{}
+		mgr, err := StartSensorManager("")
+		require.NoError(t, err)
+		policy.Name = "test-policy"
+		err = mgr.AddTracingPolicyWithState(ctx, &policy, DisabledState)
+		require.NoError(t, err)
+
+		policies, err := mgr.ListTracingPolicies(ctx, policy.TpDomain())
+		require.NoError(t, err)
+		require.Len(t, policies.Policies, 1)
+		assert.Equal(t, DisabledState.ToTetragonState(), policies.Policies[0].State)
+
+		sensorStatuses, err := mgr.ListSensors(ctx)
+		require.NoError(t, err)
+		require.Len(t, *sensorStatuses, 1)
+		assert.False(t, (*sensorStatuses)[0].Enabled)
+
+		err = mgr.EnableTracingPolicy(ctx, policy.Name, policy.Namespace, policy.TpDomain())
+		require.NoError(t, err)
+		policies, err = mgr.ListTracingPolicies(ctx, policy.TpDomain())
+		require.NoError(t, err)
+		require.Len(t, policies.Policies, 1)
+		assert.Equal(t, EnabledState.ToTetragonState(), policies.Policies[0].State)
+		sensorStatuses, err = mgr.ListSensors(ctx)
+		require.NoError(t, err)
+		require.Len(t, *sensorStatuses, 1)
+		assert.True(t, (*sensorStatuses)[0].Enabled)
+	})
 }
 
 // TestPolicyLoadErrorOverride tests the fact that you can add a TracingPolicy
