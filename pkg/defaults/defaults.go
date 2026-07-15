@@ -53,6 +53,9 @@ const (
 	// Default directory from where to load tracing policies.
 	DefaultTpDir = "/etc/tetragon/tetragon.tp.d"
 
+	// Default directory in which to persist tracing policies installed over gRPC.
+	DefaultGRPCPolicyDir = DefaultRunDir + "grpc-policies"
+
 	// Default secure export logs permissions
 	DefaultLogsPermission = "600"
 
