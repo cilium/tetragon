@@ -132,23 +132,25 @@ func newTracingPolicyAdd(ctx context.Context, tp tracingpolicy.TracingPolicy) (*
 
 // AddTracingPolicy adds a new sensor based on a tracing policy
 func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error {
-	op, err := newTracingPolicyAdd(ctx, tp)
-	if err != nil {
-		return err
-	}
-
-	return h.handler.addTracingPolicy(op)
+	return h.AddTracingPolicyWithState(ctx, tp, EnabledState)
 }
 
-// AddSkippedTracingPolicy tracks tp as skipped, without loading any BPF, so
-// that it is reported instead of being absent on this node.
-func (h *Manager) AddSkippedTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error {
+// AddTracingPolicyWithState adds a new sensor based on a tracing policy and
+// controls its initial state. A disabled policy remains registered and can
+// subsequently be enabled with EnableTracingPolicy. A skipped policy is
+// tracked without creating sensors or policy filter state.
+func (h *Manager) AddTracingPolicyWithState(ctx context.Context, tp tracingpolicy.TracingPolicy, state TracingPolicyState) error {
+	if state != EnabledState && state != DisabledState && state != SkippedState {
+		return fmt.Errorf("invalid initial tracing policy state: %v", state)
+	}
+
 	op, err := newTracingPolicyAdd(ctx, tp)
 	if err != nil {
 		return err
 	}
 
-	return h.handler.addSkippedTracingPolicy(op)
+	op.state = state
+	return h.handler.addTracingPolicy(op)
 }
 
 // DeleteTracingPolicy deletes a new sensor based on a tracing policy
@@ -269,9 +271,10 @@ type Manager struct {
 
 // tracingPolicyAdd adds a sensor based on a the provided tracing policy
 type tracingPolicyAdd struct {
-	ctx context.Context
-	ck  collectionKey
-	tp  tracingpolicy.TracingPolicy
+	ctx   context.Context
+	ck    collectionKey
+	tp    tracingpolicy.TracingPolicy
+	state TracingPolicyState
 }
 
 type tracingPolicyDelete struct {

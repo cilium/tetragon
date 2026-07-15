@@ -21,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -28,7 +29,7 @@ import (
 // Defined where it is consumed so the Reconciler can be unit-tested with a fake.
 type sensorManager interface {
 	AddTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error
-	AddSkippedTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error
+	AddTracingPolicyWithState(ctx context.Context, tp tracingpolicy.TracingPolicy, state sensors.TracingPolicyState) error
 	DeleteTracingPolicy(ctx context.Context, name string, namespace string, domain string) error
 }
 
@@ -76,7 +77,7 @@ func (r *TracingPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Info("skipping tracing policy: node does not match spec.nodeSelector")
 		// unlike a load failure below, this is not terminal: requeue so the
 		// policy does not stay untracked
-		if addErr := r.Sensors.AddSkippedTracingPolicy(ctx, tp); addErr != nil {
+		if addErr := r.Sensors.AddTracingPolicyWithState(ctx, tp, sensors.SkippedState); addErr != nil {
 			log.Warn("tracking skipped tracing policy failed", logfields.Error, addErr)
 			return ctrl.Result{}, addErr
 		}

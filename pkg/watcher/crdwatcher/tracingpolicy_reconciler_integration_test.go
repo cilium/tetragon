@@ -26,6 +26,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -45,9 +46,9 @@ func (r *recordingSensors) AddTracingPolicy(_ context.Context, tp tracingpolicy.
 	return nil
 }
 
-// AddSkippedTracingPolicy satisfies sensorManager. No policy here sets a
+// AddTracingPolicyWithState satisfies sensorManager. No policy here sets a
 // nodeSelector, so it is never called; nodeselector_test.go covers that path.
-func (r *recordingSensors) AddSkippedTracingPolicy(_ context.Context, _ tracingpolicy.TracingPolicy) error {
+func (r *recordingSensors) AddTracingPolicyWithState(_ context.Context, _ tracingpolicy.TracingPolicy, _ sensors.TracingPolicyState) error {
 	return nil
 }
 
