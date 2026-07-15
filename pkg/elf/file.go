@@ -101,25 +101,9 @@ func (se *SafeELFFile) Offset(name string) (uint64, error) {
 			continue
 		}
 
-		offset := sym.Value
-
-		// Loop over ELF segments.
-		for _, prog := range se.Progs {
-			// Skip uninteresting segments.
-			if prog.Type != elf.PT_LOAD || (prog.Flags&elf.PF_X) == 0 {
-				continue
-			}
-
-			if prog.Vaddr <= sym.Value && sym.Value < (prog.Vaddr+prog.Memsz) {
-				// If the symbol value is contained in the segment, calculate
-				// the symbol offset.
-				//
-				// fn symbol offset = fn symbol VA - .text VA + .text offset
-				//
-				// stackoverflow.com/a/40249502
-				offset = sym.Value - prog.Vaddr + prog.Off
-				break
-			}
+		offset, err := se.OffsetFromAddr(sym.Value)
+		if err != nil {
+			offset = sym.Value
 		}
 		return offset, nil
 	}
