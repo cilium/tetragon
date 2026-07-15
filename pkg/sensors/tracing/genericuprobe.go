@@ -1367,7 +1367,7 @@ func getSleepablePreloadMap(userSize int, load *program.Program) *program.Map {
 		m.SetMaxEntries(userSize)
 	} else {
 		m = program.MapShared("sleepable_preload", load)
-		m.SetMaxEntries(sleepablePreloadMaxEntries)
+		m.SetMaxEntries(option.Config.SleepablePreloadSize)
 	}
 	return m
 }

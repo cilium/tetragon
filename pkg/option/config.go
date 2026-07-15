@@ -138,6 +138,8 @@ type config struct {
 
 	RetprobesCacheSize int
 
+	SleepablePreloadSize int
+
 	EnableGRPCDeprecatedTP bool
 
 	KeepCollection bool
@@ -181,6 +183,9 @@ var (
 
 		// Set default value for {k,u}retprobes lru events cache
 		RetprobesCacheSize: defaults.DefaultRetprobesCacheSize,
+
+		// Set default value for sleepable preload maps.
+		SleepablePreloadSize: defaults.DefaultSleepablePreloadSize,
 	}
 )
 

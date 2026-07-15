@@ -256,7 +256,7 @@ func createMultiUsdtSensor(
 
 	if has.sleepablePreload {
 		sleepablePreloadMap := program.MapShared("sleepable_preload", load)
-		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
+		sleepablePreloadMap.SetMaxEntries(option.Config.SleepablePreloadSize)
 		maps = append(maps, sleepablePreloadMap)
 	}
 
@@ -327,7 +327,7 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 
 	if has.sleepablePreload {
 		sleepablePreloadMap := program.MapShared("sleepable_preload", load)
-		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
+		sleepablePreloadMap.SetMaxEntries(option.Config.SleepablePreloadSize)
 		maps = append(maps, sleepablePreloadMap)
 	}
 

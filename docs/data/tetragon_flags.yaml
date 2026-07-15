@@ -268,6 +268,10 @@ options:
       default_value: "false"
       usage: |
         Require and verify client certificates (mTLS). Requires --server-tls-client-ca-files.
+    - name: sleepable-preload-size
+      default_value: "32768"
+      usage: |
+        Set the maximum number of entries in the sleepable preload map
     - name: tracing-policy
       usage: Tracing policy file to load at startup
     - name: tracing-policy-dir
