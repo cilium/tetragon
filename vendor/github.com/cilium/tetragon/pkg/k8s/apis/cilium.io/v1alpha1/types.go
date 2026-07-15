@@ -389,6 +389,12 @@ type TracepointSpec struct {
 	Raw bool `json:"raw,omitempty"`
 }
 
+type UprobeIgnore struct {
+	// Ignores uprobe where the digest verification of the traced binary fails
+	// +kubebuilder:validation:Optional
+	DigestVerificationFailure bool `json:"digestVerificationFailure,omitempty"`
+}
+
 // +kubebuilder:validation:XValidation:rule="!(has(self.symbols) && has(self.addrs)) && !(has(self.symbols) && has(self.offsets)) && !(has(self.addrs) && has(self.offsets))",message="uprobe needs at most one of symbols, addrs or offsets defined"
 // +kubebuilder:validation:XValidation:rule="!self.return || has(self.returnArg)",message="ReturnArg not specified with Return=true."
 type UProbeSpec struct {
@@ -436,10 +442,13 @@ type UProbeSpec struct {
 	ReturnArg *KProbeArg `json:"returnArg,omitempty"`
 	// +kubebuilder:validation:Optional
 	// BinaryDigests specifies a set of digests for the traced binary.
-	// The uprobe is installed only if the digest of the traced binary matches a digest in the set.
-	// Currently, if the digest is not matched, the policy is rejected. Subsequent work will skip
-	// loading the uprobe instead of rejecting the policy.
+	// The uprobe/hook is installed only if the digest of the traced binary matches a digest in the set.
+	// Tetragon's tracing policy status API can be used to see each hook's status in order to determine
+	// if the hook was attached or not.
 	BinaryDigests []string `json:"binaryDigests,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Conditions for ignoring this uprobe
+	Ignore *UprobeIgnore `json:"ignore,omitempty"`
 }
 
 type UsdtSpec struct {
