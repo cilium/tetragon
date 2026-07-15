@@ -7,6 +7,7 @@ package tracing
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -16,6 +17,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/elf"
+	"github.com/cilium/tetragon/pkg/logger"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -196,6 +200,98 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func testUprobeOverrideNewSymbolAddrOffsetAction(t *testing.T, symbol string, offset, addr uint64) {
+	if !bpf.HasUprobeRegsChange() {
+		t.Skip("this test requires writing to regs kernel support")
+	}
+
+	testutils.CaptureLog(t, logger.GetLogger())
+	uprobeTest1 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+
+	f, _ := elf.OpenSafeELFFile(libUprobe)
+	defer f.Close()
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-selector"
+spec:
+  uprobes:
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_string_arg_empty"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "` + uprobeTest1 + `"
+      matchActions:
+      - action: Override
+        argNew%s: %s`
+
+	if symbol != "" {
+		uprobeHook = fmt.Sprintf(uprobeHook, "Symbol", symbol)
+	} else if offset != 0 {
+		uprobeHook = fmt.Sprintf(uprobeHook, "Offset", strconv.FormatUint(offset, 10))
+	} else {
+		uprobeHook = fmt.Sprintf(uprobeHook, "Addr", strconv.FormatUint(addr, 10))
+	}
+
+	createCrdFile(t, uprobeHook)
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_SELECTOR_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobeTest1))).
+		WithSymbol(sm.Full("uprobe_test_lib_string_arg_empty"))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(uprobeTest1)
+	// See uprobe-lib.c/uprobe-test.c return code for uprobe_test_lib_string_arg__().
+	// It will return 100 when the symbol is overridden.
+	// It will be considered an error by `cmd.Run()`.
+	require.Error(t, cmd.Run())
+	require.Equal(t, 100, cmd.ProcessState.ExitCode())
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUprobeOverrideNewSymbolAddrOffsetAction(t *testing.T) {
+	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+	f, _ := elf.OpenSafeELFFile(libUprobe)
+	t.Cleanup(func() {
+		f.Close()
+	})
+
+	t.Run("symbol", func(t *testing.T) {
+		testUprobeOverrideNewSymbolAddrOffsetAction(t, "uprobe_test_lib_string_arg__", 0, 0)
+	})
+	t.Run("offset", func(t *testing.T) {
+		off, _ := f.Offset("uprobe_test_lib_string_arg__")
+		testUprobeOverrideNewSymbolAddrOffsetAction(t, "", off, 0)
+	})
+	t.Run("addr", func(t *testing.T) {
+		addr, _ := f.Address("uprobe_test_lib_string_arg__")
+		testUprobeOverrideNewSymbolAddrOffsetAction(t, "", 0, addr)
+	})
 }
 
 func TestUprobeResolve(t *testing.T) {
