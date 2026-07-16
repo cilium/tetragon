@@ -1809,6 +1809,28 @@ func HasOverride(selectors []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+func CountOverrideArgNewSymbolAddrOffset(selectors []v1alpha1.KProbeSelector) int {
+	for _, s := range selectors {
+		for _, action := range s.MatchActions {
+			numArgNewArgs := 0
+			act := actionTypeTable[strings.ToLower(action.Action)]
+			if act == ActionTypeOverride {
+				if action.ArgNewSymbol != "" {
+					numArgNewArgs++
+				}
+				if action.ArgNewAddr != 0 {
+					numArgNewArgs++
+				}
+				if action.ArgNewOffset != 0 {
+					numArgNewArgs++
+				}
+				return numArgNewArgs
+			}
+		}
+	}
+	return 0
+}
+
 func HasOperator(selectors []v1alpha1.KProbeSelector, op uint32) bool {
 	for _, s := range selectors {
 		for _, a := range slices.Concat(s.MatchArgs, s.MatchData, s.MatchReturnArgs) {
