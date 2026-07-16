@@ -21,8 +21,10 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
 	telf "github.com/cilium/tetragon/pkg/elf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
@@ -412,8 +414,8 @@ func ParseMatchCaller(k *KernelSelectorState, caller *v1alpha1.UserCallerSelecto
 
 	var depth uint32
 	if caller.Depth == "any" {
-		if !kernels.MinKernelVersion("5.2.0") {
-			return errors.New("caller selector depth 'any' requires kernel version >= 5.2")
+		if runtime.GOARCH == "amd64" && !bpf.HasUprobeImmediateCallerAddressAMD64() {
+			logger.GetLogger().Warn("kernel missing commit cfa7f3d2c526, therefore the immediate caller is missing from the callchain on amd64.")
 		}
 		depth = 0x0
 	} else {
@@ -429,9 +431,9 @@ func ParseMatchCaller(k *KernelSelectorState, caller *v1alpha1.UserCallerSelecto
 		depth = uint32(d)
 		// Kernels after 6.12 include https://github.com/torvalds/linux/commit/cfa7f3d2c526c224a6271cc78a4a27a0de06f4f0
 		// The result is that the immediate caller is missing in the array on non fixed machines and all entries are shifted by one.
-		if runtime.GOARCH == "amd64" && !kernels.MinKernelVersion("6.12.0") {
+		if runtime.GOARCH == "amd64" && !bpf.HasUprobeImmediateCallerAddressAMD64() {
 			if depth == 1 {
-				return errors.New("matching the immediate caller on amd64 requires kernel >=6.12")
+				return errors.New("matching the immediate caller on amd64 requires kernel support for complete uprobe perf callchains")
 			}
 			depth--
 		}
