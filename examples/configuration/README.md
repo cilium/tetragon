@@ -1,1 +1,0 @@
-../../docs/content/en/docs/getting-started/configuration.md
