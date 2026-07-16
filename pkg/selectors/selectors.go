@@ -132,6 +132,7 @@ type KernelSelectorState struct {
 	maps *KernelSelectorMaps
 
 	isUprobe bool
+	uprobeID int
 
 	regs []processapi.RegAssignment
 
@@ -144,6 +145,7 @@ func NewKernelSelectorState(
 	listReader ValueReader,
 	maps *KernelSelectorMaps,
 	isUprobe bool,
+	uprobeID int,
 	celExprs *CelExprFunctions,
 ) *KernelSelectorState {
 	if maps == nil {
@@ -158,6 +160,7 @@ func NewKernelSelectorState(
 		listReader:         listReader,
 		maps:               maps,
 		isUprobe:           isUprobe,
+		uprobeID:           uprobeID,
 		celExprFunctions:   celExprs,
 	}
 }

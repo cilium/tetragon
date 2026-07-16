@@ -47,5 +47,5 @@ func parseOverrideRegs(k *KernelSelectorState, values []string, errValue uint64)
 	}
 
 	k.regs = regs
-	return uint32(0), nil
+	return uint32(k.uprobeID), nil
 }
