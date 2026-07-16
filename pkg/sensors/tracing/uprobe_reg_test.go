@@ -38,7 +38,10 @@ func TestUprobeOverrideAction(t *testing.T) {
 	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
 
 	// Put uprobe at the beginning of test_1 function and make sure
-	// uprobe overrides test_1 return value (with 123).
+	// uprobe overrides test_1 return value (with 123),
+	// even if a second hook on `test_3` exists with return value 234.
+	// Also make sure that second hook is correct too.
+	// See https://github.com/cilium/tetragon/issues/5285.
 
 	pathHook := `
 apiVersion: cilium.io/v1alpha1
@@ -54,15 +57,26 @@ spec:
     - matchActions:
       - action: Override
         argError: 123
+  - path: "` + testBinary + `"
+    symbols:
+    - "test_3"
+    selectors:
+    - matchActions:
+      - action: Override
+        argError: 234
 `
 
 	createCrdFile(t, pathHook)
 
-	upChecker := ec.NewProcessUprobeChecker("UPROBE_OVERRIDE").
+	up1Checker := ec.NewProcessUprobeChecker("UPROBE_OVERRIDE_1").
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Full(testBinary))).
 		WithSymbol(sm.Full("test_1"))
-	checker := ec.NewUnorderedEventChecker(upChecker)
+	up3Checker := ec.NewProcessUprobeChecker("UPROBE_OVERRIDE_3").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testBinary))).
+		WithSymbol(sm.Full("test_3"))
+	checker := ec.NewUnorderedEventChecker(up1Checker, up3Checker)
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -80,6 +94,10 @@ spec:
 	cmd := exec.Command(testBinary, "1")
 	require.Error(t, cmd.Run())
 	require.Equal(t, 123, cmd.ProcessState.ExitCode())
+
+	cmd = exec.Command(testBinary, "3")
+	require.Error(t, cmd.Run())
+	require.Equal(t, 234, cmd.ProcessState.ExitCode())
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
