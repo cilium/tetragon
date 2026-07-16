@@ -1187,7 +1187,7 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	switch act {
 	case ActionTypeOverride:
 		if k.isUprobe {
-			id, err := parseOverrideRegs(k, action.ArgRegs, uint64(action.ArgError))
+			id, err := parseOverrideRegs(k, action.ArgRegs, uint64(action.ArgError), k.overrideActionIPDelta)
 			if err != nil {
 				return err
 			}
@@ -1621,7 +1621,11 @@ type KernelSelectorArgs struct {
 	Maps           *KernelSelectorMaps
 	IsUprobe       bool
 	UprobeID       int
-	CelExprs       *CelExprFunctions
+	// For Override argNew{Symbol,Addr,Offset} this will hold
+	// the instruction pointer delta that will be stored
+	// by ParseMatchAction().
+	OverrideActionIPDelta int64
+	CelExprs              *CelExprFunctions
 }
 
 // The byte array storing the selector configuration has the following format
@@ -1686,13 +1690,14 @@ func createKernelSelectorState(
 	maps *KernelSelectorMaps,
 	isUprobe bool,
 	uprobeID int,
+	overrideActionIPDelta int64,
 	celExprs *CelExprFunctions,
 	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error,
 ) (*KernelSelectorState, error) {
 	if len(selectors) > MaxSelectors {
 		return nil, fmt.Errorf("no more than %d selectors supported (%d provided)", MaxSelectors, len(selectors))
 	}
-	state := NewKernelSelectorState(listReader, maps, isUprobe, uprobeID, celExprs)
+	state := NewKernelSelectorState(listReader, maps, isUprobe, uprobeID, overrideActionIPDelta, celExprs)
 
 	WriteSelectorUint32(&state.data, uint32(len(selectors)))
 	soff := make([]uint32, len(selectors))
@@ -1746,7 +1751,7 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		return nil
 	}
 
-	return createKernelSelectorState(args.Selectors, args.ListReader, args.Maps, args.IsUprobe, args.UprobeID, args.CelExprs, parse)
+	return createKernelSelectorState(args.Selectors, args.ListReader, args.Maps, args.IsUprobe, args.UprobeID, args.OverrideActionIPDelta, args.CelExprs, parse)
 }
 
 func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
@@ -1762,7 +1767,7 @@ func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnAr
 		return nil
 	}
 
-	return createKernelSelectorState(selectors, listReader, maps, false, 0, nil, parse)
+	return createKernelSelectorState(selectors, listReader, maps, false, 0, 0, nil, parse)
 }
 
 func CleanupKernelSelectorState(state *KernelSelectorState) error {

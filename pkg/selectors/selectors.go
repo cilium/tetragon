@@ -132,8 +132,9 @@ type KernelSelectorState struct {
 
 	maps *KernelSelectorMaps
 
-	isUprobe bool
-	uprobeID int
+	isUprobe              bool
+	uprobeID              int
+	overrideActionIPDelta int64
 
 	regs []processapi.RegAssignment
 
@@ -151,6 +152,7 @@ func NewKernelSelectorState(
 	maps *KernelSelectorMaps,
 	isUprobe bool,
 	uprobeID int,
+	overrideActionIPDelta int64,
 	celExprs *CelExprFunctions,
 ) *KernelSelectorState {
 	if maps == nil {
@@ -160,14 +162,15 @@ func NewKernelSelectorState(
 		celExprs = &CelExprFunctions{}
 	}
 	return &KernelSelectorState{
-		matchBinaries:      make(map[int]MatchBinariesSelectorOptions),
-		matchBinariesPaths: make(map[int][][processapi.BINARY_PATH_MAX_LEN]byte),
-		listReader:         listReader,
-		maps:               maps,
-		isUprobe:           isUprobe,
-		uprobeID:           uprobeID,
-		celExprFunctions:   celExprs,
-		matchWorkloadIDs:   make(map[int]policyfilter.PolicyID),
+		matchBinaries:         make(map[int]MatchBinariesSelectorOptions),
+		matchBinariesPaths:    make(map[int][][processapi.BINARY_PATH_MAX_LEN]byte),
+		listReader:            listReader,
+		maps:                  maps,
+		isUprobe:              isUprobe,
+		uprobeID:              uprobeID,
+		overrideActionIPDelta: overrideActionIPDelta,
+		celExprFunctions:      celExprs,
+		matchWorkloadIDs:      make(map[int]policyfilter.PolicyID),
 	}
 }
 
