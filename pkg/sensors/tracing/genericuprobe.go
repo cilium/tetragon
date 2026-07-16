@@ -88,7 +88,7 @@ type genericUprobe struct {
 	pendingEvents *lru.Cache[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]]
 }
 
-func populateUprobeRegs(m *ebpf.Map, regs []processapi.RegAssignment) error {
+func populateUprobeRegs(m *ebpf.Map, id int, regs []processapi.RegAssignment) error {
 	uprobeRegs := processapi.UprobeRegs{}
 
 	n := copy(uprobeRegs.Ass[:], regs)
@@ -96,7 +96,7 @@ func populateUprobeRegs(m *ebpf.Map, regs []processapi.RegAssignment) error {
 		logger.GetLogger().Warn("register assignments count mismatch", "#regs", len(regs))
 	}
 	uprobeRegs.Cnt = uint32(n)
-	return m.Update(uint32(0), uprobeRegs, ebpf.UpdateAny)
+	return m.Update(uint32(id), uprobeRegs, ebpf.UpdateAny)
 }
 
 func (g *genericUprobe) SetID(id idtable.EntryID) {
@@ -245,7 +245,7 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 				&program.MapLoad{
 					Name: "regs_map",
 					Load: func(m *ebpf.Map, _ string) error {
-						return populateUprobeRegs(m, selector.Regs())
+						return populateUprobeRegs(m, 0, selector.Regs())
 					},
 				},
 			)
@@ -362,7 +362,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 					&program.MapLoad{
 						Name: "regs_map",
 						Load: func(m *ebpf.Map, _ string) error {
-							return populateUprobeRegs(m, selector.Regs())
+							return populateUprobeRegs(m, index, selector.Regs())
 						},
 					},
 				)
@@ -573,12 +573,13 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 	return nil
 }
 
-func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState) error {
+func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState, nextIdx int) error {
 	entry, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,
 		Args:      spec.Args,
 		Data:      spec.Data,
 		IsUprobe:  true,
+		UprobeID:  nextIdx,
 		CelExprs:  in.celExprs,
 	})
 	if err != nil {
@@ -1118,7 +1119,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, entryFile *os.File, ids []idtable.Entr
 		return ids, err
 	}
 
-	if err := initUprobeSelectors(spec, in, &state); err != nil {
+	if err := initUprobeSelectors(spec, in, &state, len(ids)); err != nil {
 		return ids, err
 	}
 
@@ -1204,6 +1205,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
+		regsMap.SetMaxEntries(len(multiIDs))
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
 		maps = append(maps, regsMap, sleepableOffloadMap)
