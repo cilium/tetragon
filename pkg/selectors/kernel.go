@@ -24,6 +24,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
 	telf "github.com/cilium/tetragon/pkg/elf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
@@ -466,7 +467,7 @@ func ParseMatchCaller(k *KernelSelectorState, caller *v1alpha1.UserCallerSelecto
 
 func missingUprobeCaller() bool {
 	return runtime.GOARCH == "arm64" ||
-		(runtime.GOARCH == "amd64" && !kernels.MinKernelVersion("6.12.0"))
+		(runtime.GOARCH == "amd64" && !bpf.HasUprobeImmediateCallerAddressAMD64())
 }
 
 func findCallerRange(caller *v1alpha1.UserCallerSelector, elfFile *telf.SafeELFFile) (uint64, uint64, error) {
