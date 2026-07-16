@@ -42,23 +42,24 @@ type FeatureKfuncs struct {
 }
 
 var (
-	kprobeMulti            Feature
-	uprobeMulti            Feature
-	buildid                Feature
-	modifyReturn           Feature
-	modifyReturnSyscall    Feature
-	linkPin                Feature
-	lsm                    Feature
-	missedStatsKprobe      Feature
-	missedStatsKprobeMulti Feature
-	batchUpdate            Feature
-	uprobeRefCtrOffset     Feature
-	auditLoginuid          Feature
-	uprobeRegsChange       Feature
-	kfuncs                 FeatureKfuncs
-	mixBpfAndTailCalls     Feature
-	getFuncRetHelper       Feature
-	fentry                 Feature
+	kprobeMulti                       Feature
+	uprobeMulti                       Feature
+	buildid                           Feature
+	modifyReturn                      Feature
+	modifyReturnSyscall               Feature
+	linkPin                           Feature
+	lsm                               Feature
+	missedStatsKprobe                 Feature
+	missedStatsKprobeMulti            Feature
+	batchUpdate                       Feature
+	uprobeRefCtrOffset                Feature
+	auditLoginuid                     Feature
+	uprobeRegsChange                  Feature
+	uprobeImmediateCallerAddressAMD64 Feature
+	kfuncs                            FeatureKfuncs
+	mixBpfAndTailCalls                Feature
+	getFuncRetHelper                  Feature
+	fentry                            Feature
 )
 
 func HasOverrideHelper() bool {
@@ -517,6 +518,33 @@ func HasMissedStatsKprobeMulti() bool {
 	return missedStatsKprobeMulti.detected
 }
 
+func hasBTFStructField(st *ebtf.Struct, name string) bool {
+	for _, member := range st.Members {
+		if member.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func detectUprobeImmediateCallerAddressAMD64() bool {
+	uprobeTask, err := btf.FindBTFStruct("uprobe_task")
+	if err != nil {
+		return false
+	}
+
+	// cfa7f3d2c526 ("perf,x86: avoid missing caller address in stack traces
+	// captured in uprobe") added uprobe_task::auprobe.
+	return hasBTFStructField(uprobeTask, "auprobe")
+}
+
+func HasUprobeImmediateCallerAddressAMD64() bool {
+	uprobeImmediateCallerAddressAMD64.init.Do(func() {
+		uprobeImmediateCallerAddressAMD64.detected = detectUprobeImmediateCallerAddressAMD64()
+	})
+	return uprobeImmediateCallerAddressAMD64.detected
+}
+
 func detectBatchAPI() bool {
 	m, err := ebpf.NewMap(&ebpf.MapSpec{
 		Type:       ebpf.Hash,
@@ -822,6 +850,7 @@ var FeatureProbes = []FeatureProbe{
 	{AuditLoginUIDProbe, HasAuditLoginuid},
 	{ProbeWriteUserProbe, HasProbeWriteUserHelper},
 	{UprobeRegsChangeProbe, HasUprobeRegsChange},
+	{UprobeImmediateCallerAddressAMD64Probe, HasUprobeImmediateCallerAddressAMD64},
 	{MixBPFAndTailCallsProbe, DetectMixBpfAndTailCalls},
 	{Fentry, HasFentryProgram},
 	{GetFuncRet, HasGetFuncRetHelper},
