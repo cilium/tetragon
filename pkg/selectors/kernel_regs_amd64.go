@@ -13,12 +13,16 @@ import (
 	"github.com/cilium/tetragon/pkg/asm"
 )
 
-func parseOverrideRegs(k *KernelSelectorState, values []string, errValue uint64) (uint32, error) {
+func parseOverrideRegs(k *KernelSelectorState, values []string, errValue uint64, newOffset int64) (uint32, error) {
 	if len(k.regs) > 0 {
 		return uint32(0xffffffff), errors.New("only single instance of regs action is allowed")
 	}
 
 	regs := []processapi.RegAssignment{}
+
+	if newOffset != 0 {
+		values = append(values, fmt.Sprintf("rip=%d%%rip", newOffset))
+	}
 
 	// If no registers were specified go with the default for override
 	// at the top of the user space function.
