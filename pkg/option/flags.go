@@ -252,7 +252,15 @@ func ReadAndSetFlags() error {
 	Config.ExportFileRotationInterval = viper.GetDuration(KeyExportFileRotationInterval)
 	Config.ExportFileMaxBackups = viper.GetInt(KeyExportFileMaxBackups)
 	Config.ExportFileCompress = viper.GetBool(KeyExportFileCompress)
-	Config.ExportRateLimit = viper.GetInt(KeyExportRateLimit)
+	exportRateLimitStr := viper.GetString(KeyExportRateLimit)
+	exportRateLimit, err := strconv.Atoi(exportRateLimitStr)
+	if err != nil {
+		logger.GetLogger().Warn("export-rate-limit could not be parsed as a plain integer, rate limiting disabled", KeyExportRateLimit, exportRateLimitStr)
+		exportRateLimit = -1
+	} else if exportRateLimit == 0 {
+		logger.GetLogger().Warn("export-rate-limit is 0: all events will be dropped. Set to -1 to disable rate limiting")
+	}
+	Config.ExportRateLimit = exportRateLimit
 	Config.ExportFilePerm = viper.GetString(KeyExportFilePerm)
 
 	Config.EnableExportAggregation = viper.GetBool(KeyEnableExportAggregation)
@@ -464,7 +472,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Int(KeyExportFileMaxBackups, 5, "Number of rotated JSON export files to retain")
 	flags.Bool(KeyExportFileCompress, false, "Compress rotated JSON export files")
 	flags.String(KeyExportFilePerm, defaults.DefaultLogsPermission, "Access permissions on JSON export files")
-	flags.Int(KeyExportRateLimit, -1, "Rate limit (per minute) for event export. Set to -1 to disable")
+	flags.Int(KeyExportRateLimit, -1, "Rate limit (per minute) for event export. Must be a plain integer. Set to -1 to disable. Set to 0 to drop all events")
 	flags.String(KeyLogLevel, "info", "Set log level")
 	flags.String(KeyLogFormat, "text", "Set log format")
 	flags.String(KeyLogFile, "", "Set log file where tetragon agent logs will be written (in addition to stdout or stderr)")
