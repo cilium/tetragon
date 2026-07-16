@@ -566,7 +566,7 @@ certgen:
     override: ~
     repository: quay.io/cilium/certgen
     # renovate: datasource=docker depName=quay.io/cilium/certgen
-    tag: v0.4.6
+    tag: v0.4.8
     pullPolicy: IfNotPresent
   # -- Whether the certgen invocation should generate a CA when one isn't
   # found in the configured CA Secret.
