@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -72,12 +73,22 @@ metadata:
 spec:
     uprobes:
     - path: "%s"
+      ignore:
+        digestVerificationFailure: true
       symbols:
       - "main"%s
 `, path, extra)
 }
 
-func policyLoadMatchesExpectation(t *testing.T, policy string, shouldLoad bool) {
+type binaryDigestTestCase struct {
+	name               string
+	digests            func(*testing.T) []string
+	shouldLoad         bool
+	expectedHookStatus tetragon.HookState
+}
+
+func policyLoadMatchesExpectation(t *testing.T, tc binaryDigestTestCase) {
+	policy := uprobePolicy(tc.digests(t))
 	t.Helper()
 
 	createCrdFile(t, policy)
@@ -96,11 +107,28 @@ func policyLoadMatchesExpectation(t *testing.T, policy string, shouldLoad bool) 
 	require.NoError(t, err, "failed to initialize observer")
 
 	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
-	if shouldLoad {
+	if tc.shouldLoad {
 		require.NoError(t, err, "policy should load")
 	} else {
-		require.Error(t, err, "policy should fail to load")
+		require.Error(t, err, "policy should not load")
+		return
 	}
+
+	statusRes, err := observer.GetSensorManager().ListTracingPolicies(ctx, "")
+	require.NoError(t, err, "failed to list tracing policies")
+
+	var policyStatus *tetragon.TracingPolicyStatus
+	for _, s := range statusRes.Policies {
+		if s.GetName() == "uprobe-digest-test" {
+			policyStatus = s
+			break
+		}
+	}
+	require.NotNil(t, policyStatus, "failed to find tracing policy status")
+	status := policyStatus.GetHookStatuses()
+	require.NotNil(t, status, "expected hook status")
+	require.Len(t, status, 1, "expected one per-hook status")
+	require.Equal(t, tc.expectedHookStatus, status[0].GetState(), "unexpected hook status")
 }
 
 func TestUprobeDigestScenarios(t *testing.T) {
@@ -108,44 +136,44 @@ func TestUprobeDigestScenarios(t *testing.T) {
 	sha256Digest, err := calculateSHA256(nop)
 	require.NoError(t, err)
 
-	type testCase struct {
-		name       string
-		digests    func(*testing.T) []string
-		shouldLoad bool
-	}
-
-	testCases := []testCase{
+	testCases := []binaryDigestTestCase{
 		{
-			name:       "no digest",
-			digests:    func(*testing.T) []string { return nil },
-			shouldLoad: true,
+			name:               "no digest",
+			digests:            func(*testing.T) []string { return nil },
+			shouldLoad:         true,
+			expectedHookStatus: tetragon.HookState_STATUS_LOADED,
 		},
 		{
-			name:       "correct sha256",
-			digests:    func(*testing.T) []string { return []string{"sha256:" + sha256Digest} },
-			shouldLoad: true,
+			name:               "correct sha256",
+			digests:            func(*testing.T) []string { return []string{"sha256:" + sha256Digest} },
+			shouldLoad:         true,
+			expectedHookStatus: tetragon.HookState_STATUS_LOADED,
 		},
 		{
 			name: "wrong sha256",
 			digests: func(*testing.T) []string {
 				return []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"}
 			},
-			shouldLoad: false,
+			shouldLoad:         true,
+			expectedHookStatus: tetragon.HookState_STATUS_DIGEST_REJECTED,
 		},
 		{
-			name:       "invalid format",
-			digests:    func(*testing.T) []string { return []string{"sha256noseparator"} },
-			shouldLoad: false,
+			name:               "invalid format",
+			digests:            func(*testing.T) []string { return []string{"sha256noseparator"} },
+			shouldLoad:         false,
+			expectedHookStatus: tetragon.HookState_STATUS_DIGEST_REJECTED,
 		},
 		{
-			name:       "unsupported algorithm",
-			digests:    func(*testing.T) []string { return []string{"md5:abc123"} },
-			shouldLoad: false,
+			name:               "unsupported algorithm",
+			digests:            func(*testing.T) []string { return []string{"md5:abc123"} },
+			shouldLoad:         false,
+			expectedHookStatus: tetragon.HookState_STATUS_DIGEST_REJECTED,
 		},
 		{
-			name:       "case insensitive hash",
-			digests:    func(*testing.T) []string { return []string{"sha256:" + strings.ToUpper(sha256Digest)} },
-			shouldLoad: true,
+			name:               "case insensitive hash",
+			digests:            func(*testing.T) []string { return []string{"sha256:" + strings.ToUpper(sha256Digest)} },
+			shouldLoad:         true,
+			expectedHookStatus: tetragon.HookState_STATUS_LOADED,
 		},
 		{
 			name: "build id",
@@ -156,7 +184,8 @@ func TestUprobeDigestScenarios(t *testing.T) {
 				}
 				return []string{"build-id:" + buildID}
 			},
-			shouldLoad: true,
+			shouldLoad:         true,
+			expectedHookStatus: tetragon.HookState_STATUS_LOADED,
 		},
 		{
 			name: "multiple digests any match",
@@ -166,7 +195,8 @@ func TestUprobeDigestScenarios(t *testing.T) {
 					"sha256:" + sha256Digest,
 				}
 			},
-			shouldLoad: true,
+			shouldLoad:         true,
+			expectedHookStatus: tetragon.HookState_STATUS_LOADED,
 		},
 		{
 			name: "multiple digests all wrong",
@@ -176,20 +206,22 @@ func TestUprobeDigestScenarios(t *testing.T) {
 					"sha256:2222222222222222222222222222222222222222222222222222222222222222",
 				}
 			},
-			shouldLoad: false,
+			shouldLoad:         true,
+			expectedHookStatus: tetragon.HookState_STATUS_DIGEST_REJECTED,
 		},
 		{
 			name: "digest with spaces",
 			digests: func(*testing.T) []string {
 				return []string{"  sha256 : " + sha256Digest + "  "}
 			},
-			shouldLoad: true,
+			shouldLoad:         true,
+			expectedHookStatus: tetragon.HookState_STATUS_LOADED,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			policyLoadMatchesExpectation(t, uprobePolicy(tc.digests(t)), tc.shouldLoad)
+			policyLoadMatchesExpectation(t, tc)
 		})
 	}
 }
