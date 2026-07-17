@@ -38,14 +38,8 @@
 		__it_fwd(a, op); __it_fwd(b, op);	\
 	} while (0)
 
-FUNC_INLINE __maybe_unused void
-__bpf_memset_builtin(void *d, __u8 c, __u64 len)
-{
-	/* Everything non-zero or non-const (currently unsupported) as c
-	 * gets handled here.
-	 */
-	__builtin_memset(d, c, len);
-}
+#define __bpf_memset_builtin(d, s, len) \
+	(__builtin_memset)((d), (s), (len))
 
 FUNC_INLINE void __bpf_memzero(void *d, __u64 len)
 {
@@ -153,7 +147,8 @@ __bpf_no_builtin_memset(void *d __maybe_unused, __u8 c __maybe_unused,
 }
 
 /* Redirect any direct use in our code to throw an error. */
-#define __builtin_memset	__bpf_no_builtin_memset
+#define __builtin_memset(...) \
+	__bpf_no_builtin_memset(__VA_ARGS__)
 
 FUNC_INLINE __nobuiltin("memset") void memset(void *d, int c,
 							 __u64 len)
@@ -164,12 +159,8 @@ FUNC_INLINE __nobuiltin("memset") void memset(void *d, int c,
 		__bpf_memset_builtin(d, (__u8)c, len);
 }
 
-FUNC_INLINE __maybe_unused void
-__bpf_memcpy_builtin(void *d, const void *s, __u64 len)
-{
-	/* Explicit opt-in for __builtin_memcpy(). */
-	__builtin_memcpy(d, s, len);
-}
+#define __bpf_memcpy_builtin(d, s, len) \
+	(__builtin_memcpy)((d), (s), (len))
 
 FUNC_INLINE void __bpf_memcpy(void *d, const void *s, __u64 len)
 {
@@ -278,7 +269,8 @@ __bpf_no_builtin_memcpy(void *d __maybe_unused, const void *s __maybe_unused,
 }
 
 /* Redirect any direct use in our code to throw an error. */
-#define __builtin_memcpy	__bpf_no_builtin_memcpy
+#define __builtin_memcpy(...) \
+	__bpf_no_builtin_memcpy(__VA_ARGS__)
 
 FUNC_INLINE __nobuiltin("memcpy") void memcpy(void *d, const void *s,
 							 __u64 len)
@@ -286,20 +278,17 @@ FUNC_INLINE __nobuiltin("memcpy") void memcpy(void *d, const void *s,
 	return __bpf_memcpy(d, s, len);
 }
 
-FUNC_INLINE __maybe_unused __u64
-__bpf_memcmp_builtin(const void *x, const void *y, __u64 len)
-{
-	/* Explicit opt-in for __builtin_memcmp(). We use the bcmp builtin
-	 * here for two reasons: i) we only need to know equal or non-equal
-	 * similar as in __bpf_memcmp(), and ii) if __bpf_memcmp() ends up
-	 * selecting __bpf_memcmp_builtin(), clang generats a memcmp loop.
-	 * That is, (*) -> __bpf_memcmp() -> __bpf_memcmp_builtin() ->
-	 * __builtin_memcmp() -> memcmp() -> (*), meaning it will end up
-	 * selecting our memcmp() from here. Remapping to __builtin_bcmp()
-	 * breaks this loop and resolves both needs at once.
-	 */
-	return __builtin_bcmp(x, y, len);
-}
+/* Explicit opt-in for __builtin_memcmp(). We use the bcmp builtin
+ * here for two reasons: i) we only need to know equal or non-equal
+ * similar as in __bpf_memcmp(), and ii) if __bpf_memcmp() ends up
+ * selecting __bpf_memcmp_builtin(), clang generats a memcmp loop.
+ * That is, (*) -> __bpf_memcmp() -> __bpf_memcmp_builtin() ->
+ * __builtin_memcmp() -> memcmp() -> (*), meaning it will end up
+ * selecting our memcmp() from here. Remapping to __builtin_bcmp()
+ * breaks this loop and resolves both needs at once.
+ */
+#define __bpf_memcmp_builtin(x, y, len) \
+	(__builtin_bcmp)((x), (y), (len))
 
 FUNC_INLINE __u64 __bpf_memcmp(const void *x, const void *y,
 			       __u64 len)
@@ -409,7 +398,8 @@ __bpf_no_builtin_memcmp(const void *x __maybe_unused,
 }
 
 /* Redirect any direct use in our code to throw an error. */
-#define __builtin_memcmp	__bpf_no_builtin_memcmp
+#define __builtin_memcmp(...) \
+	__bpf_no_builtin_memcmp(__VA_ARGS__)
 
 /* Modified for our needs in that we only return either zero (x and y
  * are equal) or non-zero (x and y are non-equal).
@@ -421,12 +411,8 @@ FUNC_INLINE __nobuiltin("memcmp") __u64 memcmp(const void *x,
 	return __bpf_memcmp(x, y, len);
 }
 
-FUNC_INLINE __maybe_unused void
-__bpf_memmove_builtin(void *d, const void *s, __u64 len)
-{
-	/* Explicit opt-in for __builtin_memmove(). */
-	__builtin_memmove(d, s, len);
-}
+#define __bpf_memmove_builtin(d, s, len) \
+	(__builtin_memmove)((d), (s), (len))
 
 FUNC_INLINE void __bpf_memmove_bwd(void *d, const void *s, __u64 len)
 {
@@ -533,7 +519,8 @@ __bpf_no_builtin_memmove(void *d __maybe_unused, const void *s __maybe_unused,
 }
 
 /* Redirect any direct use in our code to throw an error. */
-#define __builtin_memmove	__bpf_no_builtin_memmove
+#define __builtin_memmove(...) \
+	__bpf_no_builtin_memmove(__VA_ARGS__)
 
 FUNC_INLINE void __bpf_memmove(void *d, const void *s, __u64 len)
 {
