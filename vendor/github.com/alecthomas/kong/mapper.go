@@ -446,10 +446,10 @@ func floatDecoder(bits int) MapperFunc {
 			target.SetFloat(v)
 
 		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-			target.Set(reflect.ValueOf(v))
+			target.SetFloat(reflect.ValueOf(v).Convert(reflect.TypeOf(float64(0))).Float())
 
 		default:
-			return fmt.Errorf("expected an int but got %q (%T)", t, t.Value)
+			return fmt.Errorf("expected a float but got %q (%T)", t, t.Value)
 		}
 		return nil
 	}

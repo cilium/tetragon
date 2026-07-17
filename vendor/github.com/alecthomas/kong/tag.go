@@ -166,13 +166,25 @@ func parseTagItems(tagString string, chr tagChars) (map[string][]string, error) 
 	return d, nil
 }
 
-func getTagInfo(tag reflect.StructTag) (string, tagChars) {
-	s, ok := tag.Lookup("kong")
-	if ok {
-		return s, kongChars
+func parseStructTagItems(tag reflect.StructTag) (map[string][]string, error) {
+	items, err := parseTagItems(string(tag), bareChars)
+	if err != nil {
+		return nil, err
 	}
+	delete(items, "kong")
 
-	return string(tag), bareChars
+	kongTag, ok := tag.Lookup("kong")
+	if !ok {
+		return items, nil
+	}
+	kongItems, err := parseTagItems(kongTag, kongChars)
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range kongItems {
+		items[key] = append(value, items[key]...)
+	}
+	return items, nil
 }
 
 func newEmptyTag() *Tag {
@@ -208,14 +220,14 @@ func parseTag(parent reflect.Value, ft reflect.StructField) (*Tag, error) {
 	// First use a [Signature] if present
 	signatureTag, ok := maybeGetSignature(ft.Type)
 	if ok {
-		signatureItems, err := parseTagItems(getTagInfo(signatureTag))
+		signatureItems, err := parseStructTagItems(signatureTag)
 		if err != nil {
 			return nil, err
 		}
 		items = signatureItems
 	}
 	// Next overlay the field's tags.
-	fieldItems, err := parseTagItems(getTagInfo(ft.Tag))
+	fieldItems, err := parseStructTagItems(ft.Tag)
 	if err != nil {
 		return nil, err
 	}
