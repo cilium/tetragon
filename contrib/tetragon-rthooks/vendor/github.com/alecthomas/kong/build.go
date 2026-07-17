@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"unicode/utf8"
 )
 
 // Plugins are dynamically embedded command-line structures.
@@ -344,6 +345,9 @@ func buildField(k *Kong, node *Node, v reflect.Value, ft reflect.StructField, fv
 		seenFlags["--"+value.Name] = true
 		for _, alias := range tag.Aliases {
 			aliasFlag := "--" + alias
+			if utf8.RuneCountInString(alias) == 1 {
+				aliasFlag = "-" + alias
+			}
 			if seenFlags[aliasFlag] {
 				return failField(v, ft, "duplicate flag %s", aliasFlag)
 			}
