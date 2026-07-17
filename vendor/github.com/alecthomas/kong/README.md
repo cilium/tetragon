@@ -252,7 +252,7 @@ A more robust approach is to break each command out into their own structs:
 
 Once a command node is selected by Kong it will search from that node back to the root. Each
 encountered command node with a `Run(...) error` will be called in reverse order. This allows
-sub-trees to be re-used fairly conveniently.
+sub-trees to be reused fairly conveniently.
 
 In addition to values bound with the `kong.Bind(...)` option, any values
 passed through to `kong.Context.Run(...)` are also bindable to the target's
@@ -306,18 +306,19 @@ func main() {
 
 ```
 
-## Hooks: BeforeReset(), BeforeResolve(), BeforeApply(), AfterApply()
+## Hooks: BeforeReset(), BeforeResolve(), BeforeApply(), AfterApply(), AfterRun()
 
 If a node in the CLI, or any of its embedded fields, implements a `BeforeReset(...) error`, `BeforeResolve
-(...) error`, `BeforeApply(...) error` and/or `AfterApply(...) error` method, those will be called as Kong
-resets, resolves, validates, and assigns values to the node.
+(...) error`, `BeforeApply(...) error`, `AfterApply(...) error`, and/or `AfterRun(...) error` method, those 
+will be called as Kong resets, resolves, validates, and assigns values to the node.
 
 | Hook            | Description                                                                                                 |
 | --------------- | ----------------------------------------------------------------------------------------------------------- |
 | `BeforeReset`   | Invoked before values are reset to their defaults (as defined by the grammar) or to zero values             |
 | `BeforeResolve` | Invoked before resolvers are applied to a node                                                              |
 | `BeforeApply`   | Invoked before the traced command line arguments are applied to the grammar                                 |
-| `AfterApply`    | Invoked after command line arguments are applied to the grammar **and validated**`                          |
+| `AfterApply`    | Invoked after command line arguments are applied to the grammar **and validated**                           |
+| `AfterRun`      | Invoked after `Run()` returns. Will not be called if `os.Exit()` is manually called.                        |
 
 The `--help` flag is implemented with a `BeforeReset` hook.
 
@@ -372,7 +373,7 @@ func (l *LsCmd) Run(cli *CLI) error {
   return nil
 }
 
-func (r *RmCmD) Run(author AuthorName) error{
+func (r *RmCmd) Run(author AuthorName) error{
 // use binded author here
   return nil
 }
@@ -599,8 +600,7 @@ Both can coexist with standard Tag parsing.
 | `passthrough:"<mode>"`[^1] | If present on a positional argument, it stops flag parsing when encountered, as if `--` was processed before. Useful for external command wrappers, like `exec`. On a command it requires that the command contains only one argument of type `[]string` which is then filled with everything following the command, unparsed. |
 | `-`                  | Ignore the field. Useful for adding non-CLI fields to a configuration struct. e.g `` `kong:"-"` ``                                                                                                                                                                                                                             |
 
-[^1]: `<mode>` can be `partial` or `all` (the default). `all` will pass through all arguments including flags, including
-flags. `partial` will validate flags until the first positional argument is encountered, then pass through all remaining
+[^1]: `<mode>` can be `partial` or `all` (the default). `all` will pass through all arguments including flags. `partial` will validate flags until the first positional argument is encountered, then pass through all remaining
 positional arguments.
 
 ## Plugins
