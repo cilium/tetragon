@@ -86,10 +86,12 @@ spec:
         hostPath:
           path: /var/run/tetragon
           type: DirectoryOrCreate
+      {{- if eq .Values.export.mode "stdout" }}
       - name: export-logs
         hostPath:
           path: {{ .Values.exportDirectory }}
           type: DirectoryOrCreate
+      {{- end }}
       - name: tetragon-config
         configMap:
           name: {{ include "tetragon.configMapName" . }}

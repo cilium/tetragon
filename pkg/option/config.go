@@ -83,6 +83,7 @@ type config struct {
 	ExportFileCompress         bool
 	ExportRateLimit            int
 	ExportFilePerm             string
+	ExportStdout               bool
 
 	// Export aggregation options
 	EnableExportAggregation     bool

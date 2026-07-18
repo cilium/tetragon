@@ -54,18 +54,19 @@ func NewExporter(
 	closer io.Closer,
 	rateLimiter *ratelimit.RateLimiter,
 ) (*Exporter, error) {
-	logFile := filepath.Base(option.Config.ExportFilename)
-	logsDir, err := filepath.Abs(filepath.Dir(filepath.Clean(option.Config.ExportFilename)))
-	if err != nil {
-		logger.GetLogger().Warn(fmt.Sprintf("Failed to get absolute path of exported JSON logs '%s'", option.Config.ExportFilename), logfields.Error, err)
-		// Do not fail; we let lumberjack handle this. We want to
-		// log the rotate logs operation.
-		logsDir = filepath.Dir(option.Config.ExportFilename)
+	if option.Config.ExportFileRotationInterval < 0 {
+		return nil, fmt.Errorf("frequency '%s' at which to rotate JSON export files is negative", option.Config.ExportFileRotationInterval.String())
 	}
 
-	if option.Config.ExportFileRotationInterval < 0 {
-		// Passed an invalid interval let's error out
-		return nil, fmt.Errorf("frequency '%s' at which to rotate JSON export files is negative", option.Config.ExportFileRotationInterval.String())
+	var logFile, logsDir string
+	if !option.Config.ExportStdout {
+		logFile = filepath.Base(option.Config.ExportFilename)
+		var err error
+		logsDir, err = filepath.Abs(filepath.Dir(filepath.Clean(option.Config.ExportFilename)))
+		if err != nil {
+			logger.GetLogger().Warn(fmt.Sprintf("Failed to get absolute path of exported JSON logs '%s'", option.Config.ExportFilename), logfields.Error, err)
+			logsDir = filepath.Dir(option.Config.ExportFilename)
+		}
 	}
 
 	e := &Exporter{
