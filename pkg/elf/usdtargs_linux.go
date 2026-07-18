@@ -33,7 +33,7 @@ func compactDeref(ArgsStr string) string {
 
 // Arg parsing entrypoint
 func parseArgs(spec *UsdtSpec) error {
-	for idx, str := range strings.Split(compactDeref(spec.ArgsStr), " ") {
+	for idx, str := range strings.Fields(compactDeref(spec.ArgsStr)) {
 		arg := &spec.Args[idx]
 
 		for _, parse := range parsers {
