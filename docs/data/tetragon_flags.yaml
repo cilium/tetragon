@@ -35,6 +35,9 @@ options:
     - name: disable-kprobe-multi
       default_value: "false"
       usage: Allow to disable kprobe multi interface
+    - name: disable-process-cache
+      default_value: "false"
+      usage: Disable process cache
     - name: enable-ancestors
       default_value: '[]'
       usage: |
