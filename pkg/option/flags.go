@@ -209,6 +209,8 @@ func ReadAndSetFlags() error {
 		return fmt.Errorf("failed to parse enable-ancestors value: %w", err)
 	}
 
+	// TODO: decide if we want to support enableAncestors when the process cache is disabled.
+	// We might be able to do a reduced version of it by looking at the execve map
 	if slices.Contains(enableAncestors, "base") {
 		Config.EnableProcessAncestors = true
 		Config.EnableProcessKprobeAncestors = slices.Contains(enableAncestors, "kprobe")
