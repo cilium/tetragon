@@ -84,12 +84,20 @@ func InitCache(w watcher.PodAccessor, size int, GCInterval time.Duration) error 
 		FreeCache()
 	}
 
-	k8s = w
+	SetK8sWatcher(w)
 	procCache, err = NewCache(size, GCInterval)
 	if err != nil {
-		k8s = nil
+		SetK8sWatcher(nil)
 	}
 	return err
+}
+
+// SetK8sWatcher sets the k8s watcher used to retrieve pod metadata for
+// processes. This is independent of the process cache, so callers should
+// invoke it even when the process cache is disabled (e.g. via
+// --disable-process-cache) to ensure pod info is still attached to events.
+func SetK8sWatcher(w watcher.PodAccessor) {
+	k8s = w
 }
 
 func FreeCache() {
