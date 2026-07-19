@@ -531,6 +531,10 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 
 	if option.Config.DisableProcessCache {
 		log.Info("Process cache is disabled")
+		// The k8s watcher is used to retrieve pod metadata independently of
+		// the process cache, so it must still be set for pod info to be
+		// attached to events.
+		process.SetK8sWatcher(podAccessor)
 	} else {
 		if err := process.InitCache(podAccessor, option.Config.ProcessCacheSize, pcGCInterval); err != nil {
 			return err
