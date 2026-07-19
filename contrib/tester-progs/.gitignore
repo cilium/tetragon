@@ -48,3 +48,4 @@ pclntab-unstripped
 null-mount
 resolve-nested-anon-struct
 resolve-nested-anon-struct.btf
+uprobe-stack

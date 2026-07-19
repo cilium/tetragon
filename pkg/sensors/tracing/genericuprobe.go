@@ -22,12 +22,11 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+	ebtf "github.com/cilium/ebpf/btf"
 	lru "github.com/hashicorp/golang-lru/v2"
 
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
-
-	"github.com/cilium/tetragon/pkg/asm"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
@@ -953,6 +952,14 @@ func initUprobeArgs(spec *v1alpha1.UProbeSpec, has *uprobeHas, in *addUprobeIn, 
 
 func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgConfig, error) {
 	var cfg uprobeArgConfig
+	var userBTFSpec *ebtf.Spec
+	if spec.BTFPath != "" {
+		var err error
+		userBTFSpec, err = ebtf.LoadSpec(spec.BTFPath)
+		if err != nil {
+			return cfg, fmt.Errorf("failed to load user BTF spec %q: %w", spec.BTFPath, err)
+		}
+	}
 
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
 		var preloadArg bool
@@ -961,11 +968,13 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 		if data {
 			// Data specific config
 			if hasPtRegsSource(a) {
-				var ok bool
-
-				cfg.regArg[i].Offset, cfg.regArg[i].Size, ok = asm.RegOffsetSize(a.Resolve)
-				if !ok {
-					return fmt.Errorf("error: Failed to retrieve register argument '%s'", a.Resolve)
+				reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve, userBTFSpec)
+				if err != nil {
+					return fmt.Errorf("error resolving pt_regs argument %q: %w", a.Resolve, err)
+				}
+				cfg.regArg[i] = reg
+				if hasBTFArg {
+					cfg.allBTFArgs[i] = btfArg
 				}
 
 				// If we are getting string type from pt_regs register we can safely assume
@@ -983,7 +992,8 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 				if !bpf.HasProgramLargeSize() {
 					return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
 				}
-				lastBTFType, btfArg, err := resolveBTFArg("", a, false)
+				// Spec is nil because it's loaded later. We want kernel BTF, not userBTFSpec
+				lastBTFType, btfArg, err := resolveBTFArg("", a, false, nil)
 				if err != nil {
 					return fmt.Errorf("can't resolve current_task source: %s", a.Resolve)
 				}
@@ -993,7 +1003,7 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 		} else {
 			// Args specific config
 			if a.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(a, spec.BTFPath)
+				lastBTFType, btfArg, err := resolveUserBTFArg(a, userBTFSpec)
 				if err != nil {
 					return err
 				}

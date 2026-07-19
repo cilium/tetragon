@@ -27,7 +27,6 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
-	"github.com/cilium/tetragon/pkg/asm"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/celbpf"
@@ -762,21 +761,22 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			argType = gt.GenericTypeFromString(a.Type)
 		}
 
-		var (
-			regArg api.ConfigRegArg
-			ok     bool
-		)
+		var regArg api.ConfigRegArg
 
 		if hasPtRegsSource(a) {
-			regArg.Offset, regArg.Size, ok = asm.RegOffsetSize(a.Resolve)
-			if !ok {
-				return fmt.Errorf("error: Failed to retrieve register argument '%s'", a.Resolve)
+			reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve, nil)
+			if err != nil {
+				return fmt.Errorf("error resolving pt_regs argument %q: %w", a.Resolve, err)
+			}
+			regArg = reg
+			if hasBTFArg {
+				allBTFArgs[j] = btfArg
 			}
 		} else if a.Resolve != "" && j < api.EventConfigMaxArgs {
 			if !bpf.HasProgramLargeSize() {
 				return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
 			}
-			lastBTFType, btfArg, err := resolveBTFArg(f.Call, a, false)
+			lastBTFType, btfArg, err := resolveBTFArg(f.Call, a, false, nil)
 			if err != nil {
 				return fmt.Errorf("error on hook %q for index %d : %w", f.Call, a.Index, err)
 			}

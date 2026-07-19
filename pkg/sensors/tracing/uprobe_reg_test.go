@@ -7,6 +7,7 @@ package tracing
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -195,6 +196,81 @@ spec:
 	require.Equal(t, 11, cmd.ProcessState.ExitCode())
 
 	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUprobeResolveCast(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
+	}
+
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve")
+	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve.btf")
+
+	tt := []struct {
+		argTy     string
+		resolve   string
+		filterVal int
+		kpArgs    []*ec.KprobeArgumentChecker
+	}{
+		{"uint32", "((struct mysubstruct*)subvoid).v32", 1337, []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithUintArg(1337),
+		}},
+	}
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + uprobe + `"
+    btfPath: "` + uprobeBtf + `"
+    symbols:
+    - "func"
+    args:
+    - index: 1
+      btfType: "mystruct"
+      type: "` + tt[0].argTy + `"
+      resolve: "` + tt[0].resolve + `"
+`
+
+	createCrdFile(t, uprobeHook)
+
+	var checkers []ec.EventChecker
+	for i := range tt {
+		checkers = append(checkers, ec.NewProcessUprobeChecker("uprobe-resolve").
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Full(uprobe)).
+				WithArguments(
+					sm.Suffix(fmt.Sprintf("%q %d", tt[i].resolve, tt[i].filterVal)),
+				),
+			).WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(tt[i].kpArgs...)))
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	for i := range tt {
+		cmd := exec.Command(uprobe, tt[i].resolve, strconv.Itoa(tt[i].filterVal))
+		cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+		require.NoError(t, cmdErr)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
 }
 
@@ -836,6 +912,78 @@ func TestUprobePtRegsDataMatch(t *testing.T) {
 
 func TestUprobePtRegsDataNotMatch(t *testing.T) {
 	testUprobePtRegsMatch(t, 10, true)
+}
+
+func TestUprobeResolveFromStackPtr(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
+	}
+
+	if runtime.GOARCH != "amd64" {
+		t.Skip("skipping, x86_64 only test")
+	}
+
+	testBinary := testutils.RepoRootPath("contrib/tester-progs/uprobe-stack")
+
+	expectedValue := uint64(1337)
+
+	//    <+0>:     push   rdi
+	//    <+1>:     mov    rax,QWORD PTR [rsp]
+	// => <+5>:     pop    rdi
+	//    <+6>:     ret
+	//    <+7>:     ud2
+
+	symbol := "mov_in_rsp+5"
+
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + testBinary + `"
+    symbols:
+    - "` + symbol + `"
+    data:
+    - index: 0
+      type: "uint64"
+      source: "pt_regs"
+      resolve: "((uint64_t***)rsp)[0][0][9]"
+`
+
+	createCrdFile(t, pathHook)
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testBinary))).
+		WithSymbol(sm.Full(symbol)).
+		WithData(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSizeArg(expectedValue),
+			))
+
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(testBinary, strconv.Itoa(int(expectedValue)))
+	cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+	require.NoError(t, cmdErr)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
 }
 
 func testUprobePtRegsPreload(t *testing.T, multi bool) {

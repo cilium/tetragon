@@ -837,6 +837,47 @@ spec:
       resolve: "sin_addr.s_addr"
 ```
 
+#### Type casts in resolve paths
+
+The `resolve` path can cast an intermediate field to another BTF type before
+continuing the resolution. This is useful when a field is typed as a generic
+pointer, such as `void *`, but the policy author knows the concrete structure
+stored at runtime.
+
+Type casts use a C-style syntax:
+
+```text
+((type)field-or-subpath).next_field
+```
+
+```yaml
+args:
+- index: 1
+  btfType: "foo"
+  type: "uint32"
+  resolve: "((struct bar *)myparam).myvalue"
+```
+
+In this example, Tetragon resolves `myparam`, treats the value as a
+`struct bar *`, dereferences it, and then reads the `myvalue` field.
+
+The cast is part of the `resolve` path, so it can also be used with indexes:
+
+```yaml
+args:
+- index: 0
+  type: "uint8"
+  resolve: "((char *)buffer)[12]"
+```
+
+This resolves `buffer`, treats it as a `char *`, and reads element `12`.
+
+{{< note >}}
+For uprobes and USDT probes, type names used in casts are resolved first from
+the BTF file configured with `spec.uprobes.btfPath`. If the type is not found there, Tetragon
+falls back to the kernel vmlinux BTF.
+{{< /note >}}
+
 #### Kernel module BTF types
 
 For kprobe arguments, use `btfTypeModule` with `btfType` when the structure is
