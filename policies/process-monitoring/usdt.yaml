@@ -1,0 +1,14 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdts"
+spec:
+  usdts:
+  - path: "/home/jolsa/tetragon/contrib/tester-progs/usdt"
+    provider: "test"
+    name: "usdt3"
+    args:
+    - index: 0
+      type: "int32"
+    - index: 1
+      type: "int64"
