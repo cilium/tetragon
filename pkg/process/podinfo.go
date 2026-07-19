@@ -131,9 +131,3 @@ func getPodInfo(
 	}
 	return podInfo
 }
-
-// GetK8s returns PodAccessor. You must call InitCache before calling this function to ensure
-// that k8s has been initialized.
-func GetK8s() watcher.PodAccessor {
-	return k8s
-}
