@@ -92,6 +92,10 @@ func InitCache(w watcher.PodAccessor, size int, GCInterval time.Duration) error 
 	return err
 }
 
+func SetWatcher(w watcher.PodAccessor) {
+	k8s = w
+}
+
 func FreeCache() {
 	procCache.purge()
 	procCache = nil

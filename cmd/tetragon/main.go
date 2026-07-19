@@ -422,6 +422,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 
 	if option.Config.DisableProcessCache {
+		process.SetWatcher(podAccessor)
 		log.Info("Process cache is disabled")
 	} else {
 		pcGCInterval := option.Config.ProcessCacheGCInterval
