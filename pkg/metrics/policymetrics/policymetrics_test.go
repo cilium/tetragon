@@ -22,7 +22,7 @@ import (
 )
 
 func Test_policyStatusCollector_Collect(t *testing.T) {
-	expectedMetrics := func(disabled, enabled, err, load_error, skipped int) io.Reader {
+	expectedMetrics := func(disabled, enabled, err, load_error, partially_enabled, skipped int) io.Reader {
 		return strings.NewReader(fmt.Sprintf(`# HELP tetragon_tracingpolicy_kernel_memory_bytes The amount of kernel memory in bytes used by policy's sensors non-shared BPF maps (memlock).
 # TYPE tetragon_tracingpolicy_kernel_memory_bytes gauge
 tetragon_tracingpolicy_kernel_memory_bytes{policy="pizza", policy_namespace=""} 0
@@ -36,8 +36,9 @@ tetragon_tracingpolicy_loaded{state="disabled"} %d
 tetragon_tracingpolicy_loaded{state="enabled"} %d
 tetragon_tracingpolicy_loaded{state="error"} %d
 tetragon_tracingpolicy_loaded{state="load_error"} %d
+tetragon_tracingpolicy_loaded{state="partially_enabled"} %d
 tetragon_tracingpolicy_loaded{state="skipped"} %d
-`, disabled, enabled, err, load_error, skipped))
+`, disabled, enabled, err, load_error, partially_enabled, skipped))
 	}
 
 	reg := prometheus.NewRegistry()
@@ -97,11 +98,11 @@ tetragon_tracingpolicy_loaded{state="skipped"} %d
 	err = manager.AddTracingPolicyWithState(context.TODO(), &tp5, sensors.SkippedState)
 	require.NoError(t, err)
 
-	err = testutil.CollectAndCompare(collector, expectedMetrics(0, 4, 0, 0, 1))
+	err = testutil.CollectAndCompare(collector, expectedMetrics(0, 4, 0, 0, 0, 1))
 	require.NoError(t, err)
 
 	err = manager.DisableTracingPolicy(context.TODO(), "pizza", "", tp1.TpDomain())
 	require.NoError(t, err)
-	err = testutil.CollectAndCompare(collector, expectedMetrics(1, 3, 0, 0, 1))
+	err = testutil.CollectAndCompare(collector, expectedMetrics(1, 3, 0, 0, 0, 1))
 	require.NoError(t, err)
 }
