@@ -34,6 +34,7 @@ const (
 	LoadingState
 	UnloadingState
 	SkippedState
+	PartiallyEnabledState
 )
 
 func (s TracingPolicyState) ToTetragonState() tetragon.TracingPolicyState {
@@ -52,6 +53,8 @@ func (s TracingPolicyState) ToTetragonState() tetragon.TracingPolicyState {
 		return tetragon.TracingPolicyState_TP_STATE_UNLOADING
 	case SkippedState:
 		return tetragon.TracingPolicyState_TP_STATE_SKIPPED
+	case PartiallyEnabledState:
+		return tetragon.TracingPolicyState_TP_STATE_PARTIALLY_ENABLED
 	default:
 		return tetragon.TracingPolicyState_TP_STATE_UNKNOWN
 	}
@@ -136,8 +139,29 @@ func (c *collection) info() string {
 	return c.name
 }
 
+func (c *collection) isEnabled() bool {
+	switch c.state {
+	case EnabledState, PartiallyEnabledState:
+		return true
+	default:
+		return false
+	}
+}
+
+func (c *collection) getEnabledState() TracingPolicyState {
+	for _, sensor := range c.sensors {
+		hookStatus := sensor.HookStatus()
+		for _, status := range hookStatus {
+			if status.State != tetragon.HookState_STATUS_LOADED {
+				return PartiallyEnabledState
+			}
+		}
+	}
+	return EnabledState
+}
+
 func (c *collection) mode() tetragon.TracingPolicyMode {
-	if c.tracingpolicy == nil || c.state != EnabledState {
+	if c.tracingpolicy == nil || !c.isEnabled() {
 		return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
 	}
 	mode, err := policyconf.PolicyMode(c.tracingpolicy)
@@ -162,7 +186,7 @@ func (c *collection) mode() tetragon.TracingPolicyMode {
 }
 
 func (c *collection) stats() *tetragon.TracingPolicyStats {
-	if c.tracingpolicy == nil || c.state != EnabledState {
+	if c.tracingpolicy == nil || !c.isEnabled() {
 		return nil
 	}
 

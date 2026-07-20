@@ -149,7 +149,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		col.destroy(true)
 		return err
 	}
-	col.state = EnabledState
+	col.state = col.getEnabledState()
 	return nil
 }
 
@@ -193,7 +193,7 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 
 // should be called with h.collections.mu locked (for writing)
 func (h *handler) doDisableTracingPolicy(col *collection) error {
-	if col.state != EnabledState {
+	if !col.isEnabled() {
 		return fmt.Errorf("tracing policy %s is not enabled", col.name)
 	}
 
@@ -238,7 +238,7 @@ func (h *handler) doEnableTracingPolicy(col *collection) error {
 		return col.err
 	}
 
-	col.state = EnabledState
+	col.state = col.getEnabledState()
 	return nil
 }
 
@@ -441,7 +441,7 @@ func (h *handler) listPolicies(domain string) []*tetragon.TracingPolicyStatus {
 		pol := tetragon.TracingPolicyStatus{
 			Id:           col.tracingpolicyID,
 			Name:         ck.name,
-			Enabled:      col.state == EnabledState,
+			Enabled:      col.isEnabled(),
 			FilterId:     col.policyfilterID,
 			State:        col.state.ToTetragonState(),
 			Mode:         col.mode(),
