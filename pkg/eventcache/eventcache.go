@@ -113,6 +113,16 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 	return nil, err
 }
 
+// CgrpTrackerGetter is implemented by events that carry a cgroup tracker ID
+// from BPF for container metadata resolution.
+type CgrpTrackerGetter interface {
+	GetCgrpTrackerID() uint64
+}
+
+// ContainerIDResolver resolves a cgroup tracker ID to a container ID.
+// Set by the tracing package at init time to avoid circular imports.
+var ContainerIDResolver func(uint64) string
+
 // Generic Event handler without any extra msg specific details or debugging
 // so we only need to wait for the internal link to the process context to
 // resolve PodInfo. This happens when the msg populates the internal state
@@ -120,8 +130,28 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid *uint32) error {
 	p := internal.UnsafeGetProcess()
 	if option.Config.EnableK8s && p.Pod == nil {
-		CacheRetries(PodInfo).Inc()
-		return ErrFailedToGetPodInfo
+		docker := p.Docker
+		if docker == "" {
+			if g, ok := ev.(CgrpTrackerGetter); ok && ContainerIDResolver != nil {
+				if id := g.GetCgrpTrackerID(); id != 0 {
+					docker = ContainerIDResolver(id)
+				}
+			}
+		}
+		if docker != "" {
+			podInfo := process.GetPodInfo(docker, p.Binary, p.Arguments, 0)
+			if podInfo == nil {
+				CacheRetries(PodInfo).Inc()
+				return ErrFailedToGetPodInfo
+			}
+			internal.AddPodInfo(podInfo)
+			if p.Docker == "" {
+				internal.UnsafeGetProcess().Docker = docker
+			}
+		} else {
+			CacheRetries(PodInfo).Inc()
+			return ErrFailedToGetPodInfo
+		}
 	}
 
 	// When we report the per thread fields, take a copy
