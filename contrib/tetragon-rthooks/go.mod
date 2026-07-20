@@ -11,7 +11,7 @@ require (
 	github.com/containerd/nri v0.12.1
 	github.com/containers/common v0.64.2
 	github.com/google/cel-go v0.29.2
-	github.com/opencontainers/cgroups v0.0.7
+	github.com/opencontainers/cgroups v0.0.8
 	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pelletier/go-toml/v2 v2.4.3
