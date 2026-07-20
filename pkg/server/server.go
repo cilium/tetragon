@@ -306,6 +306,22 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 	return &tetragon.AddTracingPolicyResponse{}, nil
 }
 
+// try to persist policy with id and next
+// if this fails tries to revert to previous
+func persistWithRollback(store *policystore.Store, id policystore.PolicyID, next, previous policystore.PolicyWithState) error {
+	if err := store.Put(id, next); err != nil { // and now we try to make that persistent
+		restoreErr := store.Put(id, previous) // the previous step failed so we try to put back the previous entry
+		if restoreErr != nil {                // and capture any errors from that
+			restoreErr = fmt.Errorf("restore persisted state for policy %s: %w", id.Name, restoreErr)
+		}
+		return errors.Join(
+			fmt.Errorf("persist desired state for policy %s: %w", id.Name, err),
+			restoreErr,
+		)
+	}
+	return nil
+}
+
 func (s *Server) DeleteTracingPolicy(ctx context.Context, req *tetragon.DeleteTracingPolicyRequest) (*tetragon.DeleteTracingPolicyResponse, error) {
 	logger.GetLogger().Debug("Received a DeleteTracingPolicy request", "name", req.GetName())
 
@@ -362,9 +378,33 @@ func (s *Server) EnableTracingPolicy(ctx context.Context, req *tetragon.EnableTr
 	if req.GetDomain() != "" {
 		domain = req.GetDomain()
 	}
+	id := policystore.PolicyID{Name: req.GetName(), Namespace: req.GetNamespace(), Domain: domain}
+
+	s.policyMu.Lock()
+	defer s.policyMu.Unlock()
+
+	var previous policystore.PolicyWithState
+	var exists bool
+	if s.policyStore != nil {
+		// policy store is enabled so first thing is to get the previous etry with the same id
+		previous, exists = s.policyStore.Get(id)
+		if exists {
+			// an entry already exists so we update the in-memory representation to be enabled
+			next := previous
+			next.Enabled = true
+			if err := persistWithRollback(s.policyStore, id, next, previous); err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	if err := s.observer.EnableTracingPolicy(ctx, req.GetName(), req.GetNamespace(), domain); err != nil {
 		logger.GetLogger().Warn("Server EnableTracingPolicy request failed", "name", req.GetName(), logfields.Error, err)
+		if s.policyStore != nil && exists {
+			if restoreErr := s.policyStore.Put(id, previous); restoreErr != nil {
+				err = errors.Join(err, fmt.Errorf("restore persisted state for policy %s: %w", id.Name, restoreErr))
+			}
+		}
 		return nil, err
 	}
 	return &tetragon.EnableTracingPolicyResponse{}, nil
@@ -396,9 +436,33 @@ func (s *Server) DisableTracingPolicy(ctx context.Context, req *tetragon.Disable
 	if req.GetDomain() != "" {
 		domain = req.GetDomain()
 	}
+	id := policystore.PolicyID{Name: req.GetName(), Namespace: req.GetNamespace(), Domain: domain}
+
+	s.policyMu.Lock()
+	defer s.policyMu.Unlock()
+
+	var previous policystore.PolicyWithState
+	var exists bool
+	if s.policyStore != nil {
+		// policy store is enabled so first thing is to get the previous etry with the same id
+		previous, exists = s.policyStore.Get(id)
+		if exists {
+			// an entry already exists so we update the in-memory representation to be disabled
+			next := previous
+			next.Enabled = false
+			if err := persistWithRollback(s.policyStore, id, next, previous); err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	if err := s.observer.DisableTracingPolicy(ctx, req.GetName(), req.GetNamespace(), domain); err != nil {
 		logger.GetLogger().Warn("Server DisableTracingPolicy request failed", "name", req.GetName(), logfields.Error, err)
+		if s.policyStore != nil && exists {
+			if restoreErr := s.policyStore.Put(id, previous); restoreErr != nil {
+				err = errors.Join(err, fmt.Errorf("restore persisted state for policy %s: %w", id.Name, restoreErr))
+			}
+		}
 		return nil, err
 	}
 	return &tetragon.DisableTracingPolicyResponse{}, nil
