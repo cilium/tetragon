@@ -317,7 +317,12 @@ spec:
       matchActions:
       - action: Override
         argNewSymbol: "uprobe_test_lib_string_arg__"
-`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "need writing to regs kernel support (6.18+)"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
 	bin := c.TestBinary("uprobe-test-1")
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_SELECTOR_MATCH").
 		WithProcess(ec.NewProcessChecker().
