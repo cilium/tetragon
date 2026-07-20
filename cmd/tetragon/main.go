@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/policystore"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/server/eventlog"
 
@@ -210,6 +211,23 @@ func tetragonExecute() error {
 	return tetragonExecuteCtx(ctx, cancel, func() {})
 }
 
+func openGRPCPolicyStore() (*policystore.Store, error) {
+	if !option.Config.PersistGRPCPolicies {
+		return nil, nil
+	}
+
+	store, err := policystore.OpenAndLoad(option.Config.PersistGRPCPoliciesDir)
+	if err != nil {
+		return nil, fmt.Errorf("open persistent policy store %q: %w", option.Config.PersistGRPCPoliciesDir, err)
+	}
+
+	log.Info("Opened persistent policy store",
+		"directory", option.Config.PersistGRPCPoliciesDir,
+		"policies", len(store.List()))
+
+	return store, nil
+}
+
 func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready func()) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -223,6 +241,11 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		logger.Fatal(log, fmt.Sprintf("Failed path specified by --tracing-policy-dir '%q' is not absolute", option.Config.TracingPolicyDir))
 	}
 	option.Config.TracingPolicyDir = filepath.Clean(option.Config.TracingPolicyDir)
+
+	grpcPolicyStore, err := openGRPCPolicyStore()
+	if err != nil {
+		return err
+	}
 
 	if option.Config.RBSize != 0 && option.Config.RBSizeTotal != 0 {
 		logger.Fatal(log, "Can't specify --rb-size and --rb-size-total together")
@@ -467,7 +490,8 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		ctx,
 		&cleanupWg,
 		observer.GetSensorManager(),
-		hookRunner)
+		hookRunner,
+		grpcPolicyStore)
 	if err != nil {
 		return err
 	}

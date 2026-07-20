@@ -159,7 +159,8 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		context.Background(),
 		&wg,
 		nil,
-		&rthooks.Runner{})
+		&rthooks.Runner{},
+		nil)
 	require.NoError(t, err)
 	pi := &exec.MsgExecveEventUnix{
 		Unix: &processapi.MsgExecveEventUnix{

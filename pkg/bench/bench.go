@@ -229,7 +229,8 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 		ctx,
 		&wg,
 		observer.GetSensorManager(),
-		hookRunner)
+		hookRunner,
+		nil)
 	if err != nil {
 		return err
 	}

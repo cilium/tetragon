@@ -21,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policystore"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/tetragoninfo"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -68,6 +69,16 @@ type Server struct {
 	notifier     Notifier
 	observer     observer
 	hookRunner   hookRunner
+	policyStore  *policystore.Store
+	// In most cases, the access pattern in the policyStore is:
+	// 1. Get the current (previous) entry.
+	// 2. Add the new entry.
+	// 3. Try the runtime call.
+	// 4. If (3) fails, restore the previous entry.
+	// This lock ensures that 1, 2, and 4 happen atomically during
+	// concurrent server operations, otherwise this can lead to an
+	// inconsistent state in the runtime and the store.
+	policyMu sync.Mutex
 	tetragon.UnimplementedFineGuidanceSensorsServer
 }
 
@@ -75,13 +86,14 @@ type getEventsListener struct {
 	events chan *tetragon.GetEventsResponse
 }
 
-func NewServer(ctx context.Context, cleanupWg *sync.WaitGroup, notifier Notifier, observer observer, hookRunner hookRunner) *Server {
+func NewServer(ctx context.Context, cleanupWg *sync.WaitGroup, notifier Notifier, observer observer, hookRunner hookRunner, policyStore *policystore.Store) *Server {
 	return &Server{
 		ctx:          ctx,
 		ctxCleanupWG: cleanupWg,
 		notifier:     notifier,
 		observer:     observer,
 		hookRunner:   hookRunner,
+		policyStore:  policyStore,
 	}
 }
 
@@ -266,6 +278,31 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 			"metadata.name", tp.TpName())
 		return nil, err
 	}
+
+	if s.policyStore != nil {
+		id := policystore.PolicyID{Name: tp.TpName(), Namespace: tp.TpNamespace(), Domain: gtp.TpDomain()}
+
+		s.policyMu.Lock()
+		defer s.policyMu.Unlock()
+
+		state := policystore.PolicyWithState{
+			YAML:    req.GetYaml(),
+			Enabled: true,
+		}
+		if err := s.policyStore.Put(id, state); err != nil {
+			// as we didn't manage to make the add operation persistent
+			// remove that from the runtime as well and report an error
+			runtimeRollbackErr := s.observer.DeleteTracingPolicy(ctx, id.Name, id.Namespace, id.Domain)
+			if runtimeRollbackErr != nil {
+				runtimeRollbackErr = fmt.Errorf("roll back runtime policy %s: %w", id.Name, runtimeRollbackErr)
+			}
+
+			return nil, errors.Join(
+				fmt.Errorf("persist added policy %s: %w", id.Name, err),
+				runtimeRollbackErr,
+			)
+		}
+	}
 	return &tetragon.AddTracingPolicyResponse{}, nil
 }
 
@@ -276,9 +313,38 @@ func (s *Server) DeleteTracingPolicy(ctx context.Context, req *tetragon.DeleteTr
 	if req.GetDomain() != "" {
 		domain = req.GetDomain()
 	}
+	id := policystore.PolicyID{Name: req.GetName(), Namespace: req.GetNamespace(), Domain: domain}
+
+	s.policyMu.Lock()
+	defer s.policyMu.Unlock()
+
+	var previous policystore.PolicyWithState
+	var exists bool
+	if s.policyStore != nil {
+		previous, exists = s.policyStore.Get(id)
+		// policy may not loaded by grpc (i.e. static) so we need to handle
+		// the case where the policy does not exist in the store
+		if exists {
+			if err := s.policyStore.Delete(id); err != nil {
+				restoreErr := s.policyStore.Put(id, previous)
+				if restoreErr != nil {
+					restoreErr = fmt.Errorf("restore persisted state for policy %s: %w", id.Name, restoreErr)
+				}
+				return nil, errors.Join(
+					fmt.Errorf("delete persisted policy %s: %w", id.Name, err),
+					restoreErr,
+				)
+			}
+		}
+	}
 
 	if err := s.observer.DeleteTracingPolicy(ctx, req.GetName(), req.GetNamespace(), domain); err != nil {
 		logger.GetLogger().Warn("Server DeleteTracingPolicy request failed", "name", req.GetName(), logfields.Error, err)
+		if s.policyStore != nil && exists {
+			if restoreErr := s.policyStore.Put(id, previous); restoreErr != nil {
+				err = errors.Join(err, fmt.Errorf("restore persisted state for policy %s: %w", id.Name, restoreErr))
+			}
+		}
 		return nil, err
 	}
 	return &tetragon.DeleteTracingPolicyResponse{}, nil

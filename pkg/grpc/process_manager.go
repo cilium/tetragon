@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policystore"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/rthooks"
@@ -33,12 +34,13 @@ func NewProcessManager(
 	wg *sync.WaitGroup,
 	manager *sensors.Manager,
 	hookRunner *rthooks.Runner,
+	policyStore *policystore.Store,
 ) (*ProcessManager, error) {
 	pm := &ProcessManager{
 		listeners: make(map[server.Listener]struct{}),
 	}
 
-	pm.Server = server.NewServer(ctx, wg, pm, manager, hookRunner)
+	pm.Server = server.NewServer(ctx, wg, pm, manager, hookRunner, policyStore)
 
 	// Exec cache is always needed to ensure events have an associated Process{}
 	eventcache.New(pm)
