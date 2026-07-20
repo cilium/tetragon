@@ -398,7 +398,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	// report nil or a pre-defined value. So no cache needed.
 	option.Config.EnableProcessNs = true
 	option.Config.EnableProcessCred = true
-	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, sensorManager, hookRunner)
+	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, sensorManager, hookRunner, nil)
 	if err != nil {
 		return err
 	}

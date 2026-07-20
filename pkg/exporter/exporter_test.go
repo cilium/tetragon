@@ -99,7 +99,7 @@ func TestExporter_Send(t *testing.T) {
 	eventNotifier := newFakeNotifier()
 	ctx, cancel := context.WithCancel(context.Background())
 	dr := rthooks.DummyHookRunner{}
-	grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr)
+	grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr, nil)
 	numRecords := 2
 	results := newArrayWriter(numRecords)
 	encoder := encoder.NewProtojsonEncoder(results)
@@ -206,7 +206,7 @@ func Test_rateLimitExport(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				eventNotifier := newFakeNotifier()
 				dr := rthooks.DummyHookRunner{}
-				grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr)
+				grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr, nil)
 				results := newArrayWriter(tt.totalEvents)
 				encoder := encoder.NewProtojsonEncoder(results)
 				request := &tetragon.GetEventsRequest{}
@@ -249,7 +249,7 @@ func TestExporterSetLoggingParams(t *testing.T) {
 		eventNotifier := newFakeNotifier()
 
 		dr := rthooks.DummyHookRunner{}
-		grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr)
+		grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr, nil)
 
 		tempDir := t.TempDir()
 
