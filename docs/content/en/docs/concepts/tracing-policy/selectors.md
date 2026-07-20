@@ -123,6 +123,7 @@ The available operators for `matchArgs` are:
 - `Mask`
 - `FileType`
 - `NotFileType`
+- [`CelExpr`](#celexpr-argument-filter)
 
 **Further examples**
 
@@ -181,6 +182,49 @@ selectors:
     values:
     - "reg"
 ```
+
+### CelExpr argument filter
+
+The `CelExpr` argument filter allows specifying filtering expressions in
+[CEL](https://cel.dev/overview/cel-overview) that are evaluated in-kernel.
+
+Here's a policy example:
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-lseek-cel-example"
+spec:
+  kprobes:
+  - call: "sys_lseek"
+    syscall: true
+    args:
+    - index: 2
+      type: "int"
+      label: "whence"
+    - index: 0
+      type: "int"
+      label: "fd"
+    - index: 1
+      type: "long"
+      label: "offset"
+    selectors:
+      - matchArgs:
+        - operator: "CelExpr"
+          values:
+          - "arg1 == int32(-1) && arg0 >= int32(1024)"
+```
+
+Arguments, as specified in the `args:` list, are made available in the CEL expression as `argX`
+where `X` is the zero-based index in the list. In the above example, the argument labeled `whence`
+is available as `arg0`, while the argument labeled `fd` is available as `arg1`.
+
+Currently, CelExpr operators support:
+* Addition (`+`) and subtraction (`-`)
+* Logical AND (`&&`), OR (`||`), and NOT (`!`) operators
+* Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
+* Integer casting to 32-bits (`int32()`, `uint32()`)
 
 ## Data filter
 
