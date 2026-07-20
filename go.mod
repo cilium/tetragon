@@ -13,7 +13,7 @@ require (
 	github.com/containerd/cgroups/v3 v3.1.3
 	github.com/deckarep/golang-set/v2 v2.9.0
 	github.com/fatih/color v1.19.0
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/cel-go v0.29.2
 	github.com/google/go-cmp v0.7.0
