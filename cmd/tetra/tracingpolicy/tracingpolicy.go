@@ -295,19 +295,11 @@ func tpSetModeCmd() *cobra.Command {
 		Long:  "Set a tracing policy to monitor or enforce mode.",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-
-			var mode tetragon.TracingPolicyMode
-			switch args[1] {
-			case "enforce":
-				mode = tetragon.TracingPolicyMode_TP_MODE_ENFORCE
-			case "monitor":
-				mode = tetragon.TracingPolicyMode_TP_MODE_MONITOR
-			// TracingPolicyMode_TP_MODE_MONITOR_ONLY unmanaged here
-			default:
-				return fmt.Errorf("invalid mode %q", args[1])
+			mode, err := tracingpolicy.TpStringToMode(args[1])
+			if err != nil {
+				return err
 			}
-
-			err := tpConfigure(args[0], namespace, domain, nil, &mode)
+			err = tpConfigure(args[0], namespace, domain, nil, &mode)
 			if err != nil {
 				return fmt.Errorf("failed set mode to %q tracing policy: %w", args[1], err)
 			}
