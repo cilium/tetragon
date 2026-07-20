@@ -409,6 +409,7 @@ func (s *Server) EnableTracingPolicy(ctx context.Context, req *tetragon.EnableTr
 	}
 	return &tetragon.EnableTracingPolicyResponse{}, nil
 }
+
 func (s *Server) ConfigureTracingPolicy(ctx context.Context, req *tetragon.ConfigureTracingPolicyRequest) (*tetragon.ConfigureTracingPolicyResponse, error) {
 	logger.GetLogger().Debug("Received a ConfigureTrcingPolicy request", "name", req.GetName())
 
@@ -416,8 +417,47 @@ func (s *Server) ConfigureTracingPolicy(ctx context.Context, req *tetragon.Confi
 	if req.GetDomain() == "" {
 		req.Domain = GrpcDomain
 	}
+	id := policystore.PolicyID{Name: req.GetName(), Namespace: req.GetNamespace(), Domain: req.GetDomain()}
+
+	s.policyMu.Lock()
+	defer s.policyMu.Unlock()
+
+	var previous policystore.PolicyWithState
+	var exists bool
+	if s.policyStore != nil {
+		// policy store is enabled so first thing is to get the previous etry with the same id
+		previous, exists = s.policyStore.Get(id)
+		if exists {
+			next := previous
+			// an entry already exists so we update the in-memory representation to be disabled
+			// check if enabled state is changed
+			if req.Enable != nil {
+				next.Enabled = req.GetEnable()
+			}
+			// check if mode changed
+			if req.Mode != nil {
+				mode, err := tracingpolicy.TpModeToString(req.GetMode())
+				if err != nil {
+					return nil, err
+				}
+				policyYAML, err := tracingpolicy.PolicyYAMLSetMode([]byte(next.YAML), mode)
+				if err != nil {
+					return nil, fmt.Errorf("update stored policy mode: %w", err)
+				}
+				next.YAML = string(policyYAML)
+			}
+			if err := persistWithRollback(s.policyStore, id, next, previous); err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	if err := s.observer.ConfigureTracingPolicy(ctx, req); err != nil {
+		if s.policyStore != nil && exists {
+			if restoreErr := s.policyStore.Put(id, previous); restoreErr != nil {
+				err = errors.Join(err, fmt.Errorf("restore persisted state for policy %s: %w", id.Name, restoreErr))
+			}
+		}
 		return nil, err
 	}
 
