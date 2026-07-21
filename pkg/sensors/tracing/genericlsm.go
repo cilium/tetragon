@@ -75,7 +75,7 @@ type genericLsm struct {
 	// is IMA hash collector program needed to load
 	imaProgLoad bool
 	// instance identifier to mitigate duplicate hooks at same location
-	instance int
+	instance InstanceID
 }
 
 func (g *genericLsm) SetID(id idtable.EntryID) {
@@ -292,7 +292,7 @@ type addLsmIn struct {
 	selectorStatsBase uint32
 }
 
-func addLsm(f *v1alpha1.LsmHookSpec, instance int, in *addLsmIn) (id idtable.EntryID, err error) {
+func addLsm(f *v1alpha1.LsmHookSpec, instance InstanceID, in *addLsmIn) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinter
 	var argsBTFSet [api.MaxArgsSupported]bool
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
@@ -437,7 +437,7 @@ func createGenericLsmSensor(
 	}
 
 	var selectorStatsBase uint32
-	dups := make(map[string]int)
+	dups := NewDupInstance()
 	for _, hook := range lsmHooks {
 		if err := appendMacrosSelectors(hook.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
@@ -446,13 +446,7 @@ func createGenericLsmSensor(
 		in.selectorStatsBase = selectorStatsBase
 		selectorStatsBase += uint32(len(hook.Selectors))
 
-		instance, ok := dups[hook.Hook]
-		if ok {
-			instance++
-		}
-		dups[hook.Hook] = instance
-
-		id, err := addLsm(&hook, instance, &in)
+		id, err := addLsm(&hook, dups.GetID(hook.Hook), &in)
 		if err != nil {
 			return nil, err
 		}
@@ -547,10 +541,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
 
 	loadProgCoreName, loadProgOutputName := config.GenericLsmObjs()
-	pinName := lsmEntry.hook
-	if lsmEntry.instance != 0 {
-		pinName = fmt.Sprintf("%s:%d", lsmEntry.hook, lsmEntry.instance)
-	}
+	pinName := lsmEntry.instance.PinProg(lsmEntry.hook)
 
 	/* We need to load LSM programs in the following order:
 	   1. bpf_generic_lsm_output
