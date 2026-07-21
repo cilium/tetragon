@@ -1554,6 +1554,8 @@ For now, we only want to support debug-related config flags to be configurable.
 | STATUS_UNSPECIFIED | 0 | unknown or unspecified state |
 | STATUS_LOADED | 1 | probe was loaded |
 | STATUS_DIGEST_REJECTED | 2 | probe was not loaded due to digest mismatch |
+| STATUS_CALL_NOT_FOUND | 3 | probe was not loaded due to call was not found |
+| STATUS_PARTIAL_CALL_NOT_FOUND | 4 | probe was partially loaded due to call not found |
 
 <a name="tetragon-LogLevel"></a>
 

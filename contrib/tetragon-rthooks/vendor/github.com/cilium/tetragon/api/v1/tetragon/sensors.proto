@@ -111,6 +111,10 @@ enum HookState {
   STATUS_LOADED = 1;
   // probe was not loaded due to digest mismatch
   STATUS_DIGEST_REJECTED = 2;
+  // probe was not loaded due to call was not found
+  STATUS_CALL_NOT_FOUND = 3;
+  // probe was partially loaded due to call not found
+  STATUS_PARTIAL_CALL_NOT_FOUND = 4;
 }
 
 message HookStatus {
