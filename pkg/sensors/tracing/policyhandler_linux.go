@@ -226,11 +226,6 @@ func (h policyHandler) PolicyHandler(
 		if err != nil {
 			return nil, fmt.Errorf("validation failed: %w", err)
 		}
-		// if all kprobes where ignored, do not load anything. This is equivalent with
-		// having a policy with an empty kprobe: section
-		if allKprobesIgnored(validateInfo) {
-			return nil, nil
-		}
 		if fentry {
 			return createGenericFentrySensor(spec, name, polInfo, validateInfo)
 		}
