@@ -67,6 +67,7 @@
 package program
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -346,15 +347,11 @@ func isValidSubdir(d string) bool {
 }
 
 func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec, create bool) (*ebpf.Map, error) {
-	var err error
 	// Try to open the pinPath and if it exist use the previously
 	// pinned map otherwise pin the map and next user will find
 	// it here.
-	if _, err = os.Stat(pinPath); err == nil {
-		m, err := ebpf.LoadPinnedMap(pinPath, nil)
-		if err != nil {
-			return nil, fmt.Errorf("loading pinned map from path '%s' failed: %w", pinPath, err)
-		}
+	m, err := ebpf.LoadPinnedMap(pinPath, nil)
+	if err == nil {
 		if err := mapSpec.Compatible(m); err != nil {
 			logger.GetLogger().Warn("incompatible map found", logfields.Error, err,
 				"path", pinPath,
@@ -370,6 +367,9 @@ func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec, create bool) (
 			return nil, fmt.Errorf("incompatible map '%s'", pinPath)
 		}
 		return m, nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("loading pinned map from path '%s' failed: %w", pinPath, err)
 	}
 	if create {
 		return createPinnedMap(pinPath, mapSpec)
