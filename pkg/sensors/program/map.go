@@ -115,6 +115,13 @@ type Map struct {
 	Type         MapType
 	Owner        bool
 	Shared       bool
+
+	// Configure prepares a copied map specification before the pinned map is
+	// opened or created. It must not change fields, load, pin, or unpin maps.
+	Configure func(spec *ebpf.MapSpec) error
+
+	// Validate checks state which isn't covered by MapSpec.Compatible.
+	Validate func(m *ebpf.Map, spec *ebpf.MapSpec) error
 }
 
 func (m *Map) String() string {
@@ -194,7 +201,7 @@ func mapBuilder(name, pinName string, ty MapType, owner bool, shared bool, lds .
 	if len(lds) != 0 {
 		prog = lds[0]
 	}
-	m := &Map{name, pinName, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner, shared}
+	m := &Map{name, pinName, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner, shared, nil, nil}
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
@@ -235,7 +242,7 @@ func MapShared(name string, lds ...*Program) *Map {
 }
 
 func mapUser(name, pinName string, ty MapType, prog *Program) *Map {
-	return &Map{name, pinName, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false, false}
+	return &Map{name, pinName, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false, false, nil, nil}
 }
 
 func MapUser(name string, prog *Program) *Map {
@@ -330,12 +337,19 @@ func (m *Map) GetFD() (int, error) {
 }
 
 func (m *Map) LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) error {
+	mapSpec = mapSpec.Copy()
+	if m.Configure != nil {
+		if err := m.Configure(mapSpec); err != nil {
+			return fmt.Errorf("configuring map '%s': %w", m.Name, err)
+		}
+	}
+
 	if m.MapHandle != nil {
 		logger.GetLogger().Warn("LoadOrCreatePinnedMap called with non-nil map, will close and continue.", "map-name", m.Name)
 		m.MapHandle.Close()
 	}
 
-	mh, err := LoadOrCreatePinnedMap(pinPath, mapSpec, m.IsOwner() || m.IsShared())
+	mh, err := loadOrCreatePinnedMap(pinPath, mapSpec, m.IsOwner() || m.IsShared(), m.Validate)
 	if err != nil {
 		return err
 	}
@@ -357,12 +371,25 @@ func isValidSubdir(d string) bool {
 }
 
 func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec, create bool) (*ebpf.Map, error) {
+	return loadOrCreatePinnedMap(pinPath, mapSpec, create, nil)
+}
+
+func loadOrCreatePinnedMap(
+	pinPath string,
+	mapSpec *ebpf.MapSpec,
+	create bool,
+	validate func(*ebpf.Map, *ebpf.MapSpec) error,
+) (*ebpf.Map, error) {
 	// Try to open the pinPath and if it exist use the previously
 	// pinned map otherwise pin the map and next user will find
 	// it here.
 	m, err := ebpf.LoadPinnedMap(pinPath, nil)
 	if err == nil {
-		if err := mapSpec.Compatible(m); err != nil {
+		err = mapSpec.Compatible(m)
+		if err == nil && validate != nil {
+			err = validate(m, mapSpec)
+		}
+		if err != nil {
 			logger.GetLogger().Warn("incompatible map found", logfields.Error, err,
 				"path", pinPath,
 				"map-name", mapSpec.Name)
@@ -372,9 +399,9 @@ func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec, create bool) (
 			if create {
 				logger.GetLogger().Warn("will delete and recreate", "map", mapSpec.Name)
 				os.Remove(pinPath)
-				return createPinnedMap(pinPath, mapSpec)
+				return createPinnedMap(pinPath, mapSpec, validate)
 			}
-			return nil, fmt.Errorf("incompatible map '%s'", pinPath)
+			return nil, fmt.Errorf("incompatible map '%s': %w", pinPath, err)
 		}
 		return m, nil
 	}
@@ -382,12 +409,16 @@ func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec, create bool) (
 		return nil, fmt.Errorf("loading pinned map from path '%s' failed: %w", pinPath, err)
 	}
 	if create {
-		return createPinnedMap(pinPath, mapSpec)
+		return createPinnedMap(pinPath, mapSpec, validate)
 	}
 	return nil, err
 }
 
-func createPinnedMap(pinPath string, mapSpec *ebpf.MapSpec) (*ebpf.Map, error) {
+func createPinnedMap(
+	pinPath string,
+	mapSpec *ebpf.MapSpec,
+	validate func(*ebpf.Map, *ebpf.MapSpec) error,
+) (*ebpf.Map, error) {
 	// check if PinName has directory portion and create it,
 	// filepath.Dir returns '.' for filename without dir portion
 	if dir := filepath.Dir(pinPath); isValidSubdir(dir) {
@@ -402,6 +433,12 @@ func createPinnedMap(pinPath string, mapSpec *ebpf.MapSpec) (*ebpf.Map, error) {
 		return nil, fmt.Errorf("failed to create map '%s': %w", mapSpec.Name, err)
 	}
 
+	if validate != nil {
+		if err := validate(m, mapSpec); err != nil {
+			m.Close()
+			return nil, fmt.Errorf("validating newly created map '%s': %w", mapSpec.Name, err)
+		}
+	}
 	if err := m.Pin(pinPath); err != nil {
 		m.Close()
 		return nil, fmt.Errorf("failed to pin to %s: %w", pinPath, err)
