@@ -16,6 +16,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 const (
@@ -24,8 +25,9 @@ const (
 )
 
 type rodataConfig struct {
-	IterNum uint8
-	Pad     [7]uint8
+	IterNum        uint8
+	EnvVarsEnabled uint8
+	Pad            [6]uint8
 }
 
 func rodataCurrent() rodataConfig {
@@ -36,7 +38,16 @@ func rodataCurrent() rodataConfig {
 	if bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9") {
 		iterNum = 1
 	}
-	return rodataConfig{IterNum: iterNum}
+
+	envVarsEnabled := uint8(0)
+	if option.Config.EnableProcessEnvironmentVariables {
+		envVarsEnabled = 1
+	}
+
+	return rodataConfig{
+		IterNum:        iterNum,
+		EnvVarsEnabled: envVarsEnabled,
+	}
 }
 
 func rodataConfigContents() ([]byte, error) {

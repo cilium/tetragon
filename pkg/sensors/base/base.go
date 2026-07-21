@@ -155,7 +155,7 @@ func setupSensor() {
 	logger.GetLogger().Info(fmt.Sprintf("Set execve_map entries %d", entries),
 		"size", strutils.SizeWithSuffix(entries*int(unsafe.Sizeof(execvemap.ExecveValue{}))))
 
-	if option.Config.EnableProcessEnvironmentVariables {
+	if !config.EnableV511Progs() && option.Config.EnableProcessEnvironmentVariables {
 		Execve.RewriteConstants["ENV_VARS_ENABLED"] = uint8(1)
 	}
 

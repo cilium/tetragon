@@ -59,3 +59,8 @@ func MinKernelVersion(kernel string) bool {
 
 	return minVersion <= runningVersion
 }
+
+func IsKernelVersionLessThan(version string) bool {
+	kernelVer, _, _ := GetKernelVersion("", "")
+	return int64(kernelVer) < KernelStringToNumeric(version)
+}
