@@ -311,3 +311,30 @@ func useMacro[T any](filters []T, macrosFilters []T) ([]T, error) {
 	}
 	return append(filters, macrosFilters...), nil
 }
+
+type InstanceID int
+
+func (i InstanceID) PinProg(name string) string {
+	if i != 0 {
+		return fmt.Sprintf("%s:%d", name, i)
+	}
+	return name
+}
+
+type DupInstance struct {
+	dups map[string]InstanceID
+}
+
+func NewDupInstance() *DupInstance {
+	return &DupInstance{make(map[string]InstanceID)}
+}
+
+func (d *DupInstance) GetID(name string) InstanceID {
+	// Make sure duplicate symbols got non zero instance value
+	instance, ok := d.dups[name]
+	if ok {
+		instance = instance + 1
+	}
+	d.dups[name] = instance
+	return instance
+}
