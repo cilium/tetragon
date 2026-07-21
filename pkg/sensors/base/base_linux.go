@@ -11,6 +11,8 @@ import (
 	"github.com/cilium/tetragon/pkg/strutils"
 )
 
+var RodataConfigMap = program.MapBuilderRodataConfig(Execve)
+
 func GetDefaultPrograms() []*program.Program {
 	progs := []*program.Program{
 		Exit,
@@ -40,6 +42,9 @@ func GetDefaultMaps() []*program.Map {
 
 	if option.Config.ParentsMapEnabled {
 		maps = append(maps, ParentBinariesMap)
+	}
+	if config.EnableV511Progs() {
+		maps = append(maps, RodataConfigMap)
 	}
 
 	// The BPF ring buffer is available from v5.8, but rather than add another set of
