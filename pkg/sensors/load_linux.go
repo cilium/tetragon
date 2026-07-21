@@ -19,16 +19,20 @@ import (
 )
 
 func (s *Sensor) setMapPinPath(m *program.Map) {
+	pinName := m.PinName
+	if pinName == "" {
+		pinName = m.Name
+	}
 	policy := s.policyDir()
 	switch m.Type {
 	case program.MapTypeGlobal:
-		m.PinPath = filepath.Join(m.Name)
+		m.PinPath = filepath.Join(pinName)
 	case program.MapTypePolicy:
-		m.PinPath = filepath.Join(policy, m.Name)
+		m.PinPath = filepath.Join(policy, pinName)
 	case program.MapTypeSensor:
-		m.PinPath = filepath.Join(policy, s.Name, m.Name)
+		m.PinPath = filepath.Join(policy, s.Name, pinName)
 	case program.MapTypeProgram:
-		m.PinPath = filepath.Join(policy, s.Name, m.Prog.PinName, m.Name)
+		m.PinPath = filepath.Join(policy, s.Name, m.Prog.PinName, pinName)
 	}
 }
 
