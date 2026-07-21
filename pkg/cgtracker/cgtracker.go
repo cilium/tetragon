@@ -176,9 +176,9 @@ func globalMap() (Map, error) {
 	setGlMap.Do(func() {
 		retries := 0
 		log := logger.GetLogger()
-		// NB(kkourt): the map is needed for criResolver that runs in a new goroutine
-		// started by newCriResolver. This goroutine will start before the base sensor which
-		// initialized the map and, as a result, criResolver fails. To address this, add a
+		// NB(kkourt): the map is needed for the cgidmap resolver that runs in a new
+		// goroutine. This goroutine will start before the base sensor which initialized
+		// the map and, as a result, resolution fails. To address this, add a
 		// number of retries before we start.
 		for {
 			fname := filepath.Join(bpf.MapPrefixPath(), MapName)
@@ -197,6 +197,11 @@ func globalMap() (Map, error) {
 }
 
 func AddCgroupTrackerPath(cgRoot string) error {
+	// the tracker map only exists when cgroup tracker ids are enabled (see
+	// RegisterCgroupTracker); without it, globalMap() would block forever.
+	if !option.Config.EnableCgTrackerID {
+		return nil
+	}
 	m, err := globalMap()
 	if err != nil {
 		return err

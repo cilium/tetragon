@@ -77,7 +77,7 @@ type cgidm struct {
 	log logger.FieldLogger
 	*logger.DebugLogger
 
-	criResolver *criResolver
+	resolver *resolver
 }
 
 func newMap() (*cgidm, error) {
@@ -91,13 +91,12 @@ func newMap() (*cgidm, error) {
 		DebugLogger: logger.NewDebugLogger(log, option.Config.EnableCgIDmapDebug),
 	}
 
-	var criResolver *criResolver
 	if option.Config.EnableCRI {
-		criResolver = newCriResolver(m)
+		m.resolver = newCriResolver(m)
 	} else {
-		logger.GetLogger().Warn("cgidmap is enabled but cri is not. This means that pod association will not work for existing pods. You can enable cri using --enable-cri")
+		m.resolver = newCgfsResolver(m)
+		logger.GetLogger().Info("cgidmap is enabled but cri is not. Pod association for existing pods will use best-effort cgroupfs scanning. For authoritative resolution, enable cri using --enable-cri")
 	}
-	m.criResolver = criResolver
 	return m, nil
 }
 
@@ -220,7 +219,7 @@ func (m *cgidm) Update(podID PodID, contIDs []ContainerID) {
 		return
 	}
 
-	// schedule unmapped ids to be resolved by the CRI resolver
+	// schedule unmapped ids to be resolved by the async resolver
 	unmappedIDs := make([]unmappedID, 0, len(tmp))
 	for id := range tmp {
 		unmappedIDs = append(unmappedIDs, unmappedID{
@@ -228,9 +227,7 @@ func (m *cgidm) Update(podID PodID, contIDs []ContainerID) {
 			contID: id,
 		})
 	}
-	if m.criResolver != nil {
-		m.criResolver.enqeue(unmappedIDs)
-	}
+	m.resolver.enqueue(unmappedIDs)
 }
 
 // Global state

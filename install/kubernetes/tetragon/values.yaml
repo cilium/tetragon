@@ -299,7 +299,8 @@ tetragon:
     # "/run/containerd/containerd.sock" for containerd or "/var/run/crio/crio.sock"  for crio.
     socketHostPath: ""
   # -- Enabling cgidmap instructs the Tetragon agent to use cgroup ids (instead of cgroup names) for
-  # pod association. This feature depends on cri being enabled.
+  # pod association. Without cri enabled, existing pods are associated using best-effort cgroup
+  # filesystem scanning; enabling cri provides authoritative resolution.
   cgidmap:
     enabled: false
   usePerfRingBuffer: false
