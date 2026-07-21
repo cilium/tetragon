@@ -99,8 +99,13 @@ type MapOpts struct {
 }
 
 // Map represents BPF maps.
+// Name
+// - ELF name, map's ebpf program handle
+// PinName
+// - bpffs filename, it may differ from the ELF map name.
 type Map struct {
 	Name         string
+	PinName      string
 	PinPath      string
 	Prog         *Program
 	PinState     State
@@ -184,12 +189,12 @@ func sharedMapDecRef(pinPath string) bool {
 //	p.PinMap["map2"] = &map2
 //	...
 //	p.PinMap["mapX"] = &mapX
-func mapBuilder(name string, ty MapType, owner bool, shared bool, lds ...*Program) *Map {
+func mapBuilder(name, pinName string, ty MapType, owner bool, shared bool, lds ...*Program) *Map {
 	var prog *Program
 	if len(lds) != 0 {
 		prog = lds[0]
 	}
-	m := &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner, shared}
+	m := &Map{name, pinName, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner, shared}
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
@@ -197,55 +202,60 @@ func mapBuilder(name string, ty MapType, owner bool, shared bool, lds ...*Progra
 }
 
 func MapBuilder(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeGlobal, true, false, lds...)
+	return mapBuilder(name, name, MapTypeGlobal, true, false, lds...)
+}
+
+// MapBuilderPin creates a global map with distinct ELF and bpffs names.
+func MapBuilderPin(name, pinName string, lds ...*Program) *Map {
+	return mapBuilder(name, pinName, MapTypeGlobal, true, false, lds...)
 }
 
 func MapBuilderProgram(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeProgram, true, false, lds...)
+	return mapBuilder(name, name, MapTypeProgram, true, false, lds...)
 }
 
 func MapBuilderSensor(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeSensor, true, false, lds...)
+	return mapBuilder(name, name, MapTypeSensor, true, false, lds...)
 }
 
 func MapBuilderPolicy(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypePolicy, true, false, lds...)
+	return mapBuilder(name, name, MapTypePolicy, true, false, lds...)
 }
 
 func MapBuilderType(name string, ty MapType, lds ...*Program) *Map {
-	return mapBuilder(name, ty, true, false, lds...)
+	return mapBuilder(name, name, ty, true, false, lds...)
 }
 
 func MapBuilderOpts(name string, opts MapOpts, lds ...*Program) *Map {
-	return mapBuilder(name, opts.Type, opts.Owner, false, lds...)
+	return mapBuilder(name, name, opts.Type, opts.Owner, false, lds...)
 }
 
 func MapShared(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeGlobal, false, true, lds...)
+	return mapBuilder(name, name, MapTypeGlobal, false, true, lds...)
 }
 
-func mapUser(name string, ty MapType, prog *Program) *Map {
-	return &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false, false}
+func mapUser(name, pinName string, ty MapType, prog *Program) *Map {
+	return &Map{name, pinName, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false, false}
 }
 
 func MapUser(name string, prog *Program) *Map {
-	return mapUser(name, MapTypeGlobal, prog)
+	return mapUser(name, name, MapTypeGlobal, prog)
 }
 
 func MapUserProgram(name string, prog *Program) *Map {
-	return mapUser(name, MapTypeProgram, prog)
+	return mapUser(name, name, MapTypeProgram, prog)
 }
 
 func MapUserSensor(name string, prog *Program) *Map {
-	return mapUser(name, MapTypeSensor, prog)
+	return mapUser(name, name, MapTypeSensor, prog)
 }
 
 func MapUserPolicy(name string, prog *Program) *Map {
-	return mapUser(name, MapTypePolicy, prog)
+	return mapUser(name, name, MapTypePolicy, prog)
 }
 
 func MapUserFrom(m *Map) *Map {
-	return mapUser(m.Name, m.Type, m.Prog)
+	return mapUser(m.Name, m.PinName, m.Type, m.Prog)
 }
 
 func PolicyMapPath(mapDir, policy, name string) string {
