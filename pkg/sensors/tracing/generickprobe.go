@@ -441,15 +441,6 @@ func preValidateKprobe(
 	}, nil
 }
 
-func allKprobesIgnored(info []*kpValidateInfo) bool {
-	for _, i := range info {
-		if !i.ignore {
-			return false
-		}
-	}
-	return true
-}
-
 // preValidateKprobes pre-validates the semantics and BTF information of a Kprobe spec
 // Furthermore, it does some preprocessing of the calls and returns one kpValidateInfo struct per
 // kprobe. It also validates that if any selector uses NotifyEnforcer action, the spec contains enforcers.
@@ -628,24 +619,26 @@ func createGenericKprobeSensor(
 		}
 	}
 
-	var err error
-	if useMulti {
-		progs, maps, err = createMultiKprobeSensor(polInfo, ids, has)
-	} else {
-		progs, maps, err = createSingleKprobeSensor(polInfo, ids, has)
-	}
+	if len(ids) != 0 {
+		var err error
+		if useMulti {
+			progs, maps, err = createMultiKprobeSensor(polInfo, ids, has)
+		} else {
+			progs, maps, err = createSingleKprobeSensor(polInfo, ids, has)
+		}
 
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return nil, err
+		}
 
-	maps = append(maps, program.MapUserFrom(base.ExecveMap))
-	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
-		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
-	}
+		maps = append(maps, program.MapUserFrom(base.ExecveMap))
+		if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
+			maps = append(maps, program.MapUserFrom(base.RingBufEvents))
+		}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		if option.Config.ParentsMapEnabled {
+			maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		}
 	}
 
 	return &sensors.Sensor{
