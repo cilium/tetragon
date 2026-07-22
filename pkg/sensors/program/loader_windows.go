@@ -113,6 +113,10 @@ func LoadMultiKprobeProgram(_ string, _ *Program, _ []*Map, _ int) error {
 	return constants.ErrWindowsNotSupported
 }
 
+func LoadTracingMultiProgram(_ string, _ *Program, _ []*Map, _ int) error {
+	return constants.ErrWindowsNotSupported
+}
+
 func LoadFmodRetProgram(_ string, _ *Program, _ []*Map, _ string, _ int) error {
 	return constants.ErrWindowsNotSupported
 }

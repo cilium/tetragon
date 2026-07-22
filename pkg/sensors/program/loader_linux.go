@@ -553,6 +553,54 @@ func TracingAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
+func TracingMultiOpen(load *Program) OpenFunc {
+	return func(coll *ebpf.CollectionSpec) error {
+		attachType := ebpf.AttachTraceFEntryMulti
+		if load.RetProbe {
+			attachType = ebpf.AttachTraceFExitMulti
+		}
+		for _, spec := range coll.Programs {
+			spec.AttachType = attachType
+			spec.AttachTo = ""
+			spec.AttachTarget = nil
+		}
+		return nil
+	}
+}
+
+func TracingMultiAttach(load *Program, bpfDir string) AttachFunc {
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
+		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+		data, ok := load.AttachData.(*TracingMultiAttachData)
+		if !ok {
+			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
+		}
+
+		linkFn := func() (link.Link, error) {
+			return link.AttachTracingMulti(link.TracingMultiOptions{
+				Program:    prog,
+				AttachType: spec.AttachType,
+				BTFIDs:     data.BTFIDs,
+				Cookies:    data.Cookies,
+			})
+		}
+		lnk, err := linkFn()
+		if err != nil {
+			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		if err := LinkPin(lnk, bpfDir, load); err != nil {
+			lnk.Close()
+			return nil, err
+		}
+		return &unloader.RelinkUnloader{
+			UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
+			IsLinked:   true,
+			Link:       lnk,
+			RelinkFn:   linkFn,
+		}, nil
+	}
+}
+
 func LSMOpen(load *Program) OpenFunc {
 	return func(coll *ebpf.CollectionSpec) error {
 		for _, prog := range coll.Programs {
@@ -787,6 +835,15 @@ func LoadTracingProgram(bpfDir string, load *Program, maps []*Map, verbose int) 
 	opts := &LoadOpts{
 		Attach: TracingAttach(load, bpfDir),
 		Open:   TracingOpen(load),
+		Maps:   maps,
+	}
+	return loadProgram(bpfDir, load, opts, verbose)
+}
+
+func LoadTracingMultiProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
+	opts := &LoadOpts{
+		Attach: TracingMultiAttach(load, bpfDir),
+		Open:   TracingMultiOpen(load),
 		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
