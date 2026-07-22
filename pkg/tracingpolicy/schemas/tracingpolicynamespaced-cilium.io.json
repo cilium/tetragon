@@ -798,6 +798,46 @@
                       },
                       "type": "array"
                     },
+                    "matchCmdArgs": {
+                      "description": "A list of command-line argument filters. MatchCmdArgs are ANDed.\nIndexes are zero-based and exclude argv[0].",
+                      "items": {
+                        "properties": {
+                          "index": {
+                            "description": "Position of the command-line argument to apply the filter to. Indexes\nare zero-based and exclude argv[0], which is represented by the binary.",
+                            "format": "int32",
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "operator": {
+                            "description": "Filter operation.",
+                            "enum": [
+                              "Equal",
+                              "NotEqual",
+                              "Prefix",
+                              "NotPrefix",
+                              "Postfix",
+                              "NotPostfix"
+                            ],
+                            "type": "string"
+                          },
+                          "values": {
+                            "description": "Values to compare the command-line argument against.",
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "index",
+                          "operator",
+                          "values"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
                     "matchData": {
                       "description": "A list of argument filters. MatchData are ANDed.",
                       "items": {
@@ -2202,6 +2242,46 @@
                       },
                       "type": "array"
                     },
+                    "matchCmdArgs": {
+                      "description": "A list of command-line argument filters. MatchCmdArgs are ANDed.\nIndexes are zero-based and exclude argv[0].",
+                      "items": {
+                        "properties": {
+                          "index": {
+                            "description": "Position of the command-line argument to apply the filter to. Indexes\nare zero-based and exclude argv[0], which is represented by the binary.",
+                            "format": "int32",
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "operator": {
+                            "description": "Filter operation.",
+                            "enum": [
+                              "Equal",
+                              "NotEqual",
+                              "Prefix",
+                              "NotPrefix",
+                              "Postfix",
+                              "NotPostfix"
+                            ],
+                            "type": "string"
+                          },
+                          "values": {
+                            "description": "Values to compare the command-line argument against.",
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "index",
+                          "operator",
+                          "values"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
                     "matchData": {
                       "description": "A list of argument filters. MatchData are ANDed.",
                       "items": {
@@ -3340,6 +3420,46 @@
                       },
                       "type": "array"
                     },
+                    "matchCmdArgs": {
+                      "description": "A list of command-line argument filters. MatchCmdArgs are ANDed.\nIndexes are zero-based and exclude argv[0].",
+                      "items": {
+                        "properties": {
+                          "index": {
+                            "description": "Position of the command-line argument to apply the filter to. Indexes\nare zero-based and exclude argv[0], which is represented by the binary.",
+                            "format": "int32",
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "operator": {
+                            "description": "Filter operation.",
+                            "enum": [
+                              "Equal",
+                              "NotEqual",
+                              "Prefix",
+                              "NotPrefix",
+                              "Postfix",
+                              "NotPostfix"
+                            ],
+                            "type": "string"
+                          },
+                          "values": {
+                            "description": "Values to compare the command-line argument against.",
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "index",
+                          "operator",
+                          "values"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
                     "matchData": {
                       "description": "A list of argument filters. MatchData are ANDed.",
                       "items": {
@@ -4426,6 +4546,46 @@
                 },
                 "type": "array"
               },
+              "matchCmdArgs": {
+                "description": "A list of command-line argument filters. MatchCmdArgs are ANDed.\nIndexes are zero-based and exclude argv[0].",
+                "items": {
+                  "properties": {
+                    "index": {
+                      "description": "Position of the command-line argument to apply the filter to. Indexes\nare zero-based and exclude argv[0], which is represented by the binary.",
+                      "format": "int32",
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "operator": {
+                      "description": "Filter operation.",
+                      "enum": [
+                        "Equal",
+                        "NotEqual",
+                        "Prefix",
+                        "NotPrefix",
+                        "Postfix",
+                        "NotPostfix"
+                      ],
+                      "type": "string"
+                    },
+                    "values": {
+                      "description": "Values to compare the command-line argument against.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "index",
+                    "operator",
+                    "values"
+                  ],
+                  "type": "object",
+                  "additionalProperties": false
+                },
+                "type": "array"
+              },
               "matchData": {
                 "description": "A list of argument filters. MatchData are ANDed.",
                 "items": {
@@ -5488,6 +5648,46 @@
                           }
                         },
                         "required": [
+                          "operator",
+                          "values"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
+                    "matchCmdArgs": {
+                      "description": "A list of command-line argument filters. MatchCmdArgs are ANDed.\nIndexes are zero-based and exclude argv[0].",
+                      "items": {
+                        "properties": {
+                          "index": {
+                            "description": "Position of the command-line argument to apply the filter to. Indexes\nare zero-based and exclude argv[0], which is represented by the binary.",
+                            "format": "int32",
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "operator": {
+                            "description": "Filter operation.",
+                            "enum": [
+                              "Equal",
+                              "NotEqual",
+                              "Prefix",
+                              "NotPrefix",
+                              "Postfix",
+                              "NotPostfix"
+                            ],
+                            "type": "string"
+                          },
+                          "values": {
+                            "description": "Values to compare the command-line argument against.",
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "index",
                           "operator",
                           "values"
                         ],
@@ -6863,6 +7063,46 @@
                       },
                       "type": "array"
                     },
+                    "matchCmdArgs": {
+                      "description": "A list of command-line argument filters. MatchCmdArgs are ANDed.\nIndexes are zero-based and exclude argv[0].",
+                      "items": {
+                        "properties": {
+                          "index": {
+                            "description": "Position of the command-line argument to apply the filter to. Indexes\nare zero-based and exclude argv[0], which is represented by the binary.",
+                            "format": "int32",
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "operator": {
+                            "description": "Filter operation.",
+                            "enum": [
+                              "Equal",
+                              "NotEqual",
+                              "Prefix",
+                              "NotPrefix",
+                              "Postfix",
+                              "NotPostfix"
+                            ],
+                            "type": "string"
+                          },
+                          "values": {
+                            "description": "Values to compare the command-line argument against.",
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "index",
+                          "operator",
+                          "values"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
                     "matchData": {
                       "description": "A list of argument filters. MatchData are ANDed.",
                       "items": {
@@ -7966,6 +8206,46 @@
                           }
                         },
                         "required": [
+                          "operator",
+                          "values"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
+                    "matchCmdArgs": {
+                      "description": "A list of command-line argument filters. MatchCmdArgs are ANDed.\nIndexes are zero-based and exclude argv[0].",
+                      "items": {
+                        "properties": {
+                          "index": {
+                            "description": "Position of the command-line argument to apply the filter to. Indexes\nare zero-based and exclude argv[0], which is represented by the binary.",
+                            "format": "int32",
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "operator": {
+                            "description": "Filter operation.",
+                            "enum": [
+                              "Equal",
+                              "NotEqual",
+                              "Prefix",
+                              "NotPrefix",
+                              "Postfix",
+                              "NotPostfix"
+                            ],
+                            "type": "string"
+                          },
+                          "values": {
+                            "description": "Values to compare the command-line argument against.",
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "index",
                           "operator",
                           "values"
                         ],
