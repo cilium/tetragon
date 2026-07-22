@@ -1011,6 +1011,7 @@ func createGenericUprobeSensor(
 			}
 			return errs
 		},
+		NoHooksAttached: len(ids) == 0,
 	}, nil
 }
 
