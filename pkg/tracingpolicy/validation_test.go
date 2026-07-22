@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 func TestKprobeValidationReturnWithoutArg(t *testing.T) {
@@ -136,4 +138,60 @@ func TestUprobeValidationOverrideArgNewSymbolAddrOffset(t *testing.T) {
 	t.Run("NewAddrOffset", func(t *testing.T) {
 		testUprobeValidationOverrideArgNewSymbolAddrOffset(t, false, true, true)
 	})
+}
+
+func TestMatchCmdArgsYAML(t *testing.T) {
+	policy, err := FromYAML(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: match-command-arguments
+spec:
+  kprobes:
+  - call: security_file_permission
+    selectors:
+    - matchCmdArgs:
+      - index: 0
+        operator: Equal
+        values:
+        - -flag1=value1
+      - index: 1
+        operator: Prefix
+        values:
+        - /my/path
+`)
+	require.NoError(t, err)
+
+	selectors := policy.TpSpec().KProbes[0].Selectors
+	require.Equal(t, []v1alpha1.CmdArgSelector{
+		{
+			Index:    0,
+			Operator: "Equal",
+			Values:   []string{"-flag1=value1"},
+		},
+		{
+			Index:    1,
+			Operator: "Prefix",
+			Values:   []string{"/my/path"},
+		},
+	}, selectors[0].MatchCmdArgs)
+}
+
+func TestMatchCmdArgsOperatorValidation(t *testing.T) {
+	_, err := FromYAML(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: match-command-arguments
+spec:
+  kprobes:
+  - call: security_file_permission
+    selectors:
+    - matchCmdArgs:
+      - index: 0
+        operator: Invalid
+        values:
+        - value
+`)
+	require.Error(t, err)
 }
