@@ -85,9 +85,11 @@ func (s *Sensor) removeDirs() {
 		}
 	}
 	// Remove sensor dir
-	if err := os.Remove(filepath.Join(s.BpfDir, s.policyDir(), s.Name)); err != nil {
-		logger.GetLogger().Warn("Failed to remove sensor dir",
-			logfields.Error, err, "sensor", s.Name, "dir", filepath.Join(s.policyDir(), s.Name))
+	if !s.IsEmpty() {
+		if err := os.Remove(filepath.Join(s.BpfDir, s.policyDir(), s.Name)); err != nil {
+			logger.GetLogger().Warn("Failed to remove sensor dir",
+				logfields.Error, err, "sensor", s.Name, "dir", filepath.Join(s.policyDir(), s.Name))
+		}
 	}
 
 	// For policy dir the last one switches off the light.. there still
