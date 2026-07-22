@@ -166,9 +166,14 @@ type Binary struct {
 	Path       [BINARY_PATH_MAX_LEN]byte
 	End        [STRING_POSTFIX_MAX_LENGTH]byte
 	EndR       [STRING_POSTFIX_MAX_LENGTH]byte
-	Args       [MAX_ARG_LENGTH]byte
 	MBSet      uint64
 	MBGen      uint64
+}
+
+type Args struct {
+	Buf     [MAX_ARG_LENGTH]byte
+	Len     uint32
+	Padding uint32
 }
 
 type MsgNamespaces struct {

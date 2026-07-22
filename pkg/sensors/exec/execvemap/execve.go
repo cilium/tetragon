@@ -19,4 +19,5 @@ type ExecveValue struct {
 	Namespaces   processapi.MsgNamespaces   `align:"ns"`
 	Capabilities processapi.MsgCapabilities `align:"caps"`
 	Binary       processapi.Binary          `align:"bin"`
+	Args         processapi.Args            `align:"args"`
 }

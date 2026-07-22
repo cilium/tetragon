@@ -270,9 +270,21 @@ struct heap_exe {
 	char end[STRING_POSTFIX_MAX_LENGTH];
 	__u32 len;
 	__u32 error;
-	__u32 arg_len;
-	__u32 arg_start;
 }; // All fields aligned so no 'packed' attribute.
+
+/* Internal state carried between execve initialization and send. */
+struct args_source {
+	__u64 start;
+	__u64 len;
+};
+
+struct args {
+	// NUL-delimited argv entries excluding argv[0].
+	char buf[MAXARGLENGTH];
+	// len includes every NUL byte copied from the process argument range.
+	__u32 len;
+	__u32 pad;
+};
 
 struct msg_execve_event {
 	struct msg_common common;
@@ -289,10 +301,11 @@ struct msg_execve_event {
 		char buffer[PADDED_BUFFER];
 	};
 	/* below fields are not part of the event, serve just as
-	 * heap for execve programs
+	 * heap for execve programs between execve and send.
 	 */
 #ifdef __LARGE_BPF_PROG
 	struct heap_exe exe;
+	struct args_source args_source;
 #endif
 }; // All fields aligned so no 'packed' attribute.
 
@@ -319,8 +332,6 @@ struct binary {
 	char end[STRING_POSTFIX_MAX_LENGTH];
 	// STRING_POSTFIX_MAX_LENGTH reversed last bytes of the path
 	char end_r[STRING_POSTFIX_MAX_LENGTH];
-	// args for the binary
-	char args[MAXARGLENGTH];
 	// matchBinary bitset for binary
 	// NB: everything after and including ->mb_bitset will not be zeroed on a new exec. See
 	// binary_reset().
@@ -351,6 +362,7 @@ struct execve_map_value {
 	struct msg_ns ns;
 	struct msg_capabilities caps;
 	struct binary bin;
+	struct args args;
 } __attribute__((packed)) __attribute__((aligned(8)));
 
 struct {
