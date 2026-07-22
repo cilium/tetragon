@@ -161,7 +161,7 @@ func (c *collection) getEnabledState() TracingPolicyState {
 }
 
 func (c *collection) mode() tetragon.TracingPolicyMode {
-	if c.tracingpolicy == nil || !c.isEnabled() {
+	if c.tracingpolicy == nil || !c.isEnabled() || c.isEmpty() {
 		return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
 	}
 	mode, err := policyconf.PolicyMode(c.tracingpolicy)
@@ -185,8 +185,17 @@ func (c *collection) mode() tetragon.TracingPolicyMode {
 	return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
 }
 
+func (c *collection) isEmpty() bool {
+	for _, sensor := range c.sensors {
+		if !sensor.IsEmpty() {
+			return false
+		}
+	}
+	return true
+}
+
 func (c *collection) stats() *tetragon.TracingPolicyStats {
-	if c.tracingpolicy == nil || !c.isEnabled() {
+	if c.tracingpolicy == nil || !c.isEnabled() || c.isEmpty() {
 		return nil
 	}
 

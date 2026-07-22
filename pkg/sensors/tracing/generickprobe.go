@@ -687,7 +687,8 @@ func createGenericKprobeSensor(
 			}
 			return errs
 		},
-		Statuses: statuses,
+		Statuses:        statuses,
+		NoHooksAttached: len(ids) == 0,
 	}, nil
 }
 

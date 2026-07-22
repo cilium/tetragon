@@ -90,3 +90,7 @@ func (tds *TestDelayedSensor) unblock(t *testing.T) {
 func (tds *TestDelayedSensor) HookStatus() []*tetragon.HookStatus {
 	return []*tetragon.HookStatus{}
 }
+
+func (tds *TestDelayedSensor) IsEmpty() bool {
+	return false
+}

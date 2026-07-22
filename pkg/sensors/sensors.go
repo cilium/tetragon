@@ -79,6 +79,8 @@ type Sensor struct {
 	DisableNotAllowedReason string
 	// Statuses contains per-hook status
 	Statuses []*tetragon.HookStatus
+	// NoHooksAttached indicates that no hooks were attached
+	NoHooksAttached bool
 }
 
 func (s *Sensor) AddPostUnloadHook(hook SensorHook) {
@@ -122,10 +124,15 @@ type SensorIface interface {
 	Overhead() ([]ProgOverhead, bool)
 	DisableNotAllowed() string
 	HookStatus() []*tetragon.HookStatus
+	IsEmpty() bool
 }
 
 func (s *Sensor) HookStatus() []*tetragon.HookStatus {
 	return s.Statuses
+}
+
+func (s *Sensor) IsEmpty() bool {
+	return s.NoHooksAttached
 }
 
 func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
