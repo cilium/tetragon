@@ -4,7 +4,6 @@
 package tracing
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/cilium/ebpf"
@@ -20,6 +19,20 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
+
+type kprobePolicyHandler struct{}
+type uprobePolicyHandler struct{}
+type tracepointPolicyHandler struct{}
+type lsmPolicyHandler struct{}
+type usdtPolicyHandler struct{}
+
+func init() {
+	sensors.RegisterPolicyHandlerAtInit("tracing-kprobe", kprobePolicyHandler{})
+	sensors.RegisterPolicyHandlerAtInit("tracing-uprobe", uprobePolicyHandler{})
+	sensors.RegisterPolicyHandlerAtInit("tracing-tracepoint", tracepointPolicyHandler{})
+	sensors.RegisterPolicyHandlerAtInit("tracing-lsm", lsmPolicyHandler{})
+	sensors.RegisterPolicyHandlerAtInit("tracing-usdt", usdtPolicyHandler{})
+}
 
 type policyInfo struct {
 	name          string
@@ -44,7 +57,6 @@ func newPolicyInfo(
 		policy.TpSpec(),
 		eventhandler.GetCustomEventhandler(policy),
 	)
-
 }
 
 func hasEnforcementActions(spec *v1alpha1.TracingPolicySpec) bool {
@@ -170,34 +182,11 @@ func (pi *policyInfo) policyConfMap(prog *program.Program) *program.Map {
 	return pi.policyConf
 }
 
-func (h policyHandler) PolicyHandler(
+func (h kprobePolicyHandler) PolicyHandler(
 	policy tracingpolicy.TracingPolicy,
 	policyID policyfilter.PolicyID,
 ) (sensors.SensorIface, error) {
-
 	spec := policy.TpSpec()
-	sections := 0
-	if len(spec.KProbes) > 0 {
-		sections++
-	}
-	if len(spec.Tracepoints) > 0 {
-		sections++
-	}
-	if len(spec.LsmHooks) > 0 {
-		sections++
-	}
-	if len(spec.UProbes) > 0 {
-		sections++
-	}
-	if len(spec.Usdts) > 0 {
-		sections++
-	}
-	if len(spec.Fentries) > 0 {
-		sections++
-	}
-	if sections > 1 {
-		return nil, errors.New("tracing policies with multiple sections of kprobes, tracepoints, lsm hooks, uprobes or usdts are currently not supported")
-	}
 
 	polInfo, err := newPolicyInfo(policy, policyID)
 	if err != nil {
@@ -236,6 +225,37 @@ func (h policyHandler) PolicyHandler(
 		}
 		return createGenericKprobeSensor(spec, name, polInfo, validateInfo, kprobe)
 	}
+	return nil, nil
+}
+
+func (h uprobePolicyHandler) PolicyHandler(
+	policy tracingpolicy.TracingPolicy,
+	policyID policyfilter.PolicyID,
+) (sensors.SensorIface, error) {
+	spec := policy.TpSpec()
+
+	polInfo, err := newPolicyInfo(policy, policyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse options: %w", err)
+	}
+
+	if len(spec.UProbes) > 0 {
+		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo)
+	}
+	return nil, nil
+}
+
+func (h tracepointPolicyHandler) PolicyHandler(
+	policy tracingpolicy.TracingPolicy,
+	policyID policyfilter.PolicyID,
+) (sensors.SensorIface, error) {
+	spec := policy.TpSpec()
+
+	polInfo, err := newPolicyInfo(policy, policyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse options: %w", err)
+	}
+
 	if len(spec.Tracepoints) > 0 {
 		validateInfo, err := preValidateTracepoints(spec.Tracepoints, spec.Enforcers)
 		if err != nil {
@@ -243,15 +263,40 @@ func (h policyHandler) PolicyHandler(
 		}
 		return createGenericTracepointSensor(spec, "generic_tracepoint", polInfo, validateInfo)
 	}
+	return nil, nil
+}
+
+func (h lsmPolicyHandler) PolicyHandler(
+	policy tracingpolicy.TracingPolicy,
+	policyID policyfilter.PolicyID,
+) (sensors.SensorIface, error) {
+	spec := policy.TpSpec()
+
+	polInfo, err := newPolicyInfo(policy, policyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse options: %w", err)
+	}
+
 	if len(spec.LsmHooks) > 0 {
 		if err := preValidateLsmHooks(spec.LsmHooks); err != nil {
 			return nil, fmt.Errorf("lsm validation failed: %w", err)
 		}
 		return createGenericLsmSensor(spec, "generic_lsm", polInfo)
 	}
-	if len(spec.UProbes) > 0 {
-		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo)
+	return nil, nil
+}
+
+func (h usdtPolicyHandler) PolicyHandler(
+	policy tracingpolicy.TracingPolicy,
+	policyID policyfilter.PolicyID,
+) (sensors.SensorIface, error) {
+	spec := policy.TpSpec()
+
+	polInfo, err := newPolicyInfo(policy, policyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse options: %w", err)
 	}
+
 	if len(spec.Usdts) > 0 {
 		return createGenericUsdtSensor(spec, "generic_usdt", polInfo)
 	}
