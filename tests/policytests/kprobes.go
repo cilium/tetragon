@@ -22,7 +22,6 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	tpath "github.com/cilium/tetragon/pkg/reader/path"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
-	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
 // This file contains tests on kernel functions.
@@ -281,7 +280,7 @@ spec:
 		checker := ec.NewProcessKprobeChecker("").
 			WithFunctionName(sm.Full("security_socket_bind")).
 			WithProcess(ec.NewProcessChecker().
-				WithBinary(sm.Suffix(tus.Conf().SelfBinary))).
+				WithBinary(sm.Suffix(filepath.Base(os.Args[0])))).
 			WithArgs(ec.NewKprobeArgumentListMatcher().
 				WithOperator(lc.Ordered).
 				WithValues(
