@@ -1217,6 +1217,42 @@
                       },
                       "type": "array"
                     },
+                    "matchUserCallers": {
+                      "description": "A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.",
+                      "items": {
+                        "properties": {
+                          "depth": {
+                            "description": "Depth is the distance from the probed function to the caller.\nDepth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.\nDepth of \"any\" means any of the last 15 callers in the stack.",
+                            "pattern": "^(any|[1-9][0-9]*)$",
+                            "type": "string"
+                          },
+                          "endRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "path": {
+                            "description": "Path to the binary of the caller function.\nIf not specified, the symbol will be looked up in the binary located at the path of the probe.\nThis is used if the caller function is in a different binary from the probed function, e.g.,\nwhen probing a function in a shared library.",
+                            "type": "string"
+                          },
+                          "startRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nYou can get those values from the binary's symbol table.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "symbol": {
+                            "description": "Symbol of the caller function in the binary specified by Path.\nIf Path is not specified, the symbol will be looked up in binary located at the path of the probe.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "depth"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
                     "matchWorkloads": {
                       "description": "Workloads to match",
                       "properties": {
@@ -2621,6 +2657,42 @@
                       },
                       "type": "array"
                     },
+                    "matchUserCallers": {
+                      "description": "A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.",
+                      "items": {
+                        "properties": {
+                          "depth": {
+                            "description": "Depth is the distance from the probed function to the caller.\nDepth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.\nDepth of \"any\" means any of the last 15 callers in the stack.",
+                            "pattern": "^(any|[1-9][0-9]*)$",
+                            "type": "string"
+                          },
+                          "endRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "path": {
+                            "description": "Path to the binary of the caller function.\nIf not specified, the symbol will be looked up in the binary located at the path of the probe.\nThis is used if the caller function is in a different binary from the probed function, e.g.,\nwhen probing a function in a shared library.",
+                            "type": "string"
+                          },
+                          "startRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nYou can get those values from the binary's symbol table.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "symbol": {
+                            "description": "Symbol of the caller function in the binary specified by Path.\nIf Path is not specified, the symbol will be looked up in binary located at the path of the probe.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "depth"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
                     "matchWorkloads": {
                       "description": "Workloads to match",
                       "properties": {
@@ -3759,6 +3831,42 @@
                       },
                       "type": "array"
                     },
+                    "matchUserCallers": {
+                      "description": "A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.",
+                      "items": {
+                        "properties": {
+                          "depth": {
+                            "description": "Depth is the distance from the probed function to the caller.\nDepth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.\nDepth of \"any\" means any of the last 15 callers in the stack.",
+                            "pattern": "^(any|[1-9][0-9]*)$",
+                            "type": "string"
+                          },
+                          "endRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "path": {
+                            "description": "Path to the binary of the caller function.\nIf not specified, the symbol will be looked up in the binary located at the path of the probe.\nThis is used if the caller function is in a different binary from the probed function, e.g.,\nwhen probing a function in a shared library.",
+                            "type": "string"
+                          },
+                          "startRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nYou can get those values from the binary's symbol table.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "symbol": {
+                            "description": "Symbol of the caller function in the binary specified by Path.\nIf Path is not specified, the symbol will be looked up in binary located at the path of the probe.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "depth"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
                     "matchWorkloads": {
                       "description": "Workloads to match",
                       "properties": {
@@ -4845,6 +4953,42 @@
                 },
                 "type": "array"
               },
+              "matchUserCallers": {
+                "description": "A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.",
+                "items": {
+                  "properties": {
+                    "depth": {
+                      "description": "Depth is the distance from the probed function to the caller.\nDepth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.\nDepth of \"any\" means any of the last 15 callers in the stack.",
+                      "pattern": "^(any|[1-9][0-9]*)$",
+                      "type": "string"
+                    },
+                    "endRange": {
+                      "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "path": {
+                      "description": "Path to the binary of the caller function.\nIf not specified, the symbol will be looked up in the binary located at the path of the probe.\nThis is used if the caller function is in a different binary from the probed function, e.g.,\nwhen probing a function in a shared library.",
+                      "type": "string"
+                    },
+                    "startRange": {
+                      "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nYou can get those values from the binary's symbol table.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "symbol": {
+                      "description": "Symbol of the caller function in the binary specified by Path.\nIf Path is not specified, the symbol will be looked up in binary located at the path of the probe.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "depth"
+                  ],
+                  "type": "object",
+                  "additionalProperties": false
+                },
+                "type": "array"
+              },
               "matchWorkloads": {
                 "description": "Workloads to match",
                 "properties": {
@@ -5909,6 +6053,42 @@
                         },
                         "required": [
                           "operator"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
+                    "matchUserCallers": {
+                      "description": "A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.",
+                      "items": {
+                        "properties": {
+                          "depth": {
+                            "description": "Depth is the distance from the probed function to the caller.\nDepth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.\nDepth of \"any\" means any of the last 15 callers in the stack.",
+                            "pattern": "^(any|[1-9][0-9]*)$",
+                            "type": "string"
+                          },
+                          "endRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "path": {
+                            "description": "Path to the binary of the caller function.\nIf not specified, the symbol will be looked up in the binary located at the path of the probe.\nThis is used if the caller function is in a different binary from the probed function, e.g.,\nwhen probing a function in a shared library.",
+                            "type": "string"
+                          },
+                          "startRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nYou can get those values from the binary's symbol table.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "symbol": {
+                            "description": "Symbol of the caller function in the binary specified by Path.\nIf Path is not specified, the symbol will be looked up in binary located at the path of the probe.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "depth"
                         ],
                         "type": "object",
                         "additionalProperties": false
@@ -7282,6 +7462,42 @@
                       },
                       "type": "array"
                     },
+                    "matchUserCallers": {
+                      "description": "A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.",
+                      "items": {
+                        "properties": {
+                          "depth": {
+                            "description": "Depth is the distance from the probed function to the caller.\nDepth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.\nDepth of \"any\" means any of the last 15 callers in the stack.",
+                            "pattern": "^(any|[1-9][0-9]*)$",
+                            "type": "string"
+                          },
+                          "endRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "path": {
+                            "description": "Path to the binary of the caller function.\nIf not specified, the symbol will be looked up in the binary located at the path of the probe.\nThis is used if the caller function is in a different binary from the probed function, e.g.,\nwhen probing a function in a shared library.",
+                            "type": "string"
+                          },
+                          "startRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nYou can get those values from the binary's symbol table.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "symbol": {
+                            "description": "Symbol of the caller function in the binary specified by Path.\nIf Path is not specified, the symbol will be looked up in binary located at the path of the probe.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "depth"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
                     "matchWorkloads": {
                       "description": "Workloads to match",
                       "properties": {
@@ -8387,6 +8603,42 @@
                         },
                         "required": [
                           "operator"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "type": "array"
+                    },
+                    "matchUserCallers": {
+                      "description": "A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.",
+                      "items": {
+                        "properties": {
+                          "depth": {
+                            "description": "Depth is the distance from the probed function to the caller.\nDepth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.\nDepth of \"any\" means any of the last 15 callers in the stack.",
+                            "pattern": "^(any|[1-9][0-9]*)$",
+                            "type": "string"
+                          },
+                          "endRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "path": {
+                            "description": "Path to the binary of the caller function.\nIf not specified, the symbol will be looked up in the binary located at the path of the probe.\nThis is used if the caller function is in a different binary from the probed function, e.g.,\nwhen probing a function in a shared library.",
+                            "type": "string"
+                          },
+                          "startRange": {
+                            "description": "StartRange and EndRange specify a range of caller address to match. Both should be specified together.\nYou can get those values from the binary's symbol table.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "symbol": {
+                            "description": "Symbol of the caller function in the binary specified by Path.\nIf Path is not specified, the symbol will be looked up in binary located at the path of the probe.\nSpecify either Symbol or StartRange and EndRange to match the caller function.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "depth"
                         ],
                         "type": "object",
                         "additionalProperties": false
