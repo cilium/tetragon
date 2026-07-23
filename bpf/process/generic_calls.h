@@ -539,13 +539,15 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 #endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
 
 #if defined(GENERIC_UPROBE) || defined(GENERIC_USDT)
-FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty, arg_status_t *status)
+FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty, int index, arg_status_t *status)
 {
 	unsigned long arg = 0;
-	__u64 id = get_current_pid_tgid();
+	struct preload_key key = {
+		.tgid = get_current_pid_tgid(),
+		.index = index,
+	};
 
-	struct preload_data *data = map_lookup_elem(&sleepable_preload, &id);
-
+	struct preload_data *data = map_lookup_elem(&sleepable_preload, &key);
 	if (data)
 		*status = data->status;
 	else
@@ -564,7 +566,7 @@ FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty, arg_stat
 	return arg;
 }
 #else
-FUNC_INLINE long get_preload_arg(struct pt_regs *ctx, long ty, arg_status_t *status)
+FUNC_INLINE long get_preload_arg(struct pt_regs *ctx, long ty, int index, arg_status_t *status)
 {
 	return 0;
 }
@@ -612,7 +614,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 
 	a = (&e->a0)[index];
 	if (am & ARGM_PRELOAD)
-		a = get_preload_arg(ctx, ty, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
+		a = get_preload_arg(ctx, ty, index, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	else
 		extract_arg(config, index, &a, false, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 #else
@@ -626,7 +628,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	 *   - real argument value
 	 */
 	if (am & ARGM_PRELOAD) {
-		a = get_preload_arg(ctx, ty, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
+		a = get_preload_arg(ctx, ty, index, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	} else {
 		asm volatile("%[index] &= %1 ;\n"
 			     : [index] "+r"(index)
