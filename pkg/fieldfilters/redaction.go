@@ -116,16 +116,11 @@ func (f RedactionFilter) Redact(binary, args string, envs []string) (string, []s
 		args, _ = redactString(re, args)
 	}
 
-	var (
-		envsRedacted []string
-		modified     bool
-	)
+	var envsRedacted []string
 
 	for _, v := range envs {
 		for _, re := range f.redact {
-			if v, modified = redactString(re, v); modified {
-				break
-			}
+			v, _ = redactString(re, v)
 		}
 		envsRedacted = append(envsRedacted, v)
 	}
