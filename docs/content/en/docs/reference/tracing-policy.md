@@ -943,6 +943,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchworkloads">matchWorkloads</a></b></td>
         <td>object</td>
         <td>
@@ -1874,6 +1881,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td>[]string</td>
         <td>
           Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2867,6 +2942,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchworkloads">matchWorkloads</a></b></td>
         <td>object</td>
         <td>
@@ -3804,6 +3886,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
 </table>
 
 
+### TracingPolicy.spec.kprobes[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.kprobes[index].selectors[index].matchWorkloads
 <sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindex)</sup></sup>
 
@@ -4457,6 +4607,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         <td>[]object</td>
         <td>
           A list of argument filters. MatchReturnArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5397,6 +5554,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
 </table>
 
 
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.lsmhooks[index].selectors[index].matchWorkloads
 <sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindex)</sup></sup>
 
@@ -6029,6 +6254,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         <td>[]object</td>
         <td>
           A list of argument filters. MatchReturnArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6969,6 +7201,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
 </table>
 
 
+### TracingPolicy.spec.selectorsMacros[key].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.selectorsMacros[key].matchWorkloads
 <sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
 
@@ -7580,6 +7880,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         <td>[]object</td>
         <td>
           A list of argument filters. MatchReturnArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8520,6 +8827,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
 </table>
 
 
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.tracepoints[index].selectors[index].matchWorkloads
 <sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindex)</sup></sup>
 
@@ -9448,6 +9823,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         <td>[]object</td>
         <td>
           A list of argument filters. MatchReturnArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10388,6 +10770,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
 </table>
 
 
+### TracingPolicy.spec.uprobes[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.uprobes[index].selectors[index].matchWorkloads
 <sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindex)</sup></sup>
 
@@ -11006,6 +11456,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         <td>[]object</td>
         <td>
           A list of argument filters. MatchReturnArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11940,6 +12397,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td>[]string</td>
         <td>
           Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -13146,6 +13671,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchworkloads">matchWorkloads</a></b></td>
         <td>object</td>
         <td>
@@ -14077,6 +14609,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td>[]string</td>
         <td>
           Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -15070,6 +15670,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchworkloads">matchWorkloads</a></b></td>
         <td>object</td>
         <td>
@@ -16007,6 +16614,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
 </table>
 
 
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchWorkloads
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindex)</sup></sup>
 
@@ -16660,6 +17335,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         <td>[]object</td>
         <td>
           A list of argument filters. MatchReturnArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17600,6 +18282,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
 </table>
 
 
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchWorkloads
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindex)</sup></sup>
 
@@ -18232,6 +18982,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         <td>[]object</td>
         <td>
           A list of argument filters. MatchReturnArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -19172,6 +19929,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
 </table>
 
 
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.selectorsMacros[key].matchWorkloads
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
 
@@ -19783,6 +20608,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         <td>[]object</td>
         <td>
           A list of argument filters. MatchReturnArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -20723,6 +21555,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
 </table>
 
 
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchWorkloads
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindex)</sup></sup>
 
@@ -21651,6 +22551,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         <td>[]object</td>
         <td>
           A list of argument filters. MatchReturnArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -22591,6 +23498,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
 </table>
 
 
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchWorkloads
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindex)</sup></sup>
 
@@ -23209,6 +24184,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         <td>[]object</td>
         <td>
           A list of argument filters. MatchReturnArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -24143,6 +25125,74 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td>[]string</td>
         <td>
           Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchUserCallers[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>depth</b></td>
+        <td>string</td>
+        <td>
+          Depth is the distance from the probed function to the caller.
+Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+Depth of "any" means any of the last 15 callers in the stack.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>endRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          Path to the binary of the caller function.
+If not specified, the symbol will be looked up in the binary located at the path of the probe.
+This is used if the caller function is in a different binary from the probed function, e.g.,
+when probing a function in a shared library.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>startRange</b></td>
+        <td>integer</td>
+        <td>
+          StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+You can get those values from the binary's symbol table.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>symbol</b></td>
+        <td>string</td>
+        <td>
+          Symbol of the caller function in the binary specified by Path.
+If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+Specify either Symbol or StartRange and EndRange to match the caller function.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
