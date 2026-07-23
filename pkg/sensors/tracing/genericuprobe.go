@@ -1040,9 +1040,6 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 					if !bpf.HasKfunc("bpf_copy_from_user_str") {
 						return fmt.Errorf("can't preload string for argument %d", i)
 					}
-					if cfg.preload {
-						return errors.New("error: can't preload more than one argument")
-					}
 					preloadArg = true
 				}
 			} else if hasCurrentTaskSource(a) {
@@ -1071,9 +1068,6 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 			if argType == gt.GenericStringType {
 				if !bpf.HasKfunc("bpf_copy_from_user_str") {
 					return fmt.Errorf("can't preload string for argument %d", i)
-				}
-				if cfg.preload {
-					return errors.New("error: can't preload more than one argument")
 				}
 				preloadArg = true
 			}
