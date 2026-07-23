@@ -122,6 +122,19 @@ func TestRedact_Envs(t *testing.T) {
 	assert.Equal(t, "VAR1=XXX SSH_PASSWORD="+REDACTION_STR+" VAR2=YYY", str)
 }
 
+func TestRedact_EnvsMulti(t *testing.T) {
+	envs := []string{"CREDS=--password hunter2 TOPSECRET end"}
+
+	filterList := `{"redact": ["(?:--password|-p)[\\s=]+(\\S+)", "\\W(TOPSECRET)\\W"]}`
+	filters, err := ParseRedactionFilterList(filterList)
+	require.NoError(t, err)
+
+	_, redacted := filters.Redact("", "", envs)
+
+	str := strings.Join(redacted, " ")
+	assert.Equal(t, "CREDS=--password "+REDACTION_STR+" "+REDACTION_STR+" end", str)
+}
+
 func TestRedact_ArgsWithEnvs(t *testing.T) {
 	args := "--verbose=true --password ybx511!ackt544 --username foobar cheesecake TOPSECRET innocent"
 	envs := []string{
