@@ -171,12 +171,12 @@ func doLoadProgram(
 	var prog *ebpf.Program
 	for _, p := range coll.Programs {
 		i, err := p.Info()
-		if i.Name == load.Label {
-			prog = p
-		}
 		if err != nil {
 			logger.GetLogger().Warn("failed to retrieve BPF program info, you might be running <4.10", "program", p.String(), logfields.Error, err)
 			break
+		}
+		if i.Name == load.Label {
+			prog = p
 		}
 		ids, available := i.MapIDs()
 		if !available {
