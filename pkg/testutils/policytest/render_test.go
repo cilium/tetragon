@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	_ "github.com/cilium/tetragon/tests/policytests" // so that the policies are registered
@@ -30,7 +31,7 @@ func TestRenderPolicyTests(t *testing.T) {
 			for params := range pt.AllParamValues() {
 				check := func(t *testing.T) {
 					conf := &policytest.Conf{
-						BinsDir:  "/tetragon-policytests-bins",
+						BinsDir:  testutils.RepoRootPath("contrib/tester-progs"),
 						TestConf: &policytest.TestConf{ParamValues: params},
 					}
 
