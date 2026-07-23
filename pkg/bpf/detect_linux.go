@@ -699,6 +699,12 @@ func HasSubStringKfunc() bool {
 	return HasProgramLargeSize() && HasKfunc("bpf_strnstr")
 }
 
+// HasCopyFromUserStr returns true if the kernel supports the bpf_copy_from_user_str kfunc
+// which is required for many uprobe register-related tests.
+func HasCopyFromUserStr() bool {
+	return HasKfunc("bpf_copy_from_user_str")
+}
+
 func detectMixBpfAndTailCalls() bool {
 	// create a tail call map
 	tcMap, err := ebpf.NewMap(&ebpf.MapSpec{
@@ -826,4 +832,5 @@ var FeatureProbes = []FeatureProbe{
 	{Fentry, HasFentryProgram},
 	{GetFuncRet, HasGetFuncRetHelper},
 	{SubStringKfuncProbe, HasSubStringKfunc},
+	{CopyFromUserStr, HasCopyFromUserStr},
 }

@@ -25,4 +25,5 @@ const (
 	Fentry                      = "fentry"
 	GetFuncRet                  = "get_func_ret"
 	SubStringKfuncProbe         = "substring_kfunc"
+	CopyFromUserStr             = "copy_from_user_str"
 )
