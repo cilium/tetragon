@@ -229,6 +229,71 @@ func TestNamespaceValueStr(t *testing.T) {
 	}
 }
 
+func TestParseMatchCmdArgs(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("matchCmdArgs requires large BPF programs")
+	}
+
+	// Serialized matchCmdArgs layout:
+	//
+	//   offset  size       field                       value
+	//   ------  ---------  --------------------------  --------------
+	//        0          4  section length              >= 40
+	//        4          4  filter offset[0]            24
+	//        8         16  filter offsets[1..4]        0
+	//       24          4  command argument index      3
+	//       28          8  serialized matchArg header  opaque
+	//       36          4  matchArg type               string
+	//       40  remaining  serialized matchArg values  opaque
+	cmdArgs := []v1alpha1.CmdArgSelector{
+		{
+			Index:    3,
+			Operator: "Equal",
+			Values:   []string{"pizza"},
+		},
+	}
+	ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+	require.NoError(t, ParseMatchCmdArgs(ks, cmdArgs))
+
+	data := ks.data.e[:ks.data.off]
+	require.GreaterOrEqual(t, len(data), 24)
+	sectionLength := binary.LittleEndian.Uint32(data[0:4])
+	assert.Equal(t, uint32(len(data)), sectionLength)
+	assert.GreaterOrEqual(t, sectionLength, uint32(40))
+
+	firstFilterOffset := binary.LittleEndian.Uint32(data[4:8])
+	assert.Equal(t, uint32(24), firstFilterOffset)
+	require.LessOrEqual(t, uint64(firstFilterOffset)+16, uint64(len(data)))
+	for off := 8; off < 24; off += 4 {
+		assert.Zero(t, binary.LittleEndian.Uint32(data[off:off+4]))
+	}
+
+	assert.Equal(t, uint32(3), binary.LittleEndian.Uint32(data[firstFilterOffset:firstFilterOffset+4]))
+	// ParseMatchCmdArgs is then reusing parseMatchArg for the string type,
+	// let's not re-test this facility here, except the type encoding.
+	assert.Equal(t, uint32(gt.GenericStringType), binary.LittleEndian.Uint32(data[firstFilterOffset+12:firstFilterOffset+16]))
+}
+
+func TestParseMatchCmdArgsRejects(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("matchCmdArgs requires large BPF programs")
+	}
+
+	t.Run("unsupported operator", func(t *testing.T) {
+		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		err := ParseMatchCmdArgs(ks, []v1alpha1.CmdArgSelector{
+			{Index: 0, Operator: "Mask", Values: []string{"1"}},
+		})
+		assert.ErrorContains(t, err, `matchCmdArgs operator "Mask" is not supported`)
+	})
+
+	t.Run("too many filters", func(t *testing.T) {
+		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		err := ParseMatchCmdArgs(ks, make([]v1alpha1.CmdArgSelector, 6))
+		assert.ErrorContains(t, err, "matchCmdArgs supports up to 5 filters (6 provided)")
+	})
+}
+
 func TestParseMatchArgs(t *testing.T) {
 	if !config.EnableLargeProgs() { // multiple match args are supported only in kernels >= 5.4
 		t.Skip("Test requires kernel 5.4")
