@@ -52,6 +52,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
+      {{- if not .Values.tetragon.securityContext.privileged }}
+      {{- include "container.mount-bpf-fs" . | nindent 6 }}
+      {{- end }}
       {{- include "initcontainers.extra" . | nindent 6 }}
       containers:
 {{- if eq .Values.export.mode "stdout" }}
