@@ -376,9 +376,10 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 
 	// Parse Filters into kernel filter logic
 	state, err = selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
-		Selectors: spec.Selectors,
-		Args:      spec.Args,
-		Data:      []v1alpha1.KProbeArg{},
+		Selectors:  spec.Selectors,
+		Args:       spec.Args,
+		Data:       []v1alpha1.KProbeArg{},
+		BinaryPath: spec.Path,
 	})
 	if err != nil {
 		return nil, err

@@ -19,6 +19,7 @@
 #include "generic_arg.h"
 #include "event_config.h"
 #include "errmetrics.h"
+#include "builtins.h"
 
 #ifdef GENERIC_USDT
 #include "usdt_arg.h"
@@ -84,6 +85,10 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 
 	msg->lsm.post = false;
 	msg->common.flags = 0;
+	/* Marks the user stack as not fetched yet for this event; see
+	 * generic_filter_caller().
+	 */
+	msg->user_stack_ret = 0;
 
 	/* Tail call into filters. */
 	tail_call(ctx, calls, TAIL_CALL_FILTER);
@@ -1304,7 +1309,8 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	return 1;
 }
 
-// generic_process_filter performs first pass filtering based on pid/nspid.
+// generic_process_filter performs first pass filtering based on pid/nspid
+// and other criteria.
 // We keep a list of selectors that pass.
 //
 // if filter check was successful, it will return PFILTER_ACCEPT and properly
@@ -1313,7 +1319,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 //    current->ktime
 // for the memory located at index 0 of @msg_heap assuming the value follows the
 // msg_generic_hdr structure.
-FUNC_INLINE int generic_process_filter(void)
+FUNC_INLINE int generic_process_filter(void *ctx)
 {
 	int selectors, pass, zero = 0;
 	struct execve_map_value *enter;
@@ -1356,7 +1362,7 @@ FUNC_INLINE int generic_process_filter(void)
 	if (selectors <= sel->curr)
 		return process_filter_done(sel, enter, current);
 
-	pass = selector_process_filter(f, sel->curr, enter, msg);
+	pass = selector_process_filter(ctx, f, sel->curr, enter, msg);
 	if (pass) {
 		/* Verify lost that msg is not null here so recheck */
 		int curr = sel->curr;
