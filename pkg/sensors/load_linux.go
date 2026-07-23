@@ -88,13 +88,19 @@ func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map
 				mapSpec.InnerMap.MaxEntries = innerMax
 			}
 		}
+	} else if maximum, err := program.GetMaxEntriesPinnedMap(pinPath); errors.Is(err, os.ErrNotExist) {
+		// The pin was removed by a concurrent last-user teardown after
+		// isFirstShared saw it (teardown runs off the manager load lock). This
+		// loader recreates the map (LoadOrCreatePinnedMap), so fall back to our
+		// own spec's maximum instead of failing the load.
+		if configuredMax, ok := m.GetMaxEntries(); ok {
+			mapSpec.MaxEntries = configuredMax
+		}
+	} else if err != nil {
+		return err
 	} else {
 		// If map is NOT the owner we follow the maximum entries
 		// of the pinned map and update the spec with that.
-		maximum, err := program.GetMaxEntriesPinnedMap(pinPath)
-		if err != nil {
-			return err
-		}
 		mapSpec.MaxEntries = maximum
 
 		// 'm' is not the owner but for some reason requires maximum

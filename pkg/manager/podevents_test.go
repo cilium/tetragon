@@ -13,6 +13,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/cilium/tetragon/pkg/manager/events"
 )
 
 // fakeInformerSink captures the cache.ResourceEventHandler instances passed by
@@ -20,6 +22,7 @@ import (
 // into the captured handler.
 type fakeInformerSink struct {
 	handlers []cache.ResourceEventHandler
+	store    cache.Store
 }
 
 func (f *fakeInformerSink) AddEventHandler(handler cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error) {
@@ -32,6 +35,13 @@ func (f *fakeInformerSink) latest() cache.ResourceEventHandler {
 		return nil
 	}
 	return f.handlers[len(f.handlers)-1]
+}
+
+func (f *fakeInformerSink) GetStore() cache.Store {
+	if f.store == nil {
+		f.store = cache.NewStore(cache.MetaNamespaceKeyFunc)
+	}
+	return f.store
 }
 
 func newPod(name string) *corev1.Pod {
@@ -147,4 +157,19 @@ func TestPodEventAdapter_RegistersOnePerCall(t *testing.T) {
 	require.NoError(t, adapter.OnPodDelete(func(_ *corev1.Pod) {}))
 
 	assert.Len(t, sink.handlers, 3, "each OnPod* call registers one informer handler")
+}
+
+func TestPodEventAdapter_ListPods(t *testing.T) {
+	sink := &fakeInformerSink{}
+	adapter := newPodEventAdapter(sink)
+
+	pod1 := newPod("p1")
+	pod2 := newPod("p2")
+	require.NoError(t, sink.GetStore().Add(pod1))
+	require.NoError(t, sink.GetStore().Add(&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node"}}))
+	require.NoError(t, sink.GetStore().Add(pod2))
+
+	lister, ok := adapter.(events.PodLister)
+	require.True(t, ok)
+	assert.ElementsMatch(t, []*corev1.Pod{pod1, pod2}, lister.ListPods())
 }

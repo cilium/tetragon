@@ -145,6 +145,11 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 	if loadedMaps, err = s.preLoadMaps(bpfDir, loadedMaps); err != nil {
 		return err
 	}
+	if s.PostMapLoadHook != nil {
+		if err = s.PostMapLoadHook(); err != nil {
+			return fmt.Errorf("post-map load hook failed for sensor %s: %w", s.Name, err)
+		}
+	}
 	for _, p := range s.Progs {
 		if p.LoadState.IsLoaded() {
 			l.Info("BPF prog is already loaded, incrementing reference count", "prog", p.Name)

@@ -23,7 +23,7 @@ import (
 var (
 	// allPrograms are all the loaded programs. For use with Unload().
 	allPrograms = []*program.Program{}
-	// allMaps are all the loaded programs. For use with Unload().
+	// allMaps are all the loaded maps. For use with Unload().
 	allMaps = []*program.Map{}
 	// protects allPrograms and allMaps
 	allProgramsAndMapsMutex sync.Mutex
@@ -60,6 +60,12 @@ type Sensor struct {
 	// called during sensor loading, after the programs and maps being
 	// loaded.
 	PostLoadHook SensorHook
+	// PostMapLoadHook runs after maps are preloaded and before programs load.
+	// Unlike PostLoadHook, an error aborts sensor loading.
+	PostMapLoadHook SensorHook
+	// PreDisableHook runs before the manager takes its global load lock, for
+	// dependent sensors whose teardown re-enters the manager.
+	PreDisableHook SensorHook
 	// PreUnloadHook can optionally contain a pointer to a function to be
 	// called during sensor unloading, prior to the programs and maps being
 	// unloaded.
@@ -78,18 +84,60 @@ type Sensor struct {
 	DisableNotAllowedReason string
 }
 
-func (s *Sensor) AddPostUnloadHook(hook SensorHook) {
-	if s.PostUnloadHook == nil {
-		s.PostUnloadHook = hook
+// joinHooks composes two sensor hooks: both run and their errors are joined.
+func joinHooks(prev, next SensorHook) SensorHook {
+	if prev == nil {
+		return next
+	}
+	return func() error {
+		return errors.Join(prev(), next())
+	}
+}
+
+func (s *Sensor) AddPostLoadHook(hook SensorHook) {
+	s.PostLoadHook = joinHooks(s.PostLoadHook, hook)
+}
+
+// AddPostMapLoadHook composes a fatal map-initialization hook. Later hooks do
+// not run if an earlier hook fails.
+func (s *Sensor) AddPostMapLoadHook(hook SensorHook) {
+	if s.PostMapLoadHook == nil {
+		s.PostMapLoadHook = hook
 		return
 	}
 
-	oldUnloadHook := s.PostUnloadHook
-	s.PostUnloadHook = func() error {
-		err1 := oldUnloadHook()
-		err2 := hook()
-		return errors.Join(err1, err2)
+	oldPostMapLoadHook := s.PostMapLoadHook
+	s.PostMapLoadHook = func() error {
+		if err := oldPostMapLoadHook(); err != nil {
+			return err
+		}
+		return hook()
 	}
+}
+
+// AddPreDisableHook composes a hook which the manager runs before acquiring
+// its global load lock for policy disable.
+func (s *Sensor) AddPreDisableHook(hook SensorHook) {
+	s.PreDisableHook = joinHooks(s.PreDisableHook, hook)
+}
+
+// PreDisable runs the optional pre-disable hook; intentionally not part of
+// SensorIface so other implementations need no boilerplate.
+func (s *Sensor) PreDisable() error {
+	if s.PreDisableHook == nil {
+		return nil
+	}
+	return s.PreDisableHook()
+}
+
+// AddPreUnloadHook composes a hook to run before the sensor's programs and
+// maps are unloaded.
+func (s *Sensor) AddPreUnloadHook(hook SensorHook) {
+	s.PreUnloadHook = joinHooks(s.PreUnloadHook, hook)
+}
+
+func (s *Sensor) AddPostUnloadHook(hook SensorHook) {
+	s.PostUnloadHook = joinHooks(s.PostUnloadHook, hook)
 }
 
 type Prog struct {
@@ -257,7 +305,7 @@ func cleanupProgsAndMaps() {
 	maps := []*program.Map{}
 
 	for _, m := range allMaps {
-		if m.Prog.LoadState.IsLoaded() {
+		if m.PinState.IsLoaded() {
 			maps = append(maps, m)
 		}
 	}
@@ -283,7 +331,13 @@ func AllMaps() []*program.Map {
 	return append([]*program.Map{}, allMaps...)
 }
 
-// sortSensors sort the sensors to enforce orderging constrains
+// sortSensors sort the sensors to enforce orderging constrains.
+//
+// resolvePathInContainer teardown (uprobe_ric_linux.go) may re-enter the
+// manager from load-rollback hooks and is safe only while "generic_uprobe"
+// sorts after every sibling that can fail to load. Today that holds because
+// policies are single-section ("__enforcer__" is sorted first and never
+// last); TestSortSensorsGenericUprobeLast guards it.
 func sortSensors(sensors []SensorIface) {
 	sort.Slice(sensors, func(i, j int) bool {
 		iName := sensors[i].GetName()

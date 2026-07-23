@@ -7,12 +7,70 @@ package elf
 
 import (
 	"debug/elf"
+	"encoding/binary"
 	"os"
 	"slices"
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/testutils"
 )
+
+// A container-controlled ELF can inflate the pclntab function count so that
+// debug/gosym's make([]Func, nfunctab) fatally OOMs the agent. The guard must
+// reject a count that cannot fit in the section before gosym ever sees it.
+func TestPclntabRejectOversizedFunctab(t *testing.T) {
+	makeHdr := func(ptrSize byte, nfunctab uint64, total int) []byte {
+		b := make([]byte, total)
+		b[7] = ptrSize
+		binary.LittleEndian.PutUint64(b[8:], nfunctab)
+		return b
+	}
+	if err := pclntabRejectOversizedFunctab(makeHdr(8, 0xFFFFFFFF, 64), binary.LittleEndian); err == nil {
+		t.Fatal("expected oversized functab count to be rejected")
+	}
+	if err := pclntabRejectOversizedFunctab(makeHdr(8, 3, 4096), binary.LittleEndian); err != nil {
+		t.Fatalf("expected in-bounds functab count to be accepted: %v", err)
+	}
+	if err := pclntabRejectOversizedFunctab([]byte{0, 0, 0, 0, 0, 0, 0, 8}, binary.LittleEndian); err == nil {
+		t.Fatal("expected truncated header to be rejected")
+	}
+}
+
+// A container can craft a big-endian pclntab so a little-endian-only guard reads
+// a small count while gosym (which infers endianness from the magic) reads a
+// huge one and fatally OOMs. The guard must read nfunctab in the magic's byte
+// order.
+func TestPclntabRejectOversizedFunctabBigEndian(t *testing.T) {
+	hdr := make([]byte, 64)
+	binary.BigEndian.PutUint32(hdr[0:], 0xfffffff1) // Go 1.20+ magic, big-endian
+	hdr[7] = 8                                      // ptrSize
+	// nfunctab occupies hdr[8:16]; gosym truncates uintptr to uint32 (low 32
+	// bits). Big-endian low 32 bits come from hdr[12:16]: 0xFF000000 ~= 4.2e9,
+	// which cannot fit a 64-byte section. Little-endian would read hdr[8:12] = 0.
+	hdr[12] = 0xFF
+
+	bo, err := pclntabByteOrder(hdr)
+	if err != nil {
+		t.Fatalf("byte order detection failed: %v", err)
+	}
+	if bo != binary.BigEndian {
+		t.Fatalf("expected big-endian detection, got %v", bo)
+	}
+	if err := pclntabRejectOversizedFunctab(hdr, bo); err == nil {
+		t.Fatal("big-endian oversized functab must be rejected (LE-only guard would pass it)")
+	}
+	// Sanity: a LE-only read of the same header sees a small count and passes,
+	// which is exactly the bypass being closed.
+	if err := pclntabRejectOversizedFunctab(hdr, binary.LittleEndian); err != nil {
+		t.Fatalf("LE read of this header is small and should pass: %v", err)
+	}
+}
+
+func TestPclntabByteOrderRejectsUnknownMagic(t *testing.T) {
+	if _, err := pclntabByteOrder([]byte{0, 0, 0, 0, 0, 0, 0, 8}); err == nil {
+		t.Fatal("expected unrecognized magic to be rejected")
+	}
+}
 
 func pclntabSkipIfNoBins(t *testing.T) (stripped, unstripped string) {
 	t.Helper()

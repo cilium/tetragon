@@ -19,6 +19,7 @@ import (
 // up a real informer.
 type podInformerSink interface {
 	AddEventHandler(handler cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error)
+	GetStore() cache.Store
 }
 
 // podEventAdapter implements events.PodEventSource on top of a pod informer.
@@ -84,6 +85,18 @@ func (p *podEventAdapter) OnPodDelete(handler func(pod *corev1.Pod)) error {
 		return fmt.Errorf("failed to register pod Delete handler: %w", err)
 	}
 	return nil
+}
+
+// ListPods returns the current typed pod snapshot from the shared informer.
+func (p *podEventAdapter) ListPods() []*corev1.Pod {
+	objects := p.sink.GetStore().List()
+	pods := make([]*corev1.Pod, 0, len(objects))
+	for _, object := range objects {
+		if pod, ok := object.(*corev1.Pod); ok {
+			pods = append(pods, pod)
+		}
+	}
+	return pods
 }
 
 // unwrapDeletedPod returns the *corev1.Pod from a delete-event object,

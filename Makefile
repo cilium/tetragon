@@ -196,6 +196,10 @@ image-rthooks:
 	@echo "Push like this when ready:"
 	@echo "${CONTAINER_ENGINE} push cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
 
+.PHONY: image-tester-progs
+image-tester-progs: ## Build the tester-progs workload image for e2e tests.
+	$(CONTAINER_ENGINE) build -f contrib/tester-progs/Dockerfile -t "$(E2E_TESTER_PROGS)" --platform=linux/${TARGET_ARCH} .
+
 .PHONY: image-test
 image-test: image-clang
 	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
@@ -326,6 +330,8 @@ E2E_AGENT ?= "cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 E2E_OPERATOR ?= "cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 # RTHooks image to use for end-to-end tests
 E2E_RTHOOKS ?= "cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
+# Tester-progs workload image to use for end-to-end tests
+E2E_TESTER_PROGS ?= "cilium/tetragon-tester-progs:$(DOCKER_IMAGE_TAG)"
 # BTF file to use in the E2E test. Set to nothing to use system BTF.
 E2E_BTF ?= ""
 # Actual flags to use for BTF file in e2e test. Use E2E_BTF instead.
@@ -348,11 +354,14 @@ ls-e2e-test:
 ## e2e-test E2E_TESTS=./tests/e2e/tests/skeleton: ## run a specific e2e test
 .PHONY: e2e-test
 ifneq ($(E2E_BUILD_IMAGES), 0)
-e2e-test: image image-operator
+e2e-test: image image-operator image-tester-progs
 else
-e2e-test:
+# The tester-progs workload image is not published anywhere, so build it even
+# when E2E_BUILD_IMAGES=0.
+e2e-test: image-tester-progs
 endif
 	$(GO) list $(E2E_TESTS) | xargs -Ipkg $(GO) test $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover pkg ${EXTRA_TESTFLAGS} -fail-fast \
+	-tetragon.tester-progs-image="$(E2E_TESTER_PROGS)" \
 	-tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" \
 	-tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" \
 	-tetragon.helm.set tetragon.gops.enabled=true \

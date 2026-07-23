@@ -61,9 +61,18 @@ func ParseBuildIdFromNotes(dat []byte, order binary.ByteOrder) ([]byte, bool) {
 	}
 }
 
+// maxNoteSize bounds a PT_NOTE segment we will read: notes are small (a
+// build-id note is ~36 bytes), so an implausibly large Filesz is a crafted or
+// corrupt ELF. A resolvePathInContainer build-id target is container-supplied,
+// so bound the allocation rather than trust the header.
+const maxNoteSize = 1 << 20 // 1 MiB
+
 func (se *SafeELFFile) ParseBuildID() ([]byte, error) {
 	for _, ph := range se.Progs {
 		if ph.Type != elf.PT_NOTE {
+			continue
+		}
+		if ph.Filesz > maxNoteSize {
 			continue
 		}
 		dat := make([]byte, ph.Filesz)

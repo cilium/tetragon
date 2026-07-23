@@ -28,6 +28,7 @@ var Opts = Flags{
 	},
 	KeepExportData:    false,
 	UninstallTetragon: true,
+	TesterProgsImage:  "cilium/tetragon-tester-progs:latest",
 }
 
 func init() {
@@ -89,6 +90,13 @@ func init() {
 		"minikube",
 		Opts.Minikube,
 		"Load images into Kubernetes via 'minikube image load' instead of the KinD loader")
+
+	flag.StringVar(&Opts.TesterProgsImage,
+		"tetragon.tester-progs-image",
+		Opts.TesterProgsImage,
+		"Container image with tester-progs binaries used as e2e test workloads. Built by "+
+			"'make image-tester-progs' and loaded into temporary kind (or minikube) clusters; "+
+			"when testing against an existing cluster, the image must be pullable from there instead.")
 }
 
 type Flags struct {
@@ -100,6 +108,9 @@ type Flags struct {
 	// Minikube, when set, instructs the test framework to load images into Kubernetes
 	// via `minikube image load` instead of the KinD cluster loader.
 	Minikube bool
+	// TesterProgsImage is the container image with tester-progs binaries used
+	// as e2e test workloads.
+	TesterProgsImage string
 }
 
 type HelmOptions struct {

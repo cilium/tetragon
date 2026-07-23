@@ -346,6 +346,25 @@ func (c *collection) load(bpfDir string) error {
 	return err
 }
 
+type preDisableSensor interface {
+	PreDisable() error
+}
+
+// preDisable runs dependency teardown before the manager takes muLoad. Most
+// SensorIface implementations do not need this optional lifecycle phase.
+func (c *collection) preDisable() error {
+	var err error
+	for _, sensor := range c.sensors {
+		if preDisabler, ok := sensor.(preDisableSensor); ok {
+			err = errors.Join(err, preDisabler.PreDisable())
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("pre-disable failed for collection %s: %w", c.name, err)
+	}
+	return nil
+}
+
 // unload will attempt to unload all the sensors in a collection
 func (c *collection) unload(unpin bool) error {
 	var err error
