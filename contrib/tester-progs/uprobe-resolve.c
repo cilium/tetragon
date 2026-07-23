@@ -38,10 +38,10 @@ void usage(char *argv0)
 }
 
 // without noinline, the symbol is found, but no event fires
-__attribute__((noinline)) int func(int ret, struct mystruct *ms) {
-	// without doing something with ms, all the resolved args have
+__attribute__((noinline)) int func(int ret, struct mystruct *ms, struct mystruct *mss) {
+	// without doing something with ms/mss, all the resolved args have
 	// value 0, presumably due to optimization
-	printf("v64:%lu\n", ms->v64);
+	printf("v64:%lu | %lu\n", ms->v64, mss->v64);
 	return ret;
 }
 
@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
 {
 	long val = 0;
 	struct mysubstruct ss = {0};
+	struct mysubstruct ssecond = {0};
 
 	if (argc < 3) {
 		usage(argv[0]);
@@ -66,6 +67,7 @@ int main(int argc, char *argv[])
 	}
 
 	struct mystruct s = {0};
+	struct mystruct second = {0};
 	if (!strcmp(field, "v8")) {
 		s.v8 = val;
 	} else if (!strcmp(field, "v16")) {
@@ -87,7 +89,9 @@ int main(int argc, char *argv[])
 		s.sub.v32 = val;
 	} else if (!strcmp(field, "subp.buff")) {
 		ss.buff = argv[2];
+		ssecond.buff = argv[3];
 		s.subp = pageout(&ss, sizeof(ss));
+		second.subp = pageout(&ssecond, sizeof(ssecond));
 	} else if ((field[0] == 'a' && field[1] == 'r' && field[2] == 'r')
             || (field[0] == 'd' && field[1] == 'y' && field[2] == 'n')) {
 		long idx = atol(&field[4]);
@@ -106,5 +110,5 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	return func(0, &s);
+	return func(0, &s, &second);
 }

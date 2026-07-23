@@ -185,7 +185,7 @@ pclntab-stripped: FORCE
 clean:
 	rm -f $(PROGS) $(LIBS) *.btf
 
-OTHER_FILES = resolve-nested-anon-struct.btf
+OTHER_FILES = resolve-nested-anon-struct.btf uprobe-resolve.btf
 
 # Used by top-level Makefile to create a tester-progs tarball
 .PHONY: all-files

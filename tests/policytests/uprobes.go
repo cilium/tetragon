@@ -436,3 +436,58 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(upChecker, upChecker1, upChecker2),
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-multiple-string-preload").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-resolve" }}
+    btfPath: {{ testBinary "uprobe-resolve.btf" }}
+    symbols:
+    - "func"
+    args:
+    - index: 1
+      type: "string"
+      btfType: "mystruct"
+      resolve: "subp.buff"
+    - index: 2
+      type: "string"
+      btfType: "mystruct"
+      resolve: "subp.buff"
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+		return "need 5.3 or newer kernel"
+	}
+
+	if !si.AgentInfo.Probes[bpf.UprobeRefCtrOffsetProbe] {
+		return "need uprobe ref_ctr_off support"
+	}
+
+	if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+		return "SubString operator requires bpf_copy_from_user_str kfunc"
+	}
+
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-resolve")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-resolve").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin)).
+			WithArguments(
+				sm.Full("subp.buff hello world!"),
+			),
+		).WithArgs(ec.NewKprobeArgumentListMatcher().
+		WithOperator(lc.Ordered).
+		WithValues(ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("hello")),
+			ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("world!")),
+		))
+
+	return &policytest.Scenario{
+		Name:         "check we can preload multiple strings",
+		Trigger:      policytest.NewCmdTrigger(bin, "subp.buff", "hello", "world!"),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
