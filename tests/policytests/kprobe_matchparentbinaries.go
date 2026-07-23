@@ -81,3 +81,64 @@ spec:
 		}
 	}).
 	RegisterAtInit()
+
+// followChildren not firing for a descendant whose own most recent exec was
+// a same-process re-exec rather than a fork+exec).
+var _ = policytest.NewBuilder("kprobe-match-parent-binaries-followchildren-combined").
+	WithLabels("kprobes").
+	WithSkip(func(_ *policytest.SkipInfo) string {
+		if !config.EnableLargeProgs() {
+			return "kernels without large progs do not support matchParentBinaries selector"
+		}
+		return ""
+	}).
+	WithSetup(func() func() {
+		option.Config.ParentsMapEnabled = true
+		return func() { option.Config.ParentsMapEnabled = false }
+	}).
+	WithAllEvents().
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "match-parent-binaries-followchildren-test"
+spec:
+  kprobes:
+  - call: "sys_lseek"
+    return: false
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchBinaries:
+      - operator: In
+        values:
+        - {{ testBinary "lseek-pipe" }}
+      matchParentBinaries:
+      - operator: In
+        values:
+        - /usr/bin/bash
+        followChildren: true
+`).
+	AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+		lseekBin := c.TestBinary("lseek-pipe")
+		// The pipe forces bash to fork a child. That child's first exec (via
+		// the "exec" builtin) replaces it with sh -- a fork+exec transition
+		// with the clone flag set. sh's own "-c" script is a single command
+		// with no pipe/redirection, so sh applies its own exec optimization
+		// and self-execs (no fork) directly into lseek-pipe. So the process
+		// that finally triggers sys_lseek had its *last* exec not preceded
+		// by a fork, several hops below the /usr/bin/bash ancestor that
+		// followChildren is supposed to keep matching against.
+		trigger := fmt.Sprintf(`echo 'exec /usr/bin/sh -c "%s -1 0 4444"' | /usr/bin/bash`, lseekBin)
+		lseekChecker := ec.NewProcessKprobeChecker("lseek-followchildren-checker").
+			WithFunctionName(sm.Suffix("sys_lseek")).
+			WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(lseekBin)))
+		return &policytest.Scenario{
+			Name:         "fork+exec then self-exec descendant of bash still matches with followChildren",
+			Trigger:      policytest.NewCmdTrigger("/usr/bin/bash", "-c", trigger),
+			EventChecker: ec.NewUnorderedEventChecker(lseekChecker),
+		}
+	}).
+	RegisterAtInit()
