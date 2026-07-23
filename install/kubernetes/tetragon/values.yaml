@@ -54,7 +54,23 @@ tetragon:
     enabled: false
   extraVolumeMounts: []
   securityContext:
-    privileged: true
+    privileged: false
+    capabilities:
+      drop:
+        - ALL
+      add:
+        # Load BPF programs and maps (kernel >= 5.8).
+        - BPF
+        # Attach tracing programs and use perf_event_open.
+        - PERFMON
+        # Mount bpffs/securityfs, iterate BPF programs and maps.
+        - SYS_ADMIN
+        # Raise RLIMIT_MEMLOCK (kernels < 5.11).
+        - SYS_RESOURCE
+        # Read host /proc/<pid> state.
+        - SYS_PTRACE
+        # Read binaries across the host filesystem.
+        - DAC_READ_SEARCH
   # -- Overrides the default livenessProbe for the tetragon container.
   livenessProbe: {}
   #  grpc:
