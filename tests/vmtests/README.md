@@ -34,7 +34,7 @@ tests/vmtests/test-data/kernels:
 Run tests on 5.4:
 ```
 $ make test-compile # <- this will build the test binaries
-$ ./tests/vmtests/tetragon-vmtests-run \
+$ ./tests/vmtests/tetragon-vmtests-run gotest \
 	--kernel tests/vmtests/test-data/kernels/5.4/boot/vmlinuz-5.4.206 \
 	--base tests/vmtests/test-data/images/base.qcow2
 ```
@@ -44,7 +44,7 @@ environment (which do not support nested virtualization) and it  also uncover ot
 the unconventional timing.
 
 ```
-$ ./tests/vmtests/tetragon-vmtests-run \
+$ ./tests/vmtests/tetragon-vmtests-run gotest \
 	--kernel tests/vmtests/test-data/kernels/5.4/boot/vmlinuz-5.4.206 \
 	--base tests/vmtests/test-data/images/base.qcow2 \
 	--qemu-disable-kvm
@@ -54,7 +54,7 @@ Run a single test 20 times on 4.19 and fail fast
 
 ```
 $ seq 20 | xargs -I {} echo pkg.sensors.tracing:TestGenericTracepointRawSyscall > tests/vmtests/repeat-raw-syscall
-$ ./tests/vmtests/tetragon-vmtests-run \
+$ ./tests/vmtests/tetragon-vmtests-run gotest \
 	--kernel tests/vmtests/test-data/kernels/4.19/boot/vmlinuz-4.19.262 \
 	--btf-file tests/vmtests/test-data/kernels/4.19/boot/btf-4.19.262 \
 	--base tests/vmtests/test-data/images/base.qcow2  \
@@ -65,7 +65,7 @@ $ ./tests/vmtests/tetragon-vmtests-run \
 Just Boot the VM. User
 
 ```
-$ ./tests/vmtests/tetragon-vmtests-run \
+$ ./tests/vmtests/tetragon-vmtests-run gotest \
 	--kernel tests/vmtests/test-data/kernels/5.4/boot/vmlinuz-5.4.206 \
 	--base tests/vmtests/test-data/images/base.qcow2 \
 	--qemu-disable-kvm

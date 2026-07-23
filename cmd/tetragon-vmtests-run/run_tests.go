@@ -29,8 +29,8 @@ type runTestsResults struct {
 	totalDuration                         time.Duration
 }
 
-func runTests(
-	rcnf *RunConf, qemuBin string, qemuArgs []string,
+func runGoTests(
+	rcnf *GoTestConf, qemuBin string, qemuArgs []string,
 ) (*runTestsResults, error) {
 
 	ctx := context.Background()
