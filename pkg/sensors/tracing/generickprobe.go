@@ -1187,10 +1187,18 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 		return err
 	}
 
+	rewriteName := "generic_kprobe_filter_arg"
+	if fentry {
+		rewriteName = "generic_fentry_filter_arg"
+		if load.RetProbe {
+			rewriteName = "generic_fexit_filter_arg"
+		}
+	}
+
 	rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
 	if entry := gk.loadArgs.selectors.entry; entry != nil {
 		if celbpf.EnabledInBPF() {
-			rewriteProg["generic_kprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
+			rewriteProg[rewriteName] = entry.CelExprFunctions().RewriteProg
 		}
 	}
 	load.RewriteProg = rewriteProg
