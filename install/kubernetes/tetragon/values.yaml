@@ -54,7 +54,24 @@ tetragon:
     enabled: false
   extraVolumeMounts: []
   securityContext:
-    privileged: true
+    privileged: false
+    # Must be true (or unset) when privileged is true.
+    allowPrivilegeEscalation: false
+    # The runtime default profile denies mount and cross-profile ptrace.
+    appArmorProfile:
+      type: Unconfined
+    capabilities:
+      drop:
+        - ALL
+      add:
+        # Mount bpffs, tracefs and cgroup2, and load BPF programs. The kernel
+        # accepts it in place of CAP_BPF and CAP_PERFMON.
+        - SYS_ADMIN
+        - SYS_PTRACE
+        # Raise RLIMIT_MEMLOCK for BPF memory (kernels < 5.11 only).
+        - SYS_RESOURCE
+        - DAC_OVERRIDE
+        - SYSLOG
   # -- Overrides the default livenessProbe for the tetragon container.
   livenessProbe: {}
   #  grpc:
