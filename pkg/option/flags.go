@@ -32,6 +32,7 @@ const (
 	KeyKernelVersion          = "kernel"
 	KeyVerbosity              = "verbose"
 	KeyProcessCacheSize       = "process-cache-size"
+	KeyDisableProcessCache    = "disable-process-cache"
 	KeyDataCacheSize          = "data-cache-size"
 	KeyDeletedPodCacheSize    = "deleted-pod-cache-size"
 	KeyProcessCacheGCInterval = "process-cache-gc-interval"
@@ -208,6 +209,8 @@ func ReadAndSetFlags() error {
 		return fmt.Errorf("failed to parse enable-ancestors value: %w", err)
 	}
 
+	// TODO: decide if we want to support enableAncestors when the process cache is disabled.
+	// We might be able to do a reduced version of it by looking at the execve map
 	if slices.Contains(enableAncestors, "base") {
 		Config.EnableProcessAncestors = true
 		Config.EnableProcessKprobeAncestors = slices.Contains(enableAncestors, "kprobe")
@@ -237,6 +240,7 @@ func ReadAndSetFlags() error {
 	logger.PopulateLogOpts(Config.LogOpts, logLevel, logFormat, logFile)
 
 	Config.ProcessCacheSize = viper.GetInt(KeyProcessCacheSize)
+	Config.DisableProcessCache = viper.GetBool(KeyDisableProcessCache)
 	Config.DataCacheSize = viper.GetInt(KeyDataCacheSize)
 	Config.DeletedPodCacheSize = viper.GetInt(KeyDeletedPodCacheSize)
 	Config.ProcessCacheGCInterval = viper.GetDuration(KeyProcessCacheGCInterval)
@@ -459,6 +463,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyKernelVersion, "", "Kernel version")
 	flags.Int(KeyVerbosity, 0, "set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
 	flags.Int(KeyProcessCacheSize, 65536, "Size of the process cache")
+	flags.Bool(KeyDisableProcessCache, false, "Disable process cache")
 	flags.Int(KeyDataCacheSize, 1024, "Size of the data events cache")
 	flags.Int(KeyDeletedPodCacheSize, constants.WatcherDeletedPodCacheSize, "Size of the deleted pod cache")
 	flags.Duration(KeyProcessCacheGCInterval, defaults.DefaultProcessCacheGCInterval, "Time between checking the process cache for old entries")

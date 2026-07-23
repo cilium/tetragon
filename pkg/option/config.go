@@ -67,6 +67,7 @@ type config struct {
 	RBQueueSize       int
 
 	ProcessCacheSize       int
+	DisableProcessCache    bool
 	DataCacheSize          int
 	DeletedPodCacheSize    int
 	ProcessCacheGCInterval time.Duration
