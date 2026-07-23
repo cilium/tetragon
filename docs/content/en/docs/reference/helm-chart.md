@@ -171,7 +171,14 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.prometheus.serviceMonitor.scrapeInterval | string | `"60s"` | Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used. |
 | tetragon.redactionFilters | string | `""` | Filters to redact secrets from the args fields in Tetragon events. To perform redactions, redaction filters define RE2 regular expressions in the `redact` field. Any capture groups in these RE2 regular expressions are redacted and replaced with "*****".  For more control, you can select which binary or binaries should have their arguments redacted with the `binary_regex` field.  NOTE: This feature uses RE2 as its regular expression library. Make sure that you follow RE2 regular expression guidelines as you may observe unexpected results otherwise. More information on RE2 syntax can be found [here](https://github.com/google/re2/wiki/Syntax).  NOTE: When writing regular expressions in JSON, it is important to escape backslash characters. For instance `\Wpasswd\W?` would be written as `{"redact": "\\Wpasswd\\W?"}`.  As a concrete example, the following will redact all passwords passed to processes with the "--password" argument:    {"redact": ["--password(?:\\s+|=)(\\S*)"]}  Now, an event which contains the string "--password=foo" would have that string replaced with "--password=*****".  Suppose we also see some passwords passed via the -p shorthand for a specific binary, foo. We can also redact these as follows:    {"binary_regex": ["(?:^|/)foo$"], "redact": ["-p(?:\\s+|=)(\\S*)"]}  With both of the above redaction filters in place, we are now redacting all password arguments. |
 | tetragon.resources | object | `{}` |  |
-| tetragon.securityContext.privileged | bool | `true` |  |
+| tetragon.securityContext.capabilities.add[0] | string | `"BPF"` |  |
+| tetragon.securityContext.capabilities.add[1] | string | `"PERFMON"` |  |
+| tetragon.securityContext.capabilities.add[2] | string | `"SYS_ADMIN"` |  |
+| tetragon.securityContext.capabilities.add[3] | string | `"SYS_RESOURCE"` |  |
+| tetragon.securityContext.capabilities.add[4] | string | `"SYS_PTRACE"` |  |
+| tetragon.securityContext.capabilities.add[5] | string | `"DAC_READ_SEARCH"` |  |
+| tetragon.securityContext.capabilities.drop[0] | string | `"ALL"` |  |
+| tetragon.securityContext.privileged | bool | `false` |  |
 | tetragon.usePerfRingBuffer | bool | `false` |  |
 | tetragonOperator.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.labelSelector.matchLabels."app.kubernetes.io/name" | string | `"tetragon-operator"` |  |
 | tetragonOperator.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.topologyKey | string | `"kubernetes.io/hostname"` |  |
