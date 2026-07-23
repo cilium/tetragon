@@ -2051,7 +2051,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 {
 	bool match = 0;
 	void *path_map;
-	__u8 *found_key;
+	__u8 *found_key = NULL;
 #ifdef __LARGE_BPF_PROG
 	struct string_prefix_lpm_trie *prefix_key;
 	struct string_postfix_lpm_trie *postfix_key;
@@ -2098,7 +2098,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 
 			path_map = map_lookup_elem(&tg_mb_paths, &key);
 			if (!path_map)
-				return 0;
+				break;
 			found_key = map_lookup_elem(path_map, bin->path);
 			break;
 #ifdef __LARGE_BPF_PROG
@@ -2106,35 +2106,36 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 		case op_filter_str_notprefix:
 			path_map = map_lookup_elem(&string_prefix_maps, &selector_options->map_id);
 			if (!path_map)
-				return 0;
+				break;
 			// prepare the key to perform lookup in the LPM_TRIE
 			prefix_key = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_maps_heap, &zero);
 			if (!prefix_key)
-				return 0;
+				break;
 			memset(prefix_key, 0, sizeof(*prefix_key));
 			prefix_key->prefixlen = bin->path_length * 8; // prefixlen is in bits
 			if (probe_read(prefix_key->data, bin->path_length & (STRING_PREFIX_MAX_LENGTH - 1), bin->path) < 0)
-				return 0;
+				break;
 			found_key = map_lookup_elem(path_map, prefix_key);
 			break;
 		case op_filter_str_postfix:
 		case op_filter_str_notpostfix:
 			path_map = map_lookup_elem(&string_postfix_maps, &selector_options->map_id);
 			if (!path_map)
-				return 0;
+				break;
 			if (bin->path_length < STRING_POSTFIX_MAX_MATCH_LENGTH)
 				postfix_len = bin->path_length;
 			postfix_key = (struct string_postfix_lpm_trie *)map_lookup_elem(&string_postfix_maps_heap, &zero);
 			if (!postfix_key)
-				return 0;
+				break;
 			postfix_key->prefixlen = postfix_len * 8; // prefixlen is in bits
 			if (!bin->reversed) {
 				file_copy_reverse((__u8 *)bin->end_r, postfix_len, (__u8 *)bin->end, bin->path_length - postfix_len);
 				bin->reversed = true;
 			}
-			if (postfix_len < STRING_POSTFIX_MAX_MATCH_LENGTH)
+			if (postfix_len < STRING_POSTFIX_MAX_MATCH_LENGTH) {
 				if (probe_read(postfix_key->data, postfix_len, bin->end_r) < 0)
-					return 0;
+					break;
+			}
 			found_key = map_lookup_elem(path_map, postfix_key);
 			break;
 #endif /* __LARGE_BPF_PROG */
