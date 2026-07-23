@@ -623,6 +623,10 @@ func (s *bugtoolInfo) getPProf(file string, gopsSignal byte) error {
 }
 
 func (s *bugtoolInfo) addPProfInfo() {
+	if s.info.GopsAddr == "" {
+		return
+	}
+
 	profiles := map[string]byte{
 		"cpu":  gopssignal.CPUProfile,
 		"heap": gopssignal.HeapProfile,
