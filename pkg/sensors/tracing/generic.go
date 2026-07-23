@@ -19,7 +19,10 @@ import (
 	conf "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/selectors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
 // Takes arg.Resolve as input and return the path in []string
@@ -337,4 +340,16 @@ func (d *DupInstance) GetID(name string) InstanceID {
 	}
 	d.dups[name] = instance
 	return instance
+}
+
+func setParentsMap(progs []*program.Program, maps []*program.Map, hasSelector bool) []*program.Map {
+	if option.Config.ParentsMapEnabled {
+		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		if hasSelector {
+			for _, p := range progs {
+				p.RewriteConstants["PARENTS_MAP_ENABLED"] = uint8(1)
+			}
+		}
+	}
+	return maps
 }
