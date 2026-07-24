@@ -170,7 +170,7 @@ func (pi *ProcessInternal) UnsafeGetProcess() *tetragon.Process {
 //     c. if it is a filesystem capability execution
 //     d. Execution of an unlinked binary (shm, memfd, or deleted binaries)
 //
-//     a b and c are subject to the --enable-process-creds flag
+//     a b and c are subject to the --enable-process-cred flag
 func (pi *ProcessInternal) UpdateExecOutsideCache(cred bool) (*tetragon.Process, bool) {
 	update := false
 	// Get reference on the process
