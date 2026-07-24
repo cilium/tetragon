@@ -157,7 +157,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		col.destroy(true)
 		return err
 	}
-	col.state = EnabledState
+	col.state = col.getEnabledState()
 	return nil
 }
 
@@ -187,7 +187,7 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 
 // should be called with h.collections.mu locked (for writing)
 func (h *handler) doDisableTracingPolicy(col *collection) error {
-	if col.state != EnabledState {
+	if !col.isEnabled() {
 		return fmt.Errorf("tracing policy %s is not enabled", col.name)
 	}
 
@@ -232,7 +232,7 @@ func (h *handler) doEnableTracingPolicy(col *collection) error {
 		return col.err
 	}
 
-	col.state = EnabledState
+	col.state = col.getEnabledState()
 	return nil
 }
 
@@ -433,14 +433,15 @@ func (h *handler) listPolicies(domain string) []*tetragon.TracingPolicyStatus {
 
 		col.tracingpolicy.TpSpec()
 		pol := tetragon.TracingPolicyStatus{
-			Id:       col.tracingpolicyID,
-			Name:     ck.name,
-			Enabled:  col.state == EnabledState,
-			FilterId: col.policyfilterID,
-			State:    col.state.ToTetragonState(),
-			Mode:     col.mode(),
-			Stats:    col.stats(),
-			Domain:   ck.domain,
+			Id:           col.tracingpolicyID,
+			Name:         ck.name,
+			Enabled:      col.isEnabled(),
+			FilterId:     col.policyfilterID,
+			State:        col.state.ToTetragonState(),
+			Mode:         col.mode(),
+			Stats:        col.stats(),
+			Domain:       ck.domain,
+			HookStatuses: []*tetragon.HookStatus{},
 		}
 
 		if col.err != nil {
@@ -452,6 +453,7 @@ func (h *handler) listPolicies(domain string) []*tetragon.TracingPolicyStatus {
 		for _, sens := range col.sensors {
 			pol.Sensors = append(pol.Sensors, sens.GetName())
 			pol.KernelMemoryBytes += uint64(sens.TotalMemlock())
+			pol.HookStatuses = append(pol.HookStatuses, sens.HookStatus()...)
 		}
 
 		ret = append(ret, &pol)

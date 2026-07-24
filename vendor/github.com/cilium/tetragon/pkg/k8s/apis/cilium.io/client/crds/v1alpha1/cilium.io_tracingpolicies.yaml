@@ -5913,9 +5913,9 @@ spec:
                     binaryDigests:
                       description: |-
                         BinaryDigests specifies a set of digests for the traced binary.
-                        The uprobe is installed only if the digest of the traced binary matches a digest in the set.
-                        Currently, if the digest is not matched, the policy is rejected. Subsequent work will skip
-                        loading the uprobe instead of rejecting the policy.
+                        The uprobe/hook is installed only if the digest of the traced binary matches a digest in the set.
+                        Tetragon's tracing policy status API can be used to see each hook's status in order to determine
+                        if the hook was attached or not.
                       items:
                         type: string
                       type: array
@@ -6039,6 +6039,14 @@ spec:
                         - type
                         type: object
                       type: array
+                    ignore:
+                      description: Conditions for ignoring this uprobe
+                      properties:
+                        digestVerificationFailure:
+                          description: Ignores uprobe where the digest verification
+                            of the traced binary fails
+                          type: boolean
+                      type: object
                     message:
                       description: |-
                         A short message of 256 characters max that will be included

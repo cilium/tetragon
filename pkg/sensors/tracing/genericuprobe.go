@@ -31,6 +31,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
+	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -451,11 +452,10 @@ type addUprobeIn struct {
 }
 
 type uprobeHas struct {
-	sleepableOffload        bool
-	sleepablePreload        bool
-	substring               bool
-	sleepablePreloadSize    int
-	disableNotAllowedReason string
+	sleepableOffload     bool
+	sleepablePreload     bool
+	substring            bool
+	sleepablePreloadSize int
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -856,6 +856,13 @@ func verifyBinaryDigests(uprobe *v1alpha1.UProbeSpec, entryFile *os.File) error 
 	}
 }
 
+func ignoreDigestVerificationFailure(uprobe *v1alpha1.UProbeSpec) bool {
+	if uprobe.Ignore == nil {
+		return false
+	}
+	return uprobe.Ignore.DigestVerificationFailure
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -867,6 +874,7 @@ func createGenericUprobeSensor(
 	var err error
 	var has uprobeHas
 	var celExprs *selectors.CelExprFunctions
+	var statuses []*tetragon.HookStatus
 
 	// use multi uprobe only if:
 	// - it's not disabled by spec option
@@ -902,6 +910,8 @@ func createGenericUprobeSensor(
 		}
 	}()
 
+	var disableNotAllowedReason string
+
 	var selectorStatsBase uint32
 	for cfgIdx, uprobe := range spec.UProbes {
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
@@ -920,38 +930,65 @@ func createGenericUprobeSensor(
 		var entryFile *os.File
 
 		if len(uprobe.BinaryDigests) != 0 {
+			// When the binary digest configuration is specified, we link the target
+			// binary by file descriptor to avoid a TOCTOU race.
+			// The file for that descriptor is closed after sensor load, so we cannot
+			// allow the sensor to be enabled (re-loaded) after being disabled
+			disableNotAllowedReason = disableNotAllowedReasonBinaryDigests
 			entryFile, err = getOrOpenFile(absPath, openedFiles)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		if err := verifyBinaryDigests(&uprobe, entryFile); err != nil {
-			return nil, fmt.Errorf("spec.uprobes[%d]: %w", cfgIdx, err)
+		hookStatus := &tetragon.HookStatus{
+			State:           tetragon.HookState_STATUS_UNSPECIFIED,
+			HookDescription: uprobe.Path,
+			Section:         "uprobes",
+			HookIdx:         uint32(cfgIdx),
 		}
+
+		statuses = append(statuses, hookStatus)
+
+		if err := verifyBinaryDigests(&uprobe, entryFile); err != nil {
+			mismatchErr, ok := errors.AsType[*DigestMismatchError](err)
+			if !ok || !ignoreDigestVerificationFailure(&uprobe) {
+				return nil, fmt.Errorf("spec.uprobes[%d]: %w", cfgIdx, err)
+			}
+
+			hookStatus.State = tetragon.HookState_STATUS_DIGEST_REJECTED
+			logger.GetLogger().Info(
+				fmt.Sprintf("spec.uprobes[%d]: %s", cfgIdx, mismatchErr.Error()),
+			)
+			continue
+		}
+
+		hookStatus.State = tetragon.HookState_STATUS_LOADED
 
 		if ids, err = addUprobe(&uprobe, entryFile, ids, &in, &has); err != nil {
 			return nil, err
 		}
 	}
 
-	if useMulti {
-		progs, maps, err = createMultiUprobeSensor(polInfo, name, ids, has)
-	} else {
-		progs, maps, err = createSingleUprobeSensor(polInfo, ids, has)
-	}
+	if len(ids) != 0 {
+		if useMulti {
+			progs, maps, err = createMultiUprobeSensor(polInfo, name, ids, has)
+		} else {
+			progs, maps, err = createSingleUprobeSensor(polInfo, ids, has)
+		}
 
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return nil, err
+		}
 
-	maps = append(maps, program.MapUserFrom(base.ExecveMap))
-	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
-		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
-	}
+		maps = append(maps, program.MapUserFrom(base.ExecveMap))
+		if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
+			maps = append(maps, program.MapUserFrom(base.RingBufEvents))
+		}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		if option.Config.ParentsMapEnabled {
+			maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		}
 	}
 
 	return &sensors.Sensor{
@@ -960,7 +997,8 @@ func createGenericUprobeSensor(
 		Maps:                    maps,
 		Policy:                  polInfo.name,
 		Namespace:               polInfo.namespace,
-		DisableNotAllowedReason: has.disableNotAllowedReason,
+		DisableNotAllowedReason: disableNotAllowedReason,
+		Statuses:                statuses,
 		DestroyHook: func() error {
 			return cleanupUprobeEntries(ids, openedFiles)
 		},
@@ -973,6 +1011,7 @@ func createGenericUprobeSensor(
 			}
 			return errs
 		},
+		NoHooksAttached: len(ids) == 0,
 	}, nil
 }
 
@@ -1197,7 +1236,7 @@ func getLinkPath(file *os.File, targetPath string) string {
 	return targetPath
 }
 
-func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *uprobeConfigState, has *uprobeHas, f *elf.SafeELFFile) ([]idtable.EntryID, error) {
+func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *uprobeConfigState, f *elf.SafeELFFile) ([]idtable.EntryID, error) {
 	addUprobeEntry := func(sym string, offset uint64, idx int) error {
 		var refCtrOffset uint64
 		var err error
@@ -1224,14 +1263,6 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 			argReturnPrinters: state.argReturnPrinters,
 			tags:              state.tags,
 			pendingEvents:     nil,
-		}
-
-		// Depending on configuration we will link via file descriptor, instead of by the path configured in the policy,
-		// in order to avoid a TOCTOU race. These files are closed after the sensor is loaded when the tracing policy is initially added,
-		// and as such their file descriptors are no longer valid after that point. So, it's not safe to load the sensor again
-		// when we re-enable a policy after it's been disabled, because the configured targetPaths would point to closed/re-used file descriptors.
-		if state.entryFile != nil {
-			has.disableNotAllowedReason = disableNotAllowedReasonBinaryDigests
 		}
 
 		uprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]](option.Config.RetprobesCacheSize)
@@ -1352,7 +1383,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, entryFile *os.File, ids []idtable.Entr
 		return ids, err
 	}
 
-	return addUprobeEntries(spec, ids, &state, has, f)
+	return addUprobeEntries(spec, ids, &state, f)
 }
 
 func multiUprobePinPath(sensorPath string) string {

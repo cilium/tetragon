@@ -1365,6 +1365,17 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | version | [string](#string) |  |  |
 
+<a name="tetragon-HookStatus"></a>
+
+### HookStatus
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| section | [string](#string) |  | hook&#39;s section within the policy |
+| state | [HookState](#tetragon-HookState) |  | hook state |
+| hook_description | [string](#string) |  | description of hook |
+| hook_idx | [uint32](#uint32) |  | the index at which this hook is configured within its section |
+
 <a name="tetragon-ListDomainsRequest"></a>
 
 ### ListDomainsRequest
@@ -1522,6 +1533,7 @@ Determines the behavior of a field filter
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) |  | current mode of the tracing policy |
 | stats | [TracingPolicyStats](#tetragon-TracingPolicyStats) | optional | stats of the tracing policy |
 | domain | [string](#string) |  | domain of the policy |
+| hook_statuses | [HookStatus](#tetragon-HookStatus) | repeated | status of policy&#39;s hooks |
 
 <a name="tetragon-ConfigFlag"></a>
 
@@ -1532,6 +1544,18 @@ For now, we only want to support debug-related config flags to be configurable.
 | ---- | ------ | ----------- |
 | CONFIG_FLAG_LOG_LEVEL | 0 |  |
 | CONFIG_FLAG_DUMP_PROCESS_CACHE | 1 |  |
+
+<a name="tetragon-HookState"></a>
+
+### HookState
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| STATUS_UNSPECIFIED | 0 | unknown or unspecified state |
+| STATUS_LOADED | 1 | probe was loaded |
+| STATUS_DIGEST_REJECTED | 2 | probe was not loaded due to digest mismatch |
+| STATUS_CALL_NOT_FOUND | 3 | probe was not loaded due to call was not found |
+| STATUS_PARTIAL_CALL_NOT_FOUND | 4 | probe was partially loaded due to call not found |
 
 <a name="tetragon-LogLevel"></a>
 
@@ -1572,6 +1596,7 @@ For now, we only want to support debug-related config flags to be configurable.
 | TP_STATE_LOADING | 5 | in the process of loading |
 | TP_STATE_UNLOADING | 6 | in the process of unloading |
 | TP_STATE_SKIPPED | 7 | tracked but not loaded on this node, e.g. its nodeSelector does not match |
+| TP_STATE_PARTIALLY_ENABLED | 8 | some hooks were not loaded |
 
 <a name="tetragon-FineGuidanceSensors"></a>
 

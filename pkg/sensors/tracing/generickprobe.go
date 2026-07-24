@@ -23,6 +23,7 @@ import (
 	ciliumbtf "github.com/cilium/ebpf/btf"
 	lru "github.com/hashicorp/golang-lru/v2"
 
+	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -322,9 +323,10 @@ func validateKprobeType(ty string) error {
 }
 
 type kpValidateInfo struct {
-	calls   []string
-	syscall bool
-	ignore  bool
+	calls        []string
+	syscall      bool
+	ignore       bool
+	ignoredCount int
 }
 
 func validateOverride(
@@ -435,19 +437,11 @@ func preValidateKprobe(
 	}
 
 	return &kpValidateInfo{
-		calls:   retCalls,
-		syscall: isSyscall,
-		ignore:  ignored == len(calls), // if all calls were ignored, ignore the whole kprobe
+		calls:        retCalls,
+		syscall:      isSyscall,
+		ignore:       ignored == len(calls), // if all calls were ignored, ignore the whole kprobe
+		ignoredCount: ignored,
 	}, nil
-}
-
-func allKprobesIgnored(info []*kpValidateInfo) bool {
-	for _, i := range info {
-		if !i.ignore {
-			return false
-		}
-	}
-	return true
 }
 
 // preValidateKprobes pre-validates the semantics and BTF information of a Kprobe spec
@@ -556,6 +550,7 @@ func createGenericKprobeSensor(
 	var selMaps *selectors.KernelSelectorMaps
 	var celExprs *selectors.CelExprFunctions
 	var kprobes []v1alpha1.KProbeSpec
+	var statuses []*tetragon.HookStatus
 
 	fentry := isFentry(typ)
 
@@ -611,7 +606,17 @@ func createGenericKprobeSensor(
 		in.selStatsBase = selectorStatsBase
 		selectorStatsBase += uint32(len(kprobes[i].Selectors))
 
+		hookStatus := &tetragon.HookStatus{
+			State:           tetragon.HookState_STATUS_UNSPECIFIED,
+			HookDescription: kprobes[i].Call,
+			Section:         "kprobes",
+			HookIdx:         uint32(i),
+		}
+
+		statuses = append(statuses, hookStatus)
+
 		if valInfo[i].ignore {
+			hookStatus.State = tetragon.HookState_STATUS_CALL_NOT_FOUND
 			continue
 		}
 		syms := valInfo[i].calls
@@ -626,26 +631,33 @@ func createGenericKprobeSensor(
 			}
 			ids = append(ids, id)
 		}
+		if valInfo[i].ignoredCount == 0 {
+			hookStatus.State = tetragon.HookState_STATUS_LOADED
+		} else {
+			hookStatus.State = tetragon.HookState_STATUS_PARTIAL_CALL_NOT_FOUND
+		}
 	}
 
-	var err error
-	if useMulti {
-		progs, maps, err = createMultiKprobeSensor(polInfo, ids, has)
-	} else {
-		progs, maps, err = createSingleKprobeSensor(polInfo, ids, has)
-	}
+	if len(ids) != 0 {
+		var err error
+		if useMulti {
+			progs, maps, err = createMultiKprobeSensor(polInfo, ids, has)
+		} else {
+			progs, maps, err = createSingleKprobeSensor(polInfo, ids, has)
+		}
 
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return nil, err
+		}
 
-	maps = append(maps, program.MapUserFrom(base.ExecveMap))
-	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
-		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
-	}
+		maps = append(maps, program.MapUserFrom(base.ExecveMap))
+		if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
+			maps = append(maps, program.MapUserFrom(base.RingBufEvents))
+		}
 
-	if option.Config.ParentsMapEnabled {
-		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		if option.Config.ParentsMapEnabled {
+			maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+		}
 	}
 
 	return &sensors.Sensor{
@@ -675,6 +687,8 @@ func createGenericKprobeSensor(
 			}
 			return errs
 		},
+		Statuses:        statuses,
+		NoHooksAttached: len(ids) == 0,
 	}, nil
 }
 
