@@ -89,8 +89,9 @@ const (
 
 	KeyNetnsDir = "netns-dir"
 
-	KeyDisableKprobeMulti = "disable-kprobe-multi"
-	KeyDisableUprobeMulti = "disable-uprobe-multi"
+	KeyDisableKprobeMulti   = "disable-kprobe-multi"
+	KeyDisableUprobeMulti   = "disable-uprobe-multi"
+	KeyUseKprobesAsFentries = "use-kprobes-as-fentries"
 
 	KeySleepablePreloadSize = "sleepable-preload-size"
 
@@ -190,6 +191,7 @@ func ReadAndSetFlags() error {
 	Config.K8sControlPlaneRetry = viper.GetInt(KeyK8sControlPlaneRetry)
 
 	Config.DisableKprobeMulti = viper.GetBool(KeyDisableKprobeMulti)
+	Config.UseKprobesAsFentries = viper.GetBool(KeyUseKprobesAsFentries)
 
 	var err error
 	var enableAncestors []string
@@ -527,6 +529,9 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	// Allow to disable kprobe multi interface
 	flags.Bool(KeyDisableKprobeMulti, false, "Allow to disable kprobe multi interface")
+
+	// Allow to load kprobes as fentry programs where possible
+	flags.Bool(KeyUseKprobesAsFentries, false, "Use fentry programs instead of kprobes where possible")
 
 	// Allow to specify ring buffer
 	flags.Bool(KeyUsePerfRingBuffer, false, "Use the perf ring buffer instead of the bpf ring buffer")

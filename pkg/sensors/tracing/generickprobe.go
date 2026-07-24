@@ -636,6 +636,7 @@ func createGenericKprobeSensor(
 		kprobes = spec.Fentries
 	} else {
 		kprobes = spec.KProbes
+		fentry = canUseFentry(kprobes, option.Config.UseKprobesAsFentries)
 	}
 
 	has := hasMapsSetup(spec, kprobes, fentry)
