@@ -542,6 +542,29 @@ func isFentry(typ attachType) bool {
 	return typ == fentry
 }
 
+func getMulti(polInfo *policyInfo, valInfo []*kpValidateInfo, has hasMaps) bool {
+	var useMulti bool
+
+	// use multi kprobe only if:
+	// - it's not disabled by spec option
+	// - it's not disabled by command line option
+	// - there's support detected
+	if !polInfo.specOpts.DisableKprobeMulti {
+		useMulti = !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
+
+		// arm does not override on top of kprobe.multi
+		if isArm() && (has.enforcer || has.override) {
+			useMulti = false
+		}
+		// there's no multi support yet
+		if has.fentry {
+			useMulti = false
+		}
+	}
+
+	return useMulti
+}
+
 func createGenericKprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -566,23 +589,7 @@ func createGenericKprobeSensor(
 	}
 
 	has := hasMapsSetup(spec, kprobes, fentry)
-
-	// use multi kprobe only if:
-	// - it's not disabled by spec option
-	// - it's not disabled by command line option
-	// - there's support detected
-	if !polInfo.specOpts.DisableKprobeMulti {
-		useMulti = !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
-
-		// arm does not override on top of kprobe.multi
-		if isArm() && (has.enforcer || has.override) {
-			useMulti = false
-		}
-		// there's no multi support yet
-		if fentry {
-			useMulti = false
-		}
-	}
+	useMulti = getMulti(polInfo, valInfo, has)
 
 	if useMulti {
 		selMaps = &selectors.KernelSelectorMaps{}
