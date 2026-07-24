@@ -53,7 +53,7 @@ reference.
 
 On Linux each process has various associated user, group IDs and capabilities
 known as process credentials. To enable visility into [process_credentials]({{< ref "/docs/reference/grpc-api#processcredentials" >}}),
-run Tetragon with `enable-process-creds` setting set.
+run Tetragon with `enable-process-cred` setting set.
 
 {{< tabpane lang=shell >}}
 
