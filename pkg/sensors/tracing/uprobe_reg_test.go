@@ -550,13 +550,15 @@ func TestUprobeResolvePageFault(t *testing.T) {
 	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve.btf")
 
 	tt := []struct {
-		specTy    string
-		filterVal string
-		field     string
-		kpArgs    []*ec.KprobeArgumentChecker
+		specTy     string
+		filterVals []string
+		field      string
+		kpArgs     []*ec.KprobeArgumentChecker
 	}{
-		{"string", "hello world!", "subp.buff", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("hello world!")),
+		{"string", []string{"hello", "world!"}, "subp.buff", []*ec.KprobeArgumentChecker{
+			// twice because it is resolved as first and second param, and they are both equal.
+			ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("hello")),
+			ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("world!")),
 		}},
 	}
 
@@ -576,6 +578,10 @@ spec:
       type: "` + tt[0].specTy + `"
       btfType: "mystruct"
       resolve: "` + tt[0].field + `"
+    - index: 2
+      type: "` + tt[0].specTy + `"
+      btfType: "mystruct"
+      resolve: "` + tt[0].field + `"
 `
 
 	createCrdFile(t, uprobeHook)
@@ -586,7 +592,7 @@ spec:
 			WithProcess(ec.NewProcessChecker().
 				WithBinary(sm.Full(uprobe)).
 				WithArguments(
-					sm.Full(tt[i].field+" \""+tt[i].filterVal+"\""),
+					sm.Full(tt[i].field+" "+tt[i].filterVals[0]+" "+tt[i].filterVals[1]),
 				),
 			).WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
@@ -607,7 +613,7 @@ spec:
 	readyWG.Wait()
 
 	for i := range tt {
-		cmd := exec.Command(uprobe, tt[i].field, tt[i].filterVal)
+		cmd := exec.Command(uprobe, tt[i].field, tt[i].filterVals[0], tt[i].filterVals[1])
 		cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
 		require.NoError(t, cmdErr)
 	}

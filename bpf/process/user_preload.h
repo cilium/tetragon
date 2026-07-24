@@ -9,6 +9,12 @@
 #include "errmetrics.h"
 #include "usdt_arg.h"
 
+struct preload_key {
+	__u64 tgid;
+	__u8 index;
+	__u8 pad[7];
+};
+
 struct preload_data {
 	arg_status_t status;
 	unsigned char data[4096];
@@ -17,7 +23,7 @@ struct preload_data {
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 1); // will be resized by agent when needed
-	__type(key, __u64);
+	__type(key, struct preload_key);
 	__type(value, struct preload_data);
 	__uint(map_flags, BPF_F_NO_PREALLOC);
 } sleepable_preload SEC(".maps");
@@ -25,20 +31,23 @@ struct {
 #if defined(GENERIC_UPROBE) || defined(GENERIC_USDT)
 
 FUNC_INLINE int
-preload_string_type(struct pt_regs *ctx, struct event_config *config, unsigned long val,
+preload_string_type(struct pt_regs *ctx, struct event_config *config, int index, unsigned long val,
 		    arg_status_t status)
 {
-	__u64 id = get_current_pid_tgid();
 	struct preload_data *data;
 	__u32 zero = 0;
 	void *init;
+	struct preload_key key = {
+		.tgid = get_current_pid_tgid(),
+		.index = index,
+	};
 
 	init = map_lookup_elem(&heap_ro_zero, &zero);
 	if (!init)
 		return 0;
 
-	with_errmetrics(map_update_elem, &sleepable_preload, &id, init, BPF_ANY);
-	data = map_lookup_elem(&sleepable_preload, &id);
+	with_errmetrics(map_update_elem, &sleepable_preload, &key, init, BPF_ANY);
+	data = map_lookup_elem(&sleepable_preload, &key);
 	if (!data)
 		return 0;
 
@@ -81,7 +90,7 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	switch (ty) {
 	case string_type:
 		if (bpf_ksym_exists(bpf_copy_from_user_str))
-			return preload_string_type(ctx, config, val, status);
+			return preload_string_type(ctx, config, index, val, status);
 	}
 
 	return 0;
@@ -127,7 +136,7 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	switch (ty) {
 	case string_type:
 		if (bpf_ksym_exists(bpf_copy_from_user_str))
-			return preload_string_type(ctx, config, a, status);
+			return preload_string_type(ctx, config, index, a, status);
 	}
 
 	return 0;
@@ -186,12 +195,38 @@ user_preload(struct pt_regs *ctx)
 
 #endif /* GENERIC_UPROBE || GENERIC_USDT*/
 
+FUNC_LOCAL int
+cleanup_preload(int idx, struct preload_key *key)
+{
+	asm volatile("%[idx] &= %1 ;\n"
+		     : [idx] "+r"(idx)
+		     : "i"(MAX_POSSIBLE_ARGS_MASK));
+
+	key->index = idx;
+	map_delete_elem(&sleepable_preload, key);
+	return 0;
+}
+
 FUNC_INLINE int
 user_preload_cleanup(struct pt_regs *ctx)
 {
-	__u64 id = get_current_pid_tgid();
+	int i;
+	struct preload_key key = {
+		.tgid = get_current_pid_tgid(),
+	};
 
-	map_delete_elem(&sleepable_preload, &id);
+	if (CONFIG(ITER_NUM)) {
+		bpf_for(i, 0, MAX_POSSIBLE_ARGS)
+			cleanup_preload(i, &key);
+	} else {
+#ifndef __V61_BPF_PROG
+#pragma unroll
+		for (i = 0; i < MAX_POSSIBLE_ARGS; ++i)
+			cleanup_preload(i, &key);
+#else
+		loop(MAX_POSSIBLE_ARGS, cleanup_preload, &key, 0);
+#endif /* __V61_BPF_PROG */
+	}
 	return 0;
 }
 

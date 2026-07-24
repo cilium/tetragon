@@ -470,10 +470,6 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 					return ids, fmt.Errorf("can't preload string for argument %d", cfgIdx)
 				}
 
-				if preload {
-					return ids, errors.New("preloading multiple arguments per hook point is not supported")
-				}
-
 				preload = true
 				argMValue, err := getUserMetaValue(&arg, true)
 				if err != nil {
