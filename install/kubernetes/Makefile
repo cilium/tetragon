@@ -36,10 +36,7 @@ ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 TETRAGON_CHART = tetragon
 CRDS_RELATIVE_DIR = pkg/k8s/apis/cilium.io/client/crds/v1alpha1
 CRDS := $(ROOT_DIR)/$(CRDS_RELATIVE_DIR)
-JSON_SCHEMAS := $(ROOT_DIR)/install/kubernetes/schemas
-# Shared by every scenario, so the upstream schemas are fetched once, not once
-# per scenario.
-SCHEMAS_CACHE := $(ROOT_DIR)/install/kubernetes/schemas-cache
+JSON_SCHEMAS := $(ROOT_DIR)/pkg/tracingpolicy/schemas
 
 #
 # -- Commands
@@ -61,7 +58,7 @@ HELM := docker run --rm -u $(shell id -u):$(shell id -g) \
 ##@ Build
 
 .PHONY: all
-all: docs $(TETRAGON_CHART)/crds-yaml
+all: docs $(TETRAGON_CHART)/crds-yaml $(TETRAGON_CHART)/schemas
 
 .PHONY: docs
 docs: ## Generate Helm docs for the README.md
@@ -105,6 +102,12 @@ check-images-tags: ## Verify all image:tag references in values.yaml exist in th
 		fi; \
 	done;
 
+.PHONY: $(TETRAGON_CHART)/schemas
+$(TETRAGON_CHART)/schemas: $(TETRAGON_CHART)/crds-yaml openapi2jsonschema.py ## generate json schema from crds
+	mkdir -p $(JSON_SCHEMAS)/
+	$(PYTHON) /bin/bash -c "pip install pyyaml && python /code/install/kubernetes/openapi2jsonschema.py /code/$(CRDS_RELATIVE_DIR)/*"
+	mv -f $(ROOT_DIR)/install/kubernetes/*-cilium.io.json $(JSON_SCHEMAS)/
+
 .PHONY: kubeconform
 # Run kubeconform Helm chart validation checks to validate the templated
 # Kubernetes (custom) resources against their spec.
@@ -113,11 +116,7 @@ check-images-tags: ## Verify all image:tag references in values.yaml exist in th
 # CRD. Skip validating the Tetragon CRDs themselves (circular dependency).
 # Skip the cert-manager Certificate too: its schema belongs to cert-manager and
 # is not available here.
-kubeconform: ## Validate Helm chart using kubeconform
-kubeconform:
-	mkdir -p $(JSON_SCHEMAS)/ $(SCHEMAS_CACHE)/
-	$(PYTHON) /bin/bash -c "pip install pyyaml && python /code/install/kubernetes/openapi2jsonschema.py /code/$(CRDS_RELATIVE_DIR)/*"
-	mv $(ROOT_DIR)/install/kubernetes/*-cilium.io.json $(JSON_SCHEMAS)/
+kubeconform: $(TETRAGON_CHART)/schemas ## Validate Helm chart using kubeconform
 	@failed=""; \
 	for values in $(HELM_VALUES_FILES); do \
 		echo ""; \
@@ -128,11 +127,9 @@ kubeconform:
 			-f /$(HELM_VALUES_DIR)/$$values \
 			| docker run --rm -i -u $(shell id -u):$(shell id -g) \
 				-v $(JSON_SCHEMAS):/schemas \
-				-v $(SCHEMAS_CACHE):/cache \
 				$(KUBECONFORM_IMAGE) \
 				-summary \
 				-verbose \
-				-cache /cache \
 				-schema-location default \
 				-schema-location '/schemas/{{ .ResourceKind }}-{{ .Group }}.json' \
 				-skip CustomResourceDefinition,Certificate \
@@ -144,7 +141,6 @@ kubeconform:
 			failed="$$failed $$values"; \
 		fi; \
 	done; \
-	rm -rf $(JSON_SCHEMAS)/ $(SCHEMAS_CACHE)/; \
 	if [ -n "$$failed" ]; then \
 		echo ""; \
 		echo "kubeconform failed for:$$failed"; \
