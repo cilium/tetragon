@@ -13,9 +13,9 @@ import (
 	"github.com/cilium/tetragon/pkg/asm"
 )
 
-func parseOverrideRegs(k *KernelSelectorState, values []string, errValue uint64, newOffset int64) (uint32, error) {
-	if len(k.regs) > 0 {
-		return uint32(0xffffffff), errors.New("only single instance of regs action is allowed")
+func parseOverrideRegs(k *KernelSelectorState, selIdx int, values []string, errValue uint64, newOffset int64) error {
+	if len(k.regs[selIdx]) > 0 {
+		return errors.New("only single instance of regs action is allowed")
 	}
 
 	regs := []processapi.RegAssignment{}
@@ -36,7 +36,7 @@ func parseOverrideRegs(k *KernelSelectorState, values []string, errValue uint64,
 	for _, val := range values {
 		ass, err := asm.ParseAssignment(val)
 		if err != nil {
-			return uint32(0xffffffff), err
+			return err
 		}
 
 		regs = append(regs, processapi.RegAssignment{
@@ -49,6 +49,6 @@ func parseOverrideRegs(k *KernelSelectorState, values []string, errValue uint64,
 		})
 	}
 
-	k.regs = regs
-	return uint32(k.uprobeID), nil
+	k.regs[selIdx] = regs
+	return nil
 }
