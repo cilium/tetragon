@@ -288,6 +288,9 @@ options:
     - name: tracing-policy-dir
       default_value: /etc/tetragon/tetragon.tp.d
       usage: Directory from where to load Tracing Policies
+    - name: use-kprobes-as-fentries
+      default_value: "false"
+      usage: Use fentry programs instead of kprobes where possible
     - name: use-perf-ring-buffer
       default_value: "false"
       usage: Use the perf ring buffer instead of the bpf ring buffer

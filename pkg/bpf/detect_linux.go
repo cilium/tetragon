@@ -43,6 +43,7 @@ type FeatureKfuncs struct {
 
 var (
 	kprobeMulti            Feature
+	tracingMulti           Feature
 	uprobeMulti            Feature
 	buildid                Feature
 	modifyReturn           Feature
@@ -147,6 +148,13 @@ func HasKprobeMulti() bool {
 		kprobeMulti.detected = detectKprobeMulti()
 	})
 	return kprobeMulti.detected
+}
+
+func HasTracingMulti() bool {
+	tracingMulti.init.Do(func() {
+		tracingMulti.detected = features.HaveBPFLinkTracingMulti() == nil
+	})
+	return tracingMulti.detected
 }
 
 func detectUprobeMulti() bool {
@@ -808,6 +816,7 @@ var FeatureProbes = []FeatureProbe{
 	{OverrideReturnProbe, HasOverrideHelper},
 	{BuildIDProbe, HasBuildId},
 	{KprobeMultiProbe, HasKprobeMulti},
+	{TracingMultiProbe, HasTracingMulti},
 	{UprobeMultiProbe, HasUprobeMulti},
 	{FmodRetProbe, HasModifyReturn},
 	{FmodRetSyscallProbe, HasModifyReturnSyscall},
@@ -826,4 +835,5 @@ var FeatureProbes = []FeatureProbe{
 	{Fentry, HasFentryProgram},
 	{GetFuncRet, HasGetFuncRetHelper},
 	{SubStringKfuncProbe, HasSubStringKfunc},
+	{TracingMulti, HasTracingMulti},
 }

@@ -96,8 +96,8 @@ PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 	   bpf_generic_rawtp_v61.o \
 	   bpf_generic_usdt_v61.o \
 	   bpf_multi_usdt_v61.o \
-	   bpf_generic_fentry_v61.o \
-	   bpf_generic_fexit_v61.o
+	   bpf_generic_fentry_v61.o bpf_multi_fentry_v61.o \
+	   bpf_generic_fexit_v61.o bpf_multi_fexit_v61.o
 
 # lsm
 PROCESS += bpf_generic_lsm_core_v61.o bpf_generic_lsm_output_v61.o \
@@ -183,6 +183,8 @@ $(DEPSDIR)bpf_multi_retkprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retkprobe.c
 $(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
 $(DEPSDIR)bpf_multi_retuprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retuprobe.c
 $(DEPSDIR)bpf_multi_usdt_$$(VAR).d: $(PROCESSDIR)bpf_generic_usdt.c
+$(DEPSDIR)bpf_multi_fentry_$$(VAR).d: $(PROCESSDIR)bpf_generic_fentry.c
+$(DEPSDIR)bpf_multi_fexit_$$(VAR).d: $(PROCESSDIR)bpf_generic_fexit.c
 
 # Object build rule for VARIANT objects
 $(OBJSDIR)%_$$(VAR).o:
@@ -210,6 +212,8 @@ CFLAGS_bpf_multi_retkprobe_$$(VAR).o = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_retuprobe_$$(VAR).o = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_usdt_$$(VAR).o      = -D__MULTI_KPROBE
+CFLAGS_bpf_multi_fentry_$$(VAR).o    = -D__MULTI_KPROBE
+CFLAGS_bpf_multi_fexit_$$(VAR).o     = -D__MULTI_KPROBE
 endef # DEFINE_VARIANT
 
 $(eval $(call DEFINE_VARIANT,v310))

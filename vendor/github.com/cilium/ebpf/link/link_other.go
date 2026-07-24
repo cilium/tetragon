@@ -26,6 +26,7 @@ const (
 	NetfilterType     = sys.BPF_LINK_TYPE_NETFILTER
 	NetkitType        = sys.BPF_LINK_TYPE_NETKIT
 	StructOpsType     = sys.BPF_LINK_TYPE_STRUCT_OPS
+	TracingMultiType  = sys.BPF_LINK_TYPE_TRACING_MULTI
 )
 
 // AttachRawLink creates a raw link.
@@ -83,6 +84,8 @@ func wrapRawLink(raw *RawLink) (_ Link, err error) {
 		return &rawTracepoint{*raw}, nil
 	case TracingType:
 		return &tracing{*raw}, nil
+	case TracingMultiType:
+		return &tracingMulti{*raw}, nil
 	case CgroupType:
 		return &linkCgroup{*raw}, nil
 	case IterType:
@@ -150,6 +153,10 @@ type NetkitInfo struct {
 
 type RawTracepointInfo struct {
 	Name string
+}
+
+type IterInfo struct {
+	TargetName string
 }
 
 type KprobeMultiInfo struct {
@@ -378,5 +385,13 @@ func (r Info) PerfEvent() *PerfEventInfo {
 // Returns nil if the type-specific link info isn't available.
 func (r Info) RawTracepoint() *RawTracepointInfo {
 	e, _ := r.extra.(*RawTracepointInfo)
+	return e
+}
+
+// Iter returns iter type-specific link info.
+//
+// Returns nil if the type-specific link info isn't available.
+func (r Info) Iter() *IterInfo {
+	e, _ := r.extra.(*IterInfo)
 	return e
 }
