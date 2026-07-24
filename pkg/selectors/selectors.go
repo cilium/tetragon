@@ -136,7 +136,7 @@ type KernelSelectorState struct {
 	uprobeID              int
 	overrideActionIPDelta int64
 
-	regs []processapi.RegAssignment
+	regs map[int][]processapi.RegAssignment
 
 	subStrs []string
 
@@ -171,6 +171,7 @@ func NewKernelSelectorState(
 		overrideActionIPDelta: overrideActionIPDelta,
 		celExprFunctions:      celExprs,
 		matchWorkloadIDs:      make(map[int]policyfilter.PolicyID),
+		regs:                  make(map[int][]processapi.RegAssignment),
 	}
 }
 
@@ -244,7 +245,7 @@ func (k *KernelSelectorState) StringPostfixMaps() []map[KernelLPMTrieStringPostf
 	return k.maps.stringPostfixMaps
 }
 
-func (k *KernelSelectorState) Regs() []processapi.RegAssignment {
+func (k *KernelSelectorState) Regs() map[int][]processapi.RegAssignment {
 	return k.regs
 }
 
@@ -549,4 +550,8 @@ func (k *KernelSelectorState) newStringPostfixMap() (uint32, map[KernelLPMTrieSt
 
 func (k *KernelSelectorState) CelExprFunctions() *CelExprFunctions {
 	return k.celExprFunctions
+}
+
+func (k *KernelSelectorState) UprobeRegsMapID(selIdx int) uint32 {
+	return uint32(k.uprobeID<<16 + selIdx)
 }
