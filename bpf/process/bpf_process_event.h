@@ -305,7 +305,7 @@ __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 	__u32 flags = 0;
 
 	/* Clear cgroup info at the beginning, so if we return early we do not pass previous data */
-	memset(kube, 0, sizeof(struct msg_k8s));
+	__bpf_memset_builtin(kube, 0, sizeof(struct msg_k8s));
 
 	conf = map_lookup_elem(&tg_conf_map, &zero);
 	if (conf) {
@@ -431,7 +431,7 @@ FUNC_INLINE void update_parents_map(struct msg_execve_event *event, struct execv
 			// use current binary as parent binary if exec events is not preceded
 			// by clone, i.e. exec call was invoked in the same process.
 			if (!(event->process.flags & EVENT_CLONE)) {
-				memcpy(bin, &curr->bin, sizeof(curr->bin));
+				__bpf_memcpy_builtin(bin, &curr->bin, sizeof(curr->bin));
 				with_errmetrics(map_update_elem, &tg_parents_bin, &curr->key.pid, bin, BPF_ANY);
 			} else {
 				struct execve_map_value *parent = event_find_parent();

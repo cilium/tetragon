@@ -230,9 +230,12 @@ FUNC_INLINE int return_error(int *s, int err)
 FUNC_INLINE char *
 args_off(struct msg_generic_kprobe *e, unsigned long off)
 {
+	char *args = e->args;
+
 	asm volatile("%[off] &= 0x3fff;\n"
-		     : [off] "+r"(off));
-	return e->args + (off & 0x3fff);
+		     "%[args] += %[off];\n"
+		     : [args] "+r"(args), [off] "+r"(off));
+	return args;
 }
 
 /* Error writer for use when pointer *s is lost to stack and can not
@@ -726,7 +729,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	else
 		with_errmetrics(probe_read, &heap[2], len, arg_str);
 #else
-	with_errmetrics(probe_read, &heap[1], len, arg_str);
+	probe_read(&heap[1], len, arg_str);
 #endif
 
 	// Pad string to multiple of key increment size
@@ -740,7 +743,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 		else
 			with_errmetrics(probe_read, heap + len + 2, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #else
-		with_errmetrics(probe_read, heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
+		probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #endif
 	}
 
@@ -2111,7 +2114,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 			prefix_key = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_maps_heap, &zero);
 			if (!prefix_key)
 				return 0;
-			memset(prefix_key, 0, sizeof(*prefix_key));
+			__bpf_memset_builtin(prefix_key, 0, sizeof(*prefix_key));
 			prefix_key->prefixlen = bin->path_length * 8; // prefixlen is in bits
 			if (probe_read(prefix_key->data, bin->path_length & (STRING_PREFIX_MAX_LENGTH - 1), bin->path) < 0)
 				return 0;
@@ -2288,6 +2291,10 @@ filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, cha
 		return filter_arg_2(e, filter, args);
 }
 
+/* selector_arg_offset returns
+ * - the offset immediately after the argument filters, or
+ * - 0 if an argument does not match.
+ */
 FUNC_INLINE int
 selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		    __u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
@@ -2320,6 +2327,8 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 		/* skip the matchCapabilityChanges by reading its length */
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+		/* skip the matchCaller section by reading its length */
+		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 	}
 
 	/* Making binary selectors fixes size helps on some kernels */
@@ -2327,7 +2336,7 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 	filters = (struct selector_arg_filters *)&f[seloff];
 
 	if (filters->arglen <= sizeof(struct selector_arg_filters)) // no filters
-		return seloff;
+		return seloff + filters->arglen;
 
 #ifdef __LARGE_BPF_PROG
 	for (i = 0; i < 5; i++)
@@ -2338,7 +2347,7 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 			     : [argsoff] "+r"(argsoff));
 
 		if (argsoff <= 0)
-			return seloff;
+			return seloff + filters->arglen;
 
 		margsoff = (seloff + argsoff) & INDEX_MASK;
 		filter = (struct selector_arg_filter *)&f[margsoff];
@@ -2390,7 +2399,7 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		if (!filter_arg(e, filter, args, arg))
 			return 0;
 	}
-	return seloff;
+	return seloff + filters->arglen;
 }
 
 FUNC_INLINE int filter_args_reject(u64 id)
