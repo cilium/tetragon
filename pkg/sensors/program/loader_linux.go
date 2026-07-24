@@ -17,7 +17,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
@@ -928,27 +927,6 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 		}
 	}
 
-	confs := map[string]func(v *ebpf.VariableSpec) error{
-		"CONFIG_ITER_NUM": func(v *ebpf.VariableSpec) error {
-			// We can't use numeric iterator until we get following fix from 6.9 kernel:
-			//   4f81c16f50ba bpf: Recognize that two registers are safe when their ranges match
-			// otherwise our loop code crosses 1mil instructions verifier limit.
-			enabled := bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
-			if err := v.Set(enabled); err != nil {
-				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
-			}
-			return nil
-		},
-	}
-
-	for n, c := range spec.Variables {
-		if conf, ok := confs[n]; ok {
-			if err := conf(c); err != nil {
-				return err
-			}
-		}
-	}
-
 	if len(missing) != 0 {
 		return fmt.Errorf("rewrite constants: %w", &MissingConstantsError{Constants: missing})
 	}
@@ -1078,24 +1056,31 @@ func doLoadProgram(
 		return nil, fmt.Errorf("program for section '%s' not found", load.Label)
 	}
 
-	pinnedMaps := make(map[string]*ebpf.Map)
-	for name := range refMaps {
-		var m *ebpf.Map
-		var err error
+	resolveRefMap := func(name string) (*ebpf.Map, error) {
 		var mapPath string
 
 		if pm, ok := resolveMap(name); ok {
 			mapPath = filepath.Join(bpfDir, pm.PinPath)
+		} else if name == rodataConfigMap {
+			mapPath = filepath.Join(bpfDir, rodataConfigPin)
 		} else {
 			mapPath = filepath.Join(bpfDir, name)
 		}
-		m, err = ebpf.LoadPinnedMap(mapPath, nil)
-		if err == nil {
-			defer m.Close()
-			pinnedMaps[name] = m
-		} else {
+		return ebpf.LoadPinnedMap(mapPath, nil)
+	}
+
+	pinnedMaps := make(map[string]*ebpf.Map)
+	for name := range refMaps {
+		m, err := resolveRefMap(name)
+		if err != nil {
+			if name == rodataConfigMap {
+				return nil, fmt.Errorf("loading required shared map %q: %w", name, err)
+			}
 			logger.GetLogger().Debug(fmt.Sprintf("pin file for map '%s' not found, map is not shared!\n", name), "prog", load.Label)
+			continue
 		}
+		defer m.Close()
+		pinnedMaps[name] = m
 	}
 
 	var opts ebpf.CollectionOptions
@@ -1252,7 +1237,7 @@ func doLoadProgram(
 
 	// Copy the loaded collection before it's destroyed
 	if keepCollection {
-		return copyLoadedCollection(coll)
+		return copyLoadedCollection(coll, refMaps)
 	}
 	return nil, nil
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build !windows
+
 package program
 
 import (
@@ -76,13 +78,17 @@ func printLoadedCollection(str string, lc *LoadedCollection) {
 	}
 }
 
-func copyLoadedCollection(coll *ebpf.Collection) (*LoadedCollection, error) {
+func copyLoadedCollection(coll *ebpf.Collection, refMaps map[string]bool) (*LoadedCollection, error) {
 	if coll == nil {
 		return nil, errors.New("failed to get collection")
 	}
 	lc := newLoadedCollection()
-	// copy all loaded maps
+	// copy referenced maps
 	for name, m := range coll.Maps {
+		if _, ok := refMaps[name]; !ok {
+			continue
+		}
+
 		info, err := m.Info()
 		if err != nil {
 			return nil, err
