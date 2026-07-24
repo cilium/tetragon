@@ -74,6 +74,19 @@ func init() {
 	sensors.RegisterProbeType("generic_fentry", fentry)
 }
 
+func canUseFentry(kprobes []v1alpha1.KProbeSpec, useKprobesAsFentries bool) bool {
+	if !useKprobesAsFentries {
+		return false
+	}
+
+	for _, fentry := range kprobes {
+		if selectors.HasEnforcementAction(fentry.Selectors) {
+			return false
+		}
+	}
+	return true
+}
+
 func createGenericFentrySensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -82,10 +95,8 @@ func createGenericFentrySensor(
 ) (*sensors.Sensor, error) {
 
 	// TODO support enforcement ;-)
-	for _, fentry := range spec.Fentries {
-		if selectors.HasEnforcementAction(fentry.Selectors) {
-			return nil, errors.New("enforcement is not supported for fentry yet")
-		}
+	if !canUseFentry(spec.Fentries, true) {
+		return nil, errors.New("enforcement is not supported for fentry yet")
 	}
 
 	return createGenericKprobeSensor(spec, name, polInfo, valInfo, fentry)
