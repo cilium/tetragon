@@ -107,6 +107,123 @@ spec:
 	require.NoError(t, err)
 }
 
+func TestUprobeOverrideMultipleSelectors(t *testing.T) {
+	if !bpf.HasUprobeRegsChange() {
+		t.Skip("this test requires writing to regs kernel support")
+	}
+
+	testutils.CaptureLog(t, logger.GetLogger())
+	uprobeTest1 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+
+	f, _ := elf.OpenSafeELFFile(libUprobe)
+	defer f.Close()
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-selector"
+spec:
+  uprobes:
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_string_arg_empty"
+    args:
+    - index: 0
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+          - ""
+      matchActions:
+      - action: Override
+        argNewSymbol: "uprobe_test_lib_string_arg__"
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_string_arg1"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+          - "22"
+      matchActions:
+      - action: Override
+        argError: 22
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+          - "33"
+      matchActions:
+      - action: Override
+        argError: 33
+`
+
+	createCrdFile(t, uprobeHook)
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_SELECTOR_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobeTest1))).
+		WithSymbol(sm.Full("uprobe_test_lib_string_arg_empty"))
+	upChecker1 := ec.NewProcessUprobeChecker("UPROBE_SELECTOR_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobeTest1))).
+		WithSymbol(sm.Full("uprobe_test_lib_string_arg1")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(ec.NewKprobeArgumentChecker().WithIntArg(22)))
+	upChecker2 := ec.NewProcessUprobeChecker("UPROBE_SELECTOR_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobeTest1))).
+		WithSymbol(sm.Full("uprobe_test_lib_string_arg1")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(ec.NewKprobeArgumentChecker().WithIntArg(33)))
+	checker := ec.NewUnorderedEventChecker(upChecker, upChecker1, upChecker2)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// First normal call; since uprobe_test_lib_string_arg2() is called with first param 1,
+	// the first hook triggers and the symbol is overridden to uprobe_test_lib_string_arg__.
+	cmd := exec.Command(uprobeTest1)
+	// See uprobe-lib.c/uprobe-test.c return code for uprobe_test_lib_string_arg__().
+	// It will return 100 when the symbol is overridden.
+	// It will be considered an error by `cmd.Run()`.
+	require.Error(t, cmd.Run())
+	require.Equal(t, 100, cmd.ProcessState.ExitCode())
+
+	// Special call to uprobe_test_lib_string_arg1(), with param 22;
+	// the second hook triggers and `argError 22`.
+	cmd = exec.Command(uprobeTest1, "22")
+	require.Error(t, cmd.Run())
+	require.Equal(t, 22, cmd.ProcessState.ExitCode())
+
+	// Special call to uprobe_test_lib_string_arg1(), with param 33;
+	// the second hook triggers and `argError 33`.
+	cmd = exec.Command(uprobeTest1, "33")
+	require.Error(t, cmd.Run())
+	require.Equal(t, 33, cmd.ProcessState.ExitCode())
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
 func TestUprobeOverrideRegsAction(t *testing.T) {
 	if !bpf.HasUprobeRegsChange() {
 		t.Skip("skipping regs override action test, regs override is not supported in kernel")
