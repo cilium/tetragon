@@ -4,8 +4,10 @@
 package bugtool
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,6 +15,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/logger"
 )
 
 func TestSaveAndLoad(t *testing.T) {
@@ -69,6 +73,24 @@ func TestLoadExtraFilesMissing(t *testing.T) {
 	got, err := doLoadExtraFiles(filepath.Join(t.TempDir(), "does-not-exist.json"))
 	require.NoError(t, err)
 	require.Nil(t, got)
+}
+
+func TestGopsDisabledLogsOnce(t *testing.T) {
+	var buff bytes.Buffer
+	info := bugtoolInfo{
+		info: &InitInfo{},
+		multiLog: MultiLog{
+			Logs: []logger.FieldLogger{
+				slog.New(slog.NewTextHandler(&buff, nil)),
+			},
+		},
+	}
+
+	info.addGopsInfo()
+	info.addPProfInfo()
+
+	require.Equal(t, 1, strings.Count(buff.String(), "Skipping gops dump info"))
+	require.NotContains(t, buff.String(), "Successfully dumped gops pprof")
 }
 
 func Test_findCgroupMountPath(t *testing.T) {
