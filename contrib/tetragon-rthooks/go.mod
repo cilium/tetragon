@@ -10,7 +10,7 @@ require (
 	github.com/containerd/containerd v1.7.33
 	github.com/containerd/nri v0.11.0
 	github.com/containers/common v0.64.2
-	github.com/google/cel-go v0.28.0
+	github.com/google/cel-go v0.29.0
 	github.com/opencontainers/cgroups v0.0.6
 	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/pelletier/go-toml v1.9.5
@@ -45,6 +45,7 @@ require (
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/tetratelabs/wazero v1.10.1 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20250103183323-7d7fa50e5329 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
