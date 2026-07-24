@@ -23,8 +23,12 @@ int uprobe_test_lib_string_arg2(int one, int two, char *str, int four, int five)
 int uprobe_test_lib_string_arg3(int one, int two, int three, char *str, int five);
 int uprobe_test_lib_string_arg4(int one, int two, int three, int four, char *str);
 
-int main(void)
+int main(int argc, char *argv[])
 {
+    if (argc > 1) {
+        return uprobe_test_lib_string_arg1(atoi(argv[1]), "two", 3, 4, 5);
+    }
+
 	char *str_arg = "hello world!";
 
 	uprobe_test_lib();
@@ -46,4 +50,5 @@ int main(void)
 	uprobe_test_lib_string_arg2(1, 2, "three", 4, 5);
 	uprobe_test_lib_string_arg3(1, 2, 3, "four", 5);
 	uprobe_test_lib_string_arg4(1, 2, 3, 4, "five");
+    return 0;
 }

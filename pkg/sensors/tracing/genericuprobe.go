@@ -115,7 +115,7 @@ type genericUprobe struct {
 	pendingEvents *lru.Cache[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]]
 }
 
-func populateUprobeRegs(m *ebpf.Map, id int, regs []processapi.RegAssignment) error {
+func populateUprobeRegs(m *ebpf.Map, id uint32, regs []processapi.RegAssignment) error {
 	uprobeRegs := processapi.UprobeRegs{}
 
 	n := copy(uprobeRegs.Ass[:], regs)
@@ -123,7 +123,7 @@ func populateUprobeRegs(m *ebpf.Map, id int, regs []processapi.RegAssignment) er
 		logger.GetLogger().Warn("register assignments count mismatch", "#regs", len(regs))
 	}
 	uprobeRegs.Cnt = uint32(n)
-	return m.Update(uint32(id), uprobeRegs, ebpf.UpdateAny)
+	return m.Update(id, uprobeRegs, ebpf.UpdateAny)
 }
 
 func (g *genericUprobe) SetID(id idtable.EntryID) {
@@ -272,7 +272,13 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 				&program.MapLoad{
 					Name: "regs_map",
 					Load: func(m *ebpf.Map, _ string) error {
-						return populateUprobeRegs(m, 0, selector.Regs())
+						for selIdx, regs := range selector.Regs() {
+							uprobeErr := populateUprobeRegs(m, selector.UprobeRegsMapID(selIdx), regs)
+							if uprobeErr != nil {
+								return uprobeErr
+							}
+						}
+						return nil
 					},
 				},
 			)
@@ -389,7 +395,13 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 					&program.MapLoad{
 						Name: "regs_map",
 						Load: func(m *ebpf.Map, _ string) error {
-							return populateUprobeRegs(m, index, selector.Regs())
+							for selIdx, regs := range selector.Regs() {
+								uprobeErr := populateUprobeRegs(m, selector.UprobeRegsMapID(selIdx), regs)
+								if uprobeErr != nil {
+									return uprobeErr
+								}
+							}
+							return nil
 						},
 					},
 				)
@@ -1377,18 +1389,25 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	var progs []*program.Program
 	var maps []*program.Map
 	var substringMapEntries int
+	var regsMapEntries int
 
 	for _, id := range multiIDs {
 		gu, err := genericUprobeTableGet(id)
 		if err != nil {
 			return nil, nil, err
 		}
+		selector := gu.loadArgs.selectors.entry
 		if gu.loadArgs.retprobe {
 			multiRetIDs = append(multiRetIDs, id)
+			selector = gu.loadArgs.selectors.retrn
 		}
 
 		if has.substring && substringMapEntries == 0 {
 			substringMapEntries = len(gu.loadArgs.selectors.entry.SubStrings())
+		}
+
+		if selector != nil && selector.Regs() != nil {
+			regsMapEntries += len(selector.Regs())
 		}
 	}
 
@@ -1426,7 +1445,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
-		regsMap.SetMaxEntries(len(multiIDs))
+		regsMap.SetMaxEntries(regsMapEntries)
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
 		maps = append(maps, regsMap, sleepableOffloadMap)
