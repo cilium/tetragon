@@ -4,10 +4,11 @@ weight: 2
 description: "Hook points for Tracing Policies and arguments description"
 ---
 
-Tetragon can hook into the kernel using `kprobes` and `tracepoints`, as well as in user-space
-programs using `uprobes`. Users can configure these hook points using the correspodning sections of
-the `TracingPolicy` specification (`.spec`). These hook points include arguments and return values
-that can be specified using the `args` and `returnArg` fields as detailed in the following sections.
+Tetragon can hook into the kernel using `kprobes`, `fentry/fexit`, and `tracepoints`, as well as in
+user-space programs using `uprobes`. Users can configure these hook points using the corresponding
+sections of the `TracingPolicy` specification (`.spec`). These hook points include arguments and
+return values that can be specified using the `args` and `returnArg` fields as detailed in the
+following sections.
 
 {{< warning >}}
 Hooking a system call can introduce time-of-check to time-of-use (TOCTOU)
@@ -88,6 +89,107 @@ spec:
     syscall: true
     # [...]
 ```
+
+## Fentry/Fexit
+
+Fentry (BPF fentry/fexit) programs attach to kernel functions using BTF (BPF Type Format). They
+are a modern alternative to kprobes with lower overhead. Instead of using breakpoints and
+instruction patching like kprobes, fentry programs are called directly from a trampoline, which
+makes them faster and safer.
+
+### When to use fentry vs kprobes
+
+Fentry is preferred over kprobes when the environment supports it, because:
+
+- Lower overhead: no breakpoint or instruction patching is needed; the BPF program is invoked
+  directly from a trampoline.
+- Safer: avoids the complexity and potential issues of runtime instruction patching.
+
+However, kprobes remain the better choice when:
+
+- Older kernels: fentry in Tetragon requires kernel >= 6.1.
+- No BTF support: fentry requires the kernel to be built with `CONFIG_DEBUG_INFO_BTF=y`.
+- Enforcement is needed: fentry does not yet support enforcement (override) actions.
+
+### Kernel requirements
+
+To use fentry, the following kernel requirements must be met:
+
+- Kernel version: >= 6.1 is required for Tetragon's fentry implementation.
+- BTF support: the kernel must be built with BTF enabled (`CONFIG_DEBUG_INFO_BTF=y`). You can
+  verify this with:
+
+```shell
+cat /boot/config-$(uname -r) | grep CONFIG_DEBUG_INFO_BTF
+```
+
+The output should include:
+
+```
+CONFIG_DEBUG_INFO_BTF=y
+```
+
+### Limitations
+
+- No enforcement/override support: unlike kprobes, fentry does not yet support enforcement
+  actions such as `Override` or `Signal`.
+- No multi-attach support: each fentry spec attaches to a single kernel function.
+
+### Example
+
+Here is an example of a `TracingPolicy` using the `fentries` section to trace the `tcp_connect`
+kernel function:
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fentry-example"
+spec:
+  fentries:
+  - call: "tcp_connect"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "sock"
+    returnArg:
+      index: 0
+      type: "int"
+```
+
+{{< note >}}
+Unlike kprobes where `syscall` can be set to `true` to trace system call entry points, fentry is
+typically used for internal kernel functions and `syscall` should be set to `false`. This is
+because fentry attaches via BTF-based trampolines that are suited for tracing internal kernel
+function boundaries rather than the syscall ABI layer.
+{{< /note >}}
+
+{{< note >}}
+The `fentry` program attaches at function *entry*, while its `fexit` counterpart attaches at
+function *exit*, where the return value is available. To capture a function's return value, set
+`return: true` — this is what attaches the `fexit` program — and define `returnArg` with the
+return value's `type`, as shown in the example above. When `return` is left unset (it defaults to
+`false`), only the `fentry` program is attached and any `returnArg` is ignored. See
+[Return values](#return-values) for more details on `return` and `returnArg`.
+{{< /note >}}
+
+Similar to kprobes, you can define multiple fentry specs in the same policy:
+
+```yaml
+spec:
+  fentries:
+  - call: "tcp_connect"
+    syscall: false
+    # [...]
+  - call: "tcp_close"
+    syscall: false
+    # [...]
+```
+
+Fentry specs support the same `args`, `returnArg`, and `selectors` fields as kprobes, so you can
+use argument filtering and in-kernel selectors in the same way. For details on selectors, see the
+[Selectors]({{< ref "/docs/concepts/tracing-policy/selectors" >}}) documentation.
 
 ## Tracepoints
 
