@@ -31,6 +31,7 @@ var Files = map[uint8]string{
 	22: "bpf_fork.c",
 	23: "policy_filter.h",
 	24: "policy_stats.h",
+	25: "caller_filter.h",
 }
 
 func BPFFileName(id uint8) string {
