@@ -32,7 +32,7 @@ var (
 	Execve = program.Builder(
 		config.ExecObj(),
 		"sched/sched_process_exec",
-		"tracepoint/sys_execve",
+		"raw_tracepoint/sys_execve",
 		"event_execve",
 		"execve",
 	).SetPolicy(sensors.BaseSensorName)

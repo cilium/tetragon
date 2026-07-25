@@ -138,12 +138,12 @@ func mergeSensorMaps(_ *testing.T, maps1, maps2 []SensorMap, progs1, progs2 []Se
 
 func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorProgs []SensorProg, t *testing.T) {
 	var baseProgs = []SensorProg{
-		0: SensorProg{Name: "event_execve", Type: ebpf.TracePoint},
+		0: SensorProg{Name: "event_execve", Type: ebpf.RawTracepoint},
 		1: SensorProg{Name: "event_exit", Type: ebpf.Kprobe, Match: ProgMatchPartial},
 		2: SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
-		3: SensorProg{Name: "execve_send", Type: ebpf.TracePoint},
+		3: SensorProg{Name: "execve_send", Type: ebpf.RawTracepoint},
 		4: SensorProg{Name: "tg_kp_bprm_committing_creds", Type: ebpf.Kprobe},
-		5: SensorProg{Name: "execve_rate", Type: ebpf.TracePoint},
+		5: SensorProg{Name: "execve_rate", Type: ebpf.RawTracepoint},
 		6: SensorProg{Name: "execve_map_update", Type: ebpf.SocketFilter},
 	}
 

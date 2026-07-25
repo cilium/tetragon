@@ -425,7 +425,7 @@ struct {
  * through the execve call. The list of current hooks is:
  *   1. kprobe/security_bprm_committing_creds
  *      For details check tg_kp_bprm_committing_creds bpf program.
- *   2. tracepoint/sys_execve
+ *   2. raw_tracepoint/sys_execve
  *      For details see event_execve bpf program.
  *
  * Important: the information stored here is complementary
