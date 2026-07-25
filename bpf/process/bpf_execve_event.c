@@ -17,15 +17,9 @@
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
-#ifdef __RHEL7_BPF_PROG
-#define exec_ctx_struct ftrace_raw_sched_process_exec
-#else
-#define exec_ctx_struct trace_event_raw_sched_process_exec
-#endif
-
 #ifndef OVERRIDE_TAILCALL
 int execve_rate(void *ctx);
-int execve_send(struct exec_ctx_struct *ctx);
+int execve_send(struct bpf_raw_tracepoint_args *ctx);
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
@@ -249,14 +243,15 @@ read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 	execve_joined_info_map_clear(pid);
 }
 
-__attribute__((section("tracepoint/sys_execve"), used)) int
-event_execve(struct exec_ctx_struct *ctx)
+__attribute__((section("raw_tracepoint/sys_execve"), used)) int
+event_execve(struct bpf_raw_tracepoint_args *ctx)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
-	char *filename = (char *)ctx + (_(ctx->__data_loc_filename) & 0xFFFF);
+	struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
 	struct msg_execve_event *event;
 	struct execve_map_value *parent;
 	struct msg_process *p;
+	char *filename;
 	__u32 zero = 0;
 	__u64 pid;
 
@@ -295,6 +290,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	p->auid = get_auid();
 	read_execve_shared_info(ctx, p, pid);
 
+	probe_read(&filename, sizeof(filename), _(&bprm->filename));
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
 	p->size += read_cwd(ctx, p);
@@ -322,7 +318,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	return 0;
 }
 
-__attribute__((section("tracepoint"), used)) int
+__attribute__((section("raw_tracepoint"), used)) int
 execve_rate(void *ctx __arg_ctx)
 {
 #ifndef __RHEL7_BPF_PROG
@@ -351,9 +347,10 @@ execve_rate(void *ctx __arg_ctx)
  * is to update the pid execve_map entry to reflect the new execve event that
  * has already been collected, then send it to the perf buffer.
  */
-__attribute__((section("tracepoint"), used)) int
-execve_send(struct exec_ctx_struct *ctx __arg_ctx)
+__attribute__((section("raw_tracepoint"), used)) int
+execve_send(struct bpf_raw_tracepoint_args *ctx __arg_ctx)
 {
+	struct linux_binprm *bprm __maybe_unused = (struct linux_binprm *)ctx->args[2];
 	struct msg_execve_event *event;
 	struct execve_map_value *curr;
 	struct msg_process *p;
@@ -439,8 +436,10 @@ execve_send(struct exec_ctx_struct *ctx __arg_ctx)
 		curr->bin.args[len] = 0x00;
 		curr->bin.args[len + 1] = 0x00;
 #else
-		char *filename = (char *)ctx + (_(ctx->__data_loc_filename) & 0xFFFF);
+		struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
+		char *filename;
 
+		probe_read(&filename, sizeof(filename), _(&bprm->filename));
 		curr->bin.path_length = probe_read_str(curr->bin.path, BINARY_PATH_MAX_LEN, (void *)filename);
 		if (curr->bin.path_length > 1) {
 			// don't include the NULL byte in the length
