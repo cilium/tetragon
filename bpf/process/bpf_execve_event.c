@@ -314,9 +314,6 @@ event_execve(struct exec_ctx_struct *ctx)
 	 */
 	p->uid = event->creds.euid;
 	get_namespaces(&event->ns, task);
-#ifndef __RHEL7_BPF_PROG
-	p->flags |= __event_get_cgroup_info(task, &event->kube);
-#endif
 
 	// Zero the cleanup key to prevent user space confusion.
 	event->cleanup_key = (struct msg_execve_key){ 0 };
@@ -328,12 +325,19 @@ event_execve(struct exec_ctx_struct *ctx)
 __attribute__((section("tracepoint"), used)) int
 execve_rate(void *ctx __arg_ctx)
 {
+#ifndef __RHEL7_BPF_PROG
+	struct task_struct *task = (struct task_struct *)get_current_task();
+#endif
 	struct msg_execve_event *msg;
 	__u32 zero = 0;
 
 	msg = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!msg)
 		return 0;
+
+#ifndef __RHEL7_BPF_PROG
+	msg->process.flags |= __event_get_cgroup_info(task, &msg->kube);
+#endif
 
 	if (cgroup_rate(ctx, &msg->kube, msg->common.ktime))
 		tail_call(ctx, &execve_calls, 1);
