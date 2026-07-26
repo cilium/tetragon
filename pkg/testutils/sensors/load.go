@@ -137,29 +137,55 @@ func mergeSensorMaps(_ *testing.T, maps1, maps2 []SensorMap, progs1, progs2 []Se
 }
 
 func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorProgs []SensorProg, t *testing.T) {
-	var baseProgs = []SensorProg{
-		0: SensorProg{Name: "event_execve", Type: ebpf.RawTracepoint},
-		1: SensorProg{Name: "event_exit", Type: ebpf.Kprobe, Match: ProgMatchPartial},
-		2: SensorProg{Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
-		3: SensorProg{Name: "execve_send", Type: ebpf.RawTracepoint},
-		4: SensorProg{Name: "tg_kp_bprm_committing_creds", Type: ebpf.Kprobe},
-		5: SensorProg{Name: "execve_rate", Type: ebpf.RawTracepoint},
-		6: SensorProg{Name: "execve_map_update", Type: ebpf.SocketFilter},
-	}
+	var baseProgs []SensorProg
+	var baseMaps []SensorMap
 
-	var baseMaps = []SensorMap{
-		// all programs
-		SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3, 5}},
+	if cfg.EnableLargeProgs() {
+		baseProgs = []SensorProg{
+			0: {Name: "event_execve", Type: ebpf.RawTracepoint},
+			1: {Name: "event_exit", Type: ebpf.Kprobe, Match: ProgMatchPartial},
+			2: {Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
+			3: {Name: "tg_kp_bprm_committing_creds", Type: ebpf.Kprobe},
+			4: {Name: "execve_map_update", Type: ebpf.SocketFilter},
+		}
+		baseMaps = []SensorMap{
+			// all process event programs
+			{Name: "tcpmon_map", Progs: []uint{0, 1, 2}},
 
-		// all but event_execve
-		SensorMap{Name: "execve_map_stats", Progs: []uint{1, 2}},
+			// exit and fork
+			{Name: "execve_map_stats", Progs: []uint{1, 2}},
 
-		// event_wake_up_new_task
-		SensorMap{Name: "execve_val", Progs: []uint{2}},
+			// event_wake_up_new_task
+			{Name: "execve_val", Progs: []uint{2}},
 
-		// event_execve and tg_kp_bprm_committing_creds
-		SensorMap{Name: "tg_execve_joined_info_map", Progs: []uint{0, 4}},
-		SensorMap{Name: "tg_execve_joined_info_map_stats", Progs: []uint{0, 4}},
+			// event_execve and tg_kp_bprm_committing_creds
+			{Name: "tg_execve_joined_info_map", Progs: []uint{0, 3}},
+			{Name: "tg_execve_joined_info_map_stats", Progs: []uint{0, 3}},
+		}
+	} else {
+		baseProgs = []SensorProg{
+			0: {Name: "event_execve", Type: ebpf.RawTracepoint},
+			1: {Name: "event_exit", Type: ebpf.Kprobe, Match: ProgMatchPartial},
+			2: {Name: "event_wake_up_new_task", Type: ebpf.Kprobe},
+			3: {Name: "execve_send", Type: ebpf.RawTracepoint},
+			4: {Name: "tg_kp_bprm_committing_creds", Type: ebpf.Kprobe},
+			5: {Name: "execve_rate", Type: ebpf.RawTracepoint},
+			6: {Name: "execve_map_update", Type: ebpf.SocketFilter},
+		}
+		baseMaps = []SensorMap{
+			// all process event programs
+			{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3, 5}},
+
+			// exit and fork
+			{Name: "execve_map_stats", Progs: []uint{1, 2}},
+
+			// event_wake_up_new_task
+			{Name: "execve_val", Progs: []uint{2}},
+
+			// event_execve and tg_kp_bprm_committing_creds
+			{Name: "tg_execve_joined_info_map", Progs: []uint{0, 4}},
+			{Name: "tg_execve_joined_info_map_stats", Progs: []uint{0, 4}},
+		}
 	}
 
 	if option.CgroupRateEnabled() {
@@ -167,25 +193,34 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 		sensorProgs = append(sensorProgs, SensorProg{Name: "tg_cgroup_rmdir", Type: ebpf.RawTracepoint})
 
 		/* cgroup_rate_map */
-		baseMaps = append(baseMaps, SensorMap{Name: "cgroup_rate_map", Progs: []uint{1, 2, 5, 6}})
+		progs := []uint{1, 2, 5, 6}
+		if cfg.EnableLargeProgs() {
+			progs = []uint{0, 1, 2, 4}
+		}
+		baseMaps = append(baseMaps, SensorMap{Name: "cgroup_rate_map", Progs: progs})
 	}
 
 	if cfg.EnableLargeProgs() {
 		// all programs
-		baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 6}})
+		baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4}})
 
 		// execve_map_update
-		baseMaps = append(baseMaps, SensorMap{Name: "execve_map_update_data", Progs: []uint{6}})
+		baseMaps = append(baseMaps, SensorMap{Name: "execve_map_update_data", Progs: []uint{4}})
 	} else {
 		// all programs except for execve_map_update, execve_rate
 		baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4}})
 	}
 
 	if cfg.EnableV511Progs() {
-		baseMaps = append(baseMaps, SensorMap{Name: "tg_rb_events", Progs: []uint{0, 1, 2, 3, 5}})
-		baseMaps = append(baseMaps, SensorMap{Name: "tg_conf_map", Progs: []uint{0, 1, 2, 3, 5}})
+		progs := []uint{0, 1, 2}
+		baseMaps = append(baseMaps, SensorMap{Name: "tg_rb_events", Progs: progs})
+		baseMaps = append(baseMaps, SensorMap{Name: "tg_conf_map", Progs: progs})
 	} else {
-		baseMaps = append(baseMaps, SensorMap{Name: "tg_conf_map", Progs: []uint{2, 5}})
+		progs := []uint{2, 5}
+		if cfg.EnableLargeProgs() {
+			progs = []uint{0, 2}
+		}
+		baseMaps = append(baseMaps, SensorMap{Name: "tg_conf_map", Progs: progs})
 	}
 
 	CheckSensorLoadBase(t, sensors, sensorMaps, sensorProgs, baseMaps, baseProgs)

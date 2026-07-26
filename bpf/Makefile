@@ -184,6 +184,11 @@ $(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
 $(DEPSDIR)bpf_multi_retuprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retuprobe.c
 $(DEPSDIR)bpf_multi_usdt_$$(VAR).d: $(PROCESSDIR)bpf_generic_usdt.c
 
+ifneq (,$(filter $1,v53 v511 v61))
+$(DEPSDIR)bpf_execve_event_$1.d: $(PROCESSDIR)bpf_execve_event_notc.c
+	$$(call rule_d,$$(CFLAGS_$1))
+endif
+
 # Object build rule for VARIANT objects
 $(OBJSDIR)%_$$(VAR).o:
 	$$(call rule_o,$(VARIANT_CFLAGS))
@@ -213,6 +218,7 @@ CFLAGS_bpf_multi_usdt_$$(VAR).o      = -D__MULTI_KPROBE
 endef # DEFINE_VARIANT
 
 $(eval $(call DEFINE_VARIANT,v310))
+
 $(eval $(call DEFINE_VARIANT,v53))
 $(eval $(call DEFINE_VARIANT,v511))
 $(eval $(call DEFINE_VARIANT,v61))
