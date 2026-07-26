@@ -44,6 +44,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -446,6 +447,7 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 
 type addUprobeIn struct {
 	policyName        string
+	policyID          policyfilter.PolicyID
 	celExprs          *selectors.CelExprFunctions
 	selectorStatsBase uint32
 }
@@ -883,6 +885,7 @@ func createGenericUprobeSensor(
 
 	in := addUprobeIn{
 		policyName: polInfo.name,
+		policyID:   polInfo.policyID,
 		celExprs:   celExprs,
 	}
 
@@ -998,6 +1001,7 @@ func initUprobeArgs(spec *v1alpha1.UProbeSpec, has *uprobeHas, in *addUprobeIn, 
 	}
 
 	eventConfig := initEventConfig()
+	eventConfig.PolicyID = uint32(in.policyID)
 	eventConfig.SelStatsBase = in.selectorStatsBase
 	eventConfig.ArgType = argCfg.argTypes
 	eventConfig.ArgMeta = argCfg.argMeta

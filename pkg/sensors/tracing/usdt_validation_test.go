@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/testutils"
 )
 
@@ -77,4 +78,23 @@ spec:
 
 	err := checkCrd(t, crd)
 	require.Error(t, err)
+}
+
+func TestUsdtEventConfigCarriesPolicyID(t *testing.T) {
+	spec := &v1alpha1.UsdtSpec{
+		Path:     testutils.RepoRootPath("contrib/tester-progs/usdt"),
+		Provider: "test",
+		Name:     "usdt0",
+	}
+
+	ids, err := addUsdt(spec, &addUsdtIn{policyID: 7}, nil, &usdtHas{})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, cleanupUsdtEntries(ids)) })
+	require.NotEmpty(t, ids)
+
+	for _, id := range ids {
+		usdtEntry, err := genericUsdtTableGet(id)
+		require.NoError(t, err)
+		require.Equal(t, uint32(7), usdtEntry.config.PolicyID)
+	}
 }
