@@ -38,73 +38,14 @@ struct {
 __attribute__((section("raw_tracepoint/sys_execve"), used)) int
 event_execve(struct bpf_raw_tracepoint_args *ctx)
 {
-	struct task_struct *task = (struct task_struct *)get_current_task();
-	struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
 	struct msg_execve_event *event;
-	struct execve_map_value *parent;
-	struct msg_process *p;
-	char *filename;
 	__u32 zero = 0;
-	__u64 pid;
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
 		return 0;
 
-	pid = get_current_pid_tgid();
-	parent = event_find_parent();
-	if (parent) {
-		event->parent = parent->key;
-		update_mb_task(parent, &parent->bin);
-		event->parent_flags = 0;
-	} else {
-		event_minimal_parent(event, task);
-	}
-
-	p = &event->process;
-	p->flags = EVENT_EXECVE;
-	p->size_path = 0;
-	p->size_args = 0;
-	p->size_cwd = 0;
-	p->size_envs = 0;
-
-	/**
-	 * Per thread tracking rules TID == PID :
-	 *  At exec all threads other than the calling one are destroyed, so
-	 *  current becomes the new thread leader since we hook late during
-	 *  execve.
-	 */
-	p->pid = pid >> 32;
-	p->tid = (__u32)pid;
-	p->nspid = get_task_pid_vnr_curr();
-	p->ktime = tg_get_ktime();
-	p->size = offsetof(struct msg_process, args);
-	p->auid = get_auid();
-	read_execve_shared_info(ctx, p, pid);
-
-	probe_read(&filename, sizeof(filename), _(&bprm->filename));
-	p->size += read_path(ctx, event, filename);
-	p->size += read_args(ctx, event);
-	p->size += read_cwd(ctx, p);
-	p->size += read_envs(ctx, event);
-
-	event->common.op = MSG_OP_EXECVE;
-	event->common.flags = 0;
-	event->common.ktime = p->ktime;
-	event->common.size = offsetof(struct msg_execve_event, process) + p->size;
-
-	get_current_subj_creds(&event->creds, task);
-	/**
-	 * Instead of showing the task owner, we want to display the effective
-	 * uid that is used to calculate the privileges of current task when
-	 * acting upon other objects. This allows to be compatible with the 'ps'
-	 * tool that reports snapshot of current processes.
-	 */
-	p->uid = event->creds.euid;
-	get_namespaces(&event->ns, task);
-
-	// Zero the cleanup key to prevent user space confusion.
-	event->cleanup_key = (struct msg_execve_key){ 0 };
+	execve_event_init(ctx, event);
 
 	tail_call(ctx, &execve_calls, 0);
 	return 0;
