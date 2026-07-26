@@ -154,4 +154,36 @@ FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
 }
 #endif
 
+FUNC_INLINE __u32
+read_path(void *ctx, struct msg_execve_event *event, void *filename)
+{
+	struct msg_process *p = &event->process;
+	__s32 size = 0;
+	__u32 flags = 0;
+	char *earg;
+
+	earg = (void *)p + offsetof(struct msg_process, args);
+
+	size = probe_read_str(earg, MAXARGLENGTH - 1, filename);
+	if (size < 0) {
+		flags |= EVENT_ERROR_FILENAME;
+		size = 0;
+	} else if (size == MAXARGLENGTH - 1) {
+		size = data_event_str(ctx, (struct data_event_desc *)earg,
+				      (unsigned long)filename,
+				      (struct bpf_map_def *)&data_heap);
+		if (size == 0)
+			flags |= EVENT_ERROR_FILENAME;
+		else
+			flags |= EVENT_DATA_FILENAME;
+	} else if (size > 0) {
+		/* remove null byte */
+		size -= 1;
+	}
+
+	p->size_path = (__u16)size;
+	p->flags |= flags;
+	return size;
+}
+
 #endif /* __BPF_EXECVE_EVENT_H__ */
