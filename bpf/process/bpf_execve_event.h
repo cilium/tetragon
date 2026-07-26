@@ -186,4 +186,12 @@ read_path(void *ctx, struct msg_execve_event *event, void *filename)
 	return size;
 }
 
+FUNC_INLINE __u32
+read_cwd(void *ctx, struct msg_process *p)
+{
+	if (p->flags & EVENT_ERROR_CWD)
+		return 0;
+	return getcwd(p, p->size, p->pid);
+}
+
 #endif /* __BPF_EXECVE_EVENT_H__ */
