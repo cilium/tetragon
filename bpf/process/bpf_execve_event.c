@@ -54,21 +54,14 @@ event_execve(struct bpf_raw_tracepoint_args *ctx)
 __attribute__((section("raw_tracepoint"), used)) int
 execve_rate(void *ctx __arg_ctx)
 {
-#ifndef __RHEL7_BPF_PROG
-	struct task_struct *task = (struct task_struct *)get_current_task();
-#endif
-	struct msg_execve_event *msg;
+	struct msg_execve_event *event;
 	__u32 zero = 0;
 
-	msg = map_lookup_elem(&execve_msg_heap_map, &zero);
-	if (!msg)
+	event = map_lookup_elem(&execve_msg_heap_map, &zero);
+	if (!event)
 		return 0;
 
-#ifndef __RHEL7_BPF_PROG
-	msg->process.flags |= __event_get_cgroup_info(task, &msg->kube);
-#endif
-
-	if (cgroup_rate(ctx, &msg->kube, msg->common.ktime))
+	if (execve_rate_check(ctx, event))
 		tail_call(ctx, &execve_calls, 1);
 	return 0;
 }

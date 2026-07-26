@@ -5,6 +5,7 @@
 #define __BPF_EXECVE_EVENT_H__
 
 #include "bpf_mbset.h"
+#include "bpf_rate.h"
 #include "data_event.h"
 
 struct {
@@ -279,6 +280,18 @@ execve_event_init(struct bpf_raw_tracepoint_args *ctx,
 
 	// Zero the cleanup key to prevent user space confusion.
 	event->cleanup_key = (struct msg_execve_key){ 0 };
+}
+
+FUNC_LOCAL bool
+execve_rate_check(void *ctx, struct msg_execve_event *msg)
+{
+#ifndef __RHEL7_BPF_PROG
+	struct task_struct *task = (struct task_struct *)get_current_task();
+
+	msg->process.flags |= __event_get_cgroup_info(task, &msg->kube);
+#endif
+
+	return cgroup_rate(ctx, &msg->kube, msg->common.ktime);
 }
 
 #endif /* __BPF_EXECVE_EVENT_H__ */
