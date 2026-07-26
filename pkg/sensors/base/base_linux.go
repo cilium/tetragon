@@ -28,7 +28,6 @@ func GetDefaultMaps() []*program.Map {
 		ExecveJoinMap,
 		ExecveStats,
 		ExecveJoinMapStats,
-		ExecveTailCallsMap,
 		ExecveMapUpdateData,
 		TCPMonMap,
 		TetragonConfMap,
@@ -36,6 +35,10 @@ func GetDefaultMaps() []*program.Map {
 		MatchBinariesSetMap,
 		MatchBinariesGenMap,
 		ErrMetricsMap,
+	}
+
+	if !config.EnableLargeProgs() {
+		maps = append(maps, ExecveTailCallsMap)
 	}
 
 	if option.Config.ParentsMapEnabled {
