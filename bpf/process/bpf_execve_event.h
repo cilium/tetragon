@@ -194,4 +194,23 @@ read_cwd(void *ctx, struct msg_process *p)
 	return getcwd(p, p->size, p->pid);
 }
 
+FUNC_INLINE void
+read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
+{
+	struct execve_info *info;
+
+	info = execve_joined_info_map_get(pid);
+	if (!info) {
+		p->secureexec = 0;
+		p->i_ino = 0;
+		p->i_nlink = 0;
+		return;
+	}
+
+	p->secureexec = info->secureexec;
+	p->i_ino = info->i_ino;
+	p->i_nlink = info->i_nlink;
+	execve_joined_info_map_clear(pid);
+}
+
 #endif /* __BPF_EXECVE_EVENT_H__ */
