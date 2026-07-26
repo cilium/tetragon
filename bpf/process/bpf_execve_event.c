@@ -35,14 +35,6 @@ struct {
 };
 #endif
 
-FUNC_INLINE __u32
-read_cwd(void *ctx, struct msg_process *p)
-{
-	if (p->flags & EVENT_ERROR_CWD)
-		return 0;
-	return getcwd(p, p->size, p->pid);
-}
-
 FUNC_INLINE void
 read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 {
