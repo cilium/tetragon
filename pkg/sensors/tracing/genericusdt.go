@@ -33,6 +33,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -104,6 +105,7 @@ func genericUsdtTableGet(id idtable.EntryID) (*genericUsdt, error) {
 type addUsdtIn struct {
 	sensorPath        string
 	policyName        string
+	policyID          policyfilter.PolicyID
 	useMulti          bool
 	selectorStatsBase uint32
 }
@@ -146,6 +148,7 @@ func createGenericUsdtSensor(
 	in := addUsdtIn{
 		sensorPath: name,
 		policyName: polInfo.name,
+		policyID:   polInfo.policyID,
 		useMulti:   !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
 	}
 
@@ -393,6 +396,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 
 		var argPrinters []argPrinter
 		config := &api.EventConfig{}
+		config.PolicyID = uint32(in.policyID)
 		config.SelStatsBase = in.selectorStatsBase
 		found = true
 
