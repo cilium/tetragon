@@ -26,6 +26,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -250,6 +251,7 @@ func isValidUprobeSelectors(selectors []v1alpha1.KProbeSelector) error {
 type addUprobeIn struct {
 	sensorPath string
 	policyName string
+	policyID   policyfilter.PolicyID
 	useMulti   bool
 }
 
@@ -266,6 +268,7 @@ func createGenericUprobeSensor(
 	in := addUprobeIn{
 		sensorPath: name,
 		policyName: polInfo.name,
+		policyID:   polInfo.policyID,
 
 		// use multi kprobe only if:
 		// - it's not disabled by spec option
@@ -411,6 +414,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		}
 
 		config := initEventConfig()
+		config.PolicyID = uint32(in.policyID)
 		config.ArgType = argTypes
 		config.ArgMeta = argMeta
 		config.ArgIndex = argIdx
