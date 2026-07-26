@@ -39,6 +39,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -414,6 +415,7 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 type addUprobeIn struct {
 	sensorPath string
 	policyName string
+	policyID   policyfilter.PolicyID
 	useMulti   bool
 	celExprs   *selectors.CelExprFunctions
 }
@@ -449,9 +451,9 @@ func createGenericUprobeSensor(
 	in := addUprobeIn{
 		sensorPath: name,
 		policyName: polInfo.name,
-
-		useMulti: useMulti,
-		celExprs: celExprs,
+		policyID:   polInfo.policyID,
+		useMulti:   useMulti,
+		celExprs:   celExprs,
 	}
 
 	for _, uprobe := range spec.UProbes {
@@ -727,6 +729,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	}
 
 	eventConfig := initEventConfig()
+	eventConfig.PolicyID = uint32(in.policyID)
 
 	// Parse ReturnArg, we have two types of return arg parsing. We
 	// support populating an uprobe buffer from uretprobe hooks. This
