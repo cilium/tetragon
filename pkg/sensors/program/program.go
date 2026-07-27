@@ -80,6 +80,11 @@ type TracingAttachData struct {
 	AttachTo string
 }
 
+type TracingMultiAttachData struct {
+	BTFIDs  []btf.TypeID
+	Cookies []uint64
+}
+
 type MultiKprobeAttachData struct {
 	Symbols   []string
 	Cookies   []uint64

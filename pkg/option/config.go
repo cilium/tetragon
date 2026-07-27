@@ -51,7 +51,8 @@ type config struct {
 	K8sKubeConfigPath    string
 	K8sControlPlaneRetry int
 
-	DisableKprobeMulti bool
+	DisableKprobeMulti   bool
+	UseKprobesAsFentries bool
 
 	GopsAddr string
 

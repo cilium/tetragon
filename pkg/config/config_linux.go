@@ -88,6 +88,10 @@ func GenericTracingObjs() (string, string) {
 	return "bpf_generic_fentry.o", "bpf_generic_fexit.o"
 }
 
+func GenericMultiTracingObjs() (string, string) {
+	return "bpf_multi_fentry_v61.o", "bpf_multi_fexit_v61.o"
+}
+
 // GenericUprobeObjs returns the generic uprobe and generic uretprobe objects
 func GenericUprobeObjs(multi bool) (string, string) {
 	if multi {

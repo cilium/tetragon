@@ -37,6 +37,10 @@ func HasKprobeMulti() bool {
 	return false
 }
 
+func HasTracingMulti() bool {
+	return false
+}
+
 func HasBatchAPI() bool {
 	return false
 }
