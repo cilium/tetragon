@@ -1425,7 +1425,7 @@
             "x-kubernetes-validations": [
               {
                 "message": "ReturnArg not specified with Return=true.",
-                "rule": "!self.return || has(self.returnArg)"
+                "rule": "!has(self.return) || (!self.return || has(self.returnArg))"
               }
             ],
             "additionalProperties": false
@@ -2829,7 +2829,7 @@
             "x-kubernetes-validations": [
               {
                 "message": "ReturnArg not specified with Return=true.",
-                "rule": "!self.return || has(self.returnArg)"
+                "rule": "!has(self.return) || (!self.return || has(self.returnArg))"
               }
             ],
             "additionalProperties": false
@@ -7496,7 +7496,7 @@
               },
               {
                 "message": "ReturnArg not specified with Return=true.",
-                "rule": "!self.return || has(self.returnArg)"
+                "rule": "!has(self.return) || (!self.return || has(self.returnArg))"
               }
             ],
             "additionalProperties": false
