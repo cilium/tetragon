@@ -156,9 +156,9 @@ try_preload_arg(int idx, struct preload_arg_data *data)
 
 	if (data->config->arm[idx] & ARGM_PRELOAD) {
 		if (data->config->arm[idx] & ARGM_PT_REGS)
-			preload_pt_regs_arg(data->ctx, data->config, idx);
+			return preload_pt_regs_arg(data->ctx, data->config, idx);
 		else
-			preload_arg(data->ctx, data->config, idx);
+			return preload_arg(data->ctx, data->config, idx);
 	}
 	return 0;
 }
@@ -180,12 +180,17 @@ user_preload(struct pt_regs *ctx)
 	};
 	if (CONFIG(ITER_NUM)) {
 		bpf_for(i, 0, MAX_POSSIBLE_ARGS)
-			try_preload_arg(i, &preload_data);
+		{
+			if (try_preload_arg(i, &preload_data))
+				break;
+		}
 	} else {
 #ifndef __V61_BPF_PROG
 #pragma unroll
-		for (i = 0; i < MAX_POSSIBLE_ARGS; ++i)
-			try_preload_arg(i, &preload_data);
+		for (i = 0; i < MAX_POSSIBLE_ARGS; ++i) {
+			if (try_preload_arg(i, &preload_data))
+				break;
+		}
 #else
 		loop(MAX_POSSIBLE_ARGS, try_preload_arg, &preload_data, 0);
 #endif /* __V61_BPF_PROG */
@@ -217,12 +222,17 @@ user_preload_cleanup(struct pt_regs *ctx)
 
 	if (CONFIG(ITER_NUM)) {
 		bpf_for(i, 0, MAX_POSSIBLE_ARGS)
-			cleanup_preload(i, &key);
+		{
+			if (cleanup_preload(i, &key))
+				break;
+		}
 	} else {
 #ifndef __V61_BPF_PROG
 #pragma unroll
-		for (i = 0; i < MAX_POSSIBLE_ARGS; ++i)
-			cleanup_preload(i, &key);
+		for (i = 0; i < MAX_POSSIBLE_ARGS; ++i) {
+			if (cleanup_preload(i, &key))
+				break;
+		}
 #else
 		loop(MAX_POSSIBLE_ARGS, cleanup_preload, &key, 0);
 #endif /* __V61_BPF_PROG */
