@@ -319,8 +319,12 @@ func doBugtool(info *InitInfo, outFname string, commandActions []CommandAction, 
 	si.ExecCmd("dmesg.out", "dmesg")
 	si.addTcInfo()
 	si.addBpftoolInfo()
-	si.addGopsInfo()
-	si.addPProfInfo()
+	if si.info.GopsAddr == "" {
+		si.multiLog.Info("Skipping gops dump info as daemon is running without gops, use --gops-address to enable gops")
+	} else {
+		si.addGopsInfo()
+		si.addPProfInfo()
+	}
 	si.dumpPolicyFilterMap()
 	si.addProcessCache()
 	si.addExecveMap()
@@ -595,11 +599,6 @@ func (s *bugtoolInfo) addBpftoolInfo() {
 }
 
 func (s *bugtoolInfo) getPProf(file string, gopsSignal byte) error {
-	if s.info.GopsAddr == "" {
-		s.multiLog.Info("Skipping gops dump info as daemon is running without gops, use --gops-address to enable gops")
-		return nil
-	}
-
 	s.multiLog.WithField("gops-address", s.info.GopsAddr).Info("Contacting gops server for pprof dump")
 
 	conn, err := net.Dial("tcp", s.info.GopsAddr)
@@ -623,10 +622,6 @@ func (s *bugtoolInfo) getPProf(file string, gopsSignal byte) error {
 }
 
 func (s *bugtoolInfo) addPProfInfo() {
-	if s.info.GopsAddr == "" {
-		return
-	}
-
 	profiles := map[string]byte{
 		"cpu":  gopssignal.CPUProfile,
 		"heap": gopssignal.HeapProfile,
@@ -648,11 +643,6 @@ func (s *bugtoolInfo) addPProfInfo() {
 }
 
 func (s *bugtoolInfo) addGopsInfo() {
-	if s.info.GopsAddr == "" {
-		s.multiLog.Info("Skipping gops dump info as daemon is running without gops, use --gops-address to enable gops")
-		return
-	}
-
 	if s.info.GopsPath == "" {
 		s.multiLog.WithField("gops-address", s.info.GopsAddr).Warn("Failed to locate gops. Please install it or specify its path, see 'bugtool --help'")
 		return

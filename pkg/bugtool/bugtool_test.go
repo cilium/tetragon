@@ -4,10 +4,11 @@
 package bugtool
 
 import (
-	"bytes"
+	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -15,8 +16,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/cilium/tetragon/pkg/logger"
 )
 
 func TestSaveAndLoad(t *testing.T) {
@@ -76,21 +75,35 @@ func TestLoadExtraFilesMissing(t *testing.T) {
 }
 
 func TestGopsDisabledLogsOnce(t *testing.T) {
-	var buff bytes.Buffer
-	info := bugtoolInfo{
-		info: &InitInfo{},
-		multiLog: MultiLog{
-			Logs: []logger.FieldLogger{
-				slog.New(slog.NewTextHandler(&buff, nil)),
-			},
-		},
+	out := filepath.Join(t.TempDir(), "bugtool.tar.gz")
+	require.NoError(t, doBugtool(&InitInfo{
+		LibDir:     t.TempDir(),
+		ServerAddr: "unix:///dev/null",
+	}, out, nil, nil))
+
+	f, err := os.Open(out)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, f.Close()) })
+
+	gz, err := gzip.NewReader(f)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, gz.Close()) })
+
+	tr := tar.NewReader(gz)
+	for {
+		header, err := tr.Next()
+		if errors.Is(err, io.EOF) {
+			t.Fatal("tetragon-bugtool.log not found")
+		}
+		require.NoError(t, err)
+		if strings.HasSuffix(header.Name, "tetragon-bugtool.log") {
+			logs, err := io.ReadAll(tr)
+			require.NoError(t, err)
+			require.Equal(t, 1, strings.Count(string(logs), "Skipping gops dump info"))
+			require.NotContains(t, string(logs), "Successfully dumped gops pprof")
+			return
+		}
 	}
-
-	info.addGopsInfo()
-	info.addPProfInfo()
-
-	require.Equal(t, 1, strings.Count(buff.String(), "Skipping gops dump info"))
-	require.NotContains(t, buff.String(), "Successfully dumped gops pprof")
 }
 
 func Test_findCgroupMountPath(t *testing.T) {
