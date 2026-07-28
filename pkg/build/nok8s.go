@@ -11,7 +11,3 @@ func SkipIfK8sDisabled(t *testing.T) {
 	t.Helper()
 	t.Skip("no k8s build: test disabled")
 }
-
-func K8sEnabled() bool {
-	return false
-}
