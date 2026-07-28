@@ -9,7 +9,3 @@ import "testing"
 
 func SkipIfK8sDisabled(_ *testing.T) {
 }
-
-func K8sEnabled() bool {
-	return true
-}

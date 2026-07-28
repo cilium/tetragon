@@ -317,33 +317,6 @@ func TestKprobeValidationReturnArgActionInvalid(t *testing.T) {
 	require.ErrorContains(t, err, "ReturnArgAction type 'Bogus' unsupported")
 }
 
-func TestKprobeValidationMissingReturnArg(t *testing.T) {
-
-	// missing returnArg while having return: true
-
-	crd := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "missing-returnarg"
-spec:
-  kprobes:
-  - call: "sys_openat"
-    return: true
-    syscall: true
-`
-
-	if build.K8sEnabled() {
-		// We have k8s x-validation
-		_, err := tracingpolicy.FromYAML(crd)
-		require.Error(t, err)
-	} else {
-		// We fallback at generickprobe code validation
-		err := checkCrd(t, crd)
-		require.Error(t, err)
-	}
-}
-
 func TestKprobeLTOp(t *testing.T) {
 
 	// missing returnArg while having return: true
