@@ -191,6 +191,49 @@ func TestArgExprs(t *testing.T) {
 			ret:      1,
 			hookArgs: []any{int32(30), uint64(0), int32(32)},
 		},
+		{
+			expr: "int32(2147483647) + int32(1) == int32(-2147483648)",
+			ret:  1,
+		},
+		{
+			expr: "uint32(4294967295u) + uint32(1u) == uint32(0u)",
+			ret:  1,
+		},
+		{
+			expr:     "arg0 + arg1 == arg2 + 101",
+			hookArgs: []any{int64(51), int64(100), int64(50)},
+			ret:      1,
+		},
+		{
+			expr:     "arg0 + arg1 == -9223372036854775808",
+			hookArgs: []any{int64(9223372036854775807), int64(1)},
+			ret:      1,
+		},
+		{
+			expr:     "arg0 - arg1 == 9223372036854775807",
+			hookArgs: []any{int64(-9223372036854775808), int64(1)},
+			ret:      1,
+		},
+		{
+			expr:     "arg0 + arg1 == 0u",
+			hookArgs: []any{uint64(18446744073709551615), uint64(1)},
+			ret:      1,
+		},
+		{
+			expr:     "arg0 - arg1 == 18446744073709551615u",
+			hookArgs: []any{uint64(0), uint64(1)},
+			ret:      1,
+		},
+		{
+			expr:     "arg0 != arg1 && !(arg2 >= arg3)",
+			hookArgs: []any{int32(42), int32(41), uint64(41), uint64(42)},
+			ret:      1,
+		},
+		{
+			expr:     "arg0 == arg1 || arg2 != arg3",
+			hookArgs: []any{int64(42), int64(41), uint32(42), uint32(41)},
+			ret:      1,
+		},
 	}
 
 	m, err := ebpf.NewMap(&ebpf.MapSpec{
