@@ -23,15 +23,6 @@ var (
 	u32Ty         = cgTypes.NewOpaqueType("u32")
 	boolTy        = cgTypes.BoolType
 	unsupportedTy = cgTypes.NewOpaqueType("unsupported")
-
-	ltS32 = "lt_s32"
-	ltU32 = "lt_u32"
-	lqS32 = "lq_s32"
-	lqU32 = "lq_u32"
-	gtS32 = "gt_s32"
-	gtU32 = "gt_u32"
-	gqS32 = "gq_s32"
-	gqU32 = "gq_u32"
 )
 
 type intType struct {
@@ -62,6 +53,17 @@ var intTypes = []intType{
 	{s32Ty},
 	{u64Ty},
 	{u32Ty},
+}
+
+func intCmpOperatorFnOpts(op string) []cgDecls.FunctionOpt {
+	ret := make([]cgDecls.FunctionOpt, 0, len(intTypes))
+	for _, ity := range intTypes {
+		ret = append(ret, cgDecls.Overload(
+			ity.overloadOp(op),
+			[]*cgTypes.Type{ity.ty, ity.ty}, cgTypes.BoolType,
+		))
+	}
+	return ret
 }
 
 func intBinaryOperatorFnOpts(op string) []cgDecls.FunctionOpt {

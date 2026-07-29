@@ -53,51 +53,21 @@ func checkerAddFunctions(env *cgChecker.Env) error {
 			cgDecls.Overload(cgOverloads.LogicalNot, []*cgTypes.Type{cgTypes.BoolType}, cgTypes.BoolType),
 		}},
 
-		// Inequalities.
+		// Comparison operators
 		//
-		// NB(kkourt): some overloads are commented out, because they are not supported in code
-		// generation. Should be easy to add as needed.
+		// NB(kkourt): Currently, we only support "ty <cmp> ty -> bool" comparisons. IOW,
+		// for comparing an s32 to a int64, the user would have to cast one of them to the
+		// same type as the other, and then do the comparison. This limitation might be
+		// lifted in the future.
 
 		// <
-		{name: cgOperators.Less, opts: []cgDecls.FunctionOpt{
-			// cgDecls.Overload(cgOverloads.LessBool, []*cgTypes.Type{cgTypes.BoolType, cgTypes.BoolType}, cgTypes.BoolType),
-			cgDecls.Overload(cgOverloads.LessInt64, []*cgTypes.Type{cgTypes.IntType, cgTypes.IntType}, cgTypes.BoolType),
-			//cgDecls.Overload(cgOverloads.LessInt64Uint64, []*cgTypes.Type{cgTypes.IntType, cgTypes.UintType}, cgTypes.BoolType),
-			cgDecls.Overload(cgOverloads.LessUint64, []*cgTypes.Type{cgTypes.UintType, cgTypes.UintType}, cgTypes.BoolType),
-			//cgDecls.Overload(cgOverloads.LessUint64Int64, []*cgTypes.Type{cgTypes.UintType, cgTypes.IntType}, cgTypes.BoolType),
-			cgDecls.Overload(ltS32, []*cgTypes.Type{s32Ty, s32Ty}, cgTypes.BoolType),
-			cgDecls.Overload(ltU32, []*cgTypes.Type{u32Ty, u32Ty}, cgTypes.BoolType),
-		}},
+		{name: cgOperators.Less, opts: intCmpOperatorFnOpts("lt")},
 		// <=
-		{name: cgOperators.LessEquals, opts: []cgDecls.FunctionOpt{
-			// cgDecls.Overload(cgOverloads.LessEqualsBool, []*cgTypes.Type{cgTypes.BoolType, cgTypes.BoolType}, cgTypes.BoolType),
-			cgDecls.Overload(cgOverloads.LessEqualsInt64, []*cgTypes.Type{cgTypes.IntType, cgTypes.IntType}, cgTypes.BoolType),
-			//cgDecls.Overload(cgOverloads.LessEqualsInt64Uint64, []*cgTypes.Type{cgTypes.IntType, cgTypes.UintType}, cgTypes.BoolType),
-			cgDecls.Overload(cgOverloads.LessEqualsUint64, []*cgTypes.Type{cgTypes.UintType, cgTypes.UintType}, cgTypes.BoolType),
-			//cgDecls.Overload(cgOverloads.LessEqualsUint64Int64, []*cgTypes.Type{cgTypes.UintType, cgTypes.IntType}, cgTypes.BoolType),
-			cgDecls.Overload(lqS32, []*cgTypes.Type{s32Ty, s32Ty}, cgTypes.BoolType),
-			cgDecls.Overload(lqU32, []*cgTypes.Type{u32Ty, u32Ty}, cgTypes.BoolType),
-		}},
+		{name: cgOperators.LessEquals, opts: intCmpOperatorFnOpts("lq")},
 		// >
-		{name: cgOperators.Greater, opts: []cgDecls.FunctionOpt{
-			// cgDecls.Overload(cgOverloads.GreaterBool, []*cgTypes.Type{cgTypes.BoolType, cgTypes.BoolType}, cgTypes.BoolType),
-			cgDecls.Overload(cgOverloads.GreaterInt64, []*cgTypes.Type{cgTypes.IntType, cgTypes.IntType}, cgTypes.BoolType),
-			//cgDecls.Overload(cgOverloads.GreaterInt64Uint64, []*cgTypes.Type{cgTypes.IntType, cgTypes.UintType}, cgTypes.BoolType),
-			cgDecls.Overload(cgOverloads.GreaterUint64, []*cgTypes.Type{cgTypes.UintType, cgTypes.UintType}, cgTypes.BoolType),
-			//cgDecls.Overload(cgOverloads.GreaterUint64Int64, []*cgTypes.Type{cgTypes.UintType, cgTypes.IntType}, cgTypes.BoolType),
-			cgDecls.Overload(gtS32, []*cgTypes.Type{s32Ty, s32Ty}, cgTypes.BoolType),
-			cgDecls.Overload(gtU32, []*cgTypes.Type{u32Ty, u32Ty}, cgTypes.BoolType),
-		}},
+		{name: cgOperators.Greater, opts: intCmpOperatorFnOpts("gt")},
 		// >=
-		{name: cgOperators.GreaterEquals, opts: []cgDecls.FunctionOpt{
-			// cgDecls.Overload(cgOverloads.GreaterEqualsBool, []*cgTypes.Type{cgTypes.BoolType, cgTypes.BoolType}, cgTypes.BoolType),
-			cgDecls.Overload(cgOverloads.GreaterEqualsInt64, []*cgTypes.Type{cgTypes.IntType, cgTypes.IntType}, cgTypes.BoolType),
-			//cgDecls.Overload(cgOverloads.GreaterEqualsInt64Uint64, []*cgTypes.Type{cgTypes.IntType, cgTypes.UintType}, cgTypes.BoolType),
-			cgDecls.Overload(cgOverloads.GreaterEqualsUint64, []*cgTypes.Type{cgTypes.UintType, cgTypes.UintType}, cgTypes.BoolType),
-			//cgDecls.Overload(cgOverloads.GreaterEqualsUint64Int64, []*cgTypes.Type{cgTypes.UintType, cgTypes.IntType}, cgTypes.BoolType),
-			cgDecls.Overload(gqS32, []*cgTypes.Type{s32Ty, s32Ty}, cgTypes.BoolType),
-			cgDecls.Overload(gqU32, []*cgTypes.Type{u32Ty, u32Ty}, cgTypes.BoolType),
-		}},
+		{name: cgOperators.GreaterEquals, opts: intCmpOperatorFnOpts("gq")},
 
 		// Addition and Subtraction
 		{name: cgOperators.Add, opts: intBinaryOperatorFnOpts("add")},
