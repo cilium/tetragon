@@ -345,3 +345,94 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(upChecker),
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-override-multiple-selectors").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-multiple-selectors"
+spec:
+  uprobes:
+  - path: {{ testBinary "libuprobe.so" }}
+    symbols:
+    - "uprobe_test_lib_string_arg_empty"
+    args:
+    - index: 0
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+          - ""
+      matchActions:
+      - action: Override
+        argNewSymbol: "uprobe_test_lib_string_arg__"
+  - path: {{ testBinary "libuprobe.so" }}
+    symbols:
+    - "uprobe_test_lib_string_arg1"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+          - "22"
+      matchActions:
+      - action: Override
+        argError: 22
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+          - "33"
+      matchActions:
+      - action: Override
+        argError: 33
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "need writing to regs kernel support (6.18+)"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-test-1")
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_SELECTOR_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("uprobe_test_lib_string_arg_empty"))
+	upChecker1 := ec.NewProcessUprobeChecker("UPROBE_SELECTOR_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("uprobe_test_lib_string_arg1")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(ec.NewKprobeArgumentChecker().WithIntArg(22)))
+	upChecker2 := ec.NewProcessUprobeChecker("UPROBE_SELECTOR_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("uprobe_test_lib_string_arg1")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(ec.NewKprobeArgumentChecker().WithIntArg(33)))
+
+	return &policytest.Scenario{
+		Name: "check all selectors work fine",
+		// See uprobe-lib.c/uprobe-test.c return code for uprobe_test_lib_string_arg__().
+		// It will return 100 when the symbol is overridden.
+		// It will be considered an error by `cmd.Run()`.
+		Trigger: policytest.NewMultiCmdTrigger([]policytest.CmdTrigger{
+			{
+				Bin: bin,
+			}, {
+				Bin:  bin,
+				Args: []string{"22"},
+			}, {
+				Bin:  bin,
+				Args: []string{"33"},
+			},
+		}).ExpectExitCodes([]int{100, 22, 33}),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker, upChecker1, upChecker2),
+	}
+}).RegisterAtInit()
