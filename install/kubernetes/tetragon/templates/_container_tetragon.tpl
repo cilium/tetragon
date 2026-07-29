@@ -30,7 +30,12 @@
       name: tetragon-config
       readOnly: true
     - mountPath: /sys/fs/bpf
+      {{- /* Bidirectional propagation is only allowed for privileged containers. */}}
+      {{- if .Values.tetragon.securityContext.privileged }}
       mountPropagation: Bidirectional
+      {{- else }}
+      mountPropagation: HostToContainer
+      {{- end }}
       name: bpf-maps
     - mountPath: "/var/run/cilium"
       name: cilium-run
