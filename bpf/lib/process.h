@@ -336,7 +336,7 @@ binary_reset(struct binary *b)
 	//
 	// Do not zero the ->mb_bitset however, so that it can be inherited if exec() is called.
 	// This depends on ->mb_bitset being the last part of the struct.
-	memset(b, 0, offsetof(struct binary, mb_bitset));
+	__bpf_memset_builtin(b, 0, offsetof(struct binary, mb_bitset));
 }
 
 // The execve_map_value is tracked by the TGID of the thread group
@@ -502,7 +502,7 @@ FUNC_INLINE struct execve_map_value *execve_map_get(__u32 pid)
 		if (!value)
 			return 0;
 
-		memset(value, 0, sizeof(struct execve_map_value));
+		__bpf_memset_builtin(value, 0, sizeof(struct execve_map_value));
 		err = map_update_elem(&execve_map, &pid, value, 0);
 		if (!err) {
 			STATS_INC(execve_map_stats, COUNT);

@@ -65,7 +65,7 @@ FUNC_INLINE void send_throttle(void *ctx, struct msg_k8s *kube, __u64 time)
 	msg->common.op = MSG_OP_THROTTLE;
 	msg->common.flags = 0;
 
-	__builtin_memcpy(&msg->kube, kube, sizeof(*kube));
+	__bpf_memcpy_builtin(&msg->kube, kube, sizeof(*kube));
 
 	event_output_metric(ctx, MSG_OP_THROTTLE, msg, size);
 }

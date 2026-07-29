@@ -181,6 +181,9 @@ type KProbeSelector struct {
 	// Workloads to match
 	MatchWorkloads *WorkloadsSelector `json:"matchWorkloads,omitempty"`
 	// +kubebuilder:validation:Optional
+	// A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.
+	MatchUserCallers []UserCallerSelector `json:"matchUserCallers,omitempty"`
+	// +kubebuilder:validation:Optional
 	// A list of macros names, defined in spec.selectorsMacros.
 	// Filters specified in macros will be appended to corresponding filters of the selector.
 	Macros []string `json:"macros,omitempty"`
@@ -237,6 +240,31 @@ type WorkloadsSelector struct {
 	// HostSelector selects hosts that this policy applies to.
 	// For now only ~ (none) and {} (all) is supported.
 	HostSelector *slimv1.LabelSelector `json:"hostSelector"`
+}
+
+type UserCallerSelector struct {
+	// +kubebuilder:validation:Pattern=`^(any|[1-9][0-9]*)$`
+	// Depth is the distance from the probed function to the caller.
+	// Depth of 1 means the immediate caller, depth of 2 means the caller's caller, and so on.
+	// Depth of "any" means any of the last 15 callers in the stack.
+	Depth string `json:"depth"`
+	// +kubebuilder:validation:Optional
+	// Path to the binary of the caller function.
+	// If not specified, the symbol will be looked up in the binary located at the path of the probe.
+	// This is used if the caller function is in a different binary from the probed function, e.g.,
+	// when probing a function in a shared library.
+	Path string `json:"path"`
+	// +kubebuilder:validation:Optional
+	// Symbol of the caller function in the binary specified by Path.
+	// If Path is not specified, the symbol will be looked up in binary located at the path of the probe.
+	Symbol string `json:"symbol"`
+	// +kubebuilder:validation:Optional
+	// StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+	// You can get those values from the binary's symbol table.
+	StartRange uint64 `json:"startRange,omitempty"`
+	// +kubebuilder:validation:Optional
+	// StartRange and EndRange specify a range of caller address to match. Both should be specified together.
+	EndRange uint64 `json:"endRange,omitempty"`
 }
 
 type PIDSelector struct {
