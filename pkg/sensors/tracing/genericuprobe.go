@@ -733,7 +733,12 @@ func cleanupUprobeEntries(ids []idtable.EntryID, openedFiles map[string]*os.File
 	}
 
 	for path, entryFile := range openedFiles {
-		if err := entryFile.Close(); err != nil {
+		// cleanupUprobeEntries() is called by the DestroyHook. During normal
+		// operation, the files are already closed by the PostLoadHook, so we
+		// expect this close to fail with os.ErrClosed. We still attempt closing
+		// here to cover the case where the sensor was created, but never
+		// loaded, before being destroyed.
+		if err := entryFile.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
 			errs = errors.Join(errs, fmt.Errorf("problem closing path %q: %w", path, err))
 		}
 	}
