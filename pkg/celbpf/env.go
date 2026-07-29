@@ -100,8 +100,8 @@ func checkerAddFunctions(env *cgChecker.Env) error {
 		}},
 
 		// Addition and Subtraction
-		{name: cgOperators.Add, opts: addOperatorFunctionOpts()},
-		{name: cgOperators.Subtract, opts: subOperatorFunctionOpts()},
+		{name: cgOperators.Add, opts: intBinaryOperatorFnOpts("add")},
+		{name: cgOperators.Subtract, opts: intBinaryOperatorFnOpts("sub")},
 
 		// Integer casting
 		{name: int32Fn, opts: []cgDecls.FunctionOpt{

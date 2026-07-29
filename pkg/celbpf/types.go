@@ -13,7 +13,6 @@ import (
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 
 	cgDecls "github.com/google/cel-go/common/decls"
-	cgOverloads "github.com/google/cel-go/common/overloads"
 	cgTypes "github.com/google/cel-go/common/types"
 )
 
@@ -24,11 +23,6 @@ var (
 	u32Ty         = cgTypes.NewOpaqueType("u32")
 	boolTy        = cgTypes.BoolType
 	unsupportedTy = cgTypes.NewOpaqueType("unsupported")
-
-	addS32 = "add_s32"
-	addU32 = "add_u32"
-	subS32 = "sub_s32"
-	subU32 = "sub_u32"
 
 	ltS32 = "lt_s32"
 	ltU32 = "lt_u32"
@@ -41,34 +35,40 @@ var (
 )
 
 type intType struct {
-	ty          *cgTypes.Type
-	overloadAdd string
-	overloadSub string
+	ty *cgTypes.Type
+}
+
+func (it *intType) opSuffix() string {
+	switch it.ty {
+	case s64Ty:
+		return "s64"
+	case u64Ty:
+		return "u64"
+	case s32Ty:
+		return "s32"
+	case u32Ty:
+		return "u32"
+	}
+
+	panic(fmt.Sprintf("opSuffix: unknown type: %v", it.ty))
+}
+
+func (it *intType) overloadOp(op string) string {
+	return op + "_" + it.opSuffix()
 }
 
 var intTypes = []intType{
-	{s64Ty, cgOverloads.AddInt64, cgOverloads.SubtractInt64},
-	{s32Ty, addS32, subS32},
-	{u64Ty, cgOverloads.AddUint64, cgOverloads.SubtractUint64},
-	{u32Ty, addU32, subU32},
+	{s64Ty},
+	{s32Ty},
+	{u64Ty},
+	{u32Ty},
 }
 
-func addOperatorFunctionOpts() []cgDecls.FunctionOpt {
+func intBinaryOperatorFnOpts(op string) []cgDecls.FunctionOpt {
 	ret := make([]cgDecls.FunctionOpt, 0, len(intTypes))
 	for _, ity := range intTypes {
 		ret = append(ret, cgDecls.Overload(
-			ity.overloadAdd,
-			[]*cgTypes.Type{ity.ty, ity.ty}, ity.ty,
-		))
-	}
-	return ret
-}
-
-func subOperatorFunctionOpts() []cgDecls.FunctionOpt {
-	ret := make([]cgDecls.FunctionOpt, 0, len(intTypes))
-	for _, ity := range intTypes {
-		ret = append(ret, cgDecls.Overload(
-			ity.overloadSub,
+			ity.overloadOp(op),
 			[]*cgTypes.Type{ity.ty, ity.ty}, ity.ty,
 		))
 	}
