@@ -119,7 +119,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.exportFileMaxSizeMB | int | `10` | Size in megabytes at which to rotate JSON export files. |
 | tetragon.exportFilePerm | string | `"600"` | JSON export file permissions as a string. Typically it's either "600" (to restrict access to owner) or "640"/"644" (to allow read access by logs collector or another agent). |
 | tetragon.exportFilename | string | `"tetragon.log"` | JSON export filename. Set it to an empty string to disable JSON export altogether. |
-| tetragon.exportRateLimit | int | `-1` | Rate-limit event export (events per minute), Set to -1 to export all events. |
+| tetragon.exportRateLimit | int | `-1` | Rate-limit event export (events per minute). Must be a plain integer: -1 disables rate limiting and exports all events (default), 0 disables JSON export entirely, and a positive integer limits export to that many events per minute. Invalid (non-integer) values fall back to -1 and log a warning. |
 | tetragon.extraArgs | object | `{}` |  |
 | tetragon.extraEnv | list | `[]` |  |
 | tetragon.extraVolumeMounts | list | `[]` |  |

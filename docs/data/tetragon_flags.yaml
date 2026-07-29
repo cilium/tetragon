@@ -148,7 +148,7 @@ options:
     - name: export-rate-limit
       default_value: "-1"
       usage: |
-        Rate limit (per minute) for event export. Set to -1 to disable
+        Rate limit (per minute) for event export. Set to -1 to disable rate limiting, 0 to disable JSON export, or a positive integer to rate limit event export
     - name: expose-stack-addresses
       default_value: "false"
       usage: Expose real linear addresses in events stack traces

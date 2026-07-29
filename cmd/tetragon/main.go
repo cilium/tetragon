@@ -571,9 +571,11 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		return err
 	}
 
-	// Fetch the exporter if needed
+	// Fetch the exporter if needed. An export rate limit of 0 disables JSON
+	// export altogether, so avoid creating an exporter that would drop every
+	// event.
 	var exporter *exporter.Exporter
-	if option.Config.ExportFilename != "" {
+	if option.Config.ExportFilename != "" && option.Config.ExportRateLimit != 0 {
 		exporter, err = getExporter(ctx, pm.Server)
 		if err != nil {
 			return fmt.Errorf("failed to fetch json exporter: %w", err)
@@ -780,7 +782,7 @@ func getExporter(ctx context.Context, server *server.Server) (*exporter.Exporter
 	encoderWriter := exporter.NewExportedBytesTotalWriter(writer)
 	encoder := encoder.NewProtojsonEncoder(encoderWriter)
 	var rateLimiter *ratelimit.RateLimiter
-	if option.Config.ExportRateLimit >= 0 {
+	if option.Config.ExportRateLimit > 0 {
 		rateLimiter = ratelimit.NewRateLimiter(ctx, 1*time.Minute, option.Config.ExportRateLimit, encoder)
 	}
 	var aggregationOptions *tetragon.AggregationOptions

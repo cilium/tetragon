@@ -79,7 +79,10 @@ tetragon:
   exportFileMaxBackups: 5
   # -- Compress rotated JSON export files.
   exportFileCompress: false
-  # -- Rate-limit event export (events per minute), Set to -1 to export all events.
+  # -- Rate-limit event export (events per minute). Must be a plain integer: -1 disables rate
+  # limiting and exports all events (default), 0 disables JSON export entirely, and a positive
+  # integer limits export to that many events per minute. Invalid (non-integer) values fall back
+  # to -1 and log a warning.
   exportRateLimit: -1
   # -- Allowlist for JSON export. For example, to export only process_connect events from
   # the default namespace:
