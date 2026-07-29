@@ -19,8 +19,8 @@ import (
 func Test_getLimit(t *testing.T) {
 	eps := 1e-9
 
-	assert.InDelta(t, float64(rate.Limit(0)), float64(getLimit(0, time.Minute)), eps)
-	assert.InDelta(t, float64(rate.Limit(0)), float64(getLimit(0, 0)), eps)
+	assert.Zero(t, getLimit(0, time.Minute))
+	assert.Zero(t, getLimit(0, 0))
 	assert.InEpsilon(t, float64(rate.Limit(1)), float64(getLimit(60, time.Minute)), eps)
 	assert.InEpsilon(t, float64(rate.Limit(10.0/60)), float64(getLimit(10, time.Minute)), eps)
 	// 1/ms => 1000/second
