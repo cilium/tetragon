@@ -9,6 +9,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestValidateProcessCacheConfig(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		c       config
+		wantErr bool
+	}{
+		{name: "defaults", c: config{}},
+		{name: "ancestors enabled, cache enabled", c: config{EnableProcessAncestors: true}},
+		{name: "cache disabled, ancestors disabled", c: config{DisableProcessCache: true}},
+		{name: "cache disabled, ancestors enabled", c: config{DisableProcessCache: true, EnableProcessAncestors: true}, wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := validateProcessCacheConfig(tc.c)
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateServerTLSConfig(t *testing.T) {
 	t.Parallel()
 	const tcp = "0.0.0.0:54321"

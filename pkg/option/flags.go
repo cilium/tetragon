@@ -250,6 +250,10 @@ func ReadAndSetFlags() error {
 		return errors.New("failed to parse process-cache-gc-interval value. Must be >= 0")
 	}
 
+	if err := validateProcessCacheConfig(Config); err != nil {
+		return err
+	}
+
 	Config.MetricsServer = viper.GetString(KeyMetricsServer)
 	Config.EnableEventMetrics = viper.GetBool(KeyEnableEventMetrics)
 	Config.MetricsLabelFilter = DefaultLabelFilter().WithEnabledLabels(ParseMetricsLabelFilter(viper.GetString(KeyMetricsLabelFilter)))
@@ -398,6 +402,17 @@ func serverAddressUsesTCP(addr string) bool {
 	// only non-TCP form we accept; everything else is treated as a host
 	// or host:port for net.Listen("tcp", ...).
 	return !strings.HasPrefix(addr, "unix://")
+}
+
+// validateProcessCacheConfig rejects --enable-ancestors when the process
+// cache is disabled: ancestor reconstruction relies on the process cache,
+// so the combination is a misconfiguration rather than a silently reduced
+// feature.
+func validateProcessCacheConfig(c config) error {
+	if c.DisableProcessCache && c.EnableProcessAncestors {
+		return fmt.Errorf("--%s cannot be used together with --%s", KeyEnableAncestors, KeyDisableProcessCache)
+	}
+	return nil
 }
 
 type CgroupRate struct {
