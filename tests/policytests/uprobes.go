@@ -290,8 +290,15 @@ spec:
 			WithBinary(sm.Full(binTwo))).WithSymbol(sm.Full("main"))
 
 	return &policytest.Scenario{
-		Name:         "check both events occur",
-		Trigger:      policytest.NewMultiCmdTrigger(map[string][]string{binOne: {"v8", "7"}, binTwo: {}}),
+		Name: "check both events occur",
+		Trigger: policytest.NewMultiCmdTrigger([]policytest.CmdTrigger{
+			{
+				Bin:  binOne,
+				Args: []string{"v8", "7"},
+			}, {
+				Bin: binTwo,
+			},
+		}),
 		EventChecker: ec.NewUnorderedEventChecker(up1Checker, up2Checker),
 	}
 }).RegisterAtInit()
