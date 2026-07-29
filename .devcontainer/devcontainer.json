@@ -1,0 +1,100 @@
+{
+  "name": "Tetragon Development",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspaces/tetragon",
+
+  // BPF development requires privileged access to the kernel.
+  // This enables kprobes, BPF program loading, debugfs, and running tests.
+  "privileged": true,
+  "runArgs": [
+    "--pid=host"
+  ],
+  "capAdd": [
+    "SYS_ADMIN",
+    "SYS_PTRACE",
+    "NET_ADMIN",
+    "BPF",
+    "PERFMON"
+  ],
+
+  // Mount host kernel headers and debug filesystem for BPF development
+  "mounts": [
+    "source=/lib/modules,target=/lib/modules,type=bind,readonly",
+    "source=/sys/kernel/debug,target=/sys/kernel/debug,type=bind",
+    "source=/sys/fs/bpf,target=/sys/fs/bpf,type=bind"
+  ],
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Go development
+        "golang.go",
+        // C/C++ for BPF code
+        "llvm-vs-code-extensions.vscode-clangd",
+        // Protocol Buffers
+        "zxh404.vscode-proto3",
+        // YAML (Kubernetes manifests, TracingPolicies)
+        "redhat.vscode-yaml",
+        // Docker
+        "ms-azuretools.vscode-docker",
+        // Kubernetes
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        // Git
+        "eamodio.gitlens",
+        // Makefile support
+        "ms-vscode.makefile-tools",
+        // EditorConfig
+        "editorconfig.editorconfig"
+      ],
+      "settings": {
+        // Go settings
+        "go.gopath": "/go",
+        "go.buildFlags": ["-mod=vendor"],
+        "go.testFlags": ["-mod=vendor", "-count=1"],
+        "go.lintTool": "golangci-lint",
+        "go.lintFlags": ["--fast"],
+        "go.useLanguageServer": true,
+        "gopls": {
+          "build.buildFlags": ["-mod=vendor"]
+        },
+
+        // C/C++ settings for BPF code
+        "clangd.arguments": [
+          "--compile-commands-dir=${workspaceFolder}",
+          "--background-index"
+        ],
+
+        // File associations
+        "files.associations": {
+          "*.h": "c",
+          "*.bpf.c": "c"
+        },
+
+        // Terminal
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+
+  // Forwarded ports
+  "forwardPorts": [
+    54321,  // gRPC server
+    2112,   // Prometheus metrics
+    6789    // Health check
+  ],
+  "portsAttributes": {
+    "54321": { "label": "Tetragon gRPC" },
+    "2112":  { "label": "Metrics" },
+    "6789":  { "label": "Health" }
+  },
+
+  // Features
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  }
+}
