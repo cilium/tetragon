@@ -356,6 +356,8 @@ func ReadAndSetFlags() error {
 		return err
 	}
 
+	warnIgnoredProcessCacheFlags(Config)
+
 	return nil
 }
 
@@ -413,6 +415,22 @@ func validateProcessCacheConfig(c config) error {
 		return fmt.Errorf("--%s cannot be used together with --%s", KeyEnableAncestors, KeyDisableProcessCache)
 	}
 	return nil
+}
+
+// warnIgnoredProcessCacheFlags warns about flags that are silently ignored
+// when the process cache is disabled, because they only configure the
+// process cache itself or the event cache, which is never created in that
+// mode. Unlike validateProcessCacheConfig, these are not errors since the
+// resulting behavior is just a no-op, not a functional contradiction.
+func warnIgnoredProcessCacheFlags(c config) {
+	if !c.DisableProcessCache {
+		return
+	}
+	for _, key := range []string{KeyProcessCacheSize, KeyProcessCacheGCInterval, KeyEventCacheRetries, KeyEventCacheRetryDelay} {
+		if viper.IsSet(key) {
+			logger.GetLogger().Warn(fmt.Sprintf("--%s has no effect when --%s is set", key, KeyDisableProcessCache))
+		}
+	}
 }
 
 type CgroupRate struct {
