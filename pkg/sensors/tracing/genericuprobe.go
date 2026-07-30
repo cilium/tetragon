@@ -1077,6 +1077,7 @@ func initUprobeArgs(spec *v1alpha1.UProbeSpec, has *uprobeHas, in *addUprobeIn, 
 
 func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgConfig, error) {
 	var cfg uprobeArgConfig
+	var preloadArgsCounter int
 
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
 		var preloadArg bool
@@ -1099,6 +1100,7 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 						return fmt.Errorf("can't preload string for argument %d", i)
 					}
 					preloadArg = true
+					preloadArgsCounter++
 				}
 			} else if hasCurrentTaskSource(a) {
 				if !bpf.HasProgramLargeSize() {
@@ -1128,6 +1130,7 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 					return fmt.Errorf("can't preload string for argument %d", i)
 				}
 				preloadArg = true
+				preloadArgsCounter++
 			}
 		}
 
@@ -1184,6 +1187,10 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 			return cfg, err
 		}
 		i = i + 1
+	}
+
+	if preloadArgsCounter > 1 {
+		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy specifies multiple preload args/data, %q might need to be increased.", option.KeySleepablePreloadSize))
 	}
 
 	return cfg, nil

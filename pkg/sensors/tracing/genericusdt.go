@@ -388,6 +388,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 	}
 
 	var found bool
+	var preloadArgsCounter int
 
 	for _, target := range targets {
 		if spec.Provider != target.Spec.Provider || spec.Name != target.Spec.Name {
@@ -474,6 +475,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 					return ids, fmt.Errorf("can't preload string for argument %d", cfgIdx)
 				}
 
+				preloadArgsCounter++
 				preload = true
 				argMValue, err := getUserMetaValue(&arg, true)
 				if err != nil {
@@ -515,6 +517,11 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		return ids, fmt.Errorf("failed to configure usdt '%s/%s', not found in the binary: '%s'",
 			spec.Provider, spec.Name, spec.Path)
 	}
+
+	if preloadArgsCounter > 1 {
+		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy specifies multiple preload args, %q might need to be increased.", option.KeySleepablePreloadSize))
+	}
+
 	return ids, nil
 }
 
