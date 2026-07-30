@@ -4,17 +4,25 @@
 package process
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/cilium/ebpf"
+
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
+	"github.com/cilium/tetragon/pkg/strutils"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -524,6 +532,96 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 	return pi, nil
 }
 
+// GetProcessInternalFromExecveMap looks up a process in the execve_map and
+// converts it into a ProcessInternal. The raw execve_map value is also
+// returned so callers can chain lookups (e.g. for the parent process).
+func GetProcessInternalFromExecveMap(pid uint32, ktime uint64) (*ProcessInternal, *execvemap.ExecveValue, error) {
+	val, err := lookupExecveMap(pid, ktime)
+	if err != nil {
+		logger.GetLogger().Debug("process not found in execve_map",
+			"pid", pid,
+			"ktime", ktime,
+			logfields.Error, err)
+		return nil, nil, err
+	}
+	return processInternalFromExecveMapValue(val), val, nil
+}
+
+func lookupExecveMap(pid uint32, ktime uint64) (*execvemap.ExecveValue, error) {
+	execveMapPath := filepath.Join(bpf.MapPrefixPath(), "execve_map")
+	execveMap, err := ebpf.LoadPinnedMap(execveMapPath, &ebpf.LoadPinOptions{ReadOnly: true})
+	if err != nil {
+		return nil, fmt.Errorf("failed to open execve_map: %w", err)
+	}
+	defer execveMap.Close()
+
+	key := execvemap.ExecveKey{Pid: pid}
+	var val execvemap.ExecveValue
+	if err := execveMap.Lookup(&key, &val); err != nil {
+		return nil, err
+	}
+
+	// execve_map is keyed only by pid. If the stored ktime doesn't match
+	// the requested ktime, treat it as a miss to avoid pid-reuse confusion.
+	if val.Process.Ktime != ktime {
+		return nil, fmt.Errorf("execve_map ktime mismatch for pid %d: expected %d, got %d", pid, ktime, val.Process.Ktime)
+	}
+
+	return &val, nil
+}
+
+// goStrFromCStr converts a null-terminated, fixed-size C string from
+// execve_map into a Go string.
+func goStrFromCStr(cstr []byte) string {
+	n := bytes.IndexByte(cstr, 0)
+	if n == -1 {
+		n = len(cstr)
+	}
+	return strutils.UTF8FromBPFBytes(cstr[:n])
+}
+
+func processInternalFromExecveMapValue(val *execvemap.ExecveValue) *ProcessInternal {
+	if val == nil {
+		return nil
+	}
+
+	execID := GetProcessID(val.Process.Pid, val.Process.Ktime)
+
+	apiNs, err := namespace.GetMsgNamespaces(val.Namespaces)
+	if err != nil {
+		logger.GetLogger().Warn("execve_map: parsing namespaces failed",
+			"pid", val.Process.Pid,
+			"exec_id", execID,
+			logfields.Error, err)
+	}
+	apiCaps := caps.GetMsgCapabilities(val.Capabilities)
+
+	pi := &ProcessInternal{
+		process: &tetragon.Process{
+			Pid: &wrapperspb.UInt32Value{Value: val.Process.Pid},
+			// Per thread tracking rules PID == TID.
+			Tid:          &wrapperspb.UInt32Value{Value: val.Process.Pid},
+			Binary:       goStrFromCStr(val.Binary.Path[:]),
+			Flags:        strings.Join(exec.DecodeCommonFlags(val.Flags), " "),
+			ExecId:       execID,
+			ParentExecId: GetProcessID(val.Parent.Pid, val.Parent.Ktime),
+			StartTime:    ktime.ToProto(val.Process.Ktime),
+		},
+		capabilities: apiCaps,
+		namespaces:   apiNs,
+		refcntOps:    map[string]int32{},
+	}
+
+	// Set in_init_tree flag
+	if val.Flags&api.EventInInitTree == api.EventInInitTree {
+		pi.process.InInitTree = &wrapperspb.BoolValue{Value: true}
+	} else {
+		pi.process.InInitTree = &wrapperspb.BoolValue{Value: false}
+	}
+
+	return pi
+}
+
 // GetPodInfo constructs and returns the Kubernetes Pod information associated with an event.
 func GetPodInfo(containerID, bin, args string, nspid uint32) *tetragon.Pod {
 	return getPodInfo(k8s, containerID, bin, args, nspid)
@@ -531,7 +629,17 @@ func GetPodInfo(containerID, bin, args string, nspid uint32) *tetragon.Pod {
 
 func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *ProcessInternal) {
 	if option.Config.DisableProcessCache {
-		return nil, nil
+		process, val, err := GetProcessInternalFromExecveMap(pid, ktime)
+		if err != nil {
+			return nil, nil
+		}
+
+		parent, _, err := GetProcessInternalFromExecveMap(val.Parent.Pid, val.Parent.Ktime)
+		if err != nil {
+			return process, nil
+		}
+
+		return process, parent
 	}
 
 	var parent, process *ProcessInternal
@@ -582,22 +690,36 @@ func GetAncestorProcessesInternal(execId string) ([]*ProcessInternal, error) {
 	return ancestors, err
 }
 
-// AddExecEvent constructs a new ProcessInternal structure from an Execve event, adds it to the cache, and also returns it
-func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
-	var proc *ProcessInternal
+// execParentKey returns the MsgExecveKey identifying the parent of an execve
+// event, i.e. the same key used to compute the event's ParentExecId.
+func execParentKey(event *tetragonAPI.MsgExecveEventUnix) tetragonAPI.MsgExecveKey {
 	if event.Msg.CleanupProcess.Ktime == 0 || event.Process.Flags&api.EventClone != 0 {
 		// there is a case where we cannot find this entry in execve_map
 		// in that case we use as parent what Linux knows
-		proc = initProcessInternalExec(event, event.Msg.Parent)
-	} else {
-		proc = initProcessInternalExec(event, event.Msg.CleanupProcess)
+		return event.Msg.Parent
 	}
+	return event.Msg.CleanupProcess
+}
+
+// AddExecEvent constructs a new ProcessInternal structure from an Execve event, adds it to the cache, and also returns it
+func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
+	proc := initProcessInternalExec(event, execParentKey(event))
 
 	if !option.Config.DisableProcessCache {
 		procCache.add(proc)
 	}
 
 	return proc
+}
+
+// GetExecParentInternalFromExecveMap looks up the parent process of an
+// execve event directly in the execve_map, using the same parent key
+// AddExecEvent uses to compute ParentExecId. This avoids the extra
+// execve_map hop needed to rediscover that key from the event's own entry.
+func GetExecParentInternalFromExecveMap(event *tetragonAPI.MsgExecveEventUnix) (*ProcessInternal, error) {
+	parent := execParentKey(event)
+	pi, _, err := GetProcessInternalFromExecveMap(parent.Pid, parent.Ktime)
+	return pi, err
 }
 
 // AddCloneEvent adds a new process into the cache from a CloneEvent
