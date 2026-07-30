@@ -527,6 +527,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		// the process cache, so it must still be set for pod info to be
 		// attached to events.
 		process.SetK8sWatcher(podAccessor)
+		process.SetFetcher(&process.BPFProcessFetcher{})
 	} else {
 		if err := process.InitCache(podAccessor, option.Config.ProcessCacheSize, pcGCInterval); err != nil {
 			return err

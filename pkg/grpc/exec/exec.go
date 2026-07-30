@@ -44,8 +44,6 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	var tetragonParent *tetragon.Process
 	var tetragonAncestors []*tetragon.Process
 	var ancestors []*process.ProcessInternal
-	var parent *process.ProcessInternal
-	var err error
 
 	proc := process.AddExecEvent(event.Unix)
 	tetragonProcess := proc.UnsafeGetProcess()
@@ -53,11 +51,10 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	parentId := tetragonProcess.ParentExecId
 	processId := tetragonProcess.ExecId
 
-	if !option.Config.DisableProcessCache {
-		parent, err = process.Get(parentId)
-		if err == nil {
-			tetragonParent = parent.UnsafeGetProcess()
-		}
+	parent, err := process.GetFetcher().Get(parentId)
+
+	if err == nil {
+		tetragonParent = parent.UnsafeGetProcess()
 	}
 
 	// Set the ancestors only if --enable-ancestors flag includes 'base'.
