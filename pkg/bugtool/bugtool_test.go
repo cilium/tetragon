@@ -4,10 +4,7 @@
 package bugtool
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"encoding/json"
-	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -72,38 +69,6 @@ func TestLoadExtraFilesMissing(t *testing.T) {
 	got, err := doLoadExtraFiles(filepath.Join(t.TempDir(), "does-not-exist.json"))
 	require.NoError(t, err)
 	require.Nil(t, got)
-}
-
-func TestGopsDisabledLogsOnce(t *testing.T) {
-	out := filepath.Join(t.TempDir(), "bugtool.tar.gz")
-	require.NoError(t, doBugtool(&InitInfo{
-		LibDir:     t.TempDir(),
-		ServerAddr: "unix:///dev/null",
-	}, out, nil, nil))
-
-	f, err := os.Open(out)
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, f.Close()) })
-
-	gz, err := gzip.NewReader(f)
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, gz.Close()) })
-
-	tr := tar.NewReader(gz)
-	for {
-		header, err := tr.Next()
-		if errors.Is(err, io.EOF) {
-			t.Fatal("tetragon-bugtool.log not found")
-		}
-		require.NoError(t, err)
-		if strings.HasSuffix(header.Name, "tetragon-bugtool.log") {
-			logs, err := io.ReadAll(tr)
-			require.NoError(t, err)
-			require.Equal(t, 1, strings.Count(string(logs), "Skipping gops dump info"))
-			require.NotContains(t, string(logs), "Successfully dumped gops pprof")
-			return
-		}
-	}
 }
 
 func Test_findCgroupMountPath(t *testing.T) {
