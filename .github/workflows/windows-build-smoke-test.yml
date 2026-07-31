@@ -24,7 +24,7 @@ env:
 jobs:
   windows-ebpf-prog-build:
     name: Build Windows ebpf programs
-    runs-on: windows-2022
+    runs-on: windows-2025
     timeout-minutes: 25
 
     permissions:
