@@ -270,7 +270,7 @@ func (g *codeGenerator) emitBranch(
 
 	case ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName():
 
-	case ty1.TypeName() == boolTy.TypeName() && ty2.TypeName() == boolTy.TypeName() && op == cgOperators.Equals:
+	case ty1.TypeName() == boolTy.TypeName() && ty2.TypeName() == boolTy.TypeName() && (op == cgOperators.Equals || op == cgOperators.NotEquals):
 
 	default:
 		return fmt.Errorf("operation (%q) between types %s and %s is not supported", op, ty1.TypeName(), ty2.TypeName())
