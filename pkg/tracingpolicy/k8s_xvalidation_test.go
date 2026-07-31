@@ -24,6 +24,7 @@ spec:
 `
 	_, err := FromYAML(crd)
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "ReturnArg not specified with Return=true.")
 }
 
 func testUprobeValidationSymbolsAddrsOffsets(t *testing.T, withSymbol, withAdrr, withOff bool) {
@@ -70,6 +71,7 @@ func TestUprobeValidationSymbolsAddrsOffsets(t *testing.T) {
 }
 
 func TestUprobeValidationReturnWithoutArg(t *testing.T) {
+	// missing returnArg while having return: true
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -85,6 +87,7 @@ spec:
 
 	_, err := FromYAML(crd)
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "ReturnArg not specified with Return=true.")
 }
 
 func testUprobeValidationOverrideArgNewSymbolAddrOffset(t *testing.T, withSymbol, withAdrr, withOff bool) {
