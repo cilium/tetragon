@@ -73,24 +73,23 @@ jobs:
         run:
             '"c:\Program Files\llvm\bin\clang.exe" --version'
 
-      - name: Download ntosebpfext 
-        id: download-ntosebpfet
-        shell: powershell
-        working-directory: ${{ env.TEMP }}
-        run: | 
-          git clone --recursive https://github.com/microsoft/ntosebpfext.git
-          cd ${{ env.TEMP }}\ntosebpfext
-          git checkout e7dc209a8be0da2ff5d75f5772a0ee0bf4a10383
-      
+      - name: Clone msft/ntosebpfext
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: 'microsoft/ntosebpfext'
+          ref: 'e7dc209a8be0da2ff5d75f5772a0ee0bf4a10383'
+          submodules: true
+          path: 'ntosebpfext'
+
       - name: Copy Process_monitor.c file
         run: |
             $sourcePath = "${{ github.workspace }}\go\src\github.com\cilium\tetragon\bpf\windows\process_monitor.c"
-            $destinationPath = "${{ env.TEMP }}\ntosebpfext\tools\process_monitor_bpf\process_monitor.c"
+            $destinationPath = "${{ github.workspace }}\ntosebpfext\tools\process_monitor_bpf\process_monitor.c"
             Copy-Item -Path $sourcePath -Destination $destinationPath -Force
         shell: powershell
 
       - name: Configuring repo for first build
-        working-directory: ${{ env.TEMP }}\ntosebpfext
+        working-directory: ${{ github.workspace }}\ntosebpfext
         env:
           CXXFLAGS: /ZH:SHA_256 ${{ env.CXX_FLAGS }}
           LDFLAGS: ${{ env.LD_FLAGS }}
@@ -98,11 +97,11 @@ jobs:
             .\scripts\initialize_repo.ps1
  
       - name: Build Process monitor ebpf program
-        working-directory: ${{ env.TEMP }}\ntosebpfext
+        working-directory: ${{ github.workspace }}\ntosebpfext
         run: msbuild -target:Tools\process_monitor_bpf:Rebuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /bl:${{env.BUILD_PLATFORM}}_${{env.BUILD_CONFIGURATION}}\build_logs\build.binlog ${{env.BUILD_OPTIONS}} ${{env.SOLUTION_FILE_PATH}}
 
       - name: Zip Build Output
-        working-directory: ${{ env.TEMP }}\ntosebpfext
+        working-directory: ${{ github.workspace }}\ntosebpfext
         run: |
           Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{env.BUILD_PLATFORM}}.${{env.BUILD_CONFIGURATION}}.zip
 
@@ -110,7 +109,7 @@ jobs:
         uses: actions/upload-artifact@de65e23aa2b7e23d713bb51fbfcb6d502f8667d8
         with:
           name: ntosebpfext-build-output
-          path: ${{ env.TEMP }}\ntosebpfext\build-${{env.BUILD_PLATFORM}}.${{env.BUILD_CONFIGURATION}}.zip
+          path: ${{ github.workspace }}\ntosebpfext\build-${{env.BUILD_PLATFORM}}.${{env.BUILD_CONFIGURATION}}.zip
           retention-days: 5
 
   windows-tetragon-build:
