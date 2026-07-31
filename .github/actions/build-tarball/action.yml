@@ -1,0 +1,33 @@
+name: "Build Tetragon tarball"
+description: "Install prerequisites and build the Tetragon release tarball via 'make tarball'"
+
+inputs:
+  working-directory:
+    description: "Directory to run make in"
+    required: false
+    default: "."
+
+outputs:
+  tag:
+    description: "Tetragon version tag (make version)"
+    value: ${{ steps.tag.outputs.tag }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install tarball build dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq
+
+    - name: Getting version tag
+      id: tag
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: echo "tag=$(make version)" >> $GITHUB_OUTPUT
+
+    - name: Generate Tetragon tarball
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: make tarball
