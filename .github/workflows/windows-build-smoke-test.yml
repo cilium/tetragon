@@ -96,24 +96,23 @@ jobs:
           Write-Output "  $(& 'C:\Program Files\LLVM\bin\clang.exe' --version)"
 
       - name: Clone msft/ntosebpfext
-        id: download-ntosebpfet
-        shell: pwsh
-        working-directory: ${{ runner.temp }}
-        run: |
-          git clone --recursive https://github.com/microsoft/ntosebpfext.git
-          cd ${{ runner.temp }}\ntosebpfext
-          git checkout tags/v0.6.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: 'microsoft/ntosebpfext'
+          ref: 'v0.7.0'
+          submodules: true
+          path: 'ntosebpfext'
 
       - name: Copy Process_monitor.c file
         shell: pwsh
         run: |
           Copy-Item -Path "${{ github.workspace }}/bpf/windows/process_monitor.c" `
-                    -Destination "${{ runner.temp }}/ntosebpfext/tools/process_monitor_bpf/process_monitor.c" `
+                    -Destination "${{ github.workspace }}/ntosebpfext/tools/process_monitor_bpf/process_monitor.c" `
                     -Force
 
       - name: Configuring repo for first build
         shell: pwsh
-        working-directory: ${{ runner.temp }}/ntosebpfext
+        working-directory: ${{ github.workspace }}/ntosebpfext
         env:
           CXXFLAGS: /ZH:SHA_256 ${{ env.CXX_FLAGS }}
           LDFLAGS: ${{ env.LD_FLAGS }}
@@ -122,7 +121,7 @@ jobs:
 
       - name: Build Process monitor ebpf program
         shell: pwsh
-        working-directory: ${{ runner.temp }}\ntosebpfext
+        working-directory: ${{ github.workspace }}\ntosebpfext
         run: |
           msbuild -target:Tools\process_monitor_bpf:Rebuild `
             /m `
@@ -134,7 +133,7 @@ jobs:
 
       - name: Zip Build Output
         shell: pwsh
-        working-directory: ${{ runner.temp }}/ntosebpfext
+        working-directory: ${{ github.workspace }}/ntosebpfext
         run: |
           Compress-Archive `
             -Path ${{ env.BUILD_PLATFORM }}/${{ env.BUILD_CONFIGURATION }} `
@@ -144,7 +143,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ntosebpfext-build-output
-          path: ${{ runner.temp }}/ntosebpfext/build-${{ env.BUILD_PLATFORM }}.${{ env.BUILD_CONFIGURATION }}.zip
+          path: ${{ github.workspace }}/ntosebpfext/build-${{ env.BUILD_PLATFORM }}.${{ env.BUILD_CONFIGURATION }}.zip
           retention-days: 5
 
   windows-tetragon-build:
@@ -224,7 +223,6 @@ jobs:
         run: echo "C:/Program Files/ebpf-for-windows" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Download ntosebpfext-build-output
-        id: download-ntosebpfext-build-output
         uses: ./.github/actions/download-artifact
         with:
           artifact-name: "ntosebpfext-build-output"
