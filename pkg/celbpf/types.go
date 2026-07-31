@@ -12,7 +12,6 @@ import (
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 
-	cgDecls "github.com/google/cel-go/common/decls"
 	cgTypes "github.com/google/cel-go/common/types"
 )
 
@@ -55,24 +54,26 @@ var intTypes = []intType{
 	{u32Ty},
 }
 
-func intCmpOperatorFnOpts(op string) []cgDecls.FunctionOpt {
-	ret := make([]cgDecls.FunctionOpt, 0, len(intTypes))
+func intCmpOperatorFnOverloads(op string) []fnOverload {
+	ret := make([]fnOverload, 0, len(intTypes))
 	for _, ity := range intTypes {
-		ret = append(ret, cgDecls.Overload(
-			ity.overloadOp(op),
-			[]*cgTypes.Type{ity.ty, ity.ty}, cgTypes.BoolType,
-		))
+		ret = append(ret, fnOverload{
+			name: ity.overloadOp(op),
+			args: []*cgTypes.Type{ity.ty, ity.ty},
+			res:  cgTypes.BoolType},
+		)
 	}
 	return ret
 }
 
-func intBinaryOperatorFnOpts(op string) []cgDecls.FunctionOpt {
-	ret := make([]cgDecls.FunctionOpt, 0, len(intTypes))
+func intBinaryOperatorFnOverloads(op string) []fnOverload {
+	ret := make([]fnOverload, 0, len(intTypes))
 	for _, ity := range intTypes {
-		ret = append(ret, cgDecls.Overload(
-			ity.overloadOp(op),
-			[]*cgTypes.Type{ity.ty, ity.ty}, ity.ty,
-		))
+		ret = append(ret, fnOverload{
+			name: ity.overloadOp(op),
+			args: []*cgTypes.Type{ity.ty, ity.ty},
+			res:  ity.ty},
+		)
 	}
 	return ret
 }
