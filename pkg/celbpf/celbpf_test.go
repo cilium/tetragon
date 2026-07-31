@@ -117,125 +117,125 @@ func btfTestArgExprFnTy(fnName string) *btf.Func {
 	}
 }
 
+var argTestCases = []struct {
+	expr     string
+	ret      uint32
+	hookArgs []any
+}{
+	{
+		expr:     "arg0 == 42u",
+		ret:      1,
+		hookArgs: []any{uint64(42)},
+	},
+	{
+		expr:     "arg0 == 43u",
+		ret:      0,
+		hookArgs: []any{uint64(42)},
+	},
+	{
+		expr:     "arg0 == 0xaaaaaaaaaaaaaaaau",
+		ret:      1,
+		hookArgs: []any{uint64(0xaaaaaaaaaaaaaaaa)},
+	},
+	{
+		expr:     "arg0 == 0xaaaaaaaaaaaaaaaau",
+		ret:      0,
+		hookArgs: []any{uint64(0xbaaaaaaaaaaaaaab)},
+	},
+	{
+		expr:     "arg0 == uint32(42u)",
+		ret:      1,
+		hookArgs: []any{uint32(42)},
+	},
+	{
+		expr:     "arg0 == uint32(43u)",
+		ret:      0,
+		hookArgs: []any{uint32(42)},
+	},
+	{
+		expr:     "arg2 == int32(42)",
+		ret:      1,
+		hookArgs: []any{int32(0), uint64(0), int32(42)},
+	},
+	{
+		expr:     "arg0 == int32(-1)",
+		ret:      1,
+		hookArgs: []any{int32(-1)},
+	},
+	{
+		expr:     "arg2 == int32(0)",
+		ret:      0,
+		hookArgs: []any{int32(0), uint64(0), int32(42)},
+	},
+	{
+		expr:     "arg2 == arg0",
+		ret:      1,
+		hookArgs: []any{int32(42), uint64(0), int32(42)},
+	},
+	{
+		expr:     "arg2 - int32(10) == int32(32)",
+		ret:      1,
+		hookArgs: []any{int32(30), uint64(0), int32(42)},
+	},
+	{
+		expr:     "arg2 - int32(10) == int32(2) + arg0",
+		ret:      1,
+		hookArgs: []any{int32(30), uint64(0), int32(42)},
+	},
+	{
+		expr:     "arg2 - int32(-10) == int32(12) + arg0",
+		ret:      1,
+		hookArgs: []any{int32(30), uint64(0), int32(32)},
+	},
+	{
+		expr: "int32(2147483647) + int32(1) == int32(-2147483648)",
+		ret:  1,
+	},
+	{
+		expr: "uint32(4294967295u) + uint32(1u) == uint32(0u)",
+		ret:  1,
+	},
+	{
+		expr:     "arg0 + arg1 == arg2 + 101",
+		hookArgs: []any{int64(51), int64(100), int64(50)},
+		ret:      1,
+	},
+	{
+		expr:     "arg0 + arg1 == -9223372036854775808",
+		hookArgs: []any{int64(9223372036854775807), int64(1)},
+		ret:      1,
+	},
+	{
+		expr:     "arg0 - arg1 == 9223372036854775807",
+		hookArgs: []any{int64(-9223372036854775808), int64(1)},
+		ret:      1,
+	},
+	{
+		expr:     "arg0 + arg1 == 0u",
+		hookArgs: []any{uint64(18446744073709551615), uint64(1)},
+		ret:      1,
+	},
+	{
+		expr:     "arg0 - arg1 == 18446744073709551615u",
+		hookArgs: []any{uint64(0), uint64(1)},
+		ret:      1,
+	},
+	{
+		expr:     "arg0 != arg1 && !(arg2 >= arg3)",
+		hookArgs: []any{int32(42), int32(41), uint64(41), uint64(42)},
+		ret:      1,
+	},
+	{
+		expr:     "arg0 == arg1 || arg2 != arg3",
+		hookArgs: []any{int64(42), int64(41), uint32(42), uint32(41)},
+		ret:      1,
+	},
+}
+
 func TestArgExprs(t *testing.T) {
 	if !Supported() {
 		t.Skip()
 	}
-	testCase := []struct {
-		expr     string
-		ret      uint32
-		hookArgs []any
-	}{
-		{
-			expr:     "arg0 == 42u",
-			ret:      1,
-			hookArgs: []any{uint64(42)},
-		},
-		{
-			expr:     "arg0 == 43u",
-			ret:      0,
-			hookArgs: []any{uint64(42)},
-		},
-		{
-			expr:     "arg0 == 0xaaaaaaaaaaaaaaaau",
-			ret:      1,
-			hookArgs: []any{uint64(0xaaaaaaaaaaaaaaaa)},
-		},
-		{
-			expr:     "arg0 == 0xaaaaaaaaaaaaaaaau",
-			ret:      0,
-			hookArgs: []any{uint64(0xbaaaaaaaaaaaaaab)},
-		},
-		{
-			expr:     "arg0 == uint32(42u)",
-			ret:      1,
-			hookArgs: []any{uint32(42)},
-		},
-		{
-			expr:     "arg0 == uint32(43u)",
-			ret:      0,
-			hookArgs: []any{uint32(42)},
-		},
-		{
-			expr:     "arg2 == int32(42)",
-			ret:      1,
-			hookArgs: []any{int32(0), uint64(0), int32(42)},
-		},
-		{
-			expr:     "arg0 == int32(-1)",
-			ret:      1,
-			hookArgs: []any{int32(-1)},
-		},
-		{
-			expr:     "arg2 == int32(0)",
-			ret:      0,
-			hookArgs: []any{int32(0), uint64(0), int32(42)},
-		},
-		{
-			expr:     "arg2 == arg0",
-			ret:      1,
-			hookArgs: []any{int32(42), uint64(0), int32(42)},
-		},
-		{
-			expr:     "arg2 - int32(10) == int32(32)",
-			ret:      1,
-			hookArgs: []any{int32(30), uint64(0), int32(42)},
-		},
-		{
-			expr:     "arg2 - int32(10) == int32(2) + arg0",
-			ret:      1,
-			hookArgs: []any{int32(30), uint64(0), int32(42)},
-		},
-		{
-			expr:     "arg2 - int32(-10) == int32(12) + arg0",
-			ret:      1,
-			hookArgs: []any{int32(30), uint64(0), int32(32)},
-		},
-		{
-			expr: "int32(2147483647) + int32(1) == int32(-2147483648)",
-			ret:  1,
-		},
-		{
-			expr: "uint32(4294967295u) + uint32(1u) == uint32(0u)",
-			ret:  1,
-		},
-		{
-			expr:     "arg0 + arg1 == arg2 + 101",
-			hookArgs: []any{int64(51), int64(100), int64(50)},
-			ret:      1,
-		},
-		{
-			expr:     "arg0 + arg1 == -9223372036854775808",
-			hookArgs: []any{int64(9223372036854775807), int64(1)},
-			ret:      1,
-		},
-		{
-			expr:     "arg0 - arg1 == 9223372036854775807",
-			hookArgs: []any{int64(-9223372036854775808), int64(1)},
-			ret:      1,
-		},
-		{
-			expr:     "arg0 + arg1 == 0u",
-			hookArgs: []any{uint64(18446744073709551615), uint64(1)},
-			ret:      1,
-		},
-		{
-			expr:     "arg0 - arg1 == 18446744073709551615u",
-			hookArgs: []any{uint64(0), uint64(1)},
-			ret:      1,
-		},
-		{
-			expr:     "arg0 != arg1 && !(arg2 >= arg3)",
-			hookArgs: []any{int32(42), int32(41), uint64(41), uint64(42)},
-			ret:      1,
-		},
-		{
-			expr:     "arg0 == arg1 || arg2 != arg3",
-			hookArgs: []any{int64(42), int64(41), uint32(42), uint32(41)},
-			ret:      1,
-		},
-	}
-
 	m, err := ebpf.NewMap(&ebpf.MapSpec{
 		Type:       ebpf.Array,
 		KeySize:    4,
@@ -245,7 +245,7 @@ func TestArgExprs(t *testing.T) {
 	require.NoError(t, err)
 	defer m.Close()
 
-	for _, tc := range testCase {
+	for _, tc := range argTestCases {
 		data, args := prepareArgs(t, tc.hookArgs)
 
 		err := m.Update(new(uint32(0)), &data, 0)
