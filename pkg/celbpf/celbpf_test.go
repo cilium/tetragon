@@ -232,10 +232,9 @@ var argTestCases = []struct {
 	},
 }
 
-func TestArgExprs(t *testing.T) {
-	if !Supported() {
-		t.Skip()
-	}
+func evalCELBPF(t *testing.T, expr string, hookArgs []any, expectedVal uint32) {
+	t.Helper()
+
 	m, err := ebpf.NewMap(&ebpf.MapSpec{
 		Type:       ebpf.Array,
 		KeySize:    4,
@@ -245,55 +244,62 @@ func TestArgExprs(t *testing.T) {
 	require.NoError(t, err)
 	defer m.Close()
 
+	data, args := prepareArgs(t, hookArgs)
+
+	err = m.Update(new(uint32(0)), &data, 0)
+	require.NoError(t, err, "update map value")
+
+	fnName := "myfn"
+	insns, _, err := CompileFn(fnName, expr, args)
+	require.NoError(t, err)
+	prelude := asm.Instructions{
+		// R1 map
+		asm.LoadMapPtr(asm.R1, m.FD()),
+		// R2 key
+		asm.Mov.Reg(asm.R2, asm.R10),
+		asm.Add.Imm(asm.R2, -4),
+		asm.StoreImm(asm.R2, 0, 0, asm.Word),
+		// Lookup map[0]
+		asm.FnMapLookupElem.Call(),
+		asm.JEq.Imm(asm.R0, 0, "ret"),
+
+		// set arguments for call
+		// R1: ->argsoff
+		// R2: ->args
+		asm.Mov.Reg(asm.R1, asm.R0),
+		asm.Mov.Reg(asm.R2, asm.R1),
+		asm.Add.Imm(asm.R2, 5*8),
+		asm.Call.Label(fnName),
+		asm.Return().WithSymbol("ret"),
+	}
+	fnTy := btfTestArgExprFnTy("main")
+	prelude[0] = btf.WithFuncMetadata(prelude[0].WithSymbol(fnTy.Name), fnTy).WithSource(s{"main"})
+	insns = append(prelude, insns...)
+	prog, err := ebpf.NewProgramWithOptions(&ebpf.ProgramSpec{
+		Type:         ebpf.RawTracepoint,
+		Instructions: insns,
+		License:      "Dual BSD/GPL",
+	}, ebpf.ProgramOptions{LogLevel: ebpf.LogLevelInstruction})
+	if ve, ok := errors.AsType[*ebpf.VerifierError](err); ok {
+		t.Logf("verifier error: %+v", ve)
+		t.FailNow()
+	}
+	require.NoError(t, err)
+	defer prog.Close()
+	val, err := prog.Run(&ebpf.RunOptions{})
+	require.NoError(t, err)
+	if expectedVal != val {
+		t.Logf("insns:\n%s\n", insns)
+		dumpProg(t, prog)
+	}
+	require.Equal(t, expectedVal, val, "result of %q was %d and not %d", expr, val, expectedVal)
+}
+
+func TestArgExprs(t *testing.T) {
+	if !Supported() {
+		t.Skip()
+	}
 	for _, tc := range argTestCases {
-		data, args := prepareArgs(t, tc.hookArgs)
-
-		err := m.Update(new(uint32(0)), &data, 0)
-		require.NoError(t, err, "update map value")
-
-		fnName := "myfn"
-		insns, _, err := CompileFn(fnName, tc.expr, args)
-		require.NoError(t, err)
-		prelude := asm.Instructions{
-			// R1 map
-			asm.LoadMapPtr(asm.R1, m.FD()),
-			// R2 key
-			asm.Mov.Reg(asm.R2, asm.R10),
-			asm.Add.Imm(asm.R2, -4),
-			asm.StoreImm(asm.R2, 0, 0, asm.Word),
-			// Lookup map[0]
-			asm.FnMapLookupElem.Call(),
-			asm.JEq.Imm(asm.R0, 0, "ret"),
-
-			// set arguments for call
-			// R1: ->argsoff
-			// R2: ->args
-			asm.Mov.Reg(asm.R1, asm.R0),
-			asm.Mov.Reg(asm.R2, asm.R1),
-			asm.Add.Imm(asm.R2, 5*8),
-			asm.Call.Label(fnName),
-			asm.Return().WithSymbol("ret"),
-		}
-		fnTy := btfTestArgExprFnTy("main")
-		prelude[0] = btf.WithFuncMetadata(prelude[0].WithSymbol(fnTy.Name), fnTy).WithSource(s{"main"})
-		insns = append(prelude, insns...)
-		prog, err := ebpf.NewProgramWithOptions(&ebpf.ProgramSpec{
-			Type:         ebpf.RawTracepoint,
-			Instructions: insns,
-			License:      "Dual BSD/GPL",
-		}, ebpf.ProgramOptions{LogLevel: ebpf.LogLevelInstruction})
-		if ve, ok := errors.AsType[*ebpf.VerifierError](err); ok {
-			t.Logf("verifier error: %+v", ve)
-			t.FailNow()
-		}
-		require.NoError(t, err)
-		defer prog.Close()
-		val, err := prog.Run(&ebpf.RunOptions{})
-		require.NoError(t, err)
-		if tc.ret != val {
-			t.Logf("insns:\n%s\n", insns)
-			dumpProg(t, prog)
-		}
-		require.Equal(t, tc.ret, val, "result of %q was %d and not %d", tc.expr, val, tc.ret)
+		evalCELBPF(t, tc.expr, tc.hookArgs, tc.ret)
 	}
 }
