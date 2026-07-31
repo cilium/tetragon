@@ -25,32 +25,39 @@ var (
 	uint32Fn = "uint32"
 )
 
-func checkerAddFunctions(env *cgChecker.Env) error {
-	paramA := cgTypes.NewTypeParamType("A")
+type fnOverload struct {
+	name string
+	args []*cgTypes.Type
+	res  *cgTypes.Type
+}
 
-	fnsOpts := []struct {
-		name string
-		opts []cgDecls.FunctionOpt
-	}{
+type fnOpts struct {
+	name      string
+	overloads []fnOverload
+}
+
+func getFnsOpts() []fnOpts {
+	paramA := cgTypes.NewTypeParamType("A")
+	return []fnOpts{
 		// Equality
-		{name: cgOperators.Equals, opts: []cgDecls.FunctionOpt{
-			cgDecls.Overload(cgOverloads.Equals, []*cgTypes.Type{paramA, paramA}, cgTypes.BoolType),
+		{name: cgOperators.Equals, overloads: []fnOverload{
+			{name: cgOverloads.Equals, args: []*cgTypes.Type{paramA, paramA}, res: cgTypes.BoolType},
 		}},
 
 		// !=
-		{name: cgOperators.NotEquals, opts: []cgDecls.FunctionOpt{
-			cgDecls.Overload(cgOverloads.NotEquals, []*cgTypes.Type{paramA, paramA}, cgTypes.BoolType),
+		{name: cgOperators.NotEquals, overloads: []fnOverload{
+			{name: cgOverloads.NotEquals, args: []*cgTypes.Type{paramA, paramA}, res: cgTypes.BoolType},
 		}},
 
 		// Logical operations: And/Or/Not
-		{name: cgOperators.LogicalAnd, opts: []cgDecls.FunctionOpt{
-			cgDecls.Overload(cgOverloads.LogicalAnd, []*cgTypes.Type{cgTypes.BoolType, cgTypes.BoolType}, cgTypes.BoolType),
+		{name: cgOperators.LogicalAnd, overloads: []fnOverload{
+			{name: cgOverloads.LogicalAnd, args: []*cgTypes.Type{cgTypes.BoolType, cgTypes.BoolType}, res: cgTypes.BoolType},
 		}},
-		{name: cgOperators.LogicalOr, opts: []cgDecls.FunctionOpt{
-			cgDecls.Overload(cgOverloads.LogicalOr, []*cgTypes.Type{cgTypes.BoolType, cgTypes.BoolType}, cgTypes.BoolType),
+		{name: cgOperators.LogicalOr, overloads: []fnOverload{
+			{name: cgOverloads.LogicalOr, args: []*cgTypes.Type{cgTypes.BoolType, cgTypes.BoolType}, res: cgTypes.BoolType},
 		}},
-		{name: cgOperators.LogicalNot, opts: []cgDecls.FunctionOpt{
-			cgDecls.Overload(cgOverloads.LogicalNot, []*cgTypes.Type{cgTypes.BoolType}, cgTypes.BoolType),
+		{name: cgOperators.LogicalNot, overloads: []fnOverload{
+			{name: cgOverloads.LogicalNot, args: []*cgTypes.Type{cgTypes.BoolType}, res: cgTypes.BoolType},
 		}},
 
 		// Comparison operators
@@ -61,30 +68,38 @@ func checkerAddFunctions(env *cgChecker.Env) error {
 		// lifted in the future.
 
 		// <
-		{name: cgOperators.Less, opts: intCmpOperatorFnOpts("lt")},
+		{name: cgOperators.Less, overloads: intCmpOperatorFnOverloads("lt")},
 		// <=
-		{name: cgOperators.LessEquals, opts: intCmpOperatorFnOpts("lq")},
+		{name: cgOperators.LessEquals, overloads: intCmpOperatorFnOverloads("lq")},
 		// >
-		{name: cgOperators.Greater, opts: intCmpOperatorFnOpts("gt")},
+		{name: cgOperators.Greater, overloads: intCmpOperatorFnOverloads("gt")},
 		// >=
-		{name: cgOperators.GreaterEquals, opts: intCmpOperatorFnOpts("gq")},
+		{name: cgOperators.GreaterEquals, overloads: intCmpOperatorFnOverloads("gq")},
 
 		// Addition and Subtraction
-		{name: cgOperators.Add, opts: intBinaryOperatorFnOpts("add")},
-		{name: cgOperators.Subtract, opts: intBinaryOperatorFnOpts("sub")},
+		{name: cgOperators.Add, overloads: intBinaryOperatorFnOverloads("add")},
+		{name: cgOperators.Subtract, overloads: intBinaryOperatorFnOverloads("sub")},
 
 		// Integer casting
-		{name: int32Fn, opts: []cgDecls.FunctionOpt{
-			cgDecls.Overload("s32fromint", []*cgTypes.Type{cgTypes.IntType}, s32Ty),
+		{name: int32Fn, overloads: []fnOverload{
+			{name: "s32fromint", args: []*cgTypes.Type{cgTypes.IntType}, res: s32Ty},
 		}},
-		{name: uint32Fn, opts: []cgDecls.FunctionOpt{
-			cgDecls.Overload("u32fromuint", []*cgTypes.Type{cgTypes.UintType}, u32Ty),
+		{name: uint32Fn, overloads: []fnOverload{
+			{name: "u32fromuint", args: []*cgTypes.Type{cgTypes.UintType}, res: u32Ty},
 		}},
 	}
+}
 
+func checkerAddFunctions(env *cgChecker.Env) error {
+
+	fnsOpts := getFnsOpts()
 	fns := make([]*cgDecls.FunctionDecl, 0, len(fnsOpts))
 	for _, fnOpts := range fnsOpts {
-		fn, err := cgDecls.NewFunction(fnOpts.name, fnOpts.opts...)
+		opts := make([]cgDecls.FunctionOpt, 0, len(fnOpts.overloads))
+		for _, ov := range fnOpts.overloads {
+			opts = append(opts, cgDecls.Overload(ov.name, ov.args, ov.res))
+		}
+		fn, err := cgDecls.NewFunction(fnOpts.name, opts...)
 		if err != nil {
 			return err
 		}
