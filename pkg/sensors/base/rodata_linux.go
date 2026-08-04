@@ -16,10 +16,11 @@ const (
 )
 
 type rodataConfig struct {
-	IterNum        uint8
-	UsePerfRingBuf uint8
-	EnvVarsEnabled uint8
-	Pad            [5]uint8
+	IterNum           uint8
+	UsePerfRingBuf    uint8
+	EnvVarsEnabled    uint8
+	ParentsMapEnabled uint8
+	Pad               [4]uint8
 }
 
 func b2u8(b bool) uint8 {
@@ -41,10 +42,14 @@ func rodataCurrent() rodataConfig {
 	// environment variables are enabled by --enable-process-environment-variables option
 	envVarsEnabled := b2u8(option.Config.EnableProcessEnvironmentVariables)
 
+	// parents match enabled by --parents-map-enabled option
+	parentsMapEnabled := b2u8(option.Config.ParentsMapEnabled)
+
 	return rodataConfig{
-		IterNum:        iterNum,
-		UsePerfRingBuf: usePerfRingBuf,
-		EnvVarsEnabled: envVarsEnabled,
+		IterNum:           iterNum,
+		UsePerfRingBuf:    usePerfRingBuf,
+		EnvVarsEnabled:    envVarsEnabled,
+		ParentsMapEnabled: parentsMapEnabled,
 	}
 }
 

@@ -32,7 +32,8 @@ struct rodata_config {
 	__u8 ITER_NUM;
 	__u8 USE_PERF_RING_BUF;
 	__u8 ENV_VARS_ENABLED;
-	__u8 pad[5];
+	__u8 PARENTS_MAP_ENABLED;
+	__u8 pad[4];
 };
 
 volatile const struct rodata_config rodata_config
@@ -44,6 +45,7 @@ volatile const struct rodata_config rodata_config
 
 /* For large programs ITER_NUM is disabled. */
 #ifdef __LARGE_BPF_PROG
+volatile const __u8 PARENTS_MAP_ENABLED;
 volatile const __u8 ENV_VARS_ENABLED;
 #define ITER_NUM     0
 #define CONFIG(name) name
