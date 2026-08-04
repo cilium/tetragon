@@ -11,6 +11,7 @@
 #include "bpf_d_path.h"
 #include "bpf_tracing.h"
 #include "bpf_ktime.h"
+#include "config.h"
 
 #include "cgroup/cgtracker.h"
 #include "errmetrics.h"
@@ -419,11 +420,9 @@ event_find_curr_probe(struct msg_generic_kprobe *msg)
 #endif
 
 #ifdef __LARGE_BPF_PROG
-volatile const __u8 PARENTS_MAP_ENABLED;
-
 FUNC_INLINE void update_parents_map(struct msg_execve_event *event, struct execve_map_value *curr)
 {
-	if (PARENTS_MAP_ENABLED) {
+	if (CONFIG(PARENTS_MAP_ENABLED)) {
 		__u32 zero = 0;
 		struct binary *bin = map_lookup_elem(&tg_binary_heap, &zero);
 
