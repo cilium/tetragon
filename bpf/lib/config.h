@@ -3,33 +3,39 @@
 
 #pragma once
 
+/*
+ * Read a field from a frozen, read-only rodata map, reconstructing the map
+ * pointer on each access to prevent the compiler from reusing it across
+ * multiple accesses in short succession. This makes branches based on
+ * config variables more likely to be predictable using backtracking, since
+ * load/deref/branch will be close to each other and the pointer won't be
+ * reused across basic blocks.
+ *
+ * map is the bare symbol name of the volatile const struct instance backing
+ * the map (see rodata_config below for Tetragon's own instance); type is
+ * that struct's type. Downstream projects can use this directly to back
+ * their own frozen config map (built on the Go side via
+ * program.MapBuilderRodataConfig) with their own struct.
+ */
+#define BPF_RODATA_FIELD(map, type, field)                                   \
+	({                                                                    \
+		void *out;                                                   \
+		asm volatile("%0 = " #map " ll"                              \
+			     : "=r"(out));                                   \
+		((volatile const type *)out)->field;                        \
+	})
+
 #ifdef __V511_BPF_PROG
 
-#define DECLARE_CONFIG(type, name) \
-	volatile const type CONFIG_##name;
+struct rodata_config {
+	__u8 ITER_NUM;
+	__u8 pad[7];
+};
 
-/*
- * Reconstruct the rodata pointer on each access to prevent the compiler
- * from reusing the pointer across multiple accesses in short
- * succession. This makes branches based on config variables more likely
- * to be predictable using backtracking, since load/deref/branch will be
- * close to each other and the pointer won't be reused across basic
- * blocks.
- *
- * Specifying the global var ptr as an asm input gives enough
- * information to the compiler to allow it to reuse the pointer across
- * blocks, so opt for a direct symbol reference instead. We need the
- * pointer reconstructed in bytecode on every access.
- */
-#define CONFIG(name)                                                  \
-	(*({                                                          \
-		void *out;                                            \
-		asm volatile("%0 = " __stringify(CONFIG_##name) " ll" \
-			     : "=r"(out));                            \
-		(typeof(CONFIG_##name) *)out;                         \
-	}))
+volatile const struct rodata_config rodata_config
+	__attribute__((section(".rodata.config"), used));
 
-DECLARE_CONFIG(bool, ITER_NUM);
+#define CONFIG(name) BPF_RODATA_FIELD(rodata_config, struct rodata_config, name)
 
 #else
 
