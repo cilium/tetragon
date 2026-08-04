@@ -20,6 +20,43 @@ make JAVA_HOME=/path/to/jdk-22 ASM_JAR=/path/to/asm-9.7.jar \
 
 ## Run
 
+For a local checkout, the helper scripts build and run the complete prototype.
+The first script uses `JAVA_HOME` when it points to JDK 22+, otherwise it falls
+back to the `eclipse-temurin:22-jdk` Docker image. It downloads the pinned ASM
+9.7 dependencies into the ignored `build/deps` directory, builds Tetragon, BPF,
+the CLI, agent, and sample, then starts Tetragon:
+
+```shell
+./run-tetragon.sh
+```
+
+Keep it running and launch the sample from another terminal:
+
+```shell
+./run-sample.sh
+```
+
+Use `JAVA_MONITOR_CLASS` and `JAVA_MONITOR_METHOD` to override the instrumented
+class and method. Any command-line arguments to `run-tetragon.sh` are appended
+to the Tetragon invocation, and arguments to `run-sample.sh` are passed to the
+sample application.
+
+Set either filter explicitly to an empty value to match everything. For
+example, monitor all methods in all non-excluded classes with:
+
+```shell
+JAVA_MONITOR_CLASS= JAVA_MONITOR_METHOD= ./run-sample.sh
+```
+
+To watch only Java events from a third terminal:
+
+```shell
+../../tetra --server-address localhost:54321 getevents \
+  --event-types PROCESS_JAVA -o compact
+```
+
+### Manual run
+
 Start Tetragon first and verify that the producer map exists:
 
 ```shell
