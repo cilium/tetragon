@@ -18,7 +18,8 @@ const (
 type rodataConfig struct {
 	IterNum        uint8
 	UsePerfRingBuf uint8
-	Pad            [6]uint8
+	EnvVarsEnabled uint8
+	Pad            [5]uint8
 }
 
 func b2u8(b bool) uint8 {
@@ -37,9 +38,13 @@ func rodataCurrent() rodataConfig {
 	// perf ring buffer is enabled by --use-perf-ring-buffer option
 	usePerfRingBuf := b2u8(option.Config.UsePerfRingBuffer)
 
+	// environment variables are enabled by --enable-process-environment-variables option
+	envVarsEnabled := b2u8(option.Config.EnableProcessEnvironmentVariables)
+
 	return rodataConfig{
 		IterNum:        iterNum,
 		UsePerfRingBuf: usePerfRingBuf,
+		EnvVarsEnabled: envVarsEnabled,
 	}
 }
 
