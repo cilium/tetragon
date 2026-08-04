@@ -58,6 +58,22 @@ func (field *Field) generateWith(g *protogen.GeneratedFile, msg *CheckedMessage)
 	return nil
 }
 
+// generateUnset emits an UnsetProcess/UnsetParent helper for the Process and
+// Parent fields, letting callers clear a check previously set via FromXxx.
+func (field *Field) generateUnset(g *protogen.GeneratedFile, msg *CheckedMessage) error {
+	if field.GoName != "Process" && field.GoName != "Parent" {
+		return nil
+	}
+
+	g.P(`// Unset` + field.GoName + ` unsets the ` + field.GoName + ` check to the ` + msg.checkerName(g))
+	g.P(`func (checker *` + msg.checkerName(g) + `) Unset` + field.GoName + `() *` + msg.checkerName(g) + `{
+        checker.` + field.GoName + ` = nil
+        return checker
+    }`)
+
+	return nil
+}
+
 func (field *Field) generateFrom(g *protogen.GeneratedFile, msg *CheckedMessage) error {
 	from, err := field.getFrom(g, msg)
 	if err != nil {
