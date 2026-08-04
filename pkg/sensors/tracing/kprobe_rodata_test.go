@@ -6,6 +6,8 @@
 package tracing
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/cilium/ebpf"
@@ -104,4 +106,53 @@ func TestObserverSharedRodataConfig(t *testing.T) {
 		assert.Equal(t, byte(1), contents[2], "parents-map flag")
 		assert.Equal(t, byte(1), contents[3], "environment-variable flag")
 	}
+}
+
+func TestObserverRodataConfigPinRemovedOnUnload(t *testing.T) {
+	if !kernels.MinKernelVersion("5.11") {
+		t.Skip("shared rodata config requires v5.11 BPF objects")
+	}
+
+	createCrdFile(t, rodataConfigPolicy)
+	sens, err := observertesthelper.GetDefaultSensorsWithFile(
+		t,
+		testConfigFile,
+		tus.Conf().TetragonLib,
+	)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		for _, sensor := range sens {
+			if sensor.IsLoaded() {
+				require.NoError(t, sensor.Unload(true))
+			}
+		}
+	})
+
+	pinPath := filepath.Join(bpf.MapPrefixPath(), "rodata_config")
+	_, err = os.Stat(pinPath)
+	require.NoError(t, err, "rodata config should be pinned while sensors reference it")
+
+	var baseSensor *sensors.Sensor
+	var otherSensors []*sensors.Sensor
+	for _, sensor := range sens {
+		if sensor.GetName() == sensors.BaseSensorName {
+			baseSensor = sensor
+		} else {
+			otherSensors = append(otherSensors, sensor)
+		}
+	}
+	require.NotNil(t, baseSensor)
+	require.NotEmpty(t, otherSensors)
+
+	for _, sensor := range otherSensors {
+		require.NoError(t, sensor.Unload(true))
+	}
+	_, err = os.Stat(pinPath)
+	require.NoError(t, err, "rodata config should remain pinned after non-base sensors are unloaded")
+
+	require.NoError(t, baseSensor.Unload(true))
+
+	_, err = os.Stat(pinPath)
+	assert.True(t, os.IsNotExist(err), "rodata config pin should be removed once the base sensor is unloaded")
 }
