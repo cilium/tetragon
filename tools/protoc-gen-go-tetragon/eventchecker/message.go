@@ -126,6 +126,7 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
 	for _, rawField := range msg.Fields {
 		field := &Field{Field: rawField, IsInnerField: false}
 		field.generateWith(g, msg)
+		field.generateUnset(g, msg)
 	}
 
 	// Generate From funcs
