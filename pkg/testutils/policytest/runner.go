@@ -231,6 +231,12 @@ func (r *LocalRunner) RunScenario(
 	ctx, cancel := context.WithTimeout(r.cli.Ctx, time.Second*10)
 	defer cancel()
 
+	// the process cache is disabled, so Process/Parent fields won't be populated: skip those checks
+	if processCacheDisabled(r.info) {
+		unsetProcessChecks(scenario.EventChecker)
+		unsetParentChecks(scenario.EventChecker)
+	}
+
 	// start the checker
 	resChan := make(chan *tetragon.GetEventsResponse, 128)
 	retChan := make(chan checkerRet)
