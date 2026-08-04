@@ -17,10 +17,8 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -929,33 +927,6 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 		}
 	}
 
-	confs := map[string]func(v *ebpf.VariableSpec) error{
-		"CONFIG_ITER_NUM": func(v *ebpf.VariableSpec) error {
-			// We can't use numeric iterator until we get following fix from 6.9 kernel:
-			//   4f81c16f50ba bpf: Recognize that two registers are safe when their ranges match
-			// otherwise our loop code crosses 1mil instructions verifier limit.
-			enabled := bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
-			if err := v.Set(enabled); err != nil {
-				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
-			}
-			return nil
-		},
-		"CONFIG_USE_PERF_RING_BUF": func(v *ebpf.VariableSpec) error {
-			if err := v.Set(option.Config.UsePerfRingBuffer); err != nil {
-				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
-			}
-			return nil
-		},
-	}
-
-	for n, c := range spec.Variables {
-		if conf, ok := confs[n]; ok {
-			if err := conf(c); err != nil {
-				return err
-			}
-		}
-	}
-
 	if len(missing) != 0 {
 		return fmt.Errorf("rewrite constants: %w", &MissingConstantsError{Constants: missing})
 	}
@@ -1090,6 +1061,8 @@ func doLoadProgram(
 
 		if pm, ok := resolveMap(name); ok {
 			mapPath = filepath.Join(bpfDir, pm.PinPath)
+		} else if pinName, ok := lookupRodataConfigMap(name); ok {
+			mapPath = filepath.Join(bpfDir, pinName)
 		} else {
 			mapPath = filepath.Join(bpfDir, name)
 		}
@@ -1099,12 +1072,15 @@ func doLoadProgram(
 	pinnedMaps := make(map[string]*ebpf.Map)
 	for name := range refMaps {
 		m, err := resolveRefMap(name)
-		if err == nil {
-			defer m.Close()
-			pinnedMaps[name] = m
-		} else {
+		if err != nil {
+			if _, ok := lookupRodataConfigMap(name); ok {
+				return nil, fmt.Errorf("loading required shared map %q: %w", name, err)
+			}
 			logger.GetLogger().Debug(fmt.Sprintf("pin file for map '%s' not found, map is not shared!\n", name), "prog", load.Label)
+			continue
 		}
+		defer m.Close()
+		pinnedMaps[name] = m
 	}
 
 	var opts ebpf.CollectionOptions
