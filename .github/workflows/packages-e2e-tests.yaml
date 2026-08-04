@@ -9,6 +9,8 @@ on:
 jobs:
   standalone-tarball-builds:
     runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-22.04-arm') || 'ubuntu-22.04' }}
+    outputs:
+      tag: ${{ steps.tarball.outputs.tag }}
     strategy:
       fail-fast: false
       matrix:
@@ -17,23 +19,19 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Getting version tag
-        id: tag
-        run: echo "tag=$(make version)" >> $GITHUB_OUTPUT
-
       - name: Generate Tetragon Tarball
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-          make tarball
-          mkdir upload/
-          mv ./build/${{ matrix.arch }}/linux-tarball/tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz ./upload/
+        id: tarball
+        uses: ./.github/actions/build-tarball
 
-      # Cache tarball releases for later
-      - name: Save tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz Tarball
+      - name: Move tarball to upload directory
+        run: |
+          mkdir upload/
+          mv ./build/${{ matrix.arch }}/linux-tarball/tetragon-${{ steps.tarball.outputs.tag }}-${{ matrix.arch }}.tar.gz ./upload/
+
+      - name: Save tetragon-${{ steps.tarball.outputs.tag }}-${{ matrix.arch }}.tar.gz Tarball
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}
+          name: tetragon-${{ steps.tarball.outputs.tag }}-${{ matrix.arch }}
           path: upload/
           retention-days: 1
 
@@ -52,17 +50,13 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Getting version tag
-        id: tag
-        run: echo "tag=$(make version)" >> $GITHUB_OUTPUT
-
-      - name: Retrieve tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz
+      - name: Retrieve tetragon-${{ needs.standalone-tarball-builds.outputs.tag }}-${{ matrix.arch }}.tar.gz
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}
+          name: tetragon-${{ needs.standalone-tarball-builds.outputs.tag }}-${{ matrix.arch }}
           path: ./download
 
-      - name: Move tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz to build
+      - name: Move tetragon-${{ needs.standalone-tarball-builds.outputs.tag }}-${{ matrix.arch }}.tar.gz to build
         run: |
           mkdir -p ./build/${{ matrix.arch }}/
           mv ./download ./build/${{ matrix.arch }}/linux-tarball
@@ -74,8 +68,8 @@ jobs:
 
       - name: Install Tetragon Tarball
         run: |
-          tar zxvf tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz
-          sudo ./tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}/install.sh
+          tar zxvf tetragon-${{ needs.standalone-tarball-builds.outputs.tag }}-${{ matrix.arch }}.tar.gz
+          sudo ./tetragon-${{ needs.standalone-tarball-builds.outputs.tag }}-${{ matrix.arch }}/install.sh
         working-directory: ./build/${{ matrix.arch }}/linux-tarball/
 
       - name: Wait for Tetragon service
@@ -135,5 +129,5 @@ jobs:
 
       - name: Uninstall Tetragon Tarball
         run: |
-          sudo ./tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}/uninstall.sh
+          sudo ./tetragon-${{ needs.standalone-tarball-builds.outputs.tag }}-${{ matrix.arch }}/uninstall.sh
         working-directory: ./build/${{ matrix.arch }}/linux-tarball/
