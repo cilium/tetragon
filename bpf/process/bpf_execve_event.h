@@ -7,6 +7,7 @@
 #include "bpf_mbset.h"
 #include "bpf_rate.h"
 #include "data_event.h"
+#include "config.h"
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
@@ -92,7 +93,6 @@ read_args(void *ctx, struct msg_execve_event *event)
 }
 
 #ifdef __LARGE_BPF_PROG
-volatile const __u8 ENV_VARS_ENABLED;
 
 FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
 {
@@ -105,7 +105,7 @@ FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
 	char *envs;
 	int err;
 
-	if (!ENV_VARS_ENABLED)
+	if (!CONFIG(ENV_VARS_ENABLED))
 		return 0;
 
 	envs = (char *)p + p->size;
