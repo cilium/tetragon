@@ -1,24 +1,20 @@
 name: vmtests-policytest
 
 on:
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - 'docs/**'
+  workflow_call:
+    inputs:
+      tag:
+        description: "Tetragon version tag; used to locate the release tarball artifact"
+        required: true
+        type: string
 
 jobs:
-  build:
-    name: Build
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
+  build-vmpolicy:
+    name: Build vmpolicy test data
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
-      group: ${{ github.ref }}-vmtests-policytests
+      group: ${{ github.ref }}-build-vmpolicy
       cancel-in-progress: true
     steps:
       - name: Checkout code
@@ -35,24 +31,18 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq libelf-dev netcat-traditional libcap-dev gcc libc6-dev-i386 pahole llvm
+          sudo apt-get install -y libelf-dev netcat-traditional libcap-dev gcc libc6-dev-i386 pahole llvm
           echo `which clang`
           echo `which llc`
           echo `clang --version`
 
-      - name: Build tester progs, vmtests, and tarball
+      - name: Build tester progs and vmtests
         env:
           GOPATH: /home/runner/work/tetragon/tetragon/go
         run: |
           cd go/src/github.com/cilium/tetragon/
           make -C tests/vmtests
           make tester-progs-tarball
-          make tarball
-
-      - name: Getting version tag
-        id: tag
-        run: echo "tag=$(make version)" >> $GITHUB_OUTPUT
-        working-directory: go/src/github.com/cilium/tetragon
 
       - name: Tar build
         run: |
@@ -62,11 +52,12 @@ jobs:
       - name: Upload build
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: tetragon-build
+          name: tetragon-vmpolicy-build
           path: /tmp/tetragon.tar
           retention-days: 5
 
   test:
+    needs: [build-vmpolicy]
     strategy:
       fail-fast: false
       matrix:
@@ -94,7 +85,6 @@ jobs:
     concurrency:
       group: ${{ github.ref }}-vmtest-${{ matrix.kernel }}-${{ matrix.group }}
       cancel-in-progress: true
-    needs: build
     name: Test kernel ${{ matrix.kernel }} / test group ${{ matrix.group }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -119,10 +109,10 @@ jobs:
         run: |
           sudo chmod go+rX -R /boot/
 
-      - name: Download build data
+      - name: Download vmpolicy build data
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: tetragon-build
+          name: tetragon-vmpolicy-build
 
       - name: Extract build data
         # NB: currently, due to how tests work, we need to extract to the same path.
@@ -130,11 +120,23 @@ jobs:
           mkdir -p go/src/github.com/cilium/
           tar xf tetragon.tar -C go/src/github.com/cilium
 
+      - name: Download amd64 tarball
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: tetragon-${{ inputs.tag }}-amd64
+          path: ./tarball-download
+
+      - name: Place amd64 tarball into build tree
+        run: |
+          dest="go/src/github.com/cilium/tetragon/build/amd64/linux-tarball"
+          mkdir -p "$dest"
+          mv ./tarball-download/tetragon-${{ inputs.tag }}-amd64.tar.gz "$dest/"
+
       - name: Test kernel ${{ matrix.kernel }}
         if: ${{ !startsWith(matrix.kernel, '4.19') }}
         run: |
           repo_root="$GITHUB_WORKSPACE/go/src/github.com/cilium/tetragon"
-          tetragon_tarball="$repo_root/build/amd64/linux-tarball/tetragon-${{ needs.build.outputs.tag }}-amd64.tar.gz"
+          tetragon_tarball="$repo_root/build/amd64/linux-tarball/tetragon-${{ inputs.tag }}-amd64.tar.gz"
           cd "$repo_root"
           ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
           kimage=$(find tests/vmtests/test-data/kernels -path "*vmlinuz*" -type f)
@@ -151,7 +153,7 @@ jobs:
         if: ${{ startsWith(matrix.kernel, '4.19') }}
         run: |
           repo_root="$GITHUB_WORKSPACE/go/src/github.com/cilium/tetragon"
-          tetragon_tarball="$repo_root/build/amd64/linux-tarball/tetragon-${{ needs.build.outputs.tag }}-amd64.tar.gz"
+          tetragon_tarball="$repo_root/build/amd64/linux-tarball/tetragon-${{ inputs.tag }}-amd64.tar.gz"
           cd "$repo_root"
           ./tests/vmtests/fetch-data.sh ${{ matrix.kernel }}
           kimage=$(find tests/vmtests/test-data/kernels -path "*vmlinuz*" -type f)
@@ -175,4 +177,4 @@ jobs:
       # delete the built binaries from the artifacts in case of overall success
       - uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6.0.0
         with:
-          name: tetragon-build
+          name: tetragon-vmpolicy-build

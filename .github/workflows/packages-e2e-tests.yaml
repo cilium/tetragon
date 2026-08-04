@@ -131,3 +131,9 @@ jobs:
         run: |
           sudo ./tetragon-${{ needs.standalone-tarball-builds.outputs.tag }}-${{ matrix.arch }}/uninstall.sh
         working-directory: ./build/${{ matrix.arch }}/linux-tarball/
+
+  vmpolicy-tests:
+    needs: [standalone-tarball-builds]
+    uses: ./.github/workflows/vmpolicytests.yaml
+    with:
+      tag: ${{ needs.standalone-tarball-builds.outputs.tag }}
