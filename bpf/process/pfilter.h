@@ -436,7 +436,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 		return 0;
 
 #ifdef __LARGE_BPF_PROG
-	if (PARENTS_MAP_ENABLED) {
+	if (CONFIG(PARENTS_MAP_ENABLED)) {
 		struct binary *parent_bin = map_lookup_elem(&tg_parents_bin, &enter->key.pid);
 
 		if (parent_bin)

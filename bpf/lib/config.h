@@ -32,7 +32,8 @@ struct rodata_config {
 	__u8 ITER_NUM;
 	__u8 USE_PERF_RING_BUF;
 	__u8 ENV_VARS_ENABLED;
-	__u8 pad[5];
+	__u8 PARENTS_MAP_ENABLED;
+	__u8 pad[4];
 };
 
 volatile const struct rodata_config rodata_config
@@ -53,11 +54,12 @@ volatile const struct rodata_config rodata_config
  * without compile-time elimination both get verified, which failed to
  * load on a real v5.4 kernel in CI.
  *
- * ENV_VARS_ENABLED doesn't have that problem - its call site is a plain
- * guard with no alternate branch, so it works fine as an ordinary
- * runtime value on any kernel.
+ * PARENTS_MAP_ENABLED/ENV_VARS_ENABLED don't have that problem - their
+ * call sites are plain guards with no alternate branch, so they work
+ * fine as ordinary runtime values on any kernel.
  */
 #ifdef __LARGE_BPF_PROG
+volatile const __u8 PARENTS_MAP_ENABLED;
 volatile const __u8 ENV_VARS_ENABLED;
 #define ITER_NUM     0
 #define CONFIG(name) name
