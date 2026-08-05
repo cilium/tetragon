@@ -94,67 +94,50 @@ func celLogicalNot(value ref.Val) ref.Val {
 	return celTypes.Bool(!bool(boolValue))
 }
 
-func celAdd(left, right ref.Val) ref.Val {
-	switch left := left.(type) {
-	case celTypes.Int:
-		right, ok := right.(celTypes.Int)
-		if !ok {
-			return celTypes.MaybeNoSuchOverloadErr(right)
+// celBinArithOp builds a binary arithmetic CEL function from per-type operators.
+// To add a new operation, just provide the four operator functions.
+func celBinArithOp(
+	intOp func(celTypes.Int, celTypes.Int) celTypes.Int,
+	uintOp func(celTypes.Uint, celTypes.Uint) celTypes.Uint,
+	s32Op func(int32, int32) int32,
+	u32Op func(uint32, uint32) uint32,
+) func(left, right ref.Val) ref.Val {
+	return func(left, right ref.Val) ref.Val {
+		switch left := left.(type) {
+		case celTypes.Int:
+			if r, ok := right.(celTypes.Int); ok {
+				return intOp(left, r)
+			}
+		case celTypes.Uint:
+			if r, ok := right.(celTypes.Uint); ok {
+				return uintOp(left, r)
+			}
+		case celS32:
+			if r, ok := right.(celS32); ok {
+				return newCelS32(s32Op(left.value, r.value))
+			}
+		case celU32:
+			if r, ok := right.(celU32); ok {
+				return newCelU32(u32Op(left.value, r.value))
+			}
 		}
-		return left + right
-	case celTypes.Uint:
-		right, ok := right.(celTypes.Uint)
-		if !ok {
-			return celTypes.MaybeNoSuchOverloadErr(right)
-		}
-		return left + right
-	case celS32:
-		right, ok := right.(celS32)
-		if !ok {
-			return celTypes.MaybeNoSuchOverloadErr(right)
-		}
-		return newCelS32(left.value + right.value)
-	case celU32:
-		right, ok := right.(celU32)
-		if !ok {
-			return celTypes.MaybeNoSuchOverloadErr(right)
-		}
-		return newCelU32(left.value + right.value)
-	default:
 		return celTypes.MaybeNoSuchOverloadErr(left)
 	}
 }
 
-func celSubtract(left, right ref.Val) ref.Val {
-	switch left := left.(type) {
-	case celTypes.Int:
-		right, ok := right.(celTypes.Int)
-		if !ok {
-			return celTypes.MaybeNoSuchOverloadErr(right)
-		}
-		return left - right
-	case celTypes.Uint:
-		right, ok := right.(celTypes.Uint)
-		if !ok {
-			return celTypes.MaybeNoSuchOverloadErr(right)
-		}
-		return left - right
-	case celS32:
-		right, ok := right.(celS32)
-		if !ok {
-			return celTypes.MaybeNoSuchOverloadErr(right)
-		}
-		return newCelS32(left.value - right.value)
-	case celU32:
-		right, ok := right.(celU32)
-		if !ok {
-			return celTypes.MaybeNoSuchOverloadErr(right)
-		}
-		return newCelU32(left.value - right.value)
-	default:
-		return celTypes.MaybeNoSuchOverloadErr(left)
-	}
-}
+var celAdd = celBinArithOp(
+	func(a, b celTypes.Int) celTypes.Int { return a + b },
+	func(a, b celTypes.Uint) celTypes.Uint { return a + b },
+	func(a, b int32) int32 { return a + b },
+	func(a, b uint32) uint32 { return a + b },
+)
+
+var celSubtract = celBinArithOp(
+	func(a, b celTypes.Int) celTypes.Int { return a - b },
+	func(a, b celTypes.Uint) celTypes.Uint { return a - b },
+	func(a, b int32) int32 { return a - b },
+	func(a, b uint32) uint32 { return a - b },
+)
 
 func compareIntegers[T int32 | uint32 | celTypes.Int | celTypes.Uint](op string, left, right T) ref.Val {
 	switch op {
