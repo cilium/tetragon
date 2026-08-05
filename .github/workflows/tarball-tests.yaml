@@ -1,4 +1,4 @@
-name: Packages e2e Tests
+name: Tarball Tests
 
 on:
   pull_request:
