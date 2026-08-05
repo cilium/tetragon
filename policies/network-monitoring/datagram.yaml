@@ -1,0 +1,15 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "datagram"
+spec:
+  kprobes:
+  - call: "__cgroup_bpf_run_filter_skb"
+    syscall: false
+    args:
+      - index: 0
+        type: sock
+      - index: 1
+        type: skb
+      - index: 2
+        type: int
