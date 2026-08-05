@@ -491,3 +491,98 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(upChecker),
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-set").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-set"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    selectors:
+    - matchActions:
+      - action: Set
+        argIndex: 0
+        argValue: 42
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	// skip if uprobe_regs_change is not supported
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	myBin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-set").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(myBin))).
+		WithSymbol(sm.Full("pizza"))
+
+	exitCode := 42
+	if c.TestConf != nil && c.TestConf.MonitorMode {
+		exitCode = 0
+	}
+	postCnt := uint64(1)
+	setCnt := uint64(1)
+	return &policytest.Scenario{
+		Name:         "execute uprobe-simple, check set action and events",
+		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(exitCode),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Post: &postCnt,
+			Set:  &setCnt,
+		},
+	}
+}).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-override-set").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-set"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: "lasagna"
+      - action: Set
+        argIndex: 0
+        argValue: 42
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	// skip if uprobe_regs_change is not supported
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	myBin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-override-set").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(myBin))).
+		WithSymbol(sm.Full("pizza"))
+
+	// see uprobe-simple.c: lasagna() returns (param - 10)
+	exitCode := 32
+	if c.TestConf != nil && c.TestConf.MonitorMode {
+		exitCode = 0
+	}
+	postCnt := uint64(1)
+	setCnt := uint64(1)
+	overrideCnt := uint64(1)
+	return &policytest.Scenario{
+		Name:         "execute uprobe-simple, check set action and events",
+		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(exitCode),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Post:     &postCnt,
+			Set:      &setCnt,
+			Override: &overrideCnt,
+		},
+	}
+}).RegisterAtInit()
