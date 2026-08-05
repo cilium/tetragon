@@ -8,6 +8,7 @@ on:
 
 jobs:
   standalone-tarball-builds:
+    name: Build tarball (${{ matrix.arch }})
     runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-22.04-arm') || 'ubuntu-22.04' }}
     outputs:
       tag: ${{ steps.tarball.outputs.tag }}
@@ -36,6 +37,7 @@ jobs:
           retention-days: 1
 
   standalone-tarball-tests:
+    name: Packages e2e tests (${{ matrix.arch }})
     needs: [standalone-tarball-builds]
     runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-22.04-arm') || 'ubuntu-22.04' }}
     strategy:
