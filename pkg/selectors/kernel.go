@@ -1268,8 +1268,19 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	case ActionTypeCleanupEnforcerNotification:
 		// no arguments
 	case ActionTypeSet:
-		WriteSelectorUint32(&k.data, action.ArgIndex)
-		WriteSelectorUint32(&k.data, action.ArgValue)
+		if k.isUprobe {
+			err := parseSetRegs(k, selIdx, action.ArgIndex, action.ArgValue)
+			if err != nil {
+				return err
+			}
+			WriteSelectorUint32(&k.data, k.UprobeRegsMapID(selIdx))
+			// value is discarded since we use `regs_map` to pass the assignments.
+			WriteSelectorUint32(&k.data, action.ArgValue)
+		} else {
+			// usdt
+			WriteSelectorUint32(&k.data, action.ArgIndex)
+			WriteSelectorUint32(&k.data, action.ArgValue)
+		}
 	default:
 		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
 	}
