@@ -49,7 +49,17 @@ PROGS = sigkill-tester \
 LIBS =	libuprobe.so \
 	libtester.so
 
-all: $(PROGS)
+# Auxiliary artifacts generated alongside tester programs. Keep this list with
+# PROGS and LIBS so container images and tarballs can stage the complete test
+# payload without duplicating the program inventory.
+OTHER_FILES = usdt-resolve.btf \
+	uprobe-resolve.btf \
+	uprobe-null.btf \
+	resolve-nested-anon-struct.btf
+
+ALL_FILES = $(PROGS) $(LIBS) $(OTHER_FILES)
+
+all: $(PROGS) $(LIBS)
 
 %: %.c
 	$(GCC) -Wall $< -o $@
@@ -183,7 +193,12 @@ pclntab-stripped: FORCE
 
 .PHONY: clean
 clean:
-	rm -f $(PROGS) $(LIBS) *.btf
+	rm -f $(ALL_FILES) *.btf
+
+# Used by image and archive builders after compiling the default all target.
+.PHONY: all-files
+all-files:
+	@echo $(ALL_FILES)
 
 OTHER_FILES = resolve-nested-anon-struct.btf uprobe-resolve.btf
 
