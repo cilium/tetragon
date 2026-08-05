@@ -23,6 +23,8 @@ import (
 var (
 	int32Fn  = "int32"
 	uint32Fn = "uint32"
+
+	andFn = "and"
 )
 
 type fnOverload struct {
@@ -79,6 +81,10 @@ func getFnsOpts() []fnOpts {
 		// Addition and Subtraction
 		{name: cgOperators.Add, overloads: intBinaryOperatorFnOverloads("add")},
 		{name: cgOperators.Subtract, overloads: intBinaryOperatorFnOverloads("sub")},
+
+		// Bitwise functions
+		// NB(kkourt): it seems that there is no way to add custom operators to CEL
+		{name: andFn, overloads: intBinaryOperatorFnOverloads(andFn)},
 
 		// Integer casting
 		{name: int32Fn, overloads: []fnOverload{
