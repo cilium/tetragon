@@ -595,6 +595,17 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 	if selectors.HasGetUrlOrDnsLookup(spec.Selectors) {
 		return errors.New("failed to configure uprobe, GetUrl and DnsLookup actions not supported")
 	}
+
+	for _, s := range spec.Selectors {
+		for _, action := range s.MatchActions {
+			if action.Action != "Set" {
+				continue
+			}
+			if action.ArgIndex >= api.EventConfigMaxArgs {
+				return fmt.Errorf("uprobe Set action argIndex %d out of range", action.ArgIndex)
+			}
+		}
+	}
 	return nil
 }
 
@@ -602,6 +613,13 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 	if selectors.HasOverride(spec.Selectors) {
 		if !bpf.HasUprobeRegsChange() {
 			return errors.New("can't use override regs action, no kernel support")
+		}
+		has.sleepableOffload = true
+	}
+
+	if selectors.HasSet(spec.Selectors) {
+		if !bpf.HasUprobeRegsChange() {
+			return errors.New("can't use set action, no kernel support")
 		}
 		has.sleepableOffload = true
 	}
