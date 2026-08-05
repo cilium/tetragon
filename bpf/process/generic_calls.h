@@ -1059,7 +1059,12 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		index = actions->act[++i];
 		value = actions->act[++i];
 		if (enforce_mode) {
+#if defined(GENERIC_UPROBE)
+			// value is discarded here
+			do_uprobe_override(ctx, index);
+#else
 			do_set_action(ctx, e, index, value);
+#endif
 			polacct = POLICY_SET;
 		} else {
 			polacct = POLICY_MONITOR_SET;
