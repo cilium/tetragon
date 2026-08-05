@@ -2,15 +2,22 @@
 
 int
 __attribute__((noinline))
-pizza()
+pizza(int c)
 {
-	return 0;
+	return c;
+}
+
+int
+__attribute__((noinline))
+lasagna(int c)
+{
+	return c - 10;
 }
 
 int
 main(int argc, char *argv[])
 {
-	int ret = pizza();
+	int ret = pizza(0);
 	printf("pizza() returned %d\n", ret);
 	return ret;
 }
