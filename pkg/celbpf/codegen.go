@@ -156,62 +156,34 @@ func (g *codeGenerator) pushArg(argTy *cgTypes.Type, argOffset uint16, tmp1, tmp
 }
 
 // emit subtraction
-func (g *codeGenerator) emitSub(
+func (g *codeGenerator) emitArithOp(
+	op asm.ALUOp,
 	r1 asm.Register, ty1 *cgTypes.Type,
 	r2 asm.Register, ty2 *cgTypes.Type,
 ) error {
+	var ins asm.Instruction
 	switch {
 	case ty1.TypeName() == s64Ty.TypeName() && ty2.TypeName() == s64Ty.TypeName(),
 		ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName():
-
-		g.stackTop -= 8
-		g.emitRaw(
-			asm.Sub.Reg(r1, r2),
-			asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
-		)
+		ins = op.Reg(r1, r2)
 
 	case ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
 		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
-		g.stackTop -= 8
-		g.emitRaw(
-			asm.Sub.Reg32(r1, r2),
-			asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
-		)
+		ins = op.Reg32(r1, r2)
 
 	default:
-		return fmt.Errorf("subtraction between types %s and %s is not supported", ty1.TypeName(), ty2.TypeName())
+		return fmt.Errorf("operation between types %s and %s is not supported", ty1.TypeName(), ty2.TypeName())
 	}
 
-	return nil
-}
-
-// emit addition
-func (g *codeGenerator) emitAdd(
-	r1 asm.Register, ty1 *cgTypes.Type,
-	r2 asm.Register, ty2 *cgTypes.Type,
-) error {
-	switch {
-	case ty1.TypeName() == s64Ty.TypeName() && ty2.TypeName() == s64Ty.TypeName(),
-		ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName():
-
-		g.stackTop -= 8
-		g.emitRaw(
-			asm.Add.Reg(r1, r2),
-			asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
-		)
-
-	case ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
-		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
-		g.stackTop -= 8
-		g.emitRaw(
-			asm.Add.Reg32(r1, r2),
-			asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
-		)
-
-	default:
-		return fmt.Errorf("addition between types %s and %s is not supported", ty1.TypeName(), ty2.TypeName())
+	if ins.OpCode == asm.InvalidOpCode {
+		return fmt.Errorf("invalid opcode for ALU op %v", op)
 	}
 
+	g.stackTop -= 8
+	g.emitRaw(
+		ins,
+		asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
+	)
 	return nil
 }
 
