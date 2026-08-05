@@ -185,7 +185,7 @@ func celInequality(op string, left, right ref.Val) ref.Val {
 	}
 }
 
-func getOverloadOpts(o *fnOverload) []cel.OverloadOpt {
+func getOverloadOpts(t *testing.T, o *fnOverload) []cel.OverloadOpt {
 	var ret []cel.OverloadOpt
 	switch o.name {
 	case "u32fromuint":
@@ -196,6 +196,9 @@ func getOverloadOpts(o *fnOverload) []cel.OverloadOpt {
 		return append(ret, cel.UnaryBinding(func(value ref.Val) ref.Val {
 			return newCelS32(int32(value.(celTypes.Int)))
 		}))
+	case "equals", "not_equals", "logical_and", "logical_or":
+		return ret
+
 	}
 
 	if strings.HasPrefix(o.name, "sub_") {
@@ -219,6 +222,7 @@ func getOverloadOpts(o *fnOverload) []cel.OverloadOpt {
 		return append(ret, cel.UnaryBinding(celLogicalNot))
 	}
 
+	t.Fatalf("TODO: implement getOverloadOpts for %s", o.name)
 	return ret
 }
 
@@ -233,7 +237,7 @@ func evalCEL(t *testing.T, expr string, hookArgs []any) uint32 {
 	for _, fnOpt := range getFnsOpts() {
 		fnOpts := make([]cel.FunctionOpt, 0, len(fnOpt.overloads))
 		for _, o := range fnOpt.overloads {
-			overloadOpts := getOverloadOpts(&o)
+			overloadOpts := getOverloadOpts(t, &o)
 			fnOpts = append(fnOpts, cel.Overload(o.name, o.args, o.res, overloadOpts...))
 		}
 		opts = append(opts, cel.Function(fnOpt.name, fnOpts...))
@@ -267,7 +271,7 @@ func evalCEL(t *testing.T, expr string, hookArgs []any) uint32 {
 	prog, err := env.Program(ast)
 	require.NoError(t, err)
 	result, _, err := prog.Eval(values)
-	require.NoError(t, err)
+	require.NoError(t, err, "Failed to evaluate CEL program")
 
 	boolResult, ok := result.(celTypes.Bool)
 	require.True(t, ok, "CEL expression %q returned %T, not bool", expr, result)
