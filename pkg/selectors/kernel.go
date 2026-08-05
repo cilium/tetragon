@@ -1863,8 +1863,8 @@ func HasOperator(selectors []v1alpha1.KProbeSelector, op uint32) bool {
 	return false
 }
 
-func HasSetArgIndex(spec *v1alpha1.UsdtSpec) (bool, uint32) {
-	for _, s := range spec.Selectors {
+func HasSetArgIndex(selectors []v1alpha1.KProbeSelector) (bool, uint32) {
+	for _, s := range selectors {
 		for _, action := range s.MatchActions {
 			act := actionTypeTable[strings.ToLower(action.Action)]
 			if act == ActionTypeSet {
@@ -1875,8 +1875,8 @@ func HasSetArgIndex(spec *v1alpha1.UsdtSpec) (bool, uint32) {
 	return false, 0
 }
 
-func HasSet(spec *v1alpha1.UsdtSpec) bool {
-	ok, _ := HasSetArgIndex(spec)
+func HasSet(selectors []v1alpha1.KProbeSelector) bool {
+	ok, _ := HasSetArgIndex(selectors)
 	return ok
 }
 
