@@ -82,18 +82,26 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 
 	case cgOperators.Add:
 		emitCall = func() error {
-			return c.cg.emitAdd(
+			if err := c.cg.emitArithOp(
+				asm.Add,
 				scratchRegs[0], argTypes[0],
 				scratchRegs[1], argTypes[1],
-			)
+			); err != nil {
+				return fmt.Errorf("addition %w", err)
+			}
+			return nil
 		}
 
 	case cgOperators.Subtract:
 		emitCall = func() error {
-			return c.cg.emitSub(
+			if err := c.cg.emitArithOp(
+				asm.Sub,
 				scratchRegs[0], argTypes[0],
 				scratchRegs[1], argTypes[1],
-			)
+			); err != nil {
+				return fmt.Errorf("subtraction %w", err)
+			}
+			return nil
 		}
 
 	case cgOperators.LogicalAnd:
