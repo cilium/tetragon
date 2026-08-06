@@ -6,6 +6,7 @@
 package tracing
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto"
@@ -18,11 +19,18 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
+	"time"
 
 	"github.com/cilium/ebpf"
 	lru "github.com/hashicorp/golang-lru/v2"
+
+	"github.com/cilium/tetragon/pkg/process"
 
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
@@ -59,7 +67,9 @@ type observerUprobeSensor struct {
 const disableNotAllowedReasonBinaryDigests = "binaryDigests configured"
 
 var (
-	uprobeTable idtable.Table
+	uprobeTable          idtable.Table
+	libcBaseAddrsMap     *program.Map
+	watchedExecFilenames []string
 )
 
 func getOrOpenFile(path string, openedFilesMap map[string]*os.File) (*os.File, error) {
@@ -110,6 +120,7 @@ type genericUprobe struct {
 	// tags field of the Tracing Policy
 	tags []string
 
+	dynOv *dynamicOverride
 	// for uprobes that have a retprobe, we maintain the enter events in
 	// the map, so that we can merge them when the return event is
 	// generated. The events are maintained in the map below, using
@@ -117,7 +128,7 @@ type genericUprobe struct {
 	pendingEvents *lru.Cache[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]]
 }
 
-func populateUprobeRegs(m *ebpf.Map, id uint32, regs []processapi.RegAssignment) error {
+func populateUprobeRegs(m *ebpf.Map, id uint32, regs []processapi.RegAssignment, dynOv *dynamicOverride) error {
 	uprobeRegs := processapi.UprobeRegs{}
 
 	n := copy(uprobeRegs.Ass[:], regs)
@@ -125,12 +136,28 @@ func populateUprobeRegs(m *ebpf.Map, id uint32, regs []processapi.RegAssignment)
 		logger.GetLogger().Warn("register assignments count mismatch", "#regs", len(regs))
 	}
 	uprobeRegs.Cnt = uint32(n)
+
+	if dynOv != nil {
+		sopath := dynOv.library + "\000"
+		n = copy(uprobeRegs.Sopath[:], sopath)
+		if n != len(sopath) {
+			logger.GetLogger().Warn("register sopath count mismatch", "len sopath", len(sopath))
+		}
+		uprobeRegs.SopathLen = uint32(n)
+
+		symbol := dynOv.symbol + "\000"
+		n = copy(uprobeRegs.Symbol[:], symbol)
+		if n != len(symbol) {
+			logger.GetLogger().Warn("register symbol count mismatch", "len symbol", len(symbol))
+		}
+		uprobeRegs.SymbolLen = uint32(n)
+	}
 	return m.Update(id, uprobeRegs, ebpf.UpdateAny)
 }
 
-func populateSelectorRegsMap(m *ebpf.Map, selector *selectors.KernelSelectorState) error {
+func populateSelectorRegsMap(m *ebpf.Map, selector *selectors.KernelSelectorState, dynOv *dynamicOverride) error {
 	for selIdx, regs := range selector.Regs() {
-		err := populateUprobeRegs(m, selector.UprobeRegsMapID(selIdx), regs)
+		err := populateUprobeRegs(m, selector.UprobeRegsMapID(selIdx), regs, dynOv)
 		if err != nil {
 			return err
 		}
@@ -284,7 +311,7 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 				&program.MapLoad{
 					Name: "regs_map",
 					Load: func(m *ebpf.Map, _ string) error {
-						return populateSelectorRegsMap(m, selector)
+						return populateSelectorRegsMap(m, selector, uprobeEntry.dynOv)
 					},
 				},
 			)
@@ -305,6 +332,14 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 
 	if err := program.LoadUprobeProgram(args.BPFDir, args.Load, args.Maps, args.Verbose); err != nil {
 		return err
+	}
+
+	if uprobeEntry.dynOv != nil {
+		// Add the path to the watched list and try to load libc addrs for running processes.
+		watchedExecFilenames = append(watchedExecFilenames, uprobeEntry.targetPath)
+		for _, entry := range process.GetCacheEntries() {
+			LoadLibcAddrForPid(entry.Process.Binary, entry.Process.Tid.Value)
+		}
 	}
 
 	logger.GetLogger().Info(fmt.Sprintf("Loaded generic uprobe program: %s -> %s [%s]", args.Load.Name, uprobeEntry.targetPath, uprobeEntry.symbol))
@@ -401,7 +436,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 					&program.MapLoad{
 						Name: "regs_map",
 						Load: func(m *ebpf.Map, _ string) error {
-							return populateSelectorRegsMap(m, selector)
+							return populateSelectorRegsMap(m, selector, uprobeEntry.dynOv)
 						},
 					},
 				)
@@ -522,6 +557,7 @@ type uprobeConfigState struct {
 	addrs          int
 	refCtrOffsets  int
 	overrideSymbol bool
+	dynOv          *dynamicOverride
 
 	selectors kprobeSelectors
 
@@ -598,6 +634,10 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 		if !bpf.HasUprobeRegsChange() {
 			return errors.New("can't use override regs action, no kernel support")
 		}
+		// TODO only check if we are in dynamic symbol support
+		if !bpf.HasProbeWriteUserHelper() {
+			return errors.New("can't use bpf_probe_write_user, no kernel support")
+		}
 		has.sleepableOffload = true
 	}
 
@@ -618,41 +658,60 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 	return nil
 }
 
-func computeArgNewOffset(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAddr uint64) (int64, error) {
-	var err error
+type dynamicOverride struct {
+	library string
+	symbol  string
+}
+
+func computeArgNewOffset(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAddr uint64) (int64, *dynamicOverride, error) {
+	var (
+		err   error
+		dynOv dynamicOverride
+	)
 	for _, sel := range spec.Selectors {
 		for _, matchAct := range sel.MatchActions {
 			if matchAct.Action == "Override" {
 				// Load override-symbol VA
 				var overrideSymbAddr uint64
 				if matchAct.ArgNewSymbol != "" {
-					overrideSymbAddr, err = f.Address(matchAct.ArgNewSymbol)
+					symbols := strings.Split(matchAct.ArgNewSymbol, ":")
+					if len(symbols) == 1 {
+						overrideSymbAddr, err = f.Address(matchAct.ArgNewSymbol)
+					} else if len(symbols) == 2 {
+						dynOv.library = symbols[0]
+						dynOv.symbol = symbols[1]
+					} else {
+						err = fmt.Errorf("wrong argNewSymbol specified: %q", matchAct.ArgNewSymbol)
+					}
 				} else if matchAct.ArgNewAddr != 0 {
 					overrideSymbAddr = matchAct.ArgNewAddr
 				} else {
 					overrideSymbAddr, err = f.AddrFromOffset(uint64(matchAct.ArgNewOffset))
 				}
 				if err != nil {
-					return 0, err
+					return 0, nil, err
 				}
 
-				// Store the relative-to-traced-symbol delta.
-				// This is computed based on virtual address for both symbols.
-				// Since ASLR just changes the base address,
-				// the relative delta are stable.
-				// In bpf, we will compute the override symbol address as:
-				// * curr_ip = PT_REGS_IP(ctx);
-				// * next_ip = curr_ip + delta
-				return int64(overrideSymbAddr - symbolAddr), nil
+				if overrideSymbAddr != 0 {
+					// Store the relative-to-traced-symbol delta.
+					// This is computed based on virtual address for both symbols.
+					// Since ASLR just changes the base address,
+					// the relative delta are stable.
+					// In bpf, we will compute the override symbol address as:
+					// * curr_ip = PT_REGS_IP(ctx);
+					// * next_ip = curr_ip + delta
+					return int64(overrideSymbAddr - symbolAddr), nil, nil
+				}
+				return 0, &dynOv, nil
 			}
 		}
 	}
-	return 0, errors.New("state.overrideSymbol is true but no corresponding Override action found in spec.Selectors")
+	return 0, nil, errors.New("state.overrideSymbol is true but no corresponding Override action found in spec.Selectors")
 }
 
-func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigState, f *elf.SafeELFFile) (int64, error) {
+func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigState, f *elf.SafeELFFile) (int64, *dynamicOverride, error) {
 	if !state.overrideSymbol {
-		return 0, nil
+		return 0, nil, nil
 	}
 
 	// Load probed symbol offset
@@ -668,13 +727,13 @@ func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigStat
 		symbolAddr, err = f.AddrFromOffset(spec.Offsets[0])
 	}
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	return computeArgNewOffset(spec, f, symbolAddr)
 }
 
 func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState, f *elf.SafeELFFile, nextIdx int) error {
-	ipDelta, err := initOverrideSymbolOffset(spec, state, f)
+	ipDelta, dynOv, err := initOverrideSymbolOffset(spec, state, f)
 	if err != nil {
 		return err
 	}
@@ -690,6 +749,8 @@ func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *upro
 	if err != nil {
 		return err
 	}
+
+	state.dynOv = dynOv
 
 	state.selectors = kprobeSelectors{
 		entry: entry,
@@ -892,6 +953,12 @@ func createGenericUprobeSensor(
 	var has uprobeHas
 	var celExprs *selectors.CelExprFunctions
 	var statuses []*tetragon.HookStatus
+
+	// TODO: path must be taken somewhere :D
+	spec.UProbes = append(spec.UProbes, v1alpha1.UProbeSpec{
+		Path:    "/usr/lib/x86_64-linux-gnu/libc.so.6",
+		Symbols: []string{"mmap", "dlopen", "dlsym"},
+	})
 
 	// use multi uprobe only if:
 	// - it's not disabled by spec option
@@ -1283,6 +1350,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 			argReturnPrinters: state.argReturnPrinters,
 			tags:              state.tags,
 			pendingEvents:     nil,
+			dynOv:             state.dynOv,
 		}
 
 		uprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]](option.Config.RetprobesCacheSize)
@@ -1487,7 +1555,12 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		regsMap.SetMaxEntries(max(regsMapEntries, 1))
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
-		maps = append(maps, regsMap, sleepableOffloadMap)
+
+		libcBaseAddrsMap = program.MapBuilder("libc_base_addrs_map", load)
+		pendingCallsMap := program.MapBuilder("pending_calls", load)
+		resolvedCacheMap := program.MapBuilder("resolved_cache", load)
+
+		maps = append(maps, regsMap, sleepableOffloadMap, libcBaseAddrsMap, pendingCallsMap, resolvedCacheMap)
 	}
 
 	if has.sleepablePreload {
@@ -1562,15 +1635,32 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 
 	loadProgName, loadProgRetName := config.GenericUprobeObjs(false)
 
-	pinSymbol := strings.ReplaceAll(uprobeEntry.symbol, ".", "_")
-	load := program.Builder(
-		path.Join(option.Config.HubbleLib, loadProgName),
-		fmt.Sprintf("%s %s", uprobeEntry.targetPath, uprobeEntry.symbol),
-		"uprobe/generic_uprobe",
-		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, pinSymbol),
-		"generic_uprobe").
-		SetLoaderData(uprobeEntry).
-		SetPolicy(uprobeEntry.policyName)
+	var (
+		load      *program.Program
+		pinSymbol string
+	)
+
+	if uprobeEntry.symbol == "mmap" || uprobeEntry.symbol == "dlopen" || uprobeEntry.symbol == "dlsym" {
+		pinSymbol = fmt.Sprintf("handle_%s_ret", uprobeEntry.symbol)
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgName),
+			fmt.Sprintf("uretprobe/%s", uprobeEntry.symbol),
+			fmt.Sprintf("uretprobe/%s", uprobeEntry.symbol),
+			fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, pinSymbol),
+			"generic_uprobe",
+		).SetLoaderData(uprobeEntry).
+			SetPolicy(uprobeEntry.policyName).SetRetProbe(true)
+	} else {
+		pinSymbol = strings.ReplaceAll(uprobeEntry.symbol, ".", "_")
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgName),
+			fmt.Sprintf("%s %s", uprobeEntry.targetPath, uprobeEntry.symbol),
+			"uprobe/generic_uprobe",
+			fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, pinSymbol),
+			"generic_uprobe").
+			SetLoaderData(uprobeEntry).
+			SetPolicy(uprobeEntry.policyName)
+	}
 
 	load.SleepableOffload = has.sleepableOffload
 	load.SleepablePreload = has.sleepablePreload
@@ -1594,15 +1684,21 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	}
 
 	if has.sleepableOffload {
-		regsMap := program.MapBuilderProgram("regs_map", load)
+		regsMap := program.MapBuilder("regs_map", load)
 		// keep the map valid even when this particular entry has no
 		// register assignments of its own (e.g. only a sibling uprobe
 		// in the same policy needs the override action)
 		regsMapEntries := max(len(uprobeEntry.loadArgs.selectors.entry.Regs()), 1)
 		regsMap.SetMaxEntries(regsMapEntries)
+
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
-		maps = append(maps, regsMap, sleepableOffloadMap)
+
+		libcBaseAddrsMap = program.MapBuilder("libc_base_addrs_map", load)
+		pendingCallsMap := program.MapBuilder("pending_calls", load)
+		resolvedCacheMap := program.MapBuilder("resolved_cache", load)
+
+		maps = append(maps, regsMap, sleepableOffloadMap, libcBaseAddrsMap, pendingCallsMap, resolvedCacheMap)
 	}
 
 	if has.sleepablePreload {
@@ -1643,4 +1739,170 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
 	return progs, maps
+}
+
+// LibcOffsets holds symbol values relative to load bias (i.e., NOT yet
+// adjusted for a specific process's ASLR base). These are stable for a
+// given libc binary on disk, so we cache them by file identity.
+type LibcOffsets struct {
+	MmapOff   uint64
+	DlopenOff uint64
+	DlsymOff  uint64
+}
+
+type fileKey struct {
+	dev, ino uint64
+}
+
+var (
+	offsetCache sync.Map // fileKey -> *LibcOffsets
+)
+
+// candidate symbol names, in priority order, to handle glibc's merged
+// libc (>=2.34, dlopen lives directly in libc.so) vs older glibc
+// (dlopen in libdl.so, sometimes only __libc_dlopen_mode exported in libc)
+// vs musl (dlopen in libc.so under the same name).
+var dlopenCandidates = []string{"dlopen", "__libc_dlopen_mode"}
+
+func loadOffsets(fullPath string, key fileKey) (*LibcOffsets, error) {
+	if v, ok := offsetCache.Load(key); ok {
+		return v.(*LibcOffsets), nil
+	}
+
+	ef, err := elf.OpenSafeELFFile(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("opening %s: %w", fullPath, err)
+	}
+	defer ef.Close()
+
+	syms, err := ef.DynamicSymbols()
+	if err != nil {
+		return nil, fmt.Errorf("reading dynsym from %s: %w", fullPath, err)
+	}
+
+	out := &LibcOffsets{
+		MmapOff:   0,
+		DlopenOff: 0,
+		DlsymOff:  0,
+	}
+	for _, s := range syms {
+		switch {
+		case s.Name == "mmap" && out.MmapOff == 0:
+			out.MmapOff = s.Value
+		case s.Name == "dlsym" && out.DlsymOff == 0:
+			out.DlsymOff = s.Value
+		default:
+			for _, cand := range dlopenCandidates {
+				if s.Name == cand && out.DlopenOff == 0 {
+					out.DlopenOff = s.Value
+				}
+			}
+		}
+	}
+
+	if out.MmapOff == 0 || out.DlopenOff == 0 || out.DlsymOff == 0 {
+		return nil, fmt.Errorf(
+			"missing required symbols in %s (mmap=%#x dlopen=%#x dlsym=%#x)",
+			fullPath, out.MmapOff, out.DlopenOff, out.DlsymOff)
+	}
+
+	offsetCache.Store(key, out)
+	return out, nil
+}
+
+var libcRe = regexp.MustCompile(`/libc(-[\d.]+)?\.so(\.\d+)?$`)
+
+// findLibcBase scans /proc/<pid>/maps for the libc mapping whose file
+// offset is 0 — the segment containing the ELF header, whose start
+// address equals the load bias for the vast majority of libc builds.
+func findLibcBase(pid uint32) (relPath string, base uint64, err error) {
+	mapsPath := fmt.Sprintf("/proc/%d/maps", pid)
+	f, err := os.Open(mapsPath)
+	if err != nil {
+		return "", 0, err
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 6 {
+			continue
+		}
+		pathname := fields[len(fields)-1]
+		if !libcRe.MatchString(pathname) {
+			continue
+		}
+		offset, err := strconv.ParseUint(fields[2], 16, 64)
+		if err != nil || offset != 0 {
+			continue
+		}
+		start, err := strconv.ParseUint(strings.Split(fields[0], "-")[0], 16, 64)
+		if err != nil {
+			continue
+		}
+		return pathname, start, nil
+	}
+	if err := scanner.Err(); err != nil {
+		return "", 0, err
+	}
+	return "", 0, fmt.Errorf("no libc mapping with offset 0 found for pid %d", pid)
+}
+
+type LibcAddrs struct {
+	MmapAddr   uint64
+	DlopenAddr uint64
+	DlsymAddr  uint64
+}
+
+func resolveForPid(pid uint32) (*LibcAddrs, error) {
+	// FIXME sleep needed to see the whole /proc/pid/maps
+	time.Sleep(1 * time.Millisecond)
+	relPath, base, err := findLibcBase(pid)
+	if err != nil {
+		return nil, err
+	}
+
+	fullPath := fmt.Sprintf("/proc/%d/root%s", pid, relPath)
+
+	st, err := os.Stat(fullPath)
+	if err != nil {
+		return nil, err
+	}
+	sysStat := st.Sys().(*syscall.Stat_t)
+	key := fileKey{dev: sysStat.Dev, ino: sysStat.Ino}
+
+	offs, err := loadOffsets(fullPath, key)
+	if err != nil {
+		return nil, err
+	}
+
+	return &LibcAddrs{
+		MmapAddr:   base + offs.MmapOff,
+		DlopenAddr: base + offs.DlopenOff,
+		DlsymAddr:  base + offs.DlsymOff,
+	}, nil
+}
+
+func LoadLibcAddrForPid(binary string, tid uint32) {
+	if slices.Contains(watchedExecFilenames, binary) {
+		addrs, err := resolveForPid(tid)
+		if err != nil {
+			// log and skip — BPF side must treat a missing map entry
+			// as "don't override, let call proceed unmodified"
+			logger.Trace(logger.GetLogger(), "Resolving libc offsets for tid failed",
+				logfields.Error, err,
+				"process.binary", binary,
+				"process.tid", tid)
+		} else if libcBaseAddrsMap != nil && libcBaseAddrsMap.MapHandle != nil {
+			err = libcBaseAddrsMap.MapHandle.Update(&tid, addrs, ebpf.UpdateAny)
+			fmt.Println("updating", tid, err)
+		}
+	}
+}
+
+func CleanLibcAddr(tid uint32) {
+	if libcBaseAddrsMap != nil && libcBaseAddrsMap.MapHandle != nil {
+		_ = libcBaseAddrsMap.MapHandle.Delete(&tid)
+	}
 }

@@ -5,39 +5,15 @@
 #define __UPROBE_OFFLOAD_H__
 
 #include "regs.h"
-
-struct reg_assignment {
-	__u8 type;
-	__u8 pad1;
-	__u16 src;
-	__u16 dst;
-	__u8 src_size;
-	__u8 dst_size;
-	__u64 off;
-};
+#include "uprobe_dyn.h"
 
 #if defined(GENERIC_UPROBE)
-
-#define REGS_MAX 18
 
 #define ASM_ASSIGNMENT_TYPE_NONE      0
 #define ASM_ASSIGNMENT_TYPE_CONST     1
 #define ASM_ASSIGNMENT_TYPE_REG	      2
 #define ASM_ASSIGNMENT_TYPE_REG_OFF   3
 #define ASM_ASSIGNMENT_TYPE_REG_DEREF 4
-
-struct uprobe_regs {
-	struct reg_assignment ass[REGS_MAX];
-	u32 cnt;
-	u32 pad;
-};
-
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct uprobe_regs);
-} regs_map SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
@@ -89,6 +65,12 @@ uprobe_offload(struct pt_regs *ctx)
 	if (!regs)
 		return 0;
 
+	// We expect to fully override the call to
+	// a dynamically loaded one
+	if (regs->sopath_len > 0) {
+		return uprobe_dyn_state_machine(ctx, *idx);
+	}
+
 	for (i = 0; i < REGS_MAX && i < regs->cnt; i++) {
 		ass = &regs->ass[i];
 
@@ -118,5 +100,6 @@ uprobe_offload(struct pt_regs *ctx)
 	}
 	return 0;
 }
+
 #endif /* GENERIC_UPROBE */
 #endif /* __UPROBE_OFFLOAD_H__ */
