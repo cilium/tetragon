@@ -13,6 +13,7 @@
 #include "policy_stats.h"
 #include "errmetrics.h"
 #include "environ_conf.h"
+#include "config.h"
 
 /* Applying 'packed' attribute to structs causes clang to write to the
  * members byte-by-byte, as offsets may not be aligned. This is bad for
@@ -646,11 +647,7 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data,
 FUNC_INLINE long
 event_output(void *ctx, void *data, u64 size)
 {
-	struct tetragon_conf *conf;
-	int zero = 0;
-
-	conf = map_lookup_elem(&tg_conf_map, &zero);
-	if (conf && conf->use_perf_ring_buf)
+	if (CONFIG(USE_PERF_RING_BUF))
 		return perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
 	return ringbuf_output(&tg_rb_events, data, size, 0);
 }
@@ -658,14 +655,10 @@ event_output(void *ctx, void *data, u64 size)
 FUNC_INLINE bool
 event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
 {
-	struct tetragon_conf *conf;
-	int zero = 0;
 	long err;
 
-	conf = map_lookup_elem(&tg_conf_map, &zero);
-	if (conf && conf->use_perf_ring_buf) {
+	if (CONFIG(USE_PERF_RING_BUF))
 		return perf_event_output_metric(ctx, msg_op, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
-	}
 
 	err = ringbuf_output(&tg_rb_events, data, size, 0);
 
