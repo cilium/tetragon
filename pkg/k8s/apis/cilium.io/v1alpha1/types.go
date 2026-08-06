@@ -184,6 +184,11 @@ type KProbeSelector struct {
 	// A list of macros names, defined in spec.selectorsMacros.
 	// Filters specified in macros will be appended to corresponding filters of the selector.
 	Macros []string `json:"macros,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Match CEL expression. The CEL expression may include:
+	//  argX (e.g., arg0) where X is the index of the argument in the Args array.
+	//  dataX where X is the index of the data in the Data array.
+	MatchCEL *CELExprSelector `json:"matchCEL,omitempty"`
 }
 
 type NamespaceChangesSelector struct {
@@ -220,6 +225,12 @@ type CapabilitiesSelector struct {
 	IsNamespaceCapability bool `json:"isNamespaceCapability"`
 	// Capabilities to match.
 	Values []string `json:"values"`
+}
+
+type CELExprSelector struct {
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Expr string `json:"expr"`
 }
 
 type WorkloadsSelector struct {
@@ -264,8 +275,10 @@ type ArgSelector struct {
 	// +kubebuilder:validation:items:Minimum=0
 	// Position of the operator arguments (in spec file) to apply the filter to.
 	Args []uint32 `json:"args,omitempty"`
-	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;NotPrefix;Postfix;NotPostfix;GreaterThan;LessThan;GT;LT;Mask;SPort;NotSPort;SPortPriv;NotSportPriv;DPort;NotDPort;DPortPriv;NotDPortPriv;SAddr;NotSAddr;DAddr;NotDAddr;Protocol;Family;State;InMap;NotInMap;CapabilitiesGained;InRange;NotInRange;SubString;SubStringIgnCase;CelExpr;FileType;NotFileType
 	// Filter operation.
+	//
+	// Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;NotPrefix;Postfix;NotPostfix;GreaterThan;LessThan;GT;LT;Mask;SPort;NotSPort;SPortPriv;NotSportPriv;DPort;NotDPort;DPortPriv;NotDPortPriv;SAddr;NotSAddr;DAddr;NotDAddr;Protocol;Family;State;InMap;NotInMap;CapabilitiesGained;InRange;NotInRange;SubString;SubStringIgnCase;CelExpr;FileType;NotFileType
 	Operator string `json:"operator"`
 	// Value to compare the argument against.
 	Values []string `json:"values,omitempty"`
