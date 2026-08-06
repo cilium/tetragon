@@ -863,6 +863,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -1136,7 +1145,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -1209,6 +1220,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -1340,7 +1379,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -1749,7 +1790,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -2689,6 +2732,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -2962,7 +3014,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -3035,6 +3089,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -3166,7 +3248,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -3575,7 +3659,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -4184,6 +4270,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -4457,7 +4552,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -4530,6 +4627,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -4661,7 +4786,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -5070,7 +5197,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -5658,6 +5787,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -5931,7 +6069,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -6004,6 +6144,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -6135,7 +6303,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -6544,7 +6714,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -7111,6 +7283,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -7384,7 +7565,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -7457,6 +7640,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -7588,7 +7799,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -7997,7 +8210,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -8881,6 +9096,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -9154,7 +9378,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -9227,6 +9453,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -9358,7 +9612,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -9767,7 +10023,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -10341,6 +10599,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -10614,7 +10881,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -10687,6 +10956,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -10818,7 +11115,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -11227,7 +11526,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -12380,6 +12681,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -12653,7 +12963,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -12726,6 +13038,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -12857,7 +13197,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -13266,7 +13608,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -14206,6 +14550,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -14479,7 +14832,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -14552,6 +14907,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -14683,7 +15066,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -15092,7 +15477,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -15701,6 +16088,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -15974,7 +16370,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -16047,6 +16445,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -16178,7 +16604,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -16587,7 +17015,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -17175,6 +17605,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -17448,7 +17887,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -17521,6 +17962,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -17652,7 +18121,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -18061,7 +18532,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -18628,6 +19101,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -18901,7 +19383,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -18974,6 +19458,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -19105,7 +19617,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -19514,7 +20028,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -20398,6 +20914,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -20671,7 +21196,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -20744,6 +21271,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -20875,7 +21430,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -21284,7 +21841,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -21858,6 +22417,15 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchcel">matchCEL</a></b></td>
+        <td>object</td>
+        <td>
+          Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
         <td>[]object</td>
         <td>
@@ -22131,7 +22699,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -22204,6 +22774,34 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchCEL
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindex)</sup></sup>
+
+
+Match CEL expression. The CEL expression may include:
+ argX (e.g., arg0) where X is the index of the argument in the Args array.
+ dataX where X is the index of the data in the Data array.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>expr</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -22335,7 +22933,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
@@ -22744,7 +23344,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td><b>operator</b></td>
         <td>enum</td>
         <td>
-          Filter operation.<br/>
+          Filter operation.
+
+Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
             <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
         </td>
