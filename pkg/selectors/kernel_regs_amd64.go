@@ -28,13 +28,14 @@ func parseOverrideRegs(k *KernelSelectorState, selIdx int, values []string, errV
 
 	// If no registers were specified go with the default for override
 	// at the top of the user space function.
-	if len(values) == 0 {
+	// TODO skip this part when we are in dynamic symbol mode
+	/*if len(values) == 0 {
 		values = []string{
 			fmt.Sprintf("rax=%d", errValue),
 			"rip=(%rsp)",
 			"rsp=8%rsp",
 		}
-	}
+	}*/
 
 	for _, val := range values {
 		ass, err := asm.ParseAssignment(val)

@@ -292,7 +292,11 @@ const (
 )
 
 type UprobeRegs struct {
-	Ass [UPROBE_REGS_MAX]RegAssignment
-	Cnt uint32
-	Pad uint32
+	Ass       [UPROBE_REGS_MAX]RegAssignment
+	Cnt       uint32
+	Pad       uint32
+	Sopath    [128]byte
+	Symbol    [64]byte
+	SopathLen uint32
+	SymbolLen uint32
 }
