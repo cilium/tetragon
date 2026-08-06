@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -935,6 +936,12 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 			// otherwise our loop code crosses 1mil instructions verifier limit.
 			enabled := bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
 			if err := v.Set(enabled); err != nil {
+				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
+			}
+			return nil
+		},
+		"CONFIG_USE_PERF_RING_BUF": func(v *ebpf.VariableSpec) error {
+			if err := v.Set(option.Config.UsePerfRingBuffer); err != nil {
 				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
 			}
 			return nil

@@ -36,8 +36,7 @@ type TetragonConfValue struct {
 	TgCgrpLevel       uint32   `align:"tg_cgrp_level"`        // Tetragon cgroup level
 	TgCgrpId          uint64   `align:"tg_cgrpid"`            // Tetragon cgroup ID
 	CgrpFsMagic       uint64   `align:"cgrp_fs_magic"`        // Cgroupv1 or cgroupv2
-	UsePerfRingBuf    uint8    `align:"use_perf_ring_buf"`    // Use the perf ring buffer rather than the bpf ring buffer
-	Pad               [7]uint8 `align:"pad"`
+	Pad               [8]uint8 `align:"pad"`
 }
 
 var (
@@ -111,18 +110,12 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 			"deployment.mode", deployMode)
 	}
 
-	usePerfRingBuffer := uint8(0)
-	if option.Config.UsePerfRingBuffer {
-		usePerfRingBuffer = 1
-	}
-
 	v := &TetragonConfValue{
 		LogLevel:          uint32(logger.GetLogLevel(logger.GetLogger())),
 		TgCgrpHierarchy:   cgroups.GetCgrpHierarchyID(),
 		TgCgrpv1SubsysIdx: cgroups.GetCgrpv1SubsystemIdx(),
 		NSPID:             uint32(nspid),
 		CgrpFsMagic:       cgroupFsMagic,
-		UsePerfRingBuf:    usePerfRingBuffer,
 	}
 
 	if err := UpdateConfMap(mapDir, v); err != nil {
