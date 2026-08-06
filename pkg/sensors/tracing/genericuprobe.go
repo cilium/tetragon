@@ -353,6 +353,9 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	if err := isValidUprobeSelectors(spec.Selectors); err != nil {
 		return nil, err
 	}
+	if selectors.HasGetUrlOrDnsLookup(spec.Selectors) {
+		return nil, errors.New("failed to configure uprobe, GetUrl and DnsLookup actions not supported")
+	}
 
 	// Parse Filters into kernel filter logic
 	uprobeSelectorState, err := selectors.InitKernelSelectorState(spec.Selectors, args, nil, nil, nil)

@@ -1478,6 +1478,18 @@ func HasOverride(selectors []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+func HasGetUrlOrDnsLookup(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
+		for _, action := range s.MatchActions {
+			act := actionTypeTable[strings.ToLower(action.Action)]
+			if act == ActionTypeGetUrl || act == ActionTypeDnsLookup {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func HasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
 	for i := range kspec.Selectors {
 		s := &kspec.Selectors[i]
