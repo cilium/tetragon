@@ -423,6 +423,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, errors.New("can't use override regs action, no kernel support")
 	}
 
+	if selectors.HasGetUrlOrDnsLookup(spec.Selectors) {
+		return nil, errors.New("failed to configure uprobe, GetUrl and DnsLookup actions not supported")
+	}
+
 	// Parse Filters into kernel filter logic
 	uprobeSelectorState, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,
