@@ -1814,6 +1814,18 @@ func HasOverride(selectors []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+func HasGetUrlOrDnsLookup(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
+		for _, action := range s.MatchActions {
+			act := actionTypeTable[strings.ToLower(action.Action)]
+			if act == ActionTypeGetUrl || act == ActionTypeDnsLookup {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func CountOverrideArgNewSymbolAddrOffset(selectors []v1alpha1.KProbeSelector) int {
 	for _, s := range selectors {
 		for _, action := range s.MatchActions {

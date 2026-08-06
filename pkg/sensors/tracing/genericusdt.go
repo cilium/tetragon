@@ -377,6 +377,10 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 			"policy-name", in.policyName)
 	}
 
+	if selectors.HasGetUrlOrDnsLookup(spec.Selectors) {
+		return ids, fmt.Errorf("failed to configure usdt '%s/%s', GetUrl and DnsLookup actions not supported", spec.Provider, spec.Name)
+	}
+
 	// Parse Filters into kernel filter logic
 	state, err = selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,
