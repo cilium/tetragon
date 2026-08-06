@@ -326,6 +326,10 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		found       bool
 	)
 
+	if selectors.HasGetUrlOrDnsLookup(spec.Selectors) {
+		return ids, fmt.Errorf("failed to configure usdt '%s/%s', GetUrl and DnsLookup actions not supported", spec.Provider, spec.Name)
+	}
+
 	for _, target := range targets {
 		if spec.Provider != target.Spec.Provider || spec.Name != target.Spec.Name {
 			continue
