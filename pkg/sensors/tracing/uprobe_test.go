@@ -18,6 +18,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
+	"github.com/cilium/tetragon/pkg/observer"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/elf"
@@ -194,6 +196,87 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+// The purpose of the GetUrl and DnsLookup tests is to check that Tetragon does
+// not crash, and instead returns an error, if a GetUrl or DnsLookup action is
+// specified in a uprobe policy.
+func TestUprobeCheckGetUrlAction(t *testing.T) {
+	uprobeGetUrlHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: check-geturl-action
+spec:
+  uprobes:
+  - path: "/bin/ls"
+    symbols: ["__libc_start_main"]
+    selectors:
+    - matchActions:
+      - action: GetUrl
+        argUrl: "http://127.0.0.1/x"
+`
+
+	noConfig := `
+apiversion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "noconfig"
+spec: {}
+`
+
+	createCrdFile(t, noConfig)
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+
+	tp, err := tracingpolicy.FromYAML(uprobeGetUrlHook)
+	require.NoError(t, err)
+	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "GetUrl and DnsLookup actions not supported")
+}
+
+func TestUprobeCheckDnsLookupAction(t *testing.T) {
+	uprobeDnsLookupHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: check-dnslookup-action
+spec:
+  uprobes:
+  - path: "/bin/ls"
+    symbols: ["__libc_start_main"]
+    selectors:
+    - matchActions:
+      - action: DnsLookup
+        argFqdn: "ebpf.io"
+`
+
+	noConfig := `
+apiversion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "noconfig"
+spec: {}
+`
+
+	createCrdFile(t, noConfig)
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+
+	tp, err := tracingpolicy.FromYAML(uprobeDnsLookupHook)
+	require.NoError(t, err)
+	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "GetUrl and DnsLookup actions not supported")
 }
 
 func uprobePidMatch(t *testing.T, pid uint32) error {
