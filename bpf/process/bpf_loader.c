@@ -122,6 +122,8 @@ loader_kprobe(struct pt_regs *ctx)
 
 	path = BPF_CORE_READ(mmap_event, file_name);
 	len = probe_read_str(&msg->path, sizeof(msg->path), path);
+	if (len <= 0)
+		return 0;
 	msg->path_size = (__u32)len;
 
 	msg->pid = tgid;

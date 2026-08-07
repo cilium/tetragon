@@ -214,6 +214,12 @@ func handleLoader(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, errors.New("failed to read process call msg")
 	}
 
+	if m.PathSize == 0 || m.PathSize > uint32(len(m.Path)) {
+		logger.GetLogger().Warn("loader event has invalid path_size",
+			"path_size", m.PathSize,
+			"max", len(m.Path))
+		return nil, nil
+	}
 	path := m.Path[:m.PathSize-1]
 
 	// We can get multiple entries for given pid/path,

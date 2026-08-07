@@ -82,8 +82,8 @@ func TestLoadUprobeSensor(t *testing.T) {
 			{Name: "tcpmon_map", Progs: []uint{6}},
 			{Name: "tg_rb_events", Progs: []uint{6}},
 
-			// generic_uprobe_event
-			{Name: "tg_conf_map", Progs: []uint{0, 4, 6}},
+			// generic_uprobe_event, generic_uprobe_process_filter
+			{Name: "tg_conf_map", Progs: []uint{0, 4}},
 
 			// shared with base sensor
 			{Name: "execve_map", Progs: []uint{4, 5, 6}},
@@ -120,7 +120,7 @@ func TestLoadUprobeSensor(t *testing.T) {
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}})
 
 			if config.EnableV511Progs() {
-				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 4, 6}})
+				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 4}})
 				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_rb_events", Progs: []uint{6}})
 			} else {
 				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 4}})
