@@ -192,7 +192,7 @@ func ListsVersion(version uint32) ListsOption {
 }
 
 // ListsMaxRangeSize sets the maximum number of elements lists.range() will
-// allocate. If not set, the default is 10,000,000. Setting this to zero
+// allocate. If not set, the default is 1,000,000. Setting this to zero
 // disables the limit (not recommended).
 func ListsMaxRangeSize(size int64) ListsOption {
 	return func(lib *listsLib) *listsLib {
