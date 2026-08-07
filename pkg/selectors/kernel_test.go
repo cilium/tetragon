@@ -201,8 +201,15 @@ func TestPidSelectorFlags(t *testing.T) {
 func TestPidSelectorValue(t *testing.T) {
 	pid := &v1alpha1.PIDSelector{Operator: "In", Values: []uint32{1, 2, 3}, IsNamespacePID: true, FollowForks: true}
 	expected := []byte{0x1, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0, 0x0, 0x3, 0x0, 0x0, 0x0}
-	if b, l := pidSelectorValue(pid); bytes.Equal(b, expected) == false || l != 12 {
-		t.Errorf("pidSelectorValue: expected %v actual %v\n", expected, b)
+	if b, l, err := pidSelectorValue(pid); err != nil || bytes.Equal(b, expected) == false || l != 12 {
+		t.Errorf("pidSelectorValue: expected %v actual %v (err: %v)\n", expected, b, err)
+	}
+}
+
+func TestPidSelectorValueTooManyValues(t *testing.T) {
+	pid := &v1alpha1.PIDSelector{Operator: "In", Values: []uint32{1, 2, 3, 4, 5}, IsNamespacePID: true, FollowForks: true}
+	if _, _, err := pidSelectorValue(pid); err == nil {
+		t.Errorf("pidSelectorValue: expected error for more than 4 values, got nil\n")
 	}
 }
 

@@ -353,14 +353,18 @@ func pidSelectorFlags(pid *v1alpha1.PIDSelector) uint32 {
 	return flags
 }
 
-func pidSelectorValue(pid *v1alpha1.PIDSelector) ([]byte, uint32) {
+func pidSelectorValue(pid *v1alpha1.PIDSelector) ([]byte, uint32, error) {
+	if len(pid.Values) > 4 {
+		return nil, 0, fmt.Errorf("matchPIDs supports up to 4 values per filter (current number of values is %d)", len(pid.Values))
+	}
+
 	b := make([]byte, len(pid.Values)*4)
 
 	for i, v := range pid.Values {
 		off := i * 4
 		binary.LittleEndian.PutUint32(b[off:], v)
 	}
-	return b, uint32(len(b))
+	return b, uint32(len(b)), nil
 }
 
 func ParseMatchPid(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
@@ -373,7 +377,10 @@ func ParseMatchPid(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
 	flags := pidSelectorFlags(pid)
 	WriteSelectorUint32(&k.data, flags)
 
-	value, size := pidSelectorValue(pid)
+	value, size, err := pidSelectorValue(pid)
+	if err != nil {
+		return fmt.Errorf("matchpid error: %w", err)
+	}
 	WriteSelectorUint32(&k.data, size/4)
 	WriteSelectorByteArray(&k.data, value, size)
 	return nil
@@ -1711,6 +1718,9 @@ func createKernelSelectorState(
 			return nil, err
 		}
 		WriteSelectorLength(&state.data, loff)
+	}
+	if err := state.data.Err(); err != nil {
+		return nil, fmt.Errorf("selector encoding failed: %w", err)
 	}
 	return state, nil
 }
