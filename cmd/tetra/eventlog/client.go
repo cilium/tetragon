@@ -42,6 +42,7 @@ func NewClient() (*ClientWithContext, error) {
 	c.conn, err = grpc.NewClient(
 		common.ResolveServerAddress(),
 		grpc.WithTransportCredentials(creds),
+		grpc.WithDefaultServiceConfig(common.RetryPolicy(common.Retries)),
 		grpc.WithMaxCallAttempts(common.Retries+1), // maxAttempt includes the first call
 	)
 	if err != nil {
