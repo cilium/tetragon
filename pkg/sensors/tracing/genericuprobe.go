@@ -435,7 +435,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 					&program.MapLoad{
 						Name: "regs_map",
 						Load: func(m *ebpf.Map, _ string) error {
-							return populateSelectorRegsMap(m, selector, uprobeEntry.dynOv)
+							return populateSelectorRegsMap(m, selector, nil)
 						},
 					},
 				)
@@ -990,9 +990,19 @@ func createGenericUprobeSensor(
 	var celExprs *selectors.CelExprFunctions
 	var statuses []*tetragon.HookStatus
 
+	// use multi uprobe only if:
+	// - it's not disabled by spec option
+	// - there's support detected
+	useMulti := !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti()
+
 	// TODO: path must be taken somewhere :D
 	for _, uprobe := range spec.UProbes {
 		if isSODynamic(&uprobe) {
+			// Very complex to support for uprobe multi
+			// since we need to attach a non "generic_uprobe" program.
+			if useMulti {
+				return nil, errors.New("dynamic SO loading does not work for multiuprobe; disable it with spec.options: [{name: disable-uprobe-multi, value: \"true\"}]")
+			}
 			spec.UProbes = append(spec.UProbes, v1alpha1.UProbeSpec{
 				Path:    "/usr/lib/x86_64-linux-gnu/libc.so.6",
 				Symbols: []string{"mmap", "dlopen", "dlsym"},
@@ -1000,11 +1010,6 @@ func createGenericUprobeSensor(
 			break
 		}
 	}
-
-	// use multi uprobe only if:
-	// - it's not disabled by spec option
-	// - there's support detected
-	useMulti := !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti()
 
 	// user sleepable_preload override
 	has.sleepablePreloadSize = polInfo.specOpts.SleepablePreloadSize
@@ -1538,14 +1543,12 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	var maps []*program.Map
 	var substringMapEntries int
 	var regsMapEntries int
-	var needDynamicSOLoad bool
 
 	for _, id := range multiIDs {
 		gu, err := genericUprobeTableGet(id)
 		if err != nil {
 			return nil, nil, err
 		}
-		needDynamicSOLoad = gu.dynOv != nil
 		selector := gu.loadArgs.selectors.entry
 		if gu.loadArgs.retprobe {
 			multiRetIDs = append(multiRetIDs, id)
@@ -1599,13 +1602,6 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
 		maps = append(maps, regsMap, sleepableOffloadMap)
-
-		if needDynamicSOLoad {
-			libcBaseAddrsMap = program.MapBuilder("libc_base_addrs_map", load)
-			pendingCallsMap := program.MapBuilder("pending_calls", load)
-			resolvedCacheMap := program.MapBuilder("resolved_cache", load)
-			maps = append(maps, libcBaseAddrsMap, pendingCallsMap, resolvedCacheMap)
-		}
 	}
 
 	if has.sleepablePreload {
