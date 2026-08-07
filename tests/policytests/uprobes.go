@@ -491,3 +491,47 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(upChecker),
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-override-symbol-so").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-selector"
+spec:
+  options:
+    - name: "disable-uprobe-multi"
+      value: "1"
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    selectors:
+    - matchArgs:
+      - operator: CelExpr
+        values:
+        - "true"
+      matchActions:
+      - action: Override
+        argNewSymbol: {{ testBinary "libuprobe.so" }}:uprobe_test_lib_pizza
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRefCtrOffsetProbe] {
+		return "need uprobe ref_ctr_off support"
+	}
+
+	if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+		return "SubString operator requires bpf_copy_from_user_str kfunc"
+	}
+
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-simple").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin)))
+
+	return &policytest.Scenario{
+		Name:         "check call was overridden with symbol loaded by SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(100),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
