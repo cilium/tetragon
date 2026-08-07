@@ -24,7 +24,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/cilium/ebpf"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -1896,6 +1895,14 @@ func loadOffsets(fullPath string, key fileKey) (*LibcOffsets, error) {
 
 var libcRe = regexp.MustCompile(`/libc(-[\d.]+)?\.so(\.\d+)?$`)
 
+type errNoLibcMapping struct {
+	pid uint32
+}
+
+func (e errNoLibcMapping) Error() string {
+	return fmt.Sprintf("no libc mapping for pid %d", e.pid)
+}
+
 // findLibcBase scans /proc/<pid>/maps for the libc mapping whose file
 // offset is 0 — the segment containing the ELF header, whose start
 // address equals the load bias for the vast majority of libc builds.
@@ -1930,7 +1937,7 @@ func findLibcBase(pid uint32) (relPath string, base uint64, err error) {
 	if err := scanner.Err(); err != nil {
 		return "", 0, err
 	}
-	return "", 0, fmt.Errorf("no libc mapping with offset 0 found for pid %d", pid)
+	return "", 0, errNoLibcMapping{pid: pid}
 }
 
 type LibcAddrs struct {
@@ -1939,11 +1946,19 @@ type LibcAddrs struct {
 	DlsymAddr  uint64
 }
 
-func resolveForPid(pid uint32) (*LibcAddrs, error) {
-	// FIXME sleep needed to see the whole /proc/pid/maps
-	time.Sleep(1 * time.Millisecond)
+func resolveForPid(pid uint32, ntry int) (*LibcAddrs, error) {
+	const maxTries = 10
+	// TODO
+	// attach a probe to eg: __libc_start_main() that will only trigger a request to
+	// load the libc addrs for the executable (go side)
+	// Basically, the go code won't have a GetProcessExec() listener anymore,
+	// but a request (an event) sent on the ring buffer will trigger
+	// the request to load the libc addresses.
 	relPath, base, err := findLibcBase(pid)
 	if err != nil {
+		if _, ok := errors.AsType[errNoLibcMapping](err); ok && ntry < maxTries {
+			return resolveForPid(pid, ntry+1)
+		}
 		return nil, err
 	}
 
@@ -1969,7 +1984,7 @@ func resolveForPid(pid uint32) (*LibcAddrs, error) {
 }
 
 func loadLibcAddrForPid(binary string, tid uint32) {
-	addrs, err := resolveForPid(tid)
+	addrs, err := resolveForPid(tid, 0)
 	if err != nil {
 		// log and skip — BPF side must treat a missing map entry
 		// as "don't override, let call proceed unmodified"
@@ -1977,9 +1992,10 @@ func loadLibcAddrForPid(binary string, tid uint32) {
 			logfields.Error, err,
 			"process.binary", binary,
 			"process.tid", tid)
+		fmt.Println("Resolving libc offsets for tid failed", "err:", err, "binary:", binary, "tid:", tid)
 	} else if libcBaseAddrsMap != nil && libcBaseAddrsMap.MapHandle != nil {
 		err = libcBaseAddrsMap.MapHandle.Update(&tid, addrs, ebpf.UpdateAny)
-		fmt.Println("updating", tid, err)
+		fmt.Println("updating", tid, addrs)
 	}
 }
 
