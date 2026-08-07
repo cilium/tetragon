@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/cmd/tetra/policytest"
 	"github.com/cilium/tetragon/cmd/tetra/probe"
 	"github.com/cilium/tetragon/cmd/tetra/tracingpolicy"
+	ptpkg "github.com/cilium/tetragon/pkg/testutils/policytest"
 )
 
 func addCommands(rootCmd *cobra.Command) {
@@ -29,5 +30,5 @@ func addCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(loglevel.New())
 	common.AddSubCommandIfNotNil(rootCmd, cri.New())
 	rootCmd.AddCommand(cgtracker.New())
-	rootCmd.AddCommand(policytest.New())
+	rootCmd.AddCommand(policytest.New().WithPrepareScenario(ptpkg.PrepareScenario).Command())
 }

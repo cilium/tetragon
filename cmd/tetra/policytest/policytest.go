@@ -22,10 +22,26 @@ import (
 
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
+	"github.com/cilium/tetragon/pkg/tetragoninfo"
 	_ "github.com/cilium/tetragon/tests/policytests" // so that tests can be registered
 )
 
-func New() *cobra.Command {
+type Command struct {
+	command          *cobra.Command
+	prepareScenarios []func(info *tetragoninfo.Info, scenario *policytest.Scenario)
+}
+
+func (c *Command) WithPrepareScenario(fn func(info *tetragoninfo.Info, scenario *policytest.Scenario)) *Command {
+	c.prepareScenarios = append(c.prepareScenarios, fn)
+	return c
+}
+
+func (c *Command) Command() *cobra.Command {
+	return c.command
+}
+
+func New() *Command {
+	ptCmd := &Command{}
 	tpCmd := &cobra.Command{
 		Use:     "policytest",
 		Aliases: []string{"pt"},
@@ -33,10 +49,15 @@ func New() *cobra.Command {
 	}
 	tpCmd.AddCommand(
 		listCmd(),
-		runCmd(),
+		runCmd(func(info *tetragoninfo.Info, scenario *policytest.Scenario) {
+			for _, fn := range ptCmd.prepareScenarios {
+				fn(info, scenario)
+			}
+		}),
 		dumpPolicyCmd(),
 	)
-	return tpCmd
+	ptCmd.command = tpCmd
+	return ptCmd
 }
 
 func listCmd() *cobra.Command {
@@ -119,7 +140,7 @@ func dumpPolicyCmd() *cobra.Command {
 	return &cmd
 }
 
-func runCmd() *cobra.Command {
+func runCmd(prepareScenario func(info *tetragoninfo.Info, scenario *policytest.Scenario)) *cobra.Command {
 	cwd, _ := os.Getwd()
 	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
 	dumpPolicyPath := ""
@@ -190,7 +211,7 @@ func runCmd() *cobra.Command {
 				BinsDir:        testBinsPath,
 				DumpPolicyPath: dumpPolicyPath,
 				Timeout:        &runnerTimeout,
-			})
+			}, prepareScenario)
 			if err != nil {
 				return fmt.Errorf("failed to start local runner: %w", err)
 			}

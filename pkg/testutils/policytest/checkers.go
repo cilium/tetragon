@@ -18,6 +18,17 @@ func processCacheDisabled(info *tetragoninfo.Info) bool {
 	return false
 }
 
+// PrepareScenario adjusts a scenario's EventChecker based on the agent's
+// configuration, e.g. skipping Process/Parent checks when the process cache
+// is disabled and those fields won't be populated. It is meant to be passed
+// to NewLocalRunner.
+func PrepareScenario(info *tetragoninfo.Info, scenario *Scenario) {
+	if processCacheDisabled(info) {
+		unsetProcessChecks(scenario.EventChecker)
+		unsetParentChecks(scenario.EventChecker)
+	}
+}
+
 // unsetProcessChecks strips any Process check set via WithProcess() from the
 // individual checkers of a scenario's EventChecker, e.g. for cases where the
 // process cache is disabled and the Process field can't be checked.
