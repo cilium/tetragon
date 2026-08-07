@@ -47,7 +47,10 @@ func RetryPolicy(retries int) string {
 	// since we need to provide a value >0
 	return fmt.Sprintf(`{
 	"methodConfig": [{
-	  "name": [{"service": "tetragon.FineGuidanceSensors"}],
+	  "name": [
+		{"service": "tetragon.FineGuidanceSensors"},
+		{"service": "tetragon.EventLogService"}
+	  ],
 	  "retryPolicy": {
 		  "MaxAttempts": %d,
 		  "InitialBackoff": "1s",
