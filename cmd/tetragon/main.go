@@ -571,6 +571,8 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		return err
 	}
 
+	observer.GetSensorManager().Listener = pm
+
 	// Fetch the exporter if needed. An export rate limit of 0 disables JSON
 	// export altogether, so avoid creating an exporter that would drop every
 	// event.
