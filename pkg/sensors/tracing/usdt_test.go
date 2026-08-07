@@ -23,11 +23,13 @@ import (
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
+	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
 func TestUsdtLoadSensor(t *testing.T) {
@@ -151,6 +153,89 @@ spec:
 		sensi = append(sensi, s)
 	}
 	sensors.UnloadSensors(sensi)
+}
+
+// The purpose of the GetUrl and DnsLookup tests is to check that Tetragon does
+// not crash, and instead returns an error, if a GetUrl or DnsLookup action is
+// specified in a usdt policy.
+func TestUsdtCheckGetUrlAction(t *testing.T) {
+	usdtGetUrlHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: check-geturl-action
+spec:
+  usdts:
+  - path: "/bin/ls"
+    provider: "test"
+    name: "geturl"
+    selectors:
+    - matchActions:
+      - action: GetUrl
+        argUrl: "http://127.0.0.1/x"
+`
+
+	noConfig := `
+apiversion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "noconfig"
+spec: {}
+`
+
+	createCrdFile(t, noConfig)
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+
+	tp, err := tracingpolicy.FromYAML(usdtGetUrlHook)
+	require.NoError(t, err)
+	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "GetUrl and DnsLookup actions not supported")
+}
+
+func TestUsdtCheckDnsLookupAction(t *testing.T) {
+	usdtDnsLookupHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: check-dnslookup-action
+spec:
+  usdts:
+  - path: "/bin/ls"
+    provider: "test"
+    name: "dnslookup"
+    selectors:
+    - matchActions:
+      - action: DnsLookup
+        argFqdn: "ebpf.io"
+`
+
+	noConfig := `
+apiversion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "noconfig"
+spec: {}
+`
+
+	createCrdFile(t, noConfig)
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+
+	tp, err := tracingpolicy.FromYAML(usdtDnsLookupHook)
+	require.NoError(t, err)
+	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "GetUrl and DnsLookup actions not supported")
 }
 
 func TestUsdtGeneric(t *testing.T) {
