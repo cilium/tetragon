@@ -1536,12 +1536,14 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	var maps []*program.Map
 	var substringMapEntries int
 	var regsMapEntries int
+	var needDynamicSOLoad bool
 
 	for _, id := range multiIDs {
 		gu, err := genericUprobeTableGet(id)
 		if err != nil {
 			return nil, nil, err
 		}
+		needDynamicSOLoad = gu.dynOv != nil
 		selector := gu.loadArgs.selectors.entry
 		if gu.loadArgs.retprobe {
 			multiRetIDs = append(multiRetIDs, id)
@@ -1595,11 +1597,12 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, load)
 		maps = append(maps, regsMap, sleepableOffloadMap)
 
-		libcBaseAddrsMap = program.MapBuilder("libc_base_addrs_map", load)
-		pendingCallsMap := program.MapBuilder("pending_calls", load)
-		resolvedCacheMap := program.MapBuilder("resolved_cache", load)
-
-		maps = append(maps, regsMap, sleepableOffloadMap, libcBaseAddrsMap, pendingCallsMap, resolvedCacheMap)
+		if needDynamicSOLoad {
+			libcBaseAddrsMap = program.MapBuilder("libc_base_addrs_map", load)
+			pendingCallsMap := program.MapBuilder("pending_calls", load)
+			resolvedCacheMap := program.MapBuilder("resolved_cache", load)
+			maps = append(maps, libcBaseAddrsMap, pendingCallsMap, resolvedCacheMap)
+		}
 	}
 
 	if has.sleepablePreload {
@@ -1732,11 +1735,12 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, load)
 		maps = append(maps, regsMap, sleepableOffloadMap)
 
-		libcBaseAddrsMap = program.MapBuilder("libc_base_addrs_map", load)
-		pendingCallsMap := program.MapBuilder("pending_calls", load)
-		resolvedCacheMap := program.MapBuilder("resolved_cache", load)
-
-		maps = append(maps, regsMap, sleepableOffloadMap, libcBaseAddrsMap, pendingCallsMap, resolvedCacheMap)
+		if uprobeEntry.dynOv != nil {
+			libcBaseAddrsMap = program.MapBuilder("libc_base_addrs_map", load)
+			pendingCallsMap := program.MapBuilder("pending_calls", load)
+			resolvedCacheMap := program.MapBuilder("resolved_cache", load)
+			maps = append(maps, libcBaseAddrsMap, pendingCallsMap, resolvedCacheMap)
+		}
 	}
 
 	if has.sleepablePreload {
