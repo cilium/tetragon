@@ -1910,6 +1910,10 @@ type LibcAddrs struct {
 	DlsymAddr  uint64
 }
 
+func (l *LibcAddrs) String() string {
+	return fmt.Sprintf("mmap=%#x dlopen=%#x dlsym=%#x", l.MmapAddr, l.DlopenAddr, l.DlsymAddr)
+}
+
 func resolveForPid(pid uint32, ntry int) (*LibcAddrs, error) {
 	const maxTries = 10
 	// TODO
