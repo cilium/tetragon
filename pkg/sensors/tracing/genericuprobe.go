@@ -20,7 +20,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -67,9 +66,8 @@ type observerUprobeSensor struct {
 const disableNotAllowedReasonBinaryDigests = "binaryDigests configured"
 
 var (
-	uprobeTable          idtable.Table
-	libcBaseAddrsMap     *program.Map
-	watchedExecFilenames []string
+	uprobeTable      idtable.Table
+	libcBaseAddrsMap *program.Map
 )
 
 func getOrOpenFile(path string, openedFilesMap map[string]*os.File) (*os.File, error) {
@@ -335,10 +333,12 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 	}
 
 	if uprobeEntry.dynOv != nil {
-		// Add the path to the watched list and try to load libc addrs for running processes.
-		watchedExecFilenames = append(watchedExecFilenames, uprobeEntry.targetPath)
+		observer.GetSensorManager().Listener.AddListener(uprobeEntry.dynOv)
+		// Try to load libc addrs for running processes
 		for _, entry := range process.GetCacheEntries() {
-			LoadLibcAddrForPid(entry.Process.Binary, entry.Process.Tid.Value)
+			if entry.Process.Binary == uprobeEntry.dynOv.binary {
+				loadLibcAddrForPid(entry.Process.Binary, entry.Process.Tid.Value)
+			}
 		}
 	}
 
@@ -684,6 +684,20 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 type dynamicOverride struct {
 	library string
 	symbol  string
+	binary  string
+}
+
+func (dynOv *dynamicOverride) Notify(res *tetragon.GetEventsResponse) {
+	if ev := res.GetProcessExec(); ev != nil {
+		if ev.Process.Binary == dynOv.binary {
+			loadLibcAddrForPid(ev.Process.Binary, ev.Process.Tid.Value)
+		}
+	} else if ev := res.GetProcessExit(); ev != nil {
+		if ev.Process.Binary == dynOv.binary {
+			fmt.Println("removing", ev.Process.Tid.Value)
+			cleanLibcAddr(ev.Process.Tid.Value)
+		}
+	}
 }
 
 func computeArgNewOffset(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAddr uint64) (int64, *dynamicOverride, error) {
@@ -703,6 +717,7 @@ func computeArgNewOffset(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAd
 					} else if len(symbols) == 2 {
 						dynOv.library = symbols[0]
 						dynOv.symbol = symbols[1]
+						dynOv.binary = spec.Path
 					} else {
 						err = fmt.Errorf("wrong argNewSymbol specified: %q", matchAct.ArgNewSymbol)
 					}
@@ -978,6 +993,7 @@ func createGenericUprobeSensor(
 	var statuses []*tetragon.HookStatus
 
 	// TODO: path must be taken somewhere :D
+	// also, add this only if needed
 	spec.UProbes = append(spec.UProbes, v1alpha1.UProbeSpec{
 		Path:    "/usr/lib/x86_64-linux-gnu/libc.so.6",
 		Symbols: []string{"mmap", "dlopen", "dlsym"},
@@ -1926,24 +1942,22 @@ func resolveForPid(pid uint32) (*LibcAddrs, error) {
 	}, nil
 }
 
-func LoadLibcAddrForPid(binary string, tid uint32) {
-	if slices.Contains(watchedExecFilenames, binary) {
-		addrs, err := resolveForPid(tid)
-		if err != nil {
-			// log and skip — BPF side must treat a missing map entry
-			// as "don't override, let call proceed unmodified"
-			logger.Trace(logger.GetLogger(), "Resolving libc offsets for tid failed",
-				logfields.Error, err,
-				"process.binary", binary,
-				"process.tid", tid)
-		} else if libcBaseAddrsMap != nil && libcBaseAddrsMap.MapHandle != nil {
-			err = libcBaseAddrsMap.MapHandle.Update(&tid, addrs, ebpf.UpdateAny)
-			fmt.Println("updating", tid, err)
-		}
+func loadLibcAddrForPid(binary string, tid uint32) {
+	addrs, err := resolveForPid(tid)
+	if err != nil {
+		// log and skip — BPF side must treat a missing map entry
+		// as "don't override, let call proceed unmodified"
+		logger.Trace(logger.GetLogger(), "Resolving libc offsets for tid failed",
+			logfields.Error, err,
+			"process.binary", binary,
+			"process.tid", tid)
+	} else if libcBaseAddrsMap != nil && libcBaseAddrsMap.MapHandle != nil {
+		err = libcBaseAddrsMap.MapHandle.Update(&tid, addrs, ebpf.UpdateAny)
+		fmt.Println("updating", tid, err)
 	}
 }
 
-func CleanLibcAddr(tid uint32) {
+func cleanLibcAddr(tid uint32) {
 	if libcBaseAddrsMap != nil && libcBaseAddrsMap.MapHandle != nil {
 		_ = libcBaseAddrsMap.MapHandle.Delete(&tid)
 	}

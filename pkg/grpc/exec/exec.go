@@ -8,8 +8,6 @@ import (
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/cilium/tetragon/pkg/sensors/tracing"
-
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
@@ -51,7 +49,6 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 
 	proc := process.AddExecEvent(event.Unix)
 	tetragonProcess := proc.UnsafeGetProcess()
-	tracing.LoadLibcAddrForPid(tetragonProcess.Binary, tetragonProcess.Tid.Value)
 
 	parentId := tetragonProcess.ParentExecId
 	processId := tetragonProcess.ExecId
@@ -428,7 +425,6 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
 		}
 	}
-	tracing.CleanLibcAddr(tetragonProcess.Tid.Value)
 	if parent != nil {
 		tetragonParent = parent.UnsafeGetProcess()
 	}
