@@ -10,7 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/tetragoninfo"
 )
 
-func processCacheDisabled(info *tetragoninfo.Info) bool {
+func ProcessCacheDisabled(info *tetragoninfo.Info) bool {
 	if info != nil {
 		disabledPC, _ := info.Conf["disable-process-cache"].(bool)
 		return disabledPC
@@ -23,7 +23,7 @@ func processCacheDisabled(info *tetragoninfo.Info) bool {
 // is disabled and those fields won't be populated. It is meant to be passed
 // to NewLocalRunner.
 func PrepareScenario(info *tetragoninfo.Info, scenario *Scenario) {
-	if processCacheDisabled(info) {
+	if ProcessCacheDisabled(info) {
 		unsetProcessChecks(scenario.EventChecker)
 		unsetParentChecks(scenario.EventChecker)
 	}
