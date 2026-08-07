@@ -8,6 +8,7 @@ package selectors
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -111,6 +112,31 @@ type MatchBinariesSelectorOptions struct {
 type KernelSelectorData struct {
 	off uint32     // offset into encoding
 	e   [4096]byte // kernel encoding of selectors
+	err error      // sticky error set once a write would overflow e
+}
+
+// Err returns the first out-of-bounds write error encountered while
+// encoding selectors into e, if any. Callers that finish building a
+// KernelSelectorData must check this before using the encoding, since
+// the Write* helpers below turn an overflow into a sticky error instead
+// of panicking or corrupting adjacent selector data.
+func (k *KernelSelectorData) Err() error {
+	return k.err
+}
+
+// fits reports whether writing size bytes at the current offset stays
+// within e. On overflow it latches k.err so the caller can surface a
+// clean error instead of letting the write panic (index out of range)
+// or silently wrap/corrupt neighboring selector encodings.
+func (k *KernelSelectorData) fits(size uint32) bool {
+	if k.err != nil {
+		return false
+	}
+	if uint64(k.off)+uint64(size) > uint64(len(k.e)) {
+		k.err = fmt.Errorf("selector encoding overflow: offset %d + size %d exceeds %d byte buffer", k.off, size, len(k.e))
+		return false
+	}
+	return true
 }
 
 type KernelSelectorState struct {
@@ -320,31 +346,51 @@ func (k *KernelSelectorState) StringPostfixMapsMaxEntries() int {
 }
 
 func WriteSelectorInt32(k *KernelSelectorData, v int32) {
+	if !k.fits(4) {
+		return
+	}
 	binary.LittleEndian.PutUint32(k.e[k.off:], uint32(v))
 	k.off += 4
 }
 
 func WriteSelectorUint32(k *KernelSelectorData, v uint32) {
+	if !k.fits(4) {
+		return
+	}
 	binary.LittleEndian.PutUint32(k.e[k.off:], v)
 	k.off += 4
 }
 
 func WriteSelectorInt64(k *KernelSelectorData, v int64) {
+	if !k.fits(8) {
+		return
+	}
 	binary.LittleEndian.PutUint64(k.e[k.off:], uint64(v))
 	k.off += 8
 }
 
 func WriteSelectorUint64(k *KernelSelectorData, v uint64) {
+	if !k.fits(8) {
+		return
+	}
 	binary.LittleEndian.PutUint64(k.e[k.off:], v)
 	k.off += 8
 }
 
 func WriteSelectorLength(k *KernelSelectorData, loff uint32) {
+	if k.err != nil {
+		return
+	}
 	diff := k.off - loff
 	binary.LittleEndian.PutUint32(k.e[loff:], diff)
 }
 
+// WriteSelectorOffsetUint32 backpatches a uint32 previously reserved at
+// loff. Same in-bounds guarantee as WriteSelectorLength.
 func WriteSelectorOffsetUint32(k *KernelSelectorData, loff uint32, val uint32) {
+	if k.err != nil {
+		return
+	}
 	binary.LittleEndian.PutUint32(k.e[loff:], val)
 }
 
@@ -353,6 +399,9 @@ func GetCurrentOffset(k *KernelSelectorData) uint32 {
 }
 
 func WriteSelectorByteArray(k *KernelSelectorData, b []byte, size uint32) {
+	if !k.fits(size) {
+		return
+	}
 	for l := range size {
 		k.e[k.off+l] = b[l]
 	}
@@ -360,6 +409,9 @@ func WriteSelectorByteArray(k *KernelSelectorData, b []byte, size uint32) {
 }
 
 func AdvanceSelectorLength(k *KernelSelectorData) uint32 {
+	if !k.fits(4) {
+		return k.off
+	}
 	off := k.off
 	k.off += 4
 	return off
