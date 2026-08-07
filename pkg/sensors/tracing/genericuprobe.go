@@ -634,8 +634,7 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 		if !bpf.HasUprobeRegsChange() {
 			return errors.New("can't use override regs action, no kernel support")
 		}
-		// TODO only check if we are in dynamic symbol support
-		if !bpf.HasProbeWriteUserHelper() {
+		if isSODynamic(spec) && !bpf.HasProbeWriteUserHelper() {
 			return errors.New("can't use bpf_probe_write_user, no kernel support")
 		}
 		has.sleepableOffload = true
@@ -960,6 +959,25 @@ func ignoreDigestVerificationFailure(uprobe *v1alpha1.UProbeSpec) bool {
 	return uprobe.Ignore.DigestVerificationFailure
 }
 
+func isSODynamic(uprobe *v1alpha1.UProbeSpec) bool {
+	if !selectors.HasOverride(uprobe.Selectors) {
+		return false
+	}
+	for _, s := range uprobe.Selectors {
+		for _, action := range s.MatchActions {
+			if action.Action == "Override" {
+				if action.ArgNewSymbol != "" {
+					_, _, ok := strings.Cut(action.ArgNewSymbol, ":")
+					if ok {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -974,11 +992,15 @@ func createGenericUprobeSensor(
 	var statuses []*tetragon.HookStatus
 
 	// TODO: path must be taken somewhere :D
-	// also, add this only if needed
-	spec.UProbes = append(spec.UProbes, v1alpha1.UProbeSpec{
-		Path:    "/usr/lib/x86_64-linux-gnu/libc.so.6",
-		Symbols: []string{"mmap", "dlopen", "dlsym"},
-	})
+	for _, uprobe := range spec.UProbes {
+		if isSODynamic(&uprobe) {
+			spec.UProbes = append(spec.UProbes, v1alpha1.UProbeSpec{
+				Path:    "/usr/lib/x86_64-linux-gnu/libc.so.6",
+				Symbols: []string{"mmap", "dlopen", "dlsym"},
+			})
+			break
+		}
+	}
 
 	// use multi uprobe only if:
 	// - it's not disabled by spec option
