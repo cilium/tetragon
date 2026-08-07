@@ -33,6 +33,7 @@ const (
 	KeyKernelVersion          = "kernel"
 	KeyVerbosity              = "verbose"
 	KeyProcessCacheSize       = "process-cache-size"
+	KeyDisableProcessCache    = "disable-process-cache"
 	KeyDataCacheSize          = "data-cache-size"
 	KeyDeletedPodCacheSize    = "deleted-pod-cache-size"
 	KeyProcessCacheGCInterval = "process-cache-gc-interval"
@@ -240,12 +241,17 @@ func ReadAndSetFlags() error {
 	logger.PopulateLogOpts(Config.LogOpts, logLevel, logFormat, logFile)
 
 	Config.ProcessCacheSize = viper.GetInt(KeyProcessCacheSize)
+	Config.DisableProcessCache = viper.GetBool(KeyDisableProcessCache)
 	Config.DataCacheSize = viper.GetInt(KeyDataCacheSize)
 	Config.DeletedPodCacheSize = viper.GetInt(KeyDeletedPodCacheSize)
 	Config.ProcessCacheGCInterval = viper.GetDuration(KeyProcessCacheGCInterval)
 
 	if Config.ProcessCacheGCInterval <= 0 {
 		return errors.New("failed to parse process-cache-gc-interval value. Must be >= 0")
+	}
+
+	if err := validateProcessCacheConfig(Config); err != nil {
+		return err
 	}
 
 	Config.MetricsServer = viper.GetString(KeyMetricsServer)
@@ -350,6 +356,8 @@ func ReadAndSetFlags() error {
 		return err
 	}
 
+	warnIgnoredProcessCacheFlags(Config)
+
 	return nil
 }
 
@@ -396,6 +404,33 @@ func serverAddressUsesTCP(addr string) bool {
 	// only non-TCP form we accept; everything else is treated as a host
 	// or host:port for net.Listen("tcp", ...).
 	return !strings.HasPrefix(addr, "unix://")
+}
+
+// validateProcessCacheConfig rejects --enable-ancestors when the process
+// cache is disabled: ancestor reconstruction relies on the process cache,
+// so the combination is a misconfiguration rather than a silently reduced
+// feature.
+func validateProcessCacheConfig(c config) error {
+	if c.DisableProcessCache && c.EnableProcessAncestors {
+		return fmt.Errorf("--%s cannot be used together with --%s", KeyEnableAncestors, KeyDisableProcessCache)
+	}
+	return nil
+}
+
+// warnIgnoredProcessCacheFlags warns about flags that are silently ignored
+// when the process cache is disabled, because they only configure the
+// process cache itself or the event cache, which is never created in that
+// mode. Unlike validateProcessCacheConfig, these are not errors since the
+// resulting behavior is just a no-op, not a functional contradiction.
+func warnIgnoredProcessCacheFlags(c config) {
+	if !c.DisableProcessCache {
+		return
+	}
+	for _, key := range []string{KeyProcessCacheSize, KeyProcessCacheGCInterval, KeyEventCacheRetries, KeyEventCacheRetryDelay} {
+		if viper.IsSet(key) {
+			logger.GetLogger().Warn(fmt.Sprintf("--%s has no effect when --%s is set", key, KeyDisableProcessCache))
+		}
+	}
 }
 
 type CgroupRate struct {
@@ -470,6 +505,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyKernelVersion, "", "Kernel version")
 	flags.Int(KeyVerbosity, 0, "set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
 	flags.Int(KeyProcessCacheSize, 65536, "Size of the process cache")
+	flags.Bool(KeyDisableProcessCache, false, "Disable process cache")
 	flags.Int(KeyDataCacheSize, 1024, "Size of the data events cache")
 	flags.Int(KeyDeletedPodCacheSize, constants.WatcherDeletedPodCacheSize, "Size of the deleted pod cache")
 	flags.Duration(KeyProcessCacheGCInterval, defaults.DefaultProcessCacheGCInterval, "Time between checking the process cache for old entries")

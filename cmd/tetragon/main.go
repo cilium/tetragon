@@ -521,8 +521,17 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		pcGCInterval = defaults.DefaultProcessCacheGCInterval
 	}
 
-	if err := process.InitCache(podAccessor, option.Config.ProcessCacheSize, pcGCInterval); err != nil {
-		return err
+	if option.Config.DisableProcessCache {
+		log.Info("Process cache is disabled")
+		// The k8s watcher is used to retrieve pod metadata independently of
+		// the process cache, so it must still be set for pod info to be
+		// attached to events.
+		process.SetK8sWatcher(podAccessor)
+		process.SetFetcher(&process.BPFProcessFetcher{})
+	} else {
+		if err := process.InitCache(podAccessor, option.Config.ProcessCacheSize, pcGCInterval); err != nil {
+			return err
+		}
 	}
 
 	// cleanupWg is needed to ensure that gRPC code cleanly finishes before we exit (e.g,

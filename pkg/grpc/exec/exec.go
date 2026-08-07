@@ -51,7 +51,8 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	parentId := tetragonProcess.ParentExecId
 	processId := tetragonProcess.ExecId
 
-	parent, err := process.Get(parentId)
+	parent, err := process.GetFetcher().Get(parentId)
+
 	if err == nil {
 		tetragonParent = parent.UnsafeGetProcess()
 	}
@@ -367,6 +368,10 @@ func (msg *MsgCloneEventUnix) Retry(internal *process.ProcessInternal, _ notify.
 func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var ancestors []*process.ProcessInternal
 
+	if option.Config.DisableProcessCache {
+		return nil
+	}
+
 	proc, _ := process.AddCloneEvent(&msg.MsgCloneEvent)
 	if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
 		ancestors, _ = process.GetAncestorProcessesInternal(proc.UnsafeGetProcess().ParentExecId)
@@ -664,6 +669,10 @@ func (msg *MsgProcessCleanupEventUnix) Retry(_ *process.ProcessInternal, _ notif
 
 func (msg *MsgProcessCleanupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var ancestors []*process.ProcessInternal
+
+	if option.Config.DisableProcessCache {
+		return nil
+	}
 
 	msg.RefCntDone = [3]bool{false, false, false}
 	proc, parent := process.GetParentProcessInternal(msg.PID, msg.Ktime)
