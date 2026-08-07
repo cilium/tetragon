@@ -7,7 +7,8 @@ weight: 5
 A [TracingPolicy](#tracingpolicy) is a user-configurable Kubernetes custom
 resource (CR) that defines how Tetragon observes events in both the kernel
 and userspace using eBPF. It supports a variety of hook points including
-[kprobes](#tracingpolicyspeckprobesindex), [uprobes](#tracingpolicyspecuprobesindex),
+[kprobes](#tracingpolicyspeckprobesindex), [fentry/fexit](#tracingpolicyspecfentriesindex),
+[uprobes](#tracingpolicyspecuprobesindex),
 [tracepoints](#tracingpolicyspectracepointsindex), [LSM hooks](#tracingpolicyspeclsmhooksindex),
 and [USDTs](#tracingpolicyspecusdtsindex), giving users fine-grained control
 over what to trace and what actions to take. Policies consist of hook points,
