@@ -802,6 +802,10 @@ func cleanupUprobeEntries(ids []idtable.EntryID, openedFiles map[string]*os.File
 			errs = errors.Join(errs, err)
 		}
 
+		if uprobeEntry.dynOv != nil {
+			observer.GetSensorManager().Listener.RemoveListener(uprobeEntry.dynOv)
+		}
+
 		_, err = uprobeTable.RemoveEntry(id)
 		if err != nil {
 			errs = errors.Join(errs, err)
