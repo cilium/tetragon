@@ -10,12 +10,23 @@ import (
 	"github.com/cilium/tetragon/pkg/tetragoninfo"
 )
 
-func processCacheDisabled(info *tetragoninfo.Info) bool {
+func ProcessCacheDisabled(info *tetragoninfo.Info) bool {
 	if info != nil {
 		disabledPC, _ := info.Conf["disable-process-cache"].(bool)
 		return disabledPC
 	}
 	return false
+}
+
+// PrepareScenario adjusts a scenario's EventChecker based on the agent's
+// configuration, e.g. skipping Process/Parent checks when the process cache
+// is disabled and those fields won't be populated. It is meant to be passed
+// to NewLocalRunner.
+func PrepareScenario(info *tetragoninfo.Info, scenario *Scenario) {
+	if ProcessCacheDisabled(info) {
+		unsetProcessChecks(scenario.EventChecker)
+		unsetParentChecks(scenario.EventChecker)
+	}
 }
 
 // unsetProcessChecks strips any Process check set via WithProcess() from the

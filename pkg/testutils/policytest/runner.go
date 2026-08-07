@@ -33,6 +33,10 @@ type LocalRunner struct {
 	wg   sync.WaitGroup
 
 	fwdCtlChan chan fwdCtl
+
+	// prepareScenario is called on each scenario before it runs, e.g. to
+	// adjust its EventChecker based on the agent's configuration.
+	prepareScenario func(info *tetragoninfo.Info, scenario *Scenario)
 }
 
 // NewLocalRunner creates a new local runner
@@ -52,6 +56,7 @@ func NewLocalRunner(
 	ctx context.Context,
 	log *slog.Logger,
 	cnf *Conf,
+	prepareScenario func(info *tetragoninfo.Info, scenario *Scenario),
 ) (*LocalRunner, error) {
 	if cnf.GrpcAddr == "" {
 		info, err := bugtool.LoadInitInfo()
@@ -81,9 +86,10 @@ func NewLocalRunner(
 	}
 	info := tetragoninfo.Decode(res)
 	ret := &LocalRunner{
-		conf: cnf,
-		cli:  cli,
-		info: info,
+		conf:            cnf,
+		cli:             cli,
+		info:            info,
+		prepareScenario: prepareScenario,
 	}
 
 	// start two goroutines to handle Tetragon events:
@@ -231,10 +237,8 @@ func (r *LocalRunner) RunScenario(
 	ctx, cancel := context.WithTimeout(r.cli.Ctx, time.Second*10)
 	defer cancel()
 
-	// the process cache is disabled, so Process/Parent fields won't be populated: skip those checks
-	if processCacheDisabled(r.info) {
-		unsetProcessChecks(scenario.EventChecker)
-		unsetParentChecks(scenario.EventChecker)
+	if r.prepareScenario != nil {
+		r.prepareScenario(r.info, scenario)
 	}
 
 	// start the checker
