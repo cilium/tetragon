@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -939,6 +940,12 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 			}
 			return nil
 		},
+		"CONFIG_USE_PERF_RING_BUF": func(v *ebpf.VariableSpec) error {
+			if err := v.Set(option.Config.UsePerfRingBuffer); err != nil {
+				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
+			}
+			return nil
+		},
 	}
 
 	for n, c := range spec.Variables {
@@ -1252,7 +1259,7 @@ func doLoadProgram(
 
 	// Copy the loaded collection before it's destroyed
 	if keepCollection {
-		return copyLoadedCollection(coll)
+		return copyLoadedCollection(coll, refMaps)
 	}
 	return nil, nil
 }

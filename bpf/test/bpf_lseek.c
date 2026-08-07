@@ -8,6 +8,7 @@
 #include "bpf_event.h"
 #include "bpf_task.h"
 #include "bpf_ktime.h"
+#include "config.h"
 
 /*
  * # cat /sys/kernel/tracing/events/syscalls/sys_enter_lseek/format
@@ -47,10 +48,6 @@ test_lseek(struct sys_enter_lseek_args *ctx)
 	if (ctx->fd == -1 && ctx->whence == 4729) {
 		struct msg_test msg = { 0 };
 		size_t size = sizeof(msg);
-#ifdef __V511_BPF_PROG
-		struct tetragon_conf *conf;
-		int zero = 0;
-#endif
 
 		msg.common.op = MSG_OP_TEST;
 		msg.common.ktime = tg_get_ktime();
@@ -58,8 +55,7 @@ test_lseek(struct sys_enter_lseek_args *ctx)
 		msg.arg0 = get_smp_processor_id();
 #ifdef __V511_BPF_PROG
 		// If sending via the BPF ring buffer, set arg1 to 1.
-		conf = map_lookup_elem(&tg_conf_map, &zero);
-		if (conf && !conf->use_perf_ring_buf)
+		if (!CONFIG(USE_PERF_RING_BUF))
 			msg.arg1 = 1;
 #endif
 		event_output_metric(ctx, MSG_OP_TEST, &msg, size);

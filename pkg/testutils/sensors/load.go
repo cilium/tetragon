@@ -212,9 +212,11 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 	}
 
 	if cfg.EnableV511Progs() {
-		progs := []uint{0, 1, 2}
-		baseMaps = append(baseMaps, SensorMap{Name: "tg_rb_events", Progs: progs})
-		baseMaps = append(baseMaps, SensorMap{Name: "tg_conf_map", Progs: progs})
+		baseMaps = append(baseMaps, SensorMap{Name: "tg_rb_events", Progs: []uint{0, 1, 2}})
+		// event_exit no longer references tg_conf_map: it only used it via
+		// event_output(), which now reads CONFIG(USE_PERF_RING_BUF) instead
+		// of tg_conf_map.
+		baseMaps = append(baseMaps, SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2}})
 	} else {
 		progs := []uint{2, 5}
 		if cfg.EnableLargeProgs() {

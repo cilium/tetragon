@@ -30,6 +30,7 @@
 	}))
 
 DECLARE_CONFIG(bool, ITER_NUM);
+DECLARE_CONFIG(bool, USE_PERF_RING_BUF);
 
 #else
 
