@@ -590,6 +590,19 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		return fmt.Errorf("uprobe Override action needs exactly one of either argNewSymbol, argNewOffset or argNewAddr defined; %d found", numArgNewArgs)
 	}
 	state.overrideSymbol = numArgNewArgs == 1
+
+	if selectors.HasSet(spec.Selectors) {
+		for _, s := range spec.Selectors {
+			for _, action := range s.MatchActions {
+				if action.Action != "Set" {
+					continue
+				}
+				if action.ArgIndex >= api.EventConfigMaxArgs {
+					return fmt.Errorf("uprobe Set action argIndex %d out of range", action.ArgIndex)
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -597,6 +610,13 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 	if selectors.HasOverride(spec.Selectors) {
 		if !bpf.HasUprobeRegsChange() {
 			return errors.New("can't use override regs action, no kernel support")
+		}
+		has.sleepableOffload = true
+	}
+
+	if selectors.HasSet(spec.Selectors) {
+		if !bpf.HasUprobeRegsChange() {
+			return errors.New("can't use set action, no kernel support")
 		}
 		has.sleepableOffload = true
 	}

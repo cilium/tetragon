@@ -52,3 +52,24 @@ func parseOverrideRegs(k *KernelSelectorState, selIdx int, values []string, errV
 	k.regs[selIdx] = regs
 	return nil
 }
+
+func parseSetRegs(k *KernelSelectorState, selIdx int, argIndex, argValue uint32) error {
+	val := fmt.Sprintf("x%d=%d", argIndex, argValue)
+
+	ass, err := asm.ParseAssignment(val)
+	if err != nil {
+		return err
+	}
+
+	reg := processapi.RegAssignment{
+		Type:    ass.Type,
+		Src:     ass.Src,
+		Dst:     ass.Dst,
+		SrcSize: ass.SrcSize,
+		DstSize: ass.DstSize,
+		Off:     ass.Off,
+	}
+
+	k.regs[selIdx] = append(k.regs[selIdx], reg)
+	return nil
+}
