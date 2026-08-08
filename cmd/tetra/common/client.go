@@ -37,8 +37,8 @@ import (
 // between 0 and the final duration that was computed via to the params:
 // https://github.com/grpc/grpc-go/blob/v1.65.0/stream.go#L702
 func RetryPolicy(retries int) string {
-	if retries < 0 {
-		// gRPC should ignore the invalid retry policy but will issue a warning,
+	if retries <= 0 {
+		// An empty service config disables application-level retries.
 		return "{}"
 	}
 	// maxAttempt includes the first call
@@ -47,7 +47,10 @@ func RetryPolicy(retries int) string {
 	// since we need to provide a value >0
 	return fmt.Sprintf(`{
 	"methodConfig": [{
-	  "name": [{"service": "tetragon.FineGuidanceSensors"}],
+	  "name": [
+		{"service": "tetragon.FineGuidanceSensors"},
+		{"service": "tetragon.EventLogService"}
+	  ],
 	  "retryPolicy": {
 		  "MaxAttempts": %d,
 		  "InitialBackoff": "1s",
