@@ -1098,6 +1098,7 @@ type MsgGenericLsmUnix struct {
 	Msg        *tracingapi.MsgGenericKprobe
 	Hook       string
 	Args       []tracingapi.MsgGenericKprobeArg
+	Data       []tracingapi.MsgGenericKprobeArg
 	PolicyName string
 	Message    string
 	Tags       []string
@@ -1141,7 +1142,7 @@ func (msg *MsgGenericLsmUnix) PolicyInfo() tracingpolicy.PolicyInfo {
 func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 	var ancestors []*process.ProcessInternal
 	var tetragonAncestors []*tetragon.Process
-	var tetragonArgs []*tetragon.KprobeArgument
+	var tetragonArgs, tetragonData []*tetragon.KprobeArgument
 
 	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
 
@@ -1157,6 +1158,10 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 		a := getKprobeArgument(arg)
 		tetragonArgs = append(tetragonArgs, a)
 	}
+	for _, arg := range event.Data {
+		a := getKprobeArgument(arg)
+		tetragonData = append(tetragonData, a)
+	}
 
 	tetragonEvent := &tetragon.ProcessLsm{
 		Process:      tetragonProcess,
@@ -1164,6 +1169,7 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 		Ancestors:    tetragonAncestors,
 		FunctionName: event.Hook,
 		Args:         tetragonArgs,
+		Data:         tetragonData,
 		Action:       kprobeAction(event.Msg.ActionId),
 		PolicyName:   event.PolicyName,
 		Message:      event.Message,
