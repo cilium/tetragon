@@ -643,11 +643,6 @@ func (s *bugtoolInfo) addPProfInfo() {
 }
 
 func (s *bugtoolInfo) addGopsInfo() {
-	if s.info.GopsAddr == "" {
-		s.multiLog.Info("Skipping gops dump info as daemon is running without gops, use --gops-address to enable gops")
-		return
-	}
-
 	if s.info.GopsPath == "" {
 		s.multiLog.WithField("gops-address", s.info.GopsAddr).Warn("Failed to locate gops. Please install it or specify its path, see 'bugtool --help'")
 		return
