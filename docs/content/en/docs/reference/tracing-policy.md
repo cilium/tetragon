@@ -1577,7 +1577,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3501,7 +3501,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5094,7 +5094,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6666,7 +6666,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8217,7 +8217,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10085,7 +10085,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -11643,7 +11643,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13780,7 +13780,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -15704,7 +15704,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -17297,7 +17297,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -18869,7 +18869,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -20420,7 +20420,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -22288,7 +22288,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -23846,7 +23846,7 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
         <td><b>values</b></td>
         <td>[]integer</td>
         <td>
-          Process IDs to match.<br/>
+          Process IDs to match. Only the first 4 are matched by the kernel.<br/>
         </td>
         <td>true</td>
       </tr><tr>
