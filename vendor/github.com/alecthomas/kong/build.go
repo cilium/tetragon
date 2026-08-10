@@ -214,7 +214,11 @@ MAIN:
 			delete(seenFlags, negFlag)
 		}
 		for _, aflag := range flag.Aliases {
-			delete(seenFlags, "--"+aflag)
+			if utf8.RuneCountInString(aflag) == 1 {
+				delete(seenFlags, "-"+aflag)
+			} else {
+				delete(seenFlags, "--"+aflag)
+			}
 		}
 	}
 
