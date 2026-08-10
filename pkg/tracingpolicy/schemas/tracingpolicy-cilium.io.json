@@ -1028,11 +1028,12 @@
                             "type": "string"
                           },
                           "values": {
-                            "description": "Process IDs to match.",
+                            "description": "Process IDs to match. Only the first 4 are matched by the kernel.",
                             "items": {
                               "format": "int32",
                               "type": "integer"
                             },
+                            "maxItems": 4,
                             "type": "array"
                           }
                         },
@@ -2487,11 +2488,12 @@
                             "type": "string"
                           },
                           "values": {
-                            "description": "Process IDs to match.",
+                            "description": "Process IDs to match. Only the first 4 are matched by the kernel.",
                             "items": {
                               "format": "int32",
                               "type": "integer"
                             },
+                            "maxItems": 4,
                             "type": "array"
                           }
                         },
@@ -3680,11 +3682,12 @@
                             "type": "string"
                           },
                           "values": {
-                            "description": "Process IDs to match.",
+                            "description": "Process IDs to match. Only the first 4 are matched by the kernel.",
                             "items": {
                               "format": "int32",
                               "type": "integer"
                             },
+                            "maxItems": 4,
                             "type": "array"
                           }
                         },
@@ -4821,11 +4824,12 @@
                       "type": "string"
                     },
                     "values": {
-                      "description": "Process IDs to match.",
+                      "description": "Process IDs to match. Only the first 4 are matched by the kernel.",
                       "items": {
                         "format": "int32",
                         "type": "integer"
                       },
+                      "maxItems": 4,
                       "type": "array"
                     }
                   },
@@ -5946,11 +5950,12 @@
                             "type": "string"
                           },
                           "values": {
-                            "description": "Process IDs to match.",
+                            "description": "Process IDs to match. Only the first 4 are matched by the kernel.",
                             "items": {
                               "format": "int32",
                               "type": "integer"
                             },
+                            "maxItems": 4,
                             "type": "array"
                           }
                         },
@@ -7368,11 +7373,12 @@
                             "type": "string"
                           },
                           "values": {
-                            "description": "Process IDs to match.",
+                            "description": "Process IDs to match. Only the first 4 are matched by the kernel.",
                             "items": {
                               "format": "int32",
                               "type": "integer"
                             },
+                            "maxItems": 4,
                             "type": "array"
                           }
                         },
@@ -8534,11 +8540,12 @@
                             "type": "string"
                           },
                           "values": {
-                            "description": "Process IDs to match.",
+                            "description": "Process IDs to match. Only the first 4 are matched by the kernel.",
                             "items": {
                               "format": "int32",
                               "type": "integer"
                             },
+                            "maxItems": 4,
                             "type": "array"
                           }
                         },
