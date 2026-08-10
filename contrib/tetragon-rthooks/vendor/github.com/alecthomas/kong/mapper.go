@@ -717,7 +717,7 @@ func existingDirMapper(r *Registry) MapperFunc {
 
 func fileContentMapper(r *Registry) MapperFunc {
 	return func(ctx *DecodeContext, target reflect.Value) error {
-		if target.Kind() != reflect.Slice && target.Elem().Kind() != reflect.Uint8 {
+		if target.Kind() != reflect.Slice || target.Type().Elem().Kind() != reflect.Uint8 {
 			return fmt.Errorf("\"filecontent\" must be applied to []byte not %s", target.Type())
 		}
 		var path string
@@ -794,19 +794,32 @@ func counterMapper() MapperFunc {
 			if err != nil {
 				return err
 			}
+			var n int64
 			switch v := t.Value.(type) {
 			case string:
-				n, err := strconv.ParseInt(v, 10, 64)
+				n, err = strconv.ParseInt(v, 10, 64)
 				if err != nil {
 					return fmt.Errorf("expected a counter but got %q (%T)", t, t.Value)
 				}
-				target.SetInt(n)
 
 			case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-				target.Set(reflect.ValueOf(v))
+				n = reflect.ValueOf(v).Convert(reflect.TypeOf(int64(0))).Int()
 
 			default:
 				return fmt.Errorf("expected a counter but got %q (%T)", t, t.Value)
+			}
+
+			// Assign by the target's kind, like the increment path below, so a
+			// counter declared as a uint or float field doesn't panic.
+			switch target.Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				target.SetInt(n)
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				target.SetUint(uint64(n)) //nolint:gosec // a counter value is small and non-negative
+			case reflect.Float32, reflect.Float64:
+				target.SetFloat(float64(n))
+			default:
+				return fmt.Errorf("type:\"counter\" must be used with a numeric field")
 			}
 			return nil
 		}
