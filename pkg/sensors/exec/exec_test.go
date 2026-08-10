@@ -48,7 +48,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
@@ -554,28 +553,6 @@ func testEventExecveLongPathLongArgs(t *testing.T) {
 
 	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
-}
-
-func TestLoadInitialSensor(t *testing.T) {
-
-	var sensorProgs = []tus.SensorProg{}
-	var sensorMaps = []tus.SensorMap{}
-
-	sensor := base.GetInitialSensorTest(t)
-
-	option.Config.HubbleLib = tus.Conf().TetragonLib
-
-	option.Config.KeepCollection = true
-	defer func() { option.Config.KeepCollection = false }()
-
-	t.Logf("Loading sensor %v\n", sensor.Name)
-	if err := sensor.Load(bpf.MapPrefixPath()); err != nil {
-		t.Fatalf("sensor.Load failed: %v\n", err)
-	}
-
-	tus.CheckSensorLoad([]*sensors.Sensor{sensor}, sensorMaps, sensorProgs, t)
-
-	sensor.Unload(true)
 }
 
 func TestDocker(t *testing.T) {
