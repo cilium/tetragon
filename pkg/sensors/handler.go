@@ -9,10 +9,26 @@ import (
 	"sync"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
+
+var errNamespacedUprobe = errors.New("uprobe is not supported in a namespaced tracing policy")
+
+// validateNamespacedProbes rejects probe types a namespaced (tenant-writable)
+// policy must not use: a uprobe target is resolved in the agent's host mount
+// namespace, not inside the tenant's own containers.
+func validateNamespacedProbes(namespace string, spec *v1alpha1.TracingPolicySpec) error {
+	if namespace == "" {
+		return nil
+	}
+	if len(spec.UProbes) > 0 {
+		return errNamespacedUprobe
+	}
+	return nil
+}
 
 type handler struct {
 	collections *collectionMap
@@ -77,6 +93,10 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 	var namespace string
 	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
 		namespace = tpNs.TpNamespace()
+	}
+
+	if err := validateNamespacedProbes(namespace, tp.TpSpec()); err != nil {
+		return policyfilter.NoFilterID, err
 	}
 
 	var podSelector *slimv1.LabelSelector
