@@ -8,12 +8,34 @@ package sensors
 import (
 	"errors"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
+
+var (
+	errNamespacedUprobe = errors.New("uprobe is not supported in a namespaced tracing policy")
+	errNamespacedUsdt   = errors.New("usdt is not supported in a namespaced tracing policy")
+)
+
+// validateNamespacedProbes rejects probe types a namespaced (tenant-writable)
+// policy must not use: a uprobe/usdt target is resolved in the agent's host
+// mount namespace, not inside the tenant's own containers.
+func validateNamespacedProbes(namespace string, spec *v1alpha1.TracingPolicySpec) error {
+	if namespace == "" {
+		return nil
+	}
+	if len(spec.UProbes) > 0 {
+		return errNamespacedUprobe
+	}
+	if len(spec.Usdts) > 0 {
+		return errNamespacedUsdt
+	}
+	return nil
+}
 
 // updatePolicyFilter will update the policyfilter state so that filtering for
 // i) namespaced policies and ii) pod label filters happens.
@@ -24,6 +46,12 @@ import (
 //	policyfilter.PolicyID(tpID), nil if filtering is needed and policyfilter has been successfully set up
 //	_, err if an error occurred
 func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64) (policyfilter.PolicyID, error) {
+	// Checked before the non-k8s early return below: a namespaced policy can
+	// also arrive over gRPC with the k8s control plane disabled.
+	if err := validateNamespacedProbes(tp.TpNamespace(), tp.TpSpec()); err != nil {
+		return policyfilter.NoFilterID, err
+	}
+
 	if !option.K8SControlPlaneEnabled() {
 		if ps := tp.TpSpec().PodSelector; ps != nil {
 			return policyfilter.NoFilterID, errors.New("podSelector not allowed in non-k8s environment")
