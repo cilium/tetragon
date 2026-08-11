@@ -2874,6 +2874,67 @@ func (checker *ProcessThrottleChecker) FromProcessThrottle(event *tetragon.Proce
 	return checker
 }
 
+// UnsetProcessChecks strips any Process check set via WithProcess() from the
+// individual checks of a MultiEventChecker, e.g. for cases where the process cache
+// is disabled and the Process field can't be checked. The ProcessExec check is left
+// as is, because its Process field is valid regardless of the process cache.
+func UnsetProcessChecks(checker MultiEventChecker) {
+	getter, ok := checker.(interface{ GetChecks() []EventChecker })
+	if !ok {
+		return
+	}
+	for _, c := range getter.GetChecks() {
+		switch v := c.(type) {
+		case *ProcessExitChecker:
+			v.UnsetProcess()
+		case *ProcessKprobeChecker:
+			v.UnsetProcess()
+		case *ProcessTracepointChecker:
+			v.UnsetProcess()
+		case *ProcessUprobeChecker:
+			v.UnsetProcess()
+		case *ProcessUsdtChecker:
+			v.UnsetProcess()
+		case *ProcessLsmChecker:
+			v.UnsetProcess()
+		case *ProcessLoaderChecker:
+			v.UnsetProcess()
+
+		}
+	}
+}
+
+// UnsetParentChecks strips any Parent check set via WithParent() from the
+// individual checks of a MultiEventChecker, e.g. for cases where the process cache
+// is disabled and the Parent field can't be checked.
+func UnsetParentChecks(checker MultiEventChecker) {
+	getter, ok := checker.(interface{ GetChecks() []EventChecker })
+	if !ok {
+		return
+	}
+	for _, c := range getter.GetChecks() {
+		switch v := c.(type) {
+		case *ProcessExecChecker:
+			v.UnsetParent()
+		case *ProcessExitChecker:
+			v.UnsetParent()
+		case *ProcessKprobeChecker:
+			v.UnsetParent()
+		case *ProcessTracepointChecker:
+			v.UnsetParent()
+		case *ProcessUprobeChecker:
+			v.UnsetParent()
+		case *ProcessUsdtChecker:
+			v.UnsetParent()
+		case *ProcessLsmChecker:
+			v.UnsetParent()
+		case *ProcessLoaderChecker:
+			v.UnsetParent()
+
+		}
+	}
+}
+
 // ImageChecker implements a checker struct to check a Image field
 type ImageChecker struct {
 	Id   *stringmatcher.StringMatcher `json:"id,omitempty"`
