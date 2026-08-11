@@ -1663,7 +1663,7 @@ type KernelSelectorArgs struct {
 // valueInt := [len][v]
 //
 // For some examples, see kernel_test.go
-func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
+func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([KernelBufferSize]byte, error) {
 	state, err := InitKernelSelectorState(&KernelSelectorArgs{
 		Selectors:      selectors,
 		Args:           args,
@@ -1671,17 +1671,17 @@ func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KP
 		ActionArgTable: actionArgTable,
 	})
 	if err != nil {
-		return [4096]byte{}, err
+		return [KernelBufferSize]byte{}, err
 	}
-	return state.data.e, nil
+	return state.Buffer(), nil
 }
 
-func InitKernelReturnSelectors(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
+func InitKernelReturnSelectors(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([KernelBufferSize]byte, error) {
 	state, err := InitKernelReturnSelectorState(selectors, returnArg, actionArgTable, nil, nil)
 	if err != nil {
-		return [4096]byte{}, err
+		return [KernelBufferSize]byte{}, err
 	}
-	return state.data.e, nil
+	return state.Buffer(), nil
 }
 
 func createKernelSelectorState(
@@ -1711,6 +1711,9 @@ func createKernelSelectorState(
 			return nil, err
 		}
 		WriteSelectorLength(&state.data, loff)
+	}
+	if len(state.data.e) > KernelBufferSize {
+		return nil, fmt.Errorf("selector encoding overflow: %d bytes exceeds %d byte buffer", len(state.data.e), KernelBufferSize)
 	}
 	return state, nil
 }

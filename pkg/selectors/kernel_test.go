@@ -40,7 +40,7 @@ func TestWriteSelectorUint32(t *testing.T) {
 			d.e[0], d.e[1], d.e[2], d.e[3])
 	}
 
-	d.off = 1024
+	d.grow(1020) // pad out to offset 1024; grow() is what off actually tracks
 	WriteSelectorUint32(d, v)
 	if d.e[1027] != 0x12 || d.e[1026] != 0x34 || d.e[1025] != 0xab || d.e[1024] != 0xcd {
 		t.Errorf("SelectorStateWrite offset(1024) failed: %x %x %x %x\n",
