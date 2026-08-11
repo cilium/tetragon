@@ -47,6 +47,45 @@ func newPolicyInfo(
 
 }
 
+// A namespaced policy is tenant-writable, so the register-modifying Override
+// action (argRegs) — which rewrites the probed process's registers and reads
+// arbitrary user memory — must stay a cluster-admin capability.
+var errNamespacedRegisterOverride = errors.New("register-modifying Override action (argRegs) is not allowed in a namespaced tracing policy")
+
+func hasRegisterOverride(spec *v1alpha1.TracingPolicySpec) bool {
+	for _, kprobe := range spec.KProbes {
+		if selectors.HasOverrideArgRegs(kprobe.Selectors) {
+			return true
+		}
+	}
+
+	for _, uprobe := range spec.UProbes {
+		if selectors.HasOverrideArgRegs(uprobe.Selectors) {
+			return true
+		}
+	}
+
+	for _, tp := range spec.Tracepoints {
+		if selectors.HasOverrideArgRegs(tp.Selectors) {
+			return true
+		}
+	}
+
+	for _, lsm := range spec.LsmHooks {
+		if selectors.HasOverrideArgRegs(lsm.Selectors) {
+			return true
+		}
+	}
+
+	for _, usdt := range spec.Usdts {
+		if selectors.HasOverrideArgRegs(usdt.Selectors) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func hasEnforcementActions(spec *v1alpha1.TracingPolicySpec) bool {
 	for _, kprobe := range spec.KProbes {
 		if selectors.HasEnforcementAction(kprobe.Selectors) || selectors.HasOverride(kprobe.Selectors) {
@@ -114,6 +153,10 @@ func newPolicyInfoFromSpec(
 	opts, err := getSpecOptions(spec.Options)
 	if err != nil {
 		return nil, err
+	}
+
+	if namespace != "" && hasRegisterOverride(spec) {
+		return nil, errNamespacedRegisterOverride
 	}
 
 	// If enforcement is not allowed, force monitor only

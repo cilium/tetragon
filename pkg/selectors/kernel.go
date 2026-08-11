@@ -1814,6 +1814,23 @@ func HasOverride(selectors []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+// HasOverrideArgRegs reports whether any selector uses the register-modifying
+// variant of the Override action (argRegs), the register-write primitive that
+// can rewrite rip/rsp and read arbitrary user memory.
+func HasOverrideArgRegs(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
+		for _, action := range s.MatchActions {
+			if len(action.ArgRegs) == 0 {
+				continue
+			}
+			if actionTypeTable[strings.ToLower(action.Action)] == ActionTypeOverride {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func CountOverrideArgNewSymbolAddrOffset(selectors []v1alpha1.KProbeSelector) int {
 	for _, s := range selectors {
 		for _, action := range s.MatchActions {
