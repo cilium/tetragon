@@ -31,6 +31,7 @@ enum EventType {
   PROCESS_THROTTLE = 27;
   PROCESS_LSM = 28;
   PROCESS_USDT = 29;
+  PROCESS_JAVA = 30;
 
   TEST = 40000;
   RATE_LIMIT_INFO = 40001;
@@ -216,6 +217,7 @@ message GetEventsResponse {
     ProcessThrottle process_throttle = 27;
     ProcessLsm process_lsm = 28;
     ProcessUsdt process_usdt = 29;
+    ProcessJava process_java = 30;
 
     Test test = 40000;
     RateLimitInfo rate_limit_info = 40001;
