@@ -327,38 +327,54 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 		})
 	}
 
-	// aggregates maps total memory use
-	aggregatedMapsSet := map[string]struct {
-		bpf.ExtendedMapInfo
-		count uint64
+	// aggregates maps total memory use. key on these five fields
+	type aggregatedKey struct {
+		Name       string
+		Type       ebpf.MapType
+		KeySize    uint32
+		ValueSize  uint32
+		MaxEntries uint32
+	}
+
+	aggregatedMapsSet := map[aggregatedKey]struct {
+		Count        uint64
+		TotalMemlock uint64
 	}{}
 	var total uint64
 	for _, m := range union {
 		total += m.Memlock
-		if e, exist := aggregatedMapsSet[m.Name]; exist {
-			e.Memlock += m.Memlock
-			e.count++
-			aggregatedMapsSet[m.Name] = e
-		} else {
-			aggregatedMapsSet[m.Name] = struct {
-				bpf.ExtendedMapInfo
-				count uint64
-			}{m, 1}
+		key := aggregatedKey{
+			Name:       m.Name,
+			Type:       m.Type,
+			KeySize:    m.KeySize,
+			ValueSize:  m.ValueSize,
+			MaxEntries: m.MaxEntries,
 		}
+		if e, exists := aggregatedMapsSet[key]; exists {
+			e.Count++
+			e.TotalMemlock += m.Memlock
+			aggregatedMapsSet[key] = e
+		} else {
+			aggregatedMapsSet[key] = struct {
+				Count        uint64
+				TotalMemlock uint64
+			}{1, m.Memlock}
+		}
+
 	}
 
 	out.AggregatedMaps = make([]AggregatedMap, 0, len(aggregatedMapsSet))
-	for m := range maps.Values(aggregatedMapsSet) {
+	for k, m := range aggregatedMapsSet {
 		out.AggregatedMaps = append(out.AggregatedMaps, AggregatedMap{
-			Name:              m.Name,
-			Type:              m.Type.String(),
-			KeySize:           m.KeySize,
-			ValueSize:         m.ValueSize,
-			MaxEntries:        m.MaxEntries,
-			Count:             m.count,
-			MemlockBytes:      m.Memlock,
-			TotalMemlockBytes: m.Memlock * m.count,
-			PercentOfTotal:    float64(m.Memlock*m.count) / float64(total) * 100,
+			Name:              k.Name,
+			Type:              k.Type.String(),
+			KeySize:           k.KeySize,
+			ValueSize:         k.ValueSize,
+			MaxEntries:        k.MaxEntries,
+			Count:             m.Count,
+			MemlockBytes:      m.TotalMemlock / m.Count,
+			TotalMemlockBytes: m.TotalMemlock,
+			PercentOfTotal:    float64(m.TotalMemlock) / float64(total) * 100,
 		})
 	}
 
