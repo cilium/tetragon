@@ -60,6 +60,10 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 		return err
 	}
 
+	if err := generateUnsetChecks(g, files); err != nil {
+		return err
+	}
+
 	if err := generateFieldCheckers(g, files); err != nil {
 		return err
 	}
@@ -183,6 +187,55 @@ func generateEventCheckers(g *protogen.GeneratedFile, f []*protogen.File) error 
 			return err
 		}
 	}
+
+	return nil
+}
+
+// generateUnsetChecks generates helpers to strip the Process and Parent checks
+// from all the event checks of a MultiEventChecker.
+func generateUnsetChecks(g *protogen.GeneratedFile, f []*protogen.File) error {
+	events, err := getEvents(f)
+	if err != nil {
+		return err
+	}
+
+	doCases := func(fieldName string, skipped map[string]bool) string {
+		var ret strings.Builder
+		for _, msg := range events {
+			if skipped[msg.GoIdent.GoName] || !msg.hasField(fieldName) {
+				continue
+			}
+			ret.WriteString(`case *` + msg.checkerName(g) + `:
+                v.Unset` + fieldName + `()
+            `)
+		}
+		return ret.String()
+	}
+
+	doFunc := func(fieldName string, skipped map[string]bool) {
+		g.P(`func Unset` + fieldName + `Checks(checker MultiEventChecker) {
+            getter, ok := checker.(interface{ GetChecks() []EventChecker })
+            if !ok {
+                return
+            }
+            for _, c := range getter.GetChecks() {
+                switch v := c.(type) {
+                ` + doCases(fieldName, skipped) + `
+                }
+            }
+        }`)
+	}
+
+	g.P(`// UnsetProcessChecks strips any Process check set via WithProcess() from the
+    // individual checks of a MultiEventChecker, e.g. for cases where the process cache
+    // is disabled and the Process field can't be checked. The ProcessExec check is left
+    // as is, because its Process field is valid regardless of the process cache.`)
+	doFunc("Process", map[string]bool{"ProcessExec": true})
+
+	g.P(`// UnsetParentChecks strips any Parent check set via WithParent() from the
+    // individual checks of a MultiEventChecker, e.g. for cases where the process cache
+    // is disabled and the Parent field can't be checked.`)
+	doFunc("Parent", nil)
 
 	return nil
 }
