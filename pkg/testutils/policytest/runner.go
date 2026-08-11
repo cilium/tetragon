@@ -223,6 +223,14 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 	return &res
 }
 
+func processCacheDisabled(info *tetragoninfo.Info) bool {
+	if info != nil {
+		disabledPC, _ := info.Conf["disable-process-cache"].(bool)
+		return disabledPC
+	}
+	return false
+}
+
 func (r *LocalRunner) RunScenario(
 	l *slog.Logger, scenario *Scenario, polHandler *PolicyHandler, testConf *TestConf,
 ) ScenarioRes {
@@ -233,8 +241,8 @@ func (r *LocalRunner) RunScenario(
 
 	// the process cache is disabled, so Process/Parent fields won't be populated: skip those checks
 	if processCacheDisabled(r.info) {
-		unsetProcessChecks(scenario.EventChecker)
-		unsetParentChecks(scenario.EventChecker)
+		ec.UnsetProcessChecks(scenario.EventChecker)
+		ec.UnsetParentChecks(scenario.EventChecker)
 	}
 
 	// start the checker
