@@ -108,9 +108,12 @@ type MatchBinariesSelectorOptions struct {
 	MBSetID uint32
 }
 
+const KernelBufferSize = 4096
+
 type KernelSelectorData struct {
-	off uint32     // offset into encoding
-	e   [4096]byte // kernel encoding of selectors
+	// kernel encoding of selectors, grows as selectors are encoded. The
+	// current write offset is always len(e).
+	e []byte
 }
 
 type KernelSelectorState struct {
@@ -162,6 +165,9 @@ func NewKernelSelectorState(
 		celExprs = &CelExprFunctions{}
 	}
 	return &KernelSelectorState{
+		// Selectors are expected to fit into KernelBufferSize, so
+		// preallocate that much and avoid growing in the common case.
+		data:                  KernelSelectorData{e: make([]byte, 0, KernelBufferSize)},
 		matchBinaries:         make(map[int]MatchBinariesSelectorOptions),
 		matchBinariesPaths:    make(map[int][][processapi.BINARY_PATH_MAX_LEN]byte),
 		listReader:            listReader,
@@ -217,8 +223,10 @@ func (k *KernelSelectorState) MatchBinariesPathsMaxEntries() int {
 	return maxEntries
 }
 
-func (k *KernelSelectorState) Buffer() [4096]byte {
-	return k.data.e
+func (k *KernelSelectorState) CopyToFixedBuffer() [KernelBufferSize]byte {
+	var out [KernelBufferSize]byte
+	copy(out[:], k.data.e)
+	return out
 }
 
 func (k *KernelSelectorState) ValueMaps() []ValueMap {
@@ -319,28 +327,35 @@ func (k *KernelSelectorState) StringPostfixMapsMaxEntries() int {
 	return maxEntries
 }
 
+// grow appends size zeroed bytes to e and returns them, so callers can
+// write into the returned slice without worrying about the buffer end.
+func (k *KernelSelectorData) grow(size uint32) []byte {
+	oldLen := len(k.e)
+	k.e = append(k.e, make([]byte, size)...)
+	return k.e[oldLen:]
+}
+
 func WriteSelectorInt32(k *KernelSelectorData, v int32) {
-	binary.LittleEndian.PutUint32(k.e[k.off:], uint32(v))
-	k.off += 4
+	binary.LittleEndian.PutUint32(k.grow(4), uint32(v))
 }
 
 func WriteSelectorUint32(k *KernelSelectorData, v uint32) {
-	binary.LittleEndian.PutUint32(k.e[k.off:], v)
-	k.off += 4
+	binary.LittleEndian.PutUint32(k.grow(4), v)
 }
 
 func WriteSelectorInt64(k *KernelSelectorData, v int64) {
-	binary.LittleEndian.PutUint64(k.e[k.off:], uint64(v))
-	k.off += 8
+	binary.LittleEndian.PutUint64(k.grow(8), uint64(v))
 }
 
 func WriteSelectorUint64(k *KernelSelectorData, v uint64) {
-	binary.LittleEndian.PutUint64(k.e[k.off:], v)
-	k.off += 8
+	binary.LittleEndian.PutUint64(k.grow(8), v)
 }
 
+// WriteSelectorLength and WriteSelectorOffsetUint32 backpatch a uint32
+// previously reserved by AdvanceSelectorLength, so loff always refers to
+// bytes already appended to e.
 func WriteSelectorLength(k *KernelSelectorData, loff uint32) {
-	diff := k.off - loff
+	diff := uint32(len(k.e)) - loff
 	binary.LittleEndian.PutUint32(k.e[loff:], diff)
 }
 
@@ -349,19 +364,16 @@ func WriteSelectorOffsetUint32(k *KernelSelectorData, loff uint32, val uint32) {
 }
 
 func GetCurrentOffset(k *KernelSelectorData) uint32 {
-	return k.off
+	return uint32(len(k.e))
 }
 
 func WriteSelectorByteArray(k *KernelSelectorData, b []byte, size uint32) {
-	for l := range size {
-		k.e[k.off+l] = b[l]
-	}
-	k.off += size
+	copy(k.grow(size), b[:size])
 }
 
 func AdvanceSelectorLength(k *KernelSelectorData) uint32 {
-	off := k.off
-	k.off += 4
+	off := uint32(len(k.e))
+	k.grow(4)
 	return off
 }
 

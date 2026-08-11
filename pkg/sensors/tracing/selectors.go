@@ -20,7 +20,7 @@ import (
 )
 
 func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*program.MapLoad {
-	selBuff := ks.Buffer()
+	selBuff := ks.CopyToFixedBuffer()
 	maps := []*program.MapLoad{
 		{
 			Name: "filter_map",
