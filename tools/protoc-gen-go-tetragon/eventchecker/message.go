@@ -159,6 +159,15 @@ func (msg *CheckedMessage) checkerName(g *protogen.GeneratedFile) string {
 	return ret
 }
 
+func (msg *CheckedMessage) hasField(name string) bool {
+	for _, field := range msg.Fields {
+		if field.GoName == name {
+			return true
+		}
+	}
+	return false
+}
+
 func (msg *CheckedMessage) fieldsBody(g *protogen.GeneratedFile) (string, error) {
 	var fieldsStr strings.Builder
 	for _, field := range msg.Fields {
