@@ -25,7 +25,6 @@ import (
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -306,10 +305,6 @@ func TestNamespacedPolicies(t *testing.T) {
 
 // TestUprobeNamespacedPolicy tests namespace filtering on uprobes
 func TestUprobeNamespacedPolicy(t *testing.T) {
-	if !kernels.MinKernelVersion("5.10") {
-		t.Skip("uprobe policyfilter scoping requires kernel >= 5.10")
-	}
-
 	oldEnableK8s := option.Config.EnableK8s
 	option.Config.EnableK8s = true
 	t.Cleanup(func() {
@@ -320,45 +315,11 @@ func TestUprobeNamespacedPolicy(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	err := observer.InitDataCache(1024)
-	require.NoError(t, err)
-	option.Config.HubbleLib = tus.Conf().TetragonLib
-	err = confmap.UpdateTgRuntimeConf(bpf.MapPrefixPath(), os.Getpid())
-	require.NoError(t, err)
-
 	policyfilter.TestingEnableAndReset(t)
-
-	tus.LoadInitialSensor(t)
-	tus.LoadSensor(t, testsensor.GetTestSensor())
 	sm := tuo.GetTestSensorManager(t)
 
-	// Same trick as TestNamespacedPolicies: put two lseek-pipe commands in two
-	// different cgroups, so that tetragon sets up the cgroup ids in the
-	// execve_map at exec time. Here we do not care about the lseek itself, only
-	// about the exec, which runs main.main: the symbol we attach the uprobe to.
-	lseekPipeCmd1 := testutils.NewLseekPipe(t, ctx)
-	lseekPipeCmd2 := testutils.NewLseekPipe(t, ctx)
-	defer lseekPipeCmd1.Close()
-	defer lseekPipeCmd2.Close()
-	cgDir1 := fmt.Sprintf("%s.cgroup1.%s.slice", t.Name(), time.Now().Format("20060102150405"))
-	cgDir2 := fmt.Sprintf("%s.cgroup2.%s.slice", t.Name(), time.Now().Format("20060102150405"))
-	cgID1 := createCgroup(t, cgDir1, uint64(lseekPipeCmd1.Pid()))
-	cgID2 := createCgroup(t, cgDir2, uint64(lseekPipeCmd2.Pid()))
-
-	// Pretend that our two cgroups are containers, and add them to the
-	// policyfilter state: the first one in the "ns1" namespace the policy is
-	// installed in, the second one in "ns2".
-	pfState, err := policyfilter.GetState()
-	require.NoError(t, err)
-	t.Cleanup(func() { pfState.Close() })
-	err = pfState.AddPodContainer(policyfilter.PodID(uuid.New()), "ns1", "wl1", "kind1", nil,
-		"pod1-container1", cgID1, podhelpers.ContainerInfo{Name: "container-name1", Repo: "container-repo1"})
-	require.NoError(t, err)
-	err = pfState.AddPodContainer(policyfilter.PodID(uuid.New()), "ns2", "wl2", "kind2", nil,
-		"pod1-container2", cgID2, podhelpers.ContainerInfo{Name: "container-name2", Repo: "container-repo2"})
-	require.NoError(t, err)
-
-	symbol := "main.main"
+	// A namespaced policy may not attach a uprobe: its target is resolved in the
+	// agent's host mount namespace, so it is rejected at load.
 	upPolicyConf := tracingpolicy.GenericTracingPolicyNamespaced{
 		Metadata: v1.ObjectMeta{
 			Name:      "uprobe-test",
@@ -367,30 +328,10 @@ func TestUprobeNamespacedPolicy(t *testing.T) {
 		Spec: v1alpha1.TracingPolicySpec{
 			UProbes: []v1alpha1.UProbeSpec{{
 				Path:    testutils.RepoRootPath("contrib/tester-progs/lseek-pipe"),
-				Symbols: []string{symbol},
+				Symbols: []string{"main.main"},
 			}},
 		},
 	}
-	err = sm.Manager.AddTracingPolicy(ctx, &upPolicyConf)
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		sm.Manager.DeleteTracingPolicy(ctx, upPolicyConf.TpName(), upPolicyConf.TpNamespace())
-	})
-
-	countUprobes := func(trigger func()) int {
-		count := 0
-		for _, ev := range perfring.RunTestEvents(t, ctx, trigger) {
-			if up, ok := ev.(*tracing.MsgGenericUprobeUnix); ok && up.Symbol == symbol {
-				count++
-			}
-		}
-		return count
-	}
-
-	require.Equal(t, 1, countUprobes(func() {
-		t.Logf("%s", lseekPipeCmd1.Lseek(-42, 0, 0))
-	}))
-	require.Equal(t, 0, countUprobes(func() {
-		t.Logf("%s", lseekPipeCmd2.Lseek(-42, 0, 0))
-	}))
+	err := sm.Manager.AddTracingPolicy(ctx, &upPolicyConf)
+	require.ErrorContains(t, err, "uprobe")
 }
