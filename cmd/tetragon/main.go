@@ -560,13 +560,29 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	if err = loadInitialSensor(ctx); err != nil {
 		return err
 	}
+	if err = restoreGRPCPolicies(ctx, grpcPolicyStore, observer.GetSensorManager()); err != nil {
+		observer.RemoveSensors(ctx)
+		if oldBpfDir != "" {
+			// If we failed to restore policies, here we have already renamed the tetragon bpf directory
+			// to tetragon_old. On the next try, we will also remove tetragon_old and we will miss any
+			// persistent policies that we may had. To avoid that, in the case of failed policy restore,
+			// we rename back tetragon_old to tetragon.
+			if removeErr := os.RemoveAll(observerDir); removeErr != nil {
+				return errors.Join(err, fmt.Errorf("failed to remove bpf progs %s: %w", observerDir, removeErr))
+			}
+			if renameErr := os.Rename(oldBpfDir, observerDir); renameErr != nil {
+				return errors.Join(err, fmt.Errorf("failed to restore previous bpf progs from %s to %s: %w", oldBpfDir, observerDir, renameErr))
+			}
+			log.Info("Restored previous bpf progs", "from", oldBpfDir, "to", observerDir)
+		} else {
+			os.Remove(observerDir)
+		}
+		return err
+	}
 	defer func() {
 		observer.RemoveSensors(ctx)
 		os.Remove(observerDir)
 	}()
-	if err = restoreGRPCPolicies(ctx, grpcPolicyStore, observer.GetSensorManager()); err != nil {
-		return err
-	}
 	observer.GetSensorManager().LogSensorsAndProbes(ctx)
 
 	pm, err := tetragonGrpc.NewProcessManager(
