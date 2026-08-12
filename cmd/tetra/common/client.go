@@ -36,7 +36,7 @@ import (
 // Also note that the final backoff duration is completely random and chosen
 // between 0 and the final duration that was computed via to the params:
 // https://github.com/grpc/grpc-go/blob/v1.65.0/stream.go#L702
-func RetryPolicy(retries int) string {
+func RetryPolicy(retries int, service string) string {
 	if retries <= 0 {
 		// An empty service config disables application-level retries.
 		return "{}"
@@ -48,8 +48,7 @@ func RetryPolicy(retries int) string {
 	return fmt.Sprintf(`{
 	"methodConfig": [{
 	  "name": [
-		{"service": "tetragon.FineGuidanceSensors"},
-		{"service": "tetragon.EventLogService"}
+		{"service": "%s"}
 	  ],
 	  "retryPolicy": {
 		  "MaxAttempts": %d,
@@ -58,40 +57,38 @@ func RetryPolicy(retries int) string {
 		  "BackoffMultiplier": 2,
 		  "RetryableStatusCodes": [ "UNAVAILABLE" ]
 	  }
-	}]}`, maxAttempt)
+	}]}`, service, maxAttempt)
 }
 
-type ClientWithContext struct {
-	Client tetragon.FineGuidanceSensorsClient
+// This can be reused for various tetra clients by embedding it in a struct that
+// has a client as a field using the connection.
+type ConnWithContext struct {
 	// Ctx is a combination of the signal context and the timeout context
 	Ctx context.Context
 	// SignalCtx is only the signal context, you might want to use that context
 	// when the command should never timeout (like a stream command)
 	SignalCtx context.Context
-	conn      *grpc.ClientConn
+	Conn      *grpc.ClientConn
 	// The signal context is the parent of the timeout context, so cancelling
 	// signal will cancel its child, timeout
 	signalCancel  context.CancelFunc
 	timeoutCancel context.CancelFunc
 }
 
+type ClientWithContext struct {
+	ConnWithContext
+	Client tetragon.FineGuidanceSensorsClient
+}
+
 // Close cleanup resources, it closes the connection and cancel the context
-func (c ClientWithContext) Close() {
-	c.conn.Close()
+func (c ConnWithContext) Close() {
+	c.Conn.Close()
 	c.signalCancel()
 	c.timeoutCancel() // this should be a nop
 }
 
-// NewClientWithDefaultContextAndAddress returns a client to a tetragon
-// server after resolving the server address using helpers, accompanied with an
-// initialized context that can be used for the RPC call, caller must call
-// Close() on the client.
-func NewClientWithDefaultContextAndAddress() (*ClientWithContext, error) {
-	return NewClient(context.Background(), ResolveServerAddress(), Timeout)
-}
-
-func NewClient(ctx context.Context, address string, timeout time.Duration) (*ClientWithContext, error) {
-	c := &ClientWithContext{}
+func NewConnWithContext(ctx context.Context, address string, timeout time.Duration, service string) (*ConnWithContext, error) {
+	c := &ConnWithContext{}
 
 	c.SignalCtx, c.signalCancel = signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	c.Ctx, c.timeoutCancel = context.WithTimeout(c.SignalCtx, timeout)
@@ -104,16 +101,37 @@ func NewClient(ctx context.Context, address string, timeout time.Duration) (*Cli
 	if tlsCreds != nil {
 		creds = tlsCreds
 	}
-	c.conn, err = grpc.NewClient(address,
+	c.Conn, err = grpc.NewClient(address,
 		grpc.WithTransportCredentials(creds),
-		grpc.WithDefaultServiceConfig(RetryPolicy(Retries)),
+		grpc.WithDefaultServiceConfig(RetryPolicy(Retries, service)),
 		grpc.WithMaxCallAttempts(Retries+1), // maxAttempt includes the first call
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC client with address %s: %w", address, err)
 	}
-	c.Client = tetragon.NewFineGuidanceSensorsClient(c.conn)
+
+	return c, nil
+}
+
+// NewClientWithDefaultContextAndAddress returns a client to a tetragon
+// server after resolving the server address using helpers, accompanied with an
+// initialized context that can be used for the RPC call, caller must call
+// Close() on the client.
+func NewClientWithDefaultContextAndAddress() (*ClientWithContext, error) {
+	return NewClient(context.Background(), ResolveServerAddress(), Timeout)
+}
+
+func NewClient(ctx context.Context, address string, timeout time.Duration) (*ClientWithContext, error) {
+	ret, err := NewConnWithContext(ctx, address, timeout, "tetragon.FineGuidanceSensors")
+	if err != nil {
+		return nil, err
+	}
+
+	c := &ClientWithContext{
+		ConnWithContext: *ret,
+		Client:          tetragon.NewFineGuidanceSensorsClient(ret.Conn),
+	}
 
 	return c, nil
 }

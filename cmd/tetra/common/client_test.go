@@ -12,7 +12,7 @@ import (
 )
 
 func TestRetryPolicyDisablesRetriesAtZero(t *testing.T) {
-	require.JSONEq(t, `{}`, RetryPolicy(0))
+	require.JSONEq(t, `{}`, RetryPolicy(0, ""))
 }
 
 func TestNewClientWithZeroRetries(t *testing.T) {

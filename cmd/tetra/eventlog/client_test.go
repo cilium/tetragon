@@ -60,7 +60,7 @@ func TestClientRetriesUnavailableRPC(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(client.Close)
 
-	_, err = client.Client.GetEventLogParams(client.ctx, &tetragon.GetEventLogParamsRequest{})
+	_, err = client.Client.GetEventLogParams(client.Ctx, &tetragon.GetEventLogParamsRequest{})
 	require.NoError(t, err)
 	require.Equal(t, int32(2), retrySrv.calls.Load())
 }
