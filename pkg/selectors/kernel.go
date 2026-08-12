@@ -1245,8 +1245,19 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	case ActionTypeCleanupEnforcerNotification:
 		// no arguments
 	case ActionTypeSet:
-		WriteSelectorUint32(&k.data, action.ArgIndex)
-		WriteSelectorUint32(&k.data, action.ArgValue)
+		if k.isUprobe {
+			err := parseSetRegs(k, selIdx, action.ArgIndex, action.ArgValue)
+			if err != nil {
+				return err
+			}
+			WriteSelectorUint32(&k.data, k.UprobeRegsMapID(selIdx))
+			// value is discarded since we use `regs_map` to pass the assignments.
+			WriteSelectorUint32(&k.data, action.ArgValue)
+		} else {
+			// usdt
+			WriteSelectorUint32(&k.data, action.ArgIndex)
+			WriteSelectorUint32(&k.data, action.ArgValue)
+		}
 	default:
 		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
 	}
@@ -1851,8 +1862,8 @@ func HasOperator(selectors []v1alpha1.KProbeSelector, op uint32) bool {
 	return false
 }
 
-func HasSetArgIndex(spec *v1alpha1.UsdtSpec) (bool, uint32) {
-	for _, s := range spec.Selectors {
+func HasSetArgIndex(selectors []v1alpha1.KProbeSelector) (bool, uint32) {
+	for _, s := range selectors {
 		for _, action := range s.MatchActions {
 			act := actionTypeTable[strings.ToLower(action.Action)]
 			if act == ActionTypeSet {
@@ -1863,8 +1874,8 @@ func HasSetArgIndex(spec *v1alpha1.UsdtSpec) (bool, uint32) {
 	return false, 0
 }
 
-func HasSet(spec *v1alpha1.UsdtSpec) bool {
-	ok, _ := HasSetArgIndex(spec)
+func HasSet(selectors []v1alpha1.KProbeSelector) bool {
+	ok, _ := HasSetArgIndex(selectors)
 	return ok
 }
 

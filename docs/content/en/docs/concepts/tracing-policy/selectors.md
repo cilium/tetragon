@@ -859,7 +859,7 @@ matches. They are defined under `matchActions` and currently, the following
 - [TrackSock action](#tracksock-action)
 - [UntrackSock action](#untracksock-action)
 - [Notify Enforcer action](#notify-enforcer-action)
-- [USDT Set action](#usdt-set-action)
+- [Set action](#set-action)
 
 {{< note >}}
 `Sigkill`, `Override`, `Post`,
@@ -1605,11 +1605,41 @@ spec:
       - action: "Sigkill"
 ```
 
-### USDT Set action
+### Set action
 
-The `Set` action is specific for USDT probes and allows tetragon to write
-value to configured USDT probe argument. This argument needs to meet few
-conditions:
+The `Set` action is specific for USDT and uprobe probes.
+It uses the following arguments:
+
+- The `argIndex` defines position of the argument.
+- The `argValue` defined the actual value to write.
+
+#### Uprobe
+
+For uprobes, the `Set` action allows setting the value of the argument at the given index.
+The argument needs to meet a few conditions:
+
+- It must be an integer parameter (`argValue` holds an `uint32`)
+- `argIndex` must be between 0 and the tetragon maximum number of arguments (5)
+
+Example policy follows:
+```yaml
+spec:
+  uprobes:
+  - path: my-binary
+    symbols:
+    - "pizza"
+    selectors:
+    - matchActions:
+      - action: Set
+        argIndex: 0
+        argValue: 42
+```
+This policy will set the value of the first argument of the `pizza()` function to `42`.
+
+#### USDT
+
+For USDT probes, the `Set` action allows writing a value to a configured probe argument. 
+The argument needs to meet a few conditions:
 
 - It's stored in memory as `USDT deref` argument
 - It has size of 4 bytes
@@ -1677,11 +1707,6 @@ spec:
           argIndex: 0
           argValue: 1
 ```
-
-The `Set` action uses following arguments:
-
-- The `argIndex` defines position of the return argument.
-- The `argValue` defined the actual value to write.
 
 ## Selector Semantics
 
