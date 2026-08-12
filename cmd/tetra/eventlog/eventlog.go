@@ -43,7 +43,7 @@ func setCmd() *cobra.Command {
 			if cmd.Flags().Lookup("rotation-interval").Changed {
 				interval = new(rotationIntervalVar.String())
 			}
-			_, err = c.Client.SetEventLogParams(c.ctx, &tetragon.SetEventLogParamsRequest{
+			_, err = c.Client.SetEventLogParams(c.Ctx, &tetragon.SetEventLogParamsRequest{
 				MaxSize:          maxSize,
 				RotationInterval: interval,
 				MaxBackups:       maxBackups,
@@ -72,7 +72,7 @@ func getCmd() *cobra.Command {
 			}
 			defer c.Close()
 
-			params, err := c.Client.GetEventLogParams(c.ctx, &tetragon.GetEventLogParamsRequest{})
+			params, err := c.Client.GetEventLogParams(c.Ctx, &tetragon.GetEventLogParamsRequest{})
 			if err != nil {
 				return err
 			}
