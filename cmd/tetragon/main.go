@@ -493,7 +493,15 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 
 	if option.Config.MetricsServer != "" {
-		go metricsconfig.EnableMetrics(option.Config.MetricsServer)
+		stopMetrics, err := metricsconfig.EnableMetrics(option.Config.MetricsServer)
+		if err != nil {
+			log.Error("Failed to start metrics server", "addr", option.Config.MetricsServer, logfields.Error, err)
+		} else {
+			// Deferring stopMetrics covers both the signal path (cancel()
+			// above makes tetragonExecuteCtx return normally) and any error
+			// path below, and waits for the server to actually shut down.
+			defer stopMetrics()
+		}
 
 		reg := metricsconfig.GetRegistry()
 		metricsconfig.InitHealthMetrics(reg)

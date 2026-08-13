@@ -245,7 +245,14 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 	// at some point in the future. I just don't see a better way that doesn't involve
 	// a lot of code changes in a lot of a files.
 	metricsEnableOnce.Do(func() {
-		go metricsconfig.EnableMetrics(metricsAddr)
+		// The stop function is intentionally discarded: this server is a
+		// singleton for the whole test binary, so it must outlive whichever
+		// test happened to run first, and the OS reclaims it at exit.
+		if _, err := metricsconfig.EnableMetrics(metricsAddr); err != nil {
+			logger.GetLogger().Warn("Failed to start test metrics server, continuing without it",
+				"addr", metricsAddr, logfields.Error, err)
+			return
+		}
 		metricsconfig.InitHealthMetrics(metricsconfig.GetRegistry())
 		metricsconfig.InitEventsMetrics(metricsconfig.GetRegistry())
 	})
