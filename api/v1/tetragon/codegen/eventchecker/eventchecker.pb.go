@@ -2206,6 +2206,7 @@ type ProcessLsmChecker struct {
 	Tags         *StringListMatcher           `json:"tags,omitempty"`
 	Ancestors    *ProcessListMatcher          `json:"ancestors,omitempty"`
 	ImaHash      *stringmatcher.StringMatcher `json:"imaHash,omitempty"`
+	Data         *KprobeArgumentListMatcher   `json:"data,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -2297,6 +2298,11 @@ func (checker *ProcessLsmChecker) Check(event *tetragon.ProcessLsm) error {
 				return fmt.Errorf("ImaHash check failed: %w", err)
 			}
 		}
+		if checker.Data != nil {
+			if err := checker.Data.Check(event.Data); err != nil {
+				return fmt.Errorf("Data check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -2378,6 +2384,12 @@ func (checker *ProcessLsmChecker) WithImaHash(check *stringmatcher.StringMatcher
 	return checker
 }
 
+// WithData adds a Data check to the ProcessLsmChecker
+func (checker *ProcessLsmChecker) WithData(check *KprobeArgumentListMatcher) *ProcessLsmChecker {
+	checker.Data = check
+	return checker
+}
+
 //FromProcessLsm populates the ProcessLsmChecker using data from a ProcessLsm event
 func (checker *ProcessLsmChecker) FromProcessLsm(event *tetragon.ProcessLsm) *ProcessLsmChecker {
 	if event == nil {
@@ -2431,6 +2443,19 @@ func (checker *ProcessLsmChecker) FromProcessLsm(event *tetragon.ProcessLsm) *Pr
 		checker.Ancestors = lm
 	}
 	checker.ImaHash = stringmatcher.Full(event.ImaHash)
+	{
+		var checks []*KprobeArgumentChecker
+		for _, check := range event.Data {
+			var convertedCheck *KprobeArgumentChecker
+			if check != nil {
+				convertedCheck = NewKprobeArgumentChecker().FromKprobeArgument(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewKprobeArgumentListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Data = lm
+	}
 	return checker
 }
 

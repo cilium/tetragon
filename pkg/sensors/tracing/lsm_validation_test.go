@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -120,6 +121,70 @@ spec:
 
 	_, err := tracingpolicy.FromYAML(crd)
 	require.Error(t, err)
+}
+
+func TestLsmValidationMatchData(t *testing.T) {
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm-match-data"
+spec:
+  lsmhooks:
+  - hook: "file_open"
+    data:
+    - index: 0
+      source: "current_task"
+      resolve: "cred.euid.val"
+      type: "uint32"
+    selectors:
+    - matchData:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "0"
+`
+
+	_, err := tracingpolicy.FromYAML(crd)
+	require.NoError(t, err)
+}
+
+func TestAddLsmMatchData(t *testing.T) {
+	if !bpf.HasProgramLargeSize() {
+		t.Skip("large BPF programs not supported")
+	}
+	forceLargeProgs(t)
+
+	data := v1alpha1.KProbeArg{
+		Index:   0,
+		Type:    "uint32",
+		Resolve: "cred.euid.val",
+		Source:  "current_task",
+	}
+	lsm := &v1alpha1.LsmHookSpec{
+		Hook: "file_open",
+		Data: []v1alpha1.KProbeArg{data},
+		Selectors: []v1alpha1.KProbeSelector{{
+			MatchData: []v1alpha1.ArgSelector{{
+				Index:    0,
+				Operator: "Equal",
+				Values:   []string{"0"},
+			}},
+		}},
+	}
+
+	id, err := addLsm(lsm, 0, &addLsmIn{policyName: "lsm-match-data"})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, err := genericLsmTable.RemoveEntry(id)
+		require.NoError(t, err)
+	})
+
+	entry, err := genericLsmTableGet(id)
+	require.NoError(t, err)
+	require.Len(t, entry.argPrinters, 1)
+	require.True(t, entry.argPrinters[0].data)
+	require.Equal(t, uint32(argCurrentTaskBit), entry.config.ArgMeta[0]&argCurrentTaskBit)
 }
 
 func TestLsmValidationValidPolicy(t *testing.T) {

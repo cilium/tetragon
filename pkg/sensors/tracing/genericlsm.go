@@ -161,7 +161,11 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 		if arg == nil {
 			continue
 		}
-		unix.Args = append(unix.Args, arg)
+		if a.data {
+			unix.Data = append(unix.Data, arg)
+		} else {
+			unix.Args = append(unix.Args, arg)
+		}
 	}
 
 	// Get file hashes calculated using IMA
@@ -321,24 +325,23 @@ func addLsm(f *v1alpha1.LsmHookSpec, instance InstanceID, in *addLsmIn) (id idta
 		return errFn(fmt.Errorf("error: '%w'", err))
 	}
 
-	// Parse Arguments
-	for j, a := range f.Args {
+	addArg := func(j int, a *v1alpha1.KProbeArg, data bool) error {
 		argType := gt.GenericTypeFromString(a.Type)
 
 		if a.Resolve != "" && j < api.EventConfigMaxArgs {
 			if !bpf.HasProgramLargeSize() {
-				return errFn(errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
+				return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
 			}
-			lastBTFType, btfArg, err := resolveBTFArg(lsmHookBTFName(f.Hook), &a, false)
+			lastBTFType, btfArg, err := resolveBTFArg(lsmHookBTFName(f.Hook), a, false)
 			if err != nil {
-				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Hook, a.Index, err))
+				return fmt.Errorf("error on hook %q for index %d : %w", f.Hook, a.Index, err)
 			}
 			allBTFArgs[j] = btfArg
-			argType = findTypeFromBTFType(&a, lastBTFType)
+			argType = findTypeFromBTFType(a, lastBTFType)
 		}
 
-		if err := validateLsmArg(j, &a); err != nil {
-			return errFn(err)
+		if err := validateLsmArg(j, a); err != nil {
+			return err
 		}
 
 		if a.MaxData {
@@ -349,9 +352,9 @@ func addLsm(f *v1alpha1.LsmHookSpec, instance InstanceID, in *addLsmIn) (id idta
 				logger.GetLogger().Warn("maxData flag is ignored (supported from large programs)")
 			}
 		}
-		argMValue, err := getMetaValue(&a)
+		argMValue, err := getMetaValue(a)
 		if err != nil {
-			return errFn(err)
+			return err
 		}
 		// argument index is already validated by validateLsmArg above
 		eventConfig.ArgType[j] = int32(argType)
@@ -359,10 +362,39 @@ func addLsm(f *v1alpha1.LsmHookSpec, instance InstanceID, in *addLsmIn) (id idta
 		eventConfig.ArgIndex[j] = int32(a.Index)
 
 		argsBTFSet[a.Index] = true
-		argP := argPrinter{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
+		argP := argPrinter{index: j, ty: argType, maxData: a.MaxData, label: a.Label, data: data}
 		argSigPrinters = append(argSigPrinters, argP)
 
 		pathArgWarning(a.Index, argType, f.Selectors)
+		return nil
+	}
+
+	if len(f.Args)+len(f.Data) > api.EventConfigMaxArgs {
+		return errFn(fmt.Errorf("too many arguments, max %d: args(%d) data(%d)", api.EventConfigMaxArgs, len(f.Args), len(f.Data)))
+	}
+
+	var j int
+
+	// Parse Arguments
+	for _, arg := range f.Args {
+		if err := addArg(j, &arg, false); err != nil {
+			return errFn(err)
+		}
+		j = j + 1
+	}
+
+	// Parse Data
+	for _, data := range f.Data {
+		if !hasCurrentTaskSource(&data) {
+			return errFn(fmt.Errorf("data argument has wrong source '%s'", data.Source))
+		}
+		if data.Resolve == "" {
+			return errFn(errors.New("data argument missing 'resolve' setup"))
+		}
+		if err := addArg(j, &data, true); err != nil {
+			return errFn(err)
+		}
+		j = j + 1
 	}
 
 	eventConfig.BTFArg = allBTFArgs
@@ -397,7 +429,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, instance InstanceID, in *addLsmIn) (id idta
 	lsmEntry.selectors, err = selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: f.Selectors,
 		Args:      f.Args,
-		Data:      []v1alpha1.KProbeArg{},
+		Data:      f.Data,
 		Maps:      in.selMaps,
 	})
 	if err != nil {
