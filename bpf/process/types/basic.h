@@ -2289,45 +2289,17 @@ filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, cha
 }
 
 FUNC_INLINE int
-selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
-		    __u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
-		    bool is_entry, int arg)
+match_args(void *ctx, struct bpf_map_def *tailcalls, __u8 *f,
+	   struct msg_generic_kprobe *e, struct selector_arg_filters *filters,
+	   long section_off, int arg)
 {
-	struct selector_arg_filters *filters;
 	struct selector_arg_filter *filter;
-	long seloff, argsoff, margsoff;
+	long argsoff, margsoff;
 	__u32 i = 0, index;
 	char *args;
 
-	seloff = 4; /* start of the relative offsets */
-	seloff += (selidx * 4); /* relative offset for this selector */
-
-	/* selector section offset by reading the relative offset in the array */
-	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-
-	/* skip the selector size field */
-	seloff += 4;
-
-	/* skip selectors defined only for entry probe */
-	if (is_entry) {
-		/* skip the matchPids section by reading its length */
-		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-		/* skip the matchNamespaces section by reading its length*/
-		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-		/* skip matchCapabilitiess section by reading its length */
-		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-		/* skip the matchNamespaceChanges by reading its length */
-		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-		/* skip the matchCapabilityChanges by reading its length */
-		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-	}
-
-	/* Making binary selectors fixes size helps on some kernels */
-	seloff &= INDEX_MASK;
-	filters = (struct selector_arg_filters *)&f[seloff];
-
 	if (filters->arglen <= sizeof(struct selector_arg_filters)) // no filters
-		return seloff;
+		return 1;
 
 #ifdef __LARGE_BPF_PROG
 	for (i = 0; i < 5; i++)
@@ -2337,10 +2309,15 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		asm volatile("%[argsoff] &= 0x3ff;\n"
 			     : [argsoff] "+r"(argsoff));
 
-		if (argsoff <= 0)
-			return seloff;
+		if (argsoff <= 0) {
+#ifdef __LARGE_BPF_PROG
+			break;
+#else
+			return 1;
+#endif
+		}
 
-		margsoff = (seloff + argsoff) & INDEX_MASK;
+		margsoff = (section_off + argsoff) & INDEX_MASK;
 		filter = (struct selector_arg_filter *)&f[margsoff];
 
 #ifndef __LARGE_BPF_PROG
@@ -2390,6 +2367,47 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		if (!filter_arg(e, filter, args, arg))
 			return 0;
 	}
+	return 1;
+}
+
+FUNC_INLINE int
+selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
+		    __u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
+		    bool is_entry, int arg)
+{
+	struct selector_arg_filters *filters;
+	long seloff;
+
+	seloff = 4; /* start of the relative offsets */
+	seloff += (selidx * 4); /* relative offset for this selector */
+
+	/* selector section offset by reading the relative offset in the array */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+
+	/* skip the selector size field */
+	seloff += 4;
+
+	/* skip selectors defined only for entry probe */
+	if (is_entry) {
+		/* skip the matchPids section by reading its length */
+		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+		/* skip the matchNamespaces section by reading its length*/
+		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+		/* skip matchCapabilitiess section by reading its length */
+		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+		/* skip the matchNamespaceChanges by reading its length */
+		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+		/* skip the matchCapabilityChanges by reading its length */
+		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	}
+
+	/* Making binary selectors fixes size helps on some kernels */
+	seloff &= INDEX_MASK;
+	filters = (struct selector_arg_filters *)&f[seloff];
+
+	if (!match_args(ctx, tailcalls, f, e, filters, seloff, arg))
+		return 0;
+
 	return seloff;
 }
 
