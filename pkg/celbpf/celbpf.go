@@ -39,7 +39,7 @@ func Supported() bool {
 	return bpf.DetectMixBpfAndTailCalls()
 }
 
-func Compile(celExpr string, sig []v1alpha1.KProbeArg, labelPrefix string) (asm.Instructions, []uint16, error) {
+func Compile(celExpr string, sig, data []v1alpha1.KProbeArg, labelPrefix string) (asm.Instructions, []uint16, error) {
 	source := cgCommon.NewTextSource(celExpr)
 	parser, err := cgParser.NewParser()
 	if err != nil {
@@ -51,7 +51,7 @@ func Compile(celExpr string, sig []v1alpha1.KProbeArg, labelPrefix string) (asm.
 		return nil, nil, fmt.Errorf("failed to parse CEL expresion %q: %s", celExpr, errs.ToDisplayString())
 	}
 
-	checkerEnv, err := newCheckerEnv(sig)
+	checkerEnv, err := newCheckerEnv(sig, data)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -61,7 +61,7 @@ func Compile(celExpr string, sig []v1alpha1.KProbeArg, labelPrefix string) (asm.
 		return nil, nil, fmt.Errorf("check failed on CEL expresion %q: %s", celExpr, errs.ToDisplayString())
 	}
 
-	compiler := newCompiler(ast, source, sig, labelPrefix)
+	compiler := newCompiler(ast, source, sig, data, labelPrefix)
 	return compiler.compile()
 }
 
@@ -98,8 +98,8 @@ func CompileEmptyFunction(fnName string) asm.Instructions {
 	return insns
 }
 
-func CompileFn(fnName, celExpr string, sig []v1alpha1.KProbeArg) (asm.Instructions, []uint16, error) {
-	insns, arg_indexes, err := Compile(celExpr, sig, fnName)
+func CompileFn(fnName, celExpr string, sig, data []v1alpha1.KProbeArg) (asm.Instructions, []uint16, error) {
+	insns, arg_indexes, err := Compile(celExpr, sig, data, fnName)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to compile CEL expression %q: %w", celExpr, err)
 	}
