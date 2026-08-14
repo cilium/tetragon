@@ -12,6 +12,7 @@ package tracing
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"strconv"
 	"testing"
 	"time"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -452,4 +454,68 @@ func TestMultipleInactiveSelectors(t *testing.T) {
 
 	require.Equal(t, 1, eventCounter)
 
+}
+
+func TestMatchCmdArgs(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("matchCmdArgs requires large BPF programs")
+	}
+
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	const event = "sys_enter_getcpu"
+	loadGenericSensorTest(t, &v1alpha1.TracingPolicySpec{
+		Tracepoints: []v1alpha1.TracepointSpec{
+			{
+				Subsystem: "syscalls",
+				Event:     event,
+				Selectors: []v1alpha1.KProbeSelector{
+					{
+						MatchCmdArgs: []v1alpha1.CmdArgSelector{
+							{
+								Index:    1,
+								Operator: "Equal",
+								Values:   []string{"download"},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	var matchedPID, wrongIndexPID uint32
+	var matchedEvents, wrongIndexEvents int
+	getcpu := testutils.RepoRootPath("contrib/tester-progs/getcpu")
+	ops := func() {
+		matched := exec.CommandContext(ctx, getcpu, "ignored", "download")
+		require.NoError(t, matched.Start())
+		matchedPID = uint32(matched.Process.Pid)
+		require.NoError(t, matched.Wait())
+
+		wrongIndex := exec.CommandContext(ctx, getcpu, "download", "ignored")
+		require.NoError(t, wrongIndex.Start())
+		wrongIndexPID = uint32(wrongIndex.Process.Pid)
+		require.NoError(t, wrongIndex.Wait())
+	}
+	eventFn := func(msg notify.Message) error {
+		tracepoint, ok := msg.(*tracing.MsgGenericTracepointUnix)
+		if !ok || tracepoint.Event != event {
+			return nil
+		}
+
+		switch tracepoint.Msg.ProcessKey.Pid {
+		case matchedPID:
+			matchedEvents++
+		case wrongIndexPID:
+			wrongIndexEvents++
+		}
+		return nil
+	}
+
+	perfring.RunTest(t, ctx, ops, eventFn)
+	require.Equal(t, 1, matchedEvents)
+	require.Zero(t, wrongIndexEvents)
 }
