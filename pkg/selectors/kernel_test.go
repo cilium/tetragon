@@ -332,6 +332,66 @@ func TestParseMatchCmdArgsRejects(t *testing.T) {
 	})
 }
 
+// Test the placement of matchCmdArgs in a complete kernel selector:
+//
+//	[selector header and entry sections]
+//	[matchCmdArgs: length + filter offsets + filters]
+//	[matchArgs:    length + filter offsets]
+//	[actions]
+//
+// In particular, matchCmdArgs must be part of the process-filter portion of
+// the selector, immediately before matchArgs.
+func TestInitKernelSelectorsMatchCmdArgsLayout(t *testing.T) {
+	origForceLargeProgs := option.Config.ForceLargeProgs
+	origForceSmallProgs := option.Config.ForceSmallProgs
+	option.Config.ForceLargeProgs = true
+	option.Config.ForceSmallProgs = false
+	t.Cleanup(func() {
+		option.Config.ForceLargeProgs = origForceLargeProgs
+		option.Config.ForceSmallProgs = origForceSmallProgs
+	})
+
+	state, err := InitKernelSelectorState(&KernelSelectorArgs{
+		Selectors: []v1alpha1.KProbeSelector{
+			{
+				MatchCmdArgs: []v1alpha1.CmdArgSelector{
+					{Index: 1, Operator: "Equal", Values: []string{"download"}},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	data := state.data.e[:state.data.off]
+	readUint32 := func(offset int) uint32 {
+		return binary.LittleEndian.Uint32(data[offset : offset+4])
+	}
+
+	require.Equal(t, uint32(1), readUint32(0))
+	require.Equal(t, uint32(4), readUint32(4))
+	for offset := 12; offset < 32; offset += 4 {
+		require.Equal(t, uint32(4), readUint32(offset))
+	}
+
+	const matchCmdArgsOffset = 32
+	matchCmdArgsLength := readUint32(matchCmdArgsOffset)
+	require.Greater(t, matchCmdArgsLength, uint32(24))
+	require.Equal(t, uint32(24), readUint32(matchCmdArgsOffset+4))
+	for offset := matchCmdArgsOffset + 8; offset < matchCmdArgsOffset+24; offset += 4 {
+		require.Zero(t, readUint32(offset))
+	}
+
+	const filterOffset = matchCmdArgsOffset + 24
+	require.Equal(t, uint32(1), readUint32(filterOffset))
+	require.Equal(t, uint32(SelectorOpEQ), readUint32(filterOffset+4))
+	require.Equal(t, uint32(gt.GenericStringType), readUint32(filterOffset+12))
+
+	matchArgsOffset := matchCmdArgsOffset + int(matchCmdArgsLength)
+	require.Equal(t, uint32(24), readUint32(matchArgsOffset))
+	actionsOffset := matchArgsOffset + 24
+	require.Equal(t, uint32(4), readUint32(actionsOffset))
+}
+
 func TestParseMatchArgs(t *testing.T) {
 	if !config.EnableLargeProgs() { // multiple match args are supported only in kernels >= 5.4
 		t.Skip("Test requires kernel 5.4")
