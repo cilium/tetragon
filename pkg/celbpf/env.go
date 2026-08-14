@@ -25,6 +25,7 @@ var (
 	uint32Fn = "uint32"
 
 	andFn = "and"
+	orFn  = "or"
 )
 
 type fnOverload struct {
@@ -85,6 +86,7 @@ func getFnsOpts() []fnOpts {
 		// Bitwise functions
 		// NB(kkourt): it seems that there is no way to add custom operators to CEL
 		{name: andFn, overloads: intBinaryOperatorFnOverloads(andFn)},
+		{name: orFn, overloads: intBinaryOperatorFnOverloads(orFn)},
 
 		// Integer casting
 		{name: int32Fn, overloads: []fnOverload{

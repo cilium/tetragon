@@ -147,6 +147,18 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 			return nil
 		}
 
+	case orFn:
+		emitCall = func() error {
+			if err := c.cg.emitArithOp(
+				asm.Or,
+				scratchRegs[0], argTypes[0],
+				scratchRegs[1], argTypes[1],
+			); err != nil {
+				return fmt.Errorf("bitwise OR %w", err)
+			}
+			return nil
+		}
+
 	default:
 		emitCall = func() error {
 			return fmt.Errorf("compileCall: call %q (%+v) not supported", call.FunctionName(), call)
