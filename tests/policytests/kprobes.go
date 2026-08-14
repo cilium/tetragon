@@ -446,3 +446,45 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(checker),
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("cel-mix-args-and-data").
+	WithLabels("kprobes", "cel").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if !si.AgentInfo.Probes[bpf.MixBPFAndTailCallsProbe] {
+			return "need kernel where we can mix bpf and tail calls"
+		}
+		return ""
+	}).
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lseek-42"
+spec:
+  kprobes:
+  - call: "sys_lseek"
+    syscall: true
+    data:
+    - source: current_task
+      index: 0
+      type: int
+      resolve: pid
+    args:
+    - index: 0
+      type: "int"
+    - index: 2
+      type: "int"
+    selectors:
+    - matchActions:
+      - action: Post
+      matchCEL:
+        expr: "arg0 == int32(-1) && data0 == arg1 + int32(42)"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	helper := c.TestBinary("test-helper")
+	lseekChecker := ec.NewProcessKprobeChecker("lseek-checker").WithFunctionName(sm.Suffix("sys_lseek"))
+	return &policytest.Scenario{
+		Name:         "Trigger lseek policy mixing CEL expression with data and args",
+		Trigger:      policytest.NewCmdTrigger(helper, "lseek_42"),
+		EventChecker: ec.NewUnorderedEventChecker(lseekChecker),
+	}
+}).RegisterAtInit()
