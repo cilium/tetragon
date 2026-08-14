@@ -160,6 +160,20 @@ var celBitwiseXOR = celBinArithOp(
 	func(a, b uint32) uint32 { return a ^ b },
 )
 
+func celBitwiseNOT(value ref.Val) ref.Val {
+	switch v := value.(type) {
+	case celTypes.Int:
+		return ^v
+	case celTypes.Uint:
+		return ^v
+	case celS32:
+		return newCelS32(^v.value)
+	case celU32:
+		return newCelU32(^v.value)
+	}
+	return celTypes.MaybeNoSuchOverloadErr(value)
+}
+
 func compareIntegers[T int32 | uint32 | celTypes.Int | celTypes.Uint](op string, left, right T) ref.Val {
 	switch op {
 	case "lt":
@@ -240,6 +254,10 @@ func getOverloadOpts(t *testing.T, o *fnOverload) []cel.OverloadOpt {
 
 	if strings.HasPrefix(o.name, xorFn) {
 		return append(ret, cel.BinaryBinding(celBitwiseXOR))
+	}
+
+	if strings.HasPrefix(o.name, notFn) {
+		return append(ret, cel.UnaryBinding(celBitwiseNOT))
 	}
 
 	for _, ineq := range []string{"lt", "lq", "gt", "gq"} {

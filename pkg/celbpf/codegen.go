@@ -220,6 +220,27 @@ func (g *codeGenerator) emitNot(r1 asm.Register, tmp asm.Register) error {
 	return nil
 }
 
+func (g *codeGenerator) emitBitwiseNot(
+	r1 asm.Register, ty1 *cgTypes.Type,
+) error {
+	var ins asm.Instruction
+	switch ty1.TypeName() {
+	case s64Ty.TypeName(), u64Ty.TypeName():
+		ins = asm.Xor.Imm(r1, -1)
+	case s32Ty.TypeName(), u32Ty.TypeName():
+		ins = asm.Xor.Imm32(r1, -1)
+	default:
+		return fmt.Errorf("bitwise NOT on type %s is not supported", ty1.TypeName())
+	}
+
+	g.stackTop -= 8
+	g.emitRaw(
+		ins,
+		asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
+	)
+	return nil
+}
+
 func (g *codeGenerator) emitBranch(
 	reg1 asm.Register, ty1 *cgTypes.Type,
 	reg2 asm.Register, ty2 *cgTypes.Type,
