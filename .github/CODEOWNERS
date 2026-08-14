@@ -17,6 +17,8 @@
 *_windows.go @cilium/tetragon-windows @cilium/tetragon-reviewers
 /.github/workflows/windows-build-smoke-test.yml @cilium/tetragon-windows
 /bpf/windows/ @cilium/tetragon-windows
+# Do not request tetragon-windows reviews for vendored Windows files.
+**/vendor/**/*_windows.go @cilium/tetragon-reviewers
 
 # Request a review from the tetragon-docs team on any doc changes
 /docs/ @cilium/tetragon-docs
