@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/idtable"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 func TestWriteSelectorUint32(t *testing.T) {
@@ -292,6 +293,66 @@ func TestParseMatchCmdArgsRejects(t *testing.T) {
 		err := ParseMatchCmdArgs(ks, make([]v1alpha1.CmdArgSelector, 6))
 		assert.ErrorContains(t, err, "matchCmdArgs supports up to 5 filters (6 provided)")
 	})
+}
+
+// Test the placement of matchCmdArgs in a complete kernel selector:
+//
+//	[selector header and entry sections]
+//	[matchArgs:    length + filter offsets]
+//	[matchCmdArgs: length + filter offsets + filters]
+//	[actions]
+//
+// In particular, the end of matchArgs must be the start of matchCmdArgs, and
+// the end of matchCmdArgs must be the start of actions.
+func TestInitKernelSelectorsMatchCmdArgsLayout(t *testing.T) {
+	origForceLargeProgs := option.Config.ForceLargeProgs
+	origForceSmallProgs := option.Config.ForceSmallProgs
+	option.Config.ForceLargeProgs = true
+	option.Config.ForceSmallProgs = false
+	t.Cleanup(func() {
+		option.Config.ForceLargeProgs = origForceLargeProgs
+		option.Config.ForceSmallProgs = origForceSmallProgs
+	})
+
+	state, err := InitKernelSelectorState(&KernelSelectorArgs{
+		Selectors: []v1alpha1.KProbeSelector{
+			{
+				MatchCmdArgs: []v1alpha1.CmdArgSelector{
+					{Index: 1, Operator: "Equal", Values: []string{"download"}},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	data := state.data.e[:state.data.off]
+	readUint32 := func(offset int) uint32 {
+		return binary.LittleEndian.Uint32(data[offset : offset+4])
+	}
+
+	require.Equal(t, uint32(1), readUint32(0))
+	require.Equal(t, uint32(4), readUint32(4))
+	for offset := 12; offset < 32; offset += 4 {
+		require.Equal(t, uint32(4), readUint32(offset))
+	}
+
+	const matchArgsOffset = 32
+	require.Equal(t, uint32(24), readUint32(matchArgsOffset))
+	const matchCmdArgsOffset = matchArgsOffset + 24
+	matchCmdArgsLength := readUint32(matchCmdArgsOffset)
+	require.Greater(t, matchCmdArgsLength, uint32(24))
+	require.Equal(t, uint32(24), readUint32(matchCmdArgsOffset+4))
+	for offset := matchCmdArgsOffset + 8; offset < matchCmdArgsOffset+24; offset += 4 {
+		require.Zero(t, readUint32(offset))
+	}
+
+	const filterOffset = matchCmdArgsOffset + 24
+	require.Equal(t, uint32(1), readUint32(filterOffset))
+	require.Equal(t, uint32(SelectorOpEQ), readUint32(filterOffset+4))
+	require.Equal(t, uint32(gt.GenericStringType), readUint32(filterOffset+12))
+
+	actionsOffset := matchCmdArgsOffset + int(matchCmdArgsLength)
+	require.Equal(t, uint32(4), readUint32(actionsOffset))
 }
 
 func TestParseMatchArgs(t *testing.T) {
