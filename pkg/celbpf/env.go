@@ -129,16 +129,20 @@ func convertType(conf_arg v1alpha1.KProbeArg) *cgTypes.Type {
 	return t
 }
 
-func checkerAddArguments(checkerEnv *cgChecker.Env, args []v1alpha1.KProbeArg) error {
+func checkerAddArguments(checkerEnv *cgChecker.Env, args, data []v1alpha1.KProbeArg) error {
 	// add argument identifiers
 	for i, a := range args {
 		arg := cgDecls.NewVariable("arg"+strconv.Itoa(i), convertType(a))
 		checkerEnv.AddIdents(arg)
 	}
+	for i, a := range data {
+		arg := cgDecls.NewVariable("data"+strconv.Itoa(i), convertType(a))
+		checkerEnv.AddIdents(arg)
+	}
 	return nil
 }
 
-func newCheckerEnv(args []v1alpha1.KProbeArg) (*cgChecker.Env, error) {
+func newCheckerEnv(args, data []v1alpha1.KProbeArg) (*cgChecker.Env, error) {
 	tyProvider, err := NewProvider()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize type provider: %w", err)
@@ -152,7 +156,7 @@ func newCheckerEnv(args []v1alpha1.KProbeArg) (*cgChecker.Env, error) {
 		return nil, err
 	}
 
-	if err := checkerAddArguments(checkerEnv, args); err != nil {
+	if err := checkerAddArguments(checkerEnv, args, data); err != nil {
 		return nil, err
 	}
 

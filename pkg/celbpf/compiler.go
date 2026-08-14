@@ -27,15 +27,17 @@ type compiler struct {
 	src         cgCommon.Source
 	cg          *codeGenerator
 	args        []v1alpha1.KProbeArg
+	data        []v1alpha1.KProbeArg
 	arg_indexes []uint16
 }
 
-func newCompiler(ast *cgAst.AST, src cgCommon.Source, args []v1alpha1.KProbeArg, labelPrefix string) *compiler {
+func newCompiler(ast *cgAst.AST, src cgCommon.Source, args, data []v1alpha1.KProbeArg, labelPrefix string) *compiler {
 	return &compiler{
 		ast:  ast,
 		src:  src,
 		cg:   newCodeGenerator(labelPrefix),
 		args: args,
+		data: data,
 	}
 }
 
@@ -212,11 +214,14 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 }
 
 func (c *compiler) compileArg(argIdx uint16) error {
-	if int(argIdx) >= len(c.args) {
-		return fmt.Errorf("invalid argument (arg%d): undefined", argIdx)
+	var arg v1alpha1.KProbeArg
+	if int(argIdx) < len(c.args) {
+		arg = c.args[argIdx]
+	} else if int(argIdx) < len(c.args)+len(c.data) {
+		arg = c.data[int(argIdx)-len(c.args)]
+	} else {
+		return fmt.Errorf("invalid argument (index %d): undefined", argIdx)
 	}
-
-	arg := c.args[argIdx]
 
 	if !slices.Contains(c.arg_indexes, argIdx) {
 		c.arg_indexes = append(c.arg_indexes, argIdx)
@@ -241,6 +246,13 @@ func (c *compiler) compileIdent(s string) error {
 			return fmt.Errorf("invalid argument (%s): %w", s, err)
 		}
 		return c.compileArg(uint16(idx))
+	}
+	if strings.HasPrefix(s, "data") {
+		idx, err := strconv.ParseUint(s[4:], 10, 16)
+		if err != nil {
+			return fmt.Errorf("invalid data argument (%s): %w", s, err)
+		}
+		return c.compileArg(uint16(len(c.args) + int(idx)))
 	}
 	return fmt.Errorf("BUG: ident %q unknown", s)
 }
