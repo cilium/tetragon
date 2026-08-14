@@ -279,6 +279,10 @@ options:
       default_value: "false"
       usage: |
         Require and verify client certificates (mTLS). Requires --server-tls-client-ca-files.
+    - name: sleepable-offload-size
+      default_value: "32768"
+      usage: |
+        Set the maximum number of entries in the sleepable offload map
     - name: sleepable-preload-size
       default_value: "32768"
       usage: |

@@ -143,6 +143,7 @@ type config struct {
 	RetprobesCacheSize int
 
 	SleepablePreloadSize int
+	SleepableOffloadSize int
 
 	EnableGRPCDeprecatedTP bool
 
@@ -190,6 +191,9 @@ var (
 
 		// Set default value for sleepable preload maps.
 		SleepablePreloadSize: defaults.DefaultSleepablePreloadSize,
+
+		// Set default value for sleepable offload maps.
+		SleepableOffloadSize: defaults.DefaultSleepableOffloadSize,
 
 		// Set default value for deleted pod lru cache
 		DeletedPodCacheSize: constants.WatcherDeletedPodCacheSize,
