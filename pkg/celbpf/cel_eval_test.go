@@ -153,6 +153,13 @@ var celBitwiseOR = celBinArithOp(
 	func(a, b uint32) uint32 { return a | b },
 )
 
+var celBitwiseXOR = celBinArithOp(
+	func(a, b celTypes.Int) celTypes.Int { return a ^ b },
+	func(a, b celTypes.Uint) celTypes.Uint { return a ^ b },
+	func(a, b int32) int32 { return a ^ b },
+	func(a, b uint32) uint32 { return a ^ b },
+)
+
 func compareIntegers[T int32 | uint32 | celTypes.Int | celTypes.Uint](op string, left, right T) ref.Val {
 	switch op {
 	case "lt":
@@ -229,6 +236,10 @@ func getOverloadOpts(t *testing.T, o *fnOverload) []cel.OverloadOpt {
 
 	if strings.HasPrefix(o.name, orFn) {
 		return append(ret, cel.BinaryBinding(celBitwiseOR))
+	}
+
+	if strings.HasPrefix(o.name, xorFn) {
+		return append(ret, cel.BinaryBinding(celBitwiseXOR))
 	}
 
 	for _, ineq := range []string{"lt", "lq", "gt", "gq"} {
