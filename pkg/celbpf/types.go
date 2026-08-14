@@ -78,6 +78,18 @@ func intBinaryOperatorFnOverloads(op string) []fnOverload {
 	return ret
 }
 
+func intUnaryOperatorFnOverloads(op string) []fnOverload {
+	ret := make([]fnOverload, 0, len(intTypes))
+	for _, ity := range intTypes {
+		ret = append(ret, fnOverload{
+			name: ity.overloadOp(op),
+			args: []*cgTypes.Type{ity.ty},
+			res:  ity.ty},
+		)
+	}
+	return ret
+}
+
 func typeFromGenTy(genTy int) (*cgTypes.Type, error) {
 	switch genTy {
 	case gt.GenericS64Type:

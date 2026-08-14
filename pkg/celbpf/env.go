@@ -27,6 +27,7 @@ var (
 	andFn = "and"
 	orFn  = "or"
 	xorFn = "xor"
+	notFn = "not"
 )
 
 type fnOverload struct {
@@ -89,6 +90,7 @@ func getFnsOpts() []fnOpts {
 		{name: andFn, overloads: intBinaryOperatorFnOverloads(andFn)},
 		{name: orFn, overloads: intBinaryOperatorFnOverloads(orFn)},
 		{name: xorFn, overloads: intBinaryOperatorFnOverloads(xorFn)},
+		{name: notFn, overloads: intUnaryOperatorFnOverloads(notFn)},
 
 		// Integer casting
 		{name: int32Fn, overloads: []fnOverload{
