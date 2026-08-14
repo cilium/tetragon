@@ -988,12 +988,9 @@ FUNC_INLINE bool is_not_operator(__u32 op)
 }
 
 FUNC_LOCAL long
-filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
+filter_char_buf_value(struct selector_arg_filter *filter, char *arg_str, uint len)
 {
 	long match = 0;
-	// Arg length is 4 bytes before the value data
-	uint len = *(uint *)&args[value_off - 4];
-	char *arg_str = &args[value_off];
 
 	switch (filter->op) {
 #ifdef __LARGE_BPF_PROG
@@ -1021,6 +1018,15 @@ filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 	}
 
 	return is_not_operator(filter->op) ? !match : match;
+}
+
+FUNC_LOCAL long
+filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
+{
+	// Arg length is 4 bytes before the value data.
+	uint len = *(uint *)&args[value_off - 4];
+
+	return filter_char_buf_value(filter, &args[value_off], len);
 }
 
 // This struct captures the layout documented in store_path().
@@ -2355,6 +2361,11 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		/* skip the matchCapabilityChanges by reading its length */
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 	}
+
+#ifdef __LARGE_BPF_PROG
+	/* skip the matchCmdArgs section */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+#endif
 
 	/* Making binary selectors fixes size helps on some kernels */
 	seloff &= INDEX_MASK;
