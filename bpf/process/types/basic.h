@@ -954,12 +954,9 @@ FUNC_INLINE bool is_not_operator(__u32 op)
 }
 
 FUNC_LOCAL long
-filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
+filter_char_buf_value(struct selector_arg_filter *filter, char *arg_str, uint len)
 {
 	long match = 0;
-	// Arg length is 4 bytes before the value data
-	uint len = *(uint *)&args[value_off - 4];
-	char *arg_str = &args[value_off];
 
 	switch (filter->op) {
 #ifdef __LARGE_BPF_PROG
@@ -987,6 +984,15 @@ filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 	}
 
 	return is_not_operator(filter->op) ? !match : match;
+}
+
+FUNC_LOCAL long
+filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
+{
+	// Arg length is 4 bytes before the value data.
+	uint len = *(uint *)&args[value_off - 4];
+
+	return filter_char_buf_value(filter, &args[value_off], len);
 }
 
 // This struct captures the layout documented in store_path().
@@ -2370,6 +2376,110 @@ match_args(void *ctx, struct bpf_map_def *tailcalls, __u8 *f,
 	return 1;
 }
 
+#ifdef __LARGE_BPF_PROG
+
+#define CMD_ARGS_MAX	    256
+#define CMD_ARG_HEAP_OFFSET (STRING_MAPS_HEAP_MASK + 1)
+
+FUNC_LOCAL int
+filter_cmd_arg(struct selector_arg_filter *filter, struct args *cached_args)
+{
+	__u32 argsoff = 0, zero = 0, arg_len, end, remaining;
+	char *string_heap;
+	bool found = false;
+	long read;
+	int i;
+
+	if (filter->type != string_type)
+		return 0;
+
+	if (filter->index >= CMD_ARGS_MAX)
+		return 0;
+
+	if (!cached_args->len || cached_args->len > MAXARGLENGTH)
+		return 0;
+
+	/* Reusing the string_maps_heap instead of adding another heap map, using
+	 * the second half as filter_char_buf_value() will use the first half.
+	 */
+	string_heap = map_lookup_elem(&string_maps_heap, &zero);
+	if (!string_heap)
+		return 0;
+	string_heap += CMD_ARG_HEAP_OFFSET;
+
+	/* Walk the arguments and find the one corresponding to the filter->index */
+	for (i = 0; i < CMD_ARGS_MAX; i++) {
+		if (i > filter->index || argsoff >= cached_args->len)
+			break;
+
+		remaining = cached_args->len - argsoff;
+		argsoff &= MAXARGLENGTH - 1;
+		read = probe_read_str(string_heap, MAXARGLENGTH, &cached_args->buf[argsoff]);
+		if (read <= 0 || read > remaining)
+			return 0;
+
+		end = argsoff + read - 1;
+		if (end >= cached_args->len)
+			return 0;
+		end &= MAXARGLENGTH - 1;
+		if (cached_args->buf[end] != '\0')
+			return 0;
+
+		if (i == filter->index) {
+			arg_len = read - 1;
+			found = true;
+			break;
+		}
+		argsoff += read;
+	}
+
+	if (!found)
+		return 0;
+
+	return filter_char_buf_value(filter, string_heap, arg_len);
+}
+
+/* Return 1 when all command-argument filters match (or the section is empty),
+ * and 0 when the section is malformed, arguments are unavailable, or any
+ * filter does not match.
+ */
+FUNC_INLINE int
+match_cmd_args(__u8 *f, __u32 section_off, struct args *cached_args)
+{
+	struct selector_arg_filters *filters;
+	struct selector_arg_filter *filter;
+	__u32 filter_off;
+	int i;
+
+	filters = (struct selector_arg_filters *)&f[section_off];
+	/* Check for malformed filters */
+	if (filters->arglen < sizeof(struct selector_arg_filters))
+		return 0;
+
+	/* An empty section always matches even without a cached entry */
+	if (!filters->argoff[0])
+		return 1;
+
+	/* The matcher exists but cannot be evaluated because of missing cache */
+	if (!cached_args)
+		return 0;
+
+	for (i = 0; i < 5; i++) {
+		filter_off = filters->argoff[i];
+		if (!filter_off)
+			break;
+
+		filter_off = (section_off + filter_off) & INDEX_MASK;
+		filter = (struct selector_arg_filter *)&f[filter_off];
+
+		if (!filter_cmd_arg(filter, cached_args))
+			return 0;
+	}
+
+	return 1;
+}
+#endif /* __LARGE_BPF_PROG */
+
 FUNC_INLINE int
 selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		    __u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
@@ -2377,6 +2487,10 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 {
 	struct selector_arg_filters *filters;
 	long seloff;
+#ifdef __LARGE_BPF_PROG
+	struct execve_map_value *current_cache;
+	__u32 cmd_args_off;
+#endif
 
 	seloff = 4; /* start of the relative offsets */
 	seloff += (selidx * 4); /* relative offset for this selector */
@@ -2407,6 +2521,13 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 
 	if (!match_args(ctx, tailcalls, f, e, filters, seloff, arg))
 		return 0;
+
+#ifdef __LARGE_BPF_PROG
+	cmd_args_off = (seloff + filters->arglen) & INDEX_MASK;
+	current_cache = execve_map_get_noinit(e->current.pid);
+	if (!match_cmd_args(f, cmd_args_off, current_cache ? &current_cache->args : NULL))
+		return 0;
+#endif
 
 	return seloff;
 }

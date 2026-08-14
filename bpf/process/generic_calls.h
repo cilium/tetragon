@@ -1147,6 +1147,14 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 	asm volatile("%[actoff] &= 0x7ff;\n"
 		     : [actoff] "+r"(actoff)
 		     :);
+#ifdef __LARGE_BPF_PROG
+	/* Skip the matchCmdArgs section between matchArgs and actions. */
+	arg = (struct selector_arg_filters *)&f[actoff];
+	actoff += arg->arglen;
+	asm volatile("%[actoff] &= 0x7ff;\n"
+		     : [actoff] "+r"(actoff)
+		     :);
+#endif
 	actions = (struct selector_action *)&f[actoff];
 
 	postit = do_actions(ctx, actions);
