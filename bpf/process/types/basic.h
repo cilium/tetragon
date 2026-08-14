@@ -954,9 +954,12 @@ FUNC_INLINE bool is_not_operator(__u32 op)
 }
 
 FUNC_LOCAL long
-filter_char_buf_value(struct selector_arg_filter *filter, char *arg_str, uint len)
+filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 {
 	long match = 0;
+	// Arg length is 4 bytes before the value data
+	uint len = *(uint *)&args[value_off - 4];
+	char *arg_str = &args[value_off];
 
 	switch (filter->op) {
 #ifdef __LARGE_BPF_PROG
@@ -984,15 +987,6 @@ filter_char_buf_value(struct selector_arg_filter *filter, char *arg_str, uint le
 	}
 
 	return is_not_operator(filter->op) ? !match : match;
-}
-
-FUNC_LOCAL long
-filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
-{
-	// Arg length is 4 bytes before the value data.
-	uint len = *(uint *)&args[value_off - 4];
-
-	return filter_char_buf_value(filter, &args[value_off], len);
 }
 
 // This struct captures the layout documented in store_path().
@@ -2381,6 +2375,37 @@ match_args(void *ctx, struct bpf_map_def *tailcalls, __u8 *f,
 #define CMD_ARGS_MAX	    256
 #define CMD_ARG_HEAP_OFFSET (STRING_MAPS_HEAP_MASK + 1)
 
+/* Keep this dispatcher limited to the operators accepted by
+ * ParseMatchCmdArg(). Reusing filter_char_buf() would also include the
+ * substring branches. Those branches are unrolled in the v5.11 object, and
+ * the verifier has to explore them even though userspace rejects substring
+ * operators, which can exceed the verifier complexity limit.
+ */
+FUNC_LOCAL long
+filter_cmd_arg_value(struct selector_arg_filter *filter, char *arg_str, uint len)
+{
+	long match = 0;
+
+	switch (filter->op) {
+	case op_filter_eq:
+	case op_filter_neq:
+		match = filter_char_buf_equal(filter, arg_str, len);
+		break;
+	case op_filter_str_prefix:
+	case op_filter_str_notprefix:
+		match = filter_char_buf_prefix(filter, arg_str, len);
+		break;
+	case op_filter_str_postfix:
+	case op_filter_str_notpostfix:
+		match = filter_char_buf_postfix(filter, arg_str, len);
+		break;
+	default:
+		return 0;
+	}
+
+	return is_not_operator(filter->op) ? !match : match;
+}
+
 FUNC_LOCAL int
 filter_cmd_arg(struct selector_arg_filter *filter, struct args *cached_args)
 {
@@ -2400,7 +2425,7 @@ filter_cmd_arg(struct selector_arg_filter *filter, struct args *cached_args)
 		return 0;
 
 	/* Reusing the string_maps_heap instead of adding another heap map, using
-	 * the second half as filter_char_buf_value() will use the first half.
+	 * the second half as the string matching helpers use the first half.
 	 */
 	string_heap = map_lookup_elem(&string_maps_heap, &zero);
 	if (!string_heap)
@@ -2436,7 +2461,7 @@ filter_cmd_arg(struct selector_arg_filter *filter, struct args *cached_args)
 	if (!found)
 		return 0;
 
-	return filter_char_buf_value(filter, string_heap, arg_len);
+	return filter_cmd_arg_value(filter, string_heap, arg_len);
 }
 
 /* Return 1 when all command-argument filters match (or the section is empty),
