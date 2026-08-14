@@ -9,6 +9,7 @@ import (
 	"iter"
 	"maps"
 	"os"
+	"path/filepath"
 	"sort"
 	"syscall"
 
@@ -103,6 +104,10 @@ func FindPinnedMaps(path string) ([]bpf.ExtendedMapInfo, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to retrieve extended info from map %v: %w", m, err)
 		}
+
+		// The map name returned from ExtendedInfoFromMap is truncated to 15
+		// characters. It's more helpful to the user to have the full name
+		xInfo.Name = filepath.Base(pin.Path)
 		infos = append(infos, xInfo)
 	}
 
@@ -292,7 +297,10 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 	}
 
 	diff := diff(pinnedMapsSet, pinnedProgsMapsSet)
-	union := union(pinnedMapsSet, pinnedProgsMapsSet)
+
+	// put pinnedMapsSet second so full map names overwrite truncated names in
+	// pinnedProgsMapsSet when constructing the union
+	union := union(pinnedProgsMapsSet, pinnedMapsSet)
 
 	out.MapsStats.PinnedProgsMaps = len(pinnedProgsMapsSet)
 	out.MapsStats.PinnedMaps = len(pinnedMaps)
