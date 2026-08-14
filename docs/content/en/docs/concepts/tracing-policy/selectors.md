@@ -22,6 +22,7 @@ Each selector comprises a set of filters:
 - [`matchNamespaceChanges`](#namespace-changes-filter): filter on Linux namespaces changes.
 - [`matchCapabilityChanges`](#capability-changes-filter): filter on Linux capabilities changes.
 - [`matchWorkloads`](#workloads-filter): filter on Kubernetes workloads.
+- [`matchCEL`](#matchcel): filter on the value of CEL expressions
 
 And a set of actions that will be performed if the specified filters match:
 - [`matchActions`](#actions-filter): apply an action on selector matching.
@@ -123,7 +124,10 @@ The available operators for `matchArgs` are:
 - `Mask`
 - `FileType`
 - `NotFileType`
-- [`CelExpr`](#celexpr-argument-filter)
+
+{{< warning >}}
+The `CelExpr` `MatchArgs` operator has been deprecated. Please use the `MatchCEL` selector instead.
+{{< /warning >}}
 
 **Further examples**
 
@@ -183,49 +187,6 @@ selectors:
     - "reg"
 ```
 
-### CelExpr argument filter
-
-The `CelExpr` argument filter allows specifying filtering expressions in
-[CEL](https://cel.dev/overview/cel-overview) that are evaluated in-kernel.
-
-Here's a policy example:
-
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "sys-lseek-cel-example"
-spec:
-  kprobes:
-  - call: "sys_lseek"
-    syscall: true
-    args:
-    - index: 2
-      type: "int"
-      label: "whence"
-    - index: 0
-      type: "int"
-      label: "fd"
-    - index: 1
-      type: "long"
-      label: "offset"
-    selectors:
-      - matchArgs:
-        - operator: "CelExpr"
-          values:
-          - "arg1 == int32(-1) && arg0 >= int32(1024)"
-```
-
-Arguments, as specified in the `args:` list, are made available in the CEL expression as `argX`
-where `X` is the zero-based index in the list. In the above example, the argument labeled `whence`
-is available as `arg0`, while the argument labeled `fd` is available as `arg1`.
-
-Currently, CelExpr operators support:
-* Addition (`+`) and subtraction (`-`)
-* Logical AND (`&&`), OR (`||`), and NOT (`!`) operators
-* Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
-* Integer casting to 32-bits (`int32()`, `uint32()`)
-* Bitwise operations (`and()`, `or()`, `xor()`, `not()`)
 
 ## Data filter
 
@@ -844,6 +805,60 @@ matchWorkloads:
       values:
       - "kube-system"
 ```
+
+## matchCEL
+
+The `matchCEL` selector allows specifying filtering expressions in
+[CEL](https://cel.dev/overview/cel-overview) that are evaluated in-kernel.
+
+Here's a policy example:
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-lseek"
+spec:
+  kprobes:
+  - call: "sys_lseek"
+    syscall: true
+    data:
+    - source: current_task
+      index: 0
+      type: int
+      resolve: pid
+    args:
+    - index: 2
+      type: "int"
+      label: "whence"
+    - index: 0
+      type: "int"
+      label: "fd"
+    selectors:
+    - matchActions:
+      - action: Post
+      MatchCel:
+        expr: "arg1 == int32(-1) && data0 == arg0 + int32(42)"
+```
+
+Arguments, as specified in the `args:` array, are made available in the CEL expression as `argX`
+where `X` is the zero-based index in the array. Similary for data items, as specified in the `data:`
+list.
+
+In the above example, the argument labeled `whence` is available as `arg0`, the argument labeled
+`fd` is available as `arg1`, and the PID of the process is available as `data0`.
+
+The policy can be triggered via:
+```shell-session
+python3 -c "import os; os.lseek(-1, 0, os.getpid() - 42)"
+```
+
+Currently, `MatchCEL` supports:
+* Addition (`+`) and subtraction (`-`)
+* Logical AND (`&&`), OR (`||`), and NOT (`!`) operators
+* Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
+* Integer casting to 32-bits (`int32()`, `uint32()`)
+* Bitwise operations (`and()`, `or()`, `xor()`, `not()`)
 
 ## Actions filter
 
