@@ -468,6 +468,7 @@ type uprobeHas struct {
 	sleepablePreload     bool
 	substring            bool
 	sleepablePreloadSize int
+	sleepableOffloadSize int
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -904,6 +905,9 @@ func createGenericUprobeSensor(
 
 	// user sleepable_preload override
 	has.sleepablePreloadSize = polInfo.specOpts.SleepablePreloadSize
+
+	// user sleepable_offload override
+	has.sleepableOffloadSize = polInfo.specOpts.SleepableOffloadSize
 
 	if useMulti {
 		// if we are using multi-uprobe, CEL expressions are shared across all uprobes
@@ -1427,6 +1431,19 @@ func getSleepablePreloadMap(userSize int, load *program.Program) *program.Map {
 	return m
 }
 
+func getSleepableOffloadMap(userSize int, load *program.Program) *program.Map {
+	var m *program.Map
+
+	if userSize != 0 {
+		m = program.MapBuilderProgram("sleepable_offload", load)
+		m.SetMaxEntries(userSize)
+	} else {
+		m = program.MapShared("sleepable_offload", load)
+		m.SetMaxEntries(option.Config.SleepableOffloadSize)
+	}
+	return m
+}
+
 func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []idtable.EntryID, has uprobeHas) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
@@ -1489,8 +1506,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
 		regsMap.SetMaxEntries(max(regsMapEntries, 1))
-		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
-		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
+		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, load)
 		maps = append(maps, regsMap, sleepableOffloadMap)
 	}
 
@@ -1604,8 +1620,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		// in the same policy needs the override action)
 		regsMapEntries := max(len(uprobeEntry.loadArgs.selectors.entry.Regs()), 1)
 		regsMap.SetMaxEntries(regsMapEntries)
-		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
-		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
+		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, load)
 		maps = append(maps, regsMap, sleepableOffloadMap)
 	}
 

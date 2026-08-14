@@ -95,6 +95,7 @@ const (
 	KeyDisableUprobeMulti = "disable-uprobe-multi"
 
 	KeySleepablePreloadSize = "sleepable-preload-size"
+	KeySleepableOffloadSize = "sleepable-offload-size"
 
 	KeyUsePerfRingBuffer = "use-perf-ring-buffer"
 	KeyRBSize            = "rb-size"
@@ -345,6 +346,7 @@ func ReadAndSetFlags() error {
 	Config.RetprobesCacheSize = viper.GetInt(KeyRetprobesCacheSize)
 
 	Config.SleepablePreloadSize = viper.GetInt(KeySleepablePreloadSize)
+	Config.SleepableOffloadSize = viper.GetInt(KeySleepableOffloadSize)
 
 	Config.EnableGRPCDeprecatedTP = viper.GetBool(KeyEnableDeprecatedTPGRPC)
 
@@ -639,6 +641,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Int(KeyRetprobesCacheSize, defaults.DefaultRetprobesCacheSize, "Set {k,u}retprobes events cache maximum size")
 
 	flags.Int(KeySleepablePreloadSize, defaults.DefaultSleepablePreloadSize, "Set the maximum number of entries in the sleepable preload map")
+	flags.Int(KeySleepableOffloadSize, defaults.DefaultSleepableOffloadSize, "Set the maximum number of entries in the sleepable offload map")
 
 	flags.Bool(KeyEnableDeprecatedTPGRPC, false, "Enable deprecated gRPC TracingPolicy APIs")
 
