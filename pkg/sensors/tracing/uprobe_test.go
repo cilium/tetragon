@@ -1290,22 +1290,45 @@ spec:
 }
 
 func TestUprobeSleepablePreloadMapConfig(t *testing.T) {
-	testUprobeSleepablePreloadMapConfig(t, false)
+	testUprobeSleepableMapsConfig(t, "sleepable_preload", false)
+}
+
+func TestUprobeSleepableOffloadMapConfig(t *testing.T) {
+	testUprobeSleepableMapsConfig(t, "sleepable_offload", false)
 }
 
 func TestUprobeSleepablePreloadMapConfigWithMax(t *testing.T) {
-	testUprobeSleepablePreloadMapConfig(t, true)
+	testUprobeSleepableMapsConfig(t, "sleepable_preload", true)
 }
 
-func testUprobeSleepablePreloadMapConfig(t *testing.T, withMax bool) {
+func TestUprobeSleepableOffloadMapConfigWithMax(t *testing.T) {
+	testUprobeSleepableMapsConfig(t, "sleepable_offload", true)
+}
+
+func testUprobeSleepableMapsConfig(t *testing.T, mapName string, withMax bool) {
 	if !bpf.HasKfunc("bpf_copy_from_user_str") {
 		t.Skip("skipping, no string preload support")
 	}
 	if runtime.GOARCH == "arm64" {
 		t.Skip("skipping, x86_64 only test")
 	}
+	if mapName == "sleepable_offload" && !bpf.HasUprobeRegsChange() {
+		t.Skip("skipping, no regs change support in kernel")
+	}
 
 	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+
+	selectors := ""
+
+	if mapName == "sleepable_offload" {
+		selectors = `
+    selectors:
+    - matchActions:
+      - action: Override
+        argRegs:
+        - "rip=7%rip"
+`
+	}
 
 	// uprobe policy with a preload data argument; opts is the options block (may be empty)
 	policy := func(opts string) string {
@@ -1313,7 +1336,7 @@ func testUprobeSleepablePreloadMapConfig(t *testing.T, withMax bool) {
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "preload"
+  name: "sleepable"
 spec:` + opts + `
   uprobes:
   - path: "` + testBinary + `"
@@ -1323,8 +1346,7 @@ spec:` + opts + `
     - index: 0
       type: "string"
       source: "pt_regs"
-      resolve: "rdi"
-`
+      resolve: "rdi"` + selectors
 	}
 
 	loadSensors := func(t *testing.T, config string) []*sensors.Sensor {
@@ -1343,10 +1365,10 @@ spec:` + opts + `
 		sensors.UnloadSensors(sensi)
 	}
 
-	findPreloadMap := func(sens []*sensors.Sensor) *program.Map {
+	findSleepableMap := func(sens []*sensors.Sensor) *program.Map {
 		for _, s := range sens {
 			for _, m := range s.Maps {
-				if m.Name == "sleepable_preload" {
+				if m.Name == mapName {
 					return m
 				}
 			}
@@ -1362,40 +1384,59 @@ spec:` + opts + `
 	}
 
 	if withMax {
-		originalSize := option.Config.SleepablePreloadSize
-		option.Config.SleepablePreloadSize = 2048
-		t.Cleanup(func() { option.Config.SleepablePreloadSize = originalSize })
+		if mapName == "sleepable_preload" {
+			originalSize := option.Config.SleepablePreloadSize
+			option.Config.SleepablePreloadSize = 2048
+			t.Cleanup(func() { option.Config.SleepablePreloadSize = originalSize })
+		} else {
+			originalSize := option.Config.SleepableOffloadSize
+			option.Config.SleepableOffloadSize = 2048
+			t.Cleanup(func() { option.Config.SleepableOffloadSize = originalSize })
+		}
 	}
 
-	// sleepable_preload as MapShared at global scope (/sys/fs/bpf/tetragon/sleepable_preload)
+	// sleepable_preload/offload as MapShared at global scope (/sys/fs/bpf/tetragon/sleepable_[preload|offload])
 	t.Run("shared", func(t *testing.T) {
 		sens := loadSensors(t, policy(""))
 		defer unloadSensors(sens)
 
-		m := findPreloadMap(sens)
-		require.NotNil(t, m, "sleepable_preload map not found in sensor")
+		m := findSleepableMap(sens)
+		logger.GetLogger().Info("Sensor list")
+		require.NotNil(t, m, mapName+" map not found in sensor")
 
-		assert.Equal(t, "sleepable_preload", m.PinPath)
+		assert.Equal(t, mapName, m.PinPath)
 		if withMax {
 			assert.Equal(t, uint32(2048), getMaxEntries(m))
 		} else {
-			assert.Equal(t, uint32(defaults.DefaultSleepablePreloadSize), getMaxEntries(m))
+			if mapName == "sleepable_preload" {
+				assert.Equal(t, uint32(defaults.DefaultSleepablePreloadSize), getMaxEntries(m))
+			} else {
+				assert.Equal(t, uint32(defaults.DefaultSleepableOffloadSize), getMaxEntries(m))
+			}
 		}
 	})
 
-	// sleepable_preload as MapBuilderProgram at program scope (.../policy/sensor/prog/sleepable_preload)
+	// sleepable_preload/offload as MapBuilderProgram at program scope (.../policy/sensor/prog/sleepable_[preload|offload])
 	t.Run("program", func(t *testing.T) {
-		sens := loadSensors(t, policy(`
+		var sens []*sensors.Sensor
+		if mapName == "sleepable_preload" {
+			sens = loadSensors(t, policy(`
   options:
   - name: "sleepable-preload-size"
     value: "1024"`))
+		} else {
+			sens = loadSensors(t, policy(`
+  options:
+  - name: "sleepable-offload-size"
+    value: "1024"`))
+		}
 		defer unloadSensors(sens)
 
-		m := findPreloadMap(sens)
-		require.NotNil(t, m, "sleepable_preload map not found in sensor")
+		m := findSleepableMap(sens)
+		require.NotNil(t, m, mapName+"map not found in sensor")
 
-		assert.NotEqual(t, "sleepable_preload", m.PinPath)
-		assert.Equal(t, "sleepable_preload", filepath.Base(m.PinPath))
+		assert.NotEqual(t, mapName, m.PinPath)
+		assert.Equal(t, mapName, filepath.Base(m.PinPath))
 		assert.Equal(t, uint32(1024), getMaxEntries(m))
 	})
 }
