@@ -445,6 +445,12 @@
       "matchUpdateTypes": ["digest"],
       "matchPackageNames": ["!docker.io/library/alpine"],
     },
+    {
+      // Disable automatic Windows GH runner upgrades
+      "matchDepTypes": ["github-runner"],
+      "matchPackageNames": ["windows"],
+      "enabled": false,
+    },
     // automerge section
     {
       "matchPackageNames": [
