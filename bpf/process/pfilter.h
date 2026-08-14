@@ -3,6 +3,7 @@
 
 #include "bpf_process_event.h"
 #include "policy_filter.h"
+#include "types/basic.h"
 
 /**
  * Process filters (see generic_process_filter)
@@ -414,6 +415,193 @@ struct nc_filter {
  */
 #define NUM_NS_FILTERS_SMALL 4
 
+#ifdef __LARGE_BPF_PROG
+
+#define CMD_ARGS_MAX 32
+
+#define CMD_ARG_HEAP_OFFSET    (STRING_MAPS_HEAP_MASK + 1)
+#define CMD_ARG_OFFSETS_OFFSET (CMD_ARG_HEAP_OFFSET + 2 * MAXARGLENGTH)
+
+FUNC_INLINE long
+selector_first_filter_offset(__u8 *f, __u32 selidx)
+{
+	long seloff;
+
+	seloff = 4; /* start of the relative offsets */
+	seloff += (selidx * 4); /* relative offset for this selector */
+
+	/* selector section offset by reading the relative offset in the array */
+	asm volatile("%[off] &= 0x3ff;\n" /* INDEX_MASK */
+		     : [off] "+r"(seloff));
+	seloff += *(__u32 *)((__u64)f + seloff);
+
+	/* skip the selector size field */
+	seloff += 4;
+	return seloff;
+}
+
+FUNC_INLINE long
+selector_match_cmd_args_offset(__u8 *f, __u32 selidx)
+{
+	long seloff = selector_first_filter_offset(f, selidx);
+
+	/* skip the process-filter sections preceding matchCmdArgs */
+	/* matchPids */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* matchNamespaces */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* matchCapabilities */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* matchNamespaceChanges */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* matchCapabilityChanges */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+
+	return seloff & INDEX_MASK;
+}
+
+FUNC_INLINE long
+copy_cmd_arg_to_heap(char *src, __u64 remaining, char **dst)
+{
+	char *heap;
+	__u32 zero = 0;
+	long read;
+
+	asm volatile("%[remaining] &= 0x1ff;\n"
+		     : [remaining] "+r"(remaining));
+
+	heap = map_lookup_elem(&string_maps_heap, &zero);
+	if (!heap)
+		return -1;
+	/* We reuse this unused space at the end of the heap */
+	heap += CMD_ARG_HEAP_OFFSET;
+
+	read = probe_read_str(heap, remaining, src);
+	if (read <= 0)
+		return -1;
+
+	*dst = heap;
+	return read - 1;
+}
+
+/* Return 1 when all command-argument filters match (or the section is empty),
+ * and 0 when the section is malformed, arguments are unavailable, or any
+ * filter does not match.
+ */
+FUNC_INLINE int
+match_cmd_args(__u8 *f, __u32 selidx, struct args *cached_args)
+{
+	__u32 filter_off, section_off, reloaded_argc, nuloff, key;
+	__u32 max_index = 0, argc = 0, argsoff = 0;
+	struct selector_arg_filters *filters;
+	struct selector_arg_filter *filter;
+	__u8 *arg_offsets;
+	__u64 remaining;
+	char *arg_copy;
+	long read;
+	int i;
+
+	section_off = selector_match_cmd_args_offset(f, selidx);
+	section_off &= INDEX_MASK;
+	filters = (struct selector_arg_filters *)&f[section_off];
+	/* Check for malformed filters */
+	if (filters->arglen < sizeof(struct selector_arg_filters))
+		return 0;
+
+	/* An empty section always matches even without a cached entry */
+	if (!filters->argoff[0])
+		return 1;
+
+	/* Check the max index of the filters to avoid over-parsing args */
+	for (i = 0; i < 5; i++) {
+		filter_off = filters->argoff[i];
+		if (!filter_off)
+			break;
+
+		filter_off = (section_off + filter_off) & INDEX_MASK;
+		filter = (struct selector_arg_filter *)&f[filter_off];
+
+		key = filter->index;
+		if (key >= CMD_ARGS_MAX)
+			return 0;
+		if (key > max_index)
+			max_index = key;
+	}
+
+	key = 0;
+	/* Initially, the BPF stack was used to store these offsets but the
+	 * variable stack reads are supported only from 5.12
+	 */
+	arg_offsets = map_lookup_elem(&string_maps_heap, &key);
+	if (!arg_offsets)
+		return 0;
+	arg_offsets += CMD_ARG_OFFSETS_OFFSET;
+
+	/* Parse the arguments once and remember each starting offset. */
+	remaining = cached_args->len;
+	for (i = 0; i < CMD_ARGS_MAX; i++) {
+		if (i > max_index)
+			break;
+		if (remaining == 0)
+			break;
+
+		arg_offsets[i] = argsoff;
+		read = copy_cmd_arg_to_heap(&cached_args->buf[argsoff], remaining, &arg_copy);
+		if (read < 0 || read + 1 > remaining)
+			return 0;
+
+		nuloff = argsoff + read;
+		asm volatile("%[nuloff] &= 0xff;\n"
+			     : [nuloff] "+r"(nuloff));
+		/* Stop on truncated argument */
+		if (cached_args->buf[nuloff] != '\0')
+			break;
+
+		argsoff += read + 1;
+		remaining -= read + 1;
+		argc++;
+	}
+
+	/* This weird move is to make the verifier forget about argc */
+	if (probe_read_kernel(&reloaded_argc, sizeof(reloaded_argc), &argc) < 0)
+		return 0;
+	argc = reloaded_argc;
+
+	/* Iterate again over the filters to perform filtering */
+	for (i = 0; i < 5; i++) {
+		filter_off = filters->argoff[i];
+		if (!filter_off)
+			break;
+
+		filter_off = (section_off + filter_off) & INDEX_MASK;
+		filter = (struct selector_arg_filter *)&f[filter_off];
+
+		if (filter->type != string_type)
+			return 0;
+
+		key = filter->index;
+		if (key >= CMD_ARGS_MAX || key >= argc)
+			return 0;
+
+		argsoff = arg_offsets[key];
+		remaining = sizeof(cached_args->buf) - argsoff;
+
+		/* Ideally we would skip this copy and send the cached argument to
+		 * filter_char_buf_value() but it requires a big buffer of 4096,
+		 * so copy it to the unused half of string_maps_heap first.
+		 */
+		read = copy_cmd_arg_to_heap(&cached_args->buf[argsoff], remaining, &arg_copy);
+		if (read < 0)
+			return 0;
+
+		if (!filter_char_buf_value(filter, arg_copy, read))
+			return 0;
+	}
+
+	return 1;
+}
+#endif /* __LARGE_BPF_PROG */
+
 FUNC_INLINE int
 selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 			struct msg_generic_kprobe *msg)
@@ -444,6 +632,9 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 			if (!match_binaries(index + MAX_SELECTORS, enter, parent_bin))
 				return 0;
 	}
+
+	if (!match_cmd_args((__u8 *)f, index, &enter->args))
+		return PFILTER_REJECT;
 #endif
 
 	/* Find selector offset byte index */

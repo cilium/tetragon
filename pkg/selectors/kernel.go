@@ -944,6 +944,7 @@ func ParseMatchData(k *KernelSelectorState, arg *v1alpha1.ArgSelector, data []v1
 	return parseMatchArg(k, arg, data, ty)
 }
 
+// Keep in sync with CMD_ARGS_MAX - 1 in bpf/process/pfilter.h.
 const maxMatchCmdArgIndex = 31
 
 func ParseMatchCmdArg(k *KernelSelectorState, cmdArg *v1alpha1.CmdArgSelector) error {
