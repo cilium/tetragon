@@ -1705,6 +1705,7 @@ type KernelSelectorArgs struct {
 //	[matchNamespaceChanges]
 //	[matchCapabilityChanges]
 //	[matchArgs]
+//	[matchCmdArgs]
 //	[matchActions]
 //
 // matchPIDs := [length][PID1][PID2]...[PIDn]
@@ -1713,6 +1714,7 @@ type KernelSelectorArgs struct {
 // matchNamespaceChanges := [length][NCx][NCy]...[NCn]
 // matchCapabilityChanges := [length][CAx][CAy]...[CAn]
 // matchArgs := [length][ARGx][ARGy]...[ARGn]
+// matchCmdArgs := [length][CMDARGx][CMDARGy]...[CMDARGn]
 // PIDn := [op][flags][nValues][v1]...[vn]
 // Argn := [index][op][valueGen]
 // NSn := [namespace][op][valueInt]
@@ -1801,6 +1803,9 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, args.Args, args.Data); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
+		if err := ParseMatchCmdArgs(k, selector.MatchCmdArgs); err != nil {
+			return fmt.Errorf("parseMatchCmdArgs error: %w", err)
+		}
 		if err := ParseMatchWorkloads(k, selector.MatchWorkloads, selIdx); err != nil {
 			return fmt.Errorf("parseMatchWorkloads  error: %w", err)
 		}
@@ -1819,6 +1824,9 @@ func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnAr
 	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
 		if err := ParseMatchArgs(k, selector.MatchReturnArgs, []v1alpha1.ArgSelector{}, []v1alpha1.KProbeArg{*returnArg}, []v1alpha1.KProbeArg{}); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
+		}
+		if err := ParseMatchCmdArgs(k, nil); err != nil {
+			return fmt.Errorf("parseMatchCmdArgs error: %w", err)
 		}
 		if err := ParseMatchActions(k, selector.MatchReturnActions, actionArgTable, selIdx); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
