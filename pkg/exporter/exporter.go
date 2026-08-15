@@ -40,10 +40,11 @@ type Exporter struct {
 	logFile     string
 	logsDir     string
 
-	// mu protects rotateTimer and rotationInterval for concurrent access.
-	mu               sync.Mutex
-	rotateTimer      *time.Timer
-	rotationInterval time.Duration
+	// mu protects the rotation timer state for concurrent access.
+	mu                 sync.Mutex
+	rotateTimer        *time.Timer
+	rotationInterval   time.Duration
+	rotationGeneration uint64
 }
 
 func NewExporter(
@@ -91,7 +92,7 @@ func (e *Exporter) Start() error {
 			e.mu.Unlock()
 			return fmt.Errorf("writer must be of type lumberjack.Logger but got %T", e.closer)
 		}
-		e.rotateTimer = time.AfterFunc(e.rotationInterval, e.rotate)
+		e.scheduleRotateLocked()
 	}
 	e.mu.Unlock()
 
@@ -115,18 +116,27 @@ func (e *Exporter) Start() error {
 	return nil
 }
 
-func (e *Exporter) rotate() {
+// scheduleRotateLocked schedules a rotation for the current configuration.
+// The caller must hold e.mu.
+func (e *Exporter) scheduleRotateLocked() {
+	generation := e.rotationGeneration
+	e.rotateTimer = time.AfterFunc(e.rotationInterval, func() {
+		e.rotate(generation)
+	})
+}
+
+func (e *Exporter) rotate(generation uint64) {
 	// Rotate is only called when writer is a lumberjack logger; no need to check.
 	writer := e.closer.(*lumberjack.Logger)
 	logger.GetLogger().Info("Rotating JSON logs export", "file", e.logFile, "directory", e.logsDir)
 	if rotationErr := writer.Rotate(); rotationErr != nil {
 		logger.GetLogger().Warn("Failed to rotate JSON export file", "file", option.Config.ExportFilename, logfields.Error, rotationErr)
 	}
-	// Do not reschedule once the context is cancelled, otherwise the timer
-	// keeps rescheduling itself forever even after the exporter is stopped.
+	// Do not reschedule once the context is cancelled or timed rotation is
+	// disabled.
 	e.mu.Lock()
-	if e.ctx.Err() == nil {
-		e.rotateTimer = time.AfterFunc(e.rotationInterval, e.rotate)
+	if e.ctx.Err() == nil && e.rotationInterval > 0 && e.rotationGeneration == generation {
+		e.scheduleRotateLocked()
 	}
 	e.mu.Unlock()
 }
@@ -135,8 +145,10 @@ func (e *Exporter) rotate() {
 func (e *Exporter) stopRotateTimer() {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	e.rotationGeneration++
 	if e.rotateTimer != nil {
 		e.rotateTimer.Stop()
+		e.rotateTimer = nil
 	}
 }
 
@@ -196,17 +208,16 @@ func (e *Exporter) SetLogParams(params eventlog.Params) error {
 
 	if params.RotationInterval != nil {
 		e.mu.Lock()
+		e.rotationGeneration++
 		if e.rotateTimer != nil {
 			e.rotateTimer.Stop()
+			e.rotateTimer = nil
 		}
 		e.rotationInterval = *params.RotationInterval
-		// Do not install a new timer once the context is cancelled, otherwise
-		// it would outlive shutdown (see rotate() and stopRotateTimer()).
-		if e.ctx.Err() == nil {
-			e.rotateTimer = time.AfterFunc(
-				e.rotationInterval,
-				e.rotate,
-			)
+		// Do not install a new timer once the context is cancelled or timed
+		// rotation is disabled.
+		if e.ctx.Err() == nil && e.rotationInterval > 0 {
+			e.scheduleRotateLocked()
 		}
 		e.mu.Unlock()
 	}
