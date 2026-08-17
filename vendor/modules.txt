@@ -446,10 +446,12 @@ github.com/spf13/viper/internal/features
 # github.com/sryoya/protorand v0.0.0-20250114120907-8c1a8e3138f2
 ## explicit; go 1.17
 github.com/sryoya/protorand
-# github.com/stretchr/testify v1.11.1
+# github.com/stretchr/testify v1.12.0
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
+github.com/stretchr/testify/internal/difflib
+github.com/stretchr/testify/internal/spew
 github.com/stretchr/testify/require
 github.com/stretchr/testify/suite
 # github.com/subosito/gotenv v1.6.0
