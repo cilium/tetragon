@@ -13,13 +13,22 @@ import (
 	"sync"
 )
 
+// sharedBuf is a buffer which may be shared between multiple decoders.
+//
+// It must not be modified. Some sharedBuf may be backed by an mmap-ed file, in
+// which case the sharedBuf has a finalizer. sharedBuf must therefore always be
+// passed as a pointer.
+type sharedBuf struct {
+	raw []byte
+}
+
 type decoder struct {
 	// Immutable fields, may be shared.
 
 	base      *decoder
 	byteOrder binary.ByteOrder
-	raw       []byte
-	strings   *stringTable
+	*sharedBuf
+	strings *stringTable
 	// The ID for offsets[0].
 	firstTypeID TypeID
 	// Map from TypeID to offset of the marshaled data in raw. Contains an entry
@@ -121,7 +130,7 @@ func newDecoder(raw []byte, bo binary.ByteOrder, strings *stringTable, base *dec
 	return &decoder{
 		base,
 		bo,
-		raw,
+		&sharedBuf{raw},
 		strings,
 		firstTypeID,
 		offsets,
@@ -165,31 +174,6 @@ func allBtfTypeOffsets(buf []byte, bo binary.ByteOrder, header *btfType) iter.Se
 	}
 }
 
-func rebaseDecoder(d *decoder, base *decoder) (*decoder, error) {
-	if d.base == nil {
-		return nil, fmt.Errorf("rebase split spec: not a split spec")
-	}
-
-	if len(d.base.raw) != len(base.raw) || (len(d.base.raw) > 0 && &d.base.raw[0] != &base.raw[0]) {
-		return nil, fmt.Errorf("rebase split spec: raw BTF differs")
-	}
-
-	return &decoder{
-		base,
-		d.byteOrder,
-		d.raw,
-		d.strings,
-		d.firstTypeID,
-		d.offsets,
-		d.declTags,
-		d.namedTypes,
-		sync.Mutex{},
-		make(map[TypeID]Type),
-		make(map[Type]TypeID),
-		make(map[TypeID][2]Bits),
-	}, nil
-}
-
 // Copy performs a deep copy of a decoder and its base.
 func (d *decoder) Copy() *decoder {
 	if d == nil {
@@ -220,7 +204,7 @@ func (d *decoder) copy(copiedTypes map[Type]Type) *decoder {
 	return &decoder{
 		d.base.copy(copiedTypes),
 		d.byteOrder,
-		d.raw,
+		d.sharedBuf,
 		d.strings,
 		d.firstTypeID,
 		d.offsets,
@@ -564,7 +548,7 @@ func (d *decoder) inflateType(id TypeID) (typ Type, err error) {
 			vlen := header.Vlen()
 			vars := make([]VarSecinfo, 0, vlen)
 			var bSecInfo btfVarSecinfo
-			for i := 0; i < vlen; i++ {
+			for i := range vlen {
 				n, err := unmarshalBtfVarSecInfo(&bSecInfo, pos, d.byteOrder)
 				if err != nil {
 					return nil, fmt.Errorf("can't unmarshal btfVarSecinfo %d, id: %d: %w", i, id, err)

@@ -4,13 +4,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"unsafe"
-
-	"github.com/cilium/ebpf/internal"
 )
 
-//go:generate go run golang.org/x/tools/cmd/stringer@latest -linecomment -output=btf_types_string.go -type=FuncLinkage,VarLinkage,btfKind
+//go:generate go tool stringer -linecomment -output=btf_types_string.go -type=FuncLinkage,VarLinkage,btfKind
 
 // btfKind describes a Type.
 type btfKind uint8
@@ -87,47 +84,68 @@ type btfHeader struct {
 	StringLen uint32
 }
 
-// typeStart returns the offset from the beginning of the .BTF section
-// to the start of its type entries.
-func (h *btfHeader) typeStart() int64 {
-	return int64(h.HdrLen + h.TypeOff)
-}
-
-// stringStart returns the offset from the beginning of the .BTF section
-// to the start of its string table.
-func (h *btfHeader) stringStart() int64 {
-	return int64(h.HdrLen + h.StringOff)
+type btfLayout struct {
+	Off uint32
+	Len uint32
 }
 
 // parseBTFHeader parses the header of the .BTF section.
-func parseBTFHeader(r io.Reader, bo binary.ByteOrder) (*btfHeader, error) {
+func parseBTFHeader(buf []byte) (*btfHeader, *btfLayout, binary.ByteOrder, error) {
 	var header btfHeader
-	if err := binary.Read(r, bo, &header); err != nil {
-		return nil, fmt.Errorf("can't read header: %v", err)
+	var bo binary.ByteOrder
+	for _, order := range []binary.ByteOrder{binary.LittleEndian, binary.BigEndian} {
+		n, err := binary.Decode(buf, order, &header)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("read header: %v", err)
+		}
+
+		if header.Magic != btfMagic {
+			continue
+		}
+
+		buf = buf[n:]
+		bo = order
+		break
 	}
 
-	if header.Magic != btfMagic {
-		return nil, fmt.Errorf("incorrect magic value %v", header.Magic)
+	if bo == nil {
+		return nil, nil, nil, fmt.Errorf("no valid BTF header")
 	}
 
 	if header.Version != 1 {
-		return nil, fmt.Errorf("unexpected version %v", header.Version)
+		return nil, nil, nil, fmt.Errorf("unexpected version %v", header.Version)
 	}
 
 	if header.Flags != 0 {
-		return nil, fmt.Errorf("unsupported flags %v", header.Flags)
+		return nil, nil, nil, fmt.Errorf("unsupported flags %v", header.Flags)
 	}
 
 	remainder := int64(header.HdrLen) - int64(binary.Size(&header))
 	if remainder < 0 {
-		return nil, errors.New("header length shorter than btfHeader size")
+		return nil, nil, nil, errors.New("header length shorter than minimum BTF header size")
 	}
 
-	if _, err := io.CopyN(internal.DiscardZeroes{}, r, remainder); err != nil {
-		return nil, fmt.Errorf("header padding: %v", err)
+	if len(buf) < int(remainder) {
+		return nil, nil, nil, errors.New("header length exceeds available data")
 	}
 
-	return &header, nil
+	var layout btfLayout
+	if remainder >= int64(binary.Size(&btfLayout{})) {
+		n, err := binary.Decode(buf, bo, &layout)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("read layout offset and length: %v", err)
+		}
+		buf = buf[n:]
+		remainder -= int64(n)
+	}
+
+	for _, b := range buf[:remainder] {
+		if b != 0 {
+			return nil, nil, nil, errors.New("header contains non-zero trailer")
+		}
+	}
+
+	return &header, &layout, bo, nil
 }
 
 // btfType is equivalent to struct btf_type in Documentation/bpf/btf.rst.
