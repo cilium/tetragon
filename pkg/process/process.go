@@ -338,7 +338,10 @@ func initProcessInternalExec(
 	}
 	creds := &event.Msg.Creds
 	execID := GetExecID(&process)
-	protoPod := GetPodInfo(event.Kube.Docker, process.Filename, args, process.NSPID)
+	var protoPod *tetragon.Pod
+	if option.Config.EnableK8s && event.Kube.Docker != "" {
+		protoPod = GetPodInfo(event.Kube.Docker, process.Filename, args, process.NSPID)
+	}
 	apiCaps := caps.GetMsgCapabilities(event.Msg.Creds.Cap)
 	binary := path.GetBinaryAbsolutePath(process.Filename, cwd)
 	apiNs, err := namespace.GetMsgNamespaces(event.Msg.Namespaces)
