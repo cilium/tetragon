@@ -297,7 +297,7 @@ bpf-test:
 
 .PHONY: verify
 verify: tetragon-bpf ## Verify BPF programs.
-	sudo DEBUG=${DEBUG} TETRAGONDIR=$(CURDIR)/bpf/objs $(GO) test contrib/verify/verify_test.go -v
+	DEBUG=${DEBUG} TETRAGONDIR=$(CURDIR)/bpf/objs $(GO) test -exec 'sudo -E' contrib/verify/verify_test.go -v
 
 .PHONY: alignchecker
 alignchecker: ## Run alignchecker.
