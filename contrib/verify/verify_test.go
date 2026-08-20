@@ -50,11 +50,6 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			continue
 		}
 
-		// Globals is just for testing, so ignore it
-		if strings.HasPrefix(fileName, "bpf_alignchecker") {
-			continue
-		}
-
 		// Generic tracepoint needs more complex userspace logic to load, so ignore it
 		if strings.HasPrefix(fileName, "bpf_generic_tracepoint") {
 			continue
