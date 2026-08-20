@@ -60,26 +60,82 @@ spec:
 
 ## Arguments filter
 
+### Introduction
+
 Arguments filters can be specified under the `matchArgs` field and provide
 filtering based on the value of the function's argument.
 
-You can specify the argument either in the `index` or in `args` field. The `index` field
-denotes the argument position within the function arguments, while the  `args`
-field denotes the arguments position within the spec arguments. Both fields are
-zero based (1st argument has zero value). The `args` field (if defined) takes
-precedence over `index` field.
+### Use case
 
-The `args` field can support multiple arguments. Currently, the only operator that supports more
-than 1 argument is the `CapabilitiesGained` operator.
+Use `matchArgs` when you want in-kernel BPF filtering on call arguments — for
+example matching sensitive file paths, restricting events to particular file
+descriptors, or combining several argument conditions in one selector.
 
-In the next example, a selector is defined with a `matchArgs` filter that tells
-the BPF code to process only the function call for which the second argument,
-index equal to 1, concerns the file under the path `/etc/passwd` or
-`/etc/shadow`. It's using the operator `Equal` to match against the value of
-the argument.
+When an argument is of type `file`, you can match against a path directly.
 
-Note that conveniently, we can match against a path directly when the argument
-is of type `file`.
+### Inputs, values, options, and operators
+
+You can specify the argument either in the `index` or in the `args` field. The
+`index` field denotes the argument position within the function arguments,
+while the `args` field denotes the argument position within the spec arguments.
+Both fields are zero based (1st argument has zero value). The `args` field (if
+defined) takes precedence over the `index` field.
+
+You can mix `index` and `args` fields within `matchArgs` selector definitions.
+
+The available operators for `matchArgs` are:
+
+- `Equal`
+- `NotEqual`
+- `Prefix`
+- `Postfix`
+- `Mask`
+- `FileType`
+- `NotFileType`
+- [`CelExpr`](#celexpr-argument-filter)
+
+#### File type values
+
+The `FileType` and `NotFileType` operators filter based on the type of a file
+(e.g., regular file, pipe, socket, etc.). Matching file types:
+
+- `sock` or `socket`: Socket
+- `lnk` or `link`: Symbolic link
+- `reg` or `regular`: Regular file
+- `blk` or `block`: Block device
+- `dir`: Directory
+- `chr` or `char`: Character device
+- `fifo` or `pipe`: FIFO/Pipe
+
+#### CelExpr argument filter
+
+The `CelExpr` argument filter allows specifying filtering expressions in
+[CEL](https://cel.dev/overview/cel-overview) that are evaluated in-kernel.
+
+Arguments, as specified in the `args:` list, are made available in the CEL
+expression as `argX` where `X` is the zero-based index in the list.
+
+Currently, CelExpr operators support:
+
+* Addition (`+`) and subtraction (`-`)
+* Logical AND (`&&`), OR (`||`), and NOT (`!`) operators
+* Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
+* Integer casting to 32-bits (`int32()`, `uint32()`)
+* Bitwise operations (`and()`, `or()`, `xor()`, `not()`)
+
+### Limitations
+
+- The `args` field can support multiple arguments. Currently, the only operator
+  that supports more than one argument is the `CapabilitiesGained` operator.
+- The `FileType` and `NotFileType` operators can only be used with arguments of
+  type `file` or `path`.
+- `CelExpr` supports only the operators listed above (not the full CEL language
+  surface).
+
+### Examples
+
+Match the second function argument (`index` equal to 1) against the paths
+`/etc/passwd` or `/etc/shadow` using the `Equal` operator:
 
 ```yaml
 selectors:
@@ -90,10 +146,10 @@ selectors:
     - "/etc/passwd"
     - "/etc/shadow"
 ```
-In the next example, a selector is defined with a `matchArgs` filter that tells
-the BPF code to process only the function call for which the second spec argument,
-`args` equals to [1] (which represents 1st function argument, `index` equals to 0),
-has value `0xcoffee`.
+
+Match using the `args` field. Here `args: [1]` refers to the second entry in the
+spec `args` list (which represents the 1st function argument, `index` equals to
+0), and requires the value `0xcoffee`:
 
 ```yaml
 - args:
@@ -113,22 +169,10 @@ has value `0xcoffee`.
       values:
       - "0xcoffee"
 ```
-Note that you can mix `index` and `arg` fields within `matchArgs` selector definitions.
 
-The available operators for `matchArgs` are:
-- `Equal`
-- `NotEqual`
-- `Prefix`
-- `Postfix`
-- `Mask`
-- `FileType`
-- `NotFileType`
-- [`CelExpr`](#celexpr-argument-filter)
+Use the `Prefix` operator to match all files under `/etc`. An event will be
+created every time a process tries to access a file under `/etc`:
 
-**Further examples**
-
-In the previous example, we used the operator `Equal`, but we can also use the
-`Prefix` operator and match against all files under `/etc` with:
 ```yaml
 selectors:
 - matchArgs:
@@ -137,13 +181,10 @@ selectors:
     values:
     - "/etc"
 ```
-In this situation, an event will be created every time a process tries to
-access a file under `/etc`.
 
-Although it makes less sense, you can also match over the first argument, to
-only detect events that will use the file descriptor 4, which is usually the
-first that come afters stdin, stdout and stderr in process. And combine that
-with the previous example.
+Combine conditions: match file descriptor `3` on the first argument and a path
+prefix `/etc` on the second (file descriptor 4 is usually the first that comes
+after stdin, stdout and stderr in a process; the example below uses `3`):
 
 ```yaml
 - matchArgs:
@@ -157,22 +198,7 @@ with the previous example.
     - "/etc"
 ```
 
-### File type filtering
-
-The `FileType` and `NotFileType` operators allow filtering based on the type of a
-file (e.g., regular file, pipe, socket, etc.). These operators can only be used
-with arguments of type `file` or `path`.
-
-Matching file types:
-- `sock` or `socket`: Socket
-- `lnk` or `link`: Symbolic link
-- `reg` or `regular`: Regular file
-- `blk` or `block`: Block device
-- `dir`: Directory
-- `chr` or `char`: Character device
-- `fifo` or `pipe`: FIFO/Pipe
-
-In the following example, we monitor `vfs_write` only for regular files.
+Monitor `vfs_write` only for regular files:
 
 ```yaml
 selectors:
@@ -183,12 +209,8 @@ selectors:
     - "reg"
 ```
 
-### CelExpr argument filter
-
-The `CelExpr` argument filter allows specifying filtering expressions in
-[CEL](https://cel.dev/overview/cel-overview) that are evaluated in-kernel.
-
-Here's a policy example:
+`CelExpr` example. In the policy below, the argument labeled `whence` is
+available as `arg0`, while the argument labeled `fd` is available as `arg1`:
 
 ```yaml
 apiVersion: cilium.io/v1alpha1
@@ -215,17 +237,6 @@ spec:
           values:
           - "arg1 == int32(-1) && arg0 >= int32(1024)"
 ```
-
-Arguments, as specified in the `args:` list, are made available in the CEL expression as `argX`
-where `X` is the zero-based index in the list. In the above example, the argument labeled `whence`
-is available as `arg0`, while the argument labeled `fd` is available as `arg1`.
-
-Currently, CelExpr operators support:
-* Addition (`+`) and subtraction (`-`)
-* Logical AND (`&&`), OR (`||`), and NOT (`!`) operators
-* Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
-* Integer casting to 32-bits (`int32()`, `uint32()`)
-* Bitwise operations (`and()`, `or()`, `xor()`, `not()`)
 
 ## Data filter
 
