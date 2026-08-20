@@ -27,6 +27,44 @@ const (
 	tetragondir = "/var/lib/tetragon"
 )
 
+func extractKernelVersion(t *testing.T, fileName string) string {
+	if idx := strings.LastIndex(fileName, "_v"); idx != -1 {
+		versionPart := strings.TrimSuffix(fileName[idx+2:], ".o")
+		if len(versionPart) >= 2 {
+			if versionPart[:1] == "1" {
+				t.Fatalf("version 10.x not supported (we will need to disambiguate notation): %s", versionPart)
+			}
+			return versionPart[:1] + "." + versionPart[1:]
+		}
+	}
+
+	return ""
+}
+
+func TestExtractKernelVersion(t *testing.T) {
+	tests := []struct {
+		fileName string
+		expected string
+	}{
+		{"bpf_generic_kprobe_v612.o", "6.12"},
+		{"bpf_generic_kprobe_v61.o", "6.1"},
+		{"bpf_generic_kprobe_v511.o", "5.11"},
+		{"bpf_generic_kprobe_v53.o", "5.3"},
+		{"bpf_generic_kprobe.o", ""},
+		{"bpf_alignchecker.o", ""},
+		{"bpf_loader_v511.o", "5.11"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.fileName, func(t *testing.T) {
+			result := extractKernelVersion(t, tt.fileName)
+			if result != tt.expected {
+				t.Errorf("extractKernelVersion(%q) = %q, want %q", tt.fileName, result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestVerifyTetragonPrograms(t *testing.T) {
 
 	tetragonDir := os.Getenv("TETRAGONDIR")
@@ -66,19 +104,16 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			continue
 		}
 
-		// Skip v6.1 objects check for kernel < 6.1
-		if strings.HasSuffix(fileName, "61.o") && !kernels.MinKernelVersion("6.1") {
-			continue
-		}
-
-		// Skip v5.11 objects check for kernel < 5.11
-		if strings.HasSuffix(fileName, "511.o") && !kernels.MinKernelVersion("5.11") {
-			continue
-		}
-
 		// Skip rhel7 objects, it's special
 		if strings.HasSuffix(fileName, "310.o") {
 			continue
+		}
+
+		// Skip kernel version-specific objects if running on older kernel
+		if requiredVersion := extractKernelVersion(t, fileName); requiredVersion != "" {
+			if !kernels.MinKernelVersion(requiredVersion) {
+				continue
+			}
 		}
 
 		// Skip bpf_loader for kernel < 5.19
