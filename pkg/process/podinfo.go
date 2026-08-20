@@ -77,7 +77,7 @@ func getPodInfo(
 	args string,
 	nspid uint32,
 ) *tetragon.Pod {
-	if containerID == "" {
+	if w == nil || containerID == "" {
 		return nil
 	}
 	pod, container, ok := w.FindContainer(containerID)
