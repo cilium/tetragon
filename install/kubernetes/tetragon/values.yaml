@@ -193,6 +193,8 @@ tetragon:
     # -- Whether to enable exposing Tetragon gRPC.
     enabled: true
     # -- The address at which to expose gRPC. Examples: localhost:54321, unix:///var/run/tetragon/tetragon.sock
+    # WARNING: Exposing gRPC on a TCP socket without TLS client verification
+    # exposes Tetragon to unprivileged users on the host or with network access.
     address: "unix:///var/run/tetragon/tetragon.sock"
     # -- gRPC TLS / mTLS configuration for the optional TCP listener
     # (tetragon.grpc.address); the always-on unix-domain listener at

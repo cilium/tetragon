@@ -267,7 +267,7 @@ options:
     - name: server-address
       default_value: localhost:54321
       usage: |
-        gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'). An empty address disables the gRPC server
+        gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'). An empty address disables the gRPC server. WARNING: Exposing gRPC on a TCP socket without TLS client verification exposes Tetragon to unprivileged users on the host or with network access.
     - name: server-tls-cert-file
       usage: |
         Path to a PEM-encoded server certificate. When set, TLS is enabled on the TCP gRPC listener.
