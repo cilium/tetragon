@@ -1309,6 +1309,7 @@ loader sensor event triggered for loaded binary/library
 | tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
 | ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | ima_hash | [string](#string) |  | IMA file hash. Format algorithm:value. |
+| data | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Data definition of the observed LSM hook. |
 
 
 
