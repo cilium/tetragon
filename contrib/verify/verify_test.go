@@ -7,8 +7,6 @@ package verify
 
 import (
 	"errors"
-	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -38,7 +36,7 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 
 	files, err := os.ReadDir(tetragonDir)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		t.Fatalf("error: %v", err)
 	}
 
 	for _, file := range files {
@@ -122,9 +120,9 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		require.NotNil(t, spec, "collection spec should not be nil")
 
 		if isDebugEnabled() {
-			fmt.Printf("[%s]\n", fileName)
+			t.Logf("[%s]", fileName)
 			for _, progSpec := range spec.Programs {
-				fmt.Printf("%s\n", progSpec.Instructions.String())
+				t.Log(progSpec.Instructions.String())
 			}
 		}
 
@@ -144,10 +142,10 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		if err != nil {
 			var ve *ebpf.VerifierError
 			if errors.As(err, &ve) {
-				fmt.Printf("%+v\n", ve)
+				t.Logf("%+v", ve)
 
 				_, kver, _ := kernels.GetKernelVersion("", "/proc")
-				fmt.Printf("failed object %s, kernel %s\n", fileName, kver)
+				t.Logf("failed object %s, kernel %s", fileName, kver)
 			}
 		}
 
