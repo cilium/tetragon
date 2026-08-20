@@ -874,6 +874,12 @@ func Serve(ctx context.Context, listenAddr string, srv *server.Server, logSrv *e
 			option.KeyServerTLSKeyFile+" to enable it",
 			"address", addr)
 	}
+	if !option.Config.ServerTLSRequireClientCert {
+		log.Warn("Tetragon gRPC TCP listener is exposing the API without client verification. Any unprivileged user with network access can modify Tetragon's configuration. Configure --"+
+			option.KeyServerTLSRequireClientCert+" to enable client verification or use network-level access control.",
+			"address", addr,
+		)
+	}
 	grpcOpts := append([]grpc.ServerOption{}, extraOpts...)
 	grpcOpts = append(grpcOpts, tlsOpts...)
 	if err := serveOne(ctx, proto, addr, grpcOpts, register); err != nil {
