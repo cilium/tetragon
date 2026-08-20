@@ -231,18 +231,18 @@ metadata:
 spec:
   uprobes:
   - path: {{ testBinary "resolve-nested-anon-struct" }}
-    BTFPath: {{ testBinary "resolve-nested-anon-struct.btf" }}
+    btfPath: {{ testBinary "resolve-nested-anon-struct.btf" }}
     symbols:
     - "passit"
     args:
     - index: 0
       type: "int"
       resolve: "nested.ans.second"
-      BTFType: "mystruct"
+      btfType: "mystruct"
     - index: 0
       type: "int"
       resolve: "pnested.pans.second"
-      BTFType: "mystruct"
+      btfType: "mystruct"
 `).WithSkip(func(si *policytest.SkipInfo) string {
 	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
 		return "need 5.3 or newer kernel"
