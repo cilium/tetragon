@@ -95,46 +95,54 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 
 		// Multi kprobe support is still not widely around, skip the object
 		if strings.HasPrefix(fileName, "bpf_multi_") {
+			t.Logf("%s ⊘ (multi-kprobe)", fileName)
 			continue
 		}
 
 		// Can't load fentry/fexit objects without loader setup
 		if strings.HasPrefix(fileName, "bpf_generic_fentry") ||
 			strings.HasPrefix(fileName, "bpf_generic_fexit") {
+			t.Logf("%s ⊘ (fentry/fexit)", fileName)
 			continue
 		}
 
 		// Skip rhel7 objects, it's special
 		if strings.HasSuffix(fileName, "310.o") {
+			t.Logf("%s ⊘ (rhel7)", fileName)
 			continue
 		}
 
 		// Skip kernel version-specific objects if running on older kernel
 		if requiredVersion := extractKernelVersion(t, fileName); requiredVersion != "" {
 			if !kernels.MinKernelVersion(requiredVersion) {
+				t.Logf("%s ⊘ (requires kernel %s)", fileName, requiredVersion)
 				continue
 			}
 		}
 
 		// Skip bpf_loader for kernel < 5.19
 		if strings.HasPrefix(fileName, "bpf_loader") && !kernels.MinKernelVersion("5.19") {
+			t.Logf("%s ⊘ (requires kernel 5.19)", fileName)
 			continue
 		}
 
 		// Generic LSM BPF needs more complex userspace logic to load, so ignore it
 		if strings.HasPrefix(fileName, "bpf_generic_lsm") {
+			t.Logf("%s ⊘ (lsm)", fileName)
 			continue
 		}
 
 		// Check if bpf_override_return is available
 		if strings.HasPrefix(fileName, "bpf_generic_kprobe") || strings.HasPrefix(fileName, "bpf_enforcer") {
 			if err := features.HaveProgramHelper(ebpf.Kprobe, asm.FnOverrideReturn); err != nil {
+				t.Logf("%s ⊘ (no bpf_override_return)", fileName)
 				continue
 			}
 		}
 
 		// Check if uprobe regs change is available
 		if strings.HasPrefix(fileName, "bpf_generic_uprobe") && !bpf.HasUprobeRegsChange() {
+			t.Logf("%s ⊘ (no uprobe regs change)", fileName)
 			continue
 		}
 
@@ -142,6 +150,7 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		if (strings.HasPrefix(fileName, "bpf_generic_uprobe") ||
 			strings.HasPrefix(fileName, "bpf_generic_usdt")) &&
 			!bpf.HasKfunc("bpf_copy_from_user_str") {
+			t.Logf("%s ⊘ (no bpf_copy_from_user_str)", fileName)
 			continue
 		}
 
@@ -182,6 +191,7 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		require.NoError(t, err, "failed to load resources into the kernel")
 
 		collection.Close()
+		t.Logf("%s ✓", fileName)
 	}
 }
 
