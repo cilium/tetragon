@@ -48,7 +48,7 @@ You can then make modifications to the Tetragon configuration using `helm
 upgrade`, see the following example.
 
 ```shell
-helm upgrade tetragon cilium/tetragon -n kube-system --set tetragon.grpc.address=localhost:1337
+helm upgrade tetragon cilium/tetragon -n kube-system --set tetragon.grpc.address=unix:///var/run/tetragon/custom-tetragon.sock
 ```
 
 You can also edit the `tetragon-config` ConfigMap directly and restart the

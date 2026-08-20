@@ -318,7 +318,7 @@ set from helm with the `tetragon.grpc.address` flag or disabled completely if
 needed with `tetragon.grpc.enabled`.
 
 ```shell
-helm install tetragon cilium/tetragon -n kube-system --set tetragon.grpc.enabled=true --set tetragon.grpc.address=localhost:54321
+helm install tetragon cilium/tetragon -n kube-system --set tetragon.grpc.enabled=true --set tetragon.grpc.address=unix:///var/run/tetragon/tetragon.sock
 ```
 
 An example gRPC endpoint is the Tetra CLI when its not piped JSON output directly,
