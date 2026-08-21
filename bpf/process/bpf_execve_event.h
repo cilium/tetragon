@@ -115,13 +115,10 @@ copy_args_to_cache(const struct args_source *source, struct args *args)
 	if (!source_start || !source_len)
 		return;
 
-	/* Explicitly bound the helper size at 255 for old verifiers. */
-	if (source_len >= sizeof(args->buf))
-		len = sizeof(args->buf) - 1;
+	if (source_len > sizeof(args->buf))
+		len = sizeof(args->buf);
 	else
 		len = source_len;
-	asm volatile("%[len] &= 0xff;\n"
-		     : [len] "+r"(len));
 
 	if (with_errmetrics(probe_read, args->buf, len, (void *)source_start) >= 0)
 		args->len = len;
