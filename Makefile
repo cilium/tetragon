@@ -497,7 +497,7 @@ go-format: ## Run code formatter on Go code.
 	-not -path './pkg/k8s/vendor/*' \
 	-not -path './api/v1/tetragon/*' \
 	-not -path '**/zz_generated.deepcopy.go' | \
-	  xargs goimports -local github.com/cilium/tetragon,github.com/cilium/tetragon/api,github.com/cilium/tetragon/pkg/k8s -w
+	  xargs go tool goimports -local github.com/cilium/tetragon,github.com/cilium/tetragon/api,github.com/cilium/tetragon/pkg/k8s -w
 
 .PHONY: format
 format: go-format clang-format ## Convenience alias for clang-format and go-format.
