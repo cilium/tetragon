@@ -8,11 +8,13 @@ on:
       - api/**
       - docs/content/en/docs/reference/grpc-api.md
       - .github/workflows/lint-proto.yaml
+      - tools/protoc-gen-go-tetragon/**
   pull_request:
     paths:
       - api/**
       - docs/content/en/docs/reference/grpc-api.md
       - .github/workflows/lint-proto.yaml
+      - tools/protoc-gen-go-tetragon/**
 
 jobs:
   lint-proto:
