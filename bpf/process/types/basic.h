@@ -789,6 +789,9 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	return !!pass;
 }
 
+// Define a mask for the maximum path length on Linux.
+#define PATH_MASK (4096 - 1)
+
 struct copy_reverse_data {
 	__u8 *dest;
 	__u8 *src;
@@ -797,9 +800,10 @@ struct copy_reverse_data {
 	uint mask;
 };
 
-FUNC_LOCAL int do_copy_reverse(uint i, struct copy_reverse_data *data)
+FUNC_INLINE int
+__do_copy_reverse(uint i, struct copy_reverse_data *data, uint mask)
 {
-	uint len = data->len, offset = data->offset, mask = data->mask;
+	uint len = data->len, offset = data->offset;
 
 	len &= STRING_POSTFIX_MAX_MASK;
 	// Maximum we can go to is one less than the absolute maximum.
@@ -815,6 +819,26 @@ FUNC_LOCAL int do_copy_reverse(uint i, struct copy_reverse_data *data)
 	data->dest[i & STRING_POSTFIX_MAX_MASK] = data->src[(len + offset - 1 - i) & mask];
 	return len + offset == (i + 1) ? 1 : 0;
 }
+
+FUNC_LOCAL int do_copy_reverse(uint i, struct copy_reverse_data *data)
+{
+	return __do_copy_reverse(i, data, data->mask);
+}
+
+#ifdef __V61_BPF_PROG
+/* Older bpf_loop verifiers do not preserve scalar bounds stored in callback
+ * context. Use constant masks in dedicated callbacks instead.
+ */
+FUNC_LOCAL int do_copy_reverse_path(uint i, struct copy_reverse_data *data)
+{
+	return __do_copy_reverse(i, data, PATH_MASK);
+}
+
+FUNC_LOCAL int do_copy_reverse_file(uint i, struct copy_reverse_data *data)
+{
+	return __do_copy_reverse(i, data, STRING_POSTFIX_MAX_MASK);
+}
+#endif
 
 FUNC_INLINE void __copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset, uint mask)
 {
@@ -843,13 +867,13 @@ FUNC_INLINE void __copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset, ui
 				return;
 		}
 #else
-		loop(STRING_POSTFIX_MAX_MATCH_LENGTH - 1, do_copy_reverse, &data, 0);
+		if (mask == PATH_MASK)
+			loop(STRING_POSTFIX_MAX_MATCH_LENGTH - 1, do_copy_reverse_path, &data, 0);
+		else
+			loop(STRING_POSTFIX_MAX_MATCH_LENGTH - 1, do_copy_reverse_file, &data, 0);
 #endif /* __V61_BPF_PROG */
 	}
 }
-
-// Define a mask for the maximum path length on Linux.
-#define PATH_MASK (4096 - 1)
 
 FUNC_INLINE void copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
 {
@@ -895,10 +919,11 @@ struct filter_char_substring_data {
 	char *arg_str;
 	uint arg_len;
 	bool igncase;
+	bool match;
 };
 
-FUNC_LOCAL long
-do_filter_char_substring(int i, struct filter_char_substring_data *data, bool igncase)
+FUNC_INLINE long
+do_filter_char_substring(__u32 i, struct filter_char_substring_data *data)
 {
 	__u32 id = ((__u32 *)&data->filter->value)[i];
 	char *sub_str;
@@ -908,13 +933,43 @@ do_filter_char_substring(int i, struct filter_char_substring_data *data, bool ig
 	if (!sub_str)
 		return 0;
 
-	if (igncase)
+	if (data->igncase) {
+		if (!bpf_ksym_exists(bpf_strncasestr))
+			return 0;
 		idx = bpf_strncasestr(data->arg_str, sub_str, data->arg_len);
-	else
+	} else {
+		if (!bpf_ksym_exists(bpf_strnstr))
+			return 0;
 		idx = bpf_strnstr(data->arg_str, sub_str, data->arg_len);
+	}
 
 	return idx >= 0 ? 1 : 0;
 }
+
+#ifdef __V61_BPF_PROG
+FUNC_LOCAL long
+do_filter_char_substring_loop(__u32 i, struct filter_char_substring_data *data)
+{
+	/*
+	 * The verifier does not preserve the bpf_loop callback index bound when
+	 * it is used for pointer arithmetic. Force a verifier-visible upper bound
+	 * before indexing filter->value. bpf_loop itself only supplies 0..99.
+	 */
+	asm volatile("%[i] &= 0x7f;\n" : [i] "+r"(i));
+	if (i >= MAX_SUBSTRING_VALUES)
+		return 1;
+
+	/* Match the original loop's post-iteration vallen check. */
+	if (i && i * sizeof(__u32) + 8 >= data->filter->vallen)
+		return 1;
+
+	if (do_filter_char_substring(i, data)) {
+		data->match = true;
+		return 1;
+	}
+	return 0;
+}
+#endif
 
 FUNC_LOCAL long
 filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint arg_len, bool igncase)
@@ -923,13 +978,19 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 		.filter = filter,
 		.arg_str = arg_str,
 		.arg_len = arg_len,
+		.igncase = igncase,
 	};
+
+#ifdef __V61_BPF_PROG
+	loop(MAX_SUBSTRING_VALUES, do_filter_char_substring_loop, &data, 0);
+	return data.match;
+#else
 	int i, j = 0;
 
 	if (CONFIG(ITER_NUM)) {
 		bpf_for(i, 0, MAX_SUBSTRING_VALUES)
 		{
-			if (do_filter_char_substring(i, &data, igncase))
+			if (do_filter_char_substring(i, &data))
 				return 1;
 			j += 4;
 			if (j + 8 >= data.filter->vallen)
@@ -937,7 +998,7 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 		}
 	} else {
 		for (i = 0; i < MAX_SUBSTRING_VALUES; i++) {
-			if (do_filter_char_substring(i, &data, igncase))
+			if (do_filter_char_substring(i, &data))
 				return 1;
 			j += 4;
 			if (j + 8 >= data.filter->vallen)
@@ -945,6 +1006,7 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 		}
 	}
 	return 0;
+#endif
 }
 #endif /* __LARGE_BPF_PROG */
 
@@ -2330,6 +2392,9 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		return seloff;
 
 #ifdef __LARGE_BPF_PROG
+#ifdef __V61_BPF_PROG
+#pragma unroll
+#endif
 	for (i = 0; i < 5; i++)
 #endif
 	{
