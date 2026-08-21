@@ -19,6 +19,13 @@ TLS settings are silently ignored when `--server-address` points at a
 before enabling TLS.
 {{< /caution >}}
 
+{{< warning >}}
+Exposing Tetragon via TCP without TLS client verification allows
+unprivileged users with network access to modify Tetragon's configuration.
+Make sure that only trusted users can reach the TCP socket for example by
+enabling client verification or network-level access control.
+{{< /warning >}}
+
 ## Quick start (Helm, auto-provisioned)
 
 The chart can issue and rotate certificates for you. The default
