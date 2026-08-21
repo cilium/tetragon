@@ -1384,7 +1384,7 @@ spec:
                   type: object
                   x-kubernetes-validations:
                   - message: ReturnArg not specified with Return=true.
-                    rule: '!has(self.return) || (!self.return || has(self.returnArg))'
+                    rule: '!self.return || has(self.returnArg)'
                 type: array
               hostSelector:
                 description: |-
@@ -2716,7 +2716,7 @@ spec:
                   type: object
                   x-kubernetes-validations:
                   - message: ReturnArg not specified with Return=true.
-                    rule: '!has(self.return) || (!self.return || has(self.returnArg))'
+                    rule: '!self.return || has(self.returnArg)'
                 type: array
               lists:
                 description: A list of list specs.
@@ -7082,7 +7082,7 @@ spec:
                     rule: '!(has(self.symbols) && has(self.addrs)) && !(has(self.symbols)
                       && has(self.offsets)) && !(has(self.addrs) && has(self.offsets))'
                   - message: ReturnArg not specified with Return=true.
-                    rule: '!has(self.return) || (!self.return || has(self.returnArg))'
+                    rule: '!self.return || has(self.returnArg)'
                 type: array
               usdts:
                 description: A list of usdt specs.
