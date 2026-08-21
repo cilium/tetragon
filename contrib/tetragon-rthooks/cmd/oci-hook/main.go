@@ -43,20 +43,20 @@ var (
 		"io.kubernetes.pod.namespace",
 		"io.kubernetes.cri.sandbox-namespace",
 	}
-	defaultAllowNamspaces           = "kube-system"
+	defaultAllowNamspaces = "kube-system"
 )
 
 var cliConf struct {
-	LogFname                    string        `name:"log-fname" default:"${defLogFname}" help:"log output filename."`
-	LogLevel                    string        `name:"log-level" default:"info" help:"log level"`
-	AgentAddr                   string        `name:"grpc-address" default:"${defAgentAddress}" help:"Tetragon agent gRPC address"`
-	GrpcTimeout                 time.Duration `name:"grpc-timeout" default:"10s" help:"timeout for connecting to the agent"`
-	DisableGrpc                 bool          `name:"disable-grpc" default:false help:"do not connect to the agent. Instead, write a message to the log"`
-	JustPrintConfig             bool          `name:"just-print-config" default:false help:"just print the config and exit"`
-	AnnNamespaceKeys            []string      `name:"annotations-namespace-key" default:"${defAnnotationsNamespaceKeys}" help:"Runtime annotation keys for accessing k8s namespace"`
-	FailCelUser                 string        `name:"fail-cel-expr" help:"CEL expression to decide whether to fail (and stop container from starting) or not"`
-	FailAllowNamespaces         []string      `name:"fail-allow-namespaces" default:"${defAllowNamespaces}" help:"The hook will not fail for the specified namespaces, as determined by runtime annotation labels. Flag will be ignored if fail-cel-expr is set."`
-	FailAllowNamespacesRegex    []string      `name:"fail-allow-namespaces-regex" help:"RE2 regex patterns for namespaces the hook will not fail for. Substring match by default; use ^ and $ anchors for full-string matching (e.g. '^kube-.*$'). Can be combined with --fail-allow-namespaces. Ignored if fail-cel-expr is set."`
+	LogFname                 string        `name:"log-fname" default:"${defLogFname}" help:"log output filename."`
+	LogLevel                 string        `name:"log-level" default:"info" help:"log level"`
+	AgentAddr                string        `name:"grpc-address" default:"${defAgentAddress}" help:"Tetragon agent gRPC address"`
+	GrpcTimeout              time.Duration `name:"grpc-timeout" default:"10s" help:"timeout for connecting to the agent"`
+	DisableGrpc              bool          `name:"disable-grpc" default:false help:"do not connect to the agent. Instead, write a message to the log"`
+	JustPrintConfig          bool          `name:"just-print-config" default:false help:"just print the config and exit"`
+	AnnNamespaceKeys         []string      `name:"annotations-namespace-key" default:"${defAnnotationsNamespaceKeys}" help:"Runtime annotation keys for accessing k8s namespace"`
+	FailCelUser              string        `name:"fail-cel-expr" help:"CEL expression to decide whether to fail (and stop container from starting) or not"`
+	FailAllowNamespaces      []string      `name:"fail-allow-namespaces" default:"${defAllowNamespaces}" help:"The hook will not fail for the specified namespaces, as determined by runtime annotation labels. Flag will be ignored if fail-cel-expr is set."`
+	FailAllowNamespacesRegex []string      `name:"fail-allow-namespaces-regex" help:"RE2 regex patterns for namespaces the hook will not fail for. Substring match by default; use ^ and $ anchors for full-string matching (e.g. '^kube-.*$'). Can be combined with --fail-allow-namespaces. Ignored if fail-cel-expr is set."`
 
 	HookName string `arg:"" name:"hook"`
 }
