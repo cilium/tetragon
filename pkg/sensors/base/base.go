@@ -40,10 +40,10 @@ var (
 
 	ExecveMapUpdate = program.Builder(
 		config.ExecUpdateObj(),
-		"seccomp",
-		"seccomp",
+		"socket",
+		"socket",
 		"execve_map_update",
-		"seccomp",
+		"socket",
 	).SetPolicy(basePolicy)
 
 	ExecveBprmCommit = program.Builder(
