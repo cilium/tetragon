@@ -468,7 +468,7 @@ crds: ## Generate kubebuilder files.
 	$(GO) mod vendor
 	$(GO) mod verify
 	# YAML CRDs also live in the helm charts, so update them as well.
-	$(MAKE) -C install/kubernetes tetragon/crds-yaml tetragon/schemas
+	$(MAKE) -C install/kubernetes tetragon/crds-yaml
 
 .PHONY: vendor
 vendor: ## Tidy and vendor Go modules.
