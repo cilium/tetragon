@@ -341,6 +341,11 @@ func (in *LsmHookSpec) DeepCopyInto(out *LsmHookSpec) {
 		*out = make([]KProbeArg, len(*in))
 		copy(*out, *in)
 	}
+	if in.Data != nil {
+		in, out := &in.Data, &out.Data
+		*out = make([]KProbeArg, len(*in))
+		copy(*out, *in)
+	}
 	if in.Selectors != nil {
 		in, out := &in.Selectors, &out.Selectors
 		*out = make([]KProbeSelector, len(*in))
