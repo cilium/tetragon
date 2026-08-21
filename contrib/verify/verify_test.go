@@ -7,9 +7,9 @@ package verify
 
 import (
 	"errors"
+	"flag"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -19,12 +19,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/selectors"
 )
 
-const (
-	tetragondir = "/var/lib/tetragon"
+var (
+	tetragonDir = flag.String("tetragon-dir", defaults.DefaultTetragonLib, "Directory containing Tetragon BPF objects")
+	debug       = flag.Bool("debug", false, "Enable debug output")
 )
 
 func extractKernelVersion(t *testing.T, fileName string) string {
@@ -66,13 +68,7 @@ func TestExtractKernelVersion(t *testing.T) {
 }
 
 func TestVerifyTetragonPrograms(t *testing.T) {
-
-	tetragonDir := os.Getenv("TETRAGONDIR")
-	if tetragonDir == "" {
-		tetragonDir = tetragondir
-	}
-
-	files, err := os.ReadDir(tetragonDir)
+	files, err := os.ReadDir(*tetragonDir)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
@@ -154,11 +150,11 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			continue
 		}
 
-		spec, err := ebpf.LoadCollectionSpec(tetragonDir + "/" + fileName)
+		spec, err := ebpf.LoadCollectionSpec(*tetragonDir + "/" + fileName)
 		require.NoError(t, err, "failed to parse elf file into collection spec")
 		require.NotNil(t, spec, "collection spec should not be nil")
 
-		if isDebugEnabled() {
+		if *debug {
 			t.Logf("[%s]", fileName)
 			for _, progSpec := range spec.Programs {
 				t.Log(progSpec.Instructions.String())
@@ -193,9 +189,4 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		collection.Close()
 		t.Logf("%s ✓", fileName)
 	}
-}
-
-func isDebugEnabled() bool {
-	debug, err := strconv.ParseBool(os.Getenv("DEBUG"))
-	return err == nil && debug
 }
