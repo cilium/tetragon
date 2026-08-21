@@ -44,6 +44,7 @@ struct {
 	__uint(max_entries, 1); // will be resized by agent when needed
 	__type(key, __u64);
 	__type(value, __u32);
+	__uint(map_flags, BPF_F_NO_PREALLOC);
 } sleepable_offload SEC(".maps");
 
 FUNC_INLINE void do_uprobe_override(void *ctx, __u32 idx)

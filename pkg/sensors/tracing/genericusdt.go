@@ -252,8 +252,8 @@ func createMultiUsdtSensor(
 	maps = append(maps, createSelectorMaps(load, nil)...)
 
 	if has.sleepableOffload {
-		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
-		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
+		sleepableOffloadMap := program.MapShared("write_offload", load)
+		sleepableOffloadMap.SetMaxEntries(option.Config.SleepableOffloadSize)
 		maps = append(maps, sleepableOffloadMap)
 	}
 
@@ -323,8 +323,8 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	maps = append(maps, createSelectorMaps(load, usdtEntry.selectors)...)
 
 	if has.sleepableOffload {
-		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
-		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
+		sleepableOffloadMap := program.MapShared("write_offload", load)
+		sleepableOffloadMap.SetMaxEntries(option.Config.SleepableOffloadSize)
 		maps = append(maps, sleepableOffloadMap)
 	}
 

@@ -9,6 +9,7 @@ import (
 	"iter"
 	"maps"
 	"os"
+	"path/filepath"
 	"sort"
 	"syscall"
 
@@ -103,6 +104,10 @@ func FindPinnedMaps(path string) ([]bpf.ExtendedMapInfo, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to retrieve extended info from map %v: %w", m, err)
 		}
+
+		// The map name returned from ExtendedInfoFromMap is truncated to 15
+		// characters. It's more helpful to the user to have the full name
+		xInfo.Name = filepath.Base(pin.Path)
 		infos = append(infos, xInfo)
 	}
 
@@ -292,7 +297,10 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 	}
 
 	diff := diff(pinnedMapsSet, pinnedProgsMapsSet)
-	union := union(pinnedMapsSet, pinnedProgsMapsSet)
+
+	// put pinnedMapsSet second so full map names overwrite truncated names in
+	// pinnedProgsMapsSet when constructing the union
+	union := union(pinnedProgsMapsSet, pinnedMapsSet)
 
 	out.MapsStats.PinnedProgsMaps = len(pinnedProgsMapsSet)
 	out.MapsStats.PinnedMaps = len(pinnedMaps)
@@ -319,38 +327,54 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 		})
 	}
 
-	// aggregates maps total memory use
-	aggregatedMapsSet := map[string]struct {
-		bpf.ExtendedMapInfo
-		count uint64
+	// aggregates maps total memory use. key on these five fields
+	type aggregatedKey struct {
+		Name       string
+		Type       ebpf.MapType
+		KeySize    uint32
+		ValueSize  uint32
+		MaxEntries uint32
+	}
+
+	aggregatedMapsSet := map[aggregatedKey]struct {
+		Count        uint64
+		TotalMemlock uint64
 	}{}
 	var total uint64
 	for _, m := range union {
 		total += m.Memlock
-		if e, exist := aggregatedMapsSet[m.Name]; exist {
-			e.Memlock += m.Memlock
-			e.count++
-			aggregatedMapsSet[m.Name] = e
-		} else {
-			aggregatedMapsSet[m.Name] = struct {
-				bpf.ExtendedMapInfo
-				count uint64
-			}{m, 1}
+		key := aggregatedKey{
+			Name:       m.Name,
+			Type:       m.Type,
+			KeySize:    m.KeySize,
+			ValueSize:  m.ValueSize,
+			MaxEntries: m.MaxEntries,
 		}
+		if e, exists := aggregatedMapsSet[key]; exists {
+			e.Count++
+			e.TotalMemlock += m.Memlock
+			aggregatedMapsSet[key] = e
+		} else {
+			aggregatedMapsSet[key] = struct {
+				Count        uint64
+				TotalMemlock uint64
+			}{1, m.Memlock}
+		}
+
 	}
 
 	out.AggregatedMaps = make([]AggregatedMap, 0, len(aggregatedMapsSet))
-	for m := range maps.Values(aggregatedMapsSet) {
+	for k, m := range aggregatedMapsSet {
 		out.AggregatedMaps = append(out.AggregatedMaps, AggregatedMap{
-			Name:              m.Name,
-			Type:              m.Type.String(),
-			KeySize:           m.KeySize,
-			ValueSize:         m.ValueSize,
-			MaxEntries:        m.MaxEntries,
-			Count:             m.count,
-			MemlockBytes:      m.Memlock,
-			TotalMemlockBytes: m.Memlock * m.count,
-			PercentOfTotal:    float64(m.Memlock*m.count) / float64(total) * 100,
+			Name:              k.Name,
+			Type:              k.Type.String(),
+			KeySize:           k.KeySize,
+			ValueSize:         k.ValueSize,
+			MaxEntries:        k.MaxEntries,
+			Count:             m.Count,
+			MemlockBytes:      m.TotalMemlock / m.Count,
+			TotalMemlockBytes: m.TotalMemlock,
+			PercentOfTotal:    float64(m.TotalMemlock) / float64(total) * 100,
 		})
 	}
 
