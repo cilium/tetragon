@@ -29,7 +29,6 @@ var (
 	ErrKeyExist         = errors.New("key already exists")
 	ErrIterationAborted = errors.New("iteration aborted")
 	ErrMapIncompatible  = errors.New("map spec is incompatible with existing map")
-	errMapNoBTFValue    = errors.New("map spec does not contain a BTF Value")
 
 	// pre-allocating these errors here since they may get called in hot code paths
 	// and cause unnecessary memory allocations
@@ -77,6 +76,11 @@ type MapSpec struct {
 
 	// InnerMap is used as a template for ArrayOfMaps and HashOfMaps
 	InnerMap *MapSpec
+
+	// MapExtra is an opaque field whose meaning is map-specific.
+	//
+	// Available from 5.16.
+	MapExtra uint64
 
 	// Extra trailing bytes found in the ELF map definition when using structs
 	// larger than libbpf's bpf_map_def. nil if no trailing bytes were present.
@@ -182,28 +186,71 @@ func (spec *MapSpec) fixupMagicFields() (*MapSpec, error) {
 	return spec, nil
 }
 
-// dataSection returns the contents and BTF Datasec descriptor of the spec.
-func (ms *MapSpec) dataSection() ([]byte, *btf.Datasec, error) {
-	if ms.Value == nil {
-		return nil, nil, errMapNoBTFValue
-	}
-
-	ds, ok := ms.Value.(*btf.Datasec)
-	if !ok {
-		return nil, nil, fmt.Errorf("map value BTF is a %T, not a *btf.Datasec", ms.Value)
-	}
-
+// dataSection returns the contents of a datasec if the MapSpec represents one.
+func (ms *MapSpec) dataSection() ([]byte, error) {
 	if n := len(ms.Contents); n != 1 {
-		return nil, nil, fmt.Errorf("expected one key, found %d", n)
+		return nil, fmt.Errorf("expected one key, found %d", n)
 	}
 
 	kv := ms.Contents[0]
-	value, ok := kv.Value.([]byte)
-	if !ok {
-		return nil, nil, fmt.Errorf("value at first map key is %T, not []byte", kv.Value)
+	if key, ok := ms.Contents[0].Key.(uint32); !ok || key != 0 {
+		return nil, fmt.Errorf("expected contents to have key 0")
 	}
 
-	return value, ds, nil
+	value, ok := kv.Value.([]byte)
+	if !ok {
+		return nil, fmt.Errorf("value at first map key is %T, not []byte", kv.Value)
+	}
+
+	return value, nil
+}
+
+// updateDataSection copies the values of variables into MapSpec.Contents[0].Value.
+//
+// Only variables declared in sectionName will be updated.
+func (ms *MapSpec) updateDataSection(vars map[string]*VariableSpec, sectionName string) error {
+	var specs []*VariableSpec
+	for _, vs := range vars {
+		if vs.SectionName != sectionName {
+			continue
+		}
+
+		specs = append(specs, vs)
+	}
+
+	if len(specs) == 0 {
+		return nil
+	}
+
+	data, err := ms.dataSection()
+	if err != nil {
+		return err
+	}
+
+	// Do not modify the original data slice, ms.Contents is a shallow copy.
+	data = slices.Clone(data)
+
+	slices.SortFunc(specs, func(a, b *VariableSpec) int {
+		return int(int64(a.Offset) - int64(b.Offset))
+	})
+
+	offset := uint32(0)
+	for _, v := range specs {
+		if v.Offset < offset {
+			return fmt.Errorf("variable %s (offset %d) overlaps with previous variable (offset %d)", v.Name, v.Offset, offset)
+		}
+
+		end := v.Offset + v.Size()
+		if int(end) > len(data) {
+			return fmt.Errorf("variable %s exceeds map size", v.Name)
+		}
+
+		copy(data[v.Offset:end], v.Value)
+		offset = end
+	}
+
+	ms.Contents = []MapKV{{Key: uint32(0), Value: data}}
+	return nil
 }
 
 func (ms *MapSpec) readOnly() bool {
@@ -216,8 +263,8 @@ func (ms *MapSpec) writeOnly() bool {
 
 // MapKV is used to initialize the contents of a Map.
 type MapKV struct {
-	Key   interface{}
-	Value interface{}
+	Key   any
+	Value any
 }
 
 // Compatible returns nil if an existing map may be used instead of creating
@@ -265,13 +312,15 @@ func (ms *MapSpec) Compatible(m *Map) error {
 
 // Map represents a Map file descriptor.
 //
-// It is not safe to close a map which is used by other goroutines.
+// It is not safe to close a Map which is used by other goroutines.
 //
-// Methods which take interface{} arguments by default encode
-// them using binary.Read/Write in the machine's native endianness.
+// Map operations taking `any` arguments are encoded using [sysenc.Marshal],
+// which is zero-copy for fixed-size types without padding as well as slices of
+// bytes, but may involve allocations for other types. See its documentation for
+// details.
 //
-// Implement encoding.BinaryMarshaler or encoding.BinaryUnmarshaler
-// if you require custom encoding.
+// Implement encoding.BinaryMarshaler or encoding.BinaryUnmarshaler if you
+// require custom encoding or decoding.
 type Map struct {
 	name       string
 	fd         *sys.FD
@@ -329,7 +378,7 @@ func NewMap(spec *MapSpec) (*Map, error) {
 //
 // May return an error wrapping ErrMapIncompatible.
 func NewMapWithOptions(spec *MapSpec, opts MapOptions) (*Map, error) {
-	m, err := newMapWithOptions(spec, opts)
+	m, err := newMapWithOptions(spec, opts, btf.NewCache())
 	if err != nil {
 		return nil, fmt.Errorf("creating map: %w", err)
 	}
@@ -342,7 +391,7 @@ func NewMapWithOptions(spec *MapSpec, opts MapOptions) (*Map, error) {
 	return m, nil
 }
 
-func newMapWithOptions(spec *MapSpec, opts MapOptions) (_ *Map, err error) {
+func newMapWithOptions(spec *MapSpec, opts MapOptions, c *btf.Cache) (_ *Map, err error) {
 	closeOnError := func(c io.Closer) {
 		if err != nil {
 			c.Close()
@@ -392,7 +441,7 @@ func newMapWithOptions(spec *MapSpec, opts MapOptions) (_ *Map, err error) {
 			return nil, errors.New("inner maps cannot be pinned")
 		}
 
-		template, err := spec.InnerMap.createMap(nil)
+		template, err := spec.InnerMap.createMap(nil, c)
 		if err != nil {
 			return nil, fmt.Errorf("inner map: %w", err)
 		}
@@ -404,7 +453,7 @@ func newMapWithOptions(spec *MapSpec, opts MapOptions) (_ *Map, err error) {
 		innerFd = template.fd
 	}
 
-	m, err := spec.createMap(innerFd)
+	m, err := spec.createMap(innerFd, c)
 	if err != nil {
 		return nil, err
 	}
@@ -499,7 +548,7 @@ func (m *Map) memorySize() (int, error) {
 
 // createMap validates the spec's properties and creates the map in the kernel
 // using the given opts. It does not populate or freeze the map.
-func (spec *MapSpec) createMap(inner *sys.FD) (_ *Map, err error) {
+func (spec *MapSpec) createMap(inner *sys.FD, c *btf.Cache) (_ *Map, err error) {
 	closeOnError := func(closer io.Closer) {
 		if err != nil {
 			closer.Close()
@@ -534,6 +583,7 @@ func (spec *MapSpec) createMap(inner *sys.FD) (_ *Map, err error) {
 		MaxEntries: spec.MaxEntries,
 		MapFlags:   spec.Flags,
 		NumaNode:   spec.NumaNode,
+		MapExtra:   spec.MapExtra,
 	}
 
 	if inner != nil {
@@ -553,6 +603,42 @@ func (spec *MapSpec) createMap(inner *sys.FD) (_ *Map, err error) {
 			attr.BtfFd = uint32(handle.FD())
 			attr.BtfKeyTypeId = keyTypeID
 			attr.BtfValueTypeId = valueTypeID
+		}
+
+		if spec.Type == StructOpsMap {
+			if handle == nil {
+				return nil, fmt.Errorf("struct_ops requires BTF")
+			}
+
+			localValue, ok := btf.As[*btf.Struct](spec.Value)
+			if !ok {
+				return nil, fmt.Errorf("struct_ops: value must be struct")
+			}
+
+			targetValue, targetID, module, err := structOpsFindTarget(localValue, c)
+			if err != nil {
+				return nil, fmt.Errorf("struct_ops: %w", err)
+			}
+			defer module.Close()
+
+			spec = spec.Copy()
+			spec.ValueSize = targetValue.Size
+
+			attr.ValueSize = targetValue.Size
+			attr.BtfVmlinuxValueTypeId = targetID
+
+			if module != nil {
+				// BPF_F_VTYPE_BTF_OBJ_FD is required if the type comes from a module
+				attr.MapFlags |= sys.BPF_F_VTYPE_BTF_OBJ_FD
+				// set FD for the kernel module
+				attr.ValueTypeBtfObjFd = int32(module.FD())
+			}
+
+			// StructOpsMap forbids passing BtfKeyTypeId or BtfValueTypeId, but
+			// requires BtfFd. Do the simple thing and just zero out the fields.
+			// See https://github.com/torvalds/linux/blob/9b332cece987ee1790b2ed4c989e28162fa47860/kernel/bpf/syscall.c#L1382-L1384
+			attr.BtfKeyTypeId = 0
+			attr.BtfValueTypeId = 0
 		}
 	}
 
@@ -585,11 +671,16 @@ func handleMapCreateError(attr sys.MapCreateAttr, spec *MapSpec, err error) erro
 		return err
 	}
 
+	if errors.Is(err, sys.ErrTokenCapabilities) {
+		return fmt.Errorf("map create: %w", err)
+	}
+
 	if errors.Is(err, unix.EPERM) {
 		return fmt.Errorf("map create: %w (MEMLOCK may be too low, consider rlimit.RemoveMemlock)", err)
 	}
+
 	if errors.Is(err, unix.EINVAL) {
-		if spec.MaxEntries == 0 {
+		if spec.MaxEntries == 0 && !spec.Type.mustHaveZeroMaxEntries() {
 			return fmt.Errorf("map create: %w (MaxEntries may be incorrectly set to zero)", err)
 		}
 		if spec.Type == UnspecifiedMap {
@@ -743,7 +834,7 @@ const LookupLock MapLookupFlags = sys.BPF_F_LOCK
 // and *valueOut is not nil.
 //
 // Returns an error if the key doesn't exist, see ErrKeyNotExist.
-func (m *Map) Lookup(key, valueOut interface{}) error {
+func (m *Map) Lookup(key, valueOut any) error {
 	return m.LookupWithFlags(key, valueOut, 0)
 }
 
@@ -757,7 +848,7 @@ func (m *Map) Lookup(key, valueOut interface{}) error {
 // and *valueOut is not nil.
 //
 // Returns an error if the key doesn't exist, see ErrKeyNotExist.
-func (m *Map) LookupWithFlags(key, valueOut interface{}, flags MapLookupFlags) error {
+func (m *Map) LookupWithFlags(key, valueOut any, flags MapLookupFlags) error {
 	if m.typ.hasPerCPUValue() {
 		return m.lookupPerCPU(key, valueOut, flags)
 	}
@@ -773,7 +864,7 @@ func (m *Map) LookupWithFlags(key, valueOut interface{}, flags MapLookupFlags) e
 // LookupAndDelete retrieves and deletes a value from a Map.
 //
 // Returns ErrKeyNotExist if the key doesn't exist.
-func (m *Map) LookupAndDelete(key, valueOut interface{}) error {
+func (m *Map) LookupAndDelete(key, valueOut any) error {
 	return m.LookupAndDeleteWithFlags(key, valueOut, 0)
 }
 
@@ -784,7 +875,7 @@ func (m *Map) LookupAndDelete(key, valueOut interface{}) error {
 // contain a spinlock.
 //
 // Returns ErrKeyNotExist if the key doesn't exist.
-func (m *Map) LookupAndDeleteWithFlags(key, valueOut interface{}, flags MapLookupFlags) error {
+func (m *Map) LookupAndDeleteWithFlags(key, valueOut any, flags MapLookupFlags) error {
 	if m.typ.hasPerCPUValue() {
 		return m.lookupAndDeletePerCPU(key, valueOut, flags)
 	}
@@ -799,7 +890,7 @@ func (m *Map) LookupAndDeleteWithFlags(key, valueOut interface{}, flags MapLooku
 // LookupBytes gets a value from Map.
 //
 // Returns a nil value if a key doesn't exist.
-func (m *Map) LookupBytes(key interface{}) ([]byte, error) {
+func (m *Map) LookupBytes(key any) ([]byte, error) {
 	valueBytes := make([]byte, m.fullValueSize)
 	valuePtr := sys.UnsafeSlicePointer(valueBytes)
 
@@ -823,7 +914,7 @@ func (m *Map) lookupPerCPU(key, valueOut any, flags MapLookupFlags) error {
 	return unmarshalPerCPUValue(slice, int(m.valueSize), valueBytes)
 }
 
-func (m *Map) lookup(key interface{}, valueOut sys.Pointer, flags MapLookupFlags) error {
+func (m *Map) lookup(key any, valueOut sys.Pointer, flags MapLookupFlags) error {
 	keyPtr, err := m.marshalKey(key)
 	if err != nil {
 		return fmt.Errorf("can't marshal key: %w", err)
@@ -859,6 +950,10 @@ func (m *Map) lookupAndDeletePerCPU(key, valueOut any, flags MapLookupFlags) err
 
 // ensurePerCPUSlice allocates a slice for a per-CPU value if necessary.
 func ensurePerCPUSlice(sliceOrPtr any) (any, error) {
+	if err := internal.IsNilPointer(sliceOrPtr); err != nil {
+		return nil, fmt.Errorf("per-cpu value: %w", err)
+	}
+
 	sliceOrPtrType := reflect.TypeOf(sliceOrPtr)
 	if sliceOrPtrType.Kind() == reflect.Slice {
 		// The target is a slice, the caller is responsible for ensuring that
@@ -867,7 +962,7 @@ func ensurePerCPUSlice(sliceOrPtr any) (any, error) {
 	}
 
 	slicePtrType := sliceOrPtrType
-	if slicePtrType.Kind() != reflect.Ptr || slicePtrType.Elem().Kind() != reflect.Slice {
+	if slicePtrType.Kind() != reflect.Pointer || slicePtrType.Elem().Kind() != reflect.Slice {
 		return nil, fmt.Errorf("per-cpu value requires a slice or a pointer to slice")
 	}
 
@@ -880,14 +975,14 @@ func ensurePerCPUSlice(sliceOrPtr any) (any, error) {
 	slice := reflect.MakeSlice(sliceType, possibleCPUs, possibleCPUs)
 
 	sliceElemType := sliceType.Elem()
-	sliceElemIsPointer := sliceElemType.Kind() == reflect.Ptr
+	sliceElemIsPointer := sliceElemType.Kind() == reflect.Pointer
 	reflect.ValueOf(sliceOrPtr).Elem().Set(slice)
 	if !sliceElemIsPointer {
 		return slice.Interface(), nil
 	}
 	sliceElemType = sliceElemType.Elem()
 
-	for i := 0; i < possibleCPUs; i++ {
+	for i := range possibleCPUs {
 		newElem := reflect.New(sliceElemType)
 		slice.Index(i).Set(newElem)
 	}
@@ -934,7 +1029,7 @@ const (
 // Put replaces or creates a value in map.
 //
 // It is equivalent to calling Update with UpdateAny.
-func (m *Map) Put(key, value interface{}) error {
+func (m *Map) Put(key, value any) error {
 	return m.Update(key, value, UpdateAny)
 }
 
@@ -984,7 +1079,7 @@ func (m *Map) update(key any, valuePtr sys.Pointer, flags MapUpdateFlags) error 
 // Delete removes a value.
 //
 // Returns ErrKeyNotExist if the key does not exist.
-func (m *Map) Delete(key interface{}) error {
+func (m *Map) Delete(key any) error {
 	keyPtr, err := m.marshalKey(key)
 	if err != nil {
 		return fmt.Errorf("can't marshal key: %w", err)
@@ -1006,7 +1101,7 @@ func (m *Map) Delete(key interface{}) error {
 // See NextKeyBytes for details.
 //
 // Returns ErrKeyNotExist if there is no next key.
-func (m *Map) NextKey(key, nextKeyOut interface{}) error {
+func (m *Map) NextKey(key, nextKeyOut any) error {
 	nextKeyBytes := makeMapSyscallOutput(nextKeyOut, int(m.keySize))
 
 	if err := m.nextKey(key, nextKeyBytes.Pointer()); err != nil {
@@ -1026,7 +1121,7 @@ func (m *Map) NextKey(key, nextKeyOut interface{}) error {
 // Use Iterate if you want to traverse all entries in the map.
 //
 // Returns nil if there are no more keys.
-func (m *Map) NextKeyBytes(key interface{}) ([]byte, error) {
+func (m *Map) NextKeyBytes(key any) ([]byte, error) {
 	nextKey := make([]byte, m.keySize)
 	nextKeyPtr := sys.UnsafeSlicePointer(nextKey)
 
@@ -1038,7 +1133,7 @@ func (m *Map) NextKeyBytes(key interface{}) ([]byte, error) {
 	return nextKey, err
 }
 
-func (m *Map) nextKey(key interface{}, nextKeyOut sys.Pointer) error {
+func (m *Map) nextKey(key any, nextKeyOut sys.Pointer) error {
 	var (
 		keyPtr sys.Pointer
 		err    error
@@ -1098,7 +1193,7 @@ func (m *Map) guessNonExistentKey() ([]byte, error) {
 
 	randKey := make([]byte, int(m.keySize))
 
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		switch i {
 		// For hash maps, the 0 key is less likely to be occupied. They're often
 		// used for storing data related to pointers, and their access pattern is
@@ -1147,7 +1242,7 @@ func (m *Map) guessNonExistentKey() ([]byte, error) {
 // ErrKeyNotExist is returned when the batch lookup has reached
 // the end of all possible results, even when partial results
 // are returned. It should be used to evaluate when lookup is "done".
-func (m *Map) BatchLookup(cursor *MapBatchCursor, keysOut, valuesOut interface{}, opts *BatchOptions) (int, error) {
+func (m *Map) BatchLookup(cursor *MapBatchCursor, keysOut, valuesOut any, opts *BatchOptions) (int, error) {
 	n, err := m.batchLookup(sys.BPF_MAP_LOOKUP_BATCH, cursor, keysOut, valuesOut, opts)
 	if err != nil {
 		return n, fmt.Errorf("map batch lookup: %w", err)
@@ -1171,7 +1266,7 @@ func (m *Map) BatchLookup(cursor *MapBatchCursor, keysOut, valuesOut interface{}
 // ErrKeyNotExist is returned when the batch lookup has reached
 // the end of all possible results, even when partial results
 // are returned. It should be used to evaluate when lookup is "done".
-func (m *Map) BatchLookupAndDelete(cursor *MapBatchCursor, keysOut, valuesOut interface{}, opts *BatchOptions) (int, error) {
+func (m *Map) BatchLookupAndDelete(cursor *MapBatchCursor, keysOut, valuesOut any, opts *BatchOptions) (int, error) {
 	n, err := m.batchLookup(sys.BPF_MAP_LOOKUP_AND_DELETE_BATCH, cursor, keysOut, valuesOut, opts)
 	if err != nil {
 		return n, fmt.Errorf("map batch lookup and delete: %w", err)
@@ -1185,7 +1280,7 @@ type MapBatchCursor struct {
 	opaque []byte
 }
 
-func (m *Map) batchLookup(cmd sys.Cmd, cursor *MapBatchCursor, keysOut, valuesOut interface{}, opts *BatchOptions) (int, error) {
+func (m *Map) batchLookup(cmd sys.Cmd, cursor *MapBatchCursor, keysOut, valuesOut any, opts *BatchOptions) (int, error) {
 	if m.typ.hasPerCPUValue() {
 		return m.batchLookupPerCPU(cmd, cursor, keysOut, valuesOut, opts)
 	}
@@ -1214,23 +1309,24 @@ func (m *Map) batchLookup(cmd sys.Cmd, cursor *MapBatchCursor, keysOut, valuesOu
 	return n, sysErr
 }
 
-func (m *Map) batchLookupPerCPU(cmd sys.Cmd, cursor *MapBatchCursor, keysOut, valuesOut interface{}, opts *BatchOptions) (int, error) {
+func (m *Map) batchLookupPerCPU(cmd sys.Cmd, cursor *MapBatchCursor, keysOut, valuesOut any, opts *BatchOptions) (int, error) {
 	count, err := sliceLen(keysOut)
 	if err != nil {
 		return 0, fmt.Errorf("keys: %w", err)
 	}
 
-	valueBuf := make([]byte, count*int(m.fullValueSize))
-	valuePtr := sys.UnsafeSlicePointer(valueBuf)
+	valueBuf := sysenc.SyscallOutput(valuesOut, count*int(m.fullValueSize))
 
-	n, sysErr := m.batchLookupCmd(cmd, cursor, count, keysOut, valuePtr, opts)
+	n, sysErr := m.batchLookupCmd(cmd, cursor, count, keysOut, valueBuf.Pointer(), opts)
 	if sysErr != nil && !errors.Is(sysErr, unix.ENOENT) {
 		return 0, sysErr
 	}
 
-	err = unmarshalBatchPerCPUValue(valuesOut, count, int(m.valueSize), valueBuf)
-	if err != nil {
-		return 0, err
+	if bytesBuf := valueBuf.Bytes(); bytesBuf != nil {
+		err = unmarshalBatchPerCPUValue(valuesOut, count, int(m.valueSize), bytesBuf)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return n, sysErr
@@ -1259,10 +1355,6 @@ func (m *Map) batchLookupCmd(cmd sys.Cmd, cursor *MapBatchCursor, count int, key
 		return 0, errors.New("a cursor may not be reused across maps")
 	}
 
-	if err := haveBatchAPI(); err != nil {
-		return 0, err
-	}
-
 	keyBuf := sysenc.SyscallOutput(keysOut, count*int(m.keySize))
 
 	attr := sys.MapLookupBatchAttr{
@@ -1282,6 +1374,9 @@ func (m *Map) batchLookupCmd(cmd sys.Cmd, cursor *MapBatchCursor, count int, key
 	_, sysErr := sys.BPF(cmd, unsafe.Pointer(&attr), unsafe.Sizeof(attr))
 	sysErr = wrapMapError(sysErr)
 	if sysErr != nil && !errors.Is(sysErr, unix.ENOENT) {
+		if haveFeatErr := haveBatchAPI(); haveFeatErr != nil {
+			return 0, haveFeatErr
+		}
 		return 0, sysErr
 	}
 
@@ -1296,7 +1391,7 @@ func (m *Map) batchLookupCmd(cmd sys.Cmd, cursor *MapBatchCursor, count int, key
 // simultaneously.
 // "keys" and "values" must be of type slice, a pointer
 // to a slice or buffer will not work.
-func (m *Map) BatchUpdate(keys, values interface{}, opts *BatchOptions) (int, error) {
+func (m *Map) BatchUpdate(keys, values any, opts *BatchOptions) (int, error) {
 	if m.typ.hasPerCPUValue() {
 		return m.batchUpdatePerCPU(keys, values, opts)
 	}
@@ -1358,7 +1453,7 @@ func (m *Map) batchUpdatePerCPU(keys, values any, opts *BatchOptions) (int, erro
 
 // BatchDelete batch deletes entries in the map by keys.
 // "keys" must be of type slice, a pointer to a slice or buffer will not work.
-func (m *Map) BatchDelete(keys interface{}, opts *BatchOptions) (int, error) {
+func (m *Map) BatchDelete(keys any, opts *BatchOptions) (int, error) {
 	count, err := sliceLen(keys)
 	if err != nil {
 		return 0, fmt.Errorf("keys: %w", err)
@@ -1538,7 +1633,7 @@ func (m *Map) finalize(spec *MapSpec) error {
 	return nil
 }
 
-func (m *Map) marshalKey(data interface{}) (sys.Pointer, error) {
+func (m *Map) marshalKey(data any) (sys.Pointer, error) {
 	if data == nil {
 		if m.keySize == 0 {
 			// Queues have a key length of zero, so passing nil here is valid.
@@ -1550,7 +1645,7 @@ func (m *Map) marshalKey(data interface{}) (sys.Pointer, error) {
 	return marshalMapSyscallInput(data, int(m.keySize))
 }
 
-func (m *Map) marshalValue(data interface{}) (sys.Pointer, error) {
+func (m *Map) marshalValue(data any) (sys.Pointer, error) {
 	var (
 		buf []byte
 		err error
@@ -1709,7 +1804,7 @@ func newMapIterator(target *Map) *MapIterator {
 // the result of Err afterwards.
 //
 // See Map.Get for further caveats around valueOut.
-func (mi *MapIterator) Next(keyOut, valueOut interface{}) bool {
+func (mi *MapIterator) Next(keyOut, valueOut any) bool {
 	if mi.err != nil || mi.done {
 		return false
 	}

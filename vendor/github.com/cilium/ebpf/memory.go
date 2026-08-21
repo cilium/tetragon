@@ -38,6 +38,8 @@ type Memory struct {
 	b    []byte
 	ro   bool
 	heap bool
+
+	cleanup runtime.Cleanup
 }
 
 func newMemory(fd, size int) (*Memory, error) {
@@ -62,26 +64,29 @@ func newMemory(fd, size int) (*Memory, error) {
 		return nil, fmt.Errorf("setting up memory-mapped region: %w", err)
 	}
 
-	mm := &Memory{
-		b,
-		ro,
-		false,
-	}
-	runtime.SetFinalizer(mm, (*Memory).close)
+	mm := &Memory{b: b, ro: ro, heap: false}
+	mm.cleanup = runtime.AddCleanup(mm, memoryCleanupFunc(), b)
 
 	return mm, nil
 }
 
-func (mm *Memory) close() {
-	if err := unix.Munmap(mm.b); err != nil {
-		panic(fmt.Errorf("unmapping memory: %w", err))
+func memoryCleanupFunc() func([]byte) {
+	return func(b []byte) {
+		if err := unix.Munmap(b); err != nil {
+			panic(fmt.Errorf("unmapping memory: %w", err))
+		}
 	}
+}
+
+func (mm *Memory) close() {
+	mm.cleanup.Stop()
+	memoryCleanupFunc()(mm.b)
 	mm.b = nil
 }
 
 // Size returns the size of the memory-mapped region in bytes.
-func (mm *Memory) Size() int {
-	return len(mm.b)
+func (mm *Memory) Size() uint32 {
+	return uint32(len(mm.b))
 }
 
 // ReadOnly returns true if the memory-mapped region is read-only.
@@ -90,11 +95,11 @@ func (mm *Memory) ReadOnly() bool {
 }
 
 // bounds returns true if an access at off of the given size is within bounds.
-func (mm *Memory) bounds(off uint64, size uint64) bool {
+func (mm *Memory) bounds(off, size uint32) bool {
 	if off+size < off {
 		return false
 	}
-	return off+size <= uint64(len(mm.b))
+	return off+size <= uint32(len(mm.b))
 }
 
 // ReadAt implements [io.ReaderAt]. Useful for creating a new [io.OffsetWriter].

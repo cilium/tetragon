@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"sync"
 	"time"
 
@@ -217,7 +216,7 @@ func NewReaderWithOptions(array *ebpf.Map, perCPUBuffer int, opts ReaderOptions)
 	// but doesn't allow using a wildcard like -1 to specify "all CPUs".
 	// Hence we have to create a ring for each CPU.
 	bufferSize := 0
-	for i := 0; i < nCPU; i++ {
+	for i := range nCPU {
 		event, ring, err := newPerfEventRing(i, perCPUBuffer, opts)
 		if errors.Is(err, unix.ENODEV) {
 			// The requested CPU is currently offline, skip it.
@@ -261,7 +260,6 @@ func NewReaderWithOptions(array *ebpf.Map, perCPUBuffer int, opts ReaderOptions)
 	if err = pr.Resume(); err != nil {
 		return nil, err
 	}
-	runtime.SetFinalizer(pr, (*Reader).Close)
 	return pr, nil
 }
 

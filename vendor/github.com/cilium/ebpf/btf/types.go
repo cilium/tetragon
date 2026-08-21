@@ -21,14 +21,24 @@ type TypeID = sys.TypeID
 
 // Type represents a type described by BTF.
 //
-// Identity of Type follows the [Go specification]: two Types are considered
-// equal if they have the same concrete type and the same dynamic value, aka
-// they point at the same location in memory. This means that the following
-// Types are considered distinct even though they have the same "shape".
+// A Type has three properties where compared to other Types.
+//
+// Identity: follows the [Go specification], two Types are considered identical
+// if they have the same concrete type and the same dynamic value, aka they point
+// at the same location in memory. This means that the following Types are
+// considered distinct even though they have the same "shape".
 //
 //	a := &Int{Size: 1}
 //	b := &Int{Size: 1}
 //	a != b
+//
+// Equivalence: two Types are considered equivalent if they have the same shape
+// and thus are functionally interchangeable, even if they are located at different
+// memory addresses. The above two Int types are equivalent.
+//
+// Compatibility: two Types are considered compatible according to the rules of CO-RE
+// see [coreAreTypesCompatible] for details. This is a non-commutative property,
+// so A may be compatible with B, but B not compatible with A.
 //
 // [Go specification]: https://go.dev/ref/spec#Comparison_operators
 type Type interface {
@@ -50,7 +60,7 @@ type Type interface {
 	// Make a copy of the type, without copying Type members.
 	copy() Type
 
-	// New implementations must update walkType.
+	// New implementations must update children, deduper.typeHash, and typesEquivalent.
 }
 
 var (
@@ -170,8 +180,15 @@ type Struct struct {
 	Tags    []string
 }
 
+// Format supports the width option to %v to limit or extend the number of
+// struct member names printed (default 5).
+//
+// For example, %1v will print only the first member name followed by '...':
+//
+//	Struct:"struct"[fields=3 fieldNames=[a ...]]
 func (s *Struct) Format(fs fmt.State, verb rune) {
-	formatType(fs, verb, s, "fields=", len(s.Members))
+	max, _ := fs.Width()
+	formatType(fs, verb, s, "fields=", len(s.Members), "fieldNames=", memberNames(s.Members, max))
 }
 
 func (s *Struct) TypeName() string { return s.Name }
@@ -198,8 +215,15 @@ type Union struct {
 	Tags    []string
 }
 
+// Format supports the width option to %v to limit or extend the number of
+// union member names printed (default 5).
+//
+// For example, %1v will print only the first member name followed by '...':
+//
+//	Union:"union"[fields=3 fieldNames=[a ...]]
 func (u *Union) Format(fs fmt.State, verb rune) {
-	formatType(fs, verb, u, "fields=", len(u.Members))
+	max, _ := fs.Width()
+	formatType(fs, verb, u, "fields=", len(u.Members), "fieldNames=", memberNames(u.Members, max))
 }
 
 func (u *Union) TypeName() string { return u.Name }
@@ -215,6 +239,29 @@ func (u *Union) copy() Type {
 
 func (u *Union) members() []Member {
 	return u.Members
+}
+
+// memberNames returns the names of members, or its index in the list of members
+// if the name is empty.
+//
+// Returns up to max entries (default 5), followed by '...'.
+func memberNames(members []Member, max int) []string {
+	if max <= 0 {
+		max = 5
+	}
+	names := make([]string, min(len(members), max+1))
+	for i, m := range members {
+		if i >= max {
+			names[i] = "..."
+			break
+		}
+		if m.Name == "" {
+			names[i] = fmt.Sprintf("<%d>", i)
+			continue
+		}
+		names[i] = m.Name
+	}
+	return names
 }
 
 func copyMembers(orig []Member) []Member {
@@ -427,6 +474,8 @@ type Func struct {
 	// The inner slice contains the tags and may be nil/len(ParamTags[i])==0 if no tags are present for that param.
 	ParamTags [][]string
 }
+
+type funcInfoMeta struct{}
 
 func FuncMetadata(ins *asm.Instruction) *Func {
 	fn, _ := ins.Metadata.Get(funcInfoMeta{}).(*Func)
@@ -644,7 +693,7 @@ func Sizeof(typ Type) (int, error) {
 		elem int64
 	)
 
-	for i := 0; i < maxResolveDepth; i++ {
+	for range maxResolveDepth {
 		switch v := typ.(type) {
 		case *Array:
 			if n > 0 && int64(v.Nelems) > math.MaxInt64/n {
@@ -840,7 +889,7 @@ type formattableType interface {
 // Handles cyclical types by only printing cycles up to a certain depth. Elements
 // in extra are separated by spaces unless the preceding element is a string
 // ending in '='.
-func formatType(f fmt.State, verb rune, t formattableType, extra ...interface{}) {
+func formatType(f fmt.State, verb rune, t formattableType, extra ...any) {
 	if verb != 'v' && verb != 's' {
 		fmt.Fprintf(f, "{UNRECOGNIZED: %c}", verb)
 		return
