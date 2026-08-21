@@ -97,10 +97,10 @@ jobs:
           # renovate: datasource=golang-version depName=go
           go-version: '1.26.6'
 
-      - name: Check gofmt formatting
+      - name: Check Go formatting
         run: |
-          go fmt ./...
-          git diff --exit-code || (echo "gofmt checks failed. Please run 'go -w fmt ./...', and submit your changes"; exit 1)
+          make go-format
+          git diff --exit-code || (echo "Go format checks failed. Please run 'make go-format', and submit your changes"; exit 1)
 
       - name: Build clang-format Docker image
         run: docker build -f Dockerfile.clang-format -t "isovalent/clang-format:latest" .
