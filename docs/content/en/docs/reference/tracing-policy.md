@@ -877,6 +877,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -1317,6 +1325,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -2703,6 +2757,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -3143,6 +3205,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -4198,6 +4306,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -4638,6 +4754,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -5672,6 +5834,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -6112,6 +6282,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -7125,6 +7341,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -7565,6 +7789,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -8895,6 +9165,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -9335,6 +9613,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -10355,6 +10679,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -10795,6 +11127,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -12394,6 +12772,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -12834,6 +13220,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -14220,6 +14652,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -14660,6 +15100,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -15715,6 +16201,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -16155,6 +16649,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -17189,6 +17729,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -17629,6 +18177,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -18642,6 +19236,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -19082,6 +19684,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -20412,6 +21060,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -20852,6 +21508,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -21872,6 +22574,14 @@ Filters specified in macros will be appended to corresponding filters of the sel
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchcmdargsindex">matchCmdArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of command-line argument filters. MatchCmdArgs are ANDed.
+Indexes are zero-based and exclude argv[0].<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchdataindex">matchData</a></b></td>
         <td>[]object</td>
         <td>
@@ -22312,6 +23022,52 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: Effective<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchCmdArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the command-line argument to apply the filter to. Indexes
+are zero-based and exclude argv[0], which is represented by the binary.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Values to compare the command-line argument against.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 

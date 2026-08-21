@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/idtable"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 func TestWriteSelectorUint32(t *testing.T) {
@@ -227,6 +228,131 @@ func TestNamespaceValueStr(t *testing.T) {
 	if bytes.Equal(b, expected) == false || l != 4 {
 		t.Errorf("namespaceSelectorValue: expected %v actual %v\n", expected, b)
 	}
+}
+
+func TestParseMatchCmdArgs(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("matchCmdArgs requires large BPF programs")
+	}
+
+	// Serialized matchCmdArgs layout:
+	//
+	//   offset  size       field                       value
+	//   ------  ---------  --------------------------  --------------
+	//        0          4  section length              >= 40
+	//        4          4  filter offset[0]            24
+	//        8         16  filter offsets[1..4]        0
+	//       24          4  command argument index      3
+	//       28          8  serialized matchArg header  opaque
+	//       36          4  matchArg type               string
+	//       40  remaining  serialized matchArg values  opaque
+	cmdArgs := []v1alpha1.CmdArgSelector{
+		{
+			Index:    3,
+			Operator: "Equal",
+			Values:   []string{"pizza"},
+		},
+	}
+	ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+	require.NoError(t, ParseMatchCmdArgs(ks, cmdArgs))
+
+	data := ks.data.e[:ks.data.off]
+	require.GreaterOrEqual(t, len(data), 24)
+	sectionLength := binary.LittleEndian.Uint32(data[0:4])
+	assert.Equal(t, uint32(len(data)), sectionLength)
+	assert.GreaterOrEqual(t, sectionLength, uint32(40))
+
+	firstFilterOffset := binary.LittleEndian.Uint32(data[4:8])
+	assert.Equal(t, uint32(24), firstFilterOffset)
+	require.LessOrEqual(t, uint64(firstFilterOffset)+16, uint64(len(data)))
+	for off := 8; off < 24; off += 4 {
+		assert.Zero(t, binary.LittleEndian.Uint32(data[off:off+4]))
+	}
+
+	assert.Equal(t, uint32(3), binary.LittleEndian.Uint32(data[firstFilterOffset:firstFilterOffset+4]))
+	// ParseMatchCmdArgs is then reusing parseMatchArg for the string type,
+	// let's not re-test this facility here, except the type encoding.
+	assert.Equal(t, uint32(gt.GenericStringType), binary.LittleEndian.Uint32(data[firstFilterOffset+12:firstFilterOffset+16]))
+}
+
+func TestParseMatchCmdArgsRejects(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("matchCmdArgs requires large BPF programs")
+	}
+
+	t.Run("unsupported operator", func(t *testing.T) {
+		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		err := ParseMatchCmdArgs(ks, []v1alpha1.CmdArgSelector{
+			{Index: 0, Operator: "Mask", Values: []string{"1"}},
+		})
+		assert.ErrorContains(t, err, `matchCmdArgs operator "Mask" is not supported`)
+	})
+
+	t.Run("too many filters", func(t *testing.T) {
+		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		err := ParseMatchCmdArgs(ks, make([]v1alpha1.CmdArgSelector, 6))
+		assert.ErrorContains(t, err, "matchCmdArgs supports up to 5 filters (6 provided)")
+	})
+}
+
+// Test the placement of matchCmdArgs in a complete kernel selector:
+//
+//	[selector header and entry sections]
+//	[matchArgs:    length + filter offsets]
+//	[matchCmdArgs: length + filter offsets + filters]
+//	[actions]
+//
+// In particular, the end of matchArgs must be the start of matchCmdArgs, and
+// the end of matchCmdArgs must be the start of actions.
+func TestInitKernelSelectorsMatchCmdArgsLayout(t *testing.T) {
+	origForceLargeProgs := option.Config.ForceLargeProgs
+	origForceSmallProgs := option.Config.ForceSmallProgs
+	option.Config.ForceLargeProgs = true
+	option.Config.ForceSmallProgs = false
+	t.Cleanup(func() {
+		option.Config.ForceLargeProgs = origForceLargeProgs
+		option.Config.ForceSmallProgs = origForceSmallProgs
+	})
+
+	state, err := InitKernelSelectorState(&KernelSelectorArgs{
+		Selectors: []v1alpha1.KProbeSelector{
+			{
+				MatchCmdArgs: []v1alpha1.CmdArgSelector{
+					{Index: 1, Operator: "Equal", Values: []string{"download"}},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	data := state.data.e[:state.data.off]
+	readUint32 := func(offset int) uint32 {
+		return binary.LittleEndian.Uint32(data[offset : offset+4])
+	}
+
+	require.Equal(t, uint32(1), readUint32(0))
+	require.Equal(t, uint32(4), readUint32(4))
+	for offset := 12; offset < 32; offset += 4 {
+		require.Equal(t, uint32(4), readUint32(offset))
+	}
+
+	const matchArgsOffset = 32
+	require.Equal(t, uint32(24), readUint32(matchArgsOffset))
+	const matchCmdArgsOffset = matchArgsOffset + 24
+	matchCmdArgsLength := readUint32(matchCmdArgsOffset)
+	require.Greater(t, matchCmdArgsLength, uint32(24))
+	require.Equal(t, uint32(24), readUint32(matchCmdArgsOffset+4))
+	for offset := matchCmdArgsOffset + 8; offset < matchCmdArgsOffset+24; offset += 4 {
+		require.Zero(t, readUint32(offset))
+	}
+
+	const filterOffset = matchCmdArgsOffset + 24
+	require.Equal(t, uint32(1), readUint32(filterOffset))
+	require.Equal(t, uint32(SelectorOpEQ), readUint32(filterOffset+4))
+	require.Equal(t, uint32(gt.GenericStringType), readUint32(filterOffset+12))
+
+	actionsOffset := matchCmdArgsOffset + int(matchCmdArgsLength)
+	require.Equal(t, uint32(4), readUint32(actionsOffset))
 }
 
 func TestParseMatchArgs(t *testing.T) {

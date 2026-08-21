@@ -944,6 +944,65 @@ func ParseMatchData(k *KernelSelectorState, arg *v1alpha1.ArgSelector, data []v1
 	return parseMatchArg(k, arg, data, ty)
 }
 
+func ParseMatchCmdArg(k *KernelSelectorState, cmdArg *v1alpha1.CmdArgSelector) error {
+	op, err := SelectorOp(cmdArg.Operator)
+	if err != nil {
+		return fmt.Errorf("matchCmdArgs: %w", err)
+	}
+
+	switch op {
+	case SelectorOpEQ, SelectorOpNEQ,
+		SelectorOpPrefix, SelectorOpNotPrefix,
+		SelectorOpPostfix, SelectorOpNotPostfix:
+	default:
+		return fmt.Errorf("matchCmdArgs operator %q is not supported", cmdArg.Operator)
+	}
+
+	WriteSelectorUint32(&k.data, cmdArg.Index)
+	arg := v1alpha1.ArgSelector{
+		Operator: cmdArg.Operator,
+		Values:   cmdArg.Values,
+	}
+	return parseMatchArg(k, &arg, nil, gt.GenericStringType)
+}
+
+func ParseMatchCmdArgs(k *KernelSelectorState, matchCmdArgs []v1alpha1.CmdArgSelector) error {
+	if !config.EnableLargeProgs() {
+		if len(matchCmdArgs) > 0 {
+			return errors.New("matchCmdArgs requires kernels supporting large BPF programs (normally versions >= 5.3)")
+		}
+		return nil
+	}
+
+	const maxCmdArgs = 5
+	if len(matchCmdArgs) > maxCmdArgs {
+		return fmt.Errorf("matchCmdArgs supports up to %d filters (%d provided)", maxCmdArgs, len(matchCmdArgs))
+	}
+
+	sectionOffset := GetCurrentOffset(&k.data)
+	lengthOffset := AdvanceSelectorLength(&k.data)
+	if len(matchCmdArgs) == 0 {
+		WriteSelectorLength(&k.data, lengthOffset)
+		return nil
+	}
+
+	argOffsets := make([]uint32, maxCmdArgs)
+	for i := range maxCmdArgs {
+		argOffsets[i] = AdvanceSelectorLength(&k.data)
+		WriteSelectorOffsetUint32(&k.data, argOffsets[i], 0)
+	}
+
+	for i := range matchCmdArgs {
+		WriteSelectorOffsetUint32(&k.data, argOffsets[i], GetCurrentOffset(&k.data)-sectionOffset)
+		if err := ParseMatchCmdArg(k, &matchCmdArgs[i]); err != nil {
+			return err
+		}
+	}
+
+	WriteSelectorLength(&k.data, lengthOffset)
+	return nil
+}
+
 const (
 	substringMaxLen = 100
 )
@@ -1646,6 +1705,7 @@ type KernelSelectorArgs struct {
 //	[matchNamespaceChanges]
 //	[matchCapabilityChanges]
 //	[matchArgs]
+//	[matchCmdArgs]
 //	[matchActions]
 //
 // matchPIDs := [length][PID1][PID2]...[PIDn]
@@ -1654,6 +1714,7 @@ type KernelSelectorArgs struct {
 // matchNamespaceChanges := [length][NCx][NCy]...[NCn]
 // matchCapabilityChanges := [length][CAx][CAy]...[CAn]
 // matchArgs := [length][ARGx][ARGy]...[ARGn]
+// matchCmdArgs := [length][CMDARGx][CMDARGy]...[CMDARGn]
 // PIDn := [op][flags][nValues][v1]...[vn]
 // Argn := [index][op][valueGen]
 // NSn := [namespace][op][valueInt]
@@ -1742,6 +1803,9 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, args.Args, args.Data); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
+		if err := ParseMatchCmdArgs(k, selector.MatchCmdArgs); err != nil {
+			return fmt.Errorf("parseMatchCmdArgs error: %w", err)
+		}
 		if err := ParseMatchWorkloads(k, selector.MatchWorkloads, selIdx); err != nil {
 			return fmt.Errorf("parseMatchWorkloads  error: %w", err)
 		}
@@ -1760,6 +1824,9 @@ func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnAr
 	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
 		if err := ParseMatchArgs(k, selector.MatchReturnArgs, []v1alpha1.ArgSelector{}, []v1alpha1.KProbeArg{*returnArg}, []v1alpha1.KProbeArg{}); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
+		}
+		if err := ParseMatchCmdArgs(k, nil); err != nil {
+			return fmt.Errorf("parseMatchCmdArgs error: %w", err)
 		}
 		if err := ParseMatchActions(k, selector.MatchReturnActions, actionArgTable, selIdx); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)

@@ -146,6 +146,10 @@ type KProbeSelector struct {
 	// A list of argument filters. MatchArgs are ANDed.
 	MatchArgs []ArgSelector `json:"matchArgs,omitempty"`
 	// +kubebuilder:validation:Optional
+	// A list of command-line argument filters. MatchCmdArgs are ANDed.
+	// Indexes are zero-based and exclude argv[0].
+	MatchCmdArgs []CmdArgSelector `json:"matchCmdArgs,omitempty"`
+	// +kubebuilder:validation:Optional
 	// A list of argument filters. MatchData are ANDed.
 	MatchData []ArgSelector `json:"matchData,omitempty"`
 	// +kubebuilder:validation:Optional
@@ -269,6 +273,18 @@ type ArgSelector struct {
 	Operator string `json:"operator"`
 	// Value to compare the argument against.
 	Values []string `json:"values,omitempty"`
+}
+
+type CmdArgSelector struct {
+	// +kubebuilder:validation:Minimum=0
+	// Position of the command-line argument to apply the filter to. Indexes
+	// are zero-based and exclude argv[0], which is represented by the binary.
+	Index uint32 `json:"index"`
+	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;NotPrefix;Postfix;NotPostfix
+	// Filter operation.
+	Operator string `json:"operator"`
+	// Values to compare the command-line argument against.
+	Values []string `json:"values"`
 }
 
 // +kubebuilder:validation:XValidation:rule="!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))",message="override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined"

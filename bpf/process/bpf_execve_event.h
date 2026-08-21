@@ -30,6 +30,11 @@ read_args(void *ctx, struct msg_execve_event *event)
 	long off;
 	int err;
 
+#ifdef __LARGE_BPF_PROG
+	event->args_source.start = 0;
+	event->args_source.len = 0;
+#endif
+
 	with_errmetrics(probe_read, &mm, sizeof(mm), _(&task->mm));
 	if (!mm)
 		return 0;
@@ -52,12 +57,19 @@ read_args(void *ctx, struct msg_execve_event *event)
 		return 0;
 
 	start_stack += off;
+	if (start_stack > end_stack)
+		return 0;
+	args_size = end_stack - start_stack;
+
+#ifdef __LARGE_BPF_PROG
+	/* Store pointer infos and late copy in execve_send_event() when storing
+	 * the cache args. */
+	event->args_source.start = start_stack;
+	event->args_source.len = args_size;
+#endif
 
 	size = p->size & 0x1ff /* 2*MAXARGLENGTH - 1*/;
 	args = (char *)p + size;
-#ifdef __LARGE_BPF_PROG
-	event->exe.arg_start = size;
-#endif
 
 	if (args >= (char *)&event->process + BUFFER)
 		return 0;
@@ -66,7 +78,6 @@ read_args(void *ctx, struct msg_execve_event *event)
 	 * or use data event to send it separatelly.
 	 */
 	free_size = (char *)&event->process + BUFFER - args;
-	args_size = end_stack - start_stack;
 
 	if (args_size < BUFFER && args_size < free_size) {
 		if (args_size)
@@ -85,14 +96,33 @@ read_args(void *ctx, struct msg_execve_event *event)
 		if (size > 0)
 			p->flags |= EVENT_DATA_ARGS;
 	}
-#ifdef __LARGE_BPF_PROG
-	event->exe.arg_len = size;
-#endif
 	p->size_args = (__u16)size;
 	return size;
 }
 
 #ifdef __LARGE_BPF_PROG
+
+FUNC_INLINE void
+copy_args_to_cache(const struct args_source *source, struct args *args)
+{
+	__u64 source_start = source->start;
+	__u64 source_len = source->len;
+	__u32 len;
+
+	/* Reset the heap storage from leftovers. */
+	args->len = 0;
+
+	if (!source_start || !source_len)
+		return;
+
+	if (source_len > sizeof(args->buf))
+		len = sizeof(args->buf);
+	else
+		len = source_len;
+
+	if (with_errmetrics(probe_read, args->buf, len, (void *)source_start) >= 0)
+		args->len = len;
+}
 
 FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
 {
@@ -365,22 +395,9 @@ execve_send_event(struct bpf_raw_tracepoint_args *ctx,
 		/* zero out previous paths in ->bin */
 		binary_reset(&curr->bin);
 #ifdef __LARGE_BPF_PROG
-		__u32 off, len;
-
 		// read from proc exe stored at execve time
 		copy_exe_to_bin(&event->exe, &curr->bin);
-
-		off = event->exe.arg_start;
-		if (event->exe.arg_len > sizeof(curr->bin.args) - 2)
-			len = sizeof(curr->bin.args) - 2;
-		else
-			len = event->exe.arg_len;
-		with_errmetrics(probe_read, curr->bin.args, len, (char *)&event->process + off);
-
-		// there's a null byte between each argv element, so we terminate with
-		// two of them to make it possible to identify the end of the buffer
-		curr->bin.args[len] = 0x00;
-		curr->bin.args[len + 1] = 0x00;
+		copy_args_to_cache(&event->args_source, &curr->args);
 #else
 		struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
 		char *filename;
