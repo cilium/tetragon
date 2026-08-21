@@ -44,8 +44,6 @@ func observerMinReqs() (bool, error) {
 	return true, nil
 }
 
-func flushKernelSpec() {}
-
 func (s *Sensor) preLoadMaps(_ string, _ []*program.Map) ([]*program.Map, error) {
 	return nil, nil
 }
