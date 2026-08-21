@@ -298,7 +298,7 @@ bpf-test:
 .PHONY: verify
 verify: tetragon-bpf ## Verify BPF programs.
 	$(GO) test contrib/verify/verify_test.go -run TestExtractKernelVersion
-	DEBUG=${DEBUG} TETRAGONDIR=$(CURDIR)/bpf/objs $(GO) test -exec 'sudo -E' contrib/verify/verify_test.go -v -run TestVerifyTetragonPrograms
+	$(GO) test -exec 'sudo -E' contrib/verify/verify_test.go -v -run TestVerifyTetragonPrograms -tetragon-dir=$(CURDIR)/bpf/objs $(if $(DEBUG),-debug)
 
 .PHONY: alignchecker
 alignchecker: ## Run alignchecker.
