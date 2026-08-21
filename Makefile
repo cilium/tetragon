@@ -493,7 +493,11 @@ endif
 
 .PHONY: go-format
 go-format: ## Run code formatter on Go code.
-	find . -name '*.go' -not -path '**/vendor/*' -not -path './pkg/k8s/vendor/*' -not -path './api/v1/tetragon/*' -not -path './pkg/k8s/apis/cilium.io/v1alpha1/zz_generated.deepcopy.go' | \
+	find . -name '*.go' \
+	-not -path '**/vendor/*' \
+	-not -path './pkg/k8s/vendor/*' \
+	-not -path './api/v1/tetragon/*' \
+	-not -path '**/zz_generated.deepcopy.go' | \
 	  xargs goimports -local github.com/cilium/tetragon,github.com/cilium/tetragon/api,github.com/cilium/tetragon/pkg/k8s -w
 
 .PHONY: format
