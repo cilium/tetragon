@@ -154,13 +154,6 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		require.NoError(t, err, "failed to parse elf file into collection spec")
 		require.NotNil(t, spec, "collection spec should not be nil")
 
-		if *debug {
-			t.Logf("[%s]", fileName)
-			for _, progSpec := range spec.Programs {
-				t.Log(progSpec.Instructions.String())
-			}
-		}
-
 		if strings.HasPrefix(fileName, "bpf_generic_kprobe") {
 			if fileName != "bpf_generic_kprobe.o" { // 4.19 version does not need to be rewritten
 				for _, prog := range spec.Programs {
@@ -176,15 +169,13 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		collection, err := ebpf.NewCollection(spec)
 		if err != nil {
 			var ve *ebpf.VerifierError
-			if errors.As(err, &ve) {
+			if errors.As(err, &ve) && *debug {
 				t.Logf("%+v", ve)
-
-				_, kver, _ := kernels.GetKernelVersion("", "/proc")
-				t.Logf("failed object %s, kernel %s", fileName, kver)
 			}
+			_, kver, _ := kernels.GetKernelVersion("", "/proc")
+			t.Errorf("%s ✗: failed to load object on kernel %s: %v", fileName, kver, err)
+			continue
 		}
-
-		require.NoError(t, err, "failed to load resources into the kernel")
 
 		collection.Close()
 		t.Logf("%s ✓", fileName)
