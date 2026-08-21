@@ -789,6 +789,9 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	return !!pass;
 }
 
+// Define a mask for the maximum path length on Linux.
+#define PATH_MASK (4096 - 1)
+
 struct copy_reverse_data {
 	__u8 *dest;
 	__u8 *src;
@@ -797,9 +800,10 @@ struct copy_reverse_data {
 	uint mask;
 };
 
-FUNC_LOCAL int do_copy_reverse(uint i, struct copy_reverse_data *data)
+FUNC_INLINE int
+__do_copy_reverse(uint i, struct copy_reverse_data *data, uint mask)
 {
-	uint len = data->len, offset = data->offset, mask = data->mask;
+	uint len = data->len, offset = data->offset;
 
 	len &= STRING_POSTFIX_MAX_MASK;
 	// Maximum we can go to is one less than the absolute maximum.
@@ -815,6 +819,26 @@ FUNC_LOCAL int do_copy_reverse(uint i, struct copy_reverse_data *data)
 	data->dest[i & STRING_POSTFIX_MAX_MASK] = data->src[(len + offset - 1 - i) & mask];
 	return len + offset == (i + 1) ? 1 : 0;
 }
+
+FUNC_LOCAL int do_copy_reverse(uint i, struct copy_reverse_data *data)
+{
+	return __do_copy_reverse(i, data, data->mask);
+}
+
+#ifdef __V61_BPF_PROG
+/* Older bpf_loop verifiers do not preserve scalar bounds stored in callback
+ * context. Use constant masks in dedicated callbacks instead.
+ */
+FUNC_LOCAL int do_copy_reverse_path(uint i, struct copy_reverse_data *data)
+{
+	return __do_copy_reverse(i, data, PATH_MASK);
+}
+
+FUNC_LOCAL int do_copy_reverse_file(uint i, struct copy_reverse_data *data)
+{
+	return __do_copy_reverse(i, data, STRING_POSTFIX_MAX_MASK);
+}
+#endif
 
 FUNC_INLINE void __copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset, uint mask)
 {
@@ -843,13 +867,13 @@ FUNC_INLINE void __copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset, ui
 				return;
 		}
 #else
-		loop(STRING_POSTFIX_MAX_MATCH_LENGTH - 1, do_copy_reverse, &data, 0);
+		if (mask == PATH_MASK)
+			loop(STRING_POSTFIX_MAX_MATCH_LENGTH - 1, do_copy_reverse_path, &data, 0);
+		else
+			loop(STRING_POSTFIX_MAX_MATCH_LENGTH - 1, do_copy_reverse_file, &data, 0);
 #endif /* __V61_BPF_PROG */
 	}
 }
-
-// Define a mask for the maximum path length on Linux.
-#define PATH_MASK (4096 - 1)
 
 FUNC_INLINE void copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
 {
@@ -909,10 +933,15 @@ do_filter_char_substring(__u32 i, struct filter_char_substring_data *data)
 	if (!sub_str)
 		return 0;
 
-	if (data->igncase)
+	if (data->igncase) {
+		if (!bpf_ksym_exists(bpf_strncasestr))
+			return 0;
 		idx = bpf_strncasestr(data->arg_str, sub_str, data->arg_len);
-	else
+	} else {
+		if (!bpf_ksym_exists(bpf_strnstr))
+			return 0;
 		idx = bpf_strnstr(data->arg_str, sub_str, data->arg_len);
+	}
 
 	return idx >= 0 ? 1 : 0;
 }
