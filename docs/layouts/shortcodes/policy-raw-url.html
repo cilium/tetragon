@@ -1,0 +1,6 @@
+{{- $path := .Get 0 -}}
+{{- $file := resources.Get (printf "policies/%s" $path) -}}
+{{- if not $file -}}
+  {{- errorf "policy-raw-url: policies/%s not found (%s)" $path .Position -}}
+{{- end -}}
+https://raw.githubusercontent.com/cilium/tetragon/main/policies/{{ replace $path " " "%20" -}}
