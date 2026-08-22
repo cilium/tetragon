@@ -2,6 +2,7 @@
 ## explicit; go 1.26.0
 github.com/cilium/tetragon/pkg/matchers/bytesmatcher
 github.com/cilium/tetragon/pkg/matchers/listmatcher
+github.com/cilium/tetragon/pkg/matchers/mapmatcher
 github.com/cilium/tetragon/pkg/matchers/stringmatcher
 github.com/cilium/tetragon/pkg/matchers/timestampmatcher
 # github.com/stretchr/testify v1.12.0
