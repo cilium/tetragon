@@ -549,7 +549,7 @@ func loadSingleUsdtSensor(usdtEntry *genericUsdt, args sensors.LoadProbeArgs) er
 	binary.Write(&configData, binary.LittleEndian, usdtEntry.config)
 
 	// filter_map data
-	selBuff := usdtEntry.selectors.Buffer()
+	selBuff := usdtEntry.selectors.CopyToFixedBuffer()
 
 	mapLoad := []*program.MapLoad{
 		{
@@ -596,7 +596,7 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 		binary.Write(&configData, binary.LittleEndian, usdtEntry.config)
 
 		// filter_map data
-		selBuff := usdtEntry.selectors.Buffer()
+		selBuff := usdtEntry.selectors.CopyToFixedBuffer()
 
 		mapLoad := []*program.MapLoad{
 			{

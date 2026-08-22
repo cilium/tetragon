@@ -91,7 +91,7 @@ func (ctx *testContext) initKernelStateData(pids []uint32) error {
 		return errors.New("test_filter_map not found")
 	}
 
-	return filterMap.Update(uint32(0), k.Buffer(), 0)
+	return filterMap.Update(uint32(0), k.CopyToFixedBuffer(), 0)
 }
 
 func Test_PidMatch(t *testing.T) {

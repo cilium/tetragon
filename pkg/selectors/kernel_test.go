@@ -30,7 +30,7 @@ import (
 )
 
 func TestWriteSelectorUint32(t *testing.T) {
-	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	k := &KernelSelectorState{data: KernelSelectorData{}}
 	d := &k.data
 	v := uint32(0x1234abcd)
 
@@ -40,7 +40,8 @@ func TestWriteSelectorUint32(t *testing.T) {
 			d.e[0], d.e[1], d.e[2], d.e[3])
 	}
 
-	d.off = 1024
+	// grow by 1020 from offset 4 to reach offset 1024, then write uint32 at [1024:1028]
+	d.grow(1020)
 	WriteSelectorUint32(d, v)
 	if d.e[1027] != 0x12 || d.e[1026] != 0x34 || d.e[1025] != 0xab || d.e[1024] != 0xcd {
 		t.Errorf("SelectorStateWrite offset(1024) failed: %x %x %x %x\n",
@@ -49,7 +50,7 @@ func TestWriteSelectorUint32(t *testing.T) {
 }
 
 func TestWriteSelectorLength(t *testing.T) {
-	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	k := &KernelSelectorState{data: KernelSelectorData{}}
 	d := &k.data
 	v := uint32(0x1234abcd)
 
@@ -75,7 +76,7 @@ func TestWriteSelectorLength(t *testing.T) {
 }
 
 func TestWriteSelectorByteArray(t *testing.T) {
-	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	k := &KernelSelectorState{data: KernelSelectorData{}}
 	d := &k.data
 	v := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf}
 
@@ -201,9 +202,15 @@ func TestPidSelectorFlags(t *testing.T) {
 func TestPidSelectorValue(t *testing.T) {
 	pid := &v1alpha1.PIDSelector{Operator: "In", Values: []uint32{1, 2, 3}, IsNamespacePID: true, FollowForks: true}
 	expected := []byte{0x1, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0, 0x0, 0x3, 0x0, 0x0, 0x0}
-	if b, l := pidSelectorValue(pid); bytes.Equal(b, expected) == false || l != 12 {
-		t.Errorf("pidSelectorValue: expected %v actual %v\n", expected, b)
+	if b, l, err := pidSelectorValue(pid); err != nil || bytes.Equal(b, expected) == false || l != 12 {
+		t.Errorf("pidSelectorValue: expected %v actual %v (err: %v)", expected, b, err)
 	}
+}
+
+func TestPidSelectorValueTooManyValues(t *testing.T) {
+	pid := &v1alpha1.PIDSelector{Operator: "In", Values: []uint32{1, 2, 3, 4, 5}, IsNamespacePID: true, FollowForks: true}
+	_, _, err := pidSelectorValue(pid)
+	require.Error(t, err)
 }
 
 func TestNamespaceValue(t *testing.T) {
@@ -320,8 +327,8 @@ func TestParseMatchArgs(t *testing.T) {
 
 	ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
 	d := &ks.data
-	if err := ParseMatchArgs(ks, argsSel, dataSel, args, data); err != nil || bytes.Equal(expected, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\n", err, expected, d.e[0:d.off])
+	if err := ParseMatchArgs(ks, argsSel, dataSel, args, data); err != nil || bytes.Equal(expected, d.e) == false {
+		t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\n", err, expected, d.e)
 	}
 }
 
@@ -365,11 +372,11 @@ func TestParseMatchData(t *testing.T) {
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 1025-2048
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 2049-4096
 	}
-	if err := ParseMatchData(k, arg1, sig, 2); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected1, d.e[0:d.off], arg1)
+	if err := ParseMatchData(k, arg1, sig, 2); err != nil || bytes.Equal(expected1, d.e) == false {
+		t.Errorf("parseMatchArg: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected1, d.e, arg1)
 	}
 
-	nextArg := d.off
+	nextArg := len(d.e)
 	arg2 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"1", "2"}}
 	expected2 := []byte{
 		0x03, 0x00, 0x00, 0x00, // Index == 3 (1 + base 2)
@@ -379,11 +386,11 @@ func TestParseMatchData(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, // value 1
 		0x02, 0x00, 0x00, 0x00, // value 2
 	}
-	if err := ParseMatchData(k, arg2, sig, 2); err != nil || bytes.Equal(expected2, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextArg:d.off], arg2)
+	if err := ParseMatchData(k, arg2, sig, 2); err != nil || bytes.Equal(expected2, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextArg:], arg2)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg3 := &v1alpha1.ArgSelector{Index: 4, Operator: "SAddr", Values: []string{"127.0.0.1", "10.1.2.3/24", "192.168.254.254/20"}}
 	expected3 := []byte{
 		0x06, 0x00, 0x00, 0x00, // Index == 6 (4 + base 2)
@@ -393,11 +400,11 @@ func TestParseMatchData(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // Addr4LPM mapid = 0
 		0xff, 0xff, 0xff, 0xff, // Addr6LPM no map
 	}
-	if err := ParseMatchData(k, arg3, sig, 2); err != nil || bytes.Equal(expected3, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[nextArg:d.off], arg3)
+	if err := ParseMatchData(k, arg3, sig, 2); err != nil || bytes.Equal(expected3, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[nextArg:], arg3)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg4 := &v1alpha1.ArgSelector{Index: 5, Operator: "SPort", Values: []string{"8081", "25", "31337"}}
 	expected4 := []byte{
 		0x07, 0x00, 0x00, 0x00, // Index == 7 (5 + base 2)
@@ -406,11 +413,11 @@ func TestParseMatchData(t *testing.T) {
 		0x05, 0x00, 0x00, 0x00, // value type == skb
 		0x00, 0x00, 0x00, 0x00, // argfilter mapid = 0
 	}
-	if err := ParseMatchData(k, arg4, sig, 2); err != nil || bytes.Equal(expected4, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected4, d.e[nextArg:d.off], arg4)
+	if err := ParseMatchData(k, arg4, sig, 2); err != nil || bytes.Equal(expected4, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected4, d.e[nextArg:], arg4)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg5 := &v1alpha1.ArgSelector{Index: 6, Operator: "Protocol", Values: []string{"3", "IPPROTO_UDP", "IPPROTO_TCP"}}
 	expected5 := []byte{
 		0x08, 0x00, 0x00, 0x00, // Index == 8 (6 + base 2)
@@ -419,11 +426,11 @@ func TestParseMatchData(t *testing.T) {
 		0x05, 0x00, 0x00, 0x00, // value type == skb
 		1, 0x00, 0x00, 0x00, // argfilter mapid = 1
 	}
-	if err := ParseMatchData(k, arg5, sig, 2); err != nil || bytes.Equal(expected5, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected5, d.e[nextArg:d.off], arg5)
+	if err := ParseMatchData(k, arg5, sig, 2); err != nil || bytes.Equal(expected5, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected5, d.e[nextArg:], arg5)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg6 := &v1alpha1.ArgSelector{Index: 7, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
 	expected6 := []byte{
 		0x09, 0x00, 0x00, 0x00, // Index == 9 (7 + base 2)
@@ -433,11 +440,11 @@ func TestParseMatchData(t *testing.T) {
 		1, 0x00, 0x00, 0x00, // Addr4LPM mapid = 1
 		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0
 	}
-	if err := ParseMatchData(k, arg6, sig, 2); err != nil || bytes.Equal(expected6, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected6, d.e[nextArg:d.off], arg6)
+	if err := ParseMatchData(k, arg6, sig, 2); err != nil || bytes.Equal(expected6, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected6, d.e[nextArg:], arg6)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg7 := &v1alpha1.ArgSelector{Index: 8, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
 	expected7 := []byte{
 		0x0a, 0x00, 0x00, 0x00, // Index == 10 (8 + base 2)
@@ -447,11 +454,11 @@ func TestParseMatchData(t *testing.T) {
 		2, 0x00, 0x00, 0x00, // Addr4LPM mapid = 2
 		1, 0x00, 0x00, 0x00, // Addr6LPM mapid = 1
 	}
-	if err := ParseMatchData(k, arg7, sig, 2); err != nil || bytes.Equal(expected7, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected7, d.e[nextArg:d.off], arg7)
+	if err := ParseMatchData(k, arg7, sig, 2); err != nil || bytes.Equal(expected7, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected7, d.e[nextArg:], arg7)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg8 := &v1alpha1.ArgSelector{Index: 9, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
 	expected8 := []byte{
 		0x0b, 0x00, 0x00, 0x00, // Index == 11 (9 + base 2)
@@ -461,12 +468,12 @@ func TestParseMatchData(t *testing.T) {
 		3, 0x00, 0x00, 0x00, // Addr4LPM mapid = 3
 		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
 	}
-	if err := ParseMatchData(k, arg8, sig, 2); err != nil || bytes.Equal(expected8, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:d.off], arg8)
+	if err := ParseMatchData(k, arg8, sig, 2); err != nil || bytes.Equal(expected8, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:], arg8)
 	}
 
 	if config.EnableLargeProgs() {
-		nextArg = d.off
+		nextArg = len(d.e)
 		arg9 := &v1alpha1.ArgSelector{Index: 10, Operator: "Equal", Values: []string{"1", "2"}}
 		expected9 := []byte{
 			0x0c, 0x00, 0x00, 0x00, // Index == 12 (10 + base 2)
@@ -476,11 +483,11 @@ func TestParseMatchData(t *testing.T) {
 			0x01, 0x00, 0x00, 0x00, // value 1
 			0x02, 0x00, 0x00, 0x00, // value 2
 		}
-		if err := ParseMatchData(k, arg9, sig, 2); err != nil || bytes.Equal(expected9, d.e[nextArg:d.off]) == false {
-			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected9, d.e[nextArg:d.off], arg9)
+		if err := ParseMatchData(k, arg9, sig, 2); err != nil || bytes.Equal(expected9, d.e[nextArg:]) == false {
+			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected9, d.e[nextArg:], arg9)
 		}
 
-		nextArg = d.off
+		nextArg = len(d.e)
 		arg10 := &v1alpha1.ArgSelector{Index: 11, Operator: "Equal", Values: []string{"1", "2"}}
 		expected10 := []byte{
 			0x0d, 0x00, 0x00, 0x00, // Index == 13 (11 + base 2)
@@ -490,8 +497,8 @@ func TestParseMatchData(t *testing.T) {
 			0x01, 0x00, 0x00, 0x00, // value 1
 			0x02, 0x00, 0x00, 0x00, // value 2
 		}
-		if err := ParseMatchData(k, arg10, sig, 2); err != nil || bytes.Equal(expected10, d.e[nextArg:d.off]) == false {
-			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected10, d.e[nextArg:d.off], arg10)
+		if err := ParseMatchData(k, arg10, sig, 2); err != nil || bytes.Equal(expected10, d.e[nextArg:]) == false {
+			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected10, d.e[nextArg:], arg10)
 		}
 	}
 }
@@ -536,11 +543,11 @@ func TestParseMatchArg(t *testing.T) {
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 1025-2048
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 2049-4096
 	}
-	if err := ParseMatchArg(k, arg1, sig); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected1, d.e[0:d.off], arg1)
+	if err := ParseMatchArg(k, arg1, sig); err != nil || bytes.Equal(expected1, d.e) == false {
+		t.Errorf("parseMatchArg: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected1, d.e, arg1)
 	}
 
-	nextArg := d.off
+	nextArg := len(d.e)
 	arg2 := &v1alpha1.ArgSelector{Index: 2, Operator: "Equal", Values: []string{"1", "2"}}
 	expected2 := []byte{
 		0x01, 0x00, 0x00, 0x00, // Index == 1
@@ -550,11 +557,11 @@ func TestParseMatchArg(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, // value 1
 		0x02, 0x00, 0x00, 0x00, // value 2
 	}
-	if err := ParseMatchArg(k, arg2, sig); err != nil || bytes.Equal(expected2, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextArg:d.off], arg2)
+	if err := ParseMatchArg(k, arg2, sig); err != nil || bytes.Equal(expected2, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextArg:], arg2)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg3 := &v1alpha1.ArgSelector{Index: 5, Operator: "SAddr", Values: []string{"127.0.0.1", "10.1.2.3/24", "192.168.254.254/20"}}
 	expected3 := []byte{
 		0x04, 0x00, 0x00, 0x00, // Index == 4
@@ -564,11 +571,11 @@ func TestParseMatchArg(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // Addr4LPM mapid = 0
 		0xff, 0xff, 0xff, 0xff, // Addr6LPM no map
 	}
-	if err := ParseMatchArg(k, arg3, sig); err != nil || bytes.Equal(expected3, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[nextArg:d.off], arg3)
+	if err := ParseMatchArg(k, arg3, sig); err != nil || bytes.Equal(expected3, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[nextArg:], arg3)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg4 := &v1alpha1.ArgSelector{Index: 6, Operator: "SPort", Values: []string{"8081", "25", "31337"}}
 	expected4 := []byte{
 		0x05, 0x00, 0x00, 0x00, // Index == 5
@@ -577,11 +584,11 @@ func TestParseMatchArg(t *testing.T) {
 		0x05, 0x00, 0x00, 0x00, // value type == skb
 		0x00, 0x00, 0x00, 0x00, // argfilter mapid = 0
 	}
-	if err := ParseMatchArg(k, arg4, sig); err != nil || bytes.Equal(expected4, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected4, d.e[nextArg:d.off], arg4)
+	if err := ParseMatchArg(k, arg4, sig); err != nil || bytes.Equal(expected4, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected4, d.e[nextArg:], arg4)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg5 := &v1alpha1.ArgSelector{Index: 7, Operator: "Protocol", Values: []string{"3", "IPPROTO_UDP", "IPPROTO_TCP"}}
 	expected5 := []byte{
 		0x06, 0x00, 0x00, 0x00, // Index == 6
@@ -590,11 +597,11 @@ func TestParseMatchArg(t *testing.T) {
 		0x05, 0x00, 0x00, 0x00, // value type == skb
 		1, 0x00, 0x00, 0x00, // argfilter mapid = 1
 	}
-	if err := ParseMatchArg(k, arg5, sig); err != nil || bytes.Equal(expected5, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected5, d.e[nextArg:d.off], arg5)
+	if err := ParseMatchArg(k, arg5, sig); err != nil || bytes.Equal(expected5, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected5, d.e[nextArg:], arg5)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg6 := &v1alpha1.ArgSelector{Index: 8, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
 	expected6 := []byte{
 		0x07, 0x00, 0x00, 0x00, // Index == 7
@@ -604,11 +611,11 @@ func TestParseMatchArg(t *testing.T) {
 		1, 0x00, 0x00, 0x00, // Addr4LPM mapid = 1
 		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0
 	}
-	if err := ParseMatchArg(k, arg6, sig); err != nil || bytes.Equal(expected6, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected6, d.e[nextArg:d.off], arg6)
+	if err := ParseMatchArg(k, arg6, sig); err != nil || bytes.Equal(expected6, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected6, d.e[nextArg:], arg6)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg7 := &v1alpha1.ArgSelector{Index: 9, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
 	expected7 := []byte{
 		0x08, 0x00, 0x00, 0x00, // Index == 8
@@ -618,11 +625,11 @@ func TestParseMatchArg(t *testing.T) {
 		2, 0x00, 0x00, 0x00, // Addr4LPM mapid = 2
 		1, 0x00, 0x00, 0x00, // Addr6LPM mapid = 1
 	}
-	if err := ParseMatchArg(k, arg7, sig); err != nil || bytes.Equal(expected7, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected7, d.e[nextArg:d.off], arg7)
+	if err := ParseMatchArg(k, arg7, sig); err != nil || bytes.Equal(expected7, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected7, d.e[nextArg:], arg7)
 	}
 
-	nextArg = d.off
+	nextArg = len(d.e)
 	arg8 := &v1alpha1.ArgSelector{Index: 10, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
 	expected8 := []byte{
 		0x09, 0x00, 0x00, 0x00, // Index == 9
@@ -632,12 +639,12 @@ func TestParseMatchArg(t *testing.T) {
 		3, 0x00, 0x00, 0x00, // Addr4LPM mapid = 3
 		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
 	}
-	if err := ParseMatchArg(k, arg8, sig); err != nil || bytes.Equal(expected8, d.e[nextArg:d.off]) == false {
-		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:d.off], arg8)
+	if err := ParseMatchArg(k, arg8, sig); err != nil || bytes.Equal(expected8, d.e[nextArg:]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:], arg8)
 	}
 
 	if config.EnableLargeProgs() { // (u)int8/16 and multiple match args are supported only in kernels >= 5.4
-		nextArg = d.off
+		nextArg = len(d.e)
 		arg9 := &v1alpha1.ArgSelector{Index: 11, Operator: "Equal", Values: []string{"1", "2"}}
 		expected9 := []byte{
 			0x0a, 0x00, 0x00, 0x00, // Index == 10
@@ -647,11 +654,11 @@ func TestParseMatchArg(t *testing.T) {
 			0x01, 0x00, 0x00, 0x00, // value 1
 			0x02, 0x00, 0x00, 0x00, // value 2
 		}
-		if err := ParseMatchArg(k, arg9, sig); err != nil || bytes.Equal(expected9, d.e[nextArg:d.off]) == false {
-			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected9, d.e[nextArg:d.off], arg9)
+		if err := ParseMatchArg(k, arg9, sig); err != nil || bytes.Equal(expected9, d.e[nextArg:]) == false {
+			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected9, d.e[nextArg:], arg9)
 		}
 
-		nextArg = d.off
+		nextArg = len(d.e)
 		arg10 := &v1alpha1.ArgSelector{Index: 12, Operator: "Equal", Values: []string{"1", "2"}}
 		expected10 := []byte{
 			0x0b, 0x00, 0x00, 0x00, // Index == 11
@@ -661,8 +668,8 @@ func TestParseMatchArg(t *testing.T) {
 			0x01, 0x00, 0x00, 0x00, // value 1
 			0x02, 0x00, 0x00, 0x00, // value 2
 		}
-		if err := ParseMatchArg(k, arg10, sig); err != nil || bytes.Equal(expected10, d.e[nextArg:d.off]) == false {
-			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected10, d.e[nextArg:d.off], arg10)
+		if err := ParseMatchArg(k, arg10, sig); err != nil || bytes.Equal(expected10, d.e[nextArg:]) == false {
+			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected10, d.e[nextArg:], arg10)
 		}
 
 		length := []byte{
@@ -678,8 +685,8 @@ func TestParseMatchArg(t *testing.T) {
 		arg12 := []v1alpha1.ArgSelector{*arg1, *arg2}
 		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
 		d = &ks.data
-		if err := ParseMatchArgs(ks, arg12, []v1alpha1.ArgSelector{}, sig, []v1alpha1.KProbeArg{}); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
-			t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected3, d.e[0:d.off], arg3)
+		if err := ParseMatchArgs(ks, arg12, []v1alpha1.ArgSelector{}, sig, []v1alpha1.KProbeArg{}); err != nil || bytes.Equal(expected3, d.e) == false {
+			t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected3, d.e, arg3)
 		}
 
 		// Regression test for https://github.com/cilium/tetragon/issues/4699
@@ -706,17 +713,17 @@ func TestParseMatchArg(t *testing.T) {
 		ks = NewKernelSelectorState(nil, nil, false, 0, 0, nil)
 		d = &ks.data
 		if err := ParseMatchArg(ks, arg13, sig); err != nil ||
-			bytes.Equal(expected12, d.e[0:d.off]) == false ||
+			bytes.Equal(expected12, d.e) == false ||
 			maps.Equal(ks.valueMaps[0].Data, expectMap) == false {
 			t.Errorf("parseMatchArg: error %v expected %v bytes %v expected map %v got %v parsing %v\n",
-				err, expected12, d.e[0:d.off], expectMap, ks.valueMaps[0].Data, arg13)
+				err, expected12, d.e, expectMap, ks.valueMaps[0].Data, arg13)
 		}
 	}
 }
 
 func TestParseMatchPid(t *testing.T) {
 	pid1 := &v1alpha1.PIDSelector{Operator: "In", Values: []uint32{1, 2, 3}, IsNamespacePID: true, FollowForks: true}
-	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	k := &KernelSelectorState{data: KernelSelectorData{}}
 	d := &k.data
 	expected1 := []byte{
 		0x05, 0x00, 0x00, 0x00, // op == In
@@ -726,11 +733,11 @@ func TestParseMatchPid(t *testing.T) {
 		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := ParseMatchPid(k, pid1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], pid1)
+	if err := ParseMatchPid(k, pid1); err != nil || bytes.Equal(expected1, d.e) == false {
+		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e, pid1)
 	}
 
-	nextPid := d.off
+	nextPid := len(d.e)
 	pid2 := &v1alpha1.PIDSelector{Operator: "NotIn", Values: []uint32{1, 2, 3, 4}, IsNamespacePID: false, FollowForks: false}
 	expected2 := []byte{
 		0x06, 0x00, 0x00, 0x00, // op == NotIn
@@ -741,24 +748,24 @@ func TestParseMatchPid(t *testing.T) {
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 		0x04, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := ParseMatchPid(k, pid2); err != nil || bytes.Equal(expected2, d.e[nextPid:d.off]) == false {
-		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:d.off], pid2)
+	if err := ParseMatchPid(k, pid2); err != nil || bytes.Equal(expected2, d.e[nextPid:]) == false {
+		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:], pid2)
 	}
 
 	length := []byte{56, 0x00, 0x00, 0x00}
 	expected3 := append(length, expected1[:]...)
 	expected3 = append(expected3, expected2[:]...)
 	pid3 := []v1alpha1.PIDSelector{*pid1, *pid2}
-	ks := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	ks := &KernelSelectorState{data: KernelSelectorData{}}
 	d = &ks.data
-	if err := ParseMatchPids(ks, pid3); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[0:d.off], pid3)
+	if err := ParseMatchPids(ks, pid3); err != nil || bytes.Equal(expected3, d.e) == false {
+		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e, pid3)
 	}
 }
 
 func TestParseMatchNamespaces(t *testing.T) {
 	ns1 := &v1alpha1.NamespaceSelector{Namespace: "Pid", Operator: "In", Values: []string{"1", "2", "3"}}
-	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	k := &KernelSelectorState{data: KernelSelectorData{}}
 	d := &k.data
 	expected1 := []byte{
 		0x03, 0x00, 0x00, 0x00, // namespace == Pid
@@ -768,11 +775,11 @@ func TestParseMatchNamespaces(t *testing.T) {
 		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := ParseMatchNamespace(k, ns1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], ns1)
+	if err := ParseMatchNamespace(k, ns1); err != nil || bytes.Equal(expected1, d.e) == false {
+		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e, ns1)
 	}
 
-	nextPid := d.off
+	nextPid := len(d.e)
 	ns2 := &v1alpha1.NamespaceSelector{Namespace: "Mnt", Operator: "NotIn", Values: []string{"1", "2", "3", "4"}}
 	expected2 := []byte{
 		0x02, 0x00, 0x00, 0x00, // namespace == Mnt
@@ -783,37 +790,37 @@ func TestParseMatchNamespaces(t *testing.T) {
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 		0x04, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := ParseMatchNamespace(k, ns2); err != nil || bytes.Equal(expected2, d.e[nextPid:d.off]) == false {
-		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:d.off], ns2)
+	if err := ParseMatchNamespace(k, ns2); err != nil || bytes.Equal(expected2, d.e[nextPid:]) == false {
+		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:], ns2)
 	}
 
 	length := []byte{56, 0x00, 0x00, 0x00}
 	expected3 := append(length, expected1[:]...)
 	expected3 = append(expected3, expected2[:]...)
 	ns3 := []v1alpha1.NamespaceSelector{*ns1, *ns2}
-	ks := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	ks := &KernelSelectorState{data: KernelSelectorData{}}
 	d = &ks.data
-	if err := ParseMatchNamespaces(ks, ns3); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchNamespaces: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[0:d.off], ns3)
+	if err := ParseMatchNamespaces(ks, ns3); err != nil || bytes.Equal(expected3, d.e) == false {
+		t.Errorf("parseMatchNamespaces: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e, ns3)
 	}
 }
 
 func TestParseMatchNamespaceChanges(t *testing.T) {
 	ns1 := &v1alpha1.NamespaceChangesSelector{Operator: "In", Values: []string{"Uts", "Mnt"}}
-	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	k := &KernelSelectorState{data: KernelSelectorData{}}
 	d := &k.data
 	expected1 := []byte{
 		0x05, 0x00, 0x00, 0x00, // op == In
 		0x05, 0x00, 0x00, 0x00, // values
 	}
-	if err := ParseMatchNamespaceChange(k, ns1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchNamespaceChange: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], ns1)
+	if err := ParseMatchNamespaceChange(k, ns1); err != nil || bytes.Equal(expected1, d.e) == false {
+		t.Errorf("parseMatchNamespaceChange: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e, ns1)
 	}
 }
 
 func TestParseMatchCapabilities(t *testing.T) {
 	cap1 := &v1alpha1.CapabilitiesSelector{Type: "Effective", Operator: "In", IsNamespaceCapability: false, Values: []string{"CAP_CHOWN", "CAP_NET_RAW"}}
-	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	k := &KernelSelectorState{data: KernelSelectorData{}}
 	d := &k.data
 	expected1 := []byte{
 		0x01, 0x00, 0x00, 0x00, // Type == Effective
@@ -821,11 +828,11 @@ func TestParseMatchCapabilities(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // IsNamespaceCapability = false
 		0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
 	}
-	if err := ParseMatchCaps(k, cap1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], cap1)
+	if err := ParseMatchCaps(k, cap1); err != nil || bytes.Equal(expected1, d.e) == false {
+		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e, cap1)
 	}
 
-	nextPid := d.off
+	nextPid := len(d.e)
 	cap2 := &v1alpha1.CapabilitiesSelector{Type: "Inheritable", Operator: "NotIn", IsNamespaceCapability: false, Values: []string{"CAP_SETPCAP", "CAP_SYS_ADMIN"}}
 	expected2 := []byte{
 		0x02, 0x00, 0x00, 0x00, // Type == Inheritable
@@ -833,18 +840,18 @@ func TestParseMatchCapabilities(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // IsNamespaceCapability = false
 		0x00, 0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
 	}
-	if err := ParseMatchCaps(k, cap2); err != nil || bytes.Equal(expected2, d.e[nextPid:d.off]) == false {
-		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:d.off], cap2)
+	if err := ParseMatchCaps(k, cap2); err != nil || bytes.Equal(expected2, d.e[nextPid:]) == false {
+		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:], cap2)
 	}
 
 	length := []byte{44, 0x00, 0x00, 0x00}
 	expected3 := append(length, expected1[:]...)
 	expected3 = append(expected3, expected2[:]...)
 	cap3 := []v1alpha1.CapabilitiesSelector{*cap1, *cap2}
-	ks := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	ks := &KernelSelectorState{data: KernelSelectorData{}}
 	d = &ks.data
-	if err := ParseMatchCapabilities(ks, cap3); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchCapabilities: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[0:d.off], cap3)
+	if err := ParseMatchCapabilities(ks, cap3); err != nil || bytes.Equal(expected3, d.e) == false {
+		t.Errorf("parseMatchCapabilities: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e, cap3)
 	}
 }
 
@@ -854,7 +861,7 @@ func TestParseMatchAction(t *testing.T) {
 
 	act1 := &v1alpha1.ActionSelector{Action: "post"}
 	act2 := &v1alpha1.ActionSelector{Action: "post"}
-	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	k := &KernelSelectorState{data: KernelSelectorData{}}
 	d := &k.data
 	expected1 := []byte{
 		0x00, 0x00, 0x00, 0x00, // Action = "post"
@@ -864,8 +871,8 @@ func TestParseMatchAction(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // UserStackTrace = 0
 		0x00, 0x00, 0x00, 0x00, // ImaHash = 0
 	}
-	if err := ParseMatchAction(k, act1, &actionArgTable, 0); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], act1)
+	if err := ParseMatchAction(k, act1, &actionArgTable, 0); err != nil || bytes.Equal(expected1, d.e) == false {
+		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e, act1)
 	}
 	// This is a bit contrived because we only have single action so far
 	// but once we get two we will update this. Point being we want to
@@ -883,10 +890,10 @@ func TestParseMatchAction(t *testing.T) {
 	expected = append(expected, expected2[:]...)
 
 	act := []v1alpha1.ActionSelector{*act1, *act2}
-	ks := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	ks := &KernelSelectorState{data: KernelSelectorData{}}
 	d = &ks.data
-	if err := ParseMatchActions(ks, act, &actionArgTable, 0); err != nil || bytes.Equal(expected, d.e[0:d.off]) == false {
-		t.Errorf("parseMatchActions: error %v expected %v bytes %v parsing %v\n", err, expected, d.e[0:d.off], act)
+	if err := ParseMatchActions(ks, act, &actionArgTable, 0); err != nil || bytes.Equal(expected, d.e) == false {
+		t.Errorf("parseMatchActions: error %v expected %v bytes %v parsing %v\n", err, expected, d.e, act)
 	}
 }
 
@@ -900,7 +907,7 @@ func TestParseMatchActionMax(t *testing.T) {
 		v1alpha1.ActionSelector{Action: "post"},
 	}
 
-	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	k := &KernelSelectorState{data: KernelSelectorData{}}
 
 	err := ParseMatchActions(k, actions, &actionArgTable, 0)
 	if err == nil {
@@ -1414,7 +1421,7 @@ func TestParseMatchArgSubString(t *testing.T) {
 
 			err := ParseMatchArg(k, arg, sig)
 			require.NoError(t, err)
-			require.Equal(t, expected, d.e[0:d.off])
+			require.Equal(t, expected, d.e)
 			require.Equal(t, []string{"test"}, k.SubStrings())
 		})
 	}

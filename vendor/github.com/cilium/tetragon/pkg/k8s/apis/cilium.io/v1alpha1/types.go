@@ -243,7 +243,8 @@ type PIDSelector struct {
 	// +kubebuilder:validation:Enum=In;NotIn
 	// PID selector operator.
 	Operator string `json:"operator"`
-	// Process IDs to match.
+	// +kubebuilder:validation:MaxItems=4
+	// Process IDs to match. Only the first 4 are matched by the kernel.
 	Values []uint32 `json:"values"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
