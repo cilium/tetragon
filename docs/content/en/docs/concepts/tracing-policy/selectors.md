@@ -437,20 +437,22 @@ Processes created by `kubectl exec` are not children of PID 1:
 
 ## Binaries filter
 
-Binary filters can be specified under the `matchBinaries` field and provide
-filtering based on the value of a certain binary name. For example, the
-following `matchBinaries` selector tells the BPF code to process only system
-calls and kernel functions that are coming from `cat` or `tail`.
+### Introduction
 
-```yaml
-- matchBinaries:
-  - operator: "In"
-    values:
-    - "/usr/bin/cat"
-    - "/usr/bin/tail"
-```
+Binary filters can be specified under the `matchBinaries` field and provide
+filtering based on the value of a certain binary name.
+
+### Use case
+
+Use `matchBinaries` to restrict events to specific executables — for example
+monitoring only `cat` or `tail`, tracing SSH session console output via
+`/usr/sbin/sshd` and its children, or matching interpreter paths for shebang
+scripts.
+
+### Inputs, values, options, and operators
 
 The available operators for `matchBinaries` are:
+
 - `In`
 - `NotIn`
 - `Prefix`
@@ -460,34 +462,39 @@ The available operators for `matchBinaries` are:
 
 The `values` field has to be a map of `strings`.
 
-### Follow children
+Options:
 
-The `matchBinaries` filter can be configured to also apply to children of matching processes. To do
-this, set `followChildren` to `true`. For example:
+- `followChildren`: when `true`, also apply the filter to children of matching
+  processes.
 
-```yaml
-- matchBinaries:
-  - operator: "In"
-    values:
-    - "/usr/sbin/sshd"
-    followChildren: true
-```
+### Limitations
 
-There are a number of limitations when using followChildren:
+When using `followChildren`:
+
 - Children created before the policy was installed will not be matched.
-- The number of `matchBinaries` sections with `followChildren: true` cannot exceed 64.
+- The number of `matchBinaries` sections with `followChildren: true` cannot
+  exceed 64.
 - `operator` can be `In` or `NotIn`.
 
+When executing a script with a shebang (i.e. `#!/usr/bin/python3`), Linux runs
+the interpreter and passes the script as an argument. `matchBinaries` filters
+based on the **interpreter** path (e.g. `/usr/bin/python3`), not the script path
+(e.g. `/opt/scripts/my_script.py`).
 
-**Further examples**
+### Examples
 
-One example can be to monitor all the `sys_write` system calls which are
-coming from the `/usr/sbin/sshd` binary and its child processes and writing to
-`stdin/stdout/stderr`.
+Process only system calls and kernel functions from `cat` or `tail`:
 
-This is how we can monitor what was written to the console by different users
-during different ssh sessions. The `matchBinaries` selector in this case is the
-following:
+```yaml
+- matchBinaries:
+  - operator: "In"
+    values:
+    - "/usr/bin/cat"
+    - "/usr/bin/tail"
+```
+
+Apply to children of matching processes:
+
 ```yaml
 - matchBinaries:
   - operator: "In"
@@ -496,7 +503,19 @@ following:
     followChildren: true
 ```
 
-while the whole `kprobe` call is the following:
+Monitor `sys_write` from `/usr/sbin/sshd` and its child processes writing to
+stdin/stdout/stderr (console output during SSH sessions):
+
+```yaml
+- matchBinaries:
+  - operator: "In"
+    values:
+    - "/usr/sbin/sshd"
+    followChildren: true
+```
+
+Full `kprobe` combining binary and argument filters:
+
 ```yaml
 - call: "sys_write"
   syscall: true
@@ -525,15 +544,11 @@ while the whole `kprobe` call is the following:
       - "3"
 ```
 
-
-### Scripts with shebangs
+#### Scripts with shebangs
 
 {{< caution >}}
 `matchBinaries` matches against the `interpreter`, not the script path.
 {{< /caution >}}
-
-When executing a script with a shebang (i.e. `#!/usr/bin/python3`), Linux actually runs the
-interpreter and passes the script as an argument. Current implementation of `matchBinaries` filters based on the interpreter path (i.e. `/usr/bin/python3`) and not the script name (i.e. `/opt/scripts/my_script.py`).
 
 This won't work:
 
@@ -555,16 +570,54 @@ Match the interpreter instead:
 
 ## Parent binaries filter
 
-{{< warning >}}
-`matchParentBinaries` selector can be used only with BPF map `parents_map` enabled (option `--parents-map-enabled`), which adds
-additional memory overhead. 
-{{< /warning >}}
+### Introduction
 
 Parent binaries filter provides filtering based on current process parent
 binary path, which works similarly to the `matchBinaries` filter. It can be
-specified with the `matchParentBinaries` field. For instance, the following
-`matchParentBinaries` selector will match only if binary `cat` was executed
-from interactive shell like `zsh`, `bash`, `sh`:
+specified with the `matchParentBinaries` field.
+
+### Use case
+
+Use `matchParentBinaries` to match events based on the parent process binary —
+for example detecting `cat` executed from an interactive shell (`bash`, `sh`,
+`zsh`).
+
+{{< warning >}}
+`matchParentBinaries` selector can be used only with BPF map `parents_map`
+enabled (option `--parents-map-enabled`), which adds additional memory
+overhead.
+{{< /warning >}}
+
+### Inputs, values, options, and operators
+
+The available operators for `matchParentBinaries` are:
+
+- `In`
+- `NotIn`
+- `Prefix`
+- `NotPrefix`
+- `Postfix`
+- `NotPostfix`
+
+The `values` field has to be a map of `strings`.
+
+Options:
+
+- `followChildren`: when `true`, also apply to children of matching parent
+  processes (direct or transitive).
+
+### Limitations
+
+- Requires `--parents-map-enabled` (see warning above).
+- When using `followChildren`:
+  - Children created before the policy was installed will not be matched.
+  - The number of `matchParentBinaries` sections with `followChildren: true`
+    cannot exceed 64.
+  - Operators other than `In/NotIn` are not supported.
+
+### Examples
+
+Match only if `cat` was executed from an interactive shell:
 
 ```yaml
 - matchParentBinaries:
@@ -579,20 +632,7 @@ from interactive shell like `zsh`, `bash`, `sh`:
     - "/usr/bin/cat"
 ```
 
-The available operators for `matchParentBinaries` are:
-- `In`
-- `NotIn`
-- `Prefix`
-- `NotPrefix`
-- `Postfix`
-- `NotPostfix`
-
-The `values` field has to be a map of `strings`.
-
-### Follow children
-
-The `matchParentBinaries` filter can be configured to also apply to children of
-matching parent processes. To do this, set `followChildren` to `true`. For example:
+Apply to children of matching parent processes:
 
 ```yaml
 - matchParentBinaries:
@@ -602,12 +642,8 @@ matching parent processes. To do this, set `followChildren` to `true`. For examp
     followChildren: true
 ```
 
-This policy will match any process, which direct or transitive parent process binary is `bash`.
-
-There are a number of limitations when using `followChildren`:
-- Children created before the policy was installed will not be matched.
-- The number of `matchParentBinaries` sections with `followChildren: true` cannot exceed 64.
-- Operators other than `In/NotIn` are not supported.
+This policy will match any process whose direct or transitive parent process
+binary is `bash`.
 
 ## Namespaces filter
 
