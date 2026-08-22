@@ -54,7 +54,21 @@ tetragon:
     enabled: false
   extraVolumeMounts: []
   securityContext:
-    privileged: true
+    privileged: false
+    capabilities:
+      drop:
+        - ALL
+      add:
+        # BPF and perf_event_open operations (subsumes CAP_BPF and
+        # CAP_PERFMON), bpffs/tracefs/securityfs mounts, BPF object access
+        # by ID (policy filter inner maps, module BTF), probe_write_user
+        # (USDT semaphores).
+        - SYS_ADMIN
+        - SYS_PTRACE
+        # Raise RLIMIT_MEMLOCK for BPF memory (kernels < 5.11 only).
+        - SYS_RESOURCE
+        - DAC_OVERRIDE
+        - SYSLOG
   # -- Overrides the default livenessProbe for the tetragon container.
   livenessProbe: {}
   #  grpc:
