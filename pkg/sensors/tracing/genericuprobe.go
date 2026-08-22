@@ -689,6 +689,7 @@ func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *upro
 		IsUprobe:              true,
 		UprobeID:              nextIdx,
 		OverrideActionIPDelta: ipDelta,
+		BinaryPath:            spec.Path,
 		CelExprs:              in.celExprs,
 	})
 	if err != nil {
