@@ -94,7 +94,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | serviceLabelsOverride | object | `{}` |  |
 | tetragon.argsOverride | list | `[]` | Override the arguments. For advanced users only. |
 | tetragon.btf | string | `""` |  |
-| tetragon.cgidmap | object | `{"enabled":false}` | Enabling cgidmap instructs the Tetragon agent to use cgroup ids (instead of cgroup names) for pod association. This feature depends on cri being enabled. |
+| tetragon.cgidmap | object | `{"enabled":false}` | Enabling cgidmap instructs the Tetragon agent to use cgroup ids (instead of cgroup names) for pod association. Without cri enabled, existing pods are associated using best-effort cgroup filesystem scanning; enabling cri provides authoritative resolution. |
 | tetragon.clusterName | string | `""` | Name of the cluster where Tetragon is installed. Tetragon uses this value to set the cluster_name field in GetEventsResponse messages. |
 | tetragon.commandOverride | list | `[]` | Override the command. For advanced users only. |
 | tetragon.cri | object | `{"enabled":false,"socketHostPath":""}` | Configure tetragon pod so that it can contact the CRI running on the host |
