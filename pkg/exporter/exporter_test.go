@@ -314,3 +314,69 @@ func TestExporterSetLoggingParams(t *testing.T) {
 		<-eventNotifier.removed
 	})
 }
+
+func TestExporterSetRotationIntervalInvalidatesOldTimer(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	writer := &lumberjack.Logger{
+		Filename: filepath.Join(t.TempDir(), "test.txt"),
+	}
+	t.Cleanup(func() {
+		require.NoError(t, writer.Close())
+	})
+
+	e := &Exporter{
+		ctx:              ctx,
+		closer:           writer,
+		logFile:          filepath.Base(writer.Filename),
+		logsDir:          filepath.Dir(writer.Filename),
+		rotationInterval: time.Hour,
+	}
+	e.mu.Lock()
+	staleGeneration := e.rotationGeneration
+	e.scheduleRotateLocked()
+	e.mu.Unlock()
+
+	require.NoError(t, e.SetLogParams(eventlog.Params{
+		RotationInterval: new(2 * time.Hour),
+	}))
+
+	e.mu.Lock()
+	rotationInterval := e.rotationInterval
+	rotateTimer := e.rotateTimer
+	e.mu.Unlock()
+	require.Equal(t, 2*time.Hour, rotationInterval)
+	require.NotNil(t, rotateTimer)
+
+	// Simulate the old timer callback completing after SetLogParams installed
+	// the new timer. It must not overwrite the new timer and create a second
+	// independent rotation loop.
+	e.rotate(staleGeneration)
+
+	e.mu.Lock()
+	gotRotateTimer := e.rotateTimer
+	staleGeneration = e.rotationGeneration
+	e.mu.Unlock()
+	require.Same(t, rotateTimer, gotRotateTimer)
+
+	require.NoError(t, e.SetLogParams(eventlog.Params{
+		RotationInterval: new(time.Duration),
+	}))
+
+	e.mu.Lock()
+	rotationInterval = e.rotationInterval
+	rotateTimer = e.rotateTimer
+	e.mu.Unlock()
+	require.Zero(t, rotationInterval)
+	require.Nil(t, rotateTimer)
+
+	// A callback from the previously active configuration must not re-enable
+	// rotation after a zero interval disables it.
+	e.rotate(staleGeneration)
+
+	e.mu.Lock()
+	rotateTimer = e.rotateTimer
+	e.mu.Unlock()
+	require.Nil(t, rotateTimer)
+}
