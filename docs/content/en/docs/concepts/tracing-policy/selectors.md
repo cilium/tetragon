@@ -859,10 +859,33 @@ Here we have a single selector. This CRD will match if:
 NetNs == host`)` `]`
 ## Capabilities filter
 
+### Introduction
+
 Capabilities filters can be specified under the `matchCapabilities` field and
 provide filtering of calls based on Linux capabilities in the specific sets.
 
-An example syntax is:
+### Use case
+
+Use `matchCapabilities` to match events from processes that hold specific Linux
+capabilities in their Effective, Inheritable, or Permitted sets.
+
+### Inputs, values, options, and operators
+
+- `type` can be: `Effective`, `Inheritable`, or `Permitted`.
+- `operator` can be `In` or `NotIn`
+- `values` can be any supported capability. A list of all supported
+  capabilities can be found in `/usr/include/linux/capability.h`.
+
+This will match if: [`Effective` capabilities contain `CAP_CHOWN`] OR
+[`Effective` capabilities contain `CAP_NET_RAW`]
+
+### Limitations
+
+1. There is no limit in the number of capabilities listed under `values`.
+2. Only one `type` field can be specified under `matchCapabilities`.
+
+### Examples
+
 ```yaml
 - matchCapabilities:
   - type: Effective
@@ -872,36 +895,39 @@ An example syntax is:
     - "CAP_NET_RAW"
 ```
 
-This will match if: [`Effective` capabilities contain `CAP_CHOWN`] OR
-[`Effective` capabilities contain `CAP_NET_RAW`]
-
-- `type` can be: `Effective`, `Inheritable`, or `Permitted`.
-- `operator` can be `In` or `NotIn`
-- `values` can be any supported capability. A list of all supported
-  capabilities can be found in `/usr/include/linux/capability.h`.
-
-**Limitations**
-
-1. There is no limit in the number of capabilities listed under `values`.
-2. Only one `type` field can be specified under `matchCapabilities`.
-
 ## Namespace changes filter
+
+### Introduction
 
 Namespace changes filter can be specified under the `matchNamespaceChanges`
 field and provide filtering based on calls that are changing Linux namespaces.
-This filter can be useful to track execution of code in a new namespace or even
-container escapes that change their namespaces.
+
+### Use case
+
+This filter is useful to track execution of code in a new namespace or container
+escapes that change their namespaces.
 
 For instance, if an unprivileged process creates a new user namespace, it gains
 full privileges within that namespace. This grants the process the ability to
 perform some privileged operations within the context of this new namespace
-that would otherwise only be available to privileged root user. As a result, such
-filter is useful to track namespace creation, which can be abused by untrusted
-processes.
+that would otherwise only be available to privileged root user. As a result,
+such filter is useful to track namespace creation, which can be abused by
+untrusted processes.
 
 To keep track of the changes, when a `process_exec` happens, the namespaces of
 the process are recorded and these are compared with the current namespaces on
 the event with a `matchNamespaceChanges` filter.
+
+### Inputs, values, options, and operators
+
+- `operator` can be `In` or `NotIn`
+- `values` list namespace types that changed (e.g. `Mnt`)
+
+### Limitations
+
+- Requires baseline namespace state recorded at `process_exec` for comparison.
+
+### Examples
 
 ```yaml
 matchNamespaceChanges:
@@ -915,12 +941,33 @@ be used to test this feature.
 
 ## Capability changes filter
 
+### Introduction
+
 Capability changes filter can be specified under the `matchCapabilityChanges`
 field and provide filtering based on calls that are changing Linux capabilities.
+
+### Use case
+
+Use `matchCapabilityChanges` to detect when a process's capabilities change
+relative to those recorded at `process_exec` — for example gaining `CAP_SETUID`.
 
 To keep track of the changes, when a `process_exec` happens, the capabilities
 of the process are recorded and these are compared with the current
 capabilities on the event with a `matchCapabilityChanges` filter.
+
+### Inputs, values, options, and operators
+
+- `type` can be: `Effective`, `Inheritable`, or `Permitted`.
+- `operator` can be `In` or `NotIn`
+- `isNamespaceCapability`: when `false`, compare host capabilities; when `true`,
+  compare capabilities within the process namespace.
+- `values` list capability names (e.g. `CAP_SETUID`).
+
+### Limitations
+
+- Requires baseline capability state recorded at `process_exec` for comparison.
+
+### Examples
 
 ```yaml
 matchCapabilityChanges:
@@ -933,7 +980,6 @@ matchCapabilityChanges:
 
 See a [demonstration example](https://github.com/cilium/tetragon/blob/main/examples/tracingpolicy/fd_install_cap_changes.yaml)
 of this feature.
-
 ## Workloads filter
 
 Workloads filter can be specified under the `matchWorkloads` field and provides
