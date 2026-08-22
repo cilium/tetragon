@@ -980,20 +980,40 @@ matchCapabilityChanges:
 
 See a [demonstration example](https://github.com/cilium/tetragon/blob/main/examples/tracingpolicy/fd_install_cap_changes.yaml)
 of this feature.
+
 ## Workloads filter
+
+### Introduction
 
 Workloads filter can be specified under the `matchWorkloads` field and provides
 filtering based on Kubernetes workloads. Inside `matchWorkloads` the user can
 define a `hostSelector`, a `podSelector`, and a `containerSelector`.
 
-This works in a similar way to global workload selectors such as `spec.hostSelector`,
-`spec.podSelector`, and `spec.containerSelector`. More details on these
-can be found in [Filtering semantics]({{< ref "/docs/concepts/tracing-policy/k8s-filtering/#filtering-semantics" >}}).
+### Use case
 
-Loading a tracing policy with `matchWorkloads` outside of Kubernetes will fail
-in a similar way to global workload selectors.
+Use `matchWorkloads` to scope selector-level filtering to specific Kubernetes
+workloads — for example host processes or pods in the `kube-system` namespace.
+This works per-selector, unlike global `spec.hostSelector` / `spec.podSelector` /
+`spec.containerSelector` on the policy.
 
-The following match host workloads and pods inside `kube-system` namespace:
+### Inputs, values, options, and operators
+
+- `hostSelector`: match host-level workloads (empty `{}` matches all hosts).
+- `podSelector`: Kubernetes label selector for pods (same semantics as policy-level
+  pod selectors).
+- `containerSelector`: Kubernetes label selector for containers.
+
+See [Filtering semantics]({{< ref "/docs/concepts/tracing-policy/k8s-filtering/#filtering-semantics" >}})
+for details on selector fields and operators.
+
+### Limitations
+
+- Loading a tracing policy with `matchWorkloads` outside of Kubernetes will fail
+  in a similar way to global workload selectors.
+
+### Examples
+
+Match host workloads and pods inside the `kube-system` namespace:
 
 ```yaml
 matchWorkloads:
@@ -1008,9 +1028,21 @@ matchWorkloads:
 
 ## Actions filter
 
+### Introduction
+
 Actions filters are a list of actions that execute when an appropriate selector
-matches. They are defined under `matchActions` and currently, the following
-`action` types are supported:
+matches. They are defined under `matchActions`.
+
+### Use case
+
+Use `matchActions` to specify what happens when all filters in a selector match —
+for example posting an event, suppressing it, killing the process, overriding a
+return value, or running userspace helpers.
+
+### Inputs, values, options, and operators
+
+The following `action` types are supported:
+
 - [Sigkill action](#sigkill-action)
 - [Signal action](#signal-action)
 - [Override action](#override-action)
@@ -1030,6 +1062,18 @@ executed directly in the kernel BPF code while `GetUrl` and `DnsLookup` are
 happening in userspace after the reception of events.
 {{< /note >}}
 
+### Limitations
+
+- Only the action from the **first** matching selector in a hook is applied
+  (short-circuited OR across selectors).
+- Userspace actions (`GetUrl`, `DnsLookup`) run after event delivery, not
+  synchronously in the kernel path.
+- Enforcement actions (`Sigkill`, `Signal`, `Override`) require careful review;
+  see [Enforcement]({{< ref "/docs/concepts/enforcement" >}}).
+
+### Examples
+
+Each action type is documented below with configuration fields and YAML examples.
 
 ### Sigkill action
 
@@ -2246,6 +2290,26 @@ instead.
 
 ## Return Actions filter
 
-Return actions filters are a list of actions that execute when an return selector
-matches. They are defined under `matchReturnActions` and currently support all
-the [Actions filter](#actions-filter) `action` types.
+### Introduction
+
+Return actions filters are a list of actions that execute when a return selector
+matches. They are defined under `matchReturnActions`.
+
+### Use case
+
+Use `matchReturnActions` with `returnMatchArgs` / return selectors to apply
+actions based on the function return value rather than entry arguments.
+
+### Inputs, values, options, and operators
+
+Currently supports all the [Actions filter](#actions-filter) `action` types.
+
+### Limitations
+
+- Same action-type constraints as `matchActions` (kernel vs userspace execution).
+
+### Examples
+
+See the action types under [Actions filter](#actions-filter) for YAML patterns;
+use `matchReturnActions` instead of `matchActions` on return selectors.
+
