@@ -647,12 +647,44 @@ binary is `bash`.
 
 ## Namespaces filter
 
+### Introduction
+
 Namespaces filters can be specified under the `matchNamespaces` field and
 provide filtering of calls based on Linux namespace. You can specify the
-namespace inode or use the special `host_ns` keyword, see the example and
-description for more information.
+namespace inode or use the special `host_ns` keyword.
 
-An example syntax is:
+### Use case
+
+Use `matchNamespaces` to restrict events to processes in specific Linux
+namespaces — for example detecting when `/bin/cat` opens `/etc/shadow` while
+having host `Net` or `Mnt` namespace access, or combining multiple namespace
+types in one selector.
+
+### Inputs, values, options, and operators
+
+- `namespace` can be: `Uts`, `Ipc`, `Mnt`, `Pid`, `PidForChildren`, `Net`,
+  `Cgroup`, or `User`. `Time` and `TimeForChildren` are also available in Linux
+  \>= 5.6.
+- `operator` can be `In` or `NotIn`
+- `values` can be raw numeric values (i.e. obtained from `lsns`) or `"host_ns"`
+  which will automatically be translated to the appropriate value.
+
+Within a single `namespace` entry, multiple `values` are combined with `OR`.
+Multiple `namespace` entries under one `matchNamespaces` block are combined
+with `AND`.
+
+### Limitations
+
+1. We can have up to 4 `values`. These can be both numeric and `host_ns` inside
+   a single `namespace`.
+2. We can have up to 4 `namespace` values under `matchNamespaces` in Linux
+   kernel < 5.3. In Linux >= 5.3 we can have up to 10 values (i.e. the maximum
+   number of namespaces that modern kernels provide).
+
+### Examples
+
+Match if the `Pid` namespace is `4026531836` or `4026531835`:
+
 ```yaml
 - matchNamespaces:
   - namespace: Pid
@@ -662,27 +694,8 @@ An example syntax is:
     - "4026531835"
 ```
 
-This will match if: [`Pid` namespace is `4026531836`] `OR` [`Pid` namespace is
-`4026531835`]
+Multiple namespace filters in one selector:
 
-- `namespace` can be: `Uts`, `Ipc`, `Mnt`, `Pid`, `PidForChildren`, `Net`,
-  `Cgroup`, or `User`. `Time` and `TimeForChildren` are also available in Linux
-  \>= 5.6.
-- `operator` can be `In` or `NotIn`
-- `values` can be raw numeric values (i.e. obtained from `lsns`) or `"host_ns"`
-  which will automatically be translated to the appropriate value.
-
-**Limitations**
-
-1. We can have up to 4 `values`. These can be both numeric and `host_ns` inside
-   a single `namespace`.
-2. We can have up to 4 `namespace` values under `matchNamespaces` in Linux
-   kernel < 5.3. In Linux >= 5.3 we can have up to 10 values (i.e. the maximum
-   number of namespaces that modern kernels provide).
-
-**Further examples**
-
-We can have multiple namespace filters:
 ```yaml
 selectors:
 - matchNamespaces:
@@ -697,15 +710,15 @@ selectors:
     - "4026531833"
     - "4026531834"
 ```
-This will match if: ([`Pid` namespace is `4026531836`] `OR` [`Pid` namespace is
+
+This matches if: ([`Pid` namespace is `4026531836`] `OR` [`Pid` namespace is
 `4026531835`]) `AND` ([`Mnt` namespace is `4026531833`] `OR` [`Mnt` namespace
 is `4026531834`])
 
+#### Host namespace access (`host_ns`)
 
-**Use cases examples**
-
-> Generate a kprobe event if `/etc/shadow` was opened by `/bin/cat` which
-> either had host `Net` or `Mnt` namespace access
+Generate a kprobe event if `/etc/shadow` was opened by `/bin/cat` which either
+had host `Net` or `Mnt` namespace access:
 
 ```yaml
 apiVersion: cilium.io/v1alpha1
@@ -755,6 +768,7 @@ spec:
 This example has 2 `selectors`. Note that each selector starts with `-`.
 
 Selector 1:
+
 ```yaml
         - matchBinaries:
           - operator: "In"
@@ -771,7 +785,9 @@ Selector 1:
             values:
             - "host_ns"
 ```
+
 Selector 2:
+
 ```yaml
         - matchBinaries:
           - operator: "In"
@@ -799,10 +815,8 @@ So the previous CRD will match if:
 `[`binary == /bin/cat `AND` arg1 == /etc/shadow `AND` MntNs == host`]` `OR`
 `[`binary == /bin/cat `AND` arg1 == /etc/shadow `AND` NetNs is host`]`
 
-We can modify the previous example as follows:
-
-> Generate a kprobe event if `/etc/shadow` was opened by `/bin/cat` which has
-> host `Net` and `Mnt` namespace access
+Generate a kprobe event if `/etc/shadow` was opened by `/bin/cat` which has
+host `Net` **and** `Mnt` namespace access (single selector):
 
 ```yaml
 apiVersion: cilium.io/v1alpha1
@@ -843,7 +857,6 @@ Here we have a single selector. This CRD will match if:
 
 `[`binary == /bin/cat `AND` arg1 == /etc/shadow `AND` `(`MntNs == host `AND`
 NetNs == host`)` `]`
-
 ## Capabilities filter
 
 Capabilities filters can be specified under the `matchCapabilities` field and
