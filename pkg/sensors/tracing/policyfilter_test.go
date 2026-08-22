@@ -6,8 +6,10 @@
 package tracing
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,12 +24,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/build"
 	tgcgroups "github.com/cilium/tetragon/pkg/cgroups"
+	"github.com/cilium/tetragon/pkg/config"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -342,6 +346,150 @@ func TestUprobeNamespacedPolicy(t *testing.T) {
 	}
 	err := sm.Manager.AddTracingPolicy(ctx, &upPolicyConf)
 	require.ErrorContains(t, err, "uprobe")
+}
+
+func TestLsmNamespacedPolicyClearsPostState(t *testing.T) {
+	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
+		t.Skip("BPF LSM programs are not supported on this kernel")
+	}
+	build.SkipIfK8sDisabled(t)
+
+	oldEnableK8s := option.Config.EnableK8s
+	option.Config.EnableK8s = true
+	t.Cleanup(func() {
+		option.Config.EnableK8s = oldEnableK8s
+	})
+
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	err := observer.InitDataCache(1024)
+	require.NoError(t, err)
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	err = confmap.UpdateTgRuntimeConf(bpf.MapPrefixPath(), os.Getpid())
+	require.NoError(t, err)
+
+	policyfilter.TestingEnableAndReset(t)
+
+	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tuo.GetTestSensorManager(t)
+
+	matchingProcess := newCgroupShell(t, ctx)
+	nonMatchingProcess := newCgroupShell(t, ctx)
+
+	var availableCPUs unix.CPUSet
+	require.NoError(t, unix.SchedGetaffinity(0, &availableCPUs))
+	cpu := -1
+	for i := 0; i < 1024; i++ {
+		if availableCPUs.IsSet(i) {
+			cpu = i
+			break
+		}
+	}
+	require.NotEqual(t, -1, cpu, "no available CPU found")
+
+	var affinity unix.CPUSet
+	affinity.Set(cpu)
+	require.NoError(t, unix.SchedSetaffinity(matchingProcess.pid(), &affinity))
+	require.NoError(t, unix.SchedSetaffinity(nonMatchingProcess.pid(), &affinity))
+
+	now := time.Now().Format("20060102150405")
+	matchingCgID := createCgroup(t, fmt.Sprintf("%s.matching.%s.slice", t.Name(), now), uint64(matchingProcess.pid()))
+	nonMatchingCgID := createCgroup(t, fmt.Sprintf("%s.nonmatching.%s.slice", t.Name(), now), uint64(nonMatchingProcess.pid()))
+
+	pfState, err := policyfilter.GetState()
+	require.NoError(t, err)
+	t.Cleanup(func() { pfState.Close() })
+
+	targetFile := filepath.Join(t.TempDir(), "target")
+	require.NoError(t, os.WriteFile(targetFile, []byte("test"), 0o600))
+
+	policy := &tracingpolicy.GenericTracingPolicyNamespaced{
+		Metadata: v1.ObjectMeta{
+			Name:      "lsm-policy-filter-test",
+			Namespace: "ns1",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			LsmHooks: []v1alpha1.LsmHookSpec{{
+				Hook: "file_open",
+				Args: []v1alpha1.KProbeArg{{Index: 0, Type: "file"}},
+				Selectors: []v1alpha1.KProbeSelector{{
+					MatchArgs: []v1alpha1.ArgSelector{{
+						Index:    0,
+						Operator: "Equal",
+						Values:   []string{targetFile},
+					}},
+					MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}},
+				}},
+			}},
+		},
+	}
+	err = sm.Manager.AddTracingPolicy(ctx, policy)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		sm.Manager.DeleteTracingPolicy(ctx, policy.TpName(), policy.TpNamespace(), policy.TpDomain())
+	})
+	err = pfState.AddPodContainer(policyfilter.PodID(uuid.New()), "ns1", nil,
+		"matching-container", matchingCgID, podhelpers.ContainerInfo{Name: "matching-container", Repo: "test"})
+	require.NoError(t, err)
+	err = pfState.AddPodContainer(policyfilter.PodID(uuid.New()), "ns2", nil,
+		"non-matching-container", nonMatchingCgID, podhelpers.ContainerInfo{Name: "non-matching-container", Repo: "test"})
+	require.NoError(t, err)
+
+	events := perfring.RunTestEvents(t, ctx, func() {
+		matchingProcess.run(t, fmt.Sprintf("cat %q >/dev/null", targetFile))
+		for range 5 {
+			nonMatchingProcess.run(t, "cat /dev/null >/dev/null")
+		}
+	})
+
+	count := 0
+	for _, event := range events {
+		if lsm, ok := event.(*tracing.MsgGenericLsmUnix); ok &&
+			lsm.Hook == "file_open" && lsm.PolicyName == policy.TpName() {
+			count++
+		}
+	}
+	require.Equal(t, 1, count)
+}
+
+// cgroupShell is a long-running shell used to run commands from a cgroup.
+type cgroupShell struct {
+	cmd    *exec.Cmd
+	stdin  io.WriteCloser
+	stdout *bufio.Reader
+}
+
+//revive:disable:context-as-argument
+func newCgroupShell(t *testing.T, ctx context.Context) *cgroupShell {
+	cmd := exec.CommandContext(ctx, "/bin/sh")
+	stdin, err := cmd.StdinPipe()
+	require.NoError(t, err)
+	stdout, err := cmd.StdoutPipe()
+	require.NoError(t, err)
+	require.NoError(t, cmd.Start())
+	t.Cleanup(func() {
+		stdin.Close()
+		cmd.Wait()
+	})
+	return &cgroupShell{cmd: cmd, stdin: stdin, stdout: bufio.NewReader(stdout)}
+}
+
+//revive:enable:context-as-argument
+
+func (shell *cgroupShell) pid() int {
+	return shell.cmd.Process.Pid
+}
+
+// run executes command and returns only after it has exited.
+func (shell *cgroupShell) run(t *testing.T, command string) {
+	_, err := fmt.Fprintf(shell.stdin, "%s; echo done\n", command)
+	require.NoError(t, err)
+	line, err := shell.stdout.ReadString('\n')
+	require.NoError(t, err)
+	require.Equal(t, "done\n", line)
 }
 
 // TestUsdtNamespacedPolicy verifies a namespaced policy may not attach a usdt
