@@ -6253,7 +6253,7 @@
                 "type": "array"
               },
               "binaryDigests": {
-                "description": "BinaryDigests specifies a set of digests for the traced binary.\nThe uprobe/hook is installed only if the digest of the traced binary matches a digest in the set.\nTetragon's tracing policy status API can be used to see each hook's status in order to determine\nif the hook was attached or not.",
+                "description": "BinaryDigests specifies a set of digests for the traced binary.\nThe uprobe/hook is installed only if the digest of the traced binary matches a digest in the set.\nTetragon's tracing policy status API can be used to see each hook's status in order to determine\nif the hook was attached or not.\nFor a regular uprobe a mismatch rejects the policy at load; for a\nresolvePathInContainer uprobe the digest is checked per container and a\nmismatching container is skipped without failing the policy.",
                 "items": {
                   "type": "string"
                 },
@@ -6413,6 +6413,11 @@
                   "type": "integer"
                 },
                 "type": "array"
+              },
+              "resolvePathInContainer": {
+                "default": false,
+                "description": "ResolvePathInContainer resolves Path in the root filesystem of each\ncontainer selected by the policy's podSelector and attaches the uprobe\nper matching container, instead of in the agent's mount namespace.\nRequires a podSelector; container roots are resolved via runtime hooks\nand/or CRI.",
+                "type": "boolean"
               },
               "return": {
                 "default": false,
@@ -8601,6 +8606,16 @@
         }
       },
       "type": "object",
+      "x-kubernetes-validations": [
+        {
+          "message": "uprobe resolvePathInContainer requires a podSelector",
+          "rule": "!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer) || has(self.podSelector)"
+        },
+        {
+          "message": "uprobe resolvePathInContainer cannot be combined with a containerSelector",
+          "rule": "!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer) || !has(self.containerSelector)"
+        }
+      ],
       "additionalProperties": false
     }
   },

@@ -7,6 +7,7 @@ package tracing
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto"
 	"encoding/binary"
@@ -93,9 +94,12 @@ type uprobeLoadArgs struct {
 }
 
 type genericUprobe struct {
-	loadArgs     uprobeLoadArgs
-	tableId      idtable.EntryID
-	targetPath   string
+	loadArgs uprobeLoadArgs
+	tableId  idtable.EntryID
+	// targetPath is the binary path reported in events.
+	targetPath string
+	// linkPath is the attach path; differs from targetPath when linking by fd
+	// or when resolvePathInContainer resolved the target in a container.
 	linkPath     string
 	symbol       string
 	address      uint64
@@ -322,8 +326,14 @@ func getUprobeProgramSelector(load *program.Program, uprobeEntry *genericUprobe)
 }
 
 func checkSymbol(sym string) error {
-	_, _, err := parseSymbol(sym)
-	return err
+	name, _, err := parseSymbol(sym)
+	if err != nil {
+		return err
+	}
+	if name == "" {
+		return errors.New("uprobe symbol must not be empty")
+	}
+	return nil
 }
 
 func resolveSymbol(sym string) (string, uint64) {
@@ -457,8 +467,11 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 }
 
 type addUprobeIn struct {
-	policyName        string
-	policyID          policyfilter.PolicyID
+	policyName string
+	policyID   policyfilter.PolicyID
+	// attachPath overrides the attach/ELF-parse path; spec.Path is still
+	// reported in events. Set per-uprobe for resolvePathInContainer.
+	attachPath        string
 	celExprs          *selectors.CelExprFunctions
 	selectorStatsBase uint32
 }
@@ -535,7 +548,11 @@ type uprobeConfigState struct {
 
 	policyName string
 
+	// entryFile, when set, links the uprobe by file descriptor (TOCTOU-safe)
+	// and is the ELF source.
 	entryFile *os.File
+	// attachPath is addUprobeIn.attachPath for the uprobe being built.
+	attachPath string
 }
 
 type uprobeArgConfig struct {
@@ -554,6 +571,10 @@ type uprobeArgConfig struct {
 }
 
 func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) error {
+	if spec.Path == "" {
+		return errors.New("uprobe path must not be empty")
+	}
+
 	state.symbols = len(spec.Symbols)
 	state.offsets = len(spec.Offsets)
 	state.addrs = len(spec.Addrs)
@@ -582,6 +603,10 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		if state.offsets != 0 && state.offsets != state.refCtrOffsets {
 			return fmt.Errorf("RefCtrOffsets(%d) has different dimension than Offsets(%d)",
 				state.refCtrOffsets, state.offsets)
+		}
+		if state.addrs != 0 && state.addrs != state.refCtrOffsets {
+			return fmt.Errorf("RefCtrOffsets(%d) has different dimension than Addrs(%d)",
+				state.refCtrOffsets, state.addrs)
 		}
 	}
 
@@ -655,7 +680,8 @@ func computeArgNewOffset(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAd
 }
 
 func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigState, f *elf.SafeELFFile) (int64, error) {
-	if !state.overrideSymbol {
+	// f is nil on the validation-only path; the delta is computed at attach.
+	if !state.overrideSymbol || f == nil {
 		return 0, nil
 	}
 
@@ -750,7 +776,20 @@ func cleanupUprobeEntries(ids []idtable.EntryID, openedFiles map[string]*os.File
 	return errs
 }
 
+func checkDigestTarget(file *os.File) error {
+	fi, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("stat digest target: %w", err)
+	}
+	// Same rule as the resolver, and the same sentinels, so the reconciler
+	// classifies a rejected digest target as an expected skip too.
+	return checkTargetFile("digest target", fi.Mode().IsRegular(), fi.Size())
+}
+
 func computeHash(algo string, file *os.File) (string, error) {
+	if err := checkDigestTarget(file); err != nil {
+		return "", err
+	}
 	if algo == "build-id" {
 		// There is no need to call safeELF.Close() because that function only closes the underlying *os.File.
 		// Further, safeELF.Close() won't attempt to close the underlying file when the SafeELFFile is created with
@@ -783,9 +822,16 @@ func computeHash(algo string, file *os.File) (string, error) {
 		return "", fmt.Errorf("unsupported digest algorithm '%s'", algo)
 	}
 
+	// Bound the read rather than trusting the size checkDigestTarget saw: a
+	// container can keep appending to the same inode after the stat, which
+	// would hash forever while the reconciler holds its lock.
 	h := hashType.New()
-	if _, err := io.Copy(h, file); err != nil {
+	read, err := io.Copy(h, io.LimitReader(file, maxTargetFileSize+1))
+	if err != nil {
 		return "", fmt.Errorf("failed to calculate digest: %w", err)
+	}
+	if read > maxTargetFileSize {
+		return "", fmt.Errorf("digest target grew past %d bytes while hashing", maxTargetFileSize)
 	}
 
 	return hex.EncodeToString(h.Sum(nil)), nil
@@ -794,11 +840,13 @@ func computeHash(algo string, file *os.File) (string, error) {
 // verifyFileDigest verifies that an open file's digest matches the configured digest.
 // digestConfig format is "<algo>:<hash>" (e.g., "sha256:abc123..." or "build-id:deadbeef...")
 func verifyFileDigest(file *os.File, digestConfig string, fileHashCache map[string]string) (retErr error) {
+	digestConfig = strings.TrimSpace(digestConfig)
 	if digestConfig == "" {
-		return nil
+		// An empty entry must not count as verified: it would let
+		// binaryDigests:[""] (or a trailing "") bypass verification entirely.
+		return errors.New("empty binaryDigests entry")
 	}
 
-	digestConfig = strings.TrimSpace(digestConfig)
 	algo, expectedHash, found := strings.Cut(digestConfig, ":")
 	if !found {
 		return fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digestConfig)
@@ -884,10 +932,160 @@ func ignoreDigestVerificationFailure(uprobe *v1alpha1.UProbeSpec) bool {
 	return uprobe.Ignore.DigestVerificationFailure
 }
 
+// hasResolvePathInContainer reports whether any uprobe in the spec opts into
+// per-container path resolution.
+func hasResolvePathInContainer(spec *v1alpha1.TracingPolicySpec) bool {
+	for i := range spec.UProbes {
+		if spec.UProbes[i].ResolvePathInContainer {
+			return true
+		}
+	}
+	return false
+}
+
+// digestHashLen maps a supported digest algorithm to its hex-encoded length;
+// 0 means variable (a build ID identifies a build and has no fixed size).
+var digestHashLen = map[string]int{
+	"sha1":     40,
+	"sha256":   64,
+	"sha384":   96,
+	"sha512":   128,
+	"build-id": 0,
+}
+
+// validateBinaryDigests checks that each digest is well-formed
+// "<algo>:<value>" with a supported algorithm, so a malformed digest is
+// rejected at policy load rather than silently failing every per-container
+// attach. build-id identifies a build; the sha* algorithms hash contents.
+func validateBinaryDigests(digests []string) error {
+	for _, d := range digests {
+		d = strings.TrimSpace(d)
+		if d == "" {
+			return errors.New("empty binaryDigests entry")
+		}
+		algo, value, found := strings.Cut(d, ":")
+		if !found {
+			return fmt.Errorf("invalid digest %q, expected '<algo>:<value>'", d)
+		}
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return fmt.Errorf("digest %q has an empty value", d)
+		}
+		// Values are compared against a hex-encoded hash or build ID, so a
+		// non-hex or wrong-length value can never match: reject it here rather
+		// than have every container hash and mismatch forever.
+		hashLen, ok := digestHashLen[strings.ToLower(strings.TrimSpace(algo))]
+		if !ok {
+			return fmt.Errorf("unsupported digest algorithm %q", algo)
+		}
+		if _, err := hex.DecodeString(value); err != nil {
+			return fmt.Errorf("digest %q value is not hex-encoded", d)
+		}
+		if hashLen != 0 && len(value) != hashLen {
+			return fmt.Errorf("digest %q value must be %d hex characters", d, hashLen)
+		}
+	}
+	return nil
+}
+
+// errNamespacedRICNoContainment rejects a namespaced resolvePathInContainer
+// policy on a kernel without openat2 containment: the policy is tenant-writable
+// and the lexical fallback would let a symlink in the container redirect the
+// attach to a host binary.
+var errNamespacedRICNoContainment = errors.New(
+	"resolvePathInContainer in a namespaced tracing policy requires openat2(RESOLVE_IN_ROOT) to confine resolution to the container (kernel 5.6+)")
+
+// preValidateUprobes validates a uprobe policy spec before any sensor is
+// created. It is the uprobe analogue of preValidateKprobes. namespace is the
+// policy's namespace, empty for a cluster-wide policy. The podSelector and
+// containerSelector rules are also enforced by CEL on TracingPolicySpec
+// (see pkg/k8s/apis/cilium.io/v1alpha1/tracing_policy_types.go); this covers
+// specs that never pass through API-server validation.
+func preValidateUprobes(spec *v1alpha1.TracingPolicySpec, namespace string) error {
+	ric := 0
+	for i := range spec.UProbes {
+		if !spec.UProbes[i].ResolvePathInContainer {
+			continue
+		}
+		ric++
+		// resolvePathInContainer needs a podSelector to know which containers
+		// to attach to.
+		if spec.PodSelector == nil {
+			return fmt.Errorf("uprobe[%d]: resolvePathInContainer requires a podSelector", i)
+		}
+		// The reconciler matches pods only: with a containerSelector it would
+		// still resolve, parse and attach in excluded containers (and charge
+		// them against the per-policy cap), so reject the combination instead
+		// of attaching more widely than the policy asks for.
+		if spec.ContainerSelector != nil {
+			return fmt.Errorf("uprobe[%d]: resolvePathInContainer does not support containerSelector", i)
+		}
+		// Regular uprobes verify digests at load; RIC verifies per container at
+		// attach, so a malformed digest would otherwise load Enabled and then
+		// silently never attach. Validate the format eagerly here.
+		if err := validateBinaryDigests(spec.UProbes[i].BinaryDigests); err != nil {
+			return fmt.Errorf("uprobe[%d]: %w", i, err)
+		}
+	}
+	// Child sensors rebuild policy-wide state from the RIC uprobes alone,
+	// which would clash with the main sensor's state in a mixed policy.
+	if ric > 0 && ric != len(spec.UProbes) {
+		return errors.New("resolvePathInContainer uprobes cannot be mixed with regular uprobes in the same policy")
+	}
+	// A cluster-wide policy is written by an admin, so the lexical fallback is
+	// documented and accepted there; a namespaced one is not. Fail the load
+	// rather than attach outside the tenant's containers.
+	if ric > 0 && namespace != "" && !hasOpenat2InRoot() {
+		return errNamespacedRICNoContainment
+	}
+
+	for i := range spec.UProbes {
+		if !spec.UProbes[i].ResolvePathInContainer {
+			continue
+		}
+
+		// Macro expansion mutates selectors. Validate a deep copy so child
+		// sensors can expand the unchanged policy spec when they are built.
+		uprobe := spec.UProbes[i].DeepCopy()
+		if err := appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
+			return fmt.Errorf("uprobe[%d]: append macros selectors: %w", i, err)
+		}
+		if err := validateUprobeConfig(uprobe, &addUprobeIn{}, &uprobeHas{}); err != nil {
+			return fmt.Errorf("uprobe[%d]: %w", i, err)
+		}
+	}
+	return nil
+}
+
+type uprobeAttachOverride struct {
+	attachPath        string
+	selectorStatsBase uint32
+}
+
+// uprobeSelectorStatsBases returns each uprobe's base slot in the policy-wide
+// selector-stats map (len(Selectors) slots in spec order); RIC child sensors
+// reuse the parent bases so their stats land in the parent-owned map.
+func uprobeSelectorStatsBases(spec *v1alpha1.TracingPolicySpec) []uint32 {
+	if spec == nil {
+		return nil
+	}
+	bases := make([]uint32, len(spec.UProbes))
+	var base uint32
+	for i := range spec.UProbes {
+		bases[i] = base
+		base += uint32(len(spec.UProbes[i].Selectors))
+	}
+	return bases
+}
+
+// createGenericUprobeSensor builds the uprobe sensor for spec. attachOverrides
+// overrides attach paths and selector-stats bases by uprobe index (used by
+// RIC child sensors).
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
 	polInfo *policyInfo,
+	attachOverrides map[int]uprobeAttachOverride,
 ) (retSensor *sensors.Sensor, retErr error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -934,14 +1132,23 @@ func createGenericUprobeSensor(
 
 	var disableNotAllowedReason string
 
-	var selectorStatsBase uint32
+	selectorStatsBases := uprobeSelectorStatsBases(spec)
 	for cfgIdx, uprobe := range spec.UProbes {
+		// Skip RIC uprobes: Path lives inside the selected containers; the
+		// reconciler attaches them via per-container child sensors.
+		if uprobe.ResolvePathInContainer {
+			continue
+		}
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
 
-		in.selectorStatsBase = selectorStatsBase
-		selectorStatsBase += uint32(len(uprobe.Selectors))
+		in.selectorStatsBase = selectorStatsBases[cfgIdx]
+		in.attachPath = ""
+		if override, ok := attachOverrides[cfgIdx]; ok {
+			in.selectorStatsBase = override.selectorStatsBase
+			in.attachPath = override.attachPath
+		}
 
 		absPath, err := filepath.Abs(uprobe.Path)
 		if err != nil {
@@ -957,7 +1164,13 @@ func createGenericUprobeSensor(
 			// The file for that descriptor is closed after sensor load, so we cannot
 			// allow the sensor to be enabled (re-loaded) after being disabled
 			disableNotAllowedReason = disableNotAllowedReasonBinaryDigests
-			entryFile, err = getOrOpenFile(absPath, openedFiles)
+			// For resolvePathInContainer, the binary lives inside the container;
+			// in.attachPath is the resolved, inode-pinned path (/proc/self/fd/N),
+			// so the digest is verified against the actual container binary and
+			// the same fd is used to attach, not a same-named file in the agent's
+			// mount namespace.
+			digestPath := cmp.Or(in.attachPath, absPath)
+			entryFile, err = getOrOpenFile(digestPath, openedFiles)
 			if err != nil {
 				return nil, err
 			}
@@ -992,6 +1205,8 @@ func createGenericUprobeSensor(
 		}
 	}
 
+	// A pure resolvePathInContainer policy carries only the reconciler hooks;
+	// build programs and maps only when there is at least one uprobe.
 	if len(ids) != 0 {
 		if useMulti {
 			progs, maps, err = createMultiUprobeSensor(polInfo, name, ids, has)
@@ -1013,7 +1228,7 @@ func createGenericUprobeSensor(
 		}
 	}
 
-	return &sensors.Sensor{
+	sensor := &sensors.Sensor{
 		Name:                    name,
 		Progs:                   progs,
 		Maps:                    maps,
@@ -1034,7 +1249,12 @@ func createGenericUprobeSensor(
 			return errs
 		},
 		NoHooksAttached: len(ids) == 0,
-	}, nil
+	}
+
+	// Wire the per-container reconciler for RIC uprobes; no-op in nok8s builds.
+	setupResolvePathInContainer(sensor, spec, polInfo)
+
+	return sensor, nil
 }
 
 func initUprobeMisc(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) error {
@@ -1066,7 +1286,6 @@ func initUprobeArgs(spec *v1alpha1.UProbeSpec, has *uprobeHas, in *addUprobeIn, 
 	eventConfig.ArgIndex = argCfg.argIdx
 	eventConfig.BTFArg = argCfg.allBTFArgs
 	eventConfig.RegArg = argCfg.regArg
-
 	setRetprobe, argReturnPrinters, err := getUprobeReturnArg(spec, argCfg, eventConfig)
 	if err != nil {
 		return err
@@ -1246,18 +1465,19 @@ func getUprobeReturnArg(spec *v1alpha1.UProbeSpec, argCfg uprobeArgConfig, event
 	return setRetprobe, argReturnPrinters, nil
 }
 
-func procSelfFDPath(f *os.File) string {
-	return filepath.Join("/proc", "self", "fd", strconv.FormatUint(uint64(f.Fd()), 10))
+func procSelfFDPath(fd uintptr) string {
+	return filepath.Join("/proc", "self", "fd", strconv.FormatUint(uint64(fd), 10))
 }
 
 // getLinkPath returns the path to use for the uprobe link. If a file is provided, it returns the /proc/self/fd path to that file.
-// Otherwise it returns the path specificed in the urpobe spec.
 // This trick allows us to avoid a TOCTOU race where the target binary is modified after we create the sensor, but before we load it.
-func getLinkPath(file *os.File, targetPath string) string {
+// Otherwise, if attachPath is set (resolvePathInContainer), it returns that resolved path.
+// Otherwise it returns the path specificed in the urpobe spec.
+func getLinkPath(file *os.File, attachPath, targetPath string) string {
 	if file != nil {
-		return procSelfFDPath(file)
+		return procSelfFDPath(file.Fd())
 	}
-	return targetPath
+	return cmp.Or(attachPath, targetPath)
 }
 
 func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *uprobeConfigState, f *elf.SafeELFFile) ([]idtable.EntryID, error) {
@@ -1277,7 +1497,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 			},
 			tableId:           idtable.UninitializedEntryID,
 			targetPath:        spec.Path,
-			linkPath:          getLinkPath(state.entryFile, spec.Path),
+			linkPath:          getLinkPath(state.entryFile, state.attachPath, spec.Path),
 			symbol:            sym,
 			address:           offset,
 			refCtrOffset:      refCtrOffset,
@@ -1309,9 +1529,6 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 			return ids, fmt.Errorf("failed to parse pclntab: %w", err)
 		}
 		for idx, sym := range spec.Symbols {
-			if err := checkSymbol(sym); err != nil {
-				return ids, fmt.Errorf("failed to parse symbol: %w", err)
-			}
 			off, ok := tbl.OffsetByName(sym)
 			if !ok {
 				return ids, fmt.Errorf("failed to resolve symbol: %w", err)
@@ -1323,9 +1540,6 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 		}
 	} else if state.symbols != 0 {
 		for idx, sym := range spec.Symbols {
-			if err := checkSymbol(sym); err != nil {
-				return ids, fmt.Errorf("failed to parse symbol: %w", err)
-			}
 			err := addUprobeEntry(sym, 0, idx)
 			if err != nil {
 				return ids, err
@@ -1354,60 +1568,101 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 	return ids, nil
 }
 
-func addUprobe(spec *v1alpha1.UProbeSpec, entryFile *os.File, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) (retIDs []idtable.EntryID, retErr error) {
-	state := uprobeConfigState{
+func cleanupUprobeConfig(state *uprobeConfigState) error {
+	if state == nil {
+		return nil
+	}
+	return errors.Join(
+		selectors.CleanupKernelSelectorState(state.selectors.entry),
+		selectors.CleanupKernelSelectorState(state.selectors.retrn),
+	)
+}
+
+// initUprobeConfig performs uprobe validation and initialization. f may be
+// nil when the traced ELF is not available (validation-only); ELF-dependent
+// setup (Override IP delta) is skipped in that case. The returned selector
+// state is owned by the caller and must either be attached to uprobe entries
+// or cleaned up.
+func initUprobeConfig(spec *v1alpha1.UProbeSpec, in *addUprobeIn, has *uprobeHas, f *elf.SafeELFFile, nextIdx int) (retState *uprobeConfigState, retErr error) {
+	state := &uprobeConfigState{
 		policyName: in.policyName,
-		entryFile:  entryFile,
+		attachPath: in.attachPath,
 	}
 
 	defer func() {
 		if retErr != nil {
-			if cleanupErr := selectors.CleanupKernelSelectorState(state.selectors.entry); cleanupErr != nil {
-				retErr = errors.Join(retErr, cleanupErr)
-			}
-			if cleanupErr := selectors.CleanupKernelSelectorState(state.selectors.retrn); cleanupErr != nil {
-				retErr = errors.Join(retErr, cleanupErr)
-			}
+			retErr = errors.Join(retErr, cleanupUprobeConfig(state))
 		}
 	}()
 
-	var f *elf.SafeELFFile
-	var err error
-	if state.entryFile != nil {
-		f, err = elf.NewSafeELFFile(state.entryFile)
-	} else {
-		f, err = elf.OpenSafeELFFile(spec.Path)
-	}
-
-	if err != nil {
-		return ids, err
-	}
-
-	if state.entryFile == nil {
-		defer f.Close()
-	}
-
-	if err := validateUprobeSpec(spec, &state); err != nil {
-		return ids, err
+	if err := validateUprobeSpec(spec, state); err != nil {
+		return nil, err
 	}
 
 	if err := validateUprobeFeatures(spec, has); err != nil {
-		return ids, err
+		return nil, err
 	}
 
-	if err := initUprobeSelectors(spec, in, &state, f, len(ids)); err != nil {
-		return ids, err
+	for _, sym := range spec.Symbols {
+		if err := checkSymbol(sym); err != nil {
+			return nil, fmt.Errorf("failed to parse symbol: %w", err)
+		}
 	}
 
-	if err := initUprobeMisc(spec, &state); err != nil {
-		return ids, err
+	if err := initUprobeSelectors(spec, in, state, f, nextIdx); err != nil {
+		return nil, err
 	}
 
-	if err := initUprobeArgs(spec, has, in, &state); err != nil {
-		return ids, err
+	if err := initUprobeMisc(spec, state); err != nil {
+		return nil, err
 	}
 
-	return addUprobeEntries(spec, ids, &state, f)
+	if err := initUprobeArgs(spec, has, in, state); err != nil {
+		return nil, err
+	}
+
+	return state, nil
+}
+
+func validateUprobeConfig(spec *v1alpha1.UProbeSpec, in *addUprobeIn, has *uprobeHas) error {
+	state, err := initUprobeConfig(spec, in, has, nil, 0)
+	if err != nil {
+		return err
+	}
+	return cleanupUprobeConfig(state)
+}
+
+func addUprobe(spec *v1alpha1.UProbeSpec, entryFile *os.File, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) (retIDs []idtable.EntryID, retErr error) {
+	var f *elf.SafeELFFile
+	var err error
+	if entryFile != nil {
+		f, err = elf.NewSafeELFFile(entryFile)
+	} else {
+		// Parse the ELF from the attach path: the in-container Path is not
+		// visible in the agent's mount namespace.
+		elfPath := cmp.Or(in.attachPath, spec.Path)
+		f, err = elf.OpenSafeELFFile(elfPath)
+	}
+	if err != nil {
+		return ids, err
+	}
+	if entryFile == nil {
+		defer f.Close()
+	}
+
+	state, err := initUprobeConfig(spec, in, has, f, len(ids))
+	if err != nil {
+		return ids, err
+	}
+	state.entryFile = entryFile
+
+	defer func() {
+		if retErr != nil {
+			retErr = errors.Join(retErr, cleanupUprobeConfig(state))
+		}
+	}()
+
+	return addUprobeEntries(spec, ids, state, f)
 }
 
 func multiUprobePinPath(sensorPath string) string {

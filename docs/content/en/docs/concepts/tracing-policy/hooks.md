@@ -438,6 +438,137 @@ post-installation, they need to reload the policy after installation in
 order to attach to the new version of the binary.
 {{< /caution >}}
 
+### Resolving paths inside other pods
+
+By default the `path` of a uprobe is opened in the Tetragon agent's own mount
+namespace. In Kubernetes the kernel is shared across pods but filesystems are
+not, so the agent cannot see a library such as `libpam.so` that lives inside
+another pod, and registering the policy fails.
+
+Setting `resolvePathInContainer: true` changes this: `path` is interpreted relative
+to the root filesystem of each container selected by the policy's
+`podSelector`, and the uprobe is attached
+per matching container. Pods that start after the policy is applied are
+attached automatically, and the uprobe is detached when a pod stops. A
+`podSelector` is required when `resolvePathInContainer` is set, and a policy
+cannot mix `resolvePathInContainer` uprobes with regular uprobes.
+
+To do this the agent resolves each container's root filesystem from the
+container runtime, so the feature requires at least one of the following to be
+enabled:
+
+- **Runtime (OCI/NRI) hooks** resolve containers created *after* the policy is
+  applied. See [Configure Runtime Hooks]({{< ref "/docs/installation/runtime-hooks" >}}).
+- **CRI** (agent flag `--enable-cri`, Helm value `tetragon.cri.enabled`)
+  additionally discovers and resolves containers that already exist when the
+  policy loads.
+
+Enabling CRI is recommended, as it covers both already-running and newly created
+containers; runtime hooks alone cover only containers created after the policy
+is applied. If neither is enabled, containers cannot be resolved: they are
+skipped and a warning is logged once when the policy loads.
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-pod"
+spec:
+  podSelector:
+    matchLabels:
+      app: sshd
+  uprobes:
+  - path: "/usr/lib64/libpam.so.0.85.1"
+    symbols:
+    - "pam_authenticate"
+    resolvePathInContainer: true
+```
+
+Because uprobes are tied to a specific binary version, the `path` and symbol
+must exist in the selected containers' images; a container missing the path is
+skipped without failing the policy for the other containers. The skip is
+logged at debug level (enable debug logging to see why a container was not
+attached); unexpected resolution errors are logged as warnings.
+
+A policy attaches to at most 1000 matching containers; further containers are
+skipped (with a one-time warning) until others detach.
+
+`binaryDigests` can be combined with `resolvePathInContainer`: the digest is
+verified against the binary resolved inside each container, so each container is
+attached only if its binary matches one of the configured digests. A container
+whose binary does not match is skipped, like a container missing the path,
+without failing the policy for the other containers. Prefer a `sha256` (or
+other `sha*`) digest here: `build-id` identifies which build a binary came from
+and is not a cryptographic check of its contents.
+
+A `containerSelector` cannot be combined with `resolvePathInContainer`: the
+uprobe is attached in every matching pod's containers, so a policy that needs
+to narrow the selection to specific containers is rejected at load.
+
+{{< note >}}
+On kernels older than 5.6 (no `openat2` with `RESOLVE_IN_ROOT`), in-container
+paths are resolved without symlink containment: a symlink inside the container
+can redirect the resolved path outside the container's root filesystem. Kernel
+5.6 or newer is recommended for this feature, and required for
+`TracingPolicyNamespaced` (see below).
+{{< /note >}}
+
+#### Use in a namespaced policy
+
+`resolvePathInContainer` is the only form of uprobe a
+`TracingPolicyNamespaced` may use. A regular uprobe resolves its `path` in the
+Tetragon agent's own mount namespace, which is outside the tenant's scope, so a
+namespaced policy containing one is rejected at load. With
+`resolvePathInContainer` the path resolves under each selected container's root
+instead, and the policy only ever selects pods in its own namespace.
+
+A namespaced policy must still set a `podSelector`; use `{}` to select every pod
+in the namespace:
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicyNamespaced
+metadata:
+  name: "uprobe-pod"
+  namespace: "tenant"
+spec:
+  podSelector: {}
+  uprobes:
+  - path: "/usr/lib64/libpam.so.0.85.1"
+    symbols:
+    - "pam_authenticate"
+    resolvePathInContainer: true
+```
+
+A namespaced policy is writable by the tenant, so path resolution must stay
+inside the container. That containment comes from `openat2` with
+`RESOLVE_IN_ROOT`, so on kernels older than 5.6 a namespaced
+`resolvePathInContainer` policy is rejected at load rather than resolved with
+the uncontained fallback described above. Cluster-scoped policies are written by
+a cluster administrator and keep the fallback.
+
+{{< caution >}}
+A uprobe attaches to an inode. If a binary from the host is bind-mounted into a
+selected pod (for example through a `hostPath` volume), the path resolves to the
+*host's* inode and the probe fires for every process on the node that runs it.
+Events and enforcement actions are still confined to the policy's own pods by
+the policy filter, so nothing leaks across namespaces, but the probe's overhead
+is node-wide. Restrict `hostPath` volumes (for example with Pod Security
+admission) in namespaces where tenants can write tracing policies.
+{{< /caution >}}
+
+{{< note >}}
+If your goal is to observe authentication or privilege changes (who logged in,
+success or failure, identity) rather than a specific user-space function's
+behavior, consider kernel-side kprobe/LSM policies instead (for example the
+`security_bprm_committed_creds` LSM hook and process-credential monitoring).
+Kernel hooks are namespace-agnostic — one policy covers all pods with no
+per-container path resolution — and are not tied to a library version. Use
+`resolvePathInContainer` uprobes when you specifically need a user-space
+function's arguments or return value (such as the result of `pam_authenticate`)
+that the kernel cannot observe.
+{{< /note >}}
+
 ## USDTs
 
 Tetragon allows to attach and monitor USDT (User Statically-Defined Tracing) probes.

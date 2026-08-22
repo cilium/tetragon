@@ -18,6 +18,11 @@ func TestValidateNamespacedProbes(t *testing.T) {
 		Path:    "/procRoot/1/root/usr/lib/x86_64-linux-gnu/libc.so.6",
 		Symbols: []string{"mount"},
 	}
+	ricUprobe := v1alpha1.UProbeSpec{
+		Path:                   "/usr/lib/x86_64-linux-gnu/libc.so.6",
+		Symbols:                []string{"mount"},
+		ResolvePathInContainer: true,
+	}
 	usdt := v1alpha1.UsdtSpec{Path: "/bin/node", Provider: "test", Name: "usdt0"}
 
 	tests := []struct {
@@ -36,6 +41,18 @@ func TestValidateNamespacedProbes(t *testing.T) {
 			name:      "namespaced uprobe is rejected",
 			namespace: "tenant",
 			spec:      &v1alpha1.TracingPolicySpec{UProbes: []v1alpha1.UProbeSpec{uprobe}},
+			wantErr:   errNamespacedUprobe,
+		},
+		{
+			name:      "namespaced resolvePathInContainer uprobe is allowed",
+			namespace: "tenant",
+			spec:      &v1alpha1.TracingPolicySpec{UProbes: []v1alpha1.UProbeSpec{ricUprobe}},
+			wantErr:   nil,
+		},
+		{
+			name:      "namespaced uprobe mixed with resolvePathInContainer is rejected",
+			namespace: "tenant",
+			spec:      &v1alpha1.TracingPolicySpec{UProbes: []v1alpha1.UProbeSpec{ricUprobe, uprobe}},
 			wantErr:   errNamespacedUprobe,
 		},
 		{

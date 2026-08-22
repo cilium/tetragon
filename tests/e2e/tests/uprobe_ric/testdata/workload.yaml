@@ -1,0 +1,21 @@
+# Runs uprobe-simple in a loop. The test overrides the image at load time
+# with the -tetragon.tester-progs-image flag.
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: uprobe-ric
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: uprobe-ric
+  template:
+    metadata:
+      labels:
+        app: uprobe-ric
+    spec:
+      containers:
+      - name: uprobe-ric
+        image: cilium/tetragon-tester-progs:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c", "while true; do /usr/bin/uprobe-simple >/dev/null 2>&1; sleep 0.5; done"]
