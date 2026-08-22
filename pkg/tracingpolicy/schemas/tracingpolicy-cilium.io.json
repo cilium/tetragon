@@ -614,7 +614,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -709,6 +709,20 @@
                       },
                       "maxItems": 1,
                       "type": "array"
+                    },
+                    "matchCEL": {
+                      "description": "Match CEL expression. The CEL expression may include:\n argX (e.g., arg0) where X is the index of the argument in the Args array.\n dataX where X is the index of the data in the Data array.",
+                      "properties": {
+                        "expr": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "expr"
+                      ],
+                      "type": "object",
+                      "additionalProperties": false
                     },
                     "matchCapabilities": {
                       "description": "A list of capabilities and IDs",
@@ -818,7 +832,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -1160,7 +1174,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -2018,7 +2032,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -2113,6 +2127,20 @@
                       },
                       "maxItems": 1,
                       "type": "array"
+                    },
+                    "matchCEL": {
+                      "description": "Match CEL expression. The CEL expression may include:\n argX (e.g., arg0) where X is the index of the argument in the Args array.\n dataX where X is the index of the data in the Data array.",
+                      "properties": {
+                        "expr": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "expr"
+                      ],
+                      "type": "object",
+                      "additionalProperties": false
                     },
                     "matchCapabilities": {
                       "description": "A list of capabilities and IDs",
@@ -2222,7 +2250,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -2564,7 +2592,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -3156,7 +3184,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -3251,6 +3279,20 @@
                       },
                       "maxItems": 1,
                       "type": "array"
+                    },
+                    "matchCEL": {
+                      "description": "Match CEL expression. The CEL expression may include:\n argX (e.g., arg0) where X is the index of the argument in the Args array.\n dataX where X is the index of the data in the Data array.",
+                      "properties": {
+                        "expr": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "expr"
+                      ],
+                      "type": "object",
+                      "additionalProperties": false
                     },
                     "matchCapabilities": {
                       "description": "A list of capabilities and IDs",
@@ -3360,7 +3402,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -3702,7 +3744,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -4242,7 +4284,7 @@
                       "type": "integer"
                     },
                     "operator": {
-                      "description": "Filter operation.",
+                      "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                       "enum": [
                         "Equal",
                         "NotEqual",
@@ -4337,6 +4379,20 @@
                 },
                 "maxItems": 1,
                 "type": "array"
+              },
+              "matchCEL": {
+                "description": "Match CEL expression. The CEL expression may include:\n argX (e.g., arg0) where X is the index of the argument in the Args array.\n dataX where X is the index of the data in the Data array.",
+                "properties": {
+                  "expr": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "expr"
+                ],
+                "type": "object",
+                "additionalProperties": false
               },
               "matchCapabilities": {
                 "description": "A list of capabilities and IDs",
@@ -4446,7 +4502,7 @@
                       "type": "integer"
                     },
                     "operator": {
-                      "description": "Filter operation.",
+                      "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                       "enum": [
                         "Equal",
                         "NotEqual",
@@ -4788,7 +4844,7 @@
                       "type": "integer"
                     },
                     "operator": {
-                      "description": "Filter operation.",
+                      "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                       "enum": [
                         "Equal",
                         "NotEqual",
@@ -5312,7 +5368,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -5407,6 +5463,20 @@
                       },
                       "maxItems": 1,
                       "type": "array"
+                    },
+                    "matchCEL": {
+                      "description": "Match CEL expression. The CEL expression may include:\n argX (e.g., arg0) where X is the index of the argument in the Args array.\n dataX where X is the index of the data in the Data array.",
+                      "properties": {
+                        "expr": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "expr"
+                      ],
+                      "type": "object",
+                      "additionalProperties": false
                     },
                     "matchCapabilities": {
                       "description": "A list of capabilities and IDs",
@@ -5516,7 +5586,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -5858,7 +5928,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -6679,7 +6749,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -6774,6 +6844,20 @@
                       },
                       "maxItems": 1,
                       "type": "array"
+                    },
+                    "matchCEL": {
+                      "description": "Match CEL expression. The CEL expression may include:\n argX (e.g., arg0) where X is the index of the argument in the Args array.\n dataX where X is the index of the data in the Data array.",
+                      "properties": {
+                        "expr": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "expr"
+                      ],
+                      "type": "object",
+                      "additionalProperties": false
                     },
                     "matchCapabilities": {
                       "description": "A list of capabilities and IDs",
@@ -6883,7 +6967,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -7225,7 +7309,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -7790,7 +7874,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -7885,6 +7969,20 @@
                       },
                       "maxItems": 1,
                       "type": "array"
+                    },
+                    "matchCEL": {
+                      "description": "Match CEL expression. The CEL expression may include:\n argX (e.g., arg0) where X is the index of the argument in the Args array.\n dataX where X is the index of the data in the Data array.",
+                      "properties": {
+                        "expr": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "expr"
+                      ],
+                      "type": "object",
+                      "additionalProperties": false
                     },
                     "matchCapabilities": {
                       "description": "A list of capabilities and IDs",
@@ -7994,7 +8092,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -8336,7 +8434,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
                             "enum": [
                               "Equal",
                               "NotEqual",

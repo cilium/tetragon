@@ -320,7 +320,7 @@ func TestParseMatchArgs(t *testing.T) {
 
 	ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
 	d := &ks.data
-	if err := ParseMatchArgs(ks, argsSel, dataSel, args, data); err != nil || bytes.Equal(expected, d.e[0:d.off]) == false {
+	if err := ParseMatchArgs(ks, argsSel, dataSel, nil, args, data); err != nil || bytes.Equal(expected, d.e[0:d.off]) == false {
 		t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\n", err, expected, d.e[0:d.off])
 	}
 }
@@ -678,7 +678,7 @@ func TestParseMatchArg(t *testing.T) {
 		arg12 := []v1alpha1.ArgSelector{*arg1, *arg2}
 		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
 		d = &ks.data
-		if err := ParseMatchArgs(ks, arg12, []v1alpha1.ArgSelector{}, sig, []v1alpha1.KProbeArg{}); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
+		if err := ParseMatchArgs(ks, arg12, []v1alpha1.ArgSelector{}, nil, sig, []v1alpha1.KProbeArg{}); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
 			t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected3, d.e[0:d.off], arg3)
 		}
 

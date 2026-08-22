@@ -31,7 +31,7 @@ type CelExprFunctions []asm.Instructions
 func addMatchCelExpr(
 	exprs *CelExprFunctions,
 	arg *v1alpha1.ArgSelector,
-	sig []v1alpha1.KProbeArg,
+	sig, data []v1alpha1.KProbeArg,
 ) ([]uint16, error) {
 
 	if len(arg.Values) != 1 {
@@ -46,7 +46,7 @@ func addMatchCelExpr(
 	idx := nExprs
 	celExpr := arg.Values[0]
 
-	insts, arg_indexes, err := celbpf.CompileFn(CelExprFuncName(idx), celExpr, sig)
+	insts, arg_indexes, err := celbpf.CompileFn(CelExprFuncName(idx), celExpr, sig, data)
 	if err != nil {
 		return nil, err
 	}
@@ -58,13 +58,13 @@ func addMatchCelExpr(
 func parseMatchCelExpr(
 	k *KernelSelectorState,
 	arg *v1alpha1.ArgSelector,
-	sig []v1alpha1.KProbeArg,
+	sig, data []v1alpha1.KProbeArg,
 ) error {
 	if !celbpf.Supported() {
 		return errors.New("celbpf not supported in this kernel")
 	}
 
-	arg_indexes, err := addMatchCelExpr(k.celExprFunctions, arg, sig)
+	arg_indexes, err := addMatchCelExpr(k.celExprFunctions, arg, sig, data)
 	if err != nil {
 		return err
 	}

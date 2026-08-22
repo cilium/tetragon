@@ -29,6 +29,7 @@ Depending on your setup, changes listed here might require a manual intervention
 * `fd` type no longer needs the pre `FollowFD` and post `UnfollowFD` actions to resolve the
   path and works on its own. Existing policies that used `fd` type should be updated to remove the hooks associated with the `FollowFD` and `UnfollowFD` actions. The structure around the use of `fd` hasn't changed and no update should be necessary to the hook that used the type. 
 * Actions `FollowFD`, `UnfollowFD` and `CopyFD` were removed (they were deprecated in v1.5).
+* The `CelExpr` `MatchArgs` operator has been deprecated. Please use the `MatchCEL` selector instead.
 
 ### Events (protobuf API)
 

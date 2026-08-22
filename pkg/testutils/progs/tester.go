@@ -36,7 +36,15 @@ type Tester struct {
 
 // This is what tester (the binary) will execute.
 func TestHelperMain() {
-	scanner := bufio.NewScanner(os.Stdin)
+	var scanner *bufio.Scanner
+	switch len(os.Args[1:]) {
+	case 0:
+		scanner = bufio.NewScanner(os.Stdin)
+	default:
+		s := strings.Join(os.Args[1:], " ")
+		scanner = bufio.NewScanner(strings.NewReader(s))
+	}
+
 	for scanner.Scan() {
 		execMayFail := false
 		cmd := scanner.Text()
@@ -89,6 +97,14 @@ func TestHelperMain() {
 			}
 
 			o, err := unix.Seek(int(fd), off, int(whence))
+			fmt.Fprintf(os.Stdout, "cmd=%q returned o=%d err=%v\n", cmd, o, err)
+
+		case cmd == "lseek_42":
+			// We want to test a policy that checks for the following expression:
+			// fd == -1 && pid == 42 + whence
+			pid := os.Getpid()
+			whence := pid - 42
+			o, err := unix.Seek(int(-1), 0, int(whence))
 			fmt.Fprintf(os.Stdout, "cmd=%q returned o=%d err=%v\n", cmd, o, err)
 
 		case cmd == "getcpu":
