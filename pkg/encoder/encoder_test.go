@@ -848,6 +848,22 @@ func TestCompactEncoder_EscapeSpecialCharacters(t *testing.T) {
 		assert.Contains(t, result, "\"probe\\tname\"")
 		assert.NotContains(t, result, "\t")
 	})
+
+	t.Run("java", func(t *testing.T) {
+		result, err := p.EventToString(&tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessJava{
+				ProcessJava: &tetragon.ProcessJava{
+					Process:     &tetragon.Process{Binary: "/usr/bin/java"},
+					ClassName:   "example/Foo\nBad",
+					MethodName:  "work",
+					Descriptor_: "(I)V",
+				},
+			},
+		})
+		require.NoError(t, err)
+		assert.Contains(t, result, "\"example/Foo\\nBad.work(I)V\"")
+		assert.NotContains(t, result, "Foo\nBad")
+	})
 }
 
 func FuzzProtojsonCompatibility(f *testing.F) {

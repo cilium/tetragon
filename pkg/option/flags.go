@@ -220,6 +220,7 @@ func ReadAndSetFlags() error {
 		Config.EnableProcessUprobeAncestors = slices.Contains(enableAncestors, "uprobe")
 		Config.EnableProcessLsmAncestors = slices.Contains(enableAncestors, "lsm")
 		Config.EnableProcessUsdtAncestors = slices.Contains(enableAncestors, "usdt")
+		Config.EnableProcessJavaAncestors = slices.Contains(enableAncestors, "java")
 	}
 
 	Config.EnableProcessEnvironmentVariables = viper.GetBool(KeyEnableProcessEnvironmentVariables)

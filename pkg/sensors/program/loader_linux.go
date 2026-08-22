@@ -688,6 +688,25 @@ func LoadRawTracepointProgram(bpfDir string, load *Program, maps []*Map, verbose
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
+// LoadSyscallProgram loads an unattached SEC("syscall") program and invokes
+// it once with BPF_PROG_TEST_RUN. This is used to initialize recurring BPF
+// callbacks such as timers.
+func LoadSyscallProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
+	if err := loadProgram(bpfDir, load, &LoadOpts{Attach: NoAttach(), Maps: maps}, verbose); err != nil {
+		return err
+	}
+	ret, err := load.Prog.Run(&ebpf.RunOptions{})
+	if err != nil {
+		_ = load.Unload(true)
+		return fmt.Errorf("BPF_PROG_TEST_RUN failed: %w", err)
+	}
+	if ret != 0 {
+		_ = load.Unload(true)
+		return fmt.Errorf("BPF_PROG_TEST_RUN returned %d", ret)
+	}
+	return nil
+}
+
 func LoadKprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: KprobeAttach(load, bpfDir),
