@@ -240,13 +240,21 @@ spec:
 
 ## Data filter
 
+### Introduction
+
 Data filters can be specified under the `matchData` field and provide
 filtering based on the value of the specified `data` field.
 
-The `data` block allows you to filter events based on fields of
-kernel data structures rather than function arguments — for example,
-the UID of the current task at a hook that does not take credentials
-as an argument. Each entry in the `data` block specifies:
+### Use case
+
+Use `matchData` when you need in-kernel filtering on kernel data structure
+fields rather than function arguments — for example the UID of the current
+task at a hook that does not take credentials as an argument, or the process
+name from `task_struct`.
+
+### Inputs, values, options, and operators
+
+The `data` block defines fields to read. Each entry specifies:
 
 - `source`: where to read from. Supported values are `current_task`
   (the process's `task_struct`) and `pt_regs` (the register state at
@@ -254,11 +262,27 @@ as an argument. Each entry in the `data` block specifies:
 - `resolve`: which field of the source structure to read.
 - `type`: how the resolved value should be interpreted.
 
-A `matchData` selector then refers to a `data` entry by its `index`
-and applies an operator.
+A `matchData` selector refers to a `data` entry by its `index` and applies an
+operator.
 
-In the following example we extract the `pid` value from `current_task`
-and filter on all values except for `1`.
+Nested fields can be accessed through the `.` separator, as described in
+[Attribute resolution]({{< ref "/docs/concepts/tracing-policy/hooks#attribute-resolution" >}}).
+
+The available operators for `matchData` are the same as those listed under
+[Arguments filter](#arguments-filter), and apply according to the `type`
+declared in the corresponding `data` entry.
+
+### Limitations
+
+- Each `matchData` entry must reference a valid `data` block index defined on
+  the same hook.
+- Operators available depend on the `type` declared in the corresponding
+  `data` entry.
+
+### Examples
+
+Extract the `pid` value from `current_task` and filter on all values except
+for `1`:
 
 ```yaml
 data:
@@ -274,12 +298,10 @@ selectors:
     - "1"
 ```
 
-Nested fields can be accessed through the `.` separator, as described
-in [Attribute resolution]({{< ref "/docs/concepts/tracing-policy/hooks#attribute-resolution" >}}).
-In the following example we extract the UID of the current task via
-`cred.uid.val` and filter for non-system users (UID greater than
-`1000`), hooked at `security_bprm_committed_creds` — an LSM hook
-called after a process's credentials are committed.
+Extract the UID of the current task via `cred.uid.val` and filter for
+non-system users (UID greater than `1000`), hooked at
+`security_bprm_committed_creds` — an LSM hook called after a process's
+credentials are committed:
 
 ```yaml
 kprobes:
@@ -298,9 +320,8 @@ kprobes:
       - "1000"
 ```
 
-The same pattern works for non-integer types. The following example
-reads the process name from `comm` (a string field of `task_struct`)
-and matches when it equals a specific value.
+Read the process name from `comm` (a string field of `task_struct`) and match
+when it equals a specific value:
 
 ```yaml
 data:
@@ -316,16 +337,40 @@ selectors:
     - "cat"
 ```
 
-The available operators for `matchData` are the same as those listed under
-[Arguments filter](#arguments-filter), and apply according to the `type`
-declared in the corresponding `data` entry.
-
 ## Return args filter
 
-Arguments filters can be specified under the `returnMatchArgs` field and
-provide filtering based on the value of the function return value. It allows
-you to filter on the return value, thus success, error or value returned by a
-kernel call.
+### Introduction
+
+Return args filters can be specified under the `returnMatchArgs` field and
+provide filtering based on the value of the function return value.
+
+### Use case
+
+Use `returnMatchArgs` to filter on the return value of a kernel call — for
+example detecting success, error codes, or specific values returned by the
+hooked function.
+
+Detecting failed access to sensitive files is a common pattern: `cat
+/etc/shadow` uses an `openat` syscall that returns `-1` for a failed attempt
+with an unprivileged user.
+
+### Inputs, values, options, and operators
+
+The available operators for `returnMatchArgs` are:
+
+- `Equal`
+- `NotEqual`
+- `Prefix`
+- `Postfix`
+
+### Limitations
+
+- Applies to return values only (not call arguments); use `matchArgs` for
+  argument filtering.
+
+### Examples
+
+Filter when the return value is not equal to `0`:
 
 ```yaml
 matchReturnArgs:
@@ -333,16 +378,6 @@ matchReturnArgs:
   values:
   - 0
 ```
-
-The available operators for `matchReturnArgs` are:
-- `Equal`
-- `NotEqual`
-- `Prefix`
-- `Postfix`
-
-A use case for this would be to detect the failed access to certain files, like
-`/etc/shadow`. Doing `cat /etc/shadow` will use a `openat` syscall that will
-returns `-1` for a failed attempt with an unprivileged user.
 
 ## PIDs filter
 
