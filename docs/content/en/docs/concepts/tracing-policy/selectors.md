@@ -381,10 +381,37 @@ matchReturnArgs:
 
 ## PIDs filter
 
+### Introduction
+
 PIDs filters can be specified under the `matchPIDs` field and provide filtering
-based on the value of host pid of the process. For example, the following
-`matchPIDs` filter tells the BPF code that observe only hooks for which the
-host PID is equal to either `pid1` or `pid2` or `pid3`:
+based on the value of host pid of the process.
+
+### Use case
+
+Use `matchPIDs` to restrict events to specific processes — for example
+monitoring only selected PIDs, or detecting processes that are not children of
+a container's init PID (useful for spotting `kubectl exec` inside a container).
+
+### Inputs, values, options, and operators
+
+The available operators for `matchPIDs` are:
+
+- `In`
+- `NotIn`
+
+Options:
+
+- `followForks`: when `true`, include child processes created by fork.
+- `isNamespacePID`: when `true`, match against the PID in the process namespace
+  rather than the host PID.
+
+### Limitations
+
+- Values refer to host PID unless `isNamespacePID: true` is set.
+
+### Examples
+
+Observe only hooks for which the host PID is in `pid1`, `pid2`, or `pid3`:
 
 ```yaml
 - matchPIDs:
@@ -396,16 +423,9 @@ host PID is equal to either `pid1` or `pid2` or `pid3`:
     - "pid3"
 ```
 
-The available operators for `matchPIDs` are:
-- `In`
-- `NotIn`
+Collect all processes not associated with a container's init PID (equal to 1).
+Processes created by `kubectl exec` are not children of PID 1:
 
-**Further examples**
-
-Another example can be to collect all processes not associated with a
-container's init PID, which is equal to 1. In this way, we are able to detect
-if there was a `kubectl exec` performed inside a container because processes
-created by `kubectl exec` are not children of PID 1.
 ```yaml
 - matchPIDs:
   - operator: NotIn
