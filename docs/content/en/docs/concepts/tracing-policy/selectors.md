@@ -873,6 +873,8 @@ capabilities in their Effective, Inheritable, or Permitted sets.
 
 - `type` can be: `Effective`, `Inheritable`, or `Permitted`.
 - `operator` can be `In` or `NotIn`
+- `isNamespaceCapability`: when `false`, compare host capabilities; when `true`,
+  compare capabilities within the process namespace.
 - `values` can be any supported capability. A list of all supported
   capabilities can be found in `/usr/include/linux/capability.h`.
 
@@ -890,6 +892,7 @@ This will match if: [`Effective` capabilities contain `CAP_CHOWN`] OR
 - matchCapabilities:
   - type: Effective
     operator: In
+    isNamespaceCapability: false
     values:
     - "CAP_CHOWN"
     - "CAP_NET_RAW"
