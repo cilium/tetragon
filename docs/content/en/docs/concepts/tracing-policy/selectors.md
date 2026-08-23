@@ -460,6 +460,8 @@ The available operators for `matchBinaries` are:
 - `Postfix`
 - `NotPostfix`
 
+> When `followChildren: true` is set, only `In` and `NotIn` are supported — see Limitations below.
+
 The `values` field has to be a map of `strings`.
 
 Options:
@@ -598,6 +600,8 @@ The available operators for `matchParentBinaries` are:
 - `NotPrefix`
 - `Postfix`
 - `NotPostfix`
+
+> When `followChildren: true` is set, only `In` and `NotIn` are supported — see Limitations below.
 
 The `values` field has to be a map of `strings`.
 
