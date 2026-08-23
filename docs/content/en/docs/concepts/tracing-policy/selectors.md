@@ -877,8 +877,10 @@ capabilities in their Effective, Inheritable, or Permitted sets.
 
 - `type` can be: `Effective`, `Inheritable`, or `Permitted`.
 - `operator` can be `In` or `NotIn`
-- `isNamespaceCapability`: when `false`, compare host capabilities; when `true`,
-  compare capabilities within the process namespace.
+- `isNamespaceCapability`: when `false` (default), match regardless of user
+  namespace. When `true`, only match when the process's user namespace differs
+  from the host's — i.e., the process is running inside a genuine user
+  namespace, not on the host.
 - `values` can be any supported capability. A list of all supported
   capabilities can be found in `/usr/include/linux/capability.h`.
 
@@ -966,8 +968,10 @@ capabilities on the event with a `matchCapabilityChanges` filter.
 
 - `type` can be: `Effective`, `Inheritable`, or `Permitted`.
 - `operator` can be `In` or `NotIn`
-- `isNamespaceCapability`: when `false`, compare host capabilities; when `true`,
-  compare capabilities within the process namespace.
+- `isNamespaceCapability`: when `false` (default), match regardless of user
+  namespace. When `true`, only match when the process's user namespace differs
+  from the host's — i.e., the process is running inside a genuine user
+  namespace, not on the host.
 - `values` list capability names (e.g. `CAP_SETUID`).
 
 ### Limitations
