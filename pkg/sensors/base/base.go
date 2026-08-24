@@ -163,6 +163,10 @@ func setupSensor() {
 		Execve.RewriteConstants["PARENTS_MAP_ENABLED"] = uint8(1)
 	}
 
+	if !config.EnableV511Progs() && len(option.Config.BPFDebugAreas.Values) > 0 {
+		Execve.RewriteConstants["BPF_DEBUG_ENABLED"] = option.Config.BPFDebugAreas.ToBPFConfig()
+	}
+
 	if option.Config.ParentsMapEnabled {
 		entries = GetExecveEntries(option.Config.ParentsMapEntries, option.Config.ParentsMapSize)
 		ParentBinariesMap.SetMaxEntries(entries)
