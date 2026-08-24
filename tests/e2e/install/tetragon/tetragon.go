@@ -143,7 +143,7 @@ func Install(opts ...Option) env.Func {
 
 		// Only add and upate repo if helm url is specified
 		if o.HelmRepoUrl != "" {
-			repoName := strings.Split(o.HelmChart, "/")[0]
+			repoName, _, _ := strings.Cut(o.HelmChart, "/")
 			if err := manager.RunRepo(helm.WithArgs("add", "--force-update", repoName, o.HelmRepoUrl)); err != nil {
 				return ctx, fmt.Errorf("failed to add helm repo %s (%s): %w", repoName, o.HelmRepoUrl, err)
 			}

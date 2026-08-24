@@ -116,8 +116,7 @@ func Test_PrependName(t *testing.T) {
 	// load test program
 	coll, err := ebpf.LoadCollection("objs/prepend_name_test.o")
 	if err != nil {
-		var ve *ebpf.VerifierError
-		if errors.As(err, &ve) {
+		if ve, ok := errors.AsType[*ebpf.VerifierError](err); ok {
 			t.Fatalf("verifier error: %+v\n", ve)
 		}
 		t.Fatal(err)
