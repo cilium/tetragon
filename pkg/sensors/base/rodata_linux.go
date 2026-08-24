@@ -20,7 +20,8 @@ type rodataConfig struct {
 	UsePerfRingBuf    uint8
 	EnvVarsEnabled    uint8
 	ParentsMapEnabled uint8
-	Pad               [4]uint8
+	BpfDebugEnabled   uint8
+	Pad               [3]uint8
 }
 
 func b2u8(b bool) uint8 {
@@ -45,11 +46,15 @@ func rodataCurrent() rodataConfig {
 	// parents match enabled by --parents-map-enabled option
 	parentsMapEnabled := b2u8(option.Config.ParentsMapEnabled)
 
+	// bpf debug match enabled by --bpf-debug
+	bpfDebugEnabled := option.Config.BPFDebugAreas.ToBPFConfig()
+
 	return rodataConfig{
 		IterNum:           iterNum,
 		UsePerfRingBuf:    usePerfRingBuf,
 		EnvVarsEnabled:    envVarsEnabled,
 		ParentsMapEnabled: parentsMapEnabled,
+		BpfDebugEnabled:   bpfDebugEnabled,
 	}
 }
 
