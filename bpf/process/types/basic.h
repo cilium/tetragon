@@ -2364,6 +2364,9 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		return seloff;
 
 #ifdef __LARGE_BPF_PROG
+#ifdef __V61_BPF_PROG
+#pragma unroll
+#endif
 	for (i = 0; i < 5; i++)
 #endif
 	{
