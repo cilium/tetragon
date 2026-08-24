@@ -5,6 +5,48 @@
 #define __GENERIC_MAPS_H__
 
 #include "lib/data_msg.h"
+#include "errmetrics.h"
+#include "heap.h"
+
+/*
+ * The uprobe/usdt probes path in kernel do not disable preemption,
+ * we need to use hash instead of per-cpu heap.
+ */
+#ifdef USE_HASH_HEAP
+
+typedef __u64 heap_key_t;
+
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(map_flags, BPF_F_NO_PREALLOC);
+	__uint(max_entries, 1); // will be resized by agent
+	__type(key, heap_key_t);
+	__type(value, struct msg_generic_kprobe);
+} process_call_heap SEC(".maps");
+
+FUNC_INLINE heap_key_t heap_key(void)
+{
+	return get_current_pid_tgid();
+}
+
+FUNC_INLINE bool heap_update(heap_key_t key)
+{
+	struct heap_ro_value *ro;
+	int zidx = 0;
+
+	ro = map_lookup_elem(&heap_ro_zero, &zidx);
+	if (!ro)
+		return false;
+	if (map_update_elem(&process_call_heap, &key, ro, BPF_ANY)) {
+		errmetrics(E2BIG);
+		return false;
+	}
+	return true;
+}
+
+#else
+
+typedef __u32 heap_key_t;
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
@@ -12,6 +54,18 @@ struct {
 	__type(key, __u32);
 	__type(value, struct msg_generic_kprobe);
 } process_call_heap SEC(".maps");
+
+FUNC_INLINE heap_key_t heap_key(void)
+{
+	return 0;
+}
+
+FUNC_INLINE bool heap_update(heap_key_t key)
+{
+	return true;
+}
+
+#endif /* USE_HASH_HEAP */
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
@@ -68,5 +122,24 @@ struct {
 	__type(value, struct write_offload_data);
 } write_offload SEC(".maps");
 #endif
+
+#ifdef USE_HASH_HEAP
+
+FUNC_INLINE long heap_dtor(long ret)
+{
+	__u64 key = get_current_pid_tgid();
+
+	map_delete_elem(&process_call_heap, &key);
+	return ret;
+}
+
+#else
+
+FUNC_INLINE long heap_dtor(long ret)
+{
+	return ret;
+}
+
+#endif /* USE_HASH_HEAP */
 
 #endif // __GENERIC_MAPS_H__
