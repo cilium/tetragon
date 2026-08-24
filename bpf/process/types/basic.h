@@ -797,7 +797,7 @@ struct copy_reverse_data {
 	uint mask;
 };
 
-FUNC_LOCAL int do_copy_reverse(uint i, struct copy_reverse_data *data)
+FUNC_INLINE int do_copy_reverse(uint i, struct copy_reverse_data *data)
 {
 	uint len = data->len, offset = data->offset, mask = data->mask;
 
@@ -834,7 +834,6 @@ FUNC_INLINE void __copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset, ui
 				return;
 		}
 	} else {
-#ifndef __V61_BPF_PROG
 #ifndef __LARGE_BPF_PROG
 #pragma unroll
 #endif
@@ -842,9 +841,6 @@ FUNC_INLINE void __copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset, ui
 			if (do_copy_reverse(i, &data))
 				return;
 		}
-#else
-		loop(STRING_POSTFIX_MAX_MATCH_LENGTH - 1, do_copy_reverse, &data, 0);
-#endif /* __V61_BPF_PROG */
 	}
 }
 
