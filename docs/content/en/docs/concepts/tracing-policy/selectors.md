@@ -60,26 +60,82 @@ spec:
 
 ## Arguments filter
 
+### Introduction
+
 Arguments filters can be specified under the `matchArgs` field and provide
 filtering based on the value of the function's argument.
 
-You can specify the argument either in the `index` or in `args` field. The `index` field
-denotes the argument position within the function arguments, while the  `args`
-field denotes the arguments position within the spec arguments. Both fields are
-zero based (1st argument has zero value). The `args` field (if defined) takes
-precedence over `index` field.
+### Use case
 
-The `args` field can support multiple arguments. Currently, the only operator that supports more
-than 1 argument is the `CapabilitiesGained` operator.
+Use `matchArgs` when you want in-kernel BPF filtering on call arguments — for
+example matching sensitive file paths, restricting events to particular file
+descriptors, or combining several argument conditions in one selector.
 
-In the next example, a selector is defined with a `matchArgs` filter that tells
-the BPF code to process only the function call for which the second argument,
-index equal to 1, concerns the file under the path `/etc/passwd` or
-`/etc/shadow`. It's using the operator `Equal` to match against the value of
-the argument.
+When an argument is of type `file`, you can match against a path directly.
 
-Note that conveniently, we can match against a path directly when the argument
-is of type `file`.
+### Inputs, values, options, and operators
+
+You can specify the argument either in the `index` or in the `args` field. The
+`index` field denotes the argument position within the function arguments,
+while the `args` field denotes the argument position within the spec arguments.
+Both fields are zero based (1st argument has zero value). The `args` field (if
+defined) takes precedence over the `index` field.
+
+You can mix `index` and `args` fields within `matchArgs` selector definitions.
+
+The available operators for `matchArgs` are:
+
+- `Equal`
+- `NotEqual`
+- `Prefix`
+- `Postfix`
+- `Mask`
+- `FileType`
+- `NotFileType`
+- [`CelExpr`](#celexpr-argument-filter)
+
+#### File type values
+
+The `FileType` and `NotFileType` operators filter based on the type of a file
+(e.g., regular file, pipe, socket, etc.). Matching file types:
+
+- `sock` or `socket`: Socket
+- `lnk` or `link`: Symbolic link
+- `reg` or `regular`: Regular file
+- `blk` or `block`: Block device
+- `dir`: Directory
+- `chr` or `char`: Character device
+- `fifo` or `pipe`: FIFO/Pipe
+
+#### CelExpr argument filter
+
+The `CelExpr` argument filter allows specifying filtering expressions in
+[CEL](https://cel.dev/overview/cel-overview) that are evaluated in-kernel.
+
+Arguments, as specified in the `args:` list, are made available in the CEL
+expression as `argX` where `X` is the zero-based index in the list.
+
+Currently, CelExpr operators support:
+
+* Addition (`+`) and subtraction (`-`)
+* Logical AND (`&&`), OR (`||`), and NOT (`!`) operators
+* Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
+* Integer casting to 32-bits (`int32()`, `uint32()`)
+* Bitwise operations (`and()`, `or()`, `xor()`, `not()`)
+
+### Limitations
+
+- The `args` field can support multiple arguments. Currently, the only operator
+  that supports more than one argument is the `CapabilitiesGained` operator.
+- The `FileType` and `NotFileType` operators can only be used with arguments of
+  type `file` or `path`.
+- `CelExpr` supports only the operators listed above (not the full CEL language
+  surface).
+
+### Examples
+
+Match the second function argument (`index` equal to 1) against the paths
+`/etc/passwd` or `/etc/shadow` using the `Equal` operator:
 
 ```yaml
 selectors:
@@ -90,10 +146,10 @@ selectors:
     - "/etc/passwd"
     - "/etc/shadow"
 ```
-In the next example, a selector is defined with a `matchArgs` filter that tells
-the BPF code to process only the function call for which the second spec argument,
-`args` equals to [1] (which represents 1st function argument, `index` equals to 0),
-has value `0xcoffee`.
+
+Match using the `args` field. Here `args: [1]` refers to the second entry in the
+spec `args` list (which represents the 1st function argument, `index` equals to
+0), and requires the value `0xcoffee`:
 
 ```yaml
 - args:
@@ -113,22 +169,10 @@ has value `0xcoffee`.
       values:
       - "0xcoffee"
 ```
-Note that you can mix `index` and `arg` fields within `matchArgs` selector definitions.
 
-The available operators for `matchArgs` are:
-- `Equal`
-- `NotEqual`
-- `Prefix`
-- `Postfix`
-- `Mask`
-- `FileType`
-- `NotFileType`
-- [`CelExpr`](#celexpr-argument-filter)
+Use the `Prefix` operator to match all files under `/etc`. An event will be
+created every time a process tries to access a file under `/etc`:
 
-**Further examples**
-
-In the previous example, we used the operator `Equal`, but we can also use the
-`Prefix` operator and match against all files under `/etc` with:
 ```yaml
 selectors:
 - matchArgs:
@@ -137,13 +181,10 @@ selectors:
     values:
     - "/etc"
 ```
-In this situation, an event will be created every time a process tries to
-access a file under `/etc`.
 
-Although it makes less sense, you can also match over the first argument, to
-only detect events that will use the file descriptor 4, which is usually the
-first that come afters stdin, stdout and stderr in process. And combine that
-with the previous example.
+Combine conditions: match file descriptor `3` on the first argument and a path
+prefix `/etc` on the second (file descriptor 4 is usually the first that comes
+after stdin, stdout and stderr in a process; the example below uses `3`):
 
 ```yaml
 - matchArgs:
@@ -157,22 +198,7 @@ with the previous example.
     - "/etc"
 ```
 
-### File type filtering
-
-The `FileType` and `NotFileType` operators allow filtering based on the type of a
-file (e.g., regular file, pipe, socket, etc.). These operators can only be used
-with arguments of type `file` or `path`.
-
-Matching file types:
-- `sock` or `socket`: Socket
-- `lnk` or `link`: Symbolic link
-- `reg` or `regular`: Regular file
-- `blk` or `block`: Block device
-- `dir`: Directory
-- `chr` or `char`: Character device
-- `fifo` or `pipe`: FIFO/Pipe
-
-In the following example, we monitor `vfs_write` only for regular files.
+Monitor `vfs_write` only for regular files:
 
 ```yaml
 selectors:
@@ -183,12 +209,8 @@ selectors:
     - "reg"
 ```
 
-### CelExpr argument filter
-
-The `CelExpr` argument filter allows specifying filtering expressions in
-[CEL](https://cel.dev/overview/cel-overview) that are evaluated in-kernel.
-
-Here's a policy example:
+`CelExpr` example. In the policy below, the argument labeled `whence` is
+available as `arg0`, while the argument labeled `fd` is available as `arg1`:
 
 ```yaml
 apiVersion: cilium.io/v1alpha1
@@ -216,26 +238,23 @@ spec:
           - "arg1 == int32(-1) && arg0 >= int32(1024)"
 ```
 
-Arguments, as specified in the `args:` list, are made available in the CEL expression as `argX`
-where `X` is the zero-based index in the list. In the above example, the argument labeled `whence`
-is available as `arg0`, while the argument labeled `fd` is available as `arg1`.
-
-Currently, CelExpr operators support:
-* Addition (`+`) and subtraction (`-`)
-* Logical AND (`&&`), OR (`||`), and NOT (`!`) operators
-* Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
-* Integer casting to 32-bits (`int32()`, `uint32()`)
-* Bitwise operations (`and()`, `or()`, `xor()`, `not()`)
-
 ## Data filter
+
+### Introduction
 
 Data filters can be specified under the `matchData` field and provide
 filtering based on the value of the specified `data` field.
 
-The `data` block allows you to filter events based on fields of
-kernel data structures rather than function arguments — for example,
-the UID of the current task at a hook that does not take credentials
-as an argument. Each entry in the `data` block specifies:
+### Use case
+
+Use `matchData` when you need in-kernel filtering on kernel data structure
+fields rather than function arguments — for example the UID of the current
+task at a hook that does not take credentials as an argument, or the process
+name from `task_struct`.
+
+### Inputs, values, options, and operators
+
+The `data` block defines fields to read. Each entry specifies:
 
 - `source`: where to read from. Supported values are `current_task`
   (the process's `task_struct`) and `pt_regs` (the register state at
@@ -243,11 +262,27 @@ as an argument. Each entry in the `data` block specifies:
 - `resolve`: which field of the source structure to read.
 - `type`: how the resolved value should be interpreted.
 
-A `matchData` selector then refers to a `data` entry by its `index`
-and applies an operator.
+A `matchData` selector refers to a `data` entry by its `index` and applies an
+operator.
 
-In the following example we extract the `pid` value from `current_task`
-and filter on all values except for `1`.
+Nested fields can be accessed through the `.` separator, as described in
+[Attribute resolution]({{< ref "/docs/concepts/tracing-policy/hooks#attribute-resolution" >}}).
+
+The available operators for `matchData` are the same as those listed under
+[Arguments filter](#arguments-filter), and apply according to the `type`
+declared in the corresponding `data` entry.
+
+### Limitations
+
+- Each `matchData` entry must reference a valid `data` block index defined on
+  the same hook.
+- Operators available depend on the `type` declared in the corresponding
+  `data` entry.
+
+### Examples
+
+Extract the `pid` value from `current_task` and filter on all values except
+for `1`:
 
 ```yaml
 data:
@@ -263,12 +298,10 @@ selectors:
     - "1"
 ```
 
-Nested fields can be accessed through the `.` separator, as described
-in [Attribute resolution]({{< ref "/docs/concepts/tracing-policy/hooks#attribute-resolution" >}}).
-In the following example we extract the UID of the current task via
-`cred.uid.val` and filter for non-system users (UID greater than
-`1000`), hooked at `security_bprm_committed_creds` — an LSM hook
-called after a process's credentials are committed.
+Extract the UID of the current task via `cred.uid.val` and filter for
+non-system users (UID greater than `1000`), hooked at
+`security_bprm_committed_creds` — an LSM hook called after a process's
+credentials are committed:
 
 ```yaml
 kprobes:
@@ -287,9 +320,8 @@ kprobes:
       - "1000"
 ```
 
-The same pattern works for non-integer types. The following example
-reads the process name from `comm` (a string field of `task_struct`)
-and matches when it equals a specific value.
+Read the process name from `comm` (a string field of `task_struct`) and match
+when it equals a specific value:
 
 ```yaml
 data:
@@ -305,16 +337,40 @@ selectors:
     - "cat"
 ```
 
-The available operators for `matchData` are the same as those listed under
-[Arguments filter](#arguments-filter), and apply according to the `type`
-declared in the corresponding `data` entry.
-
 ## Return args filter
 
-Arguments filters can be specified under the `returnMatchArgs` field and
-provide filtering based on the value of the function return value. It allows
-you to filter on the return value, thus success, error or value returned by a
-kernel call.
+### Introduction
+
+Return args filters can be specified under the `returnMatchArgs` field and
+provide filtering based on the value of the function return value.
+
+### Use case
+
+Use `returnMatchArgs` to filter on the return value of a kernel call — for
+example detecting success, error codes, or specific values returned by the
+hooked function.
+
+Detecting failed access to sensitive files is a common pattern: `cat
+/etc/shadow` uses an `openat` syscall that returns `-1` for a failed attempt
+with an unprivileged user.
+
+### Inputs, values, options, and operators
+
+The available operators for `returnMatchArgs` are:
+
+- `Equal`
+- `NotEqual`
+- `Prefix`
+- `Postfix`
+
+### Limitations
+
+- Applies to return values only (not call arguments); use `matchArgs` for
+  argument filtering.
+
+### Examples
+
+Filter when the return value is not equal to `0`:
 
 ```yaml
 matchReturnArgs:
@@ -323,22 +379,39 @@ matchReturnArgs:
   - 0
 ```
 
-The available operators for `matchReturnArgs` are:
-- `Equal`
-- `NotEqual`
-- `Prefix`
-- `Postfix`
-
-A use case for this would be to detect the failed access to certain files, like
-`/etc/shadow`. Doing `cat /etc/shadow` will use a `openat` syscall that will
-returns `-1` for a failed attempt with an unprivileged user.
-
 ## PIDs filter
 
+### Introduction
+
 PIDs filters can be specified under the `matchPIDs` field and provide filtering
-based on the value of host pid of the process. For example, the following
-`matchPIDs` filter tells the BPF code that observe only hooks for which the
-host PID is equal to either `pid1` or `pid2` or `pid3`:
+based on the value of host pid of the process.
+
+### Use case
+
+Use `matchPIDs` to restrict events to specific processes — for example
+monitoring only selected PIDs, or detecting processes that are not children of
+a container's init PID (useful for spotting `kubectl exec` inside a container).
+
+### Inputs, values, options, and operators
+
+The available operators for `matchPIDs` are:
+
+- `In`
+- `NotIn`
+
+Options:
+
+- `followForks`: when `true`, include child processes created by fork.
+- `isNamespacePID`: when `true`, match against the PID in the process namespace
+  rather than the host PID.
+
+### Limitations
+
+- Values refer to host PID unless `isNamespacePID: true` is set.
+
+### Examples
+
+Observe only hooks for which the host PID is in `pid1`, `pid2`, or `pid3`:
 
 ```yaml
 - matchPIDs:
@@ -350,16 +423,9 @@ host PID is equal to either `pid1` or `pid2` or `pid3`:
     - "pid3"
 ```
 
-The available operators for `matchPIDs` are:
-- `In`
-- `NotIn`
+Collect all processes not associated with a container's init PID (equal to 1).
+Processes created by `kubectl exec` are not children of PID 1:
 
-**Further examples**
-
-Another example can be to collect all processes not associated with a
-container's init PID, which is equal to 1. In this way, we are able to detect
-if there was a `kubectl exec` performed inside a container because processes
-created by `kubectl exec` are not children of PID 1.
 ```yaml
 - matchPIDs:
   - operator: NotIn
@@ -371,10 +437,55 @@ created by `kubectl exec` are not children of PID 1.
 
 ## Binaries filter
 
+### Introduction
+
 Binary filters can be specified under the `matchBinaries` field and provide
-filtering based on the value of a certain binary name. For example, the
-following `matchBinaries` selector tells the BPF code to process only system
-calls and kernel functions that are coming from `cat` or `tail`.
+filtering based on the value of a certain binary name.
+
+### Use case
+
+Use `matchBinaries` to restrict events to specific executables — for example
+monitoring only `cat` or `tail`, tracing SSH session console output via
+`/usr/sbin/sshd` and its children, or matching interpreter paths for shebang
+scripts.
+
+### Inputs, values, options, and operators
+
+The available operators for `matchBinaries` are:
+
+- `In`
+- `NotIn`
+- `Prefix`
+- `NotPrefix`
+- `Postfix`
+- `NotPostfix`
+
+> When `followChildren: true` is set, only `In` and `NotIn` are supported — see Limitations below.
+
+The `values` field has to be a map of `strings`.
+
+Options:
+
+- `followChildren`: when `true`, also apply the filter to children of matching
+  processes.
+
+### Limitations
+
+When using `followChildren`:
+
+- Children created before the policy was installed will not be matched.
+- The number of `matchBinaries` sections with `followChildren: true` cannot
+  exceed 64.
+- `operator` can be `In` or `NotIn`.
+
+When executing a script with a shebang (i.e. `#!/usr/bin/python3`), Linux runs
+the interpreter and passes the script as an argument. `matchBinaries` filters
+based on the **interpreter** path (e.g. `/usr/bin/python3`), not the script path
+(e.g. `/opt/scripts/my_script.py`).
+
+### Examples
+
+Process only system calls and kernel functions from `cat` or `tail`:
 
 ```yaml
 - matchBinaries:
@@ -384,20 +495,7 @@ calls and kernel functions that are coming from `cat` or `tail`.
     - "/usr/bin/tail"
 ```
 
-The available operators for `matchBinaries` are:
-- `In`
-- `NotIn`
-- `Prefix`
-- `NotPrefix`
-- `Postfix`
-- `NotPostfix`
-
-The `values` field has to be a map of `strings`.
-
-### Follow children
-
-The `matchBinaries` filter can be configured to also apply to children of matching processes. To do
-this, set `followChildren` to `true`. For example:
+Apply to children of matching processes:
 
 ```yaml
 - matchBinaries:
@@ -407,21 +505,9 @@ this, set `followChildren` to `true`. For example:
     followChildren: true
 ```
 
-There are a number of limitations when using followChildren:
-- Children created before the policy was installed will not be matched.
-- The number of `matchBinaries` sections with `followChildren: true` cannot exceed 64.
-- `operator` can be `In` or `NotIn`.
+Monitor `sys_write` from `/usr/sbin/sshd` and its child processes writing to
+stdin/stdout/stderr (console output during SSH sessions):
 
-
-**Further examples**
-
-One example can be to monitor all the `sys_write` system calls which are
-coming from the `/usr/sbin/sshd` binary and its child processes and writing to
-`stdin/stdout/stderr`.
-
-This is how we can monitor what was written to the console by different users
-during different ssh sessions. The `matchBinaries` selector in this case is the
-following:
 ```yaml
 - matchBinaries:
   - operator: "In"
@@ -430,7 +516,8 @@ following:
     followChildren: true
 ```
 
-while the whole `kprobe` call is the following:
+Full `kprobe` combining binary and argument filters:
+
 ```yaml
 - call: "sys_write"
   syscall: true
@@ -459,15 +546,11 @@ while the whole `kprobe` call is the following:
       - "3"
 ```
 
-
-### Scripts with shebangs
+#### Scripts with shebangs
 
 {{< caution >}}
 `matchBinaries` matches against the `interpreter`, not the script path.
 {{< /caution >}}
-
-When executing a script with a shebang (i.e. `#!/usr/bin/python3`), Linux actually runs the
-interpreter and passes the script as an argument. Current implementation of `matchBinaries` filters based on the interpreter path (i.e. `/usr/bin/python3`) and not the script name (i.e. `/opt/scripts/my_script.py`).
 
 This won't work:
 
@@ -489,16 +572,56 @@ Match the interpreter instead:
 
 ## Parent binaries filter
 
-{{< warning >}}
-`matchParentBinaries` selector can be used only with BPF map `parents_map` enabled (option `--parents-map-enabled`), which adds
-additional memory overhead. 
-{{< /warning >}}
+### Introduction
 
 Parent binaries filter provides filtering based on current process parent
 binary path, which works similarly to the `matchBinaries` filter. It can be
-specified with the `matchParentBinaries` field. For instance, the following
-`matchParentBinaries` selector will match only if binary `cat` was executed
-from interactive shell like `zsh`, `bash`, `sh`:
+specified with the `matchParentBinaries` field.
+
+### Use case
+
+Use `matchParentBinaries` to match events based on the parent process binary —
+for example detecting `cat` executed from an interactive shell (`bash`, `sh`,
+`zsh`).
+
+{{< warning >}}
+`matchParentBinaries` selector can be used only with BPF map `parents_map`
+enabled (option `--parents-map-enabled`), which adds additional memory
+overhead.
+{{< /warning >}}
+
+### Inputs, values, options, and operators
+
+The available operators for `matchParentBinaries` are:
+
+- `In`
+- `NotIn`
+- `Prefix`
+- `NotPrefix`
+- `Postfix`
+- `NotPostfix`
+
+> When `followChildren: true` is set, only `In` and `NotIn` are supported — see Limitations below.
+
+The `values` field has to be a map of `strings`.
+
+Options:
+
+- `followChildren`: when `true`, also apply to children of matching parent
+  processes (direct or transitive).
+
+### Limitations
+
+- Requires `--parents-map-enabled` (see warning above).
+- When using `followChildren`:
+  - Children created before the policy was installed will not be matched.
+  - The number of `matchParentBinaries` sections with `followChildren: true`
+    cannot exceed 64.
+  - Operators other than `In/NotIn` are not supported.
+
+### Examples
+
+Match only if `cat` was executed from an interactive shell:
 
 ```yaml
 - matchParentBinaries:
@@ -513,20 +636,7 @@ from interactive shell like `zsh`, `bash`, `sh`:
     - "/usr/bin/cat"
 ```
 
-The available operators for `matchParentBinaries` are:
-- `In`
-- `NotIn`
-- `Prefix`
-- `NotPrefix`
-- `Postfix`
-- `NotPostfix`
-
-The `values` field has to be a map of `strings`.
-
-### Follow children
-
-The `matchParentBinaries` filter can be configured to also apply to children of
-matching parent processes. To do this, set `followChildren` to `true`. For example:
+Apply to children of matching parent processes:
 
 ```yaml
 - matchParentBinaries:
@@ -536,21 +646,49 @@ matching parent processes. To do this, set `followChildren` to `true`. For examp
     followChildren: true
 ```
 
-This policy will match any process, which direct or transitive parent process binary is `bash`.
-
-There are a number of limitations when using `followChildren`:
-- Children created before the policy was installed will not be matched.
-- The number of `matchParentBinaries` sections with `followChildren: true` cannot exceed 64.
-- Operators other than `In/NotIn` are not supported.
+This policy will match any process whose direct or transitive parent process
+binary is `bash`.
 
 ## Namespaces filter
 
+### Introduction
+
 Namespaces filters can be specified under the `matchNamespaces` field and
 provide filtering of calls based on Linux namespace. You can specify the
-namespace inode or use the special `host_ns` keyword, see the example and
-description for more information.
+namespace inode or use the special `host_ns` keyword.
 
-An example syntax is:
+### Use case
+
+Use `matchNamespaces` to restrict events to processes in specific Linux
+namespaces — for example detecting when `/bin/cat` opens `/etc/shadow` while
+having host `Net` or `Mnt` namespace access, or combining multiple namespace
+types in one selector.
+
+### Inputs, values, options, and operators
+
+- `namespace` can be: `Uts`, `Ipc`, `Mnt`, `Pid`, `PidForChildren`, `Net`,
+  `Cgroup`, or `User`. `Time` and `TimeForChildren` are also available in Linux
+  \>= 5.6.
+- `operator` can be `In` or `NotIn`
+- `values` can be raw numeric values (i.e. obtained from `lsns`) or `"host_ns"`
+  which will automatically be translated to the appropriate value.
+
+Within a single `namespace` entry, multiple `values` are combined with `OR`.
+Multiple `namespace` entries under one `matchNamespaces` block are combined
+with `AND`.
+
+### Limitations
+
+1. We can have up to 4 `values`. These can be both numeric and `host_ns` inside
+   a single `namespace`.
+2. We can have up to 4 `namespace` values under `matchNamespaces` in Linux
+   kernel < 5.3. In Linux >= 5.3 we can have up to 10 values (i.e. the maximum
+   number of namespaces that modern kernels provide).
+
+### Examples
+
+Match if the `Pid` namespace is `4026531836` or `4026531835`:
+
 ```yaml
 - matchNamespaces:
   - namespace: Pid
@@ -560,27 +698,8 @@ An example syntax is:
     - "4026531835"
 ```
 
-This will match if: [`Pid` namespace is `4026531836`] `OR` [`Pid` namespace is
-`4026531835`]
+Multiple namespace filters in one selector:
 
-- `namespace` can be: `Uts`, `Ipc`, `Mnt`, `Pid`, `PidForChildren`, `Net`,
-  `Cgroup`, or `User`. `Time` and `TimeForChildren` are also available in Linux
-  \>= 5.6.
-- `operator` can be `In` or `NotIn`
-- `values` can be raw numeric values (i.e. obtained from `lsns`) or `"host_ns"`
-  which will automatically be translated to the appropriate value.
-
-**Limitations**
-
-1. We can have up to 4 `values`. These can be both numeric and `host_ns` inside
-   a single `namespace`.
-2. We can have up to 4 `namespace` values under `matchNamespaces` in Linux
-   kernel < 5.3. In Linux >= 5.3 we can have up to 10 values (i.e. the maximum
-   number of namespaces that modern kernels provide).
-
-**Further examples**
-
-We can have multiple namespace filters:
 ```yaml
 selectors:
 - matchNamespaces:
@@ -595,15 +714,15 @@ selectors:
     - "4026531833"
     - "4026531834"
 ```
-This will match if: ([`Pid` namespace is `4026531836`] `OR` [`Pid` namespace is
+
+This matches if: ([`Pid` namespace is `4026531836`] `OR` [`Pid` namespace is
 `4026531835`]) `AND` ([`Mnt` namespace is `4026531833`] `OR` [`Mnt` namespace
 is `4026531834`])
 
+#### Host namespace access (`host_ns`)
 
-**Use cases examples**
-
-> Generate a kprobe event if `/etc/shadow` was opened by `/bin/cat` which
-> either had host `Net` or `Mnt` namespace access
+Generate a kprobe event if `/etc/shadow` was opened by `/bin/cat` which either
+had host `Net` or `Mnt` namespace access:
 
 ```yaml
 apiVersion: cilium.io/v1alpha1
@@ -653,6 +772,7 @@ spec:
 This example has 2 `selectors`. Note that each selector starts with `-`.
 
 Selector 1:
+
 ```yaml
         - matchBinaries:
           - operator: "In"
@@ -669,7 +789,9 @@ Selector 1:
             values:
             - "host_ns"
 ```
+
 Selector 2:
+
 ```yaml
         - matchBinaries:
           - operator: "In"
@@ -697,10 +819,8 @@ So the previous CRD will match if:
 `[`binary == /bin/cat `AND` arg1 == /etc/shadow `AND` MntNs == host`]` `OR`
 `[`binary == /bin/cat `AND` arg1 == /etc/shadow `AND` NetNs is host`]`
 
-We can modify the previous example as follows:
-
-> Generate a kprobe event if `/etc/shadow` was opened by `/bin/cat` which has
-> host `Net` and `Mnt` namespace access
+Generate a kprobe event if `/etc/shadow` was opened by `/bin/cat` which has
+host `Net` **and** `Mnt` namespace access (single selector):
 
 ```yaml
 apiVersion: cilium.io/v1alpha1
@@ -741,52 +861,82 @@ Here we have a single selector. This CRD will match if:
 
 `[`binary == /bin/cat `AND` arg1 == /etc/shadow `AND` `(`MntNs == host `AND`
 NetNs == host`)` `]`
-
 ## Capabilities filter
+
+### Introduction
 
 Capabilities filters can be specified under the `matchCapabilities` field and
 provide filtering of calls based on Linux capabilities in the specific sets.
 
-An example syntax is:
+### Use case
+
+Use `matchCapabilities` to match events from processes that hold specific Linux
+capabilities in their Effective, Inheritable, or Permitted sets.
+
+### Inputs, values, options, and operators
+
+- `type` can be: `Effective`, `Inheritable`, or `Permitted`.
+- `operator` can be `In` or `NotIn`
+- `isNamespaceCapability`: when `false` (default), match regardless of user
+  namespace. When `true`, only match when the process's user namespace differs
+  from the host's — i.e., the process is running inside a genuine user
+  namespace, not on the host.
+- `values` can be any supported capability. A list of all supported
+  capabilities can be found in `/usr/include/linux/capability.h`.
+
+This will match if: [`Effective` capabilities contain `CAP_CHOWN`] OR
+[`Effective` capabilities contain `CAP_NET_RAW`]
+
+### Limitations
+
+1. There is no limit in the number of capabilities listed under `values`.
+2. Only one `type` field can be specified under `matchCapabilities`.
+
+### Examples
+
 ```yaml
 - matchCapabilities:
   - type: Effective
     operator: In
+    isNamespaceCapability: false
     values:
     - "CAP_CHOWN"
     - "CAP_NET_RAW"
 ```
 
-This will match if: [`Effective` capabilities contain `CAP_CHOWN`] OR
-[`Effective` capabilities contain `CAP_NET_RAW`]
-
-- `type` can be: `Effective`, `Inheritable`, or `Permitted`.
-- `operator` can be `In` or `NotIn`
-- `values` can be any supported capability. A list of all supported
-  capabilities can be found in `/usr/include/linux/capability.h`.
-
-**Limitations**
-
-1. There is no limit in the number of capabilities listed under `values`.
-2. Only one `type` field can be specified under `matchCapabilities`.
-
 ## Namespace changes filter
+
+### Introduction
 
 Namespace changes filter can be specified under the `matchNamespaceChanges`
 field and provide filtering based on calls that are changing Linux namespaces.
-This filter can be useful to track execution of code in a new namespace or even
-container escapes that change their namespaces.
+
+### Use case
+
+This filter is useful to track execution of code in a new namespace or container
+escapes that change their namespaces.
 
 For instance, if an unprivileged process creates a new user namespace, it gains
 full privileges within that namespace. This grants the process the ability to
 perform some privileged operations within the context of this new namespace
-that would otherwise only be available to privileged root user. As a result, such
-filter is useful to track namespace creation, which can be abused by untrusted
-processes.
+that would otherwise only be available to privileged root user. As a result,
+such filter is useful to track namespace creation, which can be abused by
+untrusted processes.
 
 To keep track of the changes, when a `process_exec` happens, the namespaces of
 the process are recorded and these are compared with the current namespaces on
 the event with a `matchNamespaceChanges` filter.
+
+### Inputs, values, options, and operators
+
+- `operator` can be `In` or `NotIn`
+- `values` list namespace types that changed (e.g. `Mnt`)
+
+### Limitations
+
+- Requires baseline namespace state recorded at `process_exec` for comparison.
+
+### Examples
 
 ```yaml
 matchNamespaceChanges:
@@ -800,12 +950,35 @@ be used to test this feature.
 
 ## Capability changes filter
 
+### Introduction
+
 Capability changes filter can be specified under the `matchCapabilityChanges`
 field and provide filtering based on calls that are changing Linux capabilities.
+
+### Use case
+
+Use `matchCapabilityChanges` to detect when a process's capabilities change
+relative to those recorded at `process_exec` — for example gaining `CAP_SETUID`.
 
 To keep track of the changes, when a `process_exec` happens, the capabilities
 of the process are recorded and these are compared with the current
 capabilities on the event with a `matchCapabilityChanges` filter.
+
+### Inputs, values, options, and operators
+
+- `type` can be: `Effective`, `Inheritable`, or `Permitted`.
+- `operator` can be `In` or `NotIn`
+- `isNamespaceCapability`: when `false` (default), match regardless of user
+  namespace. When `true`, only match when the process's user namespace differs
+  from the host's — i.e., the process is running inside a genuine user
+  namespace, not on the host.
+- `values` list capability names (e.g. `CAP_SETUID`).
+
+### Limitations
+
+- Requires baseline capability state recorded at `process_exec` for comparison.
+
+### Examples
 
 ```yaml
 matchCapabilityChanges:
@@ -821,18 +994,37 @@ of this feature.
 
 ## Workloads filter
 
+### Introduction
+
 Workloads filter can be specified under the `matchWorkloads` field and provides
 filtering based on Kubernetes workloads. Inside `matchWorkloads` the user can
 define a `hostSelector`, a `podSelector`, and a `containerSelector`.
 
-This works in a similar way to global workload selectors such as `spec.hostSelector`,
-`spec.podSelector`, and `spec.containerSelector`. More details on these
-can be found in [Filtering semantics]({{< ref "/docs/concepts/tracing-policy/k8s-filtering/#filtering-semantics" >}}).
+### Use case
 
-Loading a tracing policy with `matchWorkloads` outside of Kubernetes will fail
-in a similar way to global workload selectors.
+Use `matchWorkloads` to scope selector-level filtering to specific Kubernetes
+workloads — for example host processes or pods in the `kube-system` namespace.
+This works per-selector, unlike global `spec.hostSelector` / `spec.podSelector` /
+`spec.containerSelector` on the policy.
 
-The following match host workloads and pods inside `kube-system` namespace:
+### Inputs, values, options, and operators
+
+- `hostSelector`: match host-level workloads (empty `{}` matches all hosts).
+- `podSelector`: Kubernetes label selector for pods (same semantics as policy-level
+  pod selectors).
+- `containerSelector`: Kubernetes label selector for containers.
+
+See [Filtering semantics]({{< ref "/docs/concepts/tracing-policy/k8s-filtering/#filtering-semantics" >}})
+for details on selector fields and operators.
+
+### Limitations
+
+- Loading a tracing policy with `matchWorkloads` outside of Kubernetes will fail
+  in a similar way to global workload selectors.
+
+### Examples
+
+Match host workloads and pods inside the `kube-system` namespace:
 
 ```yaml
 matchWorkloads:
@@ -847,9 +1039,21 @@ matchWorkloads:
 
 ## Actions filter
 
+### Introduction
+
 Actions filters are a list of actions that execute when an appropriate selector
-matches. They are defined under `matchActions` and currently, the following
-`action` types are supported:
+matches. They are defined under `matchActions`.
+
+### Use case
+
+Use `matchActions` to specify what happens when all filters in a selector match —
+for example posting an event, suppressing it, killing the process, overriding a
+return value, or running userspace helpers.
+
+### Inputs, values, options, and operators
+
+The following `action` types are supported:
+
 - [Sigkill action](#sigkill-action)
 - [Signal action](#signal-action)
 - [Override action](#override-action)
@@ -869,6 +1073,18 @@ executed directly in the kernel BPF code while `GetUrl` and `DnsLookup` are
 happening in userspace after the reception of events.
 {{< /note >}}
 
+### Limitations
+
+- Only the action from the **first** matching selector in a hook is applied
+  (short-circuited OR across selectors).
+- Userspace actions (`GetUrl`, `DnsLookup`) run after event delivery, not
+  synchronously in the kernel path.
+- Enforcement actions (`Sigkill`, `Signal`, `Override`) require careful review;
+  see [Enforcement]({{< ref "/docs/concepts/enforcement" >}}).
+
+### Examples
+
+Each action type is documented below with configuration fields and YAML examples.
 
 ### Sigkill action
 
@@ -2085,6 +2301,26 @@ instead.
 
 ## Return Actions filter
 
-Return actions filters are a list of actions that execute when an return selector
-matches. They are defined under `matchReturnActions` and currently support all
-the [Actions filter](#actions-filter) `action` types.
+### Introduction
+
+Return actions filters are a list of actions that execute when a return selector
+matches. They are defined under `matchReturnActions`.
+
+### Use case
+
+Use `matchReturnActions` with `returnMatchArgs` / return selectors to apply
+actions based on the function return value rather than entry arguments.
+
+### Inputs, values, options, and operators
+
+Currently supports all the [Actions filter](#actions-filter) `action` types.
+
+### Limitations
+
+- Same action-type constraints as `matchActions` (kernel vs userspace execution).
+
+### Examples
+
+See the action types under [Actions filter](#actions-filter) for YAML patterns;
+use `matchReturnActions` instead of `matchActions` on return selectors.
+
