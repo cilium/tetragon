@@ -26,6 +26,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
+	"github.com/cilium/tetragon/pkg/defaults"
 
 	"github.com/cilium/tetragon/pkg/asm"
 
@@ -1481,6 +1482,14 @@ func getSleepableOffloadMap(userSize int, load *program.Program) *program.Map {
 	return m
 }
 
+func getUprobeHeapMap(name string, load *program.Program) *program.Map {
+	var m *program.Map
+
+	m = program.MapShared(name, load)
+	m.SetMaxEntries(defaults.DefaultUprobeHeapSize)
+	return m
+}
+
 func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []idtable.EntryID, has uprobeHas) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
@@ -1535,6 +1544,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 
+	maps = append(maps, getUprobeHeapMap("process_call_heap", load))
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil), substringMapEntries)...)
 
@@ -1591,6 +1601,8 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		maps = append(maps, retTailCalls)
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
+
+		maps = append(maps, getUprobeHeapMap("process_call_heap", loadret))
 	}
 
 	return progs, maps, nil

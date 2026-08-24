@@ -8,6 +8,7 @@
 #include "msg_types.h"
 #include "process.h"
 #include "vmlinux.h"
+#include "../process/heap.h"
 
 /* The namespace and capability changes filters require later kernels */
 #ifdef __LARGE_BPF_PROG
@@ -105,6 +106,9 @@ struct msg_generic_kprobe {
 	struct generic_path path;
 #endif
 };
+
+_Static_assert(sizeof(struct msg_generic_kprobe) <= HEAP_RO_SIZE,
+	       "heap_ro_value's value must fit struct msg_generic_kprobe");
 
 FUNC_INLINE bool is_arg_ok(struct msg_generic_kprobe *e, int idx)
 {

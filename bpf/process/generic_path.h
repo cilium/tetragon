@@ -119,9 +119,9 @@ FUNC_INLINE long path_work(void *ctx, struct generic_path *gp, struct bpf_map_de
 FUNC_INLINE long generic_path(void *ctx, struct bpf_map_def *tailcals)
 {
 	struct msg_generic_kprobe *e;
-	int zero = 0;
+	heap_key_t key = heap_key();
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = map_lookup_elem(&process_call_heap, &key);
 	if (!e)
 		return 0;
 
@@ -176,10 +176,11 @@ FUNC_INLINE long generic_path_offload(void *ctx, long ty, unsigned long arg,
 	struct generic_path *gp;
 	const struct path *path;
 	char *args, *buffer, *buf;
-	int zero = 0;
+	heap_key_t key = heap_key();
+	int bufidx = 0;
 	int ret;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = map_lookup_elem(&process_call_heap, &key);
 	if (!e)
 		return 0;
 
@@ -196,7 +197,7 @@ FUNC_INLINE long generic_path_offload(void *ctx, long ty, unsigned long arg,
 	/* initialize for next argument */
 	generic_path_init(e);
 
-	buffer = map_lookup_elem(&buffer_heap_map, &zero);
+	buffer = map_lookup_elem(&buffer_heap_map, &bufidx);
 	if (!buffer)
 		return 0;
 

@@ -50,41 +50,41 @@ struct {
 __attribute__((section((MAIN)), used)) int
 BPF_KRETPROBE(generic_retuprobe_event, unsigned long ret)
 {
-	return generic_retprobe(ctx, (struct bpf_map_def *)&retuprobe_calls, ret);
+	return heap_dtor(generic_retprobe(ctx, (struct bpf_map_def *)&retuprobe_calls, ret));
 }
 
 #ifdef __LARGE_BPF_PROG
 __attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retuprobe_filter_arg)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&retuprobe_calls, false,
-				  __FILTER_ARG_ALL);
+	return heap_dtor(generic_filter_arg(ctx, (struct bpf_map_def *)&retuprobe_calls, false,
+					    __FILTER_ARG_ALL));
 }
 #else
 __attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retuprobe_filter_arg)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&retuprobe_calls, false,
-				  __FILTER_ARG_1);
+	return heap_dtor(generic_filter_arg(ctx, (struct bpf_map_def *)&retuprobe_calls, false,
+					    __FILTER_ARG_1));
 }
 
 __attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retuprobe_filter_arg_2)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&retuprobe_calls, false,
-				  __FILTER_ARG_2);
+	return heap_dtor(generic_filter_arg(ctx, (struct bpf_map_def *)&retuprobe_calls, false,
+					    __FILTER_ARG_2));
 }
 #endif
 
 __attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retuprobe_actions)
 {
-	generic_actions(ctx, (struct bpf_map_def *)&retuprobe_calls);
+	heap_dtor(generic_actions(ctx, (struct bpf_map_def *)&retuprobe_calls));
 	return 0;
 }
 
 __attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retuprobe_output)
 {
-	return generic_output(ctx, MSG_OP_GENERIC_UPROBE);
+	return heap_dtor(generic_output(ctx, MSG_OP_GENERIC_UPROBE));
 }
