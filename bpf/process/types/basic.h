@@ -891,10 +891,11 @@ struct filter_char_substring_data {
 	char *arg_str;
 	uint arg_len;
 	bool igncase;
+	bool match;
 };
 
-FUNC_LOCAL long
-do_filter_char_substring(int i, struct filter_char_substring_data *data, bool igncase)
+FUNC_INLINE long
+do_filter_char_substring(__u32 i, struct filter_char_substring_data *data, bool igncase)
 {
 	__u32 id = ((__u32 *)&data->filter->value)[i];
 	char *sub_str;
@@ -904,13 +905,43 @@ do_filter_char_substring(int i, struct filter_char_substring_data *data, bool ig
 	if (!sub_str)
 		return 0;
 
-	if (igncase)
+	if (igncase) {
+		if (!bpf_ksym_exists(bpf_strncasestr))
+			return 0;
 		idx = bpf_strncasestr(data->arg_str, sub_str, data->arg_len);
-	else
+	} else {
+		if (!bpf_ksym_exists(bpf_strnstr))
+			return 0;
 		idx = bpf_strnstr(data->arg_str, sub_str, data->arg_len);
+	}
 
 	return idx >= 0 ? 1 : 0;
 }
+
+#ifdef __V61_BPF_PROG
+FUNC_LOCAL long
+do_filter_char_substring_loop(__u32 i, struct filter_char_substring_data *data)
+{
+	/*
+	 * The verifier does not preserve the bpf_loop callback index bound when
+	 * it is used for pointer arithmetic. Force a verifier-visible upper bound
+	 * before indexing filter->value. bpf_loop itself only supplies 0..99.
+	 */
+	asm volatile("%[i] &= 0x7f;\n" : [i] "+r"(i));
+	if (i >= MAX_SUBSTRING_VALUES)
+		return 1;
+
+	/* Match the original loop's post-iteration vallen check. */
+	if (i && i * sizeof(__u32) + 8 >= data->filter->vallen)
+		return 1;
+
+	if (do_filter_char_substring(i, data, data->igncase)) {
+		data->match = true;
+		return 1;
+	}
+	return 0;
+}
+#endif
 
 FUNC_LOCAL long
 filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint arg_len, bool igncase)
@@ -919,7 +950,13 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 		.filter = filter,
 		.arg_str = arg_str,
 		.arg_len = arg_len,
+		.igncase = igncase,
 	};
+
+#ifdef __V61_BPF_PROG
+	loop(MAX_SUBSTRING_VALUES, do_filter_char_substring_loop, &data, 0);
+	return data.match;
+#else
 	int i, j = 0;
 
 	if (CONFIG(ITER_NUM)) {
@@ -941,6 +978,7 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 		}
 	}
 	return 0;
+#endif
 }
 #endif /* __LARGE_BPF_PROG */
 
