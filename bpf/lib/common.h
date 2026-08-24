@@ -3,6 +3,8 @@
 #ifndef _MSG_COMMON__
 #define _MSG_COMMON__
 
+#include "config.h"
+
 /* msg_common internal flags */
 #define MSG_COMMON_FLAG_RETURN		  BIT(0)
 #define MSG_COMMON_FLAG_KERNEL_STACKTRACE BIT(1)
@@ -57,11 +59,15 @@ struct bpf_map_def {
 #define BIT(nr)	    (1 << (nr))
 #define BIT_ULL(nr) (1ULL << (nr))
 
-#ifdef TETRAGON_BPF_DEBUG
 #include <bpf_tracing.h>
-#define DEBUG(__fmt, ...) bpf_printk(__fmt, ##__VA_ARGS__)
+// If TETRAGON_BPF_DEBUG is set, always enable debug messages
+#ifdef TETRAGON_BPF_DEBUG
+#define DEBUG(__fmt, ...) bpf_printk("tetragon: " __fmt, ##__VA_ARGS__)
 #else
-#define DEBUG(__fmt, ...)
+// Use the proper CONFIG value to check whether debug messages are enabled
+#define DEBUG(__fmt, ...)              \
+	if (CONFIG(BPF_DEBUG_ENABLED)) \
+		bpf_printk("tetragon: " __fmt, ##__VA_ARGS__);
 #endif
 
 #if __has_attribute(btf_decl_tag)
