@@ -24,11 +24,7 @@ import (
 
 const tpURL = "file:///tracingpolicy"
 
-var (
-	//go:embed schemas/tracingpolicy-cilium.io.json
-	tracingpolicyJSONSchema []byte
-	tpSchema                *jsonschema.Schema
-)
+var tpSchema *jsonschema.Schema
 
 type memLoader struct{}
 
