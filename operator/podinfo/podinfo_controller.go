@@ -9,6 +9,7 @@ import (
 	"context"
 	"maps"
 	"reflect"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -66,7 +67,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			// previous call to Get returned "NotFound" because of a timing issue.
 			// Requeue without returning the error when this happens, otherwise
 			// the controller logs an error.
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: time.Second}, nil
 		}
 		return ctrl.Result{}, err
 	}

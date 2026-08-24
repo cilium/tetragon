@@ -34,8 +34,7 @@ func setupTest(t *testing.T) (*testContext, error) {
 	// load test program
 	coll, err := ebpf.LoadCollection("objs/pid_match_test.o")
 	if err != nil {
-		var ve *ebpf.VerifierError
-		if errors.As(err, &ve) {
+		if ve, ok := errors.AsType[*ebpf.VerifierError](err); ok {
 			return nil, fmt.Errorf("verifier error: %+w", ve)
 		}
 		return nil, err

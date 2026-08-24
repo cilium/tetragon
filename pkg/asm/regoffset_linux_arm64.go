@@ -15,7 +15,7 @@ var ptregs unix.PtraceRegs
 
 // parseArmRegisterIndex parses arm64 register names with a numeric suffix.
 // The full suffix must be decimal digits and fit within the provided maximum.
-func parseArmRegisterIndex(name, prefix string, max int) (int, bool) {
+func parseArmRegisterIndex(name, prefix string, maximum int) (int, bool) {
 	idxStr, ok := strings.CutPrefix(name, prefix)
 	if !ok || idxStr == "" {
 		return 0, false
@@ -28,7 +28,7 @@ func parseArmRegisterIndex(name, prefix string, max int) (int, bool) {
 	}
 
 	idx, err := strconv.Atoi(idxStr)
-	if err != nil || idx > max {
+	if err != nil || idx > maximum {
 		return 0, false
 	}
 

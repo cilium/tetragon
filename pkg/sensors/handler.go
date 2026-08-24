@@ -435,7 +435,7 @@ func (h *handler) listPolicies(domain string) []*tetragon.TracingPolicyStatus {
 		pol := tetragon.TracingPolicyStatus{
 			Id:           col.tracingpolicyID,
 			Name:         ck.name,
-			Enabled:      col.isEnabled(),
+			Enabled:      col.isEnabled(), //nolint:staticcheck // Keep populating the deprecated field for API compatibility.
 			FilterId:     col.policyfilterID,
 			State:        col.state.ToTetragonState(),
 			Mode:         col.mode(),
