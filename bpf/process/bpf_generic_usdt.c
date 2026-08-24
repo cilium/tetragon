@@ -64,19 +64,19 @@ struct {
 __attribute__((section((MAIN)), used)) int
 generic_usdt_event(struct pt_regs *ctx)
 {
-	return generic_start_process_filter(ctx, (struct bpf_map_def *)&usdt_calls);
+	return heap_dtor(generic_start_process_filter(ctx, (struct bpf_map_def *)&usdt_calls));
 }
 
 __attribute__((section(COMMON), used)) int
 generic_usdt_setup_event(void *ctx)
 {
-	return generic_process_event_and_setup(ctx, (struct bpf_map_def *)&usdt_calls);
+	return heap_dtor(generic_process_event_and_setup(ctx, (struct bpf_map_def *)&usdt_calls));
 }
 
 __attribute__((section(COMMON), used)) int
 generic_usdt_process_event(void *ctx)
 {
-	return generic_process_event(ctx, (struct bpf_map_def *)&usdt_calls, __READ_ARG_ALL);
+	return heap_dtor(generic_process_event(ctx, (struct bpf_map_def *)&usdt_calls, __READ_ARG_ALL));
 }
 
 __attribute__((section(COMMON), used)) int
@@ -92,50 +92,50 @@ generic_usdt_process_filter(void *ctx)
 	/* If filter does not accept drop it. Ideally we would
 	 * log error codes for later review, TBD.
 	 */
-	return PFILTER_REJECT;
+	return heap_dtor(PFILTER_REJECT);
 }
 
 #ifdef __LARGE_BPF_PROG
 __attribute__((section(COMMON), used)) int
 generic_usdt_filter_arg(void *ctx)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&usdt_calls, true,
-				  __FILTER_ARG_ALL);
+	return heap_dtor(generic_filter_arg(ctx, (struct bpf_map_def *)&usdt_calls, true,
+					    __FILTER_ARG_ALL));
 }
 #else
 __attribute__((section(COMMON), used)) int
 generic_usdt_filter_arg(void *ctx)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&usdt_calls, true,
-				  __FILTER_ARG_1);
+	return heap_dtor(generic_filter_arg(ctx, (struct bpf_map_def *)&usdt_calls, true,
+					    __FILTER_ARG_1));
 }
 
 __attribute__((section(COMMON), used)) int
 generic_usdt_filter_arg_2(void *ctx)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&usdt_calls, true,
-				  __FILTER_ARG_2);
+	return heap_dtor(generic_filter_arg(ctx, (struct bpf_map_def *)&usdt_calls, true,
+					    __FILTER_ARG_2));
 }
 #endif
 
 __attribute__((section(COMMON), used)) int
 generic_usdt_actions(void *ctx)
 {
-	generic_actions(ctx, (struct bpf_map_def *)&usdt_calls);
+	heap_dtor(generic_actions(ctx, (struct bpf_map_def *)&usdt_calls));
 	return 0;
 }
 
 __attribute__((section(COMMON), used)) int
 generic_usdt_output(void *ctx)
 {
-	return generic_output(ctx, MSG_OP_GENERIC_USDT);
+	return heap_dtor(generic_output(ctx, MSG_OP_GENERIC_USDT));
 }
 
 #ifndef __V61_BPF_PROG
 __attribute__((section(COMMON), used)) int
 generic_usdt_path(void *ctx)
 {
-	return generic_path(ctx, (struct bpf_map_def *)&usdt_calls);
+	return heap_dtor(generic_path(ctx, (struct bpf_map_def *)&usdt_calls));
 }
 #endif
 __attribute__((section(OFFLOAD), used)) int

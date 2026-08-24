@@ -26,6 +26,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
+	"github.com/cilium/tetragon/pkg/defaults"
 
 	"github.com/cilium/tetragon/pkg/asm"
 
@@ -1462,6 +1463,14 @@ func getSleepableOffloadMap(userSize int, load *program.Program) *program.Map {
 	return m
 }
 
+func getProcessCallHeapMap(load *program.Program) *program.Map {
+	var m *program.Map
+
+	m = program.MapShared("process_call_heap", load)
+	m.SetMaxEntries(defaults.DefaultUprobeHeapSize)
+	return m
+}
+
 func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []idtable.EntryID, has uprobeHas) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
@@ -1511,8 +1520,9 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	tailCalls := program.MapBuilderProgram("uprobe_calls", load)
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
+	processCallHeap := getProcessCallHeapMap(load)
 
-	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
+	maps = append(maps, configMap, tailCalls, filterMap, retProbe, processCallHeap)
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil))...)
 
 	if has.substring {
@@ -1569,6 +1579,9 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		maps = append(maps, retTailCalls)
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
+
+		retProcessCallHeap := getProcessCallHeapMap(loadret)
+		maps = append(maps, retProcessCallHeap)
 	}
 
 	return progs, maps, nil

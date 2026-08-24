@@ -243,8 +243,9 @@ func createMultiUsdtSensor(
 	tailCalls := program.MapBuilderProgram("usdt_calls", load)
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	workloadsMap := program.MapBuilderProgram("workloads_map", load)
+	processCallHeap := getProcessCallHeapMap(load)
 
-	maps = append(maps, configMap, tailCalls, filterMap, workloadsMap)
+	maps = append(maps, configMap, tailCalls, filterMap, workloadsMap, processCallHeap)
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))

@@ -10,6 +10,7 @@ struct heap_ro_value {
 	union {
 		char string_maps_heap[STRING_MAPS_HEAP_SIZE];
 		char ratelimit_heap[sizeof(struct ratelimit_key) + 128];
+		struct msg_generic_kprobe process_call_heap;
 	};
 };
 
