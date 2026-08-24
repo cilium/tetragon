@@ -59,6 +59,7 @@ func NewCRDContext[P CRDObject](crd *extv1.CustomResourceDefinition) (*CRDContex
 		return nil, fmt.Errorf("failed to create structural schema: %w", err)
 	}
 
+	setAdditionalPropertiesFalse(internal.Spec.Validation.OpenAPIV3Schema)
 	validator, _, err := validation.NewSchemaValidator(internal.Spec.Validation.OpenAPIV3Schema)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create schema validator: %w", err)
@@ -72,6 +73,51 @@ func NewCRDContext[P CRDObject](crd *extv1.CustomResourceDefinition) (*CRDContex
 		validator:        validator,
 		celValidator:     celValidator,
 	}, nil
+}
+
+// This is used to reject misspelled or unknown fields in the CRD spec. It recursively sets
+// additionalProperties to false for all properties in the schema.
+func setAdditionalPropertiesFalse(schema *ext.JSONSchemaProps) {
+	if schema == nil {
+		return
+	}
+
+	for name, property := range schema.Properties {
+		setAdditionalPropertiesFalse(&property)
+		schema.Properties[name] = property
+	}
+
+	if schema.Items != nil {
+		setAdditionalPropertiesFalse(schema.Items.Schema)
+		for i := range schema.Items.JSONSchemas {
+			setAdditionalPropertiesFalse(&schema.Items.JSONSchemas[i])
+		}
+	}
+	if schema.AdditionalProperties != nil {
+		setAdditionalPropertiesFalse(schema.AdditionalProperties.Schema)
+	}
+	for name, property := range schema.PatternProperties {
+		setAdditionalPropertiesFalse(&property)
+		schema.PatternProperties[name] = property
+	}
+	for name, definition := range schema.Definitions {
+		setAdditionalPropertiesFalse(&definition)
+		schema.Definitions[name] = definition
+	}
+	for i := range schema.AllOf {
+		setAdditionalPropertiesFalse(&schema.AllOf[i])
+	}
+	for i := range schema.OneOf {
+		setAdditionalPropertiesFalse(&schema.OneOf[i])
+	}
+	for i := range schema.AnyOf {
+		setAdditionalPropertiesFalse(&schema.AnyOf[i])
+	}
+	setAdditionalPropertiesFalse(schema.Not)
+
+	if len(schema.Properties) > 0 && schema.AdditionalProperties == nil {
+		schema.AdditionalProperties = &ext.JSONSchemaPropsOrBool{Allows: false}
+	}
 }
 
 func (c *CRDContext[P]) IsNamespaced() bool {
