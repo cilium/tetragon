@@ -12,6 +12,7 @@ hook can contain up to 5 selectors. If no selectors are defined on a hook, the d
 
 Each selector comprises a set of filters:
 - [`matchArgs`](#arguments-filter): filter on the value of arguments.
+- [`matchCmdArgs`](#command-line-arguments-filter): filter on process command-line arguments.
 - [`matchData`](#data-filter): filter on the value of data fields.
 - [`matchReturnArgs`](#return-args-filter): filter on the return value.
 - [`matchPIDs`](#pids-filter): filter on PID.
@@ -187,6 +188,58 @@ selectors:
     - "reg"
 ```
 
+
+## Command-line arguments filter
+
+Command-line argument filters can be specified under the `matchCmdArgs` field.
+Unlike `matchArgs`, which filters on arguments passed to the hook,
+`matchCmdArgs` filters on the arguments passed to the current process when it
+was executed.
+
+The `index` field selects a command-line argument. Indexes are zero-based and
+exclude `argv[0]`, which is represented by the process binary. For example,
+index `0` selects `--output` when the process was started as `curl --output
+/tmp/result`.
+
+```yaml
+selectors:
+- matchBinaries:
+  - operator: In
+    values:
+    - "/usr/bin/curl"
+  matchCmdArgs:
+  - index: 0
+    operator: Equal
+    values:
+    - "--output"
+  - index: 1
+    operator: Prefix
+    values:
+    - "/tmp/"
+```
+
+The available operators for `matchCmdArgs` are:
+
+- `Equal`
+- `NotEqual`
+- `Prefix`
+- `NotPrefix`
+- `Postfix`
+- `NotPostfix`
+
+A selector can contain up to five `matchCmdArgs` filters, and each `index` can
+range from 0 to 31. All filters must match. Tetragon caches at most the first
+256 bytes of command-line arguments, including the NUL bytes that separate
+them. Data beyond this limit is truncated, and only arguments fully contained
+in the cache can match.
+
+{{< caution >}}
+Command-line arguments are user-controlled and can be reordered or obfuscated,
+so account for alternate forms when using this filter for enforcement.
+{{< /caution >}}
+
+The `matchCmdArgs` filter requires support for large BPF programs, normally
+available on Linux kernel version 5.3 and later.
 
 ## Data filter
 
