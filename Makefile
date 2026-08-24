@@ -252,7 +252,7 @@ tester-progs-tarball: tester-progs
 ##@ Test
 
 # renovate: datasource=docker
-GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v2.12.2@sha256:5cceeef04e53efe1470638d4b4b4f5ceefd574955ab3941b2d9a68a8c9ad5240
+GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v2.13.0@sha256:8bd3a16a42f03207464b9f7cf3f9e8d3549d976ace271e583cad11aa11218974
 GOLANGCILINT_WANT_VERSION := $(subst @sha256,,$(patsubst v%,%,$(word 2,$(subst :, ,$(lastword $(subst /, ,$(GOLANGCILINT_IMAGE)))))))
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 .PHONY: check
