@@ -99,6 +99,13 @@
       "minimumReleaseAgeBehaviour": "timestamp-optional",
     },
     {
+      // Official Docker Hub images provide release timestamps, so retain the
+      // dependency cooldown for them.
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["docker.io/library/**"],
+      "minimumReleaseAgeBehaviour": "timestamp-required",
+    },
+    {
       "groupName": "all github action dependencies",
       "groupSlug": "all-github-action",
       "matchFileNames": [
