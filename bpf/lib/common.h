@@ -60,14 +60,18 @@ struct bpf_map_def {
 #define BIT_ULL(nr) (1ULL << (nr))
 
 #include <bpf_tracing.h>
+#include "debug.h"
+
+#define DEBUG(__fmt, ...) DEBUG_AREA(BPF_AREA_GENERIC, __fmt, ##__VA_ARGS__)
+
 // If TETRAGON_BPF_DEBUG is set, always enable debug messages
 #ifdef TETRAGON_BPF_DEBUG
-#define DEBUG(__fmt, ...) bpf_printk("tetragon: " __fmt, ##__VA_ARGS__)
+#define DEBUG_AREA(area, __fmt, ...) bpf_printk("tetragon@" #area " | " __fmt, ##__VA_ARGS__)
 #else
 // Use the proper CONFIG value to check whether debug messages are enabled
-#define DEBUG(__fmt, ...)              \
-	if (CONFIG(BPF_DEBUG_ENABLED)) \
-		bpf_printk("tetragon: " __fmt, ##__VA_ARGS__);
+#define DEBUG_AREA(area, __fmt, ...)            \
+	if (CONFIG(BPF_DEBUG_ENABLED) & (area)) \
+		bpf_printk("tetragon@" #area " | " __fmt, ##__VA_ARGS__);
 #endif
 
 #if __has_attribute(btf_decl_tag)
