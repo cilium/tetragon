@@ -131,7 +131,7 @@ spec:
 `
 
 	noConfig := `
-apiversion: cilium.io/v1alpha1
+apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "noconfig"
@@ -170,7 +170,7 @@ spec:
 `
 
 	noConfig := `
-apiversion: cilium.io/v1alpha1
+apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "noconfig"
