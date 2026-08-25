@@ -187,7 +187,7 @@
       "groupSlug": "all-rthook-go-deps-main",
       "matchFileNames": [
         "contrib/tetragon-rthooks/go.mod",
-        "contrib/tetragon-rthooks/go.mod",
+        "contrib/tetragon-rthooks/go.sum",
       ],
       "matchUpdateTypes": [
         "minor",
