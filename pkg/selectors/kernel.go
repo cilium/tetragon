@@ -457,10 +457,19 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 			return fmt.Errorf("unknown type: %d", ty)
 		}
 	}
+	// maxRangeSpan bounds how many entries writeRangeInMap will enumerate into
+	// the map for a single "min:max" value. Without this, a range like
+	// "0:18446744073709551615" would try to insert billions of entries,
+	// pegging a CPU core and exhausting memory while parsing the policy.
+	const maxRangeSpan = 65536
+
 	switch ty {
 	case gt.GenericIntType, gt.GenericS64Type, gt.GenericS32Type, gt.GenericS16Type, gt.GenericS8Type, gt.GenericSyscall64, gt.GenericSizeType:
 		if sRangeVal[0] > sRangeVal[1] {
 			sRangeVal[0], sRangeVal[1] = sRangeVal[1], sRangeVal[0]
+		}
+		if uint64(sRangeVal[1])-uint64(sRangeVal[0]) > maxRangeSpan {
+			return fmt.Errorf("MatchArgs value %s invalid: range span exceeds %d", v, maxRangeSpan)
 		}
 		for val := sRangeVal[0]; ; val++ {
 			var valByte [8]byte
@@ -474,6 +483,9 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 	case gt.GenericU64Type, gt.GenericU32Type, gt.GenericU16Type, gt.GenericU8Type:
 		if uRangeVal[0] > uRangeVal[1] {
 			uRangeVal[0], uRangeVal[1] = uRangeVal[1], uRangeVal[0]
+		}
+		if uRangeVal[1]-uRangeVal[0] > maxRangeSpan {
+			return fmt.Errorf("MatchArgs value %s invalid: range span exceeds %d", v, maxRangeSpan)
 		}
 		for val := uRangeVal[0]; ; val++ {
 			var valByte [8]byte
