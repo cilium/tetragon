@@ -55,12 +55,10 @@ func New(setters ...eventLogParamsSetter) *Server {
 		}
 	}
 	return &Server{
-		logParamsSetter: validSetters,
-		GetEventLogParamsResponse: tetragon.GetEventLogParamsResponse{
-			MaxSize:          int32(option.Config.ExportFileMaxSizeMB),
-			RotationInterval: option.Config.ExportFileRotationInterval.String(),
-			MaxBackups:       int32(option.Config.ExportFileMaxBackups),
-		},
+		logParamsSetter:                    validSetters,
+		MaxSize:                            int32(option.Config.ExportFileMaxSizeMB),
+		RotationInterval:                   option.Config.ExportFileRotationInterval.String(),
+		MaxBackups:                         int32(option.Config.ExportFileMaxBackups),
 		UnimplementedEventLogServiceServer: tetragon.UnimplementedEventLogServiceServer{},
 	}
 }

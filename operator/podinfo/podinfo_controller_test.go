@@ -87,17 +87,13 @@ func randomPodGenerator() *corev1.Pod {
 	}
 
 	pod := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pod",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        getRandString(getRandNum()),
-			Namespace:   "default",
-			Labels:      getRandMap(),
-			Annotations: getRandMap(),
-			UID:         uuid.NewUUID(),
-		},
+		Kind:        "Pod",
+		APIVersion:  "v1",
+		Name:        getRandString(getRandNum()),
+		Namespace:   "default",
+		Labels:      getRandMap(),
+		Annotations: getRandMap(),
+		UID:         uuid.NewUUID(),
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
@@ -127,20 +123,18 @@ func TestGeneratePod(t *testing.T) {
 		}
 		workloadObject, workloadType := podhelpers.GetWorkloadMetaFromPod(pod)
 		expectedPodInfo := &ciliumv1alpha1.PodInfo{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        pod.Name,
-				Namespace:   pod.Namespace,
-				Labels:      pod.Labels,
-				Annotations: pod.Annotations,
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion:         pod.APIVersion,
-						Kind:               pod.Kind,
-						Name:               pod.Name,
-						UID:                pod.UID,
-						Controller:         new(true),
-						BlockOwnerDeletion: new(true),
-					},
+			Name:        pod.Name,
+			Namespace:   pod.Namespace,
+			Labels:      pod.Labels,
+			Annotations: pod.Annotations,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         pod.APIVersion,
+					Kind:               pod.Kind,
+					Name:               pod.Name,
+					UID:                pod.UID,
+					Controller:         new(true),
+					BlockOwnerDeletion: new(true),
 				},
 			},
 			Spec: ciliumv1alpha1.PodInfoSpec{

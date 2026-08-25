@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -67,10 +66,8 @@ func TestMetricsWithPod(t *testing.T) {
 		// Exactly one timeseries should be deleted for each metric (matching both
 		// pod name and namespace).
 		metrics.DeleteMetricsForPod(&corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "fake-pod",
-				Namespace: "fake-namespace",
-			},
+			Name:      "fake-pod",
+			Namespace: "fake-namespace",
 		})
 
 		metricSeries = getMetricSeries(t, reg)

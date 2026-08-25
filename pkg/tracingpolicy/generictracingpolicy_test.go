@@ -21,11 +21,9 @@ var lseekExample string
 func TestYamlLseek(t *testing.T) {
 	build.SkipIfK8sDisabled(t)
 	expected := GenericTracingPolicy{
-		TypeMeta: TypeMeta{
-			APIVersion: "cilium.io/v1alpha1",
-			Kind:       "TracingPolicy",
-		},
-		Metadata: ObjectMeta{Name: "tracepoint-lseek"},
+		APIVersion: "cilium.io/v1alpha1",
+		Kind:       "TracingPolicy",
+		Metadata:   ObjectMeta{Name: "tracepoint-lseek"},
 		Spec: v1alpha1.TracingPolicySpec{
 			Tracepoints: []v1alpha1.TracepointSpec{{
 				Subsystem: "syscalls",

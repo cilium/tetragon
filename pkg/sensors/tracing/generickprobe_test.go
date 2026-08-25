@@ -13,7 +13,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -139,9 +138,7 @@ const (
 )
 
 var tcpConnectPolicy = v1alpha1.TracingPolicy{
-	ObjectMeta: v1.ObjectMeta{
-		Name: tcpConnectPolicyName,
-	},
+	Name: tcpConnectPolicyName,
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
 			{

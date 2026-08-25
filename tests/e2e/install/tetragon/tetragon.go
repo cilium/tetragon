@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/e2e-framework/klient/k8s"
 	"sigs.k8s.io/e2e-framework/klient/wait"
@@ -118,10 +117,8 @@ func Uninstall(opts ...Option) env.Func {
 			r := client.Resources(o.Namespace)
 
 			ds := v1.DaemonSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      o.DaemonSetName,
-					Namespace: o.Namespace,
-				},
+				Name:      o.DaemonSetName,
+				Namespace: o.Namespace,
 			}
 
 			// Wait for Tetragon daemon set to be ready
@@ -248,10 +245,8 @@ func Install(opts ...Option) env.Func {
 			r := client.Resources(o.Namespace)
 
 			ds := v1.DaemonSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      o.DaemonSetName,
-					Namespace: o.Namespace,
-				},
+				Name:      o.DaemonSetName,
+				Namespace: o.Namespace,
 			}
 
 			// Wait for Tetragon daemon set to be ready

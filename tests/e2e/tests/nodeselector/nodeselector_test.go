@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
@@ -307,8 +306,8 @@ func allNodes() []string { return []string{nodeA, nodeB, ctrlNode} }
 func nodeSelectorPolicy(t *testing.T, name string, sel *slimv1.LabelSelector) string {
 	t.Helper()
 	tp := v1alpha1.TracingPolicy{
-		TypeMeta:   metav1.TypeMeta{APIVersion: "cilium.io/v1alpha1", Kind: "TracingPolicy"},
-		ObjectMeta: metav1.ObjectMeta{Name: name},
+		APIVersion: "cilium.io/v1alpha1", Kind: "TracingPolicy",
+		Name: name,
 		Spec: v1alpha1.TracingPolicySpec{
 			NodeSelector: sel,
 			KProbes:      []v1alpha1.KProbeSpec{{Call: "tcp_connect"}},

@@ -51,7 +51,7 @@ func CreateNamespace(namespace string, waitForCreation bool) env.Func {
 
 		if waitForCreation {
 			klog.InfoS("Waiting for namespace to be created...", "namespace", namespace)
-			ns := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
+			ns := &v1.Namespace{Name: namespace}
 			wait.For(conditions.New(r).ResourceMatch(ns, func(_ k8s.Object) bool {
 				return true
 			}))
@@ -78,7 +78,7 @@ func DeleteNamespace(namespace string, waitForDeletion bool) env.Func {
 		}
 
 		if waitForDeletion {
-			ns := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
+			ns := &v1.Namespace{Name: namespace}
 			wait.For(conditions.New(r).ResourceDeleted(ns))
 		}
 

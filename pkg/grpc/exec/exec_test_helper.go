@@ -34,10 +34,8 @@ var (
 	AllEvents []*tetragon.GetEventsResponse
 	BasePid   atomic.Uint32
 	dummyPod  = &corev1.Pod{
-		ObjectMeta: v1.ObjectMeta{
-			Namespace: "fake_pod_namespace",
-			Name:      "fake_pod_name",
-		},
+		Namespace: "fake_pod_namespace",
+		Name:      "fake_pod_name",
 		Status: corev1.PodStatus{
 			ContainerStatuses: []corev1.ContainerStatus{
 				{

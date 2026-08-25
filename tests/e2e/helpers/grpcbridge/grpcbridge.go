@@ -75,11 +75,9 @@ func buildDaemonSet(namespace string) *appsv1.DaemonSet {
 	hostPathType := corev1.HostPathDirectoryOrCreate
 
 	return &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      DaemonSetName,
-			Namespace: namespace,
-			Labels:    labels,
-		},
+		Name:      DaemonSetName,
+		Namespace: namespace,
+		Labels:    labels,
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: labels},
 			Template: corev1.PodTemplateSpec{
@@ -103,10 +101,8 @@ func buildDaemonSet(namespace string) *appsv1.DaemonSet {
 							Protocol:      corev1.ProtocolTCP,
 						}},
 						ReadinessProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								TCPSocket: &corev1.TCPSocketAction{
-									Port: intstr.FromInt32(SocatPort),
-								},
+							TCPSocket: &corev1.TCPSocketAction{
+								Port: intstr.FromInt32(SocatPort),
 							},
 							PeriodSeconds:    5,
 							FailureThreshold: 30,
@@ -118,11 +114,9 @@ func buildDaemonSet(namespace string) *appsv1.DaemonSet {
 					}},
 					Volumes: []corev1.Volume{{
 						Name: "tetragon-run",
-						VolumeSource: corev1.VolumeSource{
-							HostPath: &corev1.HostPathVolumeSource{
-								Path: "/var/run/tetragon",
-								Type: &hostPathType,
-							},
+						HostPath: &corev1.HostPathVolumeSource{
+							Path: "/var/run/tetragon",
+							Type: &hostPathType,
 						},
 					}},
 				},

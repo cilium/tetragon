@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -96,11 +95,9 @@ func reconcilerKinds() []reconcilerKind {
 			crdName: v1alpha1.TPName,
 			newObject: func(name string) client.Object {
 				return &v1alpha1.TracingPolicy{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       v1alpha1.TPKindDefinition,
-						APIVersion: "cilium.io/v1alpha1",
-					},
-					ObjectMeta: metav1.ObjectMeta{Name: name},
+					Kind:       v1alpha1.TPKindDefinition,
+					APIVersion: "cilium.io/v1alpha1",
+					Name:       name,
 				}
 			},
 			request:           ctrl.Request{NamespacedName: types.NamespacedName{Name: "p1"}},
@@ -115,11 +112,9 @@ func reconcilerKinds() []reconcilerKind {
 			crdName: v1alpha1.TPNamespacedName,
 			newObject: func(name string) client.Object {
 				return &v1alpha1.TracingPolicyNamespaced{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       v1alpha1.TPNamespacedKindDefinition,
-						APIVersion: "cilium.io/v1alpha1",
-					},
-					ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "team-a"},
+					Kind:       v1alpha1.TPNamespacedKindDefinition,
+					APIVersion: "cilium.io/v1alpha1",
+					Name:       name, Namespace: "team-a",
 				}
 			},
 			request:           ctrl.Request{NamespacedName: types.NamespacedName{Name: "p1", Namespace: "team-a"}},

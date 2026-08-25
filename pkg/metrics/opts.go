@@ -38,13 +38,11 @@ func NewOpts(
 	constLabels prometheus.Labels, constrainedLabels []ConstrainedLabel, unconstrainedLabels []UnconstrainedLabel,
 ) Opts {
 	return Opts{
-		Opts: prometheus.Opts{
-			Namespace:   namespace,
-			Subsystem:   subsystem,
-			Name:        name,
-			Help:        help,
-			ConstLabels: constLabels,
-		},
+		Namespace:           namespace,
+		Subsystem:           subsystem,
+		Name:                name,
+		Help:                help,
+		ConstLabels:         constLabels,
 		ConstrainedLabels:   constrainedLabels,
 		UnconstrainedLabels: unconstrainedLabels,
 	}

@@ -31,7 +31,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
@@ -133,10 +132,10 @@ func agentCerts(ctx context.Context, t *testing.T, cfg *envconf.Config) (rootCAs
 	require.NoError(t, err)
 	r := client.Resources(opts.Namespace)
 
-	serverSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: opts.DaemonSetName + "-server-certs", Namespace: opts.Namespace}}
+	serverSecret := corev1.Secret{Name: opts.DaemonSetName + "-server-certs", Namespace: opts.Namespace}
 	require.NoError(t, r.Get(ctx, serverSecret.Name, opts.Namespace, &serverSecret))
 
-	caSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: opts.DaemonSetName + "-ca", Namespace: opts.Namespace}}
+	caSecret := corev1.Secret{Name: opts.DaemonSetName + "-ca", Namespace: opts.Namespace}
 	require.NoError(t, r.Get(ctx, caSecret.Name, opts.Namespace, &caSecret))
 
 	rootCAs = x509.NewCertPool()

@@ -11,7 +11,6 @@ import (
 	"log"
 	"strconv"
 
-	k8sv1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -168,13 +167,9 @@ func (ksb *EnforcerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
 	operator := "InMap"
 
 	return &v1alpha1.TracingPolicy{
-		TypeMeta: k8sv1.TypeMeta{
-			Kind:       "TracingPolicy",
-			APIVersion: "cilium.io/v1alpha1",
-		},
-		ObjectMeta: k8sv1.ObjectMeta{
-			Name: ksb.name,
-		},
+		Kind:       "TracingPolicy",
+		APIVersion: "cilium.io/v1alpha1",
+		Name:       ksb.name,
 		Spec: v1alpha1.TracingPolicySpec{
 			Lists: lists,
 			Tracepoints: []v1alpha1.TracepointSpec{{
