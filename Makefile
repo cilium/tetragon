@@ -322,6 +322,11 @@ test-compile: ## Compile unit tests.
 		echo -c ./$$localpkg -o go-tests/$$localtestfile; \
 	done | GOMAXPROCS=1 xargs -P $(JOBS) -L 1 $(GO) test -gcflags=$(GO_BUILD_GCFLAGS)
 
+.PHONY: split-tetragon-gotests
+split-tetragon-gotests:
+	$(GO) -C tools build -o ../bin/split-tetragon-gotests ./split-tetragon-gotests
+	./bin/split-tetragon-gotests -ci-run 1
+
 .PHONY: fetch-testdata
 fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
@@ -455,7 +460,7 @@ protogen: protoc-gen-go-tetragon ## Generate code based on .proto files.
 
 .PHONY: protoc-gen-go-tetragon
 protoc-gen-go-tetragon:
-	$(GO_BUILD) -o bin/$@ ./tools/protoc-gen-go-tetragon/
+	CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) -C tools build -ldflags "$(GO_BUILD_LDFLAGS)" -o ../bin/$@ ./protoc-gen-go-tetragon/
 
 .PHONY: generate crds
 generate: | crds
@@ -476,6 +481,7 @@ vendor: ## Tidy and vendor Go modules.
 	$(MAKE) -C api vendor
 	$(MAKE) -C pkg/k8s vendor
 	$(MAKE) -C contrib/tetragon-rthooks vendor
+	$(MAKE) -C tools tidy
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
@@ -498,7 +504,7 @@ go-format: ## Run code formatter on Go code.
 	-not -path './pkg/k8s/vendor/*' \
 	-not -path './api/v1/tetragon/*' \
 	-not -path '**/zz_generated.deepcopy.go' | \
-	  xargs goimports -local github.com/cilium/tetragon,github.com/cilium/tetragon/api,github.com/cilium/tetragon/pkg/k8s -w
+	  xargs goimports -local github.com/cilium/tetragon,github.com/cilium/tetragon/api,github.com/cilium/tetragon/pkg/k8s,github.com/cilium/tetragon/tools -w
 
 .PHONY: format
 format: go-format clang-format ## Convenience alias for clang-format and go-format.
