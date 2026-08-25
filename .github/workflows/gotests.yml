@@ -77,8 +77,8 @@ jobs:
     - name: Run nok8s go tests
       run: |
         cd go/src/github.com/cilium/tetragon/
-        go vet -tags nok8s ./pkg/sensors ./pkg/policyfilter ./pkg/tracingpolicy
-        go test -tags nok8s ./pkg/tracingpolicy
+        go vet -tags nok8s ./pkg/sensors ./pkg/policyfilter ./pkg/tracingpolicy ./pkg/testutils/policytest
+        go test -tags nok8s ./pkg/tracingpolicy ./pkg/testutils/policytest
 
     - name: Upload Tetragon logs
       if: failure()
