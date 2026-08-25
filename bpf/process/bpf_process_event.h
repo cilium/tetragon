@@ -17,6 +17,7 @@
 #include "errmetrics.h"
 
 #define MATCH_BINARIES_PATH_MAX_LENGTH 256
+#define DEBUG_PROCESS(__fmt, ...)      DEBUG_AREA(BPF_AREA_PROCESS, __fmt, ##__VA_ARGS__)
 
 FUNC_INLINE __u64 __get_auid(struct task_struct *t)
 {
@@ -336,13 +337,13 @@ set_in_init_tree(struct execve_map_value *curr, struct execve_map_value *parent)
 {
 	if (parent && parent->flags & EVENT_IN_INIT_TREE) {
 		curr->flags |= EVENT_IN_INIT_TREE;
-		DEBUG("%s: parent in init tree", __func__);
+		DEBUG_PROCESS("%s: parent in init tree", __func__);
 		return;
 	}
 
 	if (curr->nspid == 1) {
 		curr->flags |= EVENT_IN_INIT_TREE;
-		DEBUG("%s: nspid=1", __func__);
+		DEBUG_PROCESS("%s: nspid=1", __func__);
 	}
 }
 
