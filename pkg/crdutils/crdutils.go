@@ -10,6 +10,7 @@ package crdutils
 
 import (
 	"context"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"os"
@@ -164,7 +165,7 @@ func (c *CRDContext[P]) FromYAML(data string) (P, error) {
 
 	// allocate a new instance of the underlying struct and unmarshal into it
 	cr = reflect.New(reflect.TypeOf(cr).Elem()).Interface().(P)
-	err = yaml.UnmarshalStrict(jsonData, cr)
+	err = json.Unmarshal(jsonData, cr, json.RejectUnknownMembers(true))
 	if err != nil {
 		return cr, fmt.Errorf("failed to unmarshal into typed object: %w", err)
 	}

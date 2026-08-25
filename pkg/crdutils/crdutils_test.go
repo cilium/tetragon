@@ -456,7 +456,7 @@ func TestTracingPolicyNotCoveredBySpec(t *testing.T) {
 	path := tempfile.CreateTempFile(t, tpNotCoveredBySpec)
 	_, err := TPContext.FromFile(path)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to unmarshal into typed object: error unmarshaling JSON: while decoding JSON: json: unknown field \"some_field\"")
+	assert.Contains(t, err.Error(), "unknown object member name \"some_field\" within \"/spec\"")
 }
 
 // TestXValidationHostSelector tests that XValidation rules work using the
