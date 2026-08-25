@@ -27,14 +27,12 @@ func NewGranularHistogram[L FilteredLabels](opts HistogramOpts, init initHistogr
 	}
 
 	promOpts := prometheus.HistogramVecOpts{
-		HistogramOpts: prometheus.HistogramOpts{
-			Namespace:   opts.Namespace,
-			Subsystem:   opts.Subsystem,
-			Name:        opts.Name,
-			Help:        opts.Help,
-			ConstLabels: opts.ConstLabels,
-			Buckets:     opts.Buckets,
-		},
+		Namespace:      opts.Namespace,
+		Subsystem:      opts.Subsystem,
+		Name:           opts.Name,
+		Help:           opts.Help,
+		ConstLabels:    opts.ConstLabels,
+		Buckets:        opts.Buckets,
 		VariableLabels: labels,
 	}
 	var metric *prometheus.HistogramVec

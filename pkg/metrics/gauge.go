@@ -27,13 +27,11 @@ func NewGranularGauge[L FilteredLabels](opts Opts, init initGaugeFunc) (*Granula
 	}
 
 	promOpts := prometheus.GaugeVecOpts{
-		GaugeOpts: prometheus.GaugeOpts{
-			Namespace:   opts.Namespace,
-			Subsystem:   opts.Subsystem,
-			Name:        opts.Name,
-			Help:        opts.Help,
-			ConstLabels: opts.ConstLabels,
-		},
+		Namespace:      opts.Namespace,
+		Subsystem:      opts.Subsystem,
+		Name:           opts.Name,
+		Help:           opts.Help,
+		ConstLabels:    opts.ConstLabels,
 		VariableLabels: labels,
 	}
 	var metric *prometheus.GaugeVec

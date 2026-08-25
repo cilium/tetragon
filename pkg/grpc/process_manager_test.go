@@ -30,15 +30,13 @@ import (
 func TestProcessManager_getPodInfo(t *testing.T) {
 	build.SkipIfK8sDisabled(t)
 	podA := corev1.Pod{
-		ObjectMeta: v1.ObjectMeta{
-			Name:         "pod-a",
-			Namespace:    "namespace-a",
-			GenerateName: "test-workload-",
-			OwnerReferences: []v1.OwnerReference{
-				{
-					Name:       "test-workload",
-					Controller: new(true),
-				},
+		Name:         "pod-a",
+		Namespace:    "namespace-a",
+		GenerateName: "test-workload-",
+		OwnerReferences: []v1.OwnerReference{
+			{
+				Name:       "test-workload",
+				Controller: new(true),
 			},
 		},
 		Status: corev1.PodStatus{
@@ -92,15 +90,13 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 	build.SkipIfK8sDisabled(t)
 	var podA = corev1.Pod{
-		ObjectMeta: v1.ObjectMeta{
-			Name:         "pod-a",
-			Namespace:    "namespace-a",
-			GenerateName: "test-workload-",
-			OwnerReferences: []v1.OwnerReference{
-				{
-					Name:       "test-workload",
-					Controller: new(true),
-				},
+		Name:         "pod-a",
+		Namespace:    "namespace-a",
+		GenerateName: "test-workload-",
+		OwnerReferences: []v1.OwnerReference{
+			{
+				Name:       "test-workload",
+				Controller: new(true),
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -108,10 +104,8 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 				{
 					Name: "pod-a-container-a-name",
 					LivenessProbe: &corev1.Probe{
-						ProbeHandler: corev1.ProbeHandler{
-							Exec: &corev1.ExecAction{
-								Command: []string{"command", "arg-a", "arg-b"},
-							},
+						Exec: &corev1.ExecAction{
+							Command: []string{"command", "arg-a", "arg-b"},
 						},
 					},
 				},

@@ -13,17 +13,13 @@ import (
 
 func NewTracingPolicy(name string) *v1alpha1.TracingPolicy {
 	ret := v1alpha1.TracingPolicy{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "TracingPolicy",
-			APIVersion: "cilium.io/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			// CreationTimestamp is not a pointer so it will not be omitted, so let's
-			// just at a timestamp.
-			// https://github.com/kubernetes/kubernetes/issues/67610
-			CreationTimestamp: metav1.Now(),
-		},
+		Kind:       "TracingPolicy",
+		APIVersion: "cilium.io/v1alpha1",
+		Name:       name,
+		// CreationTimestamp is not a pointer so it will not be omitted, so let's
+		// just at a timestamp.
+		// https://github.com/kubernetes/kubernetes/issues/67610
+		CreationTimestamp: metav1.Now(),
 	}
 
 	return &ret

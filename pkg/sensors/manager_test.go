@@ -69,8 +69,8 @@ func TestAddSkippedTracingPolicy(t *testing.T) {
 	mgr, err := StartSensorManager("")
 	require.NoError(t, err)
 
-	policy := v1alpha1.TracingPolicy{}
-	policy.Name = "skipped-policy"
+	policy := v1alpha1.TracingPolicy{
+		Name: "skipped-policy"}
 	err = mgr.AddTracingPolicyWithState(ctx, &policy, SkippedState)
 	require.NoError(t, err)
 
@@ -127,8 +127,8 @@ func TestSkippedTracingPolicyLoaded(t *testing.T) {
 			mgr, err := StartSensorManager("")
 			require.NoError(t, err)
 
-			policy := v1alpha1.TracingPolicy{}
-			policy.Name = "test-policy"
+			policy := v1alpha1.TracingPolicy{
+				Name: "test-policy"}
 			require.NoError(t, mgr.AddTracingPolicyWithState(ctx, &policy, SkippedState))
 
 			if tc.deleteBeforeAdd {
@@ -538,8 +538,8 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	go verifyState(errCh, tetragon.TracingPolicyState_TP_STATE_LOADING)
 
 	t.Log("adding policy")
-	policy := v1alpha1.TracingPolicy{}
-	policy.Name = polName
+	policy := v1alpha1.TracingPolicy{
+		Name: polName}
 	mgrErrCh := make(chan error, 1)
 	go func() {
 		mgrErrCh <- mgr.AddTracingPolicy(ctx, &policy)

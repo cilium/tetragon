@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
@@ -420,14 +419,12 @@ func TestRegressionOnPodLabelsMutation(t *testing.T) {
 	}
 
 	cachedPod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			UID:       types.UID(uuid.New().String()),
-			Name:      "test-pod",
-			Namespace: "default",
-			Labels: map[string]string{
-				"app":  "myapp",
-				"tier": "backend",
-			},
+		UID:       types.UID(uuid.New().String()),
+		Name:      "test-pod",
+		Namespace: "default",
+		Labels: map[string]string{
+			"app":  "myapp",
+			"tier": "backend",
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{

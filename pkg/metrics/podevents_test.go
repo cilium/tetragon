@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // fakePodEventSource is a hand-rolled fake satisfying the metrics PodEventSource
@@ -50,7 +49,7 @@ func TestRegisterPodDeleteHandler_EnqueuesPodOnDelete(t *testing.T) {
 	require.NoError(t, RegisterPodDeleteHandler(source))
 
 	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "ns"},
+		Name: "p1", Namespace: "ns",
 	}
 	source.firePodDelete(pod)
 

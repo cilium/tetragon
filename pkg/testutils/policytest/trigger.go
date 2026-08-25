@@ -32,15 +32,15 @@ func (c *CmdTrigger) Trigger(ctx context.Context) error {
 
 func (c *CmdTrigger) ExpectExitCode(val int) *ExecTester {
 	return &ExecTester{
-		MultiCmdTrigger:  MultiCmdTrigger{triggers: []CmdTrigger{*c}},
+		triggers:         []CmdTrigger{*c},
 		ExpectedExitCode: []int{val},
 	}
 }
 
 func (c *CmdTrigger) ExpectSignal(sig syscall.Signal) *ExecTester {
 	return &ExecTester{
-		MultiCmdTrigger: MultiCmdTrigger{triggers: []CmdTrigger{*c}},
-		ExpectedSignal:  []syscall.Signal{sig},
+		triggers:       []CmdTrigger{*c},
+		ExpectedSignal: []syscall.Signal{sig},
 	}
 }
 

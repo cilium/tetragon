@@ -148,11 +148,9 @@ func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
 		}
 
 		list = append(list, ProgOverhead{
-			Prog: Prog{
-				Attach: p.Attach,
-				Label:  p.Label,
-				Sensor: s.Name,
-			},
+			Attach:  p.Attach,
+			Label:   p.Label,
+			Sensor:  s.Name,
 			RunTime: stats.Runtime,
 			RunCnt:  stats.RunCount,
 		})

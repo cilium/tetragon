@@ -41,13 +41,11 @@ func NewGranularCounter[L FilteredLabels](opts Opts, init initCounterFunc) (*Gra
 	}
 
 	promOpts := prometheus.CounterVecOpts{
-		CounterOpts: prometheus.CounterOpts{
-			Namespace:   opts.Namespace,
-			Subsystem:   opts.Subsystem,
-			Name:        opts.Name,
-			Help:        opts.Help,
-			ConstLabels: opts.ConstLabels,
-		},
+		Namespace:      opts.Namespace,
+		Subsystem:      opts.Subsystem,
+		Name:           opts.Name,
+		Help:           opts.Help,
+		ConstLabels:    opts.ConstLabels,
 		VariableLabels: labels,
 	}
 	var metric *prometheus.CounterVec

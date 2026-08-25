@@ -16,7 +16,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
@@ -123,14 +122,12 @@ func (f *fakePodEventSource) firePodDelete(pod *v1.Pod) {
 
 func (tp *testPod) Pod() *v1.Pod {
 	pod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      tp.name,
-			UID:       k8stypes.UID(tp.id.String()),
-			Namespace: tp.namespace,
-			Labels:    tp.labels,
-		},
-		Spec:   v1.PodSpec{},
-		Status: v1.PodStatus{},
+		Name:      tp.name,
+		UID:       k8stypes.UID(tp.id.String()),
+		Namespace: tp.namespace,
+		Labels:    tp.labels,
+		Spec:      v1.PodSpec{},
+		Status:    v1.PodStatus{},
 	}
 
 	for _, cont := range tp.containers {

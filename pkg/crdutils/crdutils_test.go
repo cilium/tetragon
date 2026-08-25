@@ -91,11 +91,9 @@ spec:
 `
 
 var expectedWrite = GenericTracingPolicy{
-	TypeMeta: metav1.TypeMeta{
-		APIVersion: "cilium.io/v1alpha1",
-		Kind:       "TracingPolicy",
-	},
-	Metadata: metav1.ObjectMeta{Name: "sys-write"},
+	APIVersion: "cilium.io/v1alpha1",
+	Kind:       "TracingPolicy",
+	Metadata:   metav1.ObjectMeta{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
 			{
@@ -260,11 +258,9 @@ spec:
 `
 
 var expectedData = GenericTracingPolicy{
-	TypeMeta: metav1.TypeMeta{
-		APIVersion: "cilium.io/v1alpha1",
-		Kind:       "TracingPolicy",
-	},
-	Metadata: metav1.ObjectMeta{Name: "sys-write"},
+	APIVersion: "cilium.io/v1alpha1",
+	Kind:       "TracingPolicy",
+	Metadata:   metav1.ObjectMeta{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{
 			{

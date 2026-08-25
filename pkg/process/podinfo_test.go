@@ -21,21 +21,19 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 	build.SkipIfK8sDisabled(t)
 	var pods []any
 	pod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "test-pod",
-			Namespace:         "kube-system",
-			UID:               "1",
-			ResourceVersion:   "1",
-			Generation:        1,
-			CreationTimestamp: metav1.Time{},
-			Labels:            map[string]string{"a": "b", "c": "d"},
-			GenerateName:      "test-workload-",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Name:       "test-workload",
-					Kind:       "Deployment",
-					Controller: new(true),
-				},
+		Name:              "test-pod",
+		Namespace:         "kube-system",
+		UID:               "1",
+		ResourceVersion:   "1",
+		Generation:        1,
+		CreationTimestamp: metav1.Time{},
+		Labels:            map[string]string{"a": "b", "c": "d"},
+		GenerateName:      "test-workload-",
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Name:       "test-workload",
+				Kind:       "Deployment",
+				Controller: new(true),
 			},
 		},
 		Status: v1.PodStatus{

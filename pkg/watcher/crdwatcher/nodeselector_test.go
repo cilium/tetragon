@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -54,7 +53,7 @@ func TestNodeSelectorMatches(t *testing.T) {
 	}
 	cli := fake.NewClientBuilder().
 		WithScheme(newScheme(t)).
-		WithObjects(&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test-node", Labels: nodeLabels}}).
+		WithObjects(&corev1.Node{Name: "test-node", Labels: nodeLabels}).
 		Build()
 
 	tests := []struct {
@@ -95,10 +94,9 @@ func TestNodeSelectorMatches_NodeReadError(t *testing.T) {
 
 func TestReconcile_NodeSelector(t *testing.T) {
 	setLocalNodeName(t, "test-node")
-	localNode := &corev1.Node{ObjectMeta: metav1.ObjectMeta{
+	localNode := &corev1.Node{
 		Name:   "test-node",
-		Labels: map[string]string{"node-role": "gpu"},
-	}}
+		Labels: map[string]string{"node-role": "gpu"}}
 
 	for _, k := range reconcilerKinds() {
 		t.Run(k.name+"/match_adds", func(t *testing.T) {
@@ -184,7 +182,7 @@ func TestMapNodeToPolicies(t *testing.T) {
 // passes, so a relabel of any other node is filtered out before the mapper.
 func TestIsLocalNode(t *testing.T) {
 	setLocalNodeName(t, "test-node")
-	require.True(t, isLocalNode(&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test-node"}}))
-	require.False(t, isLocalNode(&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "other-node"}}),
+	require.True(t, isLocalNode(&corev1.Node{Name: "test-node"}))
+	require.False(t, isLocalNode(&corev1.Node{Name: "other-node"}),
 		"the Node watch predicate must ignore other nodes")
 }

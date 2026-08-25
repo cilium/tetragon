@@ -10,7 +10,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -128,7 +127,7 @@ func (r *TracingPolicyReconciler) mapNodeToPolicies(ctx context.Context, _ clien
 			continue
 		}
 		reqs = append(reqs, reconcile.Request{
-			NamespacedName: types.NamespacedName{Name: list.Items[i].Name},
+			Name: list.Items[i].Name,
 		})
 	}
 	return reqs

@@ -488,10 +488,8 @@ func getUprobeArgsPolicy() tracingpolicy.GenericTracingPolicy {
 		Metadata: v1.ObjectMeta{
 			Name: "uprobe",
 		},
-		TypeMeta: v1.TypeMeta{
-			Kind:       "TracingPolicy",
-			APIVersion: "cilium.io/v1alpha1",
-		},
+		Kind:       "TracingPolicy",
+		APIVersion: "cilium.io/v1alpha1",
 		Spec: v1alpha1.TracingPolicySpec{
 			UProbes: []v1alpha1.UProbeSpec{
 				{
