@@ -161,6 +161,9 @@ const (
 	KeyServerTLSKeyFile           = "server-tls-key-file"
 	KeyServerTLSClientCAFiles     = "server-tls-client-ca-files"
 	KeyServerTLSRequireClientCert = "server-tls-require-client-cert"
+
+	KeyBpfDebugArea = "bpf-debug-area"
+	KeyBpfDebugLog  = "bpf-debug-log"
 )
 
 const (
@@ -365,6 +368,8 @@ func ReadAndSetFlags() error {
 	if err := validateServerTLSConfig(Config); err != nil {
 		return err
 	}
+
+	Config.BPFDebugLog = viper.GetBool(KeyBpfDebugLog)
 
 	warnIgnoredProcessCacheFlags(Config)
 
@@ -660,4 +665,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyServerTLSKeyFile, "", "Path to the PEM-encoded private key matching --"+KeyServerTLSCertFile+". Required when --"+KeyServerTLSCertFile+" is set.")
 	flags.StringSlice(KeyServerTLSClientCAFiles, []string{}, "Paths to PEM-encoded CA bundles used to verify client certificates. Required when --"+KeyServerTLSRequireClientCert+" is true.")
 	flags.Bool(KeyServerTLSRequireClientCert, false, "Require and verify client certificates (mTLS). Requires --"+KeyServerTLSClientCAFiles+".")
+
+	flags.Var(Config.BPFDebugAreas, KeyBpfDebugArea, "Enable BPF tracing messages for specified areas "+Config.BPFDebugAreas.Allowed())
+	flags.Bool(KeyBpfDebugLog, false, "Enable forwarding BPF trace messages to tetragon log as info messages")
 }

@@ -165,6 +165,9 @@ type config struct {
 	// its ClientAuth policy to RequireAndVerifyClientCert; ServerTLSClientCAFiles
 	// must be non-empty.
 	ServerTLSRequireClientCert bool
+
+	BPFDebugAreas *BPFDbgEnum
+	BPFDebugLog   bool
 }
 
 var (
@@ -199,6 +202,13 @@ var (
 
 		// Set default value for deleted pod lru cache
 		DeletedPodCacheSize: constants.WatcherDeletedPodCacheSize,
+
+		// Set default value for bpf debug areas
+		// to be kept in sync with bpf/libs/debug.h
+		BPFDebugAreas: NewBPFDbgEnum(map[string]uint8{
+			"generic": 1 << 0,
+			"process": 1 << 1,
+		}),
 	}
 )
 
