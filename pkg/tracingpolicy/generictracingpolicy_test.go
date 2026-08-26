@@ -92,6 +92,20 @@ func TestEmptyTracingPolicy(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestWrongCaseTracingPolicy(t *testing.T) {
+	_, err := FromYAML(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tracepoint-test"
+spec:
+  Tracepoints: # wrong case
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+`)
+	require.Error(t, err)
+}
+
 const tpNodeSelector = `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
