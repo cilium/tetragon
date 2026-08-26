@@ -81,7 +81,9 @@ func (e *SliceEnum) Set(p string) error {
 	if !slices.Contains(e.allowed, p) {
 		return fmt.Errorf("invalid argument %s, please provide one of %s", p, e.Allowed())
 	}
-	e.Values = append(e.Values, p)
+	if !slices.Contains(e.Values, p) {
+		e.Values = append(e.Values, p)
+	}
 	return nil
 }
 
