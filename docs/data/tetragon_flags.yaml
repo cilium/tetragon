@@ -3,6 +3,13 @@ synopsis: |
     Tetragon - eBPF-based Security Observability and Runtime Enforcement
 usage: tetragon [flags]
 options:
+    - name: bpf-debug-area
+      usage: |
+        Enable BPF tracing messages for specified areas (all, generic, process)
+    - name: bpf-debug-log
+      default_value: "false"
+      usage: |
+        Enable forwarding BPF trace messages to tetragon log as info messages
     - name: bpf-dir
       default_value: tetragon
       usage: Set tetragon bpf directory (default 'tetragon')
