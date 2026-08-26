@@ -17,6 +17,7 @@ type parseSize struct {
 
 func TestParseSize(t *testing.T) {
 	var tests = []parseSize{
+		parseSize{"", false, 0},
 		parseSize{"1K", false, 1024},
 		parseSize{"256M", false, 256 * 1024 * 1024},
 		parseSize{"10G", false, 10 * 1024 * 1024 * 1024},
