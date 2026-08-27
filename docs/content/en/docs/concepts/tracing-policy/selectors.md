@@ -24,6 +24,7 @@ Each selector comprises a set of filters:
 - [`matchCapabilityChanges`](#capability-changes-filter): filter on Linux capabilities changes.
 - [`matchWorkloads`](#workloads-filter): filter on Kubernetes workloads.
 - [`matchCEL`](#matchcel): filter on the value of CEL expressions
+- [`matchUserCallers`](#matchusercallers): filter on the user space callstack of the hooked function.
 
 And a set of actions that will be performed if the specified filters match:
 - [`matchActions`](#actions-filter): apply an action on selector matching.
@@ -505,7 +506,7 @@ Match the interpreter instead:
 
 {{< warning >}}
 `matchParentBinaries` selector can be used only with BPF map `parents_map` enabled (option `--parents-map-enabled`), which adds
-additional memory overhead. 
+additional memory overhead.
 {{< /warning >}}
 
 Parent binaries filter provides filtering based on current process parent
@@ -912,6 +913,58 @@ Currently, `MatchCEL` supports:
 * Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
 * Integer casting to 32-bits (`int32()`, `uint32()`)
 * Bitwise operations (`and()`, `or()`, `xor()`, `not()`)
+
+## matchUserCallers
+
+The `matchUserCallers` selector allows filtering based on the user space callstack of the hooked function.
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-caller"
+spec:
+  uprobes:
+  - path: test
+    symbols:
+    - "func2"
+    selectors:
+    - matchUserCallers:
+      - depth: "2"
+        symbol: "main"
+```
+
+For this example policy, the `uprobe` will only trigger if the user space callstack of the `func2` function contains the
+symbol `main` at depth 2. The following is an example callstack that would match this selector:
+
+```plaintext
+func2 <-- 0 (uprobe)
+func1 <-- 1
+main  <-- 2
+```
+
+Instead of defining a symbol, you can also define the `startRange` and `endRange`
+of the caller function. The values must be the offsets relative to the beginning
+of the executable or shared object. Defining `symbol` is mutually exclusive with
+defining `startRange` and `endRange`.
+
+If the caller function is not in the same binary as the hooked function,
+you can define the `path` field to specify the binary path of the caller
+function. If the caller function is in the same binary as the hooked function,
+you can omit the `path` field.
+
+The `depth` field allows values from 1 to 15. If the depth is not exactly known,
+you can define `depth` as `"any"`. This searches for the caller in the first 15
+frames of the callstack.
+
+`matchUserCallers` can contain up to 5 entries. The selector will match if all
+of the entries match.
+
+**Limitations**
+1. Binaries and all linked libraries in the callstack must have frame pointers enabled.
+2. The `matchUserCallers` selector is only supported for `uprobes`
+3. Kernel commit `cfa7f3d2` (kernel version >=6.12) is needed to match the immediate caller on AMD64 platforms.
+4. Kernel version >=5.9 is needed to support binaries which don't have their buildID in their first note section.
 
 ## Actions filter
 
@@ -1708,7 +1761,7 @@ This policy will set the value of the first argument of the `pizza()` function t
 
 #### USDT
 
-For USDT probes, the `Set` action allows writing a value to a configured probe argument. 
+For USDT probes, the `Set` action allows writing a value to a configured probe argument.
 The argument needs to meet a few conditions:
 
 - It's stored in memory as `USDT deref` argument
@@ -2168,7 +2221,7 @@ For larger sets of values, consider using the `InMap` or `NotInMap`
 operators which store values in a BPF map.
 These are limited only by the amount of available memory.
 
-{{< caution >}} 
+{{< caution >}}
 The `InMap` and `NotInMap` operators also support the range notation described
 for the `InRange` operator. However, using range notation with `InMap` or
 `NotInMap` consumes more memory, because each value in the range is added
