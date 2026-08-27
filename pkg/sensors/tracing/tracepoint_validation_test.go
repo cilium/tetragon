@@ -106,7 +106,7 @@ spec:
     event: "sys_enter"
     raw: true
     args:
-    - index: 6
+    - index: 5
       type: "int"
 `
 

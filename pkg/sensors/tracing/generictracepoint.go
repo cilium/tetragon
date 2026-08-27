@@ -255,9 +255,9 @@ func validateTracepointArg(subsys, event string, nfields uint32, argIndex uint32
 }
 
 func validateRawTracepointArg(subsys, event string, argIndex uint32, argIdx int) error {
-	if argIndex > 5 {
-		return fmt.Errorf("raw tracepoint %s/%s can read up to 5 arguments, but index %d was requested in args[%d]",
-			subsys, event, argIndex, argIdx)
+	if argIndex >= tracingapi.MaxAccessibleArgs {
+		return fmt.Errorf("raw tracepoint %s/%s can read argument indices 0 through %d, but index %d was requested in args[%d]",
+			subsys, event, tracingapi.MaxAccessibleArgs-1, argIndex, argIdx)
 	}
 	return nil
 }
@@ -421,7 +421,7 @@ func preValidateTracepoint(spec *v1alpha1.TracepointSpec) (*tpValidateInfo, erro
 			}
 		}
 	} else {
-		// For raw tracepoints, argument index must be <= 5
+		// For raw tracepoints, argument index must be less than MaxAccessibleArgs.
 		for i, arg := range spec.Args {
 			if err := validateRawTracepointArg(spec.Subsystem, spec.Event, arg.Index, i); err != nil {
 				return nil, err
