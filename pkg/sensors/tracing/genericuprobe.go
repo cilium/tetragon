@@ -601,7 +601,7 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 			if action.Action != "Set" {
 				continue
 			}
-			if action.ArgIndex >= api.EventConfigMaxArgs {
+			if action.ArgIndex >= api.MaxAccessibleArgs {
 				return fmt.Errorf("uprobe Set action argIndex %d out of range", action.ArgIndex)
 			}
 		}
@@ -1175,7 +1175,7 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 			cfg.argRetprobe = &spec.Args[i]
 			cfg.argRetprobeIdx = i
 		}
-		if a.Index > 4 {
+		if a.Index >= api.MaxAccessibleArgs {
 			return fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index))
 		}

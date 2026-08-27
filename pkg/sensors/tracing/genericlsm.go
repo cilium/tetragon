@@ -220,7 +220,7 @@ func isValidLsmSelectors(selectors []v1alpha1.KProbeSelector) error {
 }
 
 func validateLsmArg(j int, a *v1alpha1.KProbeArg) error {
-	if a.Index > 4 {
+	if a.Index >= api.MaxAccessibleArgs {
 		return fmt.Errorf("args[%d]: arg type %s index %d out of bounds",
 			j, a.Type, a.Index)
 	}
