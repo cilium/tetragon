@@ -35,6 +35,8 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		t.Fatalf("error: %v", err)
 	}
 
+	selectedFiles := selectKernelVersionFilesForTest(t, files)
+
 	for _, file := range files {
 		fileName := file.Name()
 		if file.IsDir() || filepath.Ext(fileName) != ".o" {
@@ -70,10 +72,8 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			continue
 		}
 
-		// Skip kernel version-specific objects if running on older kernel
-		requiredVersion := extractKernelVersion(fileName)
-		if requiredVersion != "" && !kernels.MinKernelVersion(requiredVersion) {
-			t.Logf("%s ⊘ (requires kernel %s)", fileName, requiredVersion)
+		// Skip kernel version-specific objects if not selected for current kernel
+		if selectedFiles != nil && extractKernelVersion(fileName) != "" && !selectedFiles[fileName] {
 			continue
 		}
 
