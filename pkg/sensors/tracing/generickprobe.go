@@ -811,7 +811,7 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 			argRetprobe = &f.Args[j]
 			argRetprobeIdx = j
 		}
-		if a.Index > 4 {
+		if a.Index >= api.MaxAccessibleArgs {
 			return fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index))
 		}

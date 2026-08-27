@@ -685,6 +685,7 @@ const (
 	EventConfigMaxUsdtArgs = 8
 	EventConfigMaxRegArgs  = 8
 	MaxBTFArgDepth         = 10 // Artificial value for compilation, may be extended
+	MaxAccessibleArgs      = 5  // Maximum reachable arg index in function signature. Should match MAX_ACCESSIBLE_ARGS in bpf code.
 )
 
 type EventConfig struct {
