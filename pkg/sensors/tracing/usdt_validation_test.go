@@ -80,6 +80,53 @@ spec:
 	require.Error(t, err)
 }
 
+func TestUsdtValidationSetArgIndexOutOfBounds(t *testing.T) {
+	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt-override")
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdts"
+spec:
+  usdts:
+  - path: "` + usdt + `"
+    provider: "tetragon"
+    name: "test_1B"
+    args:
+    - index: 0
+      type: "int32"
+    selectors:
+    - matchActions:
+      - action: Set
+        argIndex: 1
+        argValue: 240
+`
+
+	err := checkCrd(t, crd)
+	require.ErrorContains(t, err, "set action argument spec index 1 out of bounds")
+}
+
+func TestUsdtValidationProbeArgIndexOutOfBounds(t *testing.T) {
+	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt-override")
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdts"
+spec:
+  usdts:
+  - path: "` + usdt + `"
+    provider: "tetragon"
+    name: "test_1B"
+    args:
+    - index: 3
+      type: "int32"
+`
+
+	err := checkCrd(t, crd)
+	require.ErrorContains(t, err, "argument index 3 out of bounds")
+}
+
 func TestUsdtEventConfigCarriesPolicyID(t *testing.T) {
 	spec := &v1alpha1.UsdtSpec{
 		Path:     testutils.RepoRootPath("contrib/tester-progs/usdt"),

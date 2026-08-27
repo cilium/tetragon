@@ -413,14 +413,14 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		// Validate argument for set action
 		if ok, idx := selectors.HasSetArgIndex(spec.Selectors); ok {
 			// argument index is within usdt args in spec
-			if idx > uint32(len(spec.Args)) {
+			if idx >= uint32(len(spec.Args)) {
 				return ids, fmt.Errorf("failed to configure usdt '%s/%s', set action argument spec index %d out of bounds",
 					spec.Provider, spec.Name, idx)
 			}
 
 			// usdt spec argument points to existing usdt defined in elf note
 			arg := spec.Args[idx]
-			if arg.Index > uint32(len(target.Spec.Args)) {
+			if arg.Index >= target.Spec.ArgsCnt {
 				return ids, fmt.Errorf("failed to configure usdt '%s/%s', argument index %d out of bounds",
 					spec.Provider, spec.Name, arg.Index)
 			}
@@ -443,7 +443,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		var preload bool
 		for cfgIdx, arg := range spec.Args {
 			tgtIdx := arg.Index
-			if tgtIdx > target.Spec.ArgsCnt {
+			if tgtIdx >= target.Spec.ArgsCnt {
 				return ids, fmt.Errorf("failed to configure usdt '%s/%s', argument index %d out of bounds",
 					spec.Provider, spec.Name, tgtIdx)
 			}
