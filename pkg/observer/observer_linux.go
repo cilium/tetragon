@@ -26,6 +26,13 @@ const (
 	perCPUBufferBytes = 65535
 )
 
+var rawSampleBufPool = sync.Pool{
+	New: func() any {
+		buf := make([]byte, 0)
+		return &buf
+	},
+}
+
 func (k *Observer) getRBSize(cpus int) int {
 	var size int
 
@@ -111,8 +118,12 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	go func() {
 		defer wg.Done()
 		for stopCtx.Err() == nil {
-			record, err := perfReader.Read()
+			bufPtr := rawSampleBufPool.Get().(*[]byte)
+			record := perf.Record{RawSample: *bufPtr}
+			err := perfReader.ReadInto(&record)
+			*bufPtr = record.RawSample
 			if err != nil {
+				rawSampleBufPool.Put(bufPtr)
 				// NOTE(JM and Djalal): count and log errors while excluding the stopping context
 				if stopCtx.Err() == nil {
 					RingbufErrors.Inc()
@@ -122,12 +133,15 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 			} else {
 				if len(record.RawSample) > 0 {
 					select {
-					case eventsQueue <- &record.RawSample:
+					case eventsQueue <- bufPtr:
 					default:
 						// eventsQueue channel is full, drop the event
+						rawSampleBufPool.Put(bufPtr)
 						queueLost.Inc()
 					}
 					RingbufReceived.Inc()
+				} else {
+					rawSampleBufPool.Put(bufPtr)
 				}
 
 				if record.LostSamples > 0 {
@@ -141,8 +155,12 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 		// Service the BPF ring buffer as well.
 		wg.Go(func() {
 			for stopCtx.Err() == nil {
-				record, err := ringBufReader.Read()
+				bufPtr := rawSampleBufPool.Get().(*[]byte)
+				record := ringbuf.Record{RawSample: *bufPtr}
+				err := ringBufReader.ReadInto(&record)
+				*bufPtr = record.RawSample
 				if err != nil {
+					rawSampleBufPool.Put(bufPtr)
 					// NOTE(JM and Djalal): count and log errors while excluding the stopping context
 					if stopCtx.Err() == nil {
 						RingbufErrors.Inc()
@@ -152,12 +170,15 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 				} else {
 					if len(record.RawSample) > 0 {
 						select {
-						case eventsQueue <- &record.RawSample:
+						case eventsQueue <- bufPtr:
 						default:
 							// eventsQueue channel is full, drop the event
+							rawSampleBufPool.Put(bufPtr)
 							queueLost.Inc()
 						}
 						RingbufReceived.Inc()
+					} else {
+						rawSampleBufPool.Put(bufPtr)
 					}
 				}
 			}
@@ -170,6 +191,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 			select {
 			case eventRawSample := <-eventsQueue:
 				k.receiveEvent(*eventRawSample)
+				rawSampleBufPool.Put(eventRawSample)
 				queueReceived.Inc()
 			case <-stopCtx.Done():
 				k.log.Info("Listening for events completed.", logfields.Error, stopCtx.Err())
