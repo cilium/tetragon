@@ -23,11 +23,7 @@ func TestExtractKernelVersion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.fileName, func(t *testing.T) {
-			result, err := extractKernelVersion(tt.fileName)
-			if err != nil {
-				t.Errorf("extractKernelVersion(%q) error = %v", tt.fileName, err)
-				return
-			}
+			result := extractKernelVersion(tt.fileName)
 			if result != tt.expected {
 				t.Errorf("extractKernelVersion(%q) = %q, want %q", tt.fileName, result, tt.expected)
 			}

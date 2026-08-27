@@ -71,10 +71,7 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		}
 
 		// Skip kernel version-specific objects if running on older kernel
-		requiredVersion, err := extractKernelVersion(fileName)
-		if err != nil {
-			t.Fatal(err)
-		}
+		requiredVersion := extractKernelVersion(fileName)
 		if requiredVersion != "" && !kernels.MinKernelVersion(requiredVersion) {
 			t.Logf("%s ⊘ (requires kernel %s)", fileName, requiredVersion)
 			continue
