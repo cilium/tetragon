@@ -124,7 +124,13 @@ func (k *Observer) receiveEvent(data []byte) {
 	}
 
 	op, events, err := HandlePerfData(data)
-	opcodemetrics.OpTotalInc(ops.OpCode(op))
+
+	metricsEnabled := option.Config.MetricsServer != ""
+
+	if metricsEnabled {
+		opcodemetrics.OpTotalInc(ops.OpCode(op))
+	}
+
 	if err != nil {
 		errormetrics.HandlerErrorsInc(ops.OpCode(op), err.kind)
 		switch err.kind {
@@ -137,7 +143,7 @@ func (k *Observer) receiveEvent(data []byte) {
 	for _, event := range events {
 		k.observerListeners(event)
 	}
-	if option.Config.EnableMsgHandlingLatency {
+	if metricsEnabled && option.Config.EnableMsgHandlingLatency {
 		opcodemetrics.LatencyStats.WithLabelValues(strconv.FormatUint(uint64(op), 10)).Observe(float64(time.Since(timer).Microseconds()))
 	}
 }

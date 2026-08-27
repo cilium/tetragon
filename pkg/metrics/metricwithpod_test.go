@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/metricsconfig"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 var sampleMsgGenericTracepointUnix = tracing.MsgGenericTracepointUnix{
@@ -26,6 +27,14 @@ var sampleMsgGenericTracepointUnix = tracing.MsgGenericTracepointUnix{
 }
 
 func TestMetricsWithPod(t *testing.T) {
+	option.Config.MetricsServer = ":0"
+	option.Config.EnableEventMetrics = true
+
+	t.Cleanup(func() {
+		option.Config.MetricsServer = ""
+		option.Config.EnableEventMetrics = false
+	})
+
 	eventMetrics := []string{"tetragon_events_total", "tetragon_policy_events_total", "tetragon_syscalls_total"}
 	healthMetrics := []string{"tetragon_build_info", "tetragon_data_events_total"}
 

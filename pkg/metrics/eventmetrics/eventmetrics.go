@@ -173,6 +173,10 @@ func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent any) {
 }
 
 func ProcessEvent(originalEvent any, processedEvent any) {
+	if option.Config.MetricsServer == "" || !option.Config.EnableEventMetrics {
+		return
+	}
+
 	handleOriginalEvent(originalEvent)
 
 	var policyInfo tracingpolicy.PolicyInfo
