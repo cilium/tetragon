@@ -59,11 +59,9 @@ func (g *codeGenerator) emitPushBool(val bool, tmp asm.Register) {
 	)
 }
 
-func (g *codeGenerator) emitPopBool(reg asm.Register) {
-	g.emitRaw(asm.LoadMem(reg, asm.R10, g.stackTop, asm.DWord))
-	g.stackTop += 8
-}
-
+// emitPushInt64 pushes the 64-bit register onto the stack.
+// This is used for all values, even ones with smaller widths,
+// to keep the stack aligned to 8 bytes for simplicity.
 func (g *codeGenerator) emitPushInt64(val int64, tmp asm.Register) {
 	g.stackTop -= 8
 	g.emitRaw(
@@ -72,12 +70,10 @@ func (g *codeGenerator) emitPushInt64(val int64, tmp asm.Register) {
 	)
 }
 
+// emitPopInt64 pops the 64-bit register from the stack.
+// This is used for all values, even ones with smaller widths,
+// to keep the stack aligned to 8 bytes for simplicity.
 func (g *codeGenerator) emitPopInt64(reg asm.Register) {
-	g.emitRaw(asm.LoadMem(reg, asm.R10, g.stackTop, asm.DWord))
-	g.stackTop += 8
-}
-
-func (g *codeGenerator) emitPopS32(reg asm.Register) {
 	g.emitRaw(asm.LoadMem(reg, asm.R10, g.stackTop, asm.DWord))
 	g.stackTop += 8
 }
@@ -94,11 +90,6 @@ func (g *codeGenerator) emitS32(reg asm.Register, regTy *cgTypes.Type) error {
 		asm.StoreMem(asm.R10, g.stackTop, reg, asm.DWord),
 	)
 	return nil
-}
-
-func (g *codeGenerator) emitPopU32(reg asm.Register) {
-	g.emitRaw(asm.LoadMem(reg, asm.R10, g.stackTop, asm.DWord))
-	g.stackTop += 8
 }
 
 func (g *codeGenerator) emitU32(reg asm.Register, regTy *cgTypes.Type) error {
