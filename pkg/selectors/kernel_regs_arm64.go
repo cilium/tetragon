@@ -13,6 +13,8 @@ import (
 	"github.com/cilium/tetragon/pkg/asm"
 )
 
+const ArgsInRegisters = 8 // Number of arguments passed by register per AArch64 ABI
+
 func parseOverrideRegs(k *KernelSelectorState, selIdx int, values []string, errValue uint64, newOffset int64) error {
 	if _, exists := k.regs[selIdx]; exists {
 		return errors.New("only single instance of regs action is allowed")

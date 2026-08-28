@@ -1635,7 +1635,7 @@ For uprobes, the `Set` action allows setting the value of the argument at the gi
 The argument needs to meet a few conditions:
 
 - It must be an integer parameter (`argValue` holds an `uint32`)
-- `argIndex` must be between 0 and 4 (tetragon's accessible arguments)
+- `argIndex` must be between 0 and 5 for amd64 and between 0 and 7 for arm64
 - `argIndex` refers to the position of the argument in the traced function, starting from 0 for the first argument
 
 Example policy follows:
