@@ -1158,7 +1158,7 @@ func TestReadConfigSettings(t *testing.T) {
 		flags.String(option.KeyHubbleLib, defaults.DefaultTetragonLib, "Location of Tetragon libs (btf and bpf files)")
 		flags.String(option.KeyBTF, "", "Location of btf")
 		flags.String(option.KeyExportFilename, "", "Filename for JSON export. Disabled by default")
-		flags.Int(option.KeyVerbosity, 0, "set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
+		flags.Int(option.KeyVerbosity, 0, option.VerifierLogLevelHelp)
 		flags.Bool(option.KeyEnableK8sAPI, false, "Access Kubernetes API to associate tetragon events with Kubernetes pods")
 		flags.Uint(option.KeyEventQueueSize, 10000, "Set the size of the internal event queue.")
 		viper.BindPFlags(flags)
