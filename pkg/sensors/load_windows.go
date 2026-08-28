@@ -21,7 +21,7 @@ func observerLoadInstance(bpfDir string, load *program.Program, maps []*program.
 	l := logger.GetLogger()
 	l.Debug(fmt.Sprintf("observerLoadInstance %s %d", load.Name, version), "prog", load.Name, "kern_version", version)
 
-	err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
+	err = loadInstance(bpfDir, load, maps, version, option.Config.VerifierLogLevel)
 	if err != nil && load.ErrorFatal {
 		return fmt.Errorf("failed prog %s kern_version %d loadInstance: %w",
 			load.Name, version, err)

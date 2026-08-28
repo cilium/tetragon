@@ -27,10 +27,11 @@ type config struct {
 	KernelVersion   string
 	HubbleLib       string
 	BTF             string
-	Verbosity       int
 	ForceSmallProgs bool
 	ForceLargeProgs bool
 	ClusterName     string
+
+	VerifierLogLevel int
 
 	EnablePodAnnotations bool
 

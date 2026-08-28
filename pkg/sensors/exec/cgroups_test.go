@@ -590,7 +590,7 @@ func TestLoadCgroupsPrograms(t *testing.T) {
 	testutils.CaptureLog(t, logger.GetLogger())
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
 	tus.LoadSensor(t, testsensor.GetCgroupSensor())
@@ -601,7 +601,7 @@ func TestTgRuntimeConf(t *testing.T) {
 	testutils.CaptureLog(t, logger.GetLogger())
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	tus.LoadInitialSensor(t)
 
@@ -632,7 +632,7 @@ func TestCgroupNoEvents(t *testing.T) {
 	defer cancel()
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
@@ -682,7 +682,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	defer cancel()
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
@@ -1021,7 +1021,7 @@ func TestCgroupv2K8sHierarchyInUnified(t *testing.T) {
 	defer cancel()
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
@@ -1045,7 +1045,7 @@ func TestCgroupv2K8sHierarchyInHybrid(t *testing.T) {
 	defer cancel()
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	tus.LoadInitialSensor(t)
 
@@ -1065,7 +1065,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 	defer cancel()
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
@@ -1320,7 +1320,7 @@ func TestCgroupv2ExecK8sHierarchyInUnified(t *testing.T) {
 	defer cancel()
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
@@ -1349,7 +1349,7 @@ func TestCgroupMissedTrackingErrMetrics(t *testing.T) {
 	defer cancel()
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())

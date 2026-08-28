@@ -31,6 +31,7 @@ const (
 	KeyBTF                    = "btf"
 	KeyProcFS                 = "procfs"
 	KeyKernelVersion          = "kernel"
+	KeyVerifierLogLevel       = "verifier-log-level"
 	KeyVerbosity              = "verbose"
 	KeyProcessCacheSize       = "process-cache-size"
 	KeyDisableProcessCache    = "disable-process-cache"
@@ -182,7 +183,10 @@ func ReadAndSetFlags() error {
 	Config.BTF = viper.GetString(KeyBTF)
 	Config.ProcFS = viper.GetString(KeyProcFS)
 	Config.KernelVersion = viper.GetString(KeyKernelVersion)
-	Config.Verbosity = viper.GetInt(KeyVerbosity)
+	Config.VerifierLogLevel = viper.GetInt(KeyVerifierLogLevel)
+	if !viper.IsSet(KeyVerifierLogLevel) && viper.IsSet(KeyVerbosity) {
+		Config.VerifierLogLevel = viper.GetInt(KeyVerbosity)
+	}
 	Config.ForceSmallProgs = viper.GetBool(KeyForceSmallProgs)
 	Config.ForceLargeProgs = viper.GetBool(KeyForceLargeProgs)
 	Config.Debug = viper.GetBool(KeyDebug)
@@ -505,7 +509,9 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.String(KeyProcFS, "/proc/", "Location of procfs to consume existing PIDs")
 	flags.String(KeyKernelVersion, "", "Kernel version")
-	flags.Int(KeyVerbosity, 0, "set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
+	flags.Int(KeyVerifierLogLevel, 0, "set eBPF verifier log level. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
+	flags.Int(KeyVerbosity, 0, "deprecated alias for --"+KeyVerifierLogLevel)
+	flags.MarkDeprecated(KeyVerbosity, "use --"+KeyVerifierLogLevel+" instead")
 	flags.Int(KeyProcessCacheSize, 65536, "Size of the process cache")
 	flags.Bool(KeyDisableProcessCache, false, "Disable process cache")
 	flags.Int(KeyDataCacheSize, 1024, "Size of the data events cache")

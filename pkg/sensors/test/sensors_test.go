@@ -23,7 +23,7 @@ import (
 
 func TestMapBuildersSingle(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	p1 := program.Builder(
 		"bpf_map_test_p1.o",
@@ -71,7 +71,7 @@ func TestMapBuildersSingle(t *testing.T) {
 
 func TestMapBuildersMulti(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	p1 := program.Builder(
 		"bpf_map_test_p1.o",
@@ -417,7 +417,7 @@ func TestMapUser(t *testing.T) {
 
 func TestPolicyMapPath(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	p1 := program.Builder(
 		"bpf_map_test_p1.o",
@@ -459,7 +459,7 @@ func getMaxEntries(t *testing.T, path string) uint32 {
 
 func TestMaxEntriesSingle(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	p1 := program.Builder(
 		"bpf_map_test_p1.o",
@@ -488,7 +488,7 @@ func TestMaxEntriesSingle(t *testing.T) {
 
 func TestMaxEntriesMulti(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	p1 := program.Builder(
 		"bpf_map_test_p1.o",
@@ -758,7 +758,7 @@ func TestCleanup(t *testing.T) {
 
 func TestMapShared(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	option.Config.Verbosity = 5
+	option.Config.VerifierLogLevel = 5
 
 	p1 := program.Builder(
 		"bpf_map_test_p1.o",

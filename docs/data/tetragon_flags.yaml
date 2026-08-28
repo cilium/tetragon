@@ -304,5 +304,8 @@ options:
         Resolve UIDs to user names for processes running in host namespace
     - name: verbose
       default_value: "0"
+      usage: deprecated alias for --verifier-log-level
+    - name: verifier-log-level
+      default_value: "0"
       usage: |
-        set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump
+        set eBPF verifier log level. Pass 0 for silent, 1 for truncated logs, 2 for a full dump
