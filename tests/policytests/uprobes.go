@@ -6,12 +6,22 @@
 package tests
 
 import (
+	"runtime"
+	"strconv"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 )
+
+func uprobeSetArgIndex() int {
+	if runtime.GOARCH == "arm64" {
+		return 7
+	}
+	return 5
+}
 
 // uprobe-pclntab: attach to stripped Go binary via pclntab symbol resolution
 var _ = policytest.NewBuilder("uprobe-pclntab").WithLabels("uprobes").WithPolicyTemplate(`
@@ -501,11 +511,11 @@ spec:
   uprobes:
   - path: {{ testBinary "uprobe-simple" }}
     symbols:
-    - "pizza"
+    - "manyargs"
     selectors:
     - matchActions:
       - action: Set
-        argIndex: 0
+        argIndex: ` + strconv.Itoa(uprobeSetArgIndex()) + `
         argValue: 42
 `).WithSkip(func(si *policytest.SkipInfo) string {
 	// skip if uprobe_regs_change is not supported
@@ -518,17 +528,18 @@ spec:
 	upChecker := ec.NewProcessUprobeChecker("uprobe-set").
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Full(myBin))).
-		WithSymbol(sm.Full("pizza"))
+		WithSymbol(sm.Full("manyargs"))
 
+	argIndex := uprobeSetArgIndex()
 	exitCode := 42
 	if c.TestConf != nil && c.TestConf.MonitorMode {
-		exitCode = 0
+		exitCode = argIndex
 	}
 	postCnt := uint64(1)
 	setCnt := uint64(1)
 	return &policytest.Scenario{
 		Name:         "execute uprobe-simple, check set action and events",
-		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(exitCode),
+		Trigger:      policytest.NewCmdTrigger(myBin, strconv.Itoa(argIndex)).ExpectExitCode(exitCode),
 		EventChecker: ec.NewUnorderedEventChecker(upChecker),
 		ActCountChecker: policytest.ActionCounts{
 			Post: &postCnt,
