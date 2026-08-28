@@ -163,6 +163,10 @@ const (
 	KeyServerTLSRequireClientCert = "server-tls-require-client-cert"
 )
 
+const (
+	VerifierLogLevelHelp = "set eBPF verifier log level. Pass 0 for silent, 1 for truncated logs, 2 for a full dump"
+)
+
 type UsernameMetadaCode int
 
 const (
@@ -509,7 +513,7 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.String(KeyProcFS, "/proc/", "Location of procfs to consume existing PIDs")
 	flags.String(KeyKernelVersion, "", "Kernel version")
-	flags.Int(KeyVerifierLogLevel, 0, "set eBPF verifier log level. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
+	flags.Int(KeyVerifierLogLevel, 0, VerifierLogLevelHelp)
 	flags.Int(KeyVerbosity, 0, "deprecated alias for --"+KeyVerifierLogLevel)
 	flags.MarkDeprecated(KeyVerbosity, "use --"+KeyVerifierLogLevel+" instead")
 	flags.Int(KeyProcessCacheSize, 65536, "Size of the process cache")

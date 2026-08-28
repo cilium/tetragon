@@ -28,6 +28,11 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 	flag.StringVar(&config.TetragonLib,
 		"bpf-lib", ConfigDefaults.TetragonLib,
 		"tetragon lib directory (location of btf file and bpf objs). Will be overridden by an TETRAGON_LIB env variable.")
+	flag.IntVar(
+		&option.Config.VerifierLogLevel,
+		option.KeyVerifierLogLevel,
+		0,
+		option.VerifierLogLevelHelp)
 	flag.DurationVar(&config.CmdWaitTime,
 		"command-wait",
 		5*time.Minute,
