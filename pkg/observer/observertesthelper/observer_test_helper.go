@@ -208,7 +208,7 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 
 	obs := newDefaultObserver()
 	if testing.Verbose() {
-		option.Config.Verbosity = 1
+		option.Config.VerifierLogLevel = 1
 	}
 
 	if err := loadExporter(tb, ctx, obs, &o.exporter, &o.observer); err != nil {
@@ -324,7 +324,7 @@ func getDefaultSensors(tb testing.TB, initialSensor *sensors.Sensor, opts ...Tes
 	}
 
 	if testing.Verbose() {
-		option.Config.Verbosity = 1
+		option.Config.VerifierLogLevel = 1
 	}
 
 	var tp tracingpolicy.TracingPolicy

@@ -69,7 +69,7 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 	bpf.CheckOrMountCgroup2()
 
 	if args.Debug {
-		option.Config.Verbosity = 5
+		option.Config.VerifierLogLevel = 5
 	}
 
 	if _, err := os.Stat("../../bpf/objs"); err == nil {

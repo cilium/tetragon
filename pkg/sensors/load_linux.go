@@ -136,29 +136,29 @@ func observerLoadInstance(bpfDir string, load *program.Program, maps []*program.
 	l.Debug(fmt.Sprintf("observerLoadInstance %s %d", load.Name, version), "prog", load.Name, "kern_version", version)
 	switch load.Type {
 	case "tracepoint":
-		err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, load, maps, version, option.Config.VerifierLogLevel)
 		if err != nil {
 			l.Info("Failed to load, trying to remove and retrying", "tracepoint", load.Name)
 			load.Unload(true)
-			err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
+			err = loadInstance(bpfDir, load, maps, version, option.Config.VerifierLogLevel)
 		}
 		if err != nil {
 			return fmt.Errorf("failed prog %s kern_version %d LoadTracingProgram: %w",
 				load.Name, version, err)
 		}
 	case "raw_tracepoint", "raw_tp":
-		err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, load, maps, version, option.Config.VerifierLogLevel)
 		if err != nil {
 			l.Info("Failed to load, trying to remove and retrying", "raw_tracepoint", load.Name)
 			load.Unload(true)
-			err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
+			err = loadInstance(bpfDir, load, maps, version, option.Config.VerifierLogLevel)
 		}
 		if err != nil {
 			return fmt.Errorf("failed prog %s kern_version %d LoadRawTracepointProgram: %w",
 				load.Name, version, err)
 		}
 	default:
-		err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, load, maps, version, option.Config.VerifierLogLevel)
 		if err != nil && load.ErrorFatal {
 			return fmt.Errorf("failed prog %s kern_version %d loadInstance: %w",
 				load.Name, version, err)
