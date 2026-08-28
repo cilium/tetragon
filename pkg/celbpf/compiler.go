@@ -78,6 +78,22 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 		emitCall = func() error {
 			return c.cg.emitU32(scratchRegs[0], argTypes[0])
 		}
+	case int16Fn:
+		emitCall = func() error {
+			return c.cg.emitS16(scratchRegs[0], argTypes[0])
+		}
+	case uint16Fn:
+		emitCall = func() error {
+			return c.cg.emitU16(scratchRegs[0], argTypes[0])
+		}
+	case int8Fn:
+		emitCall = func() error {
+			return c.cg.emitS8(scratchRegs[0], argTypes[0])
+		}
+	case uint8Fn:
+		emitCall = func() error {
+			return c.cg.emitU8(scratchRegs[0], argTypes[0])
+		}
 
 	case cgOperators.Add:
 		emitCall = func() error {
@@ -194,7 +210,7 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 		i := len(callArgs) - j - 1
 		ty := argTypes[i]
 		switch ty.TypeName() {
-		case "bool", "int", "uint", "s32", "u32":
+		case "bool", "int", "uint", "s32", "u32", "u16", "s16", "u8", "s8":
 			c.cg.emitPopInt64(scratchRegs[i])
 		default:
 			return fmt.Errorf("unsupported argument type: %s", ty.TypeName())

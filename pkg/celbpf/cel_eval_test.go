@@ -21,7 +21,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type celNumber[T int32 | uint32] struct {
+type number interface {
+	int8 | uint8 | int16 | uint16 | int32 | uint32
+}
+
+type celNumber[T number] struct {
 	value    T
 	typeInfo *celTypes.Type
 }
@@ -60,8 +64,28 @@ func (value celNumber[T]) Value() any {
 	return value.value
 }
 
+type celS8 = celNumber[int8]
+type celU8 = celNumber[uint8]
+type celS16 = celNumber[int16]
+type celU16 = celNumber[uint16]
 type celS32 = celNumber[int32]
 type celU32 = celNumber[uint32]
+
+func newCelS8(value int8) celS8 {
+	return celS8{value: value, typeInfo: s8Ty}
+}
+
+func newCelU8(value uint8) celU8 {
+	return celU8{value: value, typeInfo: u8Ty}
+}
+
+func newCelS16(value int16) celS16 {
+	return celS16{value: value, typeInfo: s16Ty}
+}
+
+func newCelU16(value uint16) celU16 {
+	return celU16{value: value, typeInfo: u16Ty}
+}
 
 func newCelS32(value int32) celS32 {
 	return celS32{value: value, typeInfo: s32Ty}
@@ -77,6 +101,14 @@ type celTestTypeAdapter struct {
 
 func (adapter celTestTypeAdapter) NativeToValue(value any) ref.Val {
 	switch value := value.(type) {
+	case celS8:
+		return value
+	case celU8:
+		return value
+	case celS16:
+		return value
+	case celU16:
+		return value
 	case celS32:
 		return value
 	case celU32:
@@ -101,6 +133,10 @@ func celBinArithOp(
 	uintOp func(celTypes.Uint, celTypes.Uint) celTypes.Uint,
 	s32Op func(int32, int32) int32,
 	u32Op func(uint32, uint32) uint32,
+	s16Op func(int16, int16) int16,
+	u16Op func(uint16, uint16) uint16,
+	s8Op func(int8, int8) int8,
+	u8Op func(uint8, uint8) uint8,
 ) func(left, right ref.Val) ref.Val {
 	return func(left, right ref.Val) ref.Val {
 		switch left := left.(type) {
@@ -120,6 +156,22 @@ func celBinArithOp(
 			if r, ok := right.(celU32); ok {
 				return newCelU32(u32Op(left.value, r.value))
 			}
+		case celS16:
+			if r, ok := right.(celS16); ok {
+				return newCelS16(s16Op(left.value, r.value))
+			}
+		case celU16:
+			if r, ok := right.(celU16); ok {
+				return newCelU16(u16Op(left.value, r.value))
+			}
+		case celS8:
+			if r, ok := right.(celS8); ok {
+				return newCelS8(int8(s8Op(int8(left.value), int8(r.value))))
+			}
+		case celU8:
+			if r, ok := right.(celU8); ok {
+				return newCelU8(uint8(u8Op(uint8(left.value), uint8(r.value))))
+			}
 		}
 		return celTypes.MaybeNoSuchOverloadErr(left)
 	}
@@ -130,6 +182,10 @@ var celAdd = celBinArithOp(
 	func(a, b celTypes.Uint) celTypes.Uint { return a + b },
 	func(a, b int32) int32 { return a + b },
 	func(a, b uint32) uint32 { return a + b },
+	func(a, b int16) int16 { return a + b },
+	func(a, b uint16) uint16 { return a + b },
+	func(a, b int8) int8 { return a + b },
+	func(a, b uint8) uint8 { return a + b },
 )
 
 var celSubtract = celBinArithOp(
@@ -137,6 +193,10 @@ var celSubtract = celBinArithOp(
 	func(a, b celTypes.Uint) celTypes.Uint { return a - b },
 	func(a, b int32) int32 { return a - b },
 	func(a, b uint32) uint32 { return a - b },
+	func(a, b int16) int16 { return a - b },
+	func(a, b uint16) uint16 { return a - b },
+	func(a, b int8) int8 { return a - b },
+	func(a, b uint8) uint8 { return a - b },
 )
 
 var celBitwiseAND = celBinArithOp(
@@ -144,6 +204,10 @@ var celBitwiseAND = celBinArithOp(
 	func(a, b celTypes.Uint) celTypes.Uint { return a & b },
 	func(a, b int32) int32 { return a & b },
 	func(a, b uint32) uint32 { return a & b },
+	func(a, b int16) int16 { return a & b },
+	func(a, b uint16) uint16 { return a & b },
+	func(a, b int8) int8 { return a & b },
+	func(a, b uint8) uint8 { return a & b },
 )
 
 var celBitwiseOR = celBinArithOp(
@@ -151,6 +215,10 @@ var celBitwiseOR = celBinArithOp(
 	func(a, b celTypes.Uint) celTypes.Uint { return a | b },
 	func(a, b int32) int32 { return a | b },
 	func(a, b uint32) uint32 { return a | b },
+	func(a, b int16) int16 { return a | b },
+	func(a, b uint16) uint16 { return a | b },
+	func(a, b int8) int8 { return a | b },
+	func(a, b uint8) uint8 { return a | b },
 )
 
 var celBitwiseXOR = celBinArithOp(
@@ -158,6 +226,10 @@ var celBitwiseXOR = celBinArithOp(
 	func(a, b celTypes.Uint) celTypes.Uint { return a ^ b },
 	func(a, b int32) int32 { return a ^ b },
 	func(a, b uint32) uint32 { return a ^ b },
+	func(a, b int16) int16 { return a ^ b },
+	func(a, b uint16) uint16 { return a ^ b },
+	func(a, b int8) int8 { return a ^ b },
+	func(a, b uint8) uint8 { return a ^ b },
 )
 
 func celBitwiseNOT(value ref.Val) ref.Val {
@@ -170,11 +242,19 @@ func celBitwiseNOT(value ref.Val) ref.Val {
 		return newCelS32(^v.value)
 	case celU32:
 		return newCelU32(^v.value)
+	case celS16:
+		return newCelS16(^v.value)
+	case celU16:
+		return newCelU16(^v.value)
+	case celS8:
+		return newCelS8(^v.value)
+	case celU8:
+		return newCelU8(^v.value)
 	}
 	return celTypes.MaybeNoSuchOverloadErr(value)
 }
 
-func compareIntegers[T int32 | uint32 | celTypes.Int | celTypes.Uint](op string, left, right T) ref.Val {
+func compareIntegers[T number | celTypes.Int | celTypes.Uint](op string, left, right T) ref.Val {
 	switch op {
 	case "lt":
 		return celTypes.Bool(left < right)
@@ -215,6 +295,30 @@ func celInequality(op string, left, right ref.Val) ref.Val {
 			return celTypes.MaybeNoSuchOverloadErr(right)
 		}
 		return compareIntegers(op, left.value, right.value)
+	case celS16:
+		right, ok := right.(celS16)
+		if !ok {
+			return celTypes.MaybeNoSuchOverloadErr(right)
+		}
+		return compareIntegers(op, left.value, right.value)
+	case celU16:
+		right, ok := right.(celU16)
+		if !ok {
+			return celTypes.MaybeNoSuchOverloadErr(right)
+		}
+		return compareIntegers(op, left.value, right.value)
+	case celS8:
+		right, ok := right.(celS8)
+		if !ok {
+			return celTypes.MaybeNoSuchOverloadErr(right)
+		}
+		return compareIntegers(op, left.value, right.value)
+	case celU8:
+		right, ok := right.(celU8)
+		if !ok {
+			return celTypes.MaybeNoSuchOverloadErr(right)
+		}
+		return compareIntegers(op, left.value, right.value)
 	default:
 		return celTypes.MaybeNoSuchOverloadErr(left)
 	}
@@ -223,6 +327,22 @@ func celInequality(op string, left, right ref.Val) ref.Val {
 func getOverloadOpts(t *testing.T, o *fnOverload) []cel.OverloadOpt {
 	var ret []cel.OverloadOpt
 	switch o.name {
+	case "s8fromint":
+		return append(ret, cel.UnaryBinding(func(value ref.Val) ref.Val {
+			return newCelS8(int8(value.(celTypes.Int)))
+		}))
+	case "u8fromuint":
+		return append(ret, cel.UnaryBinding(func(value ref.Val) ref.Val {
+			return newCelU8(uint8(value.(celTypes.Uint)))
+		}))
+	case "s16fromint":
+		return append(ret, cel.UnaryBinding(func(value ref.Val) ref.Val {
+			return newCelS16(int16(value.(celTypes.Int)))
+		}))
+	case "u16fromuint":
+		return append(ret, cel.UnaryBinding(func(value ref.Val) ref.Val {
+			return newCelU16(uint16(value.(celTypes.Uint)))
+		}))
 	case "u32fromuint":
 		return append(ret, cel.UnaryBinding(func(value ref.Val) ref.Val {
 			return newCelU32(uint32(value.(celTypes.Uint)))
@@ -281,7 +401,7 @@ func evalCEL(t *testing.T, expr string, hookArgs []any) uint32 {
 	t.Helper()
 
 	opts := []cel.EnvOption{
-		cel.Types(s32Ty, u32Ty),
+		cel.Types(s8Ty, u8Ty, s16Ty, u16Ty, s32Ty, u32Ty),
 		cel.CustomTypeAdapter(celTestTypeAdapter{Adapter: celTypes.DefaultTypeAdapter}),
 	}
 
@@ -298,12 +418,24 @@ func evalCEL(t *testing.T, expr string, hookArgs []any) uint32 {
 	for i, hookArg := range hookArgs {
 		argName := "arg" + strconv.Itoa(i)
 		switch value := hookArg.(type) {
+		case int8:
+			opts = append(opts, cel.Variable(argName, s8Ty))
+			values[argName] = newCelS8(value)
+		case int16:
+			opts = append(opts, cel.Variable(argName, s16Ty))
+			values[argName] = newCelS16(value)
 		case int32:
 			opts = append(opts, cel.Variable(argName, s32Ty))
 			values[argName] = newCelS32(value)
 		case int64:
 			opts = append(opts, cel.Variable(argName, s64Ty))
 			values[argName] = value
+		case uint8:
+			opts = append(opts, cel.Variable(argName, u8Ty))
+			values[argName] = newCelU8(value)
+		case uint16:
+			opts = append(opts, cel.Variable(argName, u16Ty))
+			values[argName] = newCelU16(value)
 		case uint32:
 			opts = append(opts, cel.Variable(argName, u32Ty))
 			values[argName] = newCelU32(value)

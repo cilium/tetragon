@@ -20,6 +20,10 @@ var (
 	u64Ty         = cgTypes.UintType
 	s32Ty         = cgTypes.NewOpaqueType("s32")
 	u32Ty         = cgTypes.NewOpaqueType("u32")
+	s16Ty         = cgTypes.NewOpaqueType("s16")
+	u16Ty         = cgTypes.NewOpaqueType("u16")
+	s8Ty          = cgTypes.NewOpaqueType("s8")
+	u8Ty          = cgTypes.NewOpaqueType("u8")
 	boolTy        = cgTypes.BoolType
 	unsupportedTy = cgTypes.NewOpaqueType("unsupported")
 )
@@ -38,6 +42,14 @@ func (it *intType) opSuffix() string {
 		return "s32"
 	case u32Ty:
 		return "u32"
+	case s16Ty:
+		return "s16"
+	case u16Ty:
+		return "u16"
+	case s8Ty:
+		return "s8"
+	case u8Ty:
+		return "u8"
 	}
 
 	panic(fmt.Sprintf("opSuffix: unknown type: %v", it.ty))
@@ -50,8 +62,12 @@ func (it *intType) overloadOp(op string) string {
 var intTypes = []intType{
 	{s64Ty},
 	{s32Ty},
+	{s16Ty},
+	{s8Ty},
 	{u64Ty},
 	{u32Ty},
+	{u16Ty},
+	{u8Ty},
 }
 
 func intCmpOperatorFnOverloads(op string) []fnOverload {
@@ -96,10 +112,18 @@ func typeFromGenTy(genTy int) (*cgTypes.Type, error) {
 		return s64Ty, nil
 	case gt.GenericS32Type, gt.GenericIntType:
 		return s32Ty, nil
+	case gt.GenericS16Type:
+		return s16Ty, nil
+	case gt.GenericS8Type:
+		return s8Ty, nil
 	case gt.GenericU64Type:
 		return u64Ty, nil
 	case gt.GenericU32Type:
 		return u32Ty, nil
+	case gt.GenericU16Type:
+		return u16Ty, nil
+	case gt.GenericU8Type:
+		return u8Ty, nil
 	case gt.GenericInvalidType:
 		return nil, errors.New("cannot convert invalid generic type")
 	}

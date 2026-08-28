@@ -39,8 +39,12 @@ func newRandExprSt(r *rand.Rand, nexprs int, nargs int) *randExprSt {
 	argTypes := []func() any{
 		func() any { return r.Uint64() },
 		func() any { return r.Uint32() },
+		func() any { return uint16(r.Uint64N(1 << 16)) },
+		func() any { return uint8(r.Uint64N(1 << 8)) },
 		func() any { return r.Int64() },
 		func() any { return r.Int32() },
+		func() any { return int16(r.Uint64N(1 << 16)) },
+		func() any { return int8(r.Uint64N(1 << 8)) },
 	}
 
 	randomArg := func() any {
@@ -72,12 +76,28 @@ func (st *randExprSt) celNullaryExpr(ty *cgTypes.Type) string {
 			if ty == u32Ty {
 				aidxs = append(aidxs, idx)
 			}
+		case uint16:
+			if ty == u16Ty {
+				aidxs = append(aidxs, idx)
+			}
+		case uint8:
+			if ty == u8Ty {
+				aidxs = append(aidxs, idx)
+			}
 		case int64:
 			if ty == s64Ty {
 				aidxs = append(aidxs, idx)
 			}
 		case int32:
 			if ty == s32Ty {
+				aidxs = append(aidxs, idx)
+			}
+		case int16:
+			if ty == s16Ty {
+				aidxs = append(aidxs, idx)
+			}
+		case int8:
+			if ty == s8Ty {
 				aidxs = append(aidxs, idx)
 			}
 		default:
@@ -108,6 +128,14 @@ func (st *randExprSt) celNullaryExpr(ty *cgTypes.Type) string {
 		return fmt.Sprintf("int32(%d)", st.r.Int32())
 	case u32Ty:
 		return fmt.Sprintf("uint32(%du)", st.r.Uint32())
+	case s16Ty:
+		return fmt.Sprintf("int16(%d)", int16(st.r.Uint64N(1<<16)))
+	case u16Ty:
+		return fmt.Sprintf("uint16(%du)", uint16(st.r.Uint64N(1<<16)))
+	case s8Ty:
+		return fmt.Sprintf("int8(%d)", int8(st.r.Uint64N(1<<8)))
+	case u8Ty:
+		return fmt.Sprintf("uint8(%du)", uint8(st.r.Uint64N(1<<8)))
 	}
 	panic(fmt.Sprintf("unknown/unhandled type: %v", ty))
 }

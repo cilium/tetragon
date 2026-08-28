@@ -107,6 +107,70 @@ func (g *codeGenerator) emitU32(reg asm.Register, regTy *cgTypes.Type) error {
 	return nil
 }
 
+func (g *codeGenerator) emitS16(reg asm.Register, regTy *cgTypes.Type) error {
+	switch regTy {
+	case s64Ty:
+	default:
+		return fmt.Errorf("emitS16: unknown/unsupported type %s", regTy)
+	}
+
+	g.stackTop -= 8
+	g.emitRaw(
+		asm.LSh.Imm(reg, 48),
+		asm.ArSh.Imm(reg, 48),
+		asm.StoreMem(asm.R10, g.stackTop, reg, asm.DWord),
+	)
+	return nil
+}
+
+func (g *codeGenerator) emitU16(reg asm.Register, regTy *cgTypes.Type) error {
+
+	switch regTy {
+	case u64Ty:
+	default:
+		return fmt.Errorf("emitU16: unknown/unsupported type %s", regTy)
+	}
+
+	g.stackTop -= 8
+	g.emitRaw(
+		asm.And.Imm(reg, 0xffff),
+		asm.StoreMem(asm.R10, g.stackTop, reg, asm.DWord),
+	)
+	return nil
+}
+
+func (g *codeGenerator) emitS8(reg asm.Register, regTy *cgTypes.Type) error {
+	switch regTy {
+	case s64Ty:
+	default:
+		return fmt.Errorf("emitS8: unknown/unsupported type %s", regTy)
+	}
+
+	g.stackTop -= 8
+	g.emitRaw(
+		asm.LSh.Imm(reg, 56),
+		asm.ArSh.Imm(reg, 56),
+		asm.StoreMem(asm.R10, g.stackTop, reg, asm.DWord),
+	)
+	return nil
+}
+
+func (g *codeGenerator) emitU8(reg asm.Register, regTy *cgTypes.Type) error {
+
+	switch regTy {
+	case u64Ty:
+	default:
+		return fmt.Errorf("emitU8: unknown/unsupported type %s", regTy)
+	}
+
+	g.stackTop -= 8
+	g.emitRaw(
+		asm.And.Imm(reg, 0xff),
+		asm.StoreMem(asm.R10, g.stackTop, reg, asm.DWord),
+	)
+	return nil
+}
+
 func (g *codeGenerator) pushArg(argTy *cgTypes.Type, argOffset uint16, tmp1, tmp2 asm.Register) error {
 	off := int(argOffset * 8)
 	if off > math.MaxInt16 {
@@ -114,34 +178,61 @@ func (g *codeGenerator) pushArg(argTy *cgTypes.Type, argOffset uint16, tmp1, tmp
 	}
 	off16 := int16(off)
 
+	// Load the offset of the argument from argArgsOff into tmp1,
+	// and add it to argArgs to get the address of the argument.
+	g.emitRaw(
+		// tmp1 = *(u64 *)(argArgsOff + idx)
+		asm.LoadMem(tmp1, argArgsOff, off16, asm.DWord),
+		asm.And.Imm(tmp1, 0x7ff),
+		// tmp1 += args
+		asm.Add.Reg(tmp1, argArgs),
+	)
+
+	// Load the argument with the correct width into a register
 	switch argTy {
-	case u32Ty, s32Ty:
-		g.stackTop -= 8
+	case u8Ty:
 		g.emitRaw(
-			// tmp1 = *(u64 *)(argArgsOff + idx)
-			asm.LoadMem(tmp1, argArgsOff, off16, asm.DWord),
-			asm.And.Imm(tmp1, 0x7ff),
-			// tmp1 += args
-			asm.Add.Reg(tmp1, argArgs),
+			// tmp2 = *(u8 *)(tmp1)
+			asm.LoadMem(tmp2, tmp1, 0, asm.Byte),
+		)
+	case s8Ty:
+		g.emitRaw(
+			// tmp2 = *(s8 *)(tmp1)
+			asm.LoadMem(tmp2, tmp1, 0, asm.Byte),
+			asm.LSh.Imm(tmp2, 56),
+			asm.ArSh.Imm(tmp2, 56),
+		)
+	case u16Ty:
+		g.emitRaw(
+			// tmp2 = *(u16 *)(tmp1)
+			asm.LoadMem(tmp2, tmp1, 0, asm.Half),
+		)
+	case s16Ty:
+		g.emitRaw(
+			// tmp2 = *(s16 *)(tmp1)
+			asm.LoadMem(tmp2, tmp1, 0, asm.Half),
+			asm.LSh.Imm(tmp2, 48),
+			asm.ArSh.Imm(tmp2, 48),
+		)
+	case u32Ty, s32Ty:
+		g.emitRaw(
 			// tmp2 = *(u32 *)(tmp1)
 			asm.LoadMem(tmp2, tmp1, 0, asm.Word),
-			asm.StoreMem(asm.R10, g.stackTop, tmp2, asm.DWord),
 		)
 	case u64Ty, s64Ty:
-		g.stackTop -= 8
 		g.emitRaw(
-			// tmp1 = *(u64 *)(argArgsOff + idx)
-			asm.LoadMem(tmp1, argArgsOff, off16, asm.DWord),
-			asm.And.Imm(tmp1, 0x7ff),
-			// tmp1 += args
-			asm.Add.Reg(tmp1, argArgs),
 			// tmp2 = *(u64 *)(tmp1)
 			asm.LoadMem(tmp2, tmp1, 0, asm.DWord),
-			asm.StoreMem(asm.R10, g.stackTop, tmp2, asm.DWord),
 		)
 	default:
 		return fmt.Errorf("unsupported type: %s", argTy.TypeName())
 	}
+
+	// Push the loaded argument onto the stack as a 64-bit value.
+	g.stackTop -= 8
+	g.emitRaw(
+		asm.StoreMem(asm.R10, g.stackTop, tmp2, asm.DWord),
+	)
 
 	return nil
 }
@@ -159,22 +250,52 @@ func (g *codeGenerator) emitArithOp(
 		ins = op.Reg(r1, r2)
 
 	case ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
-		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
+		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName(),
+		ty1.TypeName() == s16Ty.TypeName() && ty2.TypeName() == s16Ty.TypeName(),
+		ty1.TypeName() == u16Ty.TypeName() && ty2.TypeName() == u16Ty.TypeName(),
+		ty1.TypeName() == s8Ty.TypeName() && ty2.TypeName() == s8Ty.TypeName(),
+		ty1.TypeName() == u8Ty.TypeName() && ty2.TypeName() == u8Ty.TypeName():
 		ins = op.Reg32(r1, r2)
 
 	default:
-		return fmt.Errorf("operation between types %s and %s is not supported", ty1.TypeName(), ty2.TypeName())
+		return fmt.Errorf("operation between types %s and %s is not supported %T %T", ty1.TypeName(), ty2.TypeName(), ty1, ty2)
 	}
 
 	if ins.OpCode == asm.InvalidOpCode {
 		return fmt.Errorf("invalid opcode for ALU op %v", op)
 	}
 
+	// Emit arithmetic instructions, the result is in r1.
+	g.emitRaw(ins)
+
+	// Convert the value to a lower width type if needed.
+	switch {
+	case ty1.TypeName() == u16Ty.TypeName() && ty2.TypeName() == u16Ty.TypeName():
+		g.emitRaw(
+			asm.And.Imm(r1, 0xffff),
+		)
+	case ty1.TypeName() == s16Ty.TypeName() && ty2.TypeName() == s16Ty.TypeName():
+		g.emitRaw(
+			asm.LSh.Imm(r1, 48),
+			asm.ArSh.Imm(r1, 48),
+		)
+	case ty1.TypeName() == u8Ty.TypeName() && ty2.TypeName() == u8Ty.TypeName():
+		g.emitRaw(
+			asm.And.Imm(r1, 0xff),
+		)
+	case ty1.TypeName() == s8Ty.TypeName() && ty2.TypeName() == s8Ty.TypeName():
+		g.emitRaw(
+			asm.LSh.Imm(r1, 56),
+			asm.ArSh.Imm(r1, 56),
+		)
+	}
+
+	// Finally store the result on the stack.
 	g.stackTop -= 8
 	g.emitRaw(
-		ins,
 		asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
 	)
+
 	return nil
 }
 
@@ -220,15 +341,33 @@ func (g *codeGenerator) emitBitwiseNot(
 		ins = asm.Xor.Imm(r1, -1)
 	case s32Ty.TypeName(), u32Ty.TypeName():
 		ins = asm.Xor.Imm32(r1, -1)
+	case s16Ty.TypeName(), u16Ty.TypeName():
+		ins = asm.Xor.Imm32(r1, 0xffff)
+	case s8Ty.TypeName(), u8Ty.TypeName():
+		ins = asm.Xor.Imm32(r1, 0xff)
 	default:
 		return fmt.Errorf("bitwise NOT on type %s is not supported", ty1.TypeName())
 	}
 
 	g.stackTop -= 8
-	g.emitRaw(
-		ins,
-		asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
-	)
+	g.emitRaw(ins)
+	switch ty1.TypeName() {
+	case u8Ty.TypeName():
+		g.emitRaw(asm.And.Imm(r1, 0xff))
+	case u16Ty.TypeName():
+		g.emitRaw(asm.And.Imm(r1, 0xffff))
+	case s8Ty.TypeName():
+		g.emitRaw(
+			asm.LSh.Imm(r1, 56),
+			asm.ArSh.Imm(r1, 56),
+		)
+	case s16Ty.TypeName():
+		g.emitRaw(
+			asm.LSh.Imm(r1, 48),
+			asm.ArSh.Imm(r1, 48),
+		)
+	}
+	g.emitRaw(asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord))
 	return nil
 }
 
@@ -242,14 +381,18 @@ func (g *codeGenerator) emitBranch(
 	var signed bool
 	var alu32 bool
 	switch {
-	case ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName():
+	case ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
+		ty1.TypeName() == s16Ty.TypeName() && ty2.TypeName() == s16Ty.TypeName(),
+		ty1.TypeName() == s8Ty.TypeName() && ty2.TypeName() == s8Ty.TypeName():
 		signed = true
 		alu32 = true
 
 	case ty1.TypeName() == s64Ty.TypeName() && ty2.TypeName() == s64Ty.TypeName():
 		signed = true
 
-	case ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
+	case ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName(),
+		ty1.TypeName() == u16Ty.TypeName() && ty2.TypeName() == u16Ty.TypeName(),
+		ty1.TypeName() == u8Ty.TypeName() && ty2.TypeName() == u8Ty.TypeName():
 		alu32 = true
 
 	case ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName():
