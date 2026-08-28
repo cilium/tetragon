@@ -601,7 +601,7 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 			if action.Action != "Set" {
 				continue
 			}
-			if action.ArgIndex >= api.MaxAccessibleArgs {
+			if action.ArgIndex >= selectors.ArgsInRegisters {
 				return fmt.Errorf("uprobe Set action argIndex %d out of range", action.ArgIndex)
 			}
 		}
