@@ -136,6 +136,7 @@ func TestLSMOpenFile(t *testing.T) {
 
 	testBin := testutils.RepoRootPath("contrib/tester-progs/direct-write-tester")
 	tempFile := directWriteTempFile(t)
+	euid := os.Geteuid()
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
@@ -148,6 +149,11 @@ spec:
     args:
       - index: 0
         type: "file"
+    data:
+      - index: 0
+        type: "uint32"
+        source: "current_task"
+        resolve: "cred.euid.val"
     selectors:
     - matchBinaries:
       - operator: "In"
@@ -158,6 +164,11 @@ spec:
         operator: "Equal"
         values:
         - "` + tempFile + `"
+      matchData:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + strconv.Itoa(euid) + `"
 `
 
 	createCrdFile(t, configHook)
@@ -168,7 +179,10 @@ spec:
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(tempFile)))))
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(tempFile))))).
+		WithData(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(ec.NewKprobeArgumentChecker().WithUintArg(uint32(euid))))
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
