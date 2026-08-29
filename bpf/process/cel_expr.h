@@ -20,6 +20,7 @@ int cel_expr_7(long *argsoff, char *args);
 
 static __attribute__((noinline)) __attribute__((__unused__)) int cel_expr(int id, long *argsoff, char *args)
 {
+#if 0
 	switch (id) {
 	case 0:
 		return cel_expr_0(argsoff, args);
@@ -41,6 +42,8 @@ static __attribute__((noinline)) __attribute__((__unused__)) int cel_expr(int id
 	default:
 		return 0;
 	}
+#endif
+	return 0;
 }
 #else
 FUNC_INLINE int
