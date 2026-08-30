@@ -246,59 +246,21 @@ jobs:
 
       - name: Run Smoke test Windows
         shell: pwsh
-        working-directory: C:\Program Files\Tetragon\cmd
-
-        #env:
-        #  PATH: ${{ runner.temp }};"C:\Program Files\ebpf-for-windows"
-
         run: |
-          # Tests
-          Write-Output "::group::PATH:"
-          $env:Path -split ';'
-          Write-Output "::endgroup::"
+          & '${{ github.workspace }}\tests\e2e\windows\smoke-test.ps1'
 
-          $jsonFilePath = "C:\Program Files\Tetragon\events.json"
+          # The smoke test exits with its number of failed checks, but an `exit`
+          # inside a called script only ends that script -- without this the step
+          # would pass no matter how many checks failed.
+          exit $LASTEXITCODE
 
-          # Start the process in the background and capture its PID
-          $TetragonArgs = @(
-            '--export-filename "' + $jsonFilePath + '"'
-          )
-
-          $tetragonBackgroundProcess = Start-Process `
-            -FilePath "C:\Program Files\Tetragon\cmd\Tetragon.exe" `
-            -WorkingDirectory "C:\Program Files\Tetragon\cmd" `
-            -ArgumentList $TetragonArgs `
-            -RedirectStandardOutput "C:\Program Files\Tetragon\tetragon.log" `
-            -NoNewWindow `
-            -PassThru
-          
-          # Wait for tetragon to be up and running  
-          Start-Sleep -Seconds 10
-
-          if(Get-Process -id $tetragonBackgroundProcess.Id) {
-            Write-Output "✓ Tetragon is Running"
-          }
-          else {
-            throw "✗ Tetragon Could not be started"
-          }
-
-          # Run notepad and look for it in event log
-          $notepad = Start-Process -FilePath "C:\Windows\System32\notepad.exe" -PassThru
-          $notepadPID = $notepad.Id
-          Write-Host "Process launched with PID: $notepadPID"
-          
-          # Give some time for the event to pop up in the event log
-          Start-Sleep -Seconds 5
-
-          $searchString = "\{\""process_exec\""\:\{\""process\""\:\{\""exec_id\""\:\"".{16,30}\""\,.{0,1}\""pid\""\:$notepadPID\,.{0,1}\""uid\""\:[0-9]{0,9}\,.{0,1}\""binary\""\:\""C:\\\\Windows\\\\system32\\\\notepad.exe\"""
-          Write-Host "Looking for regex: $searchString"
-
-          $jsonContent = Get-Content -Path $jsonFilePath 
-
-          # Search for the PID in the JSON file
-          if ($jsonContent -match $searchString) {
-              Write-Host "Found PID $notepadPID in JSON file: $searchString"
-          } else {
-              Write-Host "PID $notepadPID not found in event file: $jsonContent "
-              throw "PID not found in event JSON file."
-          }
+      - name: Upload Tetragon logs on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tetragon-smoke-test-logs
+          path: |
+            C:\Program Files\Tetragon\tetragon.log
+            C:\Program Files\Tetragon\tetragon.err.log
+            C:\Program Files\Tetragon\events.json
+          retention-days: 5
