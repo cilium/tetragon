@@ -147,6 +147,8 @@ type config struct {
 	SleepablePreloadSize int
 	SleepableOffloadSize int
 
+	UprobeHeapSize int
+
 	EnableGRPCDeprecatedTP bool
 
 	KeepCollection bool
@@ -199,6 +201,9 @@ var (
 
 		// Set default value for sleepable offload maps.
 		SleepableOffloadSize: defaults.DefaultSleepableOffloadSize,
+
+		// Set default value for the uprobe/usdt process call heap map.
+		UprobeHeapSize: defaults.DefaultUprobeHeapSize,
 
 		// Set default value for deleted pod lru cache
 		DeletedPodCacheSize: constants.WatcherDeletedPodCacheSize,

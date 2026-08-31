@@ -26,7 +26,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
-	"github.com/cilium/tetragon/pkg/defaults"
 
 	"github.com/cilium/tetragon/pkg/asm"
 
@@ -1467,7 +1466,7 @@ func getProcessCallHeapMap(load *program.Program) *program.Map {
 	var m *program.Map
 
 	m = program.MapShared("process_call_heap", load)
-	m.SetMaxEntries(defaults.DefaultUprobeHeapSize)
+	m.SetMaxEntries(option.Config.UprobeHeapSize)
 	return m
 }
 
