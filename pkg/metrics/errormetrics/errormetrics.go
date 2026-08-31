@@ -65,20 +65,6 @@ var (
 		Name:   "error",
 		Values: slices.Collect(maps.Values(errorTypeLabelValues)),
 	}
-	// Constrained label for opcode (numeric strings)
-	opcodeLabel = metrics.ConstrainedLabel{
-		Name: "opcode",
-		Values: func() []string {
-			res := make([]string, 0, len(ops.OpCodeStrings))
-			for opcode := range ops.OpCodeStrings {
-				if opcode != ops.MSG_OP_TEST {
-					// include UNDEF (0) to represent unknown opcodes in docs/metrics
-					res = append(res, strconv.Itoa(int(int32(opcode))))
-				}
-			}
-			return res
-		}(),
-	}
 	// Constrained label for handler error type
 	handlerErrTypeLabel = metrics.ConstrainedLabel{
 		Name:   "error",
@@ -98,7 +84,11 @@ var (
 		metrics.NewOpts(
 			consts.MetricsNamespace, "", "handler_errors_total",
 			"The total number of event handler errors. For internal use only.",
-			nil, []metrics.ConstrainedLabel{opcodeLabel, handlerErrTypeLabel}, nil,
+			nil, []metrics.ConstrainedLabel{
+				metrics.OpCodeLabelWithUndef,
+				metrics.OpCodeNameLabelWithUndef,
+				handlerErrTypeLabel,
+			}, nil,
 		),
 		nil,
 	)
@@ -142,7 +132,7 @@ func ErrorTotalInc(er ErrorType) {
 
 // Get a new handle on the HandlerErrors metric
 func GetHandlerErrors(opcode ops.OpCode, er EventHandlerError) prometheus.Counter {
-	return HandlerErrors.WithLabelValues(strconv.Itoa(int(int32(opcode))), er.String())
+	return HandlerErrors.WithLabelValues(strconv.Itoa(int(int32(opcode))), opcode.String(), er.String())
 }
 
 // Increment the HandlerErrors metric
