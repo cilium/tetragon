@@ -1,6 +1,8 @@
 #ifndef __CALLER_FILTER_H__
 #define __CALLER_FILTER_H__
 
+#include "errmetrics.h"
+
 #define BUILD_ID_SIZE	  20
 #define MAX_MATCH_CALLERS 5
 #define MATCH_CALLER_SIZE 24
@@ -114,9 +116,16 @@ FUNC_INLINE enum caller_filter_result generic_filter_caller(void *ctx, struct ms
 	if (e->user_stack_ret < -MAX_ERRNO || e->user_stack_ret > sizeof(e->user_stack))
 		return CALLER_FILTER_REJECT;
 
-	if (e->user_stack_ret == 0)
+	if (e->user_stack_ret == 0) {
+		/* Wrapping the get_stack call in with_errmetrics is expensive on older kernels */
+#ifdef __V61_BPF_PROG
+		e->user_stack_ret = with_errmetrics(get_stack, ctx, &e->user_stack, sizeof(e->user_stack),
+						    BPF_F_USER_STACK | BPF_F_USER_BUILD_ID);
+#else
 		e->user_stack_ret = get_stack(ctx, &e->user_stack, sizeof(e->user_stack),
 					      BPF_F_USER_STACK | BPF_F_USER_BUILD_ID);
+#endif
+	}
 
 	if (e->user_stack_ret <= 0 || e->user_stack_ret > sizeof(e->user_stack))
 		return CALLER_FILTER_REJECT;
