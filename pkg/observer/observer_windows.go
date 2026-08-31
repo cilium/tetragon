@@ -43,18 +43,11 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 	// user everything is ready.
 	observer.log.Info("Listening for events...")
 
-	// Start reading records from the perf array. Reads until the reader is closed.
+	// Start reading records from the ring buffer. Reads until the reader is closed.
 	var wg sync.WaitGroup
-	wg.Add(1)
 	defer wg.Wait()
 
-	go func() {
-		defer wg.Done()
-	}()
-
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		for stopCtx.Err() == nil {
 			record, err := ringBufReader.Read()
 			if err != nil {
@@ -76,7 +69,7 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 				}
 			}
 		}
-	}()
+	})
 
 	// Start processing records from ringbuffer
 	wg.Go(func() {
@@ -101,5 +94,9 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 
 	// Wait for context to be cancelled and then stop.
 	<-stopCtx.Done()
-	return nil
+
+	// Closing the reader interrupts the blocking Read above. Without it the deferred
+	// wg.Wait never returns: ringBufMap.Close() was deferred first and so runs last.
+	// Linux closes its readers the same way.
+	return ringBufReader.Close()
 }
