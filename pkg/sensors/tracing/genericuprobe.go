@@ -26,7 +26,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
-	"github.com/cilium/tetragon/pkg/defaults"
 
 	"github.com/cilium/tetragon/pkg/asm"
 
@@ -1486,7 +1485,7 @@ func getUprobeHeapMap(name string, load *program.Program) *program.Map {
 	var m *program.Map
 
 	m = program.MapShared(name, load)
-	m.SetMaxEntries(defaults.DefaultUprobeHeapSize)
+	m.SetMaxEntries(option.Config.UprobeHeapSize)
 	return m
 }
 
