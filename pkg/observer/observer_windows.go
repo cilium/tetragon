@@ -38,18 +38,14 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 	// user everything is ready.
 	observer.log.Info("Listening for events...")
 
-	// Start reading records from the perf array. Reads until the reader is closed.
+	// Start reading records from the ring buffer.
 	var wg sync.WaitGroup
-	wg.Add(1)
 	defer wg.Wait()
 
+	// Left out of wg on purpose: GetNextRecord blocks until a record arrives and this
+	// reader has no Close, so nothing can interrupt it. Waiting for this goroutine
+	// would hold shutdown until the next event happens to be written.
 	go func() {
-		defer wg.Done()
-	}()
-
-	go func() {
-		defer wg.Done()
-
 		for stopCtx.Err() == nil {
 			var record bpf.Record
 			record, errCode := reader.GetNextRecord()
@@ -76,9 +72,7 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 	}()
 
 	// Start processing records from ringbuffer
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case winEvent := <-winEventsQueue:
@@ -90,7 +84,7 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 				return
 			}
 		}
-	}()
+	})
 
 	// Loading default program consumes some memory lets kick GC to give
 	// this back to the OS (K8s).
