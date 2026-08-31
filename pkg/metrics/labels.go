@@ -4,6 +4,7 @@
 package metrics
 
 import (
+	"slices"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -52,12 +53,29 @@ func promContainsLabel(labels prometheus.ConstrainedLabels, label string) bool {
 }
 
 var (
-	// TODO: Standardize labels used by different metrics: op, msg_op, opcode.
-	// Also, add a human-readable counterpart.
+	// OpCodeLabel holds the numeric value of an ops.OpCode. Pair it with
+	// OpCodeNameLabel to also expose the human-readable opcode name.
 	OpCodeLabel = ConstrainedLabel{
-		Name: "msg_op",
+		Name: "opcode",
 		// These are numbers, not human-readable names.
-		Values: getOpcodes(),
+		Values: getOpcodes(false),
+	}
+	// OpCodeNameLabel is the human-readable counterpart of OpCodeLabel.
+	OpCodeNameLabel = ConstrainedLabel{
+		Name:   "opstr",
+		Values: getOpcodeNames(false),
+	}
+	// OpCodeLabelWithUndef is OpCodeLabel extended with MSG_OP_UNDEF, for
+	// metrics that report on unknown opcodes.
+	OpCodeLabelWithUndef = ConstrainedLabel{
+		Name:   "opcode",
+		Values: getOpcodes(true),
+	}
+	// OpCodeNameLabelWithUndef is the human-readable counterpart of
+	// OpCodeLabelWithUndef.
+	OpCodeNameLabelWithUndef = ConstrainedLabel{
+		Name:   "opstr",
+		Values: getOpcodeNames(true),
 	}
 	EventTypeLabel = ConstrainedLabel{
 		Name:   "event_type",
@@ -65,14 +83,42 @@ var (
 	}
 )
 
-func getOpcodes() []string {
-	result := make([]string, len(ops.OpCodeStrings)-2)
-	i := 0
+// sortedOpCodes returns the opcodes exposed as metric labels, in ascending
+// order. MSG_OP_TEST is always excluded, as it's only used for testing.
+// MSG_OP_UNDEF is included only if withUndef is set: it's not a valid
+// operational opcode and is only used to report unknown opcodes.
+//
+// The order is deterministic so that getOpcodes and getOpcodeNames produce
+// index-aligned slices, and so that generated documentation is stable.
+func sortedOpCodes(withUndef bool) []ops.OpCode {
+	result := make([]ops.OpCode, 0, len(ops.OpCodeStrings))
 	for opcode := range ops.OpCodeStrings {
-		if opcode != ops.MSG_OP_UNDEF && opcode != ops.MSG_OP_TEST {
-			result[i] = strconv.Itoa(int(int32(opcode)))
-			i++
+		if opcode == ops.MSG_OP_TEST {
+			continue
 		}
+		if opcode == ops.MSG_OP_UNDEF && !withUndef {
+			continue
+		}
+		result = append(result, opcode)
+	}
+	slices.Sort(result)
+	return result
+}
+
+func getOpcodes(withUndef bool) []string {
+	opcodes := sortedOpCodes(withUndef)
+	result := make([]string, len(opcodes))
+	for i, opcode := range opcodes {
+		result[i] = strconv.Itoa(int(int32(opcode)))
+	}
+	return result
+}
+
+func getOpcodeNames(withUndef bool) []string {
+	opcodes := sortedOpCodes(withUndef)
+	result := make([]string, len(opcodes))
+	for i, opcode := range opcodes {
+		result[i] = opcode.String()
 	}
 	return result
 }
