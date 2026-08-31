@@ -8,22 +8,27 @@ package tracing
 import (
 	"context"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -639,4 +644,91 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
+}
+
+func TestUsdtProcessCallHeapMapConfig(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
+	}
+	if !bpf.HasUprobeMulti() {
+		t.Skip("skipping, no uprobe multi support in kernel; process_call_heap is only wired up for the multi-attach path")
+	}
+
+	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt")
+
+	// usdt policy; opts is the options block (may be empty)
+	policy := func(opts string) string {
+		return `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdt-heap"
+spec:` + opts + `
+  usdts:
+  - path: "` + usdt + `"
+    provider: "test"
+    name: "usdt0"
+`
+	}
+
+	loadSensors := func(t *testing.T, config string) []*sensors.Sensor {
+		createCrdFile(t, config)
+		sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile,
+			tus.Conf().TetragonLib, observertesthelper.WithKeepCollection())
+		require.NoError(t, err)
+		return sens
+	}
+
+	unloadSensors := func(sens []*sensors.Sensor) {
+		sensi := make([]sensors.SensorIface, 0, len(sens))
+		for _, s := range sens {
+			sensi = append(sensi, s)
+		}
+		sensors.UnloadSensors(sensi)
+	}
+
+	findProcessCallHeapMap := func(sens []*sensors.Sensor) *program.Map {
+		for _, s := range sens {
+			for _, m := range s.Maps {
+				if m.Name == "process_call_heap" {
+					return m
+				}
+			}
+		}
+		return nil
+	}
+
+	getMaxEntries := func(m *program.Map) uint32 {
+		path := filepath.Join(bpf.MapPrefixPath(), m.PinPath)
+		val, err := program.GetMaxEntriesPinnedMap(path)
+		require.NoError(t, err)
+		return val
+	}
+
+	// process_call_heap as MapShared at global scope (/sys/fs/bpf/tetragon/process_call_heap)
+	t.Run("shared", func(t *testing.T) {
+		sens := loadSensors(t, policy(""))
+		defer unloadSensors(sens)
+
+		m := findProcessCallHeapMap(sens)
+		require.NotNil(t, m, "process_call_heap map not found in sensor")
+		assert.Equal(t, "process_call_heap", m.PinPath)
+		assert.Equal(t, uint32(defaults.DefaultUprobeHeapSize), getMaxEntries(m))
+	})
+
+	// process_call_heap as MapBuilderProgram at program scope
+	// (.../policy/sensor/prog/process_call_heap)
+	t.Run("program", func(t *testing.T) {
+		sens := loadSensors(t, policy(`
+  options:
+  - name: "uprobe-heap-size"
+    value: "1024"`))
+		defer unloadSensors(sens)
+
+		m := findProcessCallHeapMap(sens)
+		require.NotNil(t, m, "process_call_heap map not found in sensor")
+		assert.NotEqual(t, "process_call_heap", m.PinPath)
+		assert.Equal(t, "process_call_heap", filepath.Base(m.PinPath))
+		assert.Equal(t, uint32(1024), getMaxEntries(m))
+	})
 }
