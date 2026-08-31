@@ -424,6 +424,11 @@ func procToKeyValue(p procs, inInitTree map[uint32]struct{}) (*execvemap.ExecveK
 	v.Namespaces.UserInum = p.userNs
 	pathLength := copy(v.Binary.Path[:], p.exe)
 	v.Binary.PathLength = int32(pathLength)
+	// The execve map stores argv[1:] because argv[0] is represented by
+	// Binary.Path. procfs cmdline includes argv[0] as its first entry.
+	args, _ := procsFilename(p.cmdline)
+	argsLength := copy(v.Args.Buf[:], args)
+	v.Args.Len = uint32(argsLength)
 
 	// set v.Binary.End in a similar way to https://github.com/cilium/tetragon/blob/c8c74c5e73c28de0f76498190c576ce7f602c4b9/bpf/process/bpf_execve_event.c#L423-L425
 	if v.Binary.PathLength > selectors.StringPostfixMaxLength-1 {
