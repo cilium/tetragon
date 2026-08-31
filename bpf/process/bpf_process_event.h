@@ -61,6 +61,30 @@ read_task_args_source(struct task_struct *task, struct args_source *source)
 	return 1;
 }
 
+#ifdef __LARGE_BPF_PROG
+FUNC_INLINE void
+copy_args(const struct args_source *source, struct args *args)
+{
+	__u64 source_start = source->start;
+	__u64 source_len = source->len;
+	__u32 len;
+
+	/* Reset the heap storage from leftovers. */
+	args->len = 0;
+
+	if (!source_start || !source_len)
+		return;
+
+	if (source_len > sizeof(args->buf))
+		len = sizeof(args->buf);
+	else
+		len = source_len;
+
+	if (with_errmetrics(probe_read, args->buf, len, (void *)source_start) >= 0)
+		args->len = len;
+}
+#endif
+
 FUNC_INLINE __u64 __get_auid(struct task_struct *t)
 {
 	struct task_struct___local *task = (struct task_struct___local *)t;

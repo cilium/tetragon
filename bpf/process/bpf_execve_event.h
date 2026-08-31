@@ -80,28 +80,6 @@ read_args(void *ctx, struct msg_execve_event *event)
 
 #ifdef __LARGE_BPF_PROG
 
-FUNC_INLINE void
-copy_args(const struct args_source *source, struct args *args)
-{
-	__u64 source_start = source->start;
-	__u64 source_len = source->len;
-	__u32 len;
-
-	/* Reset the heap storage from leftovers. */
-	args->len = 0;
-
-	if (!source_start || !source_len)
-		return;
-
-	if (source_len > sizeof(args->buf))
-		len = sizeof(args->buf);
-	else
-		len = source_len;
-
-	if (with_errmetrics(probe_read, args->buf, len, (void *)source_start) >= 0)
-		args->len = len;
-}
-
 FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
 {
 	struct msg_process *p = &event->process;
