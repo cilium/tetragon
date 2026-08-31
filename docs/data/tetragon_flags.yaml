@@ -302,6 +302,10 @@ options:
     - name: tracing-policy-dir
       default_value: /etc/tetragon/tetragon.tp.d
       usage: Directory from where to load Tracing Policies
+    - name: uprobe-heap-size
+      default_value: "32768"
+      usage: |
+        Set the maximum number of entries in the process call heap map used by uprobe/usdt sensors
     - name: use-perf-ring-buffer
       default_value: "false"
       usage: Use the perf ring buffer instead of the bpf ring buffer
