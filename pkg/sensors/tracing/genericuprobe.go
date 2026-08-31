@@ -469,6 +469,7 @@ type uprobeHas struct {
 	substring            bool
 	sleepablePreloadSize int
 	sleepableOffloadSize int
+	uprobeHeapSize       int
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -926,6 +927,9 @@ func createGenericUprobeSensor(
 
 	// user sleepable_offload override
 	has.sleepableOffloadSize = polInfo.specOpts.SleepableOffloadSize
+
+	// user process_call_heap override
+	has.uprobeHeapSize = polInfo.specOpts.UprobeHeapSize
 
 	if useMulti {
 		// if we are using multi-uprobe, CEL expressions are shared across all uprobes
@@ -1462,11 +1466,16 @@ func getSleepableOffloadMap(userSize int, load *program.Program) *program.Map {
 	return m
 }
 
-func getUprobeHeapMap(name string, load *program.Program) *program.Map {
+func getUprobeHeapMap(name string, userSize int, load *program.Program) *program.Map {
 	var m *program.Map
 
-	m = program.MapShared(name, load)
-	m.SetMaxEntries(option.Config.UprobeHeapSize)
+	if userSize != 0 {
+		m = program.MapBuilderProgram(name, load)
+		m.SetMaxEntries(userSize)
+	} else {
+		m = program.MapShared(name, load)
+		m.SetMaxEntries(option.Config.UprobeHeapSize)
+	}
 	return m
 }
 
@@ -1520,12 +1529,12 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 
-	maps = append(maps, getUprobeHeapMap("process_call_heap", load))
-	maps = append(maps, getUprobeHeapMap("buffer_heap_map", load))
-	maps = append(maps, getUprobeHeapMap("string_maps_heap", load))
-	maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", load))
-	maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", load))
-	maps = append(maps, getUprobeHeapMap("ratelimit_heap", load))
+	maps = append(maps, getUprobeHeapMap("process_call_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("buffer_heap_map", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("string_maps_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("ratelimit_heap", has.uprobeHeapSize, load))
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil))...)
 
@@ -1584,12 +1593,12 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
 
-		maps = append(maps, getUprobeHeapMap("process_call_heap", loadret))
-		maps = append(maps, getUprobeHeapMap("buffer_heap_map", loadret))
-		maps = append(maps, getUprobeHeapMap("string_maps_heap", loadret))
-		maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", loadret))
-		maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", loadret))
-		maps = append(maps, getUprobeHeapMap("ratelimit_heap", loadret))
+		maps = append(maps, getUprobeHeapMap("process_call_heap", has.uprobeHeapSize, loadret))
+		maps = append(maps, getUprobeHeapMap("buffer_heap_map", has.uprobeHeapSize, loadret))
+		maps = append(maps, getUprobeHeapMap("string_maps_heap", has.uprobeHeapSize, loadret))
+		maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", has.uprobeHeapSize, loadret))
+		maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", has.uprobeHeapSize, loadret))
+		maps = append(maps, getUprobeHeapMap("ratelimit_heap", has.uprobeHeapSize, loadret))
 	}
 
 	return progs, maps, nil

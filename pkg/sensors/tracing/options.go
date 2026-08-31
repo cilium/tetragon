@@ -47,6 +47,7 @@ type specOptions struct {
 	DisableUprobeMulti   bool
 	SleepablePreloadSize int
 	SleepableOffloadSize int
+	UprobeHeapSize       int
 	OverrideMethod       OverrideMethod
 	policyMode           policyconf.Mode
 }
@@ -119,6 +120,19 @@ var opts = map[string]opt{
 				return fmt.Errorf("sleepable-offload-size must be positive, got %d", size)
 			}
 			options.SleepableOffloadSize = size
+			return nil
+		},
+	},
+	option.KeyUprobeHeapSize: {
+		set: func(str string, options *specOptions) (err error) {
+			size, err := strconv.Atoi(str)
+			if err != nil {
+				return err
+			}
+			if size <= 0 {
+				return fmt.Errorf("uprobe-heap-size must be positive, got %d", size)
+			}
+			options.UprobeHeapSize = size
 			return nil
 		},
 	},
