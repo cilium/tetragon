@@ -21,13 +21,11 @@ read_args(void *ctx, struct msg_execve_event *event)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct msg_process *p = &event->process;
-	unsigned long start_stack, end_stack;
+	unsigned long start_stack;
 	unsigned long free_size, args_size;
-	__u32 zero = 0, size = 0;
-	struct execve_heap *heap;
-	struct mm_struct *mm;
+	struct args_source source;
+	__u32 size = 0;
 	char *args;
-	long off;
 	int err;
 
 #ifdef __LARGE_BPF_PROG
@@ -35,31 +33,10 @@ read_args(void *ctx, struct msg_execve_event *event)
 	event->args_source.len = 0;
 #endif
 
-	with_errmetrics(probe_read, &mm, sizeof(mm), _(&task->mm));
-	if (!mm)
+	if (!read_task_args_source(task, &source))
 		return 0;
-
-	with_errmetrics(probe_read, &start_stack, sizeof(start_stack),
-			_(&mm->arg_start));
-	with_errmetrics(probe_read, &end_stack, sizeof(start_stack), _(&mm->arg_end));
-
-	if (!start_stack || !end_stack)
-		return 0;
-
-	/* skip first argument - binary path */
-	heap = map_lookup_elem(&execve_heap, &zero);
-	if (!heap)
-		return 0;
-
-	/* poor man's strlen */
-	off = probe_read_str(&heap->maxpath, 4096, (char *)start_stack);
-	if (off < 0)
-		return 0;
-
-	start_stack += off;
-	if (start_stack > end_stack)
-		return 0;
-	args_size = end_stack - start_stack;
+	start_stack = source.start;
+	args_size = source.len;
 
 #ifdef __LARGE_BPF_PROG
 	/* Store pointer infos and late copy in execve_send_event() when storing

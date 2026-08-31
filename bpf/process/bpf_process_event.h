@@ -19,6 +19,48 @@
 #define MATCH_BINARIES_PATH_MAX_LENGTH 256
 #define DEBUG_PROCESS(__fmt, ...)      DEBUG_AREA(BPF_AREA_PROCESS, __fmt, ##__VA_ARGS__)
 
+/* Find the current task's command-line arguments, excluding argv[0]. */
+FUNC_INLINE int
+read_task_args_source(struct task_struct *task, struct args_source *source)
+{
+	unsigned long arg_start, arg_end;
+	struct execve_heap *heap;
+	struct mm_struct *mm;
+	__u32 zero = 0;
+	long off;
+
+	source->start = 0;
+	source->len = 0;
+
+	with_errmetrics(probe_read, &mm, sizeof(mm), _(&task->mm));
+	if (!mm)
+		return 0;
+
+	with_errmetrics(probe_read, &arg_start, sizeof(arg_start), _(&mm->arg_start));
+	with_errmetrics(probe_read, &arg_end, sizeof(arg_end), _(&mm->arg_end));
+
+	if (!arg_start || !arg_end)
+		return 0;
+
+	/* Use the existing execve heap as scratch space to find argv[0]'s end. */
+	heap = map_lookup_elem(&execve_heap, &zero);
+	if (!heap)
+		return 0;
+
+	/* poor man's strlen */
+	off = probe_read_str(&heap->maxpath, 4096, (char *)arg_start);
+	if (off <= 0)
+		return 0;
+
+	arg_start += off;
+	if (arg_start > arg_end)
+		return 0;
+
+	source->start = arg_start;
+	source->len = arg_end - arg_start;
+	return 1;
+}
+
 FUNC_INLINE __u64 __get_auid(struct task_struct *t)
 {
 	struct task_struct___local *task = (struct task_struct___local *)t;
