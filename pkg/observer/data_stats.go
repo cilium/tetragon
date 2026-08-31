@@ -30,13 +30,15 @@ func (e DataEventOp) String() string {
 }
 
 var (
-	// Constrained labels for event and op
+	// Constrained labels for event and status
 	eventLabel = metrics.ConstrainedLabel{
 		Name:   "event",
 		Values: slices.Collect(maps.Values(DataEventTypeStrings)),
 	}
-	opLabel = metrics.ConstrainedLabel{
-		Name:   "op",
+	// NB: this reports whether handling a data event succeeded, it is not an
+	// operation, so "op" was a misleading name for it.
+	statusLabel = metrics.ConstrainedLabel{
+		Name:   "status",
 		Values: []string{DataEventOpOk.String(), DataEventOpBad.String()},
 	}
 
@@ -55,7 +57,7 @@ var (
 			Opts: metrics.NewOpts(
 				consts.MetricsNamespace, "", "data_event_size",
 				"The size of received data events.",
-				nil, []metrics.ConstrainedLabel{opLabel}, nil,
+				nil, []metrics.ConstrainedLabel{statusLabel}, nil,
 			),
 			Buckets: prometheus.LinearBuckets(1000, 2000, 20),
 		},
