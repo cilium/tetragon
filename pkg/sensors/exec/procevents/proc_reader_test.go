@@ -31,6 +31,17 @@ func TestListRunningProcs(t *testing.T) {
 	}
 }
 
+func TestProcToKeyValueArgsExcludeArgv0(t *testing.T) {
+	p := procs{
+		exe:     []byte("/usr/bin/curl"),
+		cmdline: []byte("curl\x00--output\x00/tmp/result\x00"),
+	}
+
+	_, v := procToKeyValue(p, make(map[uint32]struct{}))
+
+	assert.Equal(t, []byte("--output\x00/tmp/result\x00"), v.Args.Buf[:v.Args.Len])
+}
+
 func TestInInitTreeProcfs(t *testing.T) {
 	if err := exec.Command("docker", "version").Run(); err != nil {
 		t.Skipf("docker not available. skipping test: %s", err)
