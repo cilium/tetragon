@@ -658,7 +658,7 @@ selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_valu
 
 	/* we can have only matchNamespace */
 	if (len > 4) {
-		pid = (struct pid_filter *)((u64)f + index);
+		pid = (struct pid_filter *)((u64)f + (index & INDEX_MASK));
 		/* 12: op, flags, length */
 		index += sizeof(struct pid_filter);
 		struct selector_filter sel = {
@@ -706,6 +706,7 @@ selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_valu
 		if (res == PFILTER_REJECT)
 			return res;
 	}
+	index &= INDEX_MASK; /* reduce the number of states the verifier must track */
 
 	/* matchCapabilities */
 	/* (sizeof(cap1) + sizeof(cap2) + ... + 4) */
@@ -721,6 +722,7 @@ selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_valu
 	}
 	if (res == PFILTER_REJECT)
 		return res;
+	index &= INDEX_MASK; /* reduce the number of states the verifier must track */
 
 #ifdef __NS_CHANGES_FILTER
 	/* matchNamespaceChanges */
@@ -738,6 +740,7 @@ selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_valu
 	}
 	if (res == PFILTER_REJECT)
 		return res;
+	index &= INDEX_MASK; /* reduce the number of states the verifier must track */
 #endif
 
 #ifdef __CAP_CHANGES_FILTER
@@ -756,6 +759,7 @@ selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_valu
 	}
 	if (res == PFILTER_REJECT)
 		return res;
+	index &= INDEX_MASK; /* reduce the number of states the verifier must track */
 #endif
 
 #ifdef __LARGE_BPF_PROG
