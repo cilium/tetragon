@@ -44,6 +44,7 @@ Example:
 ## Uprobe options
 
 - [`disable-uprobe-multi`](#disable-uprobe-multi): disable uprobe multi link
+- [`uprobe-heap-size`](#uprobe-heap-size): set the process call heap map size
 
 ### disable-uprobe-multi
 
@@ -59,4 +60,25 @@ Example:
   options:
     - name: "disable-uprobe-multi"
       value: "1"
+```
+
+### uprobe-heap-size
+
+This option sets the maximum number of entries in the `process_call_heap` map
+used by uprobe and usdt sensors to keep track of an event while it goes
+through the BPF processing pipeline. It applies to both `uprobes` and `usdts`
+defined in the spec file.
+
+When not set, the map is shared globally across all policies and sized by the
+`--uprobe-heap-size` daemon flag (default `32768`). Setting this option makes
+the spec file use its own dedicated map of the given size instead.
+
+It takes a positive integer as value.
+
+Example:
+
+```yaml
+  options:
+    - name: "uprobe-heap-size"
+      value: "65536"
 ```
