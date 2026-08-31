@@ -450,6 +450,7 @@ event_find_curr_probe(struct msg_generic_kprobe *msg)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct execve_map_value *curr;
+	struct args_source source;
 
 	curr = &msg->curr;
 	curr->key.pid = BPF_CORE_READ(task, tgid);
@@ -478,6 +479,8 @@ event_find_curr_probe(struct msg_generic_kprobe *msg)
 	binary_reset(&curr->bin);
 	read_exe(task, &msg->exe);
 	copy_exe_to_bin(&msg->exe, &curr->bin);
+	read_task_args_source(task, &source);
+	copy_args(&source, &curr->args);
 	return curr;
 }
 #else
