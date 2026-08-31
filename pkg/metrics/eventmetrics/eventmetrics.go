@@ -41,9 +41,10 @@ var (
 )
 
 var (
-	// Preserve label name "type" while using constrained values from EventTypeLabel.
+	// Same as metrics.EventTypeLabel, extended with "unknown" for events
+	// whose type could not be determined.
 	eventTypeLabel = metrics.ConstrainedLabel{
-		Name:   "type",
+		Name:   metrics.EventTypeLabel.Name,
 		Values: append(slices.Clone(metrics.EventTypeLabel.Values), "unknown"),
 	}
 
@@ -58,7 +59,11 @@ var (
 	MissedEvents = metrics.MustNewCustomCounter(metrics.NewOpts(
 		consts.MetricsNamespace, "bpf", "missed_events_total",
 		"Number of Tetragon perf events that are failed to be sent from the kernel.",
-		nil, []metrics.ConstrainedLabel{metrics.OpCodeLabel, perfEventErrorLabel}, nil,
+		nil, []metrics.ConstrainedLabel{
+			metrics.OpCodeLabel,
+			metrics.OpCodeNameLabel,
+			perfEventErrorLabel,
+		}, nil,
 	))
 	FlagCount = metrics.MustNewCounter(
 		metrics.NewOpts(
