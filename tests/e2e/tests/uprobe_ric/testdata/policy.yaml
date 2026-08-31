@@ -1,0 +1,24 @@
+# binaryDigests is a Go text/template placeholder the test renders with the
+# sha256 of /usr/bin/uprobe-simple in the tester-progs image, so the digest
+# matches the exact binary Tetragon resolves in the container.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-ric"
+spec:
+  podSelector:
+    matchLabels:
+      app: uprobe-ric
+  uprobes:
+  - path: "/usr/bin/uprobe-simple"
+    symbols:
+    - "pizza"
+    resolvePathInContainer: true
+    binaryDigests:
+    - "{{ .Digest }}"
+  - path: "/usr/bin/uprobe-simple"
+    symbols:
+    - "burger"
+    resolvePathInContainer: true
+    binaryDigests:
+    - "{{ .Digest }}"

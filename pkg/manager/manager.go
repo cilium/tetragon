@@ -151,6 +151,21 @@ func (cm *ControllerManager) GetNode() (*corev1.Node, error) {
 	return &k8sNode, nil
 }
 
+// ListPods returns the pods the manager cache holds, which the cache options
+// restrict to this node. It blocks until the pod informer has synced, so an
+// empty result means an empty cache rather than an unread one.
+func (cm *ControllerManager) ListPods() ([]*corev1.Pod, error) {
+	podList := corev1.PodList{}
+	if err := cm.Manager.GetCache().List(context.Background(), &podList); err != nil {
+		return nil, err
+	}
+	pods := make([]*corev1.Pod, 0, len(podList.Items))
+	for i := range podList.Items {
+		pods = append(pods, &podList.Items[i])
+	}
+	return pods, nil
+}
+
 func (cm *ControllerManager) ListNamespaces() ([]corev1.Namespace, error) {
 	namespaceList := corev1.NamespaceList{}
 	if err := cm.Manager.GetCache().List(context.Background(), &namespaceList, &client.ListOptions{}); err != nil {

@@ -168,20 +168,29 @@ func DeleteGlobMap(name string) {
 	delete(globalMaps.maps, name)
 }
 
-// sharedMapRefs tracks the number of sensors currently using each shared map,
-// without locking because sensor load/unload is serialized by the sensor manager.
-var sharedMapRefs = map[string]int{}
+// sharedMapRefs tracks the number of sensors currently using each shared map.
+// Guarded by its own mutex: loads run under the manager's muLoad, but
+// per-container child sensor removal (RemoveSensor -> destroy) unloads
+// without it, so the two can run concurrently.
+var sharedMapRefs = struct {
+	sync.Mutex
+	refs map[string]int
+}{refs: map[string]int{}}
 
 func sharedMapIncRef(pinPath string) int {
-	sharedMapRefs[pinPath]++
-	return sharedMapRefs[pinPath]
+	sharedMapRefs.Lock()
+	defer sharedMapRefs.Unlock()
+	sharedMapRefs.refs[pinPath]++
+	return sharedMapRefs.refs[pinPath]
 }
 
 func sharedMapDecRef(pinPath string) bool {
-	sharedMapRefs[pinPath]--
-	last := sharedMapRefs[pinPath] <= 0
+	sharedMapRefs.Lock()
+	defer sharedMapRefs.Unlock()
+	sharedMapRefs.refs[pinPath]--
+	last := sharedMapRefs.refs[pinPath] <= 0
 	if last {
-		delete(sharedMapRefs, pinPath)
+		delete(sharedMapRefs.refs, pinPath)
 	}
 	return last
 }

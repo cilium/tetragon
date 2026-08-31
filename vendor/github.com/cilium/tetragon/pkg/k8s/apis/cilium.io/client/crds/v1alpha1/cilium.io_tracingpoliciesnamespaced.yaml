@@ -6021,6 +6021,9 @@ spec:
                         The uprobe/hook is installed only if the digest of the traced binary matches a digest in the set.
                         Tetragon's tracing policy status API can be used to see each hook's status in order to determine
                         if the hook was attached or not.
+                        For a regular uprobe a mismatch rejects the policy at load; for a
+                        resolvePathInContainer uprobe the digest is checked per container and a
+                        mismatching container is skipped without failing the policy.
                       items:
                         type: string
                       type: array
@@ -6172,6 +6175,15 @@ spec:
                         format: int64
                         type: integer
                       type: array
+                    resolvePathInContainer:
+                      default: false
+                      description: |-
+                        ResolvePathInContainer resolves Path in the root filesystem of each
+                        container selected by the policy's podSelector and attaches the uprobe
+                        per matching container, instead of in the agent's mount namespace.
+                        Requires a podSelector; container roots are resolved via runtime hooks
+                        and/or CRI.
+                      type: boolean
                     return:
                       default: false
                       description: Indicates whether to collect return value of the
@@ -8258,6 +8270,13 @@ spec:
                   type: object
                 type: array
             type: object
+            x-kubernetes-validations:
+            - message: uprobe resolvePathInContainer requires a podSelector
+              rule: '!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer)
+                || has(self.podSelector)'
+            - message: uprobe resolvePathInContainer cannot be combined with a containerSelector
+              rule: '!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer)
+                || !has(self.containerSelector)'
         required:
         - metadata
         - spec

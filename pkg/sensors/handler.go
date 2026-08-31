@@ -196,9 +196,12 @@ func (h *handler) doDisableTracingPolicy(col *collection) error {
 	}
 
 	col.state = UnloadingState
-	// unlock so that policyLister can access the collections (read-only) while we are unloading.
+	// Unlock before dependency teardown: hooks may re-enter the manager to
+	// remove child sensors. Run them before h.unload takes muLoad so a child
+	// EnableSensor waiting for muLoad cannot invert the lock order.
 	h.collections.mu.Unlock()
-	err := h.unload(col, true)
+	preDisableErr := col.preDisable()
+	err := errors.Join(preDisableErr, h.unload(col, true))
 	h.collections.mu.Lock()
 
 	if err != nil {
@@ -290,21 +293,31 @@ func (h *handler) addSensor(op *sensorAdd) error {
 }
 
 func removeAllSensors(h *handler, unpin bool) {
-	h.collections.mu.Lock()
-	defer h.collections.mu.Unlock()
-	collections := h.collections.c
-	for ck, col := range collections {
-		if col.name == BaseSensorName {
-			// Base sensor always unloaded last
-			defer func(ck collectionKey, col *collection) {
-				col.destroy(unpin)
-				delete(collections, ck)
-			}(ck, col)
-		} else {
+	destroyMatching := func(match func(*collection) bool) {
+		h.collections.mu.Lock()
+		var matched []*collection
+		for ck, col := range h.collections.c {
+			if match(col) {
+				delete(h.collections.c, ck)
+				matched = append(matched, col)
+			}
+		}
+		h.collections.mu.Unlock()
+
+		// Teardown hooks may call back into the manager, so destroy every batch
+		// without holding collections.mu.
+		for _, col := range matched {
 			col.destroy(unpin)
-			delete(collections, ck)
 		}
 	}
+
+	// Policies own dependent internal sensors. Remove policy collections from
+	// lookup, but leave internal sensors discoverable while policy teardown
+	// calls back into RemoveSensor for them.
+	destroyMatching(func(col *collection) bool { return col.tracingpolicy != nil })
+	destroyMatching(func(col *collection) bool { return col.name != BaseSensorName })
+	// Base sensor always unloads last.
+	destroyMatching(func(col *collection) bool { return col.name == BaseSensorName })
 }
 
 func (h *handler) removeSensor(op *sensorRemove) error {

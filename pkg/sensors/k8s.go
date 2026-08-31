@@ -17,19 +17,23 @@ import (
 )
 
 var (
-	errNamespacedUprobe = errors.New("uprobe is not supported in a namespaced tracing policy")
+	errNamespacedUprobe = errors.New("uprobe is not supported in a namespaced tracing policy unless every uprobe sets resolvePathInContainer")
 	errNamespacedUsdt   = errors.New("usdt is not supported in a namespaced tracing policy")
 )
 
 // validateNamespacedProbes rejects probe types a namespaced (tenant-writable)
 // policy must not use: a uprobe/usdt target is resolved in the agent's host
-// mount namespace, not inside the tenant's own containers.
+// mount namespace, not inside the tenant's own containers. resolvePathInContainer
+// uprobes are the exception, as they resolve under each selected container's
+// root and only match pods in the policy's own namespace.
 func validateNamespacedProbes(namespace string, spec *v1alpha1.TracingPolicySpec) error {
 	if namespace == "" {
 		return nil
 	}
-	if len(spec.UProbes) > 0 {
-		return errNamespacedUprobe
+	for i := range spec.UProbes {
+		if !spec.UProbes[i].ResolvePathInContainer {
+			return errNamespacedUprobe
+		}
 	}
 	if len(spec.Usdts) > 0 {
 		return errNamespacedUsdt
