@@ -178,6 +178,36 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 			return c.cg.emitBitwiseNot(scratchRegs[0], argTypes[0])
 		}
 
+	case lshFn:
+		emitCall = func() error {
+			if err := c.cg.emitArithOp(
+				asm.LSh,
+				scratchRegs[0], argTypes[0],
+				scratchRegs[1], argTypes[1],
+			); err != nil {
+				return fmt.Errorf("bitwise LSH %w", err)
+			}
+			return nil
+		}
+
+	case rshFn:
+		emitCall = func() error {
+			op := asm.RSh
+
+			// Use Arithmetic shift to sign extend for signed types
+			if argTypes[0].TypeName() == s32Ty.TypeName() || argTypes[0].TypeName() == s64Ty.TypeName() {
+				op = asm.ArSh
+			}
+			if err := c.cg.emitArithOp(
+				op,
+				scratchRegs[0], argTypes[0],
+				scratchRegs[1], argTypes[1],
+			); err != nil {
+				return fmt.Errorf("bitwise RSH %w", err)
+			}
+			return nil
+		}
+
 	default:
 		emitCall = func() error {
 			return fmt.Errorf("compileCall: call %q (%+v) not supported", call.FunctionName(), call)
