@@ -502,6 +502,9 @@ type LsmHookSpec struct {
 	// A list of function arguments to include in the trace output.
 	Args []KProbeArg `json:"args,omitempty"`
 	// +kubebuilder:validation:Optional
+	// A list of data to include in the trace output.
+	Data []KProbeArg `json:"data,omitempty"`
+	// +kubebuilder:validation:Optional
 	// Selectors to apply before producing trace output. Selectors are ORed.
 	Selectors []KProbeSelector `json:"selectors,omitempty"`
 	// +kubebuilder:validation:optional
