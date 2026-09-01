@@ -6,6 +6,8 @@
 
 #if defined(GENERIC_UPROBE)
 
+#define DEBUG_SO(__fmt, ...)      DEBUG_AREA(BPF_AREA_UPROBE_SO, __fmt, ##__VA_ARGS__)
+
 // TODO: all the code here is amd64 only;
 // port to arm64 too
 
@@ -154,31 +156,27 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, __u32 sym_id)
 	__u32 tgid = pid_tgid >> 32;
 	struct cache_key ckey = { .tgid = tgid, .sym_id = sym_id };
 
-	bpf_printk("state machine init!");
-
 	__u64 *cached = map_lookup_elem(&resolved_cache, &ckey);
 	if (cached) {
 		if (*cached != 0) {
-			bpf_printk("cached!");
+			DEBUG_SO("found cached address for %d", sym_id);
 			// Found a cached entry, we just need to jump.
 			ctx->ip = *cached;
 		} else {
-			bpf_printk("flow not working, skip.");
+			DEBUG_SO("flow not working, skip.");
 		}
 		return 0;
 	}
 
-	bpf_printk("non cached!");
+	DEBUG_SO("symbol %d non found in cache, try to load it", sym_id);
 
 	if (map_lookup_elem(&pending_calls, &pid_tgid)) {
 		return 0; // already resolving on this thread
 	}
 
-	bpf_printk("non pending calls!");
-
 	struct libc_addrs *addrs = get_libc_addrs(tgid);
 	if (!addrs) {
-		bpf_printk("no addrs for %d!", tgid);
+		DEBUG_SO("no libc addrs for %d!", tgid);
 		// Either the Go-side exec hook hasn't populated this tgid yet
 		// (early-startup race), or this is a static binary with no
 		// libc mapping. Either way: don't override, let the real
@@ -206,7 +204,7 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, __u32 sym_id)
 	ctx->r9 = 0;
 	ctx->ip = addrs->mmap_addr;
 
-	bpf_printk("JUMPING to mmap!");
+	DEBUG_SO("JUMPING to mmap!");
 
 	return 0;
 }
@@ -224,8 +222,6 @@ int handle_mmap_ret(struct pt_regs *ctx)
 	// Store current ip as final return address for last chained call
 	pc->true_return_addr = ctx->ip;
 
-	bpf_printk("mmap_ret pending!");
-
 	__u64 scratch = PT_REGS_RC(ctx);
 	if ((long)scratch < 0) {
 		revert_ctx(ctx, pc, pid_tgid);
@@ -233,16 +229,12 @@ int handle_mmap_ret(struct pt_regs *ctx)
 	}
 	pc->scratch_addr = scratch;
 
-	bpf_printk("mmap_ret scratch!");
-
 	struct uprobe_regs *regs = map_lookup_elem(&regs_map, &pc->sym_id);
 	struct libc_addrs *addrs = get_libc_addrs(tgid);
 	if (!regs || !addrs) {
 		revert_ctx(ctx, pc, pid_tgid);
 		return 0;
 	}
-
-	bpf_printk("mmap_ret regs, addrs!");
 
 	__u32 sopath_len = regs->sopath_len;
 	__u32 symbol_len = regs->symbol_len;
@@ -260,13 +252,10 @@ int handle_mmap_ret(struct pt_regs *ctx)
 		return 0;
 	}
 
-	bpf_printk("mmap_ret sopath %d, %s!", sopath_len, regs->sopath);
-
 	long ret = probe_write_user((void *)scratch, regs->sopath, sopath_len);
-
 	long ret2 = probe_write_user((void *)(scratch + 128), regs->symbol, symbol_len);
 
-	bpf_printk("mmap_ret probe_write_user %lld %lld!", ret, ret2);
+	DEBUG_SO("mmap_ret probe_write_user %lld %lld!", ret, ret2);
 
 	pc->stage = STAGE_DLOPEN_PENDING;
 
@@ -276,7 +265,7 @@ int handle_mmap_ret(struct pt_regs *ctx)
 	ctx->si = RTLD_NOW;
 	ctx->ip = addrs->dlopen_addr;
 
-	bpf_printk("JUMPING to dlopen!");
+	DEBUG_SO("JUMPING to dlopen!");
 
 	return 0;
 }
@@ -291,15 +280,13 @@ int handle_dlopen_ret(struct pt_regs *ctx)
 	if (!pc || pc->stage != STAGE_DLOPEN_PENDING)
 		return 0;
 
-	bpf_printk("dlopen_ret OURS, handle=%llx", PT_REGS_RC(ctx));
+	DEBUG_SO("dlopen_ret handle=%llx", PT_REGS_RC(ctx));
 
 	__u64 handle = PT_REGS_RC(ctx);
 	if (handle == 0) {
 		revert_ctx(ctx, pc, pid_tgid);
 		return 0;
 	}
-
-	bpf_printk("dlopen_ret handle!");
 
 	pc->dlopen_handle = handle;
 	pc->stage = STAGE_DLSYM_PENDING;
@@ -310,14 +297,12 @@ int handle_dlopen_ret(struct pt_regs *ctx)
 		return 0;
 	}
 
-	bpf_printk("dlopen_ret addrs!");
-
 	push_fake_frame(ctx);
 	ctx->di = handle;
 	ctx->si = pc->scratch_addr + 128;
 	ctx->ip = addrs->dlsym_addr;
 
-	bpf_printk("JUMPING to dlsym!");
+	DEBUG_SO("JUMPING to dlsym!");
 
 	return 0;
 }
@@ -357,7 +342,7 @@ int handle_dlsym_ret(struct pt_regs *ctx)
 
 	map_delete_elem(&pending_calls, &pid_tgid);
 
-	bpf_printk("JUMPING to final symbol!");
+	DEBUG_SO("JUMPING to final symbol, cached address: %p", resolved);
 
 	return 0;
 }
