@@ -402,9 +402,6 @@ func WithTransformer(transformer TransformFunc) StoreOption {
 func WithStoreMetrics(identifier InformerNameAndResource, metrics InformerMetricsProvider) StoreOption {
 	return func(c *cache) {
 		c.identifier = identifier
-		if metrics == nil {
-			metrics = globalInformerMetricsProvider
-		}
 		c.metrics = metrics
 	}
 }

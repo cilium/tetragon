@@ -25,9 +25,8 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Storage version of a specific resource.
-// +k8s:supportsSubresource="/status"
 type StorageVersion struct {
-	metav1.TypeMeta `json:""`
+	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object metadata.
 	// The name is <group>.<resource>.
 	// +required
@@ -136,7 +135,7 @@ type StorageVersionCondition struct {
 
 // A list of StorageVersions.
 type StorageVersionList struct {
-	metav1.TypeMeta `json:""`
+	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional

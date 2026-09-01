@@ -159,7 +159,6 @@ func (s *sometimes) Do(f func()) {
 
 // GetAuthenticator returns an exec-based plugin for providing client credentials.
 func GetAuthenticator(config *api.ExecConfig, cluster *clientauthentication.Cluster) (*Authenticator, error) {
-	metrics.EnsureRegistered()
 	return newAuthenticator(globalCache, term.IsTerminal, config, cluster)
 }
 

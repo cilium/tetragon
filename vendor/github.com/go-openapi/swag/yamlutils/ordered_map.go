@@ -123,7 +123,7 @@ func (s YAMLMapSlice) MarshalYAML() (any, error) {
 	var nodes []*yaml.Node
 
 	for _, item := range s {
-		nn, err := json2yaml(item.Value, 1)
+		nn, err := json2yaml(item.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -153,17 +153,6 @@ func (s YAMLMapSlice) MarshalYAML() (any, error) {
 //
 // It implements [yaml.Unmarshaler].
 func (s *YAMLMapSlice) UnmarshalYAML(node *yaml.Node) error {
-	return s.unmarshalYAML(newYAMLWalker(), node, 0)
-}
-
-// unmarshalYAML builds the slice from a [yaml.Node], tracking the recursion depth (against
-// stack-overflow) and threading the [yamlWalker] so anchor/alias expansion stays bounded
-// across the whole document.
-func (s *YAMLMapSlice) unmarshalYAML(w *yamlWalker, node *yaml.Node, depth int) error {
-	if depth > defaultMaxNestingDepth {
-		return errMaxNestingDepth
-	}
-
 	if typeutils.IsNil(*s) {
 		// allow to unmarshal with a simple var declaration (nil slice)
 		*s = YAMLMapSlice{}
@@ -178,17 +167,13 @@ func (s *YAMLMapSlice) unmarshalYAML(w *yamlWalker, node *yaml.Node, depth int) 
 	m = m[:0]
 
 	for i := 0; i < len(node.Content); i += 2 {
-		if err := w.account(); err != nil { // account the key node
-			return err
-		}
-
 		var nmi YAMLMapItem
 		k, err := yamlStringScalarC(node.Content[i])
 		if err != nil {
 			return fmt.Errorf("unable to decode YAML map key: %w: %w", err, ErrYAML)
 		}
 		nmi.Key = k
-		v, err := w.node(node.Content[i+1], depth+1)
+		v, err := yamlNode(node.Content[i+1])
 		if err != nil {
 			return fmt.Errorf("unable to process YAML map value for key %q: %w: %w", k, err, ErrYAML)
 		}
@@ -201,11 +186,7 @@ func (s *YAMLMapSlice) unmarshalYAML(w *yamlWalker, node *yaml.Node, depth int) 
 	return nil
 }
 
-func json2yaml(item any, depth int) (*yaml.Node, error) {
-	if depth > defaultMaxNestingDepth {
-		return nil, errMaxNestingDepth
-	}
-
+func json2yaml(item any) (*yaml.Node, error) {
 	if typeutils.IsNil(item) {
 		return &yaml.Node{
 			Kind:  yaml.ScalarNode,
@@ -215,7 +196,7 @@ func json2yaml(item any, depth int) (*yaml.Node, error) {
 
 	switch val := item.(type) {
 	case ifaces.Ordered:
-		return orderedYAML(val, depth)
+		return orderedYAML(val)
 
 	case map[string]any:
 		var n yaml.Node
@@ -228,7 +209,7 @@ func json2yaml(item any, depth int) (*yaml.Node, error) {
 
 		for _, k := range keys {
 			v := val[k]
-			childNode, err := json2yaml(v, depth+1)
+			childNode, err := json2yaml(v)
 			if err != nil {
 				return nil, err
 			}
@@ -244,7 +225,7 @@ func json2yaml(item any, depth int) (*yaml.Node, error) {
 		var n yaml.Node
 		n.Kind = yaml.SequenceNode
 		for i := range val {
-			childNode, err := json2yaml(val[i], depth+1)
+			childNode, err := json2yaml(val[i])
 			if err != nil {
 				return nil, err
 			}
@@ -316,11 +297,11 @@ func uintegerNode[T conv.Unsigned](val T) (*yaml.Node, error) {
 	}, nil
 }
 
-func orderedYAML[T ifaces.Ordered](val T, depth int) (*yaml.Node, error) {
+func orderedYAML[T ifaces.Ordered](val T) (*yaml.Node, error) {
 	var n yaml.Node
 	n.Kind = yaml.MappingNode
 	for key, value := range val.OrderedItems() {
-		childNode, err := json2yaml(value, depth+1)
+		childNode, err := json2yaml(value)
 		if err != nil {
 			return nil, err
 		}

@@ -17,11 +17,7 @@ import (
 	"strings"
 )
 
-// LoadFromFileOrHTTP loads the bytes from a file or a remote http server based on the path passed in.
-//
-// Security: by default a local path is read with no confinement, so a caller-controlled path
-// (including a "file://" URI or an absolute path) may read any file the process can access.
-// When the path may derive from untrusted input, confine local loading with [WithRoot].
+// LoadFromFileOrHTTP loads the bytes from a file or a remote http server based on the path passed in
 func LoadFromFileOrHTTP(pth string, opts ...Option) ([]byte, error) {
 	o := optionsWithDefaults(opts)
 	return LoadStrategy(pth, o.ReadFileFunc(), loadHTTPBytes(opts...), opts...)(pth)
@@ -58,14 +54,11 @@ func LoadFromFileOrHTTP(pth string, opts ...Option) ([]byte, error) {
 // - `file:///c:/folder/file` becomes `C:\folder\file`
 // - `file://c:/folder/file` is tolerated (without leading `/`) and becomes `c:\folder\file`
 func LoadStrategy(pth string, local, remote func(string) ([]byte, error), opts ...Option) func(string) ([]byte, error) {
-	if hasHTTPScheme(pth) {
+	if strings.HasPrefix(pth, "http") {
 		return remote
 	}
 	o := optionsWithDefaults(opts)
 	_, isEmbedFS := o.fs.(embed.FS)
-	// any loader backed by an fs.FS or an os.Root consumes forward-slash paths on every
-	// platform, so it must not go through the windows-native file:// preprocessing below.
-	isFSBacked := o.fs != nil || o.root != ""
 
 	return func(p string) ([]byte, error) {
 		upth, err := url.PathUnescape(p)
@@ -74,18 +67,12 @@ func LoadStrategy(pth string, local, remote func(string) ([]byte, error), opts .
 		}
 
 		cpth, hasPrefix := strings.CutPrefix(upth, "file://")
-		if !hasPrefix || isFSBacked || runtime.GOOS != "windows" {
+		if !hasPrefix || isEmbedFS || runtime.GOOS != "windows" {
 			// crude processing: trim the file:// prefix. This leaves full URIs with a host with a (mostly) unexpected result
 			// regular file path provided: just normalize slashes
 			if isEmbedFS {
-				// embed.FS always uses "/" as separator, even on windows, and rejects leading "./" or "/".
+				// on windows, we need to slash the path if FS is an embed FS.
 				return local(strings.TrimLeft(filepath.ToSlash(cpth), "./")) // remove invalid leading characters for embed FS
-			}
-
-			if isFSBacked {
-				// other fs.FS (e.g. os.DirFS) and os.Root loaders also use "/" on every platform.
-				// Escaping paths (absolute, "..", escaping symlinks) are rejected by the loader, not rewritten here.
-				return local(filepath.ToSlash(cpth))
 			}
 
 			return local(filepath.FromSlash(cpth))
@@ -124,21 +111,6 @@ func LoadStrategy(pth string, local, remote func(string) ([]byte, error), opts .
 
 		return local(filepath.FromSlash(upth))
 	}
-}
-
-// hasHTTPScheme reports whether pth is an absolute URL with an http or https scheme,
-// selecting the remote loader. The comparison is case-insensitive, as URL schemes are.
-//
-// Requiring the "://" separator (rather than a bare "http" prefix) avoids misrouting a
-// local file whose name merely starts with "http" (e.g. "httpbin.json") to the remote loader.
-func hasHTTPScheme(pth string) bool {
-	for _, scheme := range [...]string{"http://", "https://"} {
-		if len(pth) >= len(scheme) && strings.EqualFold(pth[:len(scheme)], scheme) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func loadHTTPBytes(opts ...Option) func(path string) ([]byte, error) {

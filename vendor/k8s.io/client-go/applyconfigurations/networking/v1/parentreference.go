@@ -23,13 +23,13 @@ package v1
 //
 // ParentReference describes a reference to a parent object.
 type ParentReferenceApplyConfiguration struct {
-	// group is the group of the object being referenced.
+	// Group is the group of the object being referenced.
 	Group *string `json:"group,omitempty"`
-	// resource is the resource of the object being referenced.
+	// Resource is the resource of the object being referenced.
 	Resource *string `json:"resource,omitempty"`
-	// namespace is the namespace of the object being referenced.
+	// Namespace is the namespace of the object being referenced.
 	Namespace *string `json:"namespace,omitempty"`
-	// name is the name of the object being referenced.
+	// Name is the name of the object being referenced.
 	Name *string `json:"name,omitempty"`
 }
 

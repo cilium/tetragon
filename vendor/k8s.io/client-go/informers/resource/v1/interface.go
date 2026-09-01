@@ -25,15 +25,13 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// DeviceClasses returns a DeviceClassInformer.
-	DeviceClasses() TypedDeviceClassInformer
-	// DeviceTaintRules returns a DeviceTaintRuleInformer.
-	DeviceTaintRules() TypedDeviceTaintRuleInformer
+	DeviceClasses() DeviceClassInformer
 	// ResourceClaims returns a ResourceClaimInformer.
-	ResourceClaims() TypedResourceClaimInformer
+	ResourceClaims() ResourceClaimInformer
 	// ResourceClaimTemplates returns a ResourceClaimTemplateInformer.
-	ResourceClaimTemplates() TypedResourceClaimTemplateInformer
+	ResourceClaimTemplates() ResourceClaimTemplateInformer
 	// ResourceSlices returns a ResourceSliceInformer.
-	ResourceSlices() TypedResourceSliceInformer
+	ResourceSlices() ResourceSliceInformer
 }
 
 type version struct {
@@ -47,27 +45,22 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// DeviceClasses returns a TypedDeviceClassInformer.
-func (v *version) DeviceClasses() TypedDeviceClassInformer {
+// DeviceClasses returns a DeviceClassInformer.
+func (v *version) DeviceClasses() DeviceClassInformer {
 	return &deviceClassInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// DeviceTaintRules returns a TypedDeviceTaintRuleInformer.
-func (v *version) DeviceTaintRules() TypedDeviceTaintRuleInformer {
-	return &deviceTaintRuleInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
-// ResourceClaims returns a TypedResourceClaimInformer.
-func (v *version) ResourceClaims() TypedResourceClaimInformer {
+// ResourceClaims returns a ResourceClaimInformer.
+func (v *version) ResourceClaims() ResourceClaimInformer {
 	return &resourceClaimInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// ResourceClaimTemplates returns a TypedResourceClaimTemplateInformer.
-func (v *version) ResourceClaimTemplates() TypedResourceClaimTemplateInformer {
+// ResourceClaimTemplates returns a ResourceClaimTemplateInformer.
+func (v *version) ResourceClaimTemplates() ResourceClaimTemplateInformer {
 	return &resourceClaimTemplateInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// ResourceSlices returns a TypedResourceSliceInformer.
-func (v *version) ResourceSlices() TypedResourceSliceInformer {
+// ResourceSlices returns a ResourceSliceInformer.
+func (v *version) ResourceSlices() ResourceSliceInformer {
 	return &resourceSliceInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

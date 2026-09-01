@@ -12,7 +12,6 @@ use (
 	./loading
 	./mangling
 	./netutils
-	./pools
 	./stringutils
 	./typeutils
 	./yamlutils

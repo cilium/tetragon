@@ -137,11 +137,6 @@ func (in DeviceCounterConsumption) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DeviceDerivedAttribute) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1beta1.DeviceDerivedAttribute"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in DeviceRequest) OpenAPIModelName() string {
 	return "io.k8s.api.resource.v1beta1.DeviceRequest"
 }
@@ -177,18 +172,8 @@ func (in NetworkDeviceData) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in NodeAllocatableMapping) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1beta1.NodeAllocatableMapping"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in NodeAllocatableOverhead) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1beta1.NodeAllocatableOverhead"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in NodeAllocatableResource) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1beta1.NodeAllocatableResource"
+func (in NodeAllocatableResourceMapping) OpenAPIModelName() string {
+	return "io.k8s.api.resource.v1beta1.NodeAllocatableResourceMapping"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

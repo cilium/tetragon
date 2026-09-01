@@ -26,43 +26,41 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageReview checks if the set of images in a pod are allowed.
-// +k8s:supportsSubresource="/status"
 type ImageReview struct {
-	metav1.TypeMeta `json:""`
-	// metadata is the standard object's metadata.
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	// +k8s:opaqueType
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// spec holds information about the pod being evaluated
+	// Spec holds information about the pod being evaluated
 	// +optional
 	Spec ImageReviewSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 
-	// status is filled in by the backend and indicates whether the pod should be allowed.
+	// Status is filled in by the backend and indicates whether the pod should be allowed.
 	// +optional
 	Status ImageReviewStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // ImageReviewSpec is a description of the pod creation request.
 type ImageReviewSpec struct {
-	// containers is a list of a subset of the information in each container of the Pod being created.
+	// Containers is a list of a subset of the information in each container of the Pod being created.
 	// +optional
 	// +listType=atomic
 	Containers []ImageReviewContainerSpec `json:"containers,omitempty" protobuf:"bytes,1,rep,name=containers"`
-	// annotations is a list of key-value pairs extracted from the Pod's annotations.
+	// Annotations is a list of key-value pairs extracted from the Pod's annotations.
 	// It only includes keys which match the pattern `*.image-policy.k8s.io/*`.
 	// It is up to each webhook backend to determine how to interpret these annotations, if at all.
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,2,rep,name=annotations"`
-	// namespace is the namespace the pod is being created in.
+	// Namespace is the namespace the pod is being created in.
 	// +optional
 	Namespace string `json:"namespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
 }
 
 // ImageReviewContainerSpec is a description of a container within the pod creation request.
 type ImageReviewContainerSpec struct {
-	// image can be in the form image:tag or image@SHA:012345679abcdef.
+	// This can be in the form image:tag or image@SHA:012345679abcdef.
 	// +optional
 	Image string `json:"image,omitempty" protobuf:"bytes,1,opt,name=image"`
 	// In future, we may add command line overrides, exec health check command lines, and so on.
@@ -70,15 +68,15 @@ type ImageReviewContainerSpec struct {
 
 // ImageReviewStatus is the result of the review for the pod creation request.
 type ImageReviewStatus struct {
-	// allowed indicates that all images were allowed to be run.
+	// Allowed indicates that all images were allowed to be run.
 	// +optional
 	Allowed bool `json:"allowed" protobuf:"varint,1,opt,name=allowed"`
-	// reason should be empty unless Allowed is false in which case it
+	// Reason should be empty unless Allowed is false in which case it
 	// may contain a short description of what is wrong.  Kubernetes
 	// may truncate excessively long errors when displaying to the user.
 	// +optional
 	Reason string `json:"reason,omitempty" protobuf:"bytes,2,opt,name=reason"`
-	// auditAnnotations will be added to the attributes object of the
+	// AuditAnnotations will be added to the attributes object of the
 	// admission controller request using 'AddAnnotation'.  The keys should
 	// be prefix-less (i.e., the admission controller will add an
 	// appropriate prefix).

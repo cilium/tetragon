@@ -300,8 +300,7 @@ func (rules *ClientConfigLoadingRules) Migrate() error {
 			return err
 		}
 
-		sourceInfo, err := os.Stat(source)
-		if err != nil {
+		if sourceInfo, err := os.Stat(source); err != nil {
 			if os.IsNotExist(err) || os.IsPermission(err) {
 				// if the source file doesn't exist or we can't access it, there's no work to do.
 				continue
@@ -317,8 +316,8 @@ func (rules *ClientConfigLoadingRules) Migrate() error {
 		if err != nil {
 			return err
 		}
-		// destination created with source perm, but never executable, and subject to umask
-		err = os.WriteFile(destination, data, sourceInfo.Mode().Perm()&0666)
+		// destination is created with mode 0666 before umask
+		err = os.WriteFile(destination, data, 0666)
 		if err != nil {
 			return err
 		}
@@ -642,7 +641,7 @@ func RelativizePathWithNoBacksteps(refs []*string, base string) error {
 			}
 
 			// if we have a backstep, don't mess with the path
-			if strings.HasPrefix(rel, "../") || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+			if strings.HasPrefix(rel, "../") {
 				if filepath.IsAbs(*ref) {
 					continue
 				}

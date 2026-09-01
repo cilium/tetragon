@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	stderrors "errors"
 	"fmt"
 	"io"
 	"mime"
@@ -672,8 +671,7 @@ func (r *Request) tryThrottleWithInfo(ctx context.Context, retryInfo string) err
 	now := time.Now()
 
 	err := r.rateLimiter.Wait(ctx)
-	// Don't wrap context errors as caller initiated ctx cancellations is not a rate limiter error.
-	if err != nil && !stderrors.Is(err, context.Canceled) && !stderrors.Is(err, context.DeadlineExceeded) {
+	if err != nil {
 		err = fmt.Errorf("client rate limiter Wait returned an error: %w", err)
 	}
 	latency := time.Since(now)

@@ -25,11 +25,11 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// CSIStorageCapacities returns a CSIStorageCapacityInformer.
-	CSIStorageCapacities() TypedCSIStorageCapacityInformer
+	CSIStorageCapacities() CSIStorageCapacityInformer
 	// VolumeAttachments returns a VolumeAttachmentInformer.
-	VolumeAttachments() TypedVolumeAttachmentInformer
+	VolumeAttachments() VolumeAttachmentInformer
 	// VolumeAttributesClasses returns a VolumeAttributesClassInformer.
-	VolumeAttributesClasses() TypedVolumeAttributesClassInformer
+	VolumeAttributesClasses() VolumeAttributesClassInformer
 }
 
 type version struct {
@@ -43,17 +43,17 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// CSIStorageCapacities returns a TypedCSIStorageCapacityInformer.
-func (v *version) CSIStorageCapacities() TypedCSIStorageCapacityInformer {
+// CSIStorageCapacities returns a CSIStorageCapacityInformer.
+func (v *version) CSIStorageCapacities() CSIStorageCapacityInformer {
 	return &cSIStorageCapacityInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// VolumeAttachments returns a TypedVolumeAttachmentInformer.
-func (v *version) VolumeAttachments() TypedVolumeAttachmentInformer {
+// VolumeAttachments returns a VolumeAttachmentInformer.
+func (v *version) VolumeAttachments() VolumeAttachmentInformer {
 	return &volumeAttachmentInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// VolumeAttributesClasses returns a TypedVolumeAttributesClassInformer.
-func (v *version) VolumeAttributesClasses() TypedVolumeAttributesClassInformer {
+// VolumeAttributesClasses returns a VolumeAttributesClassInformer.
+func (v *version) VolumeAttributesClasses() VolumeAttributesClassInformer {
 	return &volumeAttributesClassInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

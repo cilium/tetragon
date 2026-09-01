@@ -219,7 +219,7 @@ func (p *ListPager) eachListChunkBuffered(ctx context.Context, options metav1.Li
 	chunkC := make(chan runtime.Object, p.PageBufferSize)
 	bgResultC := make(chan error, 1)
 	go func() {
-		defer utilruntime.HandleCrashWithContext(ctx)
+		defer utilruntime.HandleCrash()
 
 		var err error
 		defer func() {

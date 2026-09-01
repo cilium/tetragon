@@ -25,13 +25,13 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// MutatingAdmissionPolicies returns a MutatingAdmissionPolicyInformer.
-	MutatingAdmissionPolicies() TypedMutatingAdmissionPolicyInformer
+	MutatingAdmissionPolicies() MutatingAdmissionPolicyInformer
 	// MutatingAdmissionPolicyBindings returns a MutatingAdmissionPolicyBindingInformer.
-	MutatingAdmissionPolicyBindings() TypedMutatingAdmissionPolicyBindingInformer
+	MutatingAdmissionPolicyBindings() MutatingAdmissionPolicyBindingInformer
 	// ValidatingAdmissionPolicies returns a ValidatingAdmissionPolicyInformer.
-	ValidatingAdmissionPolicies() TypedValidatingAdmissionPolicyInformer
+	ValidatingAdmissionPolicies() ValidatingAdmissionPolicyInformer
 	// ValidatingAdmissionPolicyBindings returns a ValidatingAdmissionPolicyBindingInformer.
-	ValidatingAdmissionPolicyBindings() TypedValidatingAdmissionPolicyBindingInformer
+	ValidatingAdmissionPolicyBindings() ValidatingAdmissionPolicyBindingInformer
 }
 
 type version struct {
@@ -45,22 +45,22 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// MutatingAdmissionPolicies returns a TypedMutatingAdmissionPolicyInformer.
-func (v *version) MutatingAdmissionPolicies() TypedMutatingAdmissionPolicyInformer {
+// MutatingAdmissionPolicies returns a MutatingAdmissionPolicyInformer.
+func (v *version) MutatingAdmissionPolicies() MutatingAdmissionPolicyInformer {
 	return &mutatingAdmissionPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// MutatingAdmissionPolicyBindings returns a TypedMutatingAdmissionPolicyBindingInformer.
-func (v *version) MutatingAdmissionPolicyBindings() TypedMutatingAdmissionPolicyBindingInformer {
+// MutatingAdmissionPolicyBindings returns a MutatingAdmissionPolicyBindingInformer.
+func (v *version) MutatingAdmissionPolicyBindings() MutatingAdmissionPolicyBindingInformer {
 	return &mutatingAdmissionPolicyBindingInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ValidatingAdmissionPolicies returns a TypedValidatingAdmissionPolicyInformer.
-func (v *version) ValidatingAdmissionPolicies() TypedValidatingAdmissionPolicyInformer {
+// ValidatingAdmissionPolicies returns a ValidatingAdmissionPolicyInformer.
+func (v *version) ValidatingAdmissionPolicies() ValidatingAdmissionPolicyInformer {
 	return &validatingAdmissionPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// ValidatingAdmissionPolicyBindings returns a TypedValidatingAdmissionPolicyBindingInformer.
-func (v *version) ValidatingAdmissionPolicyBindings() TypedValidatingAdmissionPolicyBindingInformer {
+// ValidatingAdmissionPolicyBindings returns a ValidatingAdmissionPolicyBindingInformer.
+func (v *version) ValidatingAdmissionPolicyBindings() ValidatingAdmissionPolicyBindingInformer {
 	return &validatingAdmissionPolicyBindingInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

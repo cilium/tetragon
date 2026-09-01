@@ -53,10 +53,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&CertificateSigningRequest{},
 		&CertificateSigningRequestList{},
-		&ClusterTrustBundle{},
-		&ClusterTrustBundleList{},
-		&PodCertificateRequest{},
-		&PodCertificateRequestList{},
 	)
 
 	// Add the watch version that applies

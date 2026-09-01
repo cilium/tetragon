@@ -25,9 +25,9 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// FlowSchemas returns a FlowSchemaInformer.
-	FlowSchemas() TypedFlowSchemaInformer
+	FlowSchemas() FlowSchemaInformer
 	// PriorityLevelConfigurations returns a PriorityLevelConfigurationInformer.
-	PriorityLevelConfigurations() TypedPriorityLevelConfigurationInformer
+	PriorityLevelConfigurations() PriorityLevelConfigurationInformer
 }
 
 type version struct {
@@ -41,12 +41,12 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// FlowSchemas returns a TypedFlowSchemaInformer.
-func (v *version) FlowSchemas() TypedFlowSchemaInformer {
+// FlowSchemas returns a FlowSchemaInformer.
+func (v *version) FlowSchemas() FlowSchemaInformer {
 	return &flowSchemaInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// PriorityLevelConfigurations returns a TypedPriorityLevelConfigurationInformer.
-func (v *version) PriorityLevelConfigurations() TypedPriorityLevelConfigurationInformer {
+// PriorityLevelConfigurations returns a PriorityLevelConfigurationInformer.
+func (v *version) PriorityLevelConfigurations() PriorityLevelConfigurationInformer {
 	return &priorityLevelConfigurationInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

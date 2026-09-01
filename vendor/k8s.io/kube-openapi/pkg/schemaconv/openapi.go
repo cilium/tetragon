@@ -140,20 +140,18 @@ func (c *convert) makeOpenAPIRef(specSchema *spec.Schema) schema.TypeRef {
 		// 	to deduplicate)
 		mapRelationship, err := getMapElementRelationship(specSchema.Extensions)
 		if err != nil {
-			c.reportError("%v", err)
+			c.reportError(err.Error())
 		}
 
 		if len(mapRelationship) > 0 {
 			return schema.TypeRef{
 				NamedType:           &n,
 				ElementRelationship: &mapRelationship,
-				Nullable:            specSchema.Nullable,
 			}
 		}
 
 		return schema.TypeRef{
 			NamedType: &n,
-			Nullable:  specSchema.Nullable,
 		}
 
 	}
@@ -166,8 +164,7 @@ func (c *convert) makeOpenAPIRef(specSchema *spec.Schema) schema.TypeRef {
 	c.pop(c2)
 
 	return schema.TypeRef{
-		Inlined:  inlined,
-		Nullable: specSchema.Nullable,
+		Inlined: inlined,
 	}
 }
 
@@ -215,7 +212,7 @@ func (c *convert) parseObject(s *spec.Schema) *schema.Map {
 
 	relationship, err := getMapElementRelationship(s.Extensions)
 	if err != nil {
-		c.reportError("%v", err)
+		c.reportError(err.Error())
 	}
 
 	return &schema.Map{
@@ -228,7 +225,7 @@ func (c *convert) parseObject(s *spec.Schema) *schema.Map {
 func (c *convert) parseList(s *spec.Schema) *schema.List {
 	relationship, mapKeys, err := getListElementRelationship(s.Extensions)
 	if err != nil {
-		c.reportError("%v", err)
+		c.reportError(err.Error())
 	}
 	elementType := func() schema.TypeRef {
 		if s.Items != nil {

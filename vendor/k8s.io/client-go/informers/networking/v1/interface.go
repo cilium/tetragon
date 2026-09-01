@@ -25,15 +25,15 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// IPAddresses returns a IPAddressInformer.
-	IPAddresses() TypedIPAddressInformer
+	IPAddresses() IPAddressInformer
 	// Ingresses returns a IngressInformer.
-	Ingresses() TypedIngressInformer
+	Ingresses() IngressInformer
 	// IngressClasses returns a IngressClassInformer.
-	IngressClasses() TypedIngressClassInformer
+	IngressClasses() IngressClassInformer
 	// NetworkPolicies returns a NetworkPolicyInformer.
-	NetworkPolicies() TypedNetworkPolicyInformer
+	NetworkPolicies() NetworkPolicyInformer
 	// ServiceCIDRs returns a ServiceCIDRInformer.
-	ServiceCIDRs() TypedServiceCIDRInformer
+	ServiceCIDRs() ServiceCIDRInformer
 }
 
 type version struct {
@@ -47,27 +47,27 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// IPAddresses returns a TypedIPAddressInformer.
-func (v *version) IPAddresses() TypedIPAddressInformer {
+// IPAddresses returns a IPAddressInformer.
+func (v *version) IPAddresses() IPAddressInformer {
 	return &iPAddressInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Ingresses returns a TypedIngressInformer.
-func (v *version) Ingresses() TypedIngressInformer {
+// Ingresses returns a IngressInformer.
+func (v *version) Ingresses() IngressInformer {
 	return &ingressInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// IngressClasses returns a TypedIngressClassInformer.
-func (v *version) IngressClasses() TypedIngressClassInformer {
+// IngressClasses returns a IngressClassInformer.
+func (v *version) IngressClasses() IngressClassInformer {
 	return &ingressClassInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// NetworkPolicies returns a TypedNetworkPolicyInformer.
-func (v *version) NetworkPolicies() TypedNetworkPolicyInformer {
+// NetworkPolicies returns a NetworkPolicyInformer.
+func (v *version) NetworkPolicies() NetworkPolicyInformer {
 	return &networkPolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// ServiceCIDRs returns a TypedServiceCIDRInformer.
-func (v *version) ServiceCIDRs() TypedServiceCIDRInformer {
+// ServiceCIDRs returns a ServiceCIDRInformer.
+func (v *version) ServiceCIDRs() ServiceCIDRInformer {
 	return &serviceCIDRInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
