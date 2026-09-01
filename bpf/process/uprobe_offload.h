@@ -69,7 +69,7 @@ uprobe_offload(struct pt_regs *ctx)
 	// We expect to fully override the call to
 	// a dynamically loaded one
 	if (regs->sopath_len > 0) {
-		return uprobe_dyn_state_machine(ctx, *idx);
+		return uprobe_dyn_state_machine(ctx, regs, *idx);
 	}
 
 	for (i = 0; i < REGS_MAX && i < regs->cnt; i++) {

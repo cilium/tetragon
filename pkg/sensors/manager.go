@@ -14,7 +14,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
-	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -263,17 +262,11 @@ func (h *Manager) ListCollections(_ context.Context, policiesOnly bool) []*Colle
 	return h.handler.listCollections(policiesOnly)
 }
 
-type ProcessListener interface {
-	AddListener(listener server.Listener)
-	RemoveListener(listener server.Listener)
-}
-
 // Manager handles dynamic sensor management, such as adding / removing sensors
 // at runtime.
 type Manager struct {
 	// channel to communicate with the controller goroutine
-	handler  *handler
-	Listener ProcessListener
+	handler *handler
 }
 
 // tracingPolicyAdd adds a sensor based on a the provided tracing policy
