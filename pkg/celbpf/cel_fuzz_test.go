@@ -7,6 +7,7 @@ package celbpf
 
 import (
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"strconv"
 	"strings"
@@ -238,6 +239,10 @@ func FuzzCelExpr(f *testing.F) {
 	if !Supported() {
 		f.Skip()
 	}
+	f.Add(uint64(0), uint64(0))
+	f.Add(uint64(1), uint64(2))
+	f.Add(uint64(math.MaxUint64), uint64(math.MaxUint64))
+
 	f.Fuzz(func(t *testing.T, s1, s2 uint64) {
 		s, args := randCelExpr(s1, s2)
 		oracleRes := evalCEL(t, s, args)

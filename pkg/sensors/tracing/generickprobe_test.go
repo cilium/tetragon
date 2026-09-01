@@ -24,6 +24,13 @@ import (
 )
 
 func Fuzz_parseString(f *testing.F) {
+	f.Add([]byte{6, 0, 0, 0, 'p', 'i', 'z', 'z', 'a', 0})
+	f.Add([]byte{3, 0, 0, 0, 'p', 'i', 'z', 'z', 'a', 0})
+	f.Add([]byte{0, 0, 0, 1, 'p', 'i', 'z', 'z', 'a', 0})
+	f.Add([]byte{254, 255, 255, 255, 'p', 'i', 'z', 'z', 'a', 0})
+	f.Add([]byte{253, 255, 255, 255, 'p', 'i', 'z', 'z', 'a', 0})
+	f.Add([]byte{1, 0, 0, 0})
+
 	f.Fuzz(func(_ *testing.T, input []byte) {
 		reader := bytes.NewReader(input)
 		parseString(reader)
