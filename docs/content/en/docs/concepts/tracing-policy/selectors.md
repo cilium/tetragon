@@ -911,7 +911,7 @@ Currently, `MatchCEL` supports:
 * Logical AND (`&&`), OR (`||`), and NOT (`!`) operators
 * Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
 * Integer casting to 32-bits (`int32()`, `uint32()`)
-* Bitwise operations (`and()`, `or()`, `xor()`, `not()`)
+* Bitwise operations (`and()`, `or()`, `xor()`, `not()`, `lsh()`, `rsh()`)
 
 ## Actions filter
 
