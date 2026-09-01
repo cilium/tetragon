@@ -160,6 +160,23 @@ var celBitwiseXOR = celBinArithOp(
 	func(a, b uint32) uint32 { return a ^ b },
 )
 
+// Go shifts panic on a negative shift count, ensure they're positive.
+// Also, the shift count operand for ebpf shift instructions is limited to 5/6
+// bits which is why there's a value of 31/63
+var celBitwiseLSH = celBinArithOp(
+	func(a, b celTypes.Int) celTypes.Int { return a << (uint64(b) & 63) },
+	func(a, b celTypes.Uint) celTypes.Uint { return a << (uint64(b) & 63) },
+	func(a, b int32) int32 { return a << (uint(b) & 31) },
+	func(a, b uint32) uint32 { return a << (uint(b) & 31) },
+)
+
+var celBitwiseRSH = celBinArithOp(
+	func(a, b celTypes.Int) celTypes.Int { return a >> (uint64(b) & 63) },
+	func(a, b celTypes.Uint) celTypes.Uint { return a >> (uint64(b) & 63) },
+	func(a, b int32) int32 { return a >> (uint(b) & 31) },
+	func(a, b uint32) uint32 { return a >> (uint(b) & 31) },
+)
+
 func celBitwiseNOT(value ref.Val) ref.Val {
 	switch v := value.(type) {
 	case celTypes.Int:
@@ -258,6 +275,14 @@ func getOverloadOpts(t *testing.T, o *fnOverload) []cel.OverloadOpt {
 
 	if strings.HasPrefix(o.name, notFn) {
 		return append(ret, cel.UnaryBinding(celBitwiseNOT))
+	}
+
+	if strings.HasPrefix(o.name, lshFn) {
+		return append(ret, cel.BinaryBinding(celBitwiseLSH))
+	}
+
+	if strings.HasPrefix(o.name, rshFn) {
+		return append(ret, cel.BinaryBinding(celBitwiseRSH))
 	}
 
 	for _, ineq := range []string{"lt", "lq", "gt", "gq"} {
