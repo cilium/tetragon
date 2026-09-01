@@ -36,7 +36,8 @@ import (
 // window is chosen.
 //
 // The tolerance is applied to the metric values and prevents scaling too
-// eagerly for small metric variations.
+// eagerly for small metric variations. (Note that setting a tolerance requires
+// the beta HPAConfigurableTolerance feature gate to be enabled.)
 type HPAScalingRulesApplyConfiguration struct {
 	// stabilizationWindowSeconds is the number of seconds for which past recommendations should be
 	// considered while scaling up or scaling down.
@@ -61,6 +62,9 @@ type HPAScalingRulesApplyConfiguration struct {
 	// For example, if autoscaling is configured with a memory consumption target of 100Mi,
 	// and scale-down and scale-up tolerances of 5% and 1% respectively, scaling will be
 	// triggered when the actual consumption falls below 95Mi or exceeds 101Mi.
+	//
+	// This is an beta field and requires the HPAConfigurableTolerance feature
+	// gate to be enabled.
 	Tolerance *resource.Quantity `json:"tolerance,omitempty"`
 }
 

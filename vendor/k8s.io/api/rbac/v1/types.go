@@ -47,27 +47,27 @@ const (
 // PolicyRule holds information that describes a policy rule, but does not contain information
 // about who the rule applies to or which namespace the rule applies to.
 type PolicyRule struct {
-	// verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
+	// Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
 	// +listType=atomic
 	// +required
-	// +k8s:beta(since: "1.37")=+k8s:required
+	// +k8s:alpha(since: "1.36")=+k8s:required
 	Verbs []string `json:"verbs" protobuf:"bytes,1,rep,name=verbs"`
 
-	// apiGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
+	// APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
 	// the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
 	// +optional
 	// +listType=atomic
 	APIGroups []string `json:"apiGroups,omitempty" protobuf:"bytes,2,rep,name=apiGroups"`
-	// resources is a list of resources this rule applies to. '*' represents all resources.
+	// Resources is a list of resources this rule applies to. '*' represents all resources.
 	// +optional
 	// +listType=atomic
 	Resources []string `json:"resources,omitempty" protobuf:"bytes,3,rep,name=resources"`
-	// resourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
+	// ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
 	// +optional
 	// +listType=atomic
 	ResourceNames []string `json:"resourceNames,omitempty" protobuf:"bytes,4,rep,name=resourceNames"`
 
-	// nonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+	// NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
 	// Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
 	// Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
 	// +optional
@@ -79,20 +79,20 @@ type PolicyRule struct {
 // or a value for non-objects such as user and group names.
 // +structType=atomic
 type Subject struct {
-	// kind of object being referenced. Values defined by this API group are "User", "Group", and "ServiceAccount".
+	// Kind of object being referenced. Values defined by this API group are "User", "Group", and "ServiceAccount".
 	// If the Authorizer does not recognized the kind value, the Authorizer should report an error.
 	// +required
 	Kind string `json:"kind" protobuf:"bytes,1,opt,name=kind"`
-	// apiGroup holds the API group of the referenced subject.
+	// APIGroup holds the API group of the referenced subject.
 	// Defaults to "" for ServiceAccount subjects.
 	// Defaults to "rbac.authorization.k8s.io" for User and Group subjects.
 	// +optional
 	APIGroup string `json:"apiGroup,omitempty" protobuf:"bytes,2,opt,name=apiGroup"`
-	// name of the object being referenced.
+	// Name of the object being referenced.
 	// +required
-	// +k8s:beta(since: "1.37")=+k8s:required
+	// +k8s:alpha(since: "1.36")=+k8s:required
 	Name string `json:"name" protobuf:"bytes,3,opt,name=name"`
-	// namespace of the referenced object.  If the object kind is non-namespace, such as "User" or "Group", and this value is not empty
+	// Namespace of the referenced object.  If the object kind is non-namespace, such as "User" or "Group", and this value is not empty
 	// the Authorizer should report an error.
 	// +optional
 	Namespace string `json:"namespace,omitempty" protobuf:"bytes,4,opt,name=namespace"`
@@ -101,15 +101,15 @@ type Subject struct {
 // RoleRef contains information that points to the role being used
 // +structType=atomic
 type RoleRef struct {
-	// apiGroup is the group for the resource being referenced
+	// APIGroup is the group for the resource being referenced
 	// +optional
 	APIGroup string `json:"apiGroup" protobuf:"bytes,1,opt,name=apiGroup"`
-	// kind is the type of resource being referenced
+	// Kind is the type of resource being referenced
 	// +required
 	Kind string `json:"kind" protobuf:"bytes,2,opt,name=kind"`
-	// name is the name of resource being referenced
+	// Name is the name of resource being referenced
 	// +required
-	// +k8s:beta(since: "1.37")=+k8s:required
+	// +k8s:alpha(since: "1.36")=+k8s:required
 	Name string `json:"name" protobuf:"bytes,3,opt,name=name"`
 }
 
@@ -119,15 +119,15 @@ type RoleRef struct {
 
 // Role is a namespaced, logical grouping of PolicyRules that can be referenced as a unit by a RoleBinding.
 type Role struct {
-	metav1.TypeMeta `json:""`
-	// metadata is the standard object's metadata.
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// rules holds all the PolicyRules for this Role
+	// Rules holds all the PolicyRules for this Role
 	// +optional
 	// +listType=atomic
-	// +k8s:beta(since: "1.37")=+k8s:optional
+	// +k8s:alpha(since: "1.36")=+k8s:optional
 	Rules []PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
 }
 
@@ -139,22 +139,21 @@ type Role struct {
 // It adds who information via Subjects and namespace information by which namespace it exists in.  RoleBindings in a given
 // namespace only have effect in that namespace.
 type RoleBinding struct {
-	metav1.TypeMeta `json:""`
-	// metadata is the standard object's metadata.
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// subjects holds references to the objects the role applies to.
+	// Subjects holds references to the objects the role applies to.
 	// +optional
 	// +listType=atomic
-	// +k8s:beta(since: "1.37")=+k8s:optional
+	// +k8s:alpha(since: "1.36")=+k8s:optional
 	Subjects []Subject `json:"subjects,omitempty" protobuf:"bytes,2,rep,name=subjects"`
 
-	// roleRef can reference a Role in the current namespace or a ClusterRole in the global namespace.
+	// RoleRef can reference a Role in the current namespace or a ClusterRole in the global namespace.
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
 	// This field is immutable.
 	// +required
-	// +k8s:alpha(since:"1.37")=+k8s:immutable
 	RoleRef RoleRef `json:"roleRef" protobuf:"bytes,3,opt,name=roleRef"`
 }
 
@@ -163,7 +162,7 @@ type RoleBinding struct {
 
 // RoleBindingList is a collection of RoleBindings
 type RoleBindingList struct {
-	metav1.TypeMeta `json:""`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
@@ -177,7 +176,7 @@ type RoleBindingList struct {
 
 // RoleList is a collection of Roles
 type RoleList struct {
-	metav1.TypeMeta `json:""`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
@@ -193,18 +192,18 @@ type RoleList struct {
 
 // ClusterRole is a cluster level, logical grouping of PolicyRules that can be referenced as a unit by a RoleBinding or ClusterRoleBinding.
 type ClusterRole struct {
-	metav1.TypeMeta `json:""`
-	// metadata is the standard object's metadata.
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// rules holds all the PolicyRules for this ClusterRole
+	// Rules holds all the PolicyRules for this ClusterRole
 	// +optional
 	// +listType=atomic
-	// +k8s:beta(since: "1.37")=+k8s:optional
+	// +k8s:alpha(since: "1.36")=+k8s:optional
 	Rules []PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
 
-	// aggregationRule is an optional field that describes how to build the Rules for this ClusterRole.
+	// AggregationRule is an optional field that describes how to build the Rules for this ClusterRole.
 	// If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be
 	// stomped by the controller.
 	// +optional
@@ -213,7 +212,7 @@ type ClusterRole struct {
 
 // AggregationRule describes how to locate ClusterRoles to aggregate into the ClusterRole
 type AggregationRule struct {
-	// clusterRoleSelectors holds a list of selectors which will be used to find ClusterRoles and create the rules.
+	// ClusterRoleSelectors holds a list of selectors which will be used to find ClusterRoles and create the rules.
 	// If any of the selectors match, then the ClusterRole's permissions will be added
 	// +optional
 	// +listType=atomic
@@ -228,22 +227,21 @@ type AggregationRule struct {
 // ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference a ClusterRole in the global namespace,
 // and adds who information via Subject.
 type ClusterRoleBinding struct {
-	metav1.TypeMeta `json:""`
-	// metadata is the standard object's metadata.
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// subjects holds references to the objects the role applies to.
+	// Subjects holds references to the objects the role applies to.
 	// +optional
 	// +listType=atomic
-	// +k8s:beta(since: "1.37")=+k8s:optional
+	// +k8s:alpha(since: "1.36")=+k8s:optional
 	Subjects []Subject `json:"subjects,omitempty" protobuf:"bytes,2,rep,name=subjects"`
 
-	// roleRef can only reference a ClusterRole in the global namespace.
+	// RoleRef can only reference a ClusterRole in the global namespace.
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
 	// This field is immutable.
 	// +required
-	// +k8s:alpha(since:"1.37")=+k8s:immutable
 	RoleRef RoleRef `json:"roleRef" protobuf:"bytes,3,opt,name=roleRef"`
 }
 
@@ -252,7 +250,7 @@ type ClusterRoleBinding struct {
 
 // ClusterRoleBindingList is a collection of ClusterRoleBindings
 type ClusterRoleBindingList struct {
-	metav1.TypeMeta `json:""`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
@@ -266,7 +264,7 @@ type ClusterRoleBindingList struct {
 
 // ClusterRoleList is a collection of ClusterRoles
 type ClusterRoleList struct {
-	metav1.TypeMeta `json:""`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`

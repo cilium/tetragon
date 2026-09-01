@@ -32,7 +32,7 @@ import (
 
 // AdmissionReview describes an admission review request/response.
 type AdmissionReview struct {
-	metav1.TypeMeta `json:""`
+	metav1.TypeMeta `json:",inline"`
 	// request describes the attributes for the admission request.
 	// +optional
 	Request *AdmissionRequest `json:"request,omitempty" protobuf:"bytes,1,opt,name=request"`

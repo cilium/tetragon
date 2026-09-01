@@ -38,8 +38,7 @@ import (
 // pod.  For more details, see
 // https://kubernetes.io/docs/concepts/containers/runtime-class/
 type RuntimeClassApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration `json:""`
-	// metadata is the standard object metadata.
+	metav1.TypeMetaApplyConfiguration `json:",inline"`
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
 	// handler specifies the underlying runtime and configuration that the CRI

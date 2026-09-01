@@ -32,7 +32,8 @@ type PriorityLevelConfigurationConditionApplyConfiguration struct {
 	// Required.
 	Type *flowcontrolv1beta3.PriorityLevelConfigurationConditionType `json:"type,omitempty"`
 	// `status` is the status of the condition.
-	// Should be specified and set to one of True, False, Unknown.
+	// Can be True, False, Unknown.
+	// Required.
 	Status *flowcontrolv1beta3.ConditionStatus `json:"status,omitempty"`
 	// `lastTransitionTime` is the last time the condition transitioned from one status to another.
 	LastTransitionTime *v1.Time `json:"lastTransitionTime,omitempty"`

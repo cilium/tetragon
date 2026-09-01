@@ -25,15 +25,15 @@ import (
 // Interface provides access to all the informers in this group version.
 type Interface interface {
 	// DaemonSets returns a DaemonSetInformer.
-	DaemonSets() TypedDaemonSetInformer
+	DaemonSets() DaemonSetInformer
 	// Deployments returns a DeploymentInformer.
-	Deployments() TypedDeploymentInformer
+	Deployments() DeploymentInformer
 	// Ingresses returns a IngressInformer.
-	Ingresses() TypedIngressInformer
+	Ingresses() IngressInformer
 	// NetworkPolicies returns a NetworkPolicyInformer.
-	NetworkPolicies() TypedNetworkPolicyInformer
+	NetworkPolicies() NetworkPolicyInformer
 	// ReplicaSets returns a ReplicaSetInformer.
-	ReplicaSets() TypedReplicaSetInformer
+	ReplicaSets() ReplicaSetInformer
 }
 
 type version struct {
@@ -47,27 +47,27 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// DaemonSets returns a TypedDaemonSetInformer.
-func (v *version) DaemonSets() TypedDaemonSetInformer {
+// DaemonSets returns a DaemonSetInformer.
+func (v *version) DaemonSets() DaemonSetInformer {
 	return &daemonSetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// Deployments returns a TypedDeploymentInformer.
-func (v *version) Deployments() TypedDeploymentInformer {
+// Deployments returns a DeploymentInformer.
+func (v *version) Deployments() DeploymentInformer {
 	return &deploymentInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// Ingresses returns a TypedIngressInformer.
-func (v *version) Ingresses() TypedIngressInformer {
+// Ingresses returns a IngressInformer.
+func (v *version) Ingresses() IngressInformer {
 	return &ingressInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// NetworkPolicies returns a TypedNetworkPolicyInformer.
-func (v *version) NetworkPolicies() TypedNetworkPolicyInformer {
+// NetworkPolicies returns a NetworkPolicyInformer.
+func (v *version) NetworkPolicies() NetworkPolicyInformer {
 	return &networkPolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// ReplicaSets returns a TypedReplicaSetInformer.
-func (v *version) ReplicaSets() TypedReplicaSetInformer {
+// ReplicaSets returns a ReplicaSetInformer.
+func (v *version) ReplicaSets() ReplicaSetInformer {
 	return &replicaSetInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

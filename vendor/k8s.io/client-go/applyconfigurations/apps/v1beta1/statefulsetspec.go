@@ -36,7 +36,7 @@ type StatefulSetSpecApplyConfiguration struct {
 	// TODO: Consider a rename of this field.
 	Replicas *int32 `json:"replicas,omitempty"`
 	// selector is a label query over pods that should match the replica count.
-	// It must match the pod template's labels.
+	// If empty, defaulted to labels on the pod template.
 	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
 	Selector *v1.LabelSelectorApplyConfiguration `json:"selector,omitempty"`
 	// template is the object that describes the pod that will be created if

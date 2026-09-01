@@ -176,12 +176,6 @@ func (a *EventRecorderAdapter) Eventf(regarding, _ runtime.Object, eventtype, re
 	a.recorder.Eventf(regarding, eventtype, reason, note, args...)
 }
 
-// AnnotatedEventf is a wrapper around v1 AnnotatedEventf
-func (a *EventRecorderAdapter) AnnotatedEventf(regarding, _ runtime.Object, annotations map[string]string, eventtype, reason, action, note string, args ...interface{}) {
-	//nolint:forbidigo // Legacy usage
-	a.recorder.AnnotatedEventf(regarding, annotations, eventtype, reason, note, args...)
-}
-
 func (a *EventRecorderAdapter) WithLogger(logger klog.Logger) internalevents.EventRecorderLogger {
 	return &EventRecorderAdapter{
 		recorder: a.recorder.WithLogger(logger),
@@ -298,7 +292,7 @@ func (e *eventBroadcasterImpl) recordToSink(sink EventSink, event *v1.Event, eve
 	event = &eventCopy
 	result, err := eventCorrelator.EventCorrelate(event)
 	if err != nil {
-		utilruntime.HandleErrorWithContext(e.cancelationCtx, err, "Event correlation failed")
+		utilruntime.HandleError(err)
 	}
 	if result.Skip {
 		return
@@ -408,7 +402,7 @@ func (e *eventBroadcasterImpl) StartEventWatcher(eventHandler func(*v1.Event)) w
 		return watch.NewEmptyWatch()
 	}
 	go func() {
-		defer utilruntime.HandleCrashWithContext(e.cancelationCtx)
+		defer utilruntime.HandleCrash()
 		for {
 			select {
 			case <-e.cancelationCtx.Done():

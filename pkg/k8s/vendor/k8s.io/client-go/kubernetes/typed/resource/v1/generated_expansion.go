@@ -20,8 +20,6 @@ package v1
 
 type DeviceClassExpansion interface{}
 
-type DeviceTaintRuleExpansion interface{}
-
 type ResourceClaimExpansion interface{}
 
 type ResourceClaimTemplateExpansion interface{}

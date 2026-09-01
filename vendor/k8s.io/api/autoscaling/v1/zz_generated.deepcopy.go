@@ -180,11 +180,6 @@ func (in *HorizontalPodAutoscaler) DeepCopyObject() runtime.Object {
 func (in *HorizontalPodAutoscalerCondition) DeepCopyInto(out *HorizontalPodAutoscalerCondition) {
 	*out = *in
 	in.LastTransitionTime.DeepCopyInto(&out.LastTransitionTime)
-	if in.ObservedGeneration != nil {
-		in, out := &in.ObservedGeneration, &out.ObservedGeneration
-		*out = new(int64)
-		**out = **in
-	}
 	return
 }
 

@@ -132,11 +132,6 @@ func (in DeviceCounterConsumption) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DeviceDerivedAttribute) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1.DeviceDerivedAttribute"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in DeviceRequest) OpenAPIModelName() string {
 	return "io.k8s.api.resource.v1.DeviceRequest"
 }
@@ -162,31 +157,6 @@ func (in DeviceTaint) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DeviceTaintRule) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1.DeviceTaintRule"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DeviceTaintRuleList) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1.DeviceTaintRuleList"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DeviceTaintRuleSpec) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1.DeviceTaintRuleSpec"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DeviceTaintRuleStatus) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1.DeviceTaintRuleStatus"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in DeviceTaintSelector) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1.DeviceTaintSelector"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
 func (in DeviceToleration) OpenAPIModelName() string {
 	return "io.k8s.api.resource.v1.DeviceToleration"
 }
@@ -202,18 +172,8 @@ func (in NetworkDeviceData) OpenAPIModelName() string {
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.
-func (in NodeAllocatableMapping) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1.NodeAllocatableMapping"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in NodeAllocatableOverhead) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1.NodeAllocatableOverhead"
-}
-
-// OpenAPIModelName returns the OpenAPI model name for this type.
-func (in NodeAllocatableResource) OpenAPIModelName() string {
-	return "io.k8s.api.resource.v1.NodeAllocatableResource"
+func (in NodeAllocatableResourceMapping) OpenAPIModelName() string {
+	return "io.k8s.api.resource.v1.NodeAllocatableResourceMapping"
 }
 
 // OpenAPIModelName returns the OpenAPI model name for this type.

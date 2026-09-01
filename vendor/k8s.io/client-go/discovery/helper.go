@@ -71,7 +71,7 @@ func ServerSupportsVersion(client DiscoveryInterface, requiredGV schema.GroupVer
 		return err
 	}
 	versions := metav1.ExtractGroupVersions(groups)
-	serverVersions := sets.Set[string]{}
+	serverVersions := sets.String{}
 	for _, v := range versions {
 		serverVersions.Insert(v)
 	}

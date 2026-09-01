@@ -10,22 +10,14 @@ import (
 	"github.com/go-openapi/swag/jsonutils/adapters/ifaces"
 )
 
-func Register(dispatcher ifaces.Registrar, opts ...Option) {
+func Register(dispatcher ifaces.Registrar) {
 	t := reflect.TypeOf(Adapter{})
-	var o options
-	o = buildOptions(o, opts)
-
 	dispatcher.RegisterFor(
 		ifaces.RegistryEntry{
-			Who:  fmt.Sprintf("%s.%s", t.PkgPath(), t.Name()),
-			What: ifaces.AllCapabilities,
-			Constructor: func() ifaces.Adapter {
-				a := BorrowAdapter()
-				a.options = o
-
-				return a
-			},
-			Support: support,
+			Who:         fmt.Sprintf("%s.%s", t.PkgPath(), t.Name()),
+			What:        ifaces.AllCapabilities,
+			Constructor: BorrowAdapterIface,
+			Support:     support,
 		})
 }
 

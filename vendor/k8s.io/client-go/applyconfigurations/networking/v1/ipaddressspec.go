@@ -23,7 +23,7 @@ package v1
 //
 // IPAddressSpec describe the attributes in an IP Address.
 type IPAddressSpecApplyConfiguration struct {
-	// parentRef references the resource that an IPAddress is attached to.
+	// ParentRef references the resource that an IPAddress is attached to.
 	// An IPAddress must reference a parent object.
 	ParentRef *ParentReferenceApplyConfiguration `json:"parentRef,omitempty"`
 }

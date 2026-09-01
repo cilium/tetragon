@@ -19,8 +19,6 @@ package dynamic
 import (
 	"context"
 	"fmt"
-	"net/http"
-
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -30,6 +28,7 @@ import (
 	"k8s.io/client-go/features"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/apply"
+	"net/http"
 )
 
 type DynamicClient struct {

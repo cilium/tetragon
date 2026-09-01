@@ -105,7 +105,6 @@ func IsValidIP(fldPath *field.Path, value string) field.ErrorList {
 func GetWarningsForIP(fldPath *field.Path, value string) []string {
 	ip := netutils.ParseIPSloppy(value)
 	if ip == nil {
-		//nolint:logcheck // Should not be reached.
 		klog.ErrorS(nil, "GetWarningsForIP called on value that was not validated with IsValidIPForLegacyField", "field", fldPath, "value", value)
 		return nil
 	}
@@ -212,7 +211,6 @@ func IsValidCIDR(fldPath *field.Path, value string) field.ErrorList {
 func GetWarningsForCIDR(fldPath *field.Path, value string) []string {
 	ip, ipnet, err := netutils.ParseCIDRSloppy(value)
 	if err != nil {
-		//nolint:logcheck // Should not be reached.
 		klog.ErrorS(err, "GetWarningsForCIDR called on value that was not validated with IsValidCIDRForLegacyField", "field", fldPath, "value", value)
 		return nil
 	}

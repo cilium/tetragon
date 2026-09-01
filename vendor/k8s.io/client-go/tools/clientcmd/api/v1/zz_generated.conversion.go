@@ -229,7 +229,8 @@ func Convert_api_AuthInfo_To_v1_AuthInfo(in *api.AuthInfo, out *AuthInfo, s conv
 }
 
 func autoConvert_v1_AuthProviderConfig_To_api_AuthProviderConfig(in *AuthProviderConfig, out *api.AuthProviderConfig, s conversion.Scope) error {
-	*out = *(*api.AuthProviderConfig)(unsafe.Pointer(in))
+	out.Name = in.Name
+	out.Config = *(*map[string]string)(unsafe.Pointer(&in.Config))
 	return nil
 }
 
@@ -239,7 +240,8 @@ func Convert_v1_AuthProviderConfig_To_api_AuthProviderConfig(in *AuthProviderCon
 }
 
 func autoConvert_api_AuthProviderConfig_To_v1_AuthProviderConfig(in *api.AuthProviderConfig, out *AuthProviderConfig, s conversion.Scope) error {
-	*out = *(*AuthProviderConfig)(unsafe.Pointer(in))
+	out.Name = in.Name
+	out.Config = *(*map[string]string)(unsafe.Pointer(&in.Config))
 	return nil
 }
 
@@ -409,7 +411,8 @@ func Convert_api_ExecConfig_To_v1_ExecConfig(in *api.ExecConfig, out *ExecConfig
 }
 
 func autoConvert_v1_ExecEnvVar_To_api_ExecEnvVar(in *ExecEnvVar, out *api.ExecEnvVar, s conversion.Scope) error {
-	*out = *(*api.ExecEnvVar)(unsafe.Pointer(in))
+	out.Name = in.Name
+	out.Value = in.Value
 	return nil
 }
 
@@ -419,7 +422,8 @@ func Convert_v1_ExecEnvVar_To_api_ExecEnvVar(in *ExecEnvVar, out *api.ExecEnvVar
 }
 
 func autoConvert_api_ExecEnvVar_To_v1_ExecEnvVar(in *api.ExecEnvVar, out *ExecEnvVar, s conversion.Scope) error {
-	*out = *(*ExecEnvVar)(unsafe.Pointer(in))
+	out.Name = in.Name
+	out.Value = in.Value
 	return nil
 }
 

@@ -107,7 +107,6 @@ var encode = EncMode{
 		}
 		return encode
 	}(),
-	deterministic: true,
 }
 
 var Encode = EncMode{
@@ -123,7 +122,6 @@ var Encode = EncMode{
 		}
 		return em
 	}(),
-	deterministic: true,
 }
 
 var EncodeNondeterministic = EncMode{
@@ -136,20 +134,14 @@ var EncodeNondeterministic = EncMode{
 		}
 		return em
 	}(),
-	deterministic: false,
 }
 
 type EncMode struct {
-	delegate      cbor.UserBufferEncMode
-	deterministic bool
+	delegate cbor.UserBufferEncMode
 }
 
 func (em EncMode) options() cbor.EncOptions {
 	return em.delegate.EncOptions()
-}
-
-func (em EncMode) IsDeterministic() bool {
-	return em.deterministic
 }
 
 func (em EncMode) MarshalTo(v interface{}, w io.Writer) error {

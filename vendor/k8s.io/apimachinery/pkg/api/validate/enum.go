@@ -18,7 +18,6 @@ package validate
 
 import (
 	"context"
-	"fmt"
 	"slices"
 
 	"k8s.io/apimachinery/pkg/api/operation"
@@ -33,36 +32,24 @@ func Enum[T ~string](_ context.Context, op operation.Operation, fldPath *field.P
 	if value == nil {
 		return nil
 	}
-	excluded, err := isExcluded(op, exclusions, *value)
-	if err != nil {
-		return field.ErrorList{field.InternalError(fldPath, err)}
-	}
-	if !validValues.Has(*value) || excluded {
-		supported, err := supportedValues(op, validValues, exclusions)
-		if err != nil {
-			return field.ErrorList{field.InternalError(fldPath, err)}
-		}
-		return field.ErrorList{field.NotSupported[T](fldPath, *value, supported)}
+	if !validValues.Has(*value) || isExcluded(op, exclusions, *value) {
+		return field.ErrorList{field.NotSupported[T](fldPath, *value, supportedValues(op, validValues, exclusions))}
 	}
 	return nil
 }
 
 // supportedValues returns a sorted list of supported values.
 // Excluded enum values are not included in the list.
-func supportedValues[T ~string](op operation.Operation, values sets.Set[T], exclusions []EnumExclusion[T]) ([]T, error) {
+func supportedValues[T ~string](op operation.Operation, values sets.Set[T], exclusions []EnumExclusion[T]) []T {
 	res := make([]T, 0, len(values))
 	for key := range values {
-		excluded, err := isExcluded(op, exclusions, key)
-		if err != nil {
-			return nil, err
-		}
-		if excluded {
+		if isExcluded(op, exclusions, key) {
 			continue
 		}
 		res = append(res, key)
 	}
 	slices.Sort(res)
-	return res, nil
+	return res
 }
 
 // EnumExclusion represents a single enum exclusion rule.
@@ -77,15 +64,11 @@ type EnumExclusion[T ~string] struct {
 	Option string
 }
 
-func isExcluded[T ~string](op operation.Operation, exclusions []EnumExclusion[T], value T) (bool, error) {
+func isExcluded[T ~string](op operation.Operation, exclusions []EnumExclusion[T], value T) bool {
 	for _, rule := range exclusions {
-		on, defined := op.HasOption(rule.Option)
-		if !defined {
-			return false, fmt.Errorf("undefined validation option %q", rule.Option)
-		}
-		if rule.Value == value && rule.ExcludeWhen == on {
-			return true, nil
+		if rule.Value == value && rule.ExcludeWhen == op.HasOption(rule.Option) {
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
