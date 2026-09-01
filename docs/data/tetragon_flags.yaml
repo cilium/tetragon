@@ -5,7 +5,7 @@ usage: tetragon [flags]
 options:
     - name: bpf-debug-area
       usage: |
-        Enable BPF tracing messages for specified areas (all, generic, process)
+        Enable BPF tracing messages for specified areas (all, generic, process, uprobe_so)
     - name: bpf-debug-log
       default_value: "false"
       usage: |
