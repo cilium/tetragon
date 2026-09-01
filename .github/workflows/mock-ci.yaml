@@ -1,0 +1,58 @@
+name: Mock CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      PR-number:
+        required: true
+        type: string
+        description: "Pull request number."
+      context-ref:
+        required: true
+        type: string
+        description: "Context in which the workflow runs. If the pull request is from a fork, this is the pull request target branch. Otherwise, this is the pull request branch so committers can test workflow changes directly."
+      SHA:
+        required: true
+        type: string
+        description: "SHA under test (head of the pull request branch)."
+      base-SHA:
+        required: true
+        type: string
+        description: "SHA of the base branch (target branch of the pull request)."
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.PR-number }}
+  cancel-in-progress: true
+
+jobs:
+  commit-status-start:
+    name: Commit Status Start
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - name: Set initial commit status
+        uses: cilium/actions/set-commit-status@fe0702f5df0d8e44d48f1baa226c023b73ff6b5e # main
+        with:
+          sha: ${{ inputs.SHA || github.sha }}
+
+  mock-ci:
+    name: Mock CI
+    needs: commit-status-start
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run mock CI
+        run: echo "Mock CI completed successfully"
+
+  merge-upload-and-status:
+    if: ${{ always() }}
+    name: Merge Upload and Status
+    needs: mock-ci
+    permissions:
+      contents: read
+      statuses: write
+    uses: ./.github/workflows/common-post-jobs.yml
+    with:
+      sha: ${{ inputs.SHA || github.sha }}
+      success: ${{ needs.mock-ci.result == 'success' }}
