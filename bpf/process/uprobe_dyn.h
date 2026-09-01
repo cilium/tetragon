@@ -6,7 +6,7 @@
 
 #if defined(GENERIC_UPROBE)
 
-#define DEBUG_SO(__fmt, ...)      DEBUG_AREA(BPF_AREA_UPROBE_SO, __fmt, ##__VA_ARGS__)
+#define DEBUG_SO(__fmt, ...) DEBUG_AREA(BPF_AREA_UPROBE_SO, __fmt, ##__VA_ARGS__)
 
 // TODO: all the code here is amd64 only;
 // port to arm64 too
@@ -43,6 +43,9 @@ struct uprobe_regs {
 	char symbol[SYMBOL_MAX]; // e.g. "my_new_sym"
 	__u32 sopath_len;
 	__u32 symbol_len;
+	__u64 mmap_addr;
+	__u64 dlopen_addr;
+	__u64 dlsym_addr;
 };
 
 struct {
@@ -90,38 +93,20 @@ struct {
 	__type(value, __u64); // resolved address of my_new_sym
 } resolved_cache SEC(".maps");
 
-// Must match Go's `LibcAddrs` struct exactly: same field order, same
-// widths, no implicit padding surprises. Go's ebpf.Map serializes the
-// struct via binary.Write (or cilium/ebpf's built-in marshaling), which
-// respects the struct's natural Go alignment — for three consecutive
-// uint64s, that's already 8-byte aligned with zero padding, so a
-// straightforward __u64 x3 mirrors it safely. Still worth double
-// checking with `unsafe.Sizeof` on the Go side if you add fields later.
-struct libc_addrs {
-	__u64 mmap_addr;
-	__u64 dlopen_addr;
-	__u64 dlsym_addr;
-};
-
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 1024); // TODO: make it customizable from options?
-	__type(key, __u32); // tgid
-	__type(value, struct libc_addrs);
-} libc_base_addrs_map SEC(".maps");
-
-FUNC_INLINE struct libc_addrs *get_libc_addrs(__u32 tgid)
-{
-	struct libc_addrs *addrs = map_lookup_elem(&libc_base_addrs_map, &tgid);
-	return addrs; // NULL if Go side hasn't populated it yet (race) or
-		// this is a static binary with no libc mapping.
-}
-
 FUNC_INLINE void push_fake_frame(struct pt_regs *ctx)
 {
 	__u64 dummy = 0;
 	ctx->sp -= 8;
 	probe_write_user((void *)ctx->sp, &dummy, sizeof(dummy));
+}
+
+FUNC_INLINE void skip_flow(__u32 sym_id, __u64 pid_tgid)
+{
+	__u32 tgid = pid_tgid >> 32;
+	__u64 resolved = 0;
+	struct cache_key ckey = { .tgid = tgid, .sym_id = sym_id };
+	map_update_elem(&resolved_cache, &ckey, &resolved, BPF_ANY);
+	DEBUG_SO("dynamic SO flow will be skipped for sym_id: %d tgid: %lu", sym_id, tgid);
 }
 
 FUNC_INLINE void revert_ctx(struct pt_regs *ctx, struct pending_call *pc, __u64 pid_tgid)
@@ -143,14 +128,63 @@ FUNC_INLINE void revert_ctx(struct pt_regs *ctx, struct pending_call *pc, __u64 
 	map_delete_elem(&pending_calls, &pid_tgid);
 
 	// Signal that the flow is not working, and skip next time.
-	__u32 tgid = pid_tgid >> 32;
-	__u64 resolved = 0;
-	struct cache_key ckey = { .tgid = tgid, .sym_id = pc->sym_id };
-	map_update_elem(&resolved_cache, &ckey, &resolved, BPF_ANY);
+	skip_flow(pc->sym_id, pid_tgid);
+}
+
+#define LIBC_NAME "libc.so.6"
+
+FUNC_INLINE bool name_matches(const char *name, int len)
+{
+	// crude suffix check for "libc.so.6" or similar — adjust as needed
+	// for musl ("libc.musl-x86_64.so.1") or versioned glibc paths.
+	const char target[] = LIBC_NAME;
+	if (len < (int)sizeof(target) - 1)
+		return false;
+	for (int i = 0; i < (int)sizeof(target) - 1; i++) {
+		if (name[len - (sizeof(target) - 1) + i] != target[i])
+			return false;
+	}
+	return true;
+}
+
+FUNC_INLINE __u64 find_libc_base()
+{
+	struct vm_area_struct *vma;
+	struct task_struct *task = (struct task_struct *)get_current_task_btf();
+	if (!task)
+		return 0;
+	__u64 min_start = 0;
+	bool found = false;
+	bpf_for_each(task_vma, vma, task, 0)
+	{
+		struct dentry *dentry = BPF_CORE_READ(vma, vm_file, f_path.dentry);
+		if (dentry == NULL) {
+			continue;
+		}
+
+		char name[32];
+		long n = probe_read_kernel_str(name, sizeof(name),
+					       BPF_CORE_READ(dentry, d_name.name));
+		if (n <= 0)
+			continue;
+
+		if (!name_matches(name, n - 1))
+			continue;
+
+		__u64 vm_start = BPF_CORE_READ(vma, vm_start);
+		if (!found || vm_start < min_start) {
+			min_start = vm_start;
+			found = true;
+		}
+	}
+	if (found)
+		DEBUG_SO("Found mapped libc base: 0x%lx", min_start);
+
+	return found ? min_start : 0;
 }
 
 FUNC_INLINE int
-uprobe_dyn_state_machine(struct pt_regs *ctx, __u32 sym_id)
+uprobe_dyn_state_machine(struct pt_regs *ctx, struct uprobe_regs *regs, __u32 sym_id)
 {
 	__u64 pid_tgid = get_current_pid_tgid();
 	__u32 tgid = pid_tgid >> 32;
@@ -174,15 +208,19 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, __u32 sym_id)
 		return 0; // already resolving on this thread
 	}
 
-	struct libc_addrs *addrs = get_libc_addrs(tgid);
-	if (!addrs) {
-		DEBUG_SO("no libc addrs for %d!", tgid);
-		// Either the Go-side exec hook hasn't populated this tgid yet
-		// (early-startup race), or this is a static binary with no
-		// libc mapping. Either way: don't override, let the real
-		// my_sym execute untouched for this call.
+	__u64 libc_base = find_libc_base();
+	if (libc_base == 0) {
+		DEBUG_SO("no libc base addr for %d!", tgid);
+		// find_libc_base() loop failed to find a libc for the binary;
+		// Skip flow for the binary.
+		skip_flow(sym_id, pid_tgid);
 		return 0;
 	}
+	// Update mmap, dlopen and dlsym addresses by adding libc_base
+	DEBUG_SO("libc base addr for %d: %lu!", tgid, libc_base);
+	regs->mmap_addr += libc_base;
+	regs->dlopen_addr += libc_base;
+	regs->dlsym_addr += libc_base;
 
 	struct pending_call pc = {};
 	pc.sym_id = sym_id;
@@ -202,7 +240,7 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, __u32 sym_id)
 	ctx->cx = MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE;
 	ctx->r8 = -1;
 	ctx->r9 = 0;
-	ctx->ip = addrs->mmap_addr;
+	ctx->ip = regs->mmap_addr;
 
 	DEBUG_SO("JUMPING to mmap!");
 
@@ -213,7 +251,6 @@ SEC("uretprobe/mmap")
 int handle_mmap_ret(struct pt_regs *ctx)
 {
 	__u64 pid_tgid = get_current_pid_tgid();
-	__u32 tgid = pid_tgid >> 32;
 
 	struct pending_call *pc = map_lookup_elem(&pending_calls, &pid_tgid);
 	if (!pc || pc->stage != STAGE_MMAP_PENDING)
@@ -230,8 +267,7 @@ int handle_mmap_ret(struct pt_regs *ctx)
 	pc->scratch_addr = scratch;
 
 	struct uprobe_regs *regs = map_lookup_elem(&regs_map, &pc->sym_id);
-	struct libc_addrs *addrs = get_libc_addrs(tgid);
-	if (!regs || !addrs) {
+	if (!regs) {
 		revert_ctx(ctx, pc, pid_tgid);
 		return 0;
 	}
@@ -263,7 +299,7 @@ int handle_mmap_ret(struct pt_regs *ctx)
 
 	ctx->di = scratch;
 	ctx->si = RTLD_NOW;
-	ctx->ip = addrs->dlopen_addr;
+	ctx->ip = regs->dlopen_addr;
 
 	DEBUG_SO("JUMPING to dlopen!");
 
@@ -274,7 +310,6 @@ SEC("uretprobe/dlopen")
 int handle_dlopen_ret(struct pt_regs *ctx)
 {
 	__u64 pid_tgid = get_current_pid_tgid();
-	__u32 tgid = pid_tgid >> 32;
 
 	struct pending_call *pc = map_lookup_elem(&pending_calls, &pid_tgid);
 	if (!pc || pc->stage != STAGE_DLOPEN_PENDING)
@@ -291,8 +326,8 @@ int handle_dlopen_ret(struct pt_regs *ctx)
 	pc->dlopen_handle = handle;
 	pc->stage = STAGE_DLSYM_PENDING;
 
-	struct libc_addrs *addrs = get_libc_addrs(tgid);
-	if (!addrs) {
+	struct uprobe_regs *regs = map_lookup_elem(&regs_map, &pc->sym_id);
+	if (!regs) {
 		revert_ctx(ctx, pc, pid_tgid);
 		return 0;
 	}
@@ -300,7 +335,7 @@ int handle_dlopen_ret(struct pt_regs *ctx)
 	push_fake_frame(ctx);
 	ctx->di = handle;
 	ctx->si = pc->scratch_addr + 128;
-	ctx->ip = addrs->dlsym_addr;
+	ctx->ip = regs->dlsym_addr;
 
 	DEBUG_SO("JUMPING to dlsym!");
 
