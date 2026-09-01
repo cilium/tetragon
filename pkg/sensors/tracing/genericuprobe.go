@@ -1018,7 +1018,6 @@ func createGenericUprobeSensor(
 	// - there's support detected
 	useMulti := !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti()
 
-	// TODO: path must be taken somewhere :D
 	for _, uprobe := range spec.UProbes {
 		if isSODynamic(&uprobe) {
 			// Very complex to support for uprobe multi
@@ -1026,8 +1025,12 @@ func createGenericUprobeSensor(
 			if useMulti {
 				return nil, errors.New("dynamic SO loading does not work for multiuprobe; disable it with spec.options: [{name: disable-uprobe-multi, value: \"true\"}]")
 			}
+			hostLibcPath := getHostLibc()
+			if hostLibcPath == "" {
+				return nil, errors.New("failed to find host libc but it is needed for dynamic SO loading")
+			}
 			spec.UProbes = append(spec.UProbes, v1alpha1.UProbeSpec{
-				Path:    "/usr/lib/x86_64-linux-gnu/libc.so.6",
+				Path:    hostLibcPath,
 				Symbols: []string{"mmap", "dlopen", "dlsym"},
 			})
 			break
@@ -1890,6 +1893,20 @@ func loadOffsets(fullPath string, key fileKey) (*LibcOffsets, error) {
 }
 
 var libcRe = regexp.MustCompile(`/libc(-[\d.]+)?\.so(\.\d+)?$`)
+var hostLibc string
+
+func getHostLibc() string {
+	if hostLibc == "" {
+		hostLibcRe := "/usr/lib/*/libc.so.*"
+		fmt.Println(hostLibcRe)
+		matches, _ := filepath.Glob(hostLibcRe)
+		if len(matches) > 0 {
+			fmt.Println(matches)
+			hostLibc = matches[0]
+		}
+	}
+	return hostLibc
+}
 
 type errNoLibcMapping struct {
 	pid uint32
