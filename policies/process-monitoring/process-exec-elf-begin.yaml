@@ -1,0 +1,27 @@
+# This tracing policy 'process-exec-elf-begin' report the elf binary path
+# being executed, just when we are switching execution to it.
+#
+# Description:
+#  Report the file path of the new elf or flat binary that is being executed.
+#
+# Limitation:
+#  This does not report different binary format handlers or scripts paths that
+#  are being executed, but will report the final elf or flat binary, like
+#  shebang (!#/bin/bash) used to handle the script.
+#
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "process-exec-elf-begin"
+  #annotations:
+    #description: "Report the path of the elf or flat binary that is being executed"
+    #author: "Djalal Harouni"
+spec:
+  kprobes:
+  - call: "security_bprm_creds_from_file"
+    syscall: false
+    args:
+    - index: 0
+      type: "nop"
+    - index: 1
+      type: "file"

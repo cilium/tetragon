@@ -1,0 +1,18 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "dev-hard-start-xmit"
+spec:
+  kprobes:
+  - call: "dev_hard_start_xmit"
+    syscall: false
+    args:
+    - index: 1
+      type: "net_device"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: Equal
+        values:
+        - "lo"
+

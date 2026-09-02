@@ -1,0 +1,39 @@
+# This tracing policy 'connect-only-private-addrs' will report attempts
+# to make outbound TCP connections to any IP address other than those
+# within the private ranges or within the 127.0.0.0/8 CIDR, from the
+# binary /usr/bin/curl. In addition it will also kill the offending
+# curl process.
+#
+# Description:
+#  Report and block outbound TCP connections outside of private
+#  addresses and loopback from /usr/bin/curl.
+#
+# In production, this could be used to force services to only connect
+# to local services and services within the local cluster. Address ranges
+# can be tuned to match the environment. Transgressions will be regarded
+# as evidence of malicious activity, resulting in the process being
+# killed.
+
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "connect-only-private-addrs"
+spec:
+  kprobes:
+  - call: "tcp_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "NotDAddr"
+        values:
+        - "10.0.0.0/8"
+        - "172.16.0.0/12"
+        - "192.168.0.0/16"
+        - "127.0.0.0/8"
+      matchActions:
+      - action: Sigkill
+
