@@ -612,6 +612,11 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 			}
 		}
 	}
+
+	// validate that `sopath` is correctly set to a regular file
+	if err := validateSODynamic(spec); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -661,14 +666,11 @@ func computeArgNewOffset(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAd
 				// Load override-symbol VA
 				var overrideSymbAddr uint64
 				if matchAct.ArgNewSymbol != "" {
-					symbols := strings.Split(matchAct.ArgNewSymbol, ":")
-					if len(symbols) == 1 {
+					if matchAct.SoPath == "" {
 						overrideSymbAddr, err = f.Address(matchAct.ArgNewSymbol)
-					} else if len(symbols) == 2 {
-						dynOv.library = symbols[0]
-						dynOv.symbol = symbols[1]
 					} else {
-						err = fmt.Errorf("wrong argNewSymbol specified: %q", matchAct.ArgNewSymbol)
+						dynOv.library = matchAct.SoPath
+						dynOv.symbol = matchAct.ArgNewSymbol
 					}
 				} else if matchAct.ArgNewAddr != 0 {
 					overrideSymbAddr = matchAct.ArgNewAddr
