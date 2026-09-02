@@ -8,9 +8,6 @@
 
 #define DEBUG_SO(__fmt, ...) DEBUG_AREA(BPF_AREA_UPROBE_SO, __fmt, ##__VA_ARGS__)
 
-// TODO: all the code here is amd64 only;
-// port to arm64 too
-
 #define PROT_READ  0x1
 #define PROT_WRITE 0x2
 
@@ -96,8 +93,8 @@ struct {
 FUNC_INLINE void push_fake_frame(struct pt_regs *ctx)
 {
 	__u64 dummy = 0;
-	ctx->sp -= 8;
-	probe_write_user((void *)ctx->sp, &dummy, sizeof(dummy));
+	PT_REGS_SP(ctx) -= 8;
+	probe_write_user((void *)PT_REGS_SP(ctx), &dummy, sizeof(dummy));
 }
 
 FUNC_INLINE void skip_flow(__u32 sym_id, __u64 pid_tgid)
@@ -111,20 +108,20 @@ FUNC_INLINE void skip_flow(__u32 sym_id, __u64 pid_tgid)
 
 FUNC_INLINE void revert_ctx(struct pt_regs *ctx, struct pending_call *pc, __u64 pid_tgid)
 {
-	ctx->di = pc->orig_regs[0];
-	ctx->si = pc->orig_regs[1];
-	ctx->dx = pc->orig_regs[2];
-	ctx->cx = pc->orig_regs[3];
-	ctx->r8 = pc->orig_regs[4];
-	ctx->r9 = pc->orig_regs[5];
+	PT_REGS_PARM1(ctx) = pc->orig_regs[0];
+	PT_REGS_PARM2(ctx) = pc->orig_regs[1];
+	PT_REGS_PARM3(ctx) = pc->orig_regs[2];
+	PT_REGS_PARM4(ctx) = pc->orig_regs[3];
+	PT_REGS_PARM5(ctx) = pc->orig_regs[4];
+	PT_REGS_PARM6(ctx) = pc->orig_regs[5];
 
 	// Rebuild the call frame — required because at least one real `ret`
 	// (mmap's, dlopen's, or dlsym's) has already consumed the original
 	// return address from the stack by the time we get here.
-	ctx->sp -= 8;
-	probe_write_user((void *)ctx->sp, &pc->true_return_addr, sizeof(__u64));
+	PT_REGS_SP(ctx) -= 8;
+	probe_write_user((void *)PT_REGS_SP(ctx), &pc->true_return_addr, sizeof(__u64));
 
-	ctx->ip = pc->orig_addr;
+	PT_REGS_IP(ctx) = pc->orig_addr;
 	map_delete_elem(&pending_calls, &pid_tgid);
 
 	// Signal that the flow is not working, and skip next time.
@@ -195,7 +192,7 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, struct uprobe_regs *regs, __u32 sy
 		if (*cached != 0) {
 			DEBUG_SO("found cached address for %d", sym_id);
 			// Found a cached entry, we just need to jump.
-			ctx->ip = *cached;
+			PT_REGS_IP(ctx) = *cached;
 		} else {
 			DEBUG_SO("flow not working, skip.");
 		}
@@ -225,22 +222,22 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, struct uprobe_regs *regs, __u32 sy
 	struct pending_call pc = {};
 	pc.sym_id = sym_id;
 	pc.stage = STAGE_MMAP_PENDING;
-	pc.orig_regs[0] = ctx->di;
-	pc.orig_regs[1] = ctx->si;
-	pc.orig_regs[2] = ctx->dx;
-	pc.orig_regs[3] = ctx->cx;
-	pc.orig_regs[4] = ctx->r8;
-	pc.orig_regs[5] = ctx->r9;
-	pc.orig_addr = ctx->ip;
+	pc.orig_regs[0] = PT_REGS_PARM1(ctx);
+	pc.orig_regs[1] = PT_REGS_PARM2(ctx);
+	pc.orig_regs[2] = PT_REGS_PARM3(ctx);
+	pc.orig_regs[3] = PT_REGS_PARM4(ctx);
+	pc.orig_regs[4] = PT_REGS_PARM5(ctx);
+	pc.orig_regs[5] = PT_REGS_PARM6(ctx);
+	pc.orig_addr = PT_REGS_IP(ctx);
 	map_update_elem(&pending_calls, &pid_tgid, &pc, BPF_ANY);
 
-	ctx->di = 0;
-	ctx->si = 4096;
-	ctx->dx = PROT_READ | PROT_WRITE;
-	ctx->cx = MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE;
-	ctx->r8 = -1;
-	ctx->r9 = 0;
-	ctx->ip = regs->mmap_addr;
+	PT_REGS_PARM1(ctx) = 0;
+	PT_REGS_PARM2(ctx) = 4096;
+	PT_REGS_PARM3(ctx) = PROT_READ | PROT_WRITE;
+	PT_REGS_PARM4(ctx) = MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE;
+	PT_REGS_PARM5(ctx) = -1;
+	PT_REGS_PARM6(ctx) = 0;
+	PT_REGS_IP(ctx) = regs->mmap_addr;
 
 	DEBUG_SO("JUMPING to mmap!");
 
@@ -257,7 +254,7 @@ int handle_mmap_ret(struct pt_regs *ctx)
 		return 0;
 
 	// Store current ip as final return address for last chained call
-	pc->true_return_addr = ctx->ip;
+	pc->true_return_addr = PT_REGS_IP(ctx);
 
 	__u64 scratch = PT_REGS_RC(ctx);
 	if ((long)scratch < 0) {
@@ -297,9 +294,9 @@ int handle_mmap_ret(struct pt_regs *ctx)
 
 	push_fake_frame(ctx);
 
-	ctx->di = scratch;
-	ctx->si = RTLD_NOW;
-	ctx->ip = regs->dlopen_addr;
+	PT_REGS_PARM1(ctx) = scratch;
+	PT_REGS_PARM2(ctx) = RTLD_NOW;
+	PT_REGS_IP(ctx) = regs->dlopen_addr;
 
 	DEBUG_SO("JUMPING to dlopen!");
 
@@ -333,9 +330,9 @@ int handle_dlopen_ret(struct pt_regs *ctx)
 	}
 
 	push_fake_frame(ctx);
-	ctx->di = handle;
-	ctx->si = pc->scratch_addr + 128;
-	ctx->ip = regs->dlsym_addr;
+	PT_REGS_PARM1(ctx) = handle;
+	PT_REGS_PARM2(ctx) = pc->scratch_addr + 128;
+	PT_REGS_IP(ctx) = regs->dlsym_addr;
 
 	DEBUG_SO("JUMPING to dlsym!");
 
@@ -362,18 +359,18 @@ int handle_dlsym_ret(struct pt_regs *ctx)
 	map_update_elem(&resolved_cache, &ckey, &resolved, BPF_ANY);
 
 	// Restore the ORIGINAL arguments the real caller intended for my_sym.
-	ctx->di = pc->orig_regs[0];
-	ctx->si = pc->orig_regs[1];
-	ctx->dx = pc->orig_regs[2];
-	ctx->cx = pc->orig_regs[3];
-	ctx->r8 = pc->orig_regs[4];
-	ctx->r9 = pc->orig_regs[5];
+	PT_REGS_PARM1(ctx) = pc->orig_regs[0];
+	PT_REGS_PARM2(ctx) = pc->orig_regs[1];
+	PT_REGS_PARM3(ctx) = pc->orig_regs[2];
+	PT_REGS_PARM4(ctx) = pc->orig_regs[3];
+	PT_REGS_PARM5(ctx) = pc->orig_regs[4];
+	PT_REGS_PARM6(ctx) = pc->orig_regs[5];
 
 	// Rebuild the ORIGINAL call frame, not a throwaway placeholder.
 	push_fake_frame(ctx);
-	probe_write_user((void *)ctx->sp, &pc->true_return_addr, sizeof(__u64));
+	probe_write_user((void *)PT_REGS_SP(ctx), &pc->true_return_addr, sizeof(__u64));
 
-	ctx->ip = resolved; // finally jump into new symbol
+	PT_REGS_IP(ctx) = resolved; // finally jump into new symbol
 
 	map_delete_elem(&pending_calls, &pid_tgid);
 
