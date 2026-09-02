@@ -1682,7 +1682,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	}
 
 	if has.sleepableOffload {
-		regsMap := program.MapBuilder("regs_map", load)
+		regsMap := program.MapBuilderSensor("regs_map", load)
 		// keep the map valid even when this particular entry has no
 		// register assignments of its own (e.g. only a sibling uprobe
 		// in the same policy needs the override action)

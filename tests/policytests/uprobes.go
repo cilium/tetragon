@@ -602,7 +602,7 @@ var _ = policytest.NewBuilder("uprobe-override-symbol-so").WithLabels("uprobes")
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "uprobe-selector"
+  name: "uprobe-override-symbol-so"
 spec:
   uprobes:
   - path: {{ testBinary "uprobe-simple" }}
