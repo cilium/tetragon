@@ -58,11 +58,7 @@ type observerUprobeSensor struct {
 
 const disableNotAllowedReasonBinaryDigests = "binaryDigests configured"
 
-var (
-	uprobeTable idtable.Table
-	hostLibc    string
-	hostOffsets libcOffsets
-)
+var uprobeTable idtable.Table
 
 func getOrOpenFile(path string, openedFilesMap map[string]*os.File) (*os.File, error) {
 	if f, ok := openedFilesMap[path]; ok {
@@ -124,24 +120,7 @@ func populateUprobeRegs(m *ebpf.Map, id uint32, regs []processapi.RegAssignment,
 	uprobeRegs := processapi.UprobeRegs{}
 
 	if dynOv != nil {
-		sopath := dynOv.library + "\000"
-		n := copy(uprobeRegs.Sopath[:], sopath)
-		if n != len(sopath) {
-			logger.GetLogger().Warn("register sopath count mismatch", "len sopath", len(sopath))
-		}
-		uprobeRegs.SopathLen = uint32(n)
-
-		symbol := dynOv.symbol + "\000"
-		n = copy(uprobeRegs.Symbol[:], symbol)
-		if n != len(symbol) {
-			logger.GetLogger().Warn("register symbol count mismatch", "len symbol", len(symbol))
-		}
-		uprobeRegs.SymbolLen = uint32(n)
-
-		// They will be adjusted to ASLR libc6 base address in the kernel
-		uprobeRegs.DlopenAddr = hostOffsets.DlopenOff
-		uprobeRegs.DlsymAddr = hostOffsets.DlsymOff
-		uprobeRegs.MmapAddr = hostOffsets.MmapOff
+		uprobeRegs = dynOv.populateUprobeRegs()
 	} else {
 		n := copy(uprobeRegs.Ass[:], regs)
 		if n != len(regs) {
@@ -669,20 +648,6 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 	return nil
 }
 
-// LibcOffsets holds symbol values relative to load bias (i.e., NOT yet
-// adjusted for a specific process's ASLR base). These are stable for a
-// given libc binary on disk, so we cache them by file identity.
-type libcOffsets struct {
-	MmapOff   uint64
-	DlopenOff uint64
-	DlsymOff  uint64
-}
-
-type dynamicOverride struct {
-	library string
-	symbol  string
-}
-
 func computeArgNewOffset(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAddr uint64) (int64, *dynamicOverride, error) {
 	var (
 		err   error
@@ -961,25 +926,6 @@ func ignoreDigestVerificationFailure(uprobe *v1alpha1.UProbeSpec) bool {
 	return uprobe.Ignore.DigestVerificationFailure
 }
 
-func isSODynamic(uprobe *v1alpha1.UProbeSpec) bool {
-	if !selectors.HasOverride(uprobe.Selectors) {
-		return false
-	}
-	for _, s := range uprobe.Selectors {
-		for _, action := range s.MatchActions {
-			if action.Action == "Override" {
-				if action.ArgNewSymbol != "" {
-					_, _, ok := strings.Cut(action.ArgNewSymbol, ":")
-					if ok {
-						return true
-					}
-				}
-			}
-		}
-	}
-	return false
-}
-
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -998,23 +944,9 @@ func createGenericUprobeSensor(
 	// - there's support detected
 	useMulti := !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti()
 
-	for _, uprobe := range spec.UProbes {
-		if isSODynamic(&uprobe) {
-			// Very complex to support for uprobe multi
-			// since we need to attach a non "generic_uprobe" program.
-			if useMulti {
-				return nil, errors.New("dynamic SO loading does not work for multiuprobe; disable it with spec.options: [{name: disable-uprobe-multi, value: \"true\"}]")
-			}
-			hostLibcPath := getHostLibc()
-			if hostLibcPath == "" {
-				return nil, errors.New("failed to find host libc but it is needed for dynamic SO loading")
-			}
-			spec.UProbes = append(spec.UProbes, v1alpha1.UProbeSpec{
-				Path:    hostLibcPath,
-				Symbols: []string{"mmap", "dlopen", "dlsym"},
-			})
-			break
-		}
+	// inject SO dynamic spec if needed
+	if err = initSODynamic(spec, useMulti); err != nil {
+		return nil, err
 	}
 
 	// user sleepable_preload override
@@ -1388,21 +1320,9 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 		}
 
 		if spec.Path == hostLibc {
-			// Load libc mmap, dlopen and dlsym addresses!
-			// Needed for dynamic SO loading.
-			switch sym {
-			case "mmap":
-				if hostOffsets.MmapOff == 0 {
-					hostOffsets.MmapOff, err = f.DynamicAddress(sym)
-				}
-			case "dlopen":
-				if hostOffsets.DlopenOff == 0 {
-					hostOffsets.DlopenOff, err = f.DynamicAddress(sym)
-				}
-			case "dlsym":
-				if hostOffsets.DlsymOff == 0 {
-					hostOffsets.DlsymOff, err = f.DynamicAddress(sym)
-				}
+			err = loadHostOffset(sym, f)
+			if err != nil {
+				return fmt.Errorf("failed to load host libc offset for symbol %q: %w", sym, err)
 			}
 		}
 
@@ -1722,16 +1642,8 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	)
 
 	// Special case for dynamic OS loading
-	if uprobeEntry.symbol == "mmap" || uprobeEntry.symbol == "dlopen" || uprobeEntry.symbol == "dlsym" {
-		pinSymbol = fmt.Sprintf("handle_%s_ret", uprobeEntry.symbol)
-		load = program.Builder(
-			path.Join(option.Config.HubbleLib, loadProgName),
-			fmt.Sprintf("uretprobe/%s", uprobeEntry.symbol),
-			fmt.Sprintf("uretprobe/%s", uprobeEntry.symbol),
-			fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, pinSymbol),
-			"generic_uprobe",
-		).SetLoaderData(uprobeEntry).
-			SetPolicy(uprobeEntry.policyName).SetRetProbe(true)
+	if uprobeEntry.isDynOvLibc() {
+		load = uprobeEntry.buildDynOvLibcProgram(loadProgName)
 	} else {
 		pinSymbol = strings.ReplaceAll(uprobeEntry.symbol, ".", "_")
 		load = program.Builder(
@@ -1776,9 +1688,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		maps = append(maps, regsMap, sleepableOffloadMap)
 
 		if uprobeEntry.dynOv != nil {
-			pendingCallsMap := program.MapBuilder("pending_calls", load)
-			resolvedCacheMap := program.MapBuilder("resolved_cache", load)
-			maps = append(maps, pendingCallsMap, resolvedCacheMap)
+			maps = append(maps, uprobeEntry.dynOv.getMaps(load)...)
 		}
 	}
 
@@ -1820,15 +1730,4 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
 	return progs, maps
-}
-
-func getHostLibc() string {
-	if hostLibc == "" {
-		hostLibcRe := "/usr/lib/*/libc.so.*"
-		matches, _ := filepath.Glob(hostLibcRe)
-		if len(matches) > 0 {
-			hostLibc = matches[0]
-		}
-	}
-	return hostLibc
 }
