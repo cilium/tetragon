@@ -22,8 +22,23 @@ var (
 			"cri_cgidmap", "resolutions_errors_total",
 			"number of cgroup id map (cgidmap) CRI resolutions that failed", nil, nil, nil),
 		nil)
+
+	CgfsResolutionsTotal = metrics.MustNewCounter(
+		metrics.NewOpts(
+			consts.MetricsNamespace,
+			"cgfs_cgidmap", "resolutions_total",
+			"number of total cgroup id map (cgidmap) cgroupfs resolutions", nil, nil, nil),
+		nil)
+
+	CgfsResolutionErrorsTotal = metrics.MustNewCounter(
+		metrics.NewOpts(
+			consts.MetricsNamespace,
+			"cgfs_cgidmap", "resolutions_errors_total",
+			"number of cgroup id map (cgidmap) cgroupfs resolutions that failed", nil, nil, nil),
+		nil)
 )
 
 func RegisterMetrics(group metrics.Group) {
-	group.MustRegister(CriResolutionsTotal, CriResolutionErrorsTotal)
+	group.MustRegister(CriResolutionsTotal, CriResolutionErrorsTotal,
+		CgfsResolutionsTotal, CgfsResolutionErrorsTotal)
 }

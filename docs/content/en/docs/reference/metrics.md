@@ -42,6 +42,14 @@ Build information about tetragon
 | `time ` | `2022-05-13T15:54:45Z` |
 | `version` | `v1.2.0` |
 
+### `tetragon_cgfs_cgidmap_resolutions_errors_total`
+
+number of cgroup id map (cgidmap) cgroupfs resolutions that failed
+
+### `tetragon_cgfs_cgidmap_resolutions_total`
+
+number of total cgroup id map (cgidmap) cgroupfs resolutions
+
 ### `tetragon_cgroup_rate_total`
 
 The total number of Tetragon cgroup rate counters. For internal use only.
