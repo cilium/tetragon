@@ -285,6 +285,21 @@ RACE_TEST_TIMEOUT ?= 30m
 test-race: tester-progs tetragon-bpf ## Run Go tests with the race detector (use RACE_PKGS=... to override scope).
 	$(GO) test $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(RACE_TEST_TIMEOUT) -race $(RACE_PKGS) ${EXTRA_TESTFLAGS}
 
+FUZZ_TIME ?= 30s
+
+.PHONY: test-fuzz
+test-fuzz: ## Discover and run all Go fuzz targets
+	@package_tests=$$($(GO) list -f '{{.ImportPath}} {{range .TestGoFiles}}{{$$.Dir}}/{{.}} {{end}}{{range .XTestGoFiles}}{{$$.Dir}}/{{.}} {{end}}' ./...) || exit $$?; \
+	printf '%s\n' "$$package_tests" | \
+	while read -r pkg test_files; do \
+		[ -n "$$test_files" ] || continue; \
+		fuzz_tests=$$(awk '$$1 == "func" && $$2 ~ /^Fuzz/ { sub(/\(.*/, "", $$2); print $$2 }' $$test_files); \
+		for fuzz_test in $$fuzz_tests; do \
+			echo "fuzzing $$pkg/$$fuzz_test"; \
+			$(GO) test -exec "$(SUDO)" $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -run '^$$' -fuzz "^$${fuzz_test}$$" -fuzztime $(FUZZ_TIME) "$$pkg" ${EXTRA_TESTFLAGS} || exit $$?; \
+		done; \
+	done
+
 .PHONY: tester-progs
 tester-progs: ## Compile helper programs for unit testing.
 	$(MAKE) -C $(TESTER_PROGS_DIR)
@@ -589,6 +604,7 @@ help: ## Display this help, based on https://www.thapaliya.com/en/writings/well-
 	$(call print_help_option,EXTRA_TESTFLAGS,extra flags to pass to the test binary)
 	$(call print_help_option,RACE_PKGS,packages exercised by test-race target)
 	$(call print_help_option,RACE_TEST_TIMEOUT,timeout for test-race target)
+	$(call print_help_option,FUZZ_TIME,time to run each fuzz target)
 
 .PHONY: version chart-version
 version: ## Print Tetragon version.
