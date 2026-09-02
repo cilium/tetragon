@@ -8,16 +8,15 @@ package tracing
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
-	"strings"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
-	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
@@ -57,18 +56,30 @@ func getHostLibc() string {
 	return hostLibc
 }
 
-func isSODynamic(uprobe *v1alpha1.UProbeSpec) bool {
-	if !selectors.HasOverride(uprobe.Selectors) {
-		return false
+func validateSODynamic(uprobe *v1alpha1.UProbeSpec) error {
+	for _, s := range uprobe.Selectors {
+		for _, action := range s.MatchActions {
+			if action.Action != "Override" || action.ArgNewSymbol == "" || action.SoPath == "" {
+				continue
+			}
+			st, err := os.Stat(action.SoPath)
+			if err != nil {
+				return err
+			}
+			if st.IsDir() {
+				return fmt.Errorf("uprobe Override action sopath %q is a directory", action.SoPath)
+			}
+		}
 	}
+	return nil
+}
+
+func isSODynamic(uprobe *v1alpha1.UProbeSpec) bool {
 	for _, s := range uprobe.Selectors {
 		for _, action := range s.MatchActions {
 			if action.Action == "Override" {
-				if action.ArgNewSymbol != "" {
-					_, _, ok := strings.Cut(action.ArgNewSymbol, ":")
-					if ok {
-						return true
-					}
+				if action.ArgNewSymbol != "" && action.SoPath != "" {
+					return true
 				}
 			}
 		}

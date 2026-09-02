@@ -615,7 +615,8 @@ spec:
         - "true"
       matchActions:
       - action: Override
-        argNewSymbol: {{ testBinary "libuprobe.so" }}:uprobe_test_lib_pizza
+        argNewSymbol: uprobe_test_lib_pizza
+        sopath: {{ testBinary "libuprobe.so" }}
 `).WithSkip(func(si *policytest.SkipInfo) string {
 	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
 		return "uprobes cannot change registers"

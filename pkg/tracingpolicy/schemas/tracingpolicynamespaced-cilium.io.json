@@ -575,6 +575,10 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
+                            "type": "string"
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -1133,6 +1137,10 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -1993,6 +2001,10 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
+                            "type": "string"
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -2551,6 +2563,10 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -3145,6 +3161,10 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
+                            "type": "string"
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -3705,6 +3725,10 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
+                            "type": "string"
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -4243,6 +4267,10 @@
                     },
                     "rateLimitScope": {
                       "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                      "type": "string"
+                    },
+                    "sopath": {
+                      "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
                       "type": "string"
                     },
                     "userStackTrace": {
@@ -4805,6 +4833,10 @@
                       "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                       "type": "string"
                     },
+                    "sopath": {
+                      "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
+                      "type": "string"
+                    },
                     "userStackTrace": {
                       "description": "Enable user stack trace export. Only valid with the post action.",
                       "type": "boolean"
@@ -5327,6 +5359,10 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -5887,6 +5923,10 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -6710,6 +6750,10 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
+                            "type": "string"
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -7268,6 +7312,10 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -7835,6 +7883,10 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
+                            "type": "string"
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -8393,6 +8445,10 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, indicates to load the new symbol\nfrom a shared object located at sopath.",
                             "type": "string"
                           },
                           "userStackTrace": {
