@@ -484,6 +484,46 @@ copy_cmd_arg_to_heap(char *src, __u64 remaining, char **dst)
 	return read - 1;
 }
 
+FUNC_INLINE int
+match_cmd_arg(__u8 *f, __u32 section_off, __u32 filter_off, __u8 *arg_offsets,
+	      __u32 argc, struct args *cached_args)
+{
+	struct selector_arg_filter *filter;
+	__u32 key, argsoff;
+	__u64 remaining;
+	char *arg_copy;
+	long read;
+
+	if (!filter_off)
+		return 0;
+
+	filter_off = (section_off + filter_off) & INDEX_MASK;
+	filter = (struct selector_arg_filter *)&f[filter_off];
+
+	if (filter->type != string_type)
+		return -1;
+
+	key = filter->index;
+	if (key >= CMD_ARGS_MAX || key >= argc)
+		return -1;
+
+	argsoff = arg_offsets[key];
+	remaining = sizeof(cached_args->buf) - argsoff;
+
+	/* Ideally we would skip this copy and send the cached argument to
+	 * filter_char_buf_value() but it requires a big buffer of 4096,
+	 * so copy it to the unused half of string_maps_heap first.
+	 */
+	read = copy_cmd_arg_to_heap(&cached_args->buf[argsoff], remaining, &arg_copy);
+	if (read < 0)
+		return -1;
+
+	if (!filter_char_buf_value(filter, arg_copy, read))
+		return -1;
+
+	return 1;
+}
+
 /* Return 1 when all command-argument filters match (or the section is empty),
  * and 0 when the section is malformed, arguments are unavailable, or any
  * filter does not match.
@@ -498,8 +538,8 @@ match_cmd_args(__u8 *f, __u32 selidx, struct args *cached_args)
 	__u8 *arg_offsets;
 	__u64 remaining;
 	char *arg_copy;
+	int i, ret;
 	long read;
-	int i;
 
 	section_off = selector_match_cmd_args_offset(f, selidx);
 	section_off &= INDEX_MASK;
@@ -569,33 +609,11 @@ match_cmd_args(__u8 *f, __u32 selidx, struct args *cached_args)
 
 	/* Iterate again over the filters to perform filtering */
 	for (i = 0; i < 5; i++) {
-		filter_off = filters->argoff[i];
-		if (!filter_off)
+		ret = match_cmd_arg(f, section_off, filters->argoff[i], arg_offsets, argc, cached_args);
+		if (ret < 0)
+			return 0;
+		if (ret == 0)
 			break;
-
-		filter_off = (section_off + filter_off) & INDEX_MASK;
-		filter = (struct selector_arg_filter *)&f[filter_off];
-
-		if (filter->type != string_type)
-			return 0;
-
-		key = filter->index;
-		if (key >= CMD_ARGS_MAX || key >= argc)
-			return 0;
-
-		argsoff = arg_offsets[key];
-		remaining = sizeof(cached_args->buf) - argsoff;
-
-		/* Ideally we would skip this copy and send the cached argument to
-		 * filter_char_buf_value() but it requires a big buffer of 4096,
-		 * so copy it to the unused half of string_maps_heap first.
-		 */
-		read = copy_cmd_arg_to_heap(&cached_args->buf[argsoff], remaining, &arg_copy);
-		if (read < 0)
-			return 0;
-
-		if (!filter_char_buf_value(filter, arg_copy, read))
-			return 0;
 	}
 
 	return 1;
