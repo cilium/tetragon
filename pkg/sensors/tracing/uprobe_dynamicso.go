@@ -163,7 +163,7 @@ func (dynOv *dynamicOverride) populateUprobeRegs() processapi.UprobeRegs {
 	}
 	uprobeRegs.SymbolLen = uint32(n)
 
-	// They will be adjusted to ASLR libc6 base address in the kernel
+	// They will be adjusted to ASLR libc base address in the kernel
 	uprobeRegs.DlopenAddr = hostOffsets.DlopenOff
 	uprobeRegs.DlsymAddr = hostOffsets.DlsymOff
 	uprobeRegs.MmapAddr = hostOffsets.MmapOff
@@ -173,5 +173,6 @@ func (dynOv *dynamicOverride) populateUprobeRegs() processapi.UprobeRegs {
 func (dynOv *dynamicOverride) getMaps(load *program.Program) []*program.Map {
 	pendingCallsMap := program.MapBuilder("pending_calls", load)
 	resolvedCacheMap := program.MapBuilder("resolved_cache", load)
-	return []*program.Map{pendingCallsMap, resolvedCacheMap}
+	libcAddrsMap := program.MapBuilder("libc_addrs_map", load)
+	return []*program.Map{pendingCallsMap, resolvedCacheMap, libcAddrsMap}
 }
