@@ -58,7 +58,9 @@ type observerUprobeSensor struct {
 
 const disableNotAllowedReasonBinaryDigests = "binaryDigests configured"
 
-var uprobeTable idtable.Table
+var (
+	uprobeTable idtable.Table
+)
 
 func getOrOpenFile(path string, openedFilesMap map[string]*os.File) (*os.File, error) {
 	if f, ok := openedFilesMap[path]; ok {
