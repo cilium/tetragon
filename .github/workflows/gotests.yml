@@ -104,6 +104,58 @@ jobs:
         path: /sys/kernel/btf/vmlinux
         retention-days: 5
 
+  fuzz:
+    name: Go fuzz tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-24.04, ubuntu-24.04-arm64 ]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        path: go/src/github.com/cilium/tetragon/
+
+    - name: Install Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        # renovate: datasource=golang-version depName=go
+        go-version: '1.27.0'
+
+    - name: Run go fuzz tests
+      env:
+        SUDO: sudo -E
+      run: |
+        cd go/src/github.com/cilium/tetragon/
+        make test-fuzz
+
+    - name: Collect fuzz failures
+      if: ${{ failure() }}
+      id: collect-fuzz-failures
+      shell: bash
+      run: |
+        cd go/src/github.com/cilium/tetragon/
+        destination="${RUNNER_TEMP}/go-fuzz-failures"
+        found=false
+
+        while IFS= read -r -d '' file; do
+          mkdir -p "$destination"
+          cp --parents -- "$file" "$destination"
+          found=true
+        done < <(git ls-files -z --others -- '**/testdata/fuzz/**')
+
+        echo "found=$found" >> "$GITHUB_OUTPUT"
+
+    - name: Upload fuzz failures
+      if: ${{ failure() && steps.collect-fuzz-failures.outputs.found == 'true' }}
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: go-fuzz-failures-${{ matrix.os }}
+        path: ${{ runner.temp }}/go-fuzz-failures
+        retention-days: 5
+
   build_windows:
     runs-on: windows-latest
     timeout-minutes: 40
