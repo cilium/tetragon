@@ -40,15 +40,15 @@ struct uprobe_regs {
 	char symbol[SYMBOL_MAX]; // e.g. "my_new_sym"
 	__u32 sopath_len;
 	__u32 symbol_len;
-	__u64 mmap_addr;
-	__u64 dlopen_addr;
-	__u64 dlsym_addr;
+	__u64 mmap_addr; // mmap address without accounting for libc base address
+	__u64 dlopen_addr; // mmap address without accounting for libc base address
+	__u64 dlsym_addr; // mmap address without accounting for libc base address
 };
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 1);
-	__type(key, __u32);
+	__type(key, __u32); // sym_id, based upon UprobeID and selector idx (see UprobeRegsMapID())
 	__type(value, struct uprobe_regs);
 } regs_map SEC(".maps");
 
@@ -61,7 +61,7 @@ enum resolve_stage {
 };
 
 struct pending_call {
-	__u32 sym_id; // which policy rule this belongs to
+	__u32 sym_id; // which policy rule this belongs to (index to access "regs_map" above)
 	__u32 stage; // enum resolve_stage
 	__u64 orig_regs[6]; // saved rdi,rsi,rdx,rcx,r8,r9 from my_sym entry
 	__u64 scratch_addr; // page returned by our mmap hijack
@@ -73,11 +73,27 @@ struct pending_call {
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 1024); // TODO: make it customizable from options?
-	__type(key, __u64); // pid_tgid (thread-scoped)
+	__type(key, __u64); // pid_tgid (thread-scoped so that each thread in a process has its own pending call lookup entry)
 	__type(value, struct pending_call);
 } pending_calls SEC(".maps");
 
-// --- Resolved symbol cache, scoped per-process (not per-thread!) ---
+// Computed addresses (already libc_base shifted) for mmap, dlopen and dlsym
+struct libc_addrs {
+	__u64 mmap_addr;
+	__u64 dlopen_addr;
+	__u64 dlsym_addr;
+};
+
+// Each traced process has its own libc base address (because of ASLR)
+// and thus its own mmap, dlopen and dlsym addresses.
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 1024); // TODO: make it customizable from options?
+	__type(key, __u32); // tgid (processs-scoped: each traced process has its own cache for mmap,dlopen and dlsym addresses)
+	__type(value, struct libc_addrs);
+} libc_addrs_map SEC(".maps");
+
+// Resolved symbol cache, scoped per-process (not per-thread!)
 struct cache_key {
 	__u32 tgid;
 	__u32 sym_id;
@@ -86,7 +102,7 @@ struct cache_key {
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 1024); // TODO: make it customizable from options?
-	__type(key, struct cache_key);
+	__type(key, struct cache_key); // cached address is unique for each <process, symbol> tuple
 	__type(value, __u64); // resolved address of my_new_sym
 } resolved_cache SEC(".maps");
 
@@ -174,8 +190,6 @@ FUNC_INLINE __u64 find_libc_base()
 			found = true;
 		}
 	}
-	if (found)
-		DEBUG_SO("Found mapped libc base: 0x%lx", min_start);
 
 	return found ? min_start : 0;
 }
@@ -190,7 +204,7 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, struct uprobe_regs *regs, __u32 sy
 	__u64 *cached = map_lookup_elem(&resolved_cache, &ckey);
 	if (cached) {
 		if (*cached != 0) {
-			DEBUG_SO("found cached address for %d", sym_id);
+			DEBUG_SO("found cached address for sym %d: 0x%lx", sym_id, *cached);
 			// Found a cached entry, we just need to jump.
 			PT_REGS_IP(ctx) = *cached;
 		} else {
@@ -214,10 +228,12 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, struct uprobe_regs *regs, __u32 sy
 		return 0;
 	}
 	// Update mmap, dlopen and dlsym addresses by adding libc_base
-	DEBUG_SO("libc base addr for %d: %lu!", tgid, libc_base);
-	regs->mmap_addr += libc_base;
-	regs->dlopen_addr += libc_base;
-	regs->dlsym_addr += libc_base;
+	DEBUG_SO("libc base addr for %d: 0x%lx", tgid, libc_base);
+	struct libc_addrs addrs = {};
+	addrs.mmap_addr = regs->mmap_addr + libc_base;
+	addrs.dlopen_addr = regs->dlopen_addr + libc_base;
+	addrs.dlsym_addr = regs->dlsym_addr + libc_base;
+	map_update_elem(&libc_addrs_map, &tgid, &addrs, BPF_ANY);
 
 	struct pending_call pc = {};
 	pc.sym_id = sym_id;
@@ -237,7 +253,7 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, struct uprobe_regs *regs, __u32 sy
 	PT_REGS_PARM4(ctx) = MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE;
 	PT_REGS_PARM5(ctx) = -1;
 	PT_REGS_PARM6(ctx) = 0;
-	PT_REGS_IP(ctx) = regs->mmap_addr;
+	PT_REGS_IP(ctx) = addrs.mmap_addr;
 
 	DEBUG_SO("JUMPING to mmap!");
 
@@ -248,6 +264,7 @@ SEC("uretprobe/mmap")
 int handle_mmap_ret(struct pt_regs *ctx)
 {
 	__u64 pid_tgid = get_current_pid_tgid();
+	__u32 tgid = pid_tgid >> 32;
 
 	struct pending_call *pc = map_lookup_elem(&pending_calls, &pid_tgid);
 	if (!pc || pc->stage != STAGE_MMAP_PENDING)
@@ -264,7 +281,8 @@ int handle_mmap_ret(struct pt_regs *ctx)
 	pc->scratch_addr = scratch;
 
 	struct uprobe_regs *regs = map_lookup_elem(&regs_map, &pc->sym_id);
-	if (!regs) {
+	struct libc_addrs *addrs = map_lookup_elem(&libc_addrs_map, &tgid);
+	if (!regs || !addrs) {
 		revert_ctx(ctx, pc, pid_tgid);
 		return 0;
 	}
@@ -285,10 +303,8 @@ int handle_mmap_ret(struct pt_regs *ctx)
 		return 0;
 	}
 
-	long ret = probe_write_user((void *)scratch, regs->sopath, sopath_len);
-	long ret2 = probe_write_user((void *)(scratch + 128), regs->symbol, symbol_len);
-
-	DEBUG_SO("mmap_ret probe_write_user %lld %lld!", ret, ret2);
+	probe_write_user((void *)scratch, regs->sopath, sopath_len);
+	probe_write_user((void *)(scratch + 128), regs->symbol, symbol_len);
 
 	pc->stage = STAGE_DLOPEN_PENDING;
 
@@ -296,9 +312,9 @@ int handle_mmap_ret(struct pt_regs *ctx)
 
 	PT_REGS_PARM1(ctx) = scratch;
 	PT_REGS_PARM2(ctx) = RTLD_NOW;
-	PT_REGS_IP(ctx) = regs->dlopen_addr;
+	PT_REGS_IP(ctx) = addrs->dlopen_addr;
 
-	DEBUG_SO("JUMPING to dlopen!");
+	DEBUG_SO("JUMPING to dlopen '%s'!", regs->sopath);
 
 	return 0;
 }
@@ -307,6 +323,7 @@ SEC("uretprobe/dlopen")
 int handle_dlopen_ret(struct pt_regs *ctx)
 {
 	__u64 pid_tgid = get_current_pid_tgid();
+	__u32 tgid = pid_tgid >> 32;
 
 	struct pending_call *pc = map_lookup_elem(&pending_calls, &pid_tgid);
 	if (!pc || pc->stage != STAGE_DLOPEN_PENDING)
@@ -323,8 +340,8 @@ int handle_dlopen_ret(struct pt_regs *ctx)
 	pc->dlopen_handle = handle;
 	pc->stage = STAGE_DLSYM_PENDING;
 
-	struct uprobe_regs *regs = map_lookup_elem(&regs_map, &pc->sym_id);
-	if (!regs) {
+	struct libc_addrs *addrs = map_lookup_elem(&libc_addrs_map, &tgid);
+	if (!addrs) {
 		revert_ctx(ctx, pc, pid_tgid);
 		return 0;
 	}
@@ -332,9 +349,9 @@ int handle_dlopen_ret(struct pt_regs *ctx)
 	push_fake_frame(ctx);
 	PT_REGS_PARM1(ctx) = handle;
 	PT_REGS_PARM2(ctx) = pc->scratch_addr + 128;
-	PT_REGS_IP(ctx) = regs->dlsym_addr;
+	PT_REGS_IP(ctx) = addrs->dlsym_addr;
 
-	DEBUG_SO("JUMPING to dlsym!");
+	DEBUG_SO("JUMPING to dlsym '%s'!", (char *)(pc->scratch_addr + 128));
 
 	return 0;
 }
@@ -344,6 +361,7 @@ int handle_dlsym_ret(struct pt_regs *ctx)
 {
 	__u64 pid_tgid = get_current_pid_tgid();
 	__u32 tgid = pid_tgid >> 32;
+
 	struct pending_call *pc = map_lookup_elem(&pending_calls, &pid_tgid);
 	if (!pc || pc->stage != STAGE_DLSYM_PENDING)
 		return 0;
@@ -374,7 +392,7 @@ int handle_dlsym_ret(struct pt_regs *ctx)
 
 	map_delete_elem(&pending_calls, &pid_tgid);
 
-	DEBUG_SO("JUMPING to final symbol, cached address: %p", resolved);
+	DEBUG_SO("JUMPING to final symbol, cached address: 0x%lx", resolved);
 
 	return 0;
 }
