@@ -608,7 +608,21 @@ match_cmd_args(__u8 *f, __u32 selidx, struct args *cached_args)
 	argc = reloaded_argc;
 
 	/* Iterate again over the filters to perform filtering */
-	for (i = 0; i < 5; i++) {
+
+	if (!CONFIG(ITER_NUM)) {
+		for (i = 0; i < 5; i++) {
+			ret = match_cmd_arg(f, section_off, filters->argoff[i], arg_offsets, argc, cached_args);
+			if (ret < 0)
+				return 0;
+			if (ret == 0)
+				break;
+		}
+
+		return 1;
+	}
+
+	bpf_for(i, 0, 5)
+	{
 		ret = match_cmd_arg(f, section_off, filters->argoff[i], arg_offsets, argc, cached_args);
 		if (ret < 0)
 			return 0;
