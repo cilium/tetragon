@@ -271,7 +271,8 @@
       // GHA files and other usages. This needs to be after the GHA grouping.
       "groupName": "golangci-lint",
       "matchDepNames": [
-        "golangci/golangci-lint"
+        "golangci/golangci-lint",
+        "docker.io/golangci/golangci-lint"
       ]
     },
     {
