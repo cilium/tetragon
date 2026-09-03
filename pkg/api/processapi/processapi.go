@@ -139,7 +139,7 @@ type MsgExecveEvent struct {
 }
 
 type MsgExecveEventUnix struct {
-	Msg     *MsgExecveEvent
+	Msg     MsgExecveEvent
 	Kube    MsgK8sUnix
 	Process MsgProcess
 }

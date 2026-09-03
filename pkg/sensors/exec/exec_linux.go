@@ -30,13 +30,6 @@ import (
 	"github.com/cilium/tetragon/pkg/strutils"
 )
 
-func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
-	unix := &exec.MsgExecveEventUnix{}
-	unix.Unix = &processapi.MsgExecveEventUnix{}
-	unix.Unix.Msg = m
-	return unix
-}
-
 func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, execID string, filename string) processapi.MsgK8sUnix {
 	kube := processapi.MsgK8sUnix{
 		Cgrpid:        m.Kube.Cgrpid,
@@ -205,15 +198,15 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 }
 
 func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
-	m := processapi.MsgExecveEvent{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	msgUnix := &exec.MsgExecveEventUnix{}
+
+	err := binary.Read(r, binary.LittleEndian, &msgUnix.Unix.Msg)
 	if err != nil {
 		return nil, err
 	}
-	msgUnix := msgToExecveUnix(&m)
 	msgUnix.Unix.Process, err = execParse(r)
 	if err == nil {
-		err = userinfo.MsgToExecveAccountUnix(msgUnix.Unix)
+		err = userinfo.MsgToExecveAccountUnix(&msgUnix.Unix)
 		if err != nil {
 			logger.Trace(logger.GetLogger(), "Resolving process uid to username record failed",
 				logfields.Error, err,
@@ -222,7 +215,7 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 				"process.uid", msgUnix.Unix.Process.UID)
 		}
 	}
-	msgUnix.Unix.Kube = msgToExecveKubeUnix(&m, process.GetExecID(&msgUnix.Unix.Process), msgUnix.Unix.Process.Filename)
+	msgUnix.Unix.Kube = msgToExecveKubeUnix(&msgUnix.Unix.Msg, process.GetExecID(&msgUnix.Unix.Process), msgUnix.Unix.Process.Filename)
 	return []observer.Event{msgUnix}, nil
 }
 
