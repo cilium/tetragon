@@ -70,21 +70,37 @@ func prepareArgs(t *testing.T, hookArgs []any) (DummyMsg, []v1alpha1.KProbeArg) 
 
 	for _, hArg := range hookArgs {
 		switch hArg.(type) {
+		case int8:
+			args = append(args, v1alpha1.KProbeArg{
+				Type: "int8",
+			})
+		case int16:
+			args = append(args, v1alpha1.KProbeArg{
+				Type: "int16",
+			})
 		case int32:
 			args = append(args, v1alpha1.KProbeArg{
 				Type: "int32",
 			})
-		case uint64:
+		case int64:
 			args = append(args, v1alpha1.KProbeArg{
-				Type: "uint64",
+				Type: "int64",
+			})
+		case uint8:
+			args = append(args, v1alpha1.KProbeArg{
+				Type: "uint8",
+			})
+		case uint16:
+			args = append(args, v1alpha1.KProbeArg{
+				Type: "uint16",
 			})
 		case uint32:
 			args = append(args, v1alpha1.KProbeArg{
 				Type: "uint32",
 			})
-		case int64:
+		case uint64:
 			args = append(args, v1alpha1.KProbeArg{
-				Type: "int64",
+				Type: "uint64",
 			})
 		default:
 			t.Fatalf("unknown type %T", hArg)
@@ -151,6 +167,16 @@ var argTestCases = []struct {
 		expr:     "arg0 == uint32(43u)",
 		ret:      0,
 		hookArgs: []any{uint32(42)},
+	},
+	{
+		expr:     "arg0 == int16(-1)",
+		ret:      1,
+		hookArgs: []any{int16(-1)},
+	},
+	{
+		expr:     "arg0 == uint8(255u)",
+		ret:      1,
+		hookArgs: []any{uint8(255)},
 	},
 	{
 		expr:     "arg2 == int32(42)",
