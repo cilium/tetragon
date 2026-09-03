@@ -10,7 +10,7 @@
   "requireConfig": "ignored",
   "allowShellExecutorForPostUpgradeCommands": true,
   "allowedCommands": [
-    "^/tmp/install-buildx$", 
+    "^/tmp/install-buildx$",
     "^make protogen$",
     "^make crds$",
     "^make vendor$",
@@ -38,6 +38,8 @@
     "pkg/k8s/go.sum",
     "contrib/tetragon-rthooks/go.mod",
     "contrib/tetragon-rthooks/go.sum",
+    "tools/go.mod",
+    "tools/go.sum",
     "*Dockerfile*",
     "docs/hugo.toml",
     "install/kubernetes/*/Chart.yaml",
@@ -187,7 +189,22 @@
       "groupSlug": "all-rthook-go-deps-main",
       "matchFileNames": [
         "contrib/tetragon-rthooks/go.mod",
-        "contrib/tetragon-rthooks/go.mod",
+        "contrib/tetragon-rthooks/go.sum",
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest",
+        "pin",
+        "pinDigest"
+      ],
+    },
+    {
+      "groupName": "all tools go dependencies main",
+      "groupSlug": "all-tools-go-deps-main",
+      "matchFileNames": [
+        "tools/go.mod",
+        "tools/go.sum",
       ],
       "matchUpdateTypes": [
         "minor",
@@ -387,6 +404,7 @@
         "api/go.mod",
         "pkg/k8s/go.mod",
         "contrib/tetragon-rthooks/go.mod",
+        "tools/go.mod",
       ],
       "matchPackageNames": [
         "go"

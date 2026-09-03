@@ -48,7 +48,7 @@ jobs:
       run: |
         #  see testfile below
         cd go/src/github.com/cilium/tetragon/
-        go run ./tools/split-tetragon-gotests -ci-run 1
+        make split-tetragon-gotests
 
     - name: tar build
       run: |
