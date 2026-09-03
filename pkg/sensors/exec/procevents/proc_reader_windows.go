@@ -233,13 +233,9 @@ func getCWD(pid uint32) (string, uint32) {
 	cwd, err := os.Readlink(filepath.Join(option.Config.ProcFS, pidstr, "cwd"))
 	if err != nil {
 		flags |= api.EventRootCWD | api.EventErrorCWD
-		return " ", flags
+		return "", flags
 	}
 
-	if cwd == "/" {
-		cwd = " "
-		flags |= api.EventRootCWD
-	}
 	return cwd, flags
 }
 
