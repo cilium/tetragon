@@ -15,6 +15,61 @@
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
+FUNC_INLINE void
+event_exit_fill(struct msg_exit *exit, __u32 tgid, __u64 enter_ktime,
+		struct task_struct *task)
+{
+	exit->common.op = MSG_OP_EXIT;
+	exit->common.flags = 0;
+	exit->common.pad[0] = 0;
+	exit->common.pad[1] = 0;
+	exit->common.size = sizeof(*exit);
+	exit->common.ktime = tg_get_ktime();
+
+	exit->current.pid = tgid;
+	exit->current.pad[0] = 0;
+	exit->current.pad[1] = 0;
+	exit->current.pad[2] = 0;
+	exit->current.pad[3] = 0;
+	exit->current.ktime = enter_ktime;
+
+	/**
+	 * Per thread tracking rules TID == PID :
+	 *  We want the exit event to match the exec one, and since during exec
+	 *  we report the thread group leader, do same here as we read the exec
+	 *  entry from the execve_map anyway and explicitly set it to the to tgid.
+	 */
+	exit->info.tid = tgid;
+	with_errmetrics(probe_read, &exit->info.code, sizeof(exit->info.code),
+			_(&task->exit_code));
+}
+
+#ifdef __V511_BPF_PROG
+FUNC_INLINE int
+rb_exit_output(void *ctx, struct execve_map_value *enter, __u32 tgid)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task();
+	struct msg_exit *exit;
+
+	exit = event_ringbuf_reserve(MSG_OP_EXIT, sizeof(struct msg_exit));
+	if (!exit)
+		return 0;
+	event_exit_fill(exit, tgid, enter->key.ktime, task);
+	ringbuf_submit(exit, 0);
+	return 0;
+}
+#endif
+
+FUNC_INLINE void
+perf_exit__output(void *ctx, struct execve_map_value *enter, __u32 tgid)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task();
+	struct msg_exit exit;
+
+	event_exit_fill(&exit, tgid, enter->key.ktime, task);
+	event_output_metric(ctx, MSG_OP_EXIT, &exit, sizeof(struct msg_exit));
+}
+
 FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 {
 	struct execve_map_value *enter;
@@ -31,36 +86,14 @@ FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 	if (!enter)
 		return;
 	if (enter->key.ktime) {
-		struct task_struct *task = (struct task_struct *)get_current_task();
-		size_t size = sizeof(struct msg_exit);
-		struct msg_exit exit;
-
-		exit.common.op = MSG_OP_EXIT;
-		exit.common.flags = 0;
-		exit.common.pad[0] = 0;
-		exit.common.pad[1] = 0;
-		exit.common.size = size;
-		exit.common.ktime = tg_get_ktime();
-
-		exit.current.pid = tgid;
-		exit.current.pad[0] = 0;
-		exit.current.pad[1] = 0;
-		exit.current.pad[2] = 0;
-		exit.current.pad[3] = 0;
-		exit.current.ktime = enter->key.ktime;
-
-		/**
-		 * Per thread tracking rules TID == PID :
-		 *  We want the exit event to match the exec one, and since during exec
-		 *  we report the thread group leader, do same here as we read the exec
-		 *  entry from the execve_map anyway and explicitly set it to the to tgid.
-		 */
-		exit.info.tid = tgid;
-		with_errmetrics(probe_read, &exit.info.code, sizeof(exit.info.code),
-				_(&task->exit_code));
-
-		event_output_metric(ctx, MSG_OP_EXIT, &exit, size);
+#ifdef __V511_BPF_PROG
+		if (!CONFIG(USE_PERF_RING_BUF))
+			rb_exit_output(ctx, enter, tgid);
+		else
+#endif
+			perf_exit__output(ctx, enter, tgid);
 	}
+
 	execve_map_delete(tgid);
 	map_delete_elem(&tg_parents_bin, &enter->key.pid);
 }
