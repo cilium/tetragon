@@ -8,6 +8,12 @@
 
 #define DEBUG_SO(__fmt, ...) DEBUG_AREA(BPF_AREA_UPROBE_SO, __fmt, ##__VA_ARGS__)
 
+#ifdef __MULTI_KPROBE
+#define OFFLOAD "uprobe.multi.s/generic_uprobe"
+#else
+#define OFFLOAD "uprobe.s/generic_uprobe"
+#endif
+
 #define PROT_READ  0x1
 #define PROT_WRITE 0x2
 
@@ -144,13 +150,11 @@ FUNC_INLINE void revert_ctx(struct pt_regs *ctx, struct pending_call *pc, __u64 
 	skip_flow(pc->sym_id, pid_tgid);
 }
 
-#define LIBC_NAME "libc.so.6"
-
 FUNC_INLINE bool name_matches(const char *name, int len)
 {
 	// crude suffix check for "libc.so.6" or similar — adjust as needed
 	// for musl ("libc.musl-x86_64.so.1") or versioned glibc paths.
-	const char target[] = LIBC_NAME;
+	const char target[] = "libc.so.6";
 	if (len < (int)sizeof(target) - 1)
 		return false;
 	for (int i = 0; i < (int)sizeof(target) - 1; i++) {
@@ -260,7 +264,7 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, struct uprobe_regs *regs, __u32 sy
 	return 0;
 }
 
-SEC("uretprobe/mmap")
+SEC(OFFLOAD)
 int handle_mmap_ret(struct pt_regs *ctx)
 {
 	__u64 pid_tgid = get_current_pid_tgid();
@@ -319,7 +323,7 @@ int handle_mmap_ret(struct pt_regs *ctx)
 	return 0;
 }
 
-SEC("uretprobe/dlopen")
+SEC(OFFLOAD)
 int handle_dlopen_ret(struct pt_regs *ctx)
 {
 	__u64 pid_tgid = get_current_pid_tgid();
@@ -356,7 +360,7 @@ int handle_dlopen_ret(struct pt_regs *ctx)
 	return 0;
 }
 
-SEC("uretprobe/dlsym")
+SEC(OFFLOAD)
 int handle_dlsym_ret(struct pt_regs *ctx)
 {
 	__u64 pid_tgid = get_current_pid_tgid();
