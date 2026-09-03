@@ -244,6 +244,10 @@ func FuzzCelExpr(f *testing.F) {
 	f.Add(uint64(math.MaxUint64), uint64(math.MaxUint64))
 
 	f.Fuzz(func(t *testing.T, s1, s2 uint64) {
+		if s1 == 0 && s2 == 1 {
+			t.Fatalf("intentional CEL fuzz failure for CI artifact upload: (%d, %d)", s1, s2)
+		}
+
 		s, args := randCelExpr(s1, s2)
 		oracleRes := evalCEL(t, s, args)
 		evalCELBPF(t, s, args, oracleRes)
