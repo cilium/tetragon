@@ -157,8 +157,8 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		nil)
 	require.NoError(t, err)
 	pi := &exec.MsgExecveEventUnix{
-		Unix: &processapi.MsgExecveEventUnix{
-			Msg: &processapi.MsgExecveEvent{
+		Unix: processapi.MsgExecveEventUnix{
+			Msg: processapi.MsgExecveEvent{
 				Common: processapi.MsgCommon{
 					Ktime: 1234,
 				},

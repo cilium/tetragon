@@ -47,7 +47,7 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	var parent *process.ProcessInternal
 	var err error
 
-	proc := process.AddExecEvent(event.Unix)
+	proc := process.AddExecEvent(&event.Unix)
 	tetragonProcess := proc.UnsafeGetProcess()
 
 	parentId := tetragonProcess.ParentExecId
@@ -186,7 +186,7 @@ func (msg *MsgCgroupEventUnix) Cast(o any) notify.Message {
 }
 
 type MsgExecveEventUnix struct {
-	Unix       *processapi.MsgExecveEventUnix
+	Unix       processapi.MsgExecveEventUnix
 	RefCntDone [3]bool
 }
 
@@ -295,7 +295,7 @@ func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 }
 
 func (msg *MsgExecveEventUnix) Cast(o any) notify.Message {
-	return &MsgExecveEventUnix{Unix: new(o.(processapi.MsgExecveEventUnix))}
+	return &MsgExecveEventUnix{Unix: o.(processapi.MsgExecveEventUnix)}
 }
 
 // finalize() is called to finalize Process of the event ExecveEvent
