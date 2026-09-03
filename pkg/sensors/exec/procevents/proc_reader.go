@@ -84,45 +84,7 @@ func (p procs) pargs() []byte {
 func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 	var err error
 
-	/* If we can't fit this in the buffer lets trim some parts and
-	 * make it fit.
-	 */
 	rawArgs := p.args()
-	rawPargs := p.pargs()
-
-	if p.size+p.psize > processapi.MSG_SIZEOF_BUFFER {
-		var deduct uint32
-		var need int32
-
-		need = int32((p.size + p.psize) - processapi.MSG_SIZEOF_BUFFER)
-		// First consume CWD space from parent because this speculative extra space
-		// next try to consume CWD space from child and finally start truncating args
-		// if necessary.
-		deduct = processapi.MSG_SIZEOF_CWD
-		p.pflags = p.pflags & ^uint32(api.EventNeedsCWD)
-		p.pflags = p.pflags | api.EventNoCWDSupport
-		p.psize -= deduct
-		need -= int32(deduct)
-		if need > 0 {
-			deduct = processapi.MSG_SIZEOF_CWD
-			p.size -= deduct
-			p.flags = p.flags & ^uint32(api.EventNeedsCWD)
-			p.flags = p.flags | api.EventNoCWDSupport
-			need -= int32(deduct)
-		}
-
-		for range need {
-			if len(rawPargs) > len(rawArgs) {
-				p.pflags |= api.EventTruncArgs
-				rawPargs = rawPargs[:len(rawPargs)-1]
-				p.psize--
-			} else {
-				p.flags |= api.EventTruncArgs
-				rawArgs = rawArgs[:len(rawArgs)-1]
-				p.size--
-			}
-		}
-	}
 
 	args, filename := procsFilename(rawArgs)
 	cwd, flags := getCWD(p.pid)
