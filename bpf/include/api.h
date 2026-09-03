@@ -265,6 +265,7 @@ static long BPF_FUNC(ringbuf_query, void *ringbuf, uint64_t flags);
 static long BPF_FUNC(ringbuf_reserve_dynptr, void *ringbuf, uint32_t size, uint64_t flags, struct bpf_dynptr *ptr);
 static void BPF_FUNC(ringbuf_submit_dynptr, struct bpf_dynptr *ptr, uint64_t flags);
 static void BPF_FUNC(ringbuf_discard_dynptr, struct bpf_dynptr *ptr, uint64_t flags);
+static long BPF_FUNC(user_ringbuf_drain, void *ringbuf, void *callback_fn, void *ctx, uint64_t flags);
 
 static long BPF_FUNC(dynptr_from_mem, void *data, uint32_t size, uint64_t flags, struct bpf_dynptr *ptr);
 static long BPF_FUNC(dynptr_read, void *dst, uint32_t len, const struct bpf_dynptr *src, uint32_t offset, uint64_t flags);

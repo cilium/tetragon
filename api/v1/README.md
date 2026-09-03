@@ -62,6 +62,7 @@
     - [ProcessCredentials](#tetragon-ProcessCredentials)
     - [ProcessExec](#tetragon-ProcessExec)
     - [ProcessExit](#tetragon-ProcessExit)
+    - [ProcessJava](#tetragon-ProcessJava)
     - [ProcessKprobe](#tetragon-ProcessKprobe)
     - [ProcessLoader](#tetragon-ProcessLoader)
     - [ProcessLsm](#tetragon-ProcessLsm)
@@ -1244,6 +1245,27 @@ Environment variable
 
 
 
+<a name="tetragon-ProcessJava"></a>
+
+### ProcessJava
+ProcessJava reports entry into an instrumented Java method.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process | [Process](#tetragon-Process) |  | JVM process that entered the method. |
+| parent | [Process](#tetragon-Process) |  | Immediate parent of the JVM process. |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the JVM process beyond the immediate parent. |
+| method_id | [uint64](#uint64) |  | Deterministic identifier derived from class_name, method_name, and descriptor. |
+| class_name | [string](#string) |  | JVM internal-form class name, for example com/example/Foo. |
+| method_name | [string](#string) |  | Java method name, including &lt;init&gt; for constructors. |
+| descriptor | [string](#string) |  | JVM method descriptor, for example (Ljava/lang/String;)V. |
+
+
+
+
+
+
 <a name="tetragon-ProcessKprobe"></a>
 
 ### ProcessKprobe
@@ -1759,6 +1781,7 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | process_throttle | [ProcessThrottle](#tetragon-ProcessThrottle) |  |  |
 | process_lsm | [ProcessLsm](#tetragon-ProcessLsm) |  |  |
 | process_usdt | [ProcessUsdt](#tetragon-ProcessUsdt) |  |  |
+| process_java | [ProcessJava](#tetragon-ProcessJava) |  |  |
 | test | [Test](#tetragon-Test) |  |  |
 | rate_limit_info | [RateLimitInfo](#tetragon-RateLimitInfo) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
@@ -1858,6 +1881,7 @@ GetEventsResponse event oneof.
 | PROCESS_THROTTLE | 27 |  |
 | PROCESS_LSM | 28 |  |
 | PROCESS_USDT | 29 |  |
+| PROCESS_JAVA | 30 |  |
 | TEST | 40000 |  |
 | RATE_LIMIT_INFO | 40001 |  |
 

@@ -224,6 +224,7 @@ func CheckAncestorsEnabled(types []tetragon.EventType) error {
 			tetragon.EventType_PROCESS_UPROBE,
 			tetragon.EventType_PROCESS_LSM,
 			tetragon.EventType_PROCESS_USDT,
+			tetragon.EventType_PROCESS_JAVA,
 		}
 	}
 

@@ -188,6 +188,11 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 		}
 	}
 
+	javaProg := uint(len(baseProgs))
+	if cfg.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
+		baseProgs = append(baseProgs, SensorProg{Name: "java_timer_init", Type: ebpf.Syscall})
+	}
+
 	if option.CgroupRateEnabled() {
 		/* 6: tg_cgroup_rmdir */
 		sensorProgs = append(sensorProgs, SensorProg{Name: "tg_cgroup_rmdir", Type: ebpf.RawTracepoint})
@@ -200,19 +205,32 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 		baseMaps = append(baseMaps, SensorMap{Name: "cgroup_rate_map", Progs: progs})
 	}
 
+	execveProgs := []uint{0, 1, 2, 3, 4}
+	if cfg.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
+		execveProgs = append(execveProgs, javaProg)
+	}
+
 	if cfg.EnableLargeProgs() {
 		// all programs
-		baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4}})
+		baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: execveProgs})
 
 		// execve_map_update
 		baseMaps = append(baseMaps, SensorMap{Name: "execve_map_update_data", Progs: []uint{4}})
 	} else {
 		// all programs except for execve_map_update, execve_rate
-		baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4}})
+		baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: execveProgs})
 	}
 
 	if cfg.EnableV511Progs() {
-		baseMaps = append(baseMaps, SensorMap{Name: "tg_rb_events", Progs: []uint{0, 1, 2}})
+		eventProgs := []uint{0, 1, 2}
+		if !option.Config.UsePerfRingBuffer {
+			eventProgs = append(eventProgs, javaProg)
+			baseMaps = append(baseMaps,
+				SensorMap{Name: "tg_java_urb", Progs: []uint{javaProg}},
+				SensorMap{Name: "tg_java_timers", Progs: []uint{javaProg}},
+			)
+		}
+		baseMaps = append(baseMaps, SensorMap{Name: "tg_rb_events", Progs: eventProgs})
 		// event_exit no longer references tg_conf_map: it only used it via
 		// event_output(), which now reads CONFIG(USE_PERF_RING_BUF) instead
 		// of tg_conf_map.

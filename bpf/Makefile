@@ -113,6 +113,7 @@ CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o bpf_cgtracke
 CGROUP += bpf_cgroup_mkdir_v511.o bpf_cgroup_rmdir_v511.o bpf_cgroup_release_v511.o
 BPFTEST = bpf_lseek.o
 BPFTEST += bpf_lseek_v511.o
+JAVA = bpf_java.o
 
 OBJSDIR         := objs/
 DEPSDIR         := deps/
@@ -126,8 +127,9 @@ NOPOBJ        := $(addprefix $(OBJSDIR),$(NOP))
 PROCESSOBJ    := $(addprefix $(OBJSDIR),$(PROCESS))
 CGROUPOBJ     := $(addprefix $(OBJSDIR),$(CGROUP))
 TESTOBJ       := $(addprefix $(OBJSDIR),$(BPFTEST))
+JAVAOBJ       := $(addprefix $(OBJSDIR),$(JAVA))
 ALIGNCHECKEROBJ := $(addprefix $(OBJSDIR),$(ALIGNCHECKER))
-OBJS          := $(PROCESSOBJ) $(CGROUPOBJ) $(TESTOBJ) $(NOPOBJ) $(ALIGNCHECKEROBJ)
+OBJS          := $(PROCESSOBJ) $(CGROUPOBJ) $(TESTOBJ) $(JAVAOBJ) $(NOPOBJ) $(ALIGNCHECKEROBJ)
 DEPS          := $(patsubst $(OBJSDIR)%.o,$(DEPSDIR)%.d,$(OBJS))
 
 all: $(OBJS) $(DEPS)
