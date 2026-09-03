@@ -4,6 +4,7 @@
 package procevents
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -70,13 +71,9 @@ func getCWD(pid uint32) (string, uint32) {
 	cwd, err := os.Readlink(filepath.Join(option.Config.ProcFS, pidstr, "cwd"))
 	if err != nil {
 		flags |= api.EventRootCWD | api.EventErrorCWD
-		return " ", flags
+		return "", flags
 	}
 
-	if cwd == "/" {
-		cwd = " "
-		flags |= api.EventRootCWD
-	}
 	return cwd, flags
 }
 
@@ -426,7 +423,7 @@ func procToKeyValue(p procs, inInitTree map[uint32]struct{}) (*execvemap.ExecveK
 	v.Binary.PathLength = int32(pathLength)
 	// The execve map stores argv[1:] because argv[0] is represented by
 	// Binary.Path. procfs cmdline includes argv[0] as its first entry.
-	args, _ := procsFilename(p.cmdline)
+	_, args, _ := bytes.Cut(p.cmdline, []byte{'\x00'})
 	argsLength := copy(v.Args.Buf[:], args)
 	v.Args.Len = uint32(argsLength)
 

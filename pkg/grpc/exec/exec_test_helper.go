@@ -191,7 +191,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 			Flags:      16385,
 			Ktime:      ParentKtime,
 			Filename:   "/usr/bin/bash",
-			Args:       "--color=auto\x00/home/apapag/tetragon",
+			Args:       "--color=auto /home/apapag/tetragon",
 		},
 	}
 
@@ -229,7 +229,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 			Flags:    16385,
 			Ktime:    Ktime,
 			Filename: "/usr/bin/ls",
-			Args:     "--color=auto\x00/home/apapag/tetragon",
+			Args:     "--color=auto /home/apapag/tetragon",
 		},
 	}
 

@@ -4,7 +4,6 @@
 package procevents
 
 import (
-	"bytes"
 	"encoding/hex"
 	"strings"
 
@@ -134,13 +133,6 @@ func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, 
 	}
 
 	return "", 0
-}
-
-func procsFilename(args []byte) (string, string) {
-	cmdArgs := bytes.Split(args, []byte{0x00})
-	filename := string(cmdArgs[0])
-	cmds := string(bytes.Join(cmdArgs[1:], []byte{0x00}))
-	return cmds, filename
 }
 
 func procsFindDockerId(cgroups string) (string, int) {

@@ -215,6 +215,7 @@ type MsgProcess struct {
 	Ktime      uint64
 	Filename   string
 	Args       string
+	Cwd        string
 	Envs       []string
 	User       MsgUserRecord
 }
