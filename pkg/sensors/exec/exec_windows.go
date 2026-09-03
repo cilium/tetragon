@@ -22,7 +22,6 @@ import (
 
 func msgToExecveUnix(m *processapi.MsgCreateProcessEvent) *exec.MsgExecveEventUnix {
 	unix := &exec.MsgExecveEventUnix{}
-	unix.Unix = &processapi.MsgExecveEventUnix{}
 
 	unix.Unix.Process = processapi.MsgProcess{
 		PID:   m.ProcessID,
@@ -33,7 +32,7 @@ func msgToExecveUnix(m *processapi.MsgCreateProcessEvent) *exec.MsgExecveEventUn
 		Size:  0,
 		Ktime: m.CreationTime,
 	}
-	unix.Unix.Msg = &processapi.MsgExecveEvent{
+	unix.Unix.Msg = processapi.MsgExecveEvent{
 		Common: m.Common,
 		Kube:   processapi.MsgK8s{},
 		Parent: processapi.MsgExecveKey{
@@ -67,7 +66,7 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 		msgUnix.Unix.Process = nopMsgProcess()
 	}
 	if err == nil && !empty {
-		err = userinfo.MsgToExecveAccountUnix(msgUnix.Unix)
+		err = userinfo.MsgToExecveAccountUnix(&msgUnix.Unix)
 		if err != nil {
 			logger.Trace(logger.GetLogger(), "Resolving process uid to username record failed",
 				logfields.Error, err,

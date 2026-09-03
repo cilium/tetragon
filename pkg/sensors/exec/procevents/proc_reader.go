@@ -140,7 +140,6 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 	if p.kernelThread {
 		m := exec.MsgKThreadInitUnix{}
 		m.Unix = &processapi.MsgExecveEventUnix{}
-		m.Unix.Msg = &processapi.MsgExecveEvent{}
 
 		m.Unix.Msg.Common = processapi.MsgCommon{}
 		m.Unix.Msg.Kube = processapi.MsgK8s{}
@@ -167,8 +166,6 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 		observer.AllListeners(&m)
 	} else {
 		m := exec.MsgExecveEventUnix{}
-		m.Unix = &processapi.MsgExecveEventUnix{}
-		m.Unix.Msg = &processapi.MsgExecveEvent{}
 		m.Unix.Msg.Common.Op = ops.MSG_OP_EXECVE
 		m.Unix.Msg.Common.Size = processapi.MsgUnixSize + p.psize + p.size
 
@@ -232,7 +229,7 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 			m.Unix.Process.Flags |= api.EventInInitTree
 		}
 
-		err := userinfo.MsgToExecveAccountUnix(m.Unix)
+		err := userinfo.MsgToExecveAccountUnix(&m.Unix)
 		if err != nil {
 			logger.Trace(logger.GetLogger(), "Resolving process uid to username record failed",
 				logfields.Error, err,
