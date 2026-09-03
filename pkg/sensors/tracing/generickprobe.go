@@ -1298,7 +1298,11 @@ func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*progr
 
 func getUrl(url string) {
 	// We fire and forget URLs, and we don't care if they hit or not.
-	http.Get(url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
 }
 
 func dnsLookup(fqdn string) {
