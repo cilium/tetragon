@@ -7,6 +7,7 @@
 #include "lib/bpf_cred.h"
 #include "process/retprobe_map.h"
 #include "process/types/basic.h"
+#include "process/bpf_rate.h"
 #include "policy_stats.h"
 
 // event messages
@@ -17,6 +18,7 @@ struct msg_test _msg_test;
 struct msg_cgroup_event _msg_cgroup_event;
 struct msg_cred _msg_cred;
 struct msg_clone_event _msg_clone_event;
+struct msg_throttle _msg_throttle;
 
 // from maps
 struct event _event;
