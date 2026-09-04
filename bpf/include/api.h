@@ -269,7 +269,7 @@ static void BPF_FUNC(ringbuf_discard_dynptr, struct bpf_dynptr *ptr, uint64_t fl
 static long BPF_FUNC(dynptr_from_mem, void *data, uint32_t size, uint64_t flags, struct bpf_dynptr *ptr);
 static long BPF_FUNC(dynptr_read, void *dst, uint32_t len, const struct bpf_dynptr *src, uint32_t offset, uint64_t flags);
 static long BPF_FUNC(dynptr_write, const struct bpf_dynptr *dst, uint32_t offset, void *src, uint32_t len, uint64_t flags);
-static void BPF_FUNC(dynptr_data, const struct bpf_dynptr *ptr, uint32_t offset, uint32_t len);
+static void *BPF_FUNC(dynptr_data, const struct bpf_dynptr *ptr, uint32_t offset, uint32_t len);
 
 static long BPF_FUNC(sock_ops_cb_flags_set, struct bpf_sock_ops *bpf_sock, int argval);
 

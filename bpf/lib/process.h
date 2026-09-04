@@ -691,6 +691,28 @@ event_ringbuf_reserve(u8 msg_op, u64 size)
 		event_output_update_error_metric(msg_op, -EAGAIN);
 	return event;
 }
+
+#ifdef __V61_BPF_PROG
+FUNC_INLINE void *
+event_ringbuf_reserve_dynptr(u8 msg_op, u32 size, struct bpf_dynptr *ptr)
+{
+	long err = ringbuf_reserve_dynptr(&tg_rb_events, size, 0, ptr);
+	void *data;
+
+	if (err) {
+		ringbuf_discard_dynptr(ptr, 0);
+		event_output_update_error_metric(msg_op, err);
+		return 0;
+	}
+
+	data = dynptr_data(ptr, 0, size);
+	if (!data) {
+		ringbuf_discard_dynptr(ptr, 0);
+		event_output_update_error_metric(msg_op, -EINVAL);
+	}
+	return data;
+}
+#endif
 #else
 FUNC_INLINE long
 event_output(void *ctx, void *data, u64 size)

@@ -39,7 +39,7 @@ read_args(void *ctx, struct msg_execve_event *event)
 	args_size = source.len;
 
 #ifdef __LARGE_BPF_PROG
-	/* Store pointer infos and late copy in execve_send_event() when storing
+	/* Store pointer infos and late copy in execve_finalize_event() when storing
 	 * the cache args.
 	 */
 	event->args_source.start = start_stack;
@@ -286,16 +286,9 @@ execve_rate_check(void *ctx, struct msg_execve_event *msg)
 	return cgroup_rate(ctx, &msg->kube, msg->common.ktime);
 }
 
-/**
- * execve_send_event() sends the collected execve event data.
- *
- * Its sole purpose is to update the pid execve_map entry to reflect the new
- * execve event that has already been collected, then send it to the perf
- * buffer.
- */
-FUNC_LOCAL int
-execve_send_event(struct bpf_raw_tracepoint_args *ctx,
-		  struct msg_execve_event *event)
+FUNC_LOCAL uint64_t
+execve_finalize_event(struct bpf_raw_tracepoint_args *ctx,
+		      struct msg_execve_event *event)
 {
 	struct linux_binprm *bprm __maybe_unused = (struct linux_binprm *)ctx->args[2];
 	struct execve_map_value *curr;
@@ -381,8 +374,45 @@ execve_send_event(struct bpf_raw_tracepoint_args *ctx,
 		sizeof(struct msg_execve_key) + sizeof(__u64) +
 		sizeof(struct msg_cred) + sizeof(struct msg_ns) +
 		sizeof(struct msg_execve_key) + p->size);
-	event_output_metric(ctx, MSG_OP_EXECVE, event, size);
+	return size;
+}
+
+#ifdef __V61_BPF_PROG
+#define EXECVE_RB_SIZE sizeof(struct msg_execve_event)
+
+FUNC_INLINE void
+execve_event_zero_tail(struct msg_execve_event *event)
+{
+	struct msg_process *p = &event->process;
+	__u64 size = offsetof(struct msg_execve_event, process) + p->size;
+
+	event->common.size = size;
+	// todo: zero the tail
+}
+
+FUNC_LOCAL int
+event_execve_rb(struct bpf_raw_tracepoint_args *ctx)
+{
+	struct msg_execve_event *event;
+	struct bpf_dynptr ptr;
+
+	event = event_ringbuf_reserve_dynptr(MSG_OP_EXECVE, EXECVE_RB_SIZE, &ptr);
+	if (!event)
+		return 0;
+
+	execve_event_init(ctx, event);
+
+	if (!execve_rate_check(ctx, event)) {
+		ringbuf_discard_dynptr(&ptr, 0);
+		return 0;
+	}
+
+	execve_finalize_event(ctx, event);
+	execve_event_zero_tail(event);
+
+	ringbuf_submit_dynptr(&ptr, 0);
 	return 0;
 }
+#endif /* __V61_BPF_PROG */
 
 #endif /* __BPF_EXECVE_EVENT_H__ */
