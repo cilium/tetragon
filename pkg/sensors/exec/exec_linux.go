@@ -86,13 +86,13 @@ func readData(reader *bytes.Reader, size uint16) ([]byte, error) {
 	return observer.DataGet(desc)
 }
 
-func resolveArgsData(reader *bytes.Reader, exec *processapi.MsgExec) ([]byte, error) {
-	if exec.SizeArgs == 0 {
+func readRawBytes(reader *bytes.Reader, exec *processapi.MsgExec, size uint16, flags uint32) ([]byte, error) {
+	if size == 0 {
 		return nil, nil
 	}
 
-	if exec.Flags&api.EventDataArgs != 0 {
-		data, err := readData(reader, exec.SizeArgs)
+	if exec.Flags&flags != 0 {
+		data, err := readData(reader, size)
 		if err != nil {
 			return nil, err
 		}
@@ -100,13 +100,13 @@ func resolveArgsData(reader *bytes.Reader, exec *processapi.MsgExec) ([]byte, er
 		return data, nil
 	}
 
-	data := make([]byte, exec.SizeArgs)
+	data := make([]byte, size)
 	nread, err := reader.Read(data)
 	if err != nil {
 		return nil, err
 	}
-	if nread != int(exec.SizeArgs) {
-		return nil, errors.New("args size mismatch")
+	if nread != int(size) {
+		return nil, errors.New("size mismatch")
 	}
 
 	return data, nil
@@ -117,7 +117,7 @@ func resolveArgs(reader *bytes.Reader, exec *processapi.MsgExec) (string, error)
 		return "", nil
 	}
 
-	data, err := resolveArgsData(reader, exec)
+	data, err := readRawBytes(reader, exec, exec.SizeArgs, api.EventDataArgs)
 	if err != nil {
 		return "", err
 	}
@@ -207,6 +207,42 @@ func resolveCwd(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) 
 	return strutils.UTF8FromBPFBytes(cwd), nil
 }
 
+func resolveFilename(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) {
+	if exec.SizePath == 0 {
+		return "<enomem>", nil
+	}
+
+	data, err := readRawBytes(reader, exec, exec.SizePath, api.EventDataFilename)
+	if err != nil {
+		return "", err
+	}
+
+	return strutils.UTF8FromBPFBytes(data), nil
+}
+
+func resolveProcEnvs(reader *bytes.Reader, exec *processapi.MsgExec) ([]string, error) {
+	if exec.SizeEnvs == 0 {
+		return nil, nil
+	}
+
+	data, err := readRawBytes(reader, exec, exec.SizeEnvs, api.EventDataEnvs)
+	if err != nil {
+		return nil, err
+	}
+
+	// cut the zero byte
+	if data[len(data)-1] == '\x00' {
+		data = data[:len(data)-1]
+	}
+
+	var ret []string
+	for v := range bytes.SplitSeq(data, []byte{0}) {
+		ret = append(ret, strutils.UTF8FromBPFBytes(v))
+	}
+
+	return ret, nil
+}
+
 func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 	proc := processapi.MsgProcess{
 		Filename: "<enomem>",
@@ -244,22 +280,12 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 		return proc, err
 	}
 
-	if exec.SizePath != 0 {
-		if exec.Flags&api.EventDataFilename != 0 {
-			data, err := readData(reader, exec.SizePath)
-			if err != nil {
-				return proc, err
-			}
-			proc.Filename = strutils.UTF8FromBPFBytes(data[:])
-		} else {
-			path := make([]byte, exec.SizePath)
-
-			if err := binary.Read(reader, binary.LittleEndian, &path); err != nil {
-				return proc, err
-			}
-			proc.Filename = strutils.UTF8FromBPFBytes(path[:exec.SizePath])
-		}
+	filename, err := resolveFilename(reader, &exec)
+	if err != nil {
+		return proc, err
 	}
+
+	proc.Filename = filename
 
 	arguments, err := resolveArgs(reader, &exec)
 	if err != nil {
@@ -275,29 +301,12 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 
 	proc.Cwd = cwd
 
-	if exec.SizeEnvs != 0 {
-		var data []byte
-		var err error
-
-		if exec.Flags&api.EventDataEnvs != 0 {
-			data, err = readData(reader, exec.SizeEnvs)
-			if err != nil {
-				return proc, err
-			}
-			// cut the zero byte
-			data = data[:len(data)-1]
-		} else {
-			data = make([]byte, exec.SizeEnvs)
-			if err := binary.Read(reader, binary.LittleEndian, &data); err != nil {
-				return proc, err
-			}
-		}
-
-		for v := range bytes.SplitSeq(data, []byte{0}) {
-			proc.Envs = append(proc.Envs, strutils.UTF8FromBPFBytes(v))
-		}
+	envs, err := resolveProcEnvs(reader, &exec)
+	if err != nil {
+		return proc, err
 	}
 
+	proc.Envs = envs
 	proc.Size = exec.Size
 	return proc, nil
 }
