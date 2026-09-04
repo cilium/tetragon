@@ -129,13 +129,13 @@ type MsgGenericCred struct {
 }
 
 type MsgExecveEvent struct {
-	Common         MsgCommon
-	Kube           MsgK8s
-	Parent         MsgExecveKey
-	ParentFlags    uint64
-	Creds          MsgGenericCred
-	Namespaces     MsgNamespaces
-	CleanupProcess MsgExecveKey
+	Common         MsgCommon      `align:"common"`
+	Kube           MsgK8s         `align:"kube"`
+	Parent         MsgExecveKey   `align:"parent"`
+	ParentFlags    uint64         `align:"parent_flags"`
+	Creds          MsgGenericCred `align:"creds"`
+	Namespaces     MsgNamespaces  `align:"ns"`
+	CleanupProcess MsgExecveKey   `align:"cleanup_key"`
 }
 
 type MsgExecveEventUnix struct {
