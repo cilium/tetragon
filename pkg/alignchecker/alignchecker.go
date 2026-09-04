@@ -10,6 +10,7 @@ import (
 
 	"github.com/cilium/ebpf/btf"
 
+	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/testapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -47,6 +48,7 @@ var defaultChecks = map[string][]any{
 var defaultPrefixChecks = map[string][]any{
 	"msg_generic_kprobe": {tracingapi.MsgGenericKprobe{}, tracingapi.MsgGenericTracepoint{}},
 	"msg_execve_event":   {processapi.MsgExecveEvent{}},
+	"msg_data":           {dataapi.MsgData{}},
 }
 
 // CheckStructAlignmentsDefault calls CheckStructAlignments with the default alignment defaultChecks.
