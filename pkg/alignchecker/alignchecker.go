@@ -45,6 +45,7 @@ var defaultChecks = map[string][]any{
 }
 
 var defaultPrefixChecks = map[string][]any{
+	"msg_generic_kprobe": {tracingapi.MsgGenericKprobe{}, tracingapi.MsgGenericTracepoint{}},
 }
 
 // CheckStructAlignmentsDefault calls CheckStructAlignments with the default alignment defaultChecks.
