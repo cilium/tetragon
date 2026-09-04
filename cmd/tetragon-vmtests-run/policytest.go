@@ -20,6 +20,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,6 +46,7 @@ type PolicyTestConf struct {
 	testerProgsTarball  string
 	resultsDir          string
 	policytestExtraArgs map[string]string
+	environment         map[string]string
 }
 
 func (rc PolicyTestConf) testImageFilename() string {
@@ -163,6 +165,7 @@ func policyTestCmd() *cobra.Command {
 	cmd.Flags().StringVar(&cnf.tetragonTarball, "tetragon-tarball", "", "tetragon install tarball")
 	cmd.Flags().StringVar(&cnf.testerProgsDir, "tester-progs-dir", "", "tetragon tester progs directory")
 	cmd.Flags().StringVar(&cnf.testerProgsTarball, "tester-progs-tarball", "", "tetragon tester progs tarball")
+	cmd.Flags().StringToStringVar(&cnf.environment, "env", nil, "Set an environment variable for policytests (NAME=VALUE)")
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&mountHostPath, "mount-host-path", "", "host path to mount inside VM")
 	cmd.Flags().StringVar(&cnf.btfFile, "btf-file", "", "BTF file to use.")
@@ -325,9 +328,13 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 		for k, v := range ptConf.policytestExtraArgs {
 			ptArgs = append(ptArgs, fmt.Sprintf("--%s=%s", k, v))
 		}
+		environment := make([]string, 0, len(ptConf.environment))
+		for name, value := range ptConf.environment {
+			environment = append(environment, strconv.Quote(fmt.Sprintf("%s=%s", name, value)))
+		}
 		ret = append(ret,
 			images.Action{Op: &images.CopyInCommand{
-				LocalPath: mustMakeTetragonPolicyTesterServiceFile(filepath.Join(tmpDir, tetragonPolicyTesterService), strings.Join(ptArgs, " ")),
+				LocalPath: mustMakeTetragonPolicyTesterServiceFile(filepath.Join(tmpDir, tetragonPolicyTesterService), strings.Join(ptArgs, " "), strings.Join(environment, " ")),
 				RemoteDir: "/etc/systemd/system/",
 			}},
 			images.Action{Op: &images.RunCommand{
