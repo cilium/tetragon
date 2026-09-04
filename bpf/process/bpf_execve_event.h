@@ -373,4 +373,196 @@ execve_finalize_event(struct bpf_raw_tracepoint_args *ctx,
 		sizeof(struct msg_execve_key) + p->size);
 }
 
+#ifdef __V61_BPF_PROG
+#define EXECVE_RB_HDR_SIZE \
+	(offsetof(struct msg_execve_event, process) + offsetof(struct msg_process, args))
+
+/* msg_process::size_* fields are __u16 */
+#define EXECVE_RB_MAX_FIELD 0xffff
+
+struct execve_reserve_data {
+	char *filename;
+	struct args_source args;
+	struct fs_struct *fs;
+	char *cwd;
+	int cwd_flags;
+	unsigned long env_start;
+	__u32 size_path;
+	__u32 size_args;
+	__u32 size_cwd;
+	__u32 size_envs;
+	__u32 flags;
+};
+
+FUNC_INLINE bool
+execve_reserve_supported(void)
+{
+	return CONFIG(ITER_NUM) &&
+	       bpf_ksym_exists(bpf_strlen) &&
+	       bpf_ksym_exists(bpf_probe_read_kernel_dynptr) &&
+	       bpf_ksym_exists(bpf_probe_read_user_dynptr) &&
+	       bpf_ksym_exists(bpf_dynptr_memset);
+}
+
+/* Global function on purpose, so it's verified once on its own. As a static
+ * subprog, each path through the size clamps below reaches the caller as a
+ * different state, and execve_event_init(), execve_rate_check() and
+ * execve_finalize_event() are then re-verified for every one of them (~10x
+ * processed insns).
+ */
+__attribute__((noinline)) __u64
+execve_reserve_size(struct bpf_raw_tracepoint_args *ctx __arg_ctx,
+		    struct execve_reserve_data *d __arg_nonnull)
+{
+	struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
+	struct task_struct *task = (struct task_struct *)get_current_task();
+	struct mm_struct *mm = NULL;
+	struct fs_struct *fs = NULL;
+	int len, size = 0;
+
+	/* path, mirrors read_path() */
+	probe_read(&d->filename, sizeof(d->filename), _(&bprm->filename));
+	len = bpf_strlen(d->filename);
+	if (len > 0)
+		d->size_path = len < EXECVE_RB_MAX_FIELD ? len : EXECVE_RB_MAX_FIELD;
+	else
+		d->flags |= EVENT_ERROR_FILENAME;
+
+	/* args, mirrors read_args() */
+	if (read_task_args_source(task, &d->args) && d->args.len >= 2) {
+		d->size_args = d->args.len - 1; /* strip trailing '\0' */
+		if (d->args.len - 1 > EXECVE_RB_MAX_FIELD) {
+			d->size_args = EXECVE_RB_MAX_FIELD;
+			d->flags |= EVENT_TRUNC_ARGS;
+		}
+	}
+
+	/* cwd, mirrors getcwd() */
+	probe_read(&fs, sizeof(fs), _(&task->fs));
+	if (fs) {
+		d->cwd = d_path_local(_(&fs->pwd), &size, &d->cwd_flags);
+		if (d->cwd && size > 0)
+			d->size_cwd = size;
+	}
+	d->fs = fs;
+
+	/* envs, mirrors read_envs() */
+	if (CONFIG(ENV_VARS_ENABLED)) {
+		probe_read(&mm, sizeof(mm), _(&task->mm));
+		if (mm) {
+			unsigned long env_end = 0;
+
+			probe_read(&d->env_start, sizeof(d->env_start), _(&mm->env_start));
+			probe_read(&env_end, sizeof(env_end), _(&mm->env_end));
+			if (d->env_start && env_end > d->env_start + 1) {
+				d->size_envs = env_end - d->env_start - 1; /* strip trailing '\0' */
+				if (env_end - d->env_start - 1 > EXECVE_RB_MAX_FIELD)
+					d->size_envs = EXECVE_RB_MAX_FIELD;
+			}
+		}
+	}
+
+	return EXECVE_RB_HDR_SIZE + d->size_path + d->size_args + d->size_cwd + d->size_envs;
+}
+
+FUNC_INLINE __u32
+execve_reserve_read_data(struct msg_execve_event *event, struct bpf_dynptr *ptr,
+			 struct execve_reserve_data *d)
+{
+	struct msg_process *p = &event->process;
+	__u32 off = EXECVE_RB_HDR_SIZE;
+	__u32 size;
+
+	/* path */
+	p->flags |= d->flags & EVENT_ERROR_FILENAME;
+	if (d->size_path) {
+		if (bpf_probe_read_kernel_dynptr(ptr, off, d->size_path, d->filename) < 0) {
+			p->flags |= EVENT_ERROR_FILENAME;
+		} else {
+			p->size_path = d->size_path;
+			off += d->size_path;
+		}
+	}
+
+	/* args */
+	if (d->size_args) {
+		if (bpf_probe_read_user_dynptr(ptr, off, d->size_args, (void *)d->args.start) < 0) {
+			p->flags |= EVENT_ERROR_ARGS;
+		} else {
+			p->flags |= d->flags & EVENT_TRUNC_ARGS;
+			p->size_args = d->size_args;
+			off += d->size_args;
+		}
+	}
+
+	/* cwd, mirrors getcwd() */
+	if (!d->fs) {
+		p->flags |= EVENT_ERROR_CWD;
+	} else if (d->cwd) {
+		/* resolved in execve_reserve_size() */
+		size = d->size_cwd;
+		if (size && bpf_probe_read_kernel_dynptr(ptr, off, size, d->cwd) < 0) {
+			p->flags |= EVENT_ERROR_CWD;
+			size = 0;
+		} else {
+			if (size == 0)
+				p->flags |= EVENT_ROOT_CWD;
+			if (d->cwd_flags & UNRESOLVED_PATH_COMPONENTS)
+				p->flags |= EVENT_ERROR_PATH_COMPONENTS;
+			p->flags = p->flags & ~(EVENT_NEEDS_CWD | EVENT_ERROR_CWD);
+		}
+		p->size_cwd = size;
+		off += size;
+	}
+
+	/* envs */
+	if (d->size_envs) {
+		if (bpf_probe_read_user_dynptr(ptr, off, d->size_envs, (void *)d->env_start) < 0) {
+			p->flags |= EVENT_ENVS_ERROR;
+		} else {
+			p->size_envs = d->size_envs;
+			off += d->size_envs;
+		}
+	}
+
+	return off;
+}
+
+FUNC_LOCAL int
+event_execve_reserve(struct bpf_raw_tracepoint_args *ctx)
+{
+	struct execve_reserve_data data = {};
+	struct msg_execve_event *event;
+	struct bpf_dynptr ptr;
+	__u64 size;
+	__u32 off;
+
+	size = execve_reserve_size(ctx, &data);
+
+	event = event_ringbuf_reserve_dynptr(MSG_OP_EXECVE, size, EXECVE_RB_HDR_SIZE, &ptr);
+	if (!event)
+		return 0;
+
+	execve_event_init(ctx, event, false);
+
+	if (!execve_rate_check(ctx, event)) {
+		ringbuf_discard_dynptr(&ptr, 0);
+		return 0;
+	}
+
+	off = execve_reserve_read_data(event, &ptr, &data);
+	event->process.size = offsetof(struct msg_process, args) + (off - EXECVE_RB_HDR_SIZE);
+	event->common.size = off;
+
+	execve_finalize_event(ctx, event, &data.args);
+
+	/* zero whatever was reserved but not written (failed reads, smaller cwd) */
+	if (off < size)
+		bpf_dynptr_memset(&ptr, off, size - off, 0);
+
+	ringbuf_submit_dynptr(&ptr, 0);
+	return 0;
+}
+#endif /* __V61_BPF_PROG */
+
 #endif /* __BPF_EXECVE_EVENT_H__ */
