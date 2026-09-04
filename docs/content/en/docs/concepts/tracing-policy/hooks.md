@@ -713,7 +713,7 @@ This functionality allows you to dynamically extract specific attributes from
 kernel structures passed as parameters to Kprobes and LSM hooks.
 For example, when using the `bprm_check_security` LSM hook, you can access and
 display attributes from the parameter `struct linux_binprm *bprm` at index 0.
-This parameter contains many informations you may want to access.
+This parameter contains many information you may want to access.
 With the resolve flag, you can easily access fields such as
 `mm.owner.real_parent.comm`, which provides the parent process comm.
 

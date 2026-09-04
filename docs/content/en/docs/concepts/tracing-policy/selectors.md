@@ -1235,7 +1235,7 @@ of each inspected argument is used in the matching. Only supported on kernels
 v5.3 onwards.)
 
 For example, you can specify a selector to only generate an event every 5
-minutes with adding the following action and its paramater:
+minutes with adding the following action and its parameter:
 
 ```yaml
 matchActions:
