@@ -28,6 +28,7 @@ var defaultChecks = map[string][]any{
 	"msg_cgroup_event": {processapi.MsgCgroupEvent{}},
 	"msg_cred":         {processapi.MsgGenericCred{}},
 	"msg_clone_event":  {processapi.MsgCloneEvent{}},
+	"msg_throttle":     {processapi.MsgThrottleEvent{}},
 
 	// configuration
 	"event_config":  {tracingapi.EventConfig{}},
