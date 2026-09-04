@@ -186,6 +186,41 @@ func memberOffsets(members []btf.Member) map[string]uint32 {
 	return offsets
 }
 
+func checkGoType(i any, name string) (reflect.Type, error) {
+	g := reflect.TypeOf(i)
+	if g == nil {
+		return nil, fmt.Errorf("nil interface passed for type %s", name)
+	}
+
+	if g.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("type %s is not a struct", name)
+	}
+
+	if bs, rs := binary.Size(i), int(g.Size()); bs != rs {
+		return nil, fmt.Errorf("type %s's binary.Size (%d) does not equal its unsafe.Sizeof (%d) size (struct with implicit trailing padding?)", g.Name(), bs, rs)
+	}
+
+	return g, nil
+}
+
+func checkFieldOffsets(g reflect.Type, name string, c *structInfo) error {
+	for field := range g.Fields() {
+		fieldName := field.Tag.Get("align")
+		if fieldName == "" {
+			continue
+		}
+		goOffset := uint32(field.Offset)
+		if cOffset, ok := c.fieldOffsets[fieldName]; !ok {
+			return fmt.Errorf("%s.%s does not match any field (should match %s.%s) [debug=%v]",
+				g, field.Name, name, fieldName, c.fieldOffsets)
+		} else if goOffset != cOffset {
+			return fmt.Errorf("%s.%s offset(%d) does not match %s.%s(%d) [debug=%v]",
+				g, field.Name, goOffset, name, fieldName, cOffset, c.fieldOffsets)
+		}
+	}
+	return nil
+}
+
 func check(name string, toCheck []any, structs map[string]*structInfo, checkOffsets bool) error {
 	for _, i := range toCheck {
 		c, found := structs[name]
@@ -193,18 +228,9 @@ func check(name string, toCheck []any, structs map[string]*structInfo, checkOffs
 			return fmt.Errorf("could not find C struct %s", name)
 		}
 
-		g := reflect.TypeOf(i)
-		if g == nil {
-			return fmt.Errorf("nil interface passed for type %s", name)
-		}
-
-		// Input type must be a struct.
-		if g.Kind() != reflect.Struct {
-			return fmt.Errorf("type %s is not a struct", name)
-		}
-
-		if bs, rs := binary.Size(i), int(g.Size()); bs != rs {
-			return fmt.Errorf("type %s's binary.Size (%d) does not equal its unsafe.Sizeof (%d) size (struct with implicit trailing padding?)", g.Name(), bs, rs)
+		g, err := checkGoType(i, name)
+		if err != nil {
+			return err
 		}
 
 		if c.size != uint32(g.Size()) {
@@ -216,20 +242,8 @@ func check(name string, toCheck []any, structs map[string]*structInfo, checkOffs
 			continue
 		}
 
-		for field := range g.Fields() {
-			fieldName := field.Tag.Get("align")
-			// Ignore fields without `align` struct tag
-			if fieldName == "" {
-				continue
-			}
-			goOffset := uint32(field.Offset)
-			if cOffset, ok := c.fieldOffsets[fieldName]; !ok {
-				return fmt.Errorf("%s.%s does not match any field (should match %s.%s) [debug=%v]",
-					g, field.Name, name, fieldName, c.fieldOffsets)
-			} else if goOffset != cOffset {
-				return fmt.Errorf("%s.%s offset(%d) does not match %s.%s(%d) [debug=%v]",
-					g, field.Name, goOffset, name, fieldName, cOffset, c.fieldOffsets)
-			}
+		if err := checkFieldOffsets(g, name, c); err != nil {
+			return err
 		}
 	}
 
