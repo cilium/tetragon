@@ -25,6 +25,11 @@ event_execve(struct bpf_raw_tracepoint_args *ctx)
 	__u32 zero = 0;
 	__u64 size;
 
+#ifdef __V61_BPF_PROG
+	if (!CONFIG(USE_PERF_RING_BUF) && execve_reserve_supported())
+		return event_execve_reserve(ctx);
+#endif
+
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
 		return 0;
