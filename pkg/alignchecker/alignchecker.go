@@ -44,9 +44,15 @@ var defaultChecks = map[string][]any{
 	"policy_stats": {policystats.PolicyStats{}},
 }
 
+var defaultPrefixChecks = map[string][]any{
+}
+
 // CheckStructAlignmentsDefault calls CheckStructAlignments with the default alignment defaultChecks.
 func CheckStructAlignmentsDefault(pathToObj string) error {
-	return CheckStructAlignments(pathToObj, defaultChecks, true)
+	if err := CheckStructAlignments(pathToObj, defaultChecks, true); err != nil {
+		return err
+	}
+	return CheckPrefixStructAlignments(pathToObj, defaultPrefixChecks)
 }
 
 // CheckStructAlignments defaultChecks whether size and offsets match of the given
@@ -72,6 +78,30 @@ func CheckStructAlignments(pathToObj string, toCheck map[string][]any, checkOffs
 
 	for cName, goStructs := range toCheck {
 		if err := check(cName, goStructs, structInfo, checkOffsets); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CheckPrefixStructAlignments is like CheckStructAlignments, but for Go
+// structs that only mirror the leading portion of a larger C struct (the
+// remainder being variable-length or not exposed to userspace). It checks
+// that the Go struct is no larger than the C struct, and that every
+// `align`-tagged field lands at the correct offset.
+func CheckPrefixStructAlignments(pathToObj string, toCheck map[string][]any) error {
+	spec, err := btf.LoadSpec(pathToObj)
+	if err != nil {
+		return fmt.Errorf("cannot parse BTF debug info %s: %w", pathToObj, err)
+	}
+
+	structInfo, err := getStructInfosFromBTF(spec, toCheck)
+	if err != nil {
+		return fmt.Errorf("cannot extract struct info from BTF %s: %w", pathToObj, err)
+	}
+
+	for cName, goStructs := range toCheck {
+		if err := checkPrefix(cName, goStructs, structInfo); err != nil {
 			return err
 		}
 	}
@@ -240,6 +270,30 @@ func check(name string, toCheck []any, structs map[string]*structInfo, checkOffs
 
 		if !checkOffsets {
 			continue
+		}
+
+		if err := checkFieldOffsets(g, name, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func checkPrefix(name string, toCheck []any, structs map[string]*structInfo) error {
+	for _, i := range toCheck {
+		c, found := structs[name]
+		if !found {
+			return fmt.Errorf("could not find C struct %s", name)
+		}
+
+		g, err := checkGoType(i, name)
+		if err != nil {
+			return err
+		}
+
+		if uint32(g.Size()) > c.size {
+			return fmt.Errorf("%s(%d) is larger than %s(%d), cannot be a valid prefix", g, g.Size(), name, c.size)
 		}
 
 		if err := checkFieldOffsets(g, name, c); err != nil {
