@@ -269,7 +269,7 @@ static void BPF_FUNC(ringbuf_discard_dynptr, struct bpf_dynptr *ptr, uint64_t fl
 static long BPF_FUNC(dynptr_from_mem, void *data, uint32_t size, uint64_t flags, struct bpf_dynptr *ptr);
 static long BPF_FUNC(dynptr_read, void *dst, uint32_t len, const struct bpf_dynptr *src, uint32_t offset, uint64_t flags);
 static long BPF_FUNC(dynptr_write, const struct bpf_dynptr *dst, uint32_t offset, void *src, uint32_t len, uint64_t flags);
-static void BPF_FUNC(dynptr_data, const struct bpf_dynptr *ptr, uint32_t offset, uint32_t len);
+static void *BPF_FUNC(dynptr_data, const struct bpf_dynptr *ptr, uint32_t offset, uint32_t len);
 
 static long BPF_FUNC(sock_ops_cb_flags_set, struct bpf_sock_ops *bpf_sock, int argval);
 
@@ -320,5 +320,9 @@ enum {
 // kfuncs
 extern int bpf_strnstr(const char *s1__ign, const char *s2__ign, size_t len) __weak __ksym;
 extern int bpf_strncasestr(const char *s1__ign, const char *s2__ign, size_t len) __weak __ksym;
+extern int bpf_strlen(const char *s__ign) __weak __ksym;
+extern int bpf_probe_read_kernel_dynptr(const struct bpf_dynptr *dptr, __u64 off, __u64 size, const void *unsafe_ptr__ign) __weak __ksym;
+extern int bpf_probe_read_user_dynptr(const struct bpf_dynptr *dptr, __u64 off, __u64 size, const void *unsafe_ptr__ign) __weak __ksym;
+extern int bpf_dynptr_memset(const struct bpf_dynptr *p, __u64 offset, __u64 size, __u8 val) __weak __ksym;
 
 #endif /* __BPF_API__ */
