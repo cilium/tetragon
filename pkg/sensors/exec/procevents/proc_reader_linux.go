@@ -36,7 +36,7 @@ const (
 )
 
 func procKernel() procs {
-	kernelArgs := []byte("<kernel>\u0000")
+	kernelArgs := []byte("<kernel>")
 	return procs{
 		psize:       uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
 		ppid:        kernelPid,
