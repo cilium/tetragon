@@ -15,6 +15,7 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -836,7 +837,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 
 func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 	m := tracingapi.MsgGenericTracepoint{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read tracepoint: %w", err)
 	}
@@ -1047,7 +1048,7 @@ func handleMsgGenericTracepoint(
 			var skb tracingapi.MsgGenericKprobeSkb
 			var arg tracingapi.MsgGenericKprobeArgSkb
 
-			err := binary.Read(r, binary.LittleEndian, &skb)
+			err := api.ReadBPFStruct(r, &skb)
 			if err != nil {
 				logger.GetLogger().Warn("skb type err", logfields.Error, err)
 			}
@@ -1069,7 +1070,7 @@ func handleMsgGenericTracepoint(
 			var sock tracingapi.MsgGenericKprobeSock
 			var arg tracingapi.MsgGenericKprobeArgSock
 
-			err := binary.Read(r, binary.LittleEndian, &sock)
+			err := api.ReadBPFStruct(r, &sock)
 			if err != nil {
 				logger.GetLogger().Warn("sock type err", logfields.Error, err)
 			}
@@ -1091,7 +1092,7 @@ func handleMsgGenericTracepoint(
 			var address tracingapi.MsgGenericKprobeSockaddr
 			var arg tracingapi.MsgGenericKprobeArgSockaddr
 
-			err := binary.Read(r, binary.LittleEndian, &address)
+			err := api.ReadBPFStruct(r, &address)
 			if err != nil {
 				logger.GetLogger().Warn("sockaddr type err", logfields.Error, err)
 			}
@@ -1105,7 +1106,7 @@ func handleMsgGenericTracepoint(
 			var sockaddr tracingapi.MsgGenericKprobeSockaddrUn
 			var arg tracingapi.MsgGenericKprobeArgSockaddrUn
 
-			err := binary.Read(r, binary.LittleEndian, &sockaddr)
+			err := api.ReadBPFStruct(r, &sockaddr)
 			if err != nil {
 				logger.GetLogger().Warn("sockaddrun type err", logfields.Error, err)
 			}

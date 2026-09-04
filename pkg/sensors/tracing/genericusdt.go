@@ -21,6 +21,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
+	tetragonapi "github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -642,7 +643,7 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 
 func handleGenericUsdt(r *bytes.Reader) ([]observer.Event, error) {
 	m := api.MsgGenericKprobe{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := tetragonapi.ReadBPFStruct(r, &m)
 	if err != nil {
 		logger.GetLogger().Warn("Failed to read process call msg", logfields.Error, err)
 		return nil, errors.New("failed to read process call msg")
