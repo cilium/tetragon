@@ -208,7 +208,7 @@ struct msg_clone_event {
 	__u32 nspid;
 	__u32 flags;
 	__u64 ktime;
-} __attribute__((packed));
+}; // All fields aligned so no 'packed' attribute.
 
 struct exit_info {
 	__u32 code;
