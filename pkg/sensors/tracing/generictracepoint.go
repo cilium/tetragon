@@ -15,6 +15,7 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -836,7 +837,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 
 func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 	m := tracingapi.MsgGenericTracepoint{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read tracepoint: %w", err)
 	}

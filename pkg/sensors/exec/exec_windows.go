@@ -5,7 +5,6 @@ package exec
 
 import (
 	"bytes"
-	"encoding/binary"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
@@ -58,7 +57,7 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	var empty bool
 
 	m := processapi.MsgCreateProcessEvent{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +95,7 @@ func msgToExitUnix(m *processapi.MsgExitProcessEvent) *exec.MsgExitEventUnix {
 
 func handleExit(r *bytes.Reader) ([]observer.Event, error) {
 	m := processapi.MsgExitProcessEvent{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
 		return nil, err
 	}
