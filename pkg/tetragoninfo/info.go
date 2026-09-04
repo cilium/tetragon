@@ -6,6 +6,7 @@ package tetragoninfo
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/spf13/viper"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -61,6 +62,8 @@ func decodeConf(conf []*tetragon.GetInfoResponse_ConfVal) map[string]any {
 			val = v.GetValue()
 		case *wrapperspb.Int64Value:
 			val = v.GetValue()
+		case *wrapperspb.DoubleValue:
+			val = v.GetValue()
 		case *wrapperspb.BoolValue:
 			val = v.GetValue()
 		case *structpb.ListValue:
@@ -111,10 +114,22 @@ func encodeConf(conf map[string]any) ([]*tetragon.GetInfoResponse_ConfVal, error
 			value, err = anypb.New(wrapperspb.Bool(x))
 		case int:
 			value, err = anypb.New(wrapperspb.Int64(int64(x)))
+		case float64:
+			value, err = anypb.New(wrapperspb.Double(x))
+		case time.Duration:
+			value, err = anypb.New(wrapperspb.String(x.String()))
 		case []string:
 			values := make([]*structpb.Value, 0, len(x))
 			for _, s := range x {
 				values = append(values, structpb.NewStringValue(s))
+			}
+			value, err = anypb.New(&structpb.ListValue{
+				Values: values,
+			})
+		case []int:
+			values := make([]*structpb.Value, 0, len(x))
+			for _, n := range x {
+				values = append(values, structpb.NewNumberValue(float64(n)))
 			}
 			value, err = anypb.New(&structpb.ListValue{
 				Values: values,

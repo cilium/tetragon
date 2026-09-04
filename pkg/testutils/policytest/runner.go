@@ -174,6 +174,9 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 
 // RunTest runs a policy test
 func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Result {
+	if reason := CheckCLIFlags(r.info, test.CLIFlags); reason != "" {
+		return &Result{Skipped: reason}
+	}
 	if test.ShouldSkip != nil {
 		if reason := test.ShouldSkip(&SkipInfo{r.info, testConf.ParamValues}); reason != "" {
 			return &Result{Skipped: reason}

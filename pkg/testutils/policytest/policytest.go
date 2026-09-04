@@ -9,6 +9,8 @@ import (
 	"context"
 	"fmt"
 	"iter"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,6 +52,77 @@ type Parameter struct {
 	Values []any
 }
 
+// CLIFlag describes an agent CLI flag value required by a policy test.
+type CLIFlag struct {
+	Name  string
+	Value any
+}
+
+// CheckCLIFlags returns a skip reason when agent configuration does not satisfy
+// the required CLI flags.
+func CheckCLIFlags(info *tetragoninfo.Info, flags []CLIFlag) string {
+	if info == nil {
+		return ""
+	}
+	satisfied := true
+	for _, flag := range flags {
+		actual, ok := info.Conf[flag.Name]
+		if !ok || !cliFlagValuesEqual(actual, flag.Value) {
+			satisfied = false
+		}
+	}
+	if satisfied {
+		return ""
+	}
+	required := make([]string, 0, len(flags))
+	for _, flag := range flags {
+		required = append(required, fmt.Sprintf("--%s=%s", flag.Name, formatCLIFlagValue(flag.Value)))
+	}
+	return "agent does not satisfy required CLI flags: " + strings.Join(required, " ")
+}
+
+func formatCLIFlagValue(value any) string {
+	if values, ok := value.([]int); ok {
+		parts := make([]string, len(values))
+		for i, value := range values {
+			parts[i] = strconv.Itoa(value)
+		}
+		return strings.Join(parts, ",")
+	}
+	return fmt.Sprint(value)
+}
+
+func cliFlagValuesEqual(actual, expected any) bool {
+	if reflect.DeepEqual(actual, expected) {
+		return true
+	}
+	switch expected := expected.(type) {
+	case int:
+		actual, ok := actual.(int64)
+		return ok && actual == int64(expected)
+	case float64:
+		actualString, ok := actual.(string)
+		if !ok {
+			return false
+		}
+		actualFloat, err := strconv.ParseFloat(actualString, 64)
+		return err == nil && actualFloat == expected
+	case []int:
+		actual, ok := actual.([]any)
+		if !ok || len(actual) != len(expected) {
+			return false
+		}
+		for i, value := range actual {
+			number, ok := value.(float64)
+			if !ok || number != float64(expected[i]) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
 func (p *Parameter) HelpString() string {
 	if len(p.Values) == 0 {
 		return fmt.Sprintf("%s: %s (default:%s)", p.Name, p.Help, p.Default)
@@ -76,6 +149,8 @@ type T struct {
 	Policy func(c *Conf) (Policy, PolicyCleanupFn, error)
 
 	Params []Parameter
+	// CLIFlags lists agent CLI flag values required to run this test.
+	CLIFlags []CLIFlag
 
 	// Scenarios returns a list of scenarios to test the generated policy
 	Scenarios []func(c *Conf) *Scenario
