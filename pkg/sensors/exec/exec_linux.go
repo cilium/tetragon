@@ -32,6 +32,10 @@ import (
 	"github.com/cilium/tetragon/pkg/strutils"
 )
 
+const (
+	errorNoMem = "<enomem>"
+)
+
 func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, execID string, filename string) processapi.MsgK8sUnix {
 	kube := processapi.MsgK8sUnix{
 		Cgrpid:        m.Kube.Cgrpid,
@@ -225,7 +229,7 @@ func resolveCwd(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) 
 
 func resolveFilename(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) {
 	if exec.SizePath == 0 {
-		return "<enomem>", nil
+		return errorNoMem, nil
 	}
 
 	data, err := readRawBytes(reader, exec, exec.SizePath, api.EventDataFilename)
@@ -264,9 +268,9 @@ func resolveProcEnvs(reader *bytes.Reader, exec *processapi.MsgExec) ([]string, 
 
 func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 	proc := processapi.MsgProcess{
-		Filename: "<enomem>",
-		Args:     "<enomem>",
-		Cwd:      "<enomem>",
+		Filename: errorNoMem,
+		Args:     errorNoMem,
+		Cwd:      errorNoMem,
 		Size:     processapi.MSG_SIZEOF_EXECVE,
 	}
 	exec := processapi.MsgExec{}
