@@ -19,6 +19,6 @@ type DataEventDesc struct {
 }
 
 type MsgData struct {
-	Common processapi.MsgCommon
-	Id     DataEventId
+	Common processapi.MsgCommon `align:"common"`
+	Id     DataEventId          `align:"id"`
 }
