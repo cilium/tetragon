@@ -50,6 +50,12 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 	if (!msg)
 		return 0;
 
+#ifdef GENERIC_LSM
+	/* The LSM output program runs even when this program returns early. */
+	msg->lsm.post = false;
+	msg->common.flags = 0;
+#endif
+
 	/* setup index, check policy filter, and setup function id */
 	msg->idx = get_index(ctx);
 	config = map_lookup_elem(&config_map, &msg->idx);
@@ -81,9 +87,6 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 #ifdef __CAP_CHANGES_FILTER
 	msg->sel.match_cap = 0;
 #endif
-
-	msg->lsm.post = false;
-	msg->common.flags = 0;
 
 	/* Tail call into filters. */
 	tail_call(ctx, calls, TAIL_CALL_FILTER);
@@ -698,6 +701,7 @@ FUNC_INLINE void
 generic_process_init(struct msg_generic_kprobe *e, u8 op)
 {
 	e->common.op = op;
+	e->common.flags = 0;
 
 	e->common.pad[0] = 0;
 	e->common.pad[1] = 0;
