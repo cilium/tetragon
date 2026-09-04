@@ -8,11 +8,11 @@ package test
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 
 	"sync/atomic"
 
+	tetragonapi "github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/testapi"
 	"github.com/cilium/tetragon/pkg/config"
@@ -52,7 +52,7 @@ func msgToTestUnix(m *api.MsgTestEvent) *test.MsgTestEventUnix {
 
 func handleTest(r *bytes.Reader) ([]observer.Event, error) {
 	m := api.MsgTestEvent{}
-	if err := binary.Read(r, binary.LittleEndian, &m); err != nil {
+	if err := tetragonapi.ReadBPFStruct(r, &m); err != nil {
 		return nil, err
 	}
 	msgUnix := msgToTestUnix(&m)
