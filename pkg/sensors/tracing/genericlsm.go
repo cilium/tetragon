@@ -20,6 +20,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
+	tetragonapi "github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -133,7 +134,7 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 
 func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 	m := api.MsgGenericKprobe{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := tetragonapi.ReadBPFStruct(r, &m)
 	if err != nil {
 		logger.GetLogger().Warn("Failed to read process call msg", logfields.Error, err)
 		return nil, errors.New("failed to read process call msg")
@@ -183,7 +184,7 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 			return nil, errors.New("failed to read IMA hash algorithm")
 		}
 		unix.ImaHash.Algo = int32(algo)
-		err = binary.Read(r, binary.LittleEndian, &unix.ImaHash.Hash)
+		err = tetragonapi.ReadBPFStruct(r, &unix.ImaHash.Hash)
 		if err != nil {
 			gl.LogAttrs(slog.LevelWarn, "failed to read IMA hash value", slog.Any(logfields.Error, err))
 			return nil, errors.New("failed to read IMA hash value")
