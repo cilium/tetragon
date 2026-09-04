@@ -257,8 +257,8 @@ type MsgCgroupEvent struct {
 }
 
 type MsgThrottleEvent struct {
-	Common MsgCommon
-	Kube   MsgK8s
+	Common MsgCommon `align:"common"`
+	Kube   MsgK8s    `align:"kube"`
 }
 
 type KernelStats struct {
