@@ -145,13 +145,13 @@ type MsgExecveEventUnix struct {
 }
 
 type MsgCloneEvent struct {
-	Common MsgCommon
-	Parent MsgExecveKey
-	PID    uint32
-	TID    uint32
-	NSPID  uint32
-	Flags  uint32
-	Ktime  uint64
+	Common MsgCommon    `align:"common"`
+	Parent MsgExecveKey `align:"parent"`
+	PID    uint32       `align:"tgid"`
+	TID    uint32       `align:"tid"`
+	NSPID  uint32       `align:"nspid"`
+	Flags  uint32       `align:"flags"`
+	Ktime  uint64       `align:"ktime"`
 }
 
 type MsgCapabilities struct {

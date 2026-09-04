@@ -16,6 +16,7 @@ struct msg_exit _msg_exit;
 struct msg_test _msg_test;
 struct msg_cgroup_event _msg_cgroup_event;
 struct msg_cred _msg_cred;
+struct msg_clone_event _msg_clone_event;
 
 // from maps
 struct event _event;

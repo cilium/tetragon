@@ -27,6 +27,7 @@ var defaultChecks = map[string][]any{
 	"execve_map_value": {execvemap.ExecveValue{}},
 	"msg_cgroup_event": {processapi.MsgCgroupEvent{}},
 	"msg_cred":         {processapi.MsgGenericCred{}},
+	"msg_clone_event":  {processapi.MsgCloneEvent{}},
 
 	// configuration
 	"event_config":  {tracingapi.EventConfig{}},
