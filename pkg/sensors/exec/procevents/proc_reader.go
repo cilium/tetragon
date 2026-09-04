@@ -41,14 +41,10 @@ func stringToUTF8(s []byte) []byte {
 }
 
 type procs struct {
-	psize             uint32
 	ppid              uint32
 	pnspid            uint32
 	pflags            uint32
 	pktime            uint64
-	pcmdline          []byte
-	pexe              []byte
-	size              uint32
 	uids              []uint32
 	gids              []uint32
 	pid               uint32
@@ -73,15 +69,6 @@ type procs struct {
 	cgroupNs          uint32
 	userNs            uint32
 	kernelThread      bool
-}
-
-func (p procs) args() []byte {
-	// exe and cmdline are already in UTF8
-	return proc.PrependPath(string(p.exe), p.cmdline)
-}
-
-func (p procs) pargs() []byte {
-	return proc.PrependPath(string(p.pexe), p.pcmdline)
 }
 
 func procFilename(p *procs) string {
