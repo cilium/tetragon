@@ -875,6 +875,17 @@ func TestParseMatchArg(t *testing.T) {
 				err, expected12, d.e[0:d.off], expectMap, ks.valueMaps[0].Data, arg13)
 		}
 	}
+
+	// A range whose span is larger than maxRangeSpan must be rejected instead
+	// of enumerated, otherwise parsing a policy can peg a CPU core and
+	// exhaust memory. See writeRangeInMap. Index 2 ("int") is used here since
+	// it is always present in sig, unlike the uint16/uint8 args which are
+	// gated behind config.EnableLargeProgs().
+	argHuge := &v1alpha1.ArgSelector{Index: 2, Operator: "InMap", Values: []string{"0:9223372036854775807"}}
+	ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+	if err := ParseMatchArg(ks, argHuge, sig); err == nil {
+		t.Errorf("parseMatchArg: expected error for oversized range but got none parsing %v\n", argHuge)
+	}
 }
 
 func TestParseMatchPid(t *testing.T) {
