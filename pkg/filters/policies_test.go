@@ -77,10 +77,19 @@ func TestPolicyNamesFilterNilValue(t *testing.T) {
 	}
 }
 
-// eventsWithPolicyName generates kprobe, tracepoint, uprobe, and lsm events
+// eventsWithPolicyName generates kprobe, tracepoint, uprobe, lsm, and usdt events
 // with the specified policy name.
 func eventsWithPolicyName(policyName string) []event.Event {
 	return []event.Event{
+		{
+			Event: &tetragon.GetEventsResponse{
+				Event: &tetragon.GetEventsResponse_ProcessUsdt{
+					ProcessUsdt: &tetragon.ProcessUsdt{
+						PolicyName: policyName,
+					},
+				},
+			},
+		},
 		{
 			Event: &tetragon.GetEventsResponse{
 				Event: &tetragon.GetEventsResponse_ProcessKprobe{
