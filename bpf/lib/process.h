@@ -733,8 +733,12 @@ read_exe(struct task_struct *task, struct heap_exe *exe)
 	asm volatile("%[len] &= 0xff;\n"
 		     : [len] "+r"(exe->len));
 	with_errmetrics(probe_read, exe->buf, exe->len, buffer);
-	if (revlen < STRING_POSTFIX_MAX_LENGTH)
+	if (revlen < STRING_POSTFIX_MAX_LENGTH) {
+		if (offset > MAX_BUF_LEN)
+			offset = MAX_BUF_LEN;
+
 		with_errmetrics(probe_read, exe->end, revlen, (char *)(buffer + offset));
+	}
 	return exe->len;
 }
 #endif
