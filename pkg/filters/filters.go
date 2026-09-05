@@ -206,6 +206,8 @@ func GetPolicyName(event *event.Event) string {
 		return ev.ProcessUprobe.GetPolicyName()
 	case *tetragon.GetEventsResponse_ProcessLsm:
 		return ev.ProcessLsm.GetPolicyName()
+	case *tetragon.GetEventsResponse_ProcessUsdt:
+		return ev.ProcessUsdt.GetPolicyName()
 	default:
 		return ""
 	}

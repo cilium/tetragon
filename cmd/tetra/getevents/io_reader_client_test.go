@@ -45,6 +45,25 @@ func Test_ioReaderClient_GetEventsSkipsInvalidJSON(t *testing.T) {
 	require.ErrorIs(t, err, io.EOF)
 }
 
+func Test_ioReaderClient_GetEventsUsdtPolicyName(t *testing.T) {
+	input := `{"process_usdt":{"process":{"binary":"/usr/bin/app","pid":1234},"path":"/usr/bin/app","provider":"test","name":"usdt0","policy_name":"other"}}
+{"process_usdt":{"process":{"binary":"/usr/bin/app","pid":1234},"path":"/usr/bin/app","provider":"test","name":"usdt0","policy_name":"usdts"}}
+`
+	client := newIOReaderClient(strings.NewReader(input), false)
+	stream, err := client.GetEvents(context.Background(), &tetragon.GetEventsRequest{
+		AllowList: []*tetragon.Filter{{PolicyNames: []string{"usdts"}}},
+	})
+	require.NoError(t, err)
+
+	res, err := stream.Recv()
+	require.NoError(t, err)
+	require.NotNil(t, res.GetProcessUsdt())
+	require.Equal(t, "usdts", res.GetProcessUsdt().GetPolicyName())
+
+	_, err = stream.Recv()
+	require.ErrorIs(t, err, io.EOF)
+}
+
 func Test_ioReaderClient_GetEventsLargeJSONLine(t *testing.T) {
 	want := bytes.Repeat([]byte{'a'}, 70*1024)
 	event, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(&tetragon.GetEventsResponse{
