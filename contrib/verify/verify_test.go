@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/selectors"
@@ -30,6 +31,8 @@ var (
 )
 
 func TestVerifyTetragonPrograms(t *testing.T) {
+	require.NoError(t, btf.InitCachedBTF(*tetragonDir, ""), "failed to initialize kernel BTF")
+
 	files, err := os.ReadDir(*tetragonDir)
 	if err != nil {
 		t.Fatalf("error: %v", err)
