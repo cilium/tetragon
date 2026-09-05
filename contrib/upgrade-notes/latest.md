@@ -37,4 +37,21 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Metrics
 
-* TBD
+Labels holding a message opcode are now consistently named `opcode` (the numeric
+`ops.OpCode`), and every metric using one also exposes a human-readable `opstr`
+label. Update any dashboards, alerts or recording rules that select on the old
+label names.
+
+* `tetragon_msg_op_total`: the `msg_op` label is renamed to `opcode`, and a new
+  `opstr` label with the human-readable opcode name is added.
+* `tetragon_bpf_missed_events_total`: the `msg_op` label is renamed to `opcode`,
+  and a new `opstr` label with the human-readable opcode name is added.
+* `tetragon_handling_latency`: the numeric opcode is now reported in a new
+  `opcode` label, and the human-readable name in a new `opstr` label. The old
+  `op` label is removed, so queries matching on it need updating.
+* `tetragon_handler_errors_total`: a new `opstr` label with the human-readable
+  opcode name is added, alongside the existing `opcode` label.
+* `tetragon_data_event_size`: the `op` label is renamed to `status`. It reports
+  whether handling a data event succeeded (`ok`/`bad`) and is not an opcode.
+* `tetragon_events_total`: the `type` label is renamed to `event_type`, matching
+  the label already used for the event type by other metrics.

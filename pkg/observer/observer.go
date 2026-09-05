@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -144,7 +143,7 @@ func (k *Observer) receiveEvent(data []byte) {
 		k.observerListeners(event)
 	}
 	if metricsEnabled && option.Config.EnableMsgHandlingLatency {
-		opcodemetrics.LatencyStats.WithLabelValues(strconv.FormatUint(uint64(op), 10)).Observe(float64(time.Since(timer).Microseconds()))
+		opcodemetrics.GetLatencyStats(ops.OpCode(op)).Observe(float64(time.Since(timer).Microseconds()))
 	}
 }
 

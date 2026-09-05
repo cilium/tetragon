@@ -28,7 +28,8 @@ Number of Tetragon perf events that are failed to be sent from the kernel.
 | label | values |
 | ----- | ------ |
 | `error` | `E2BIG, EAGAIN, EBUSY, EINVAL, ENOENT, ENOSPC, unknown` |
-| `msg_op` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 5, 7` |
+| `opcode` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 5, 7` |
+| `opstr` | `Cgroup, Clone, Data, Execve, Exit, GenericKprobe, GenericLSM, GenericTracepoint, GenericUSDT, GenericUprobe, Loader, Throttle` |
 
 ### `tetragon_build_info`
 
@@ -84,7 +85,7 @@ The size of received data events.
 
 | label | values |
 | ----- | ------ |
-| `op   ` | `bad, ok` |
+| `status` | `bad, ok` |
 
 ### `tetragon_data_events_total`
 
@@ -206,6 +207,7 @@ The total number of event handler errors. For internal use only.
 | ----- | ------ |
 | `error` | `event_handler_failed, perf_empty_data, unknown_opcode` |
 | `opcode` | `0, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 5, 7` |
+| `opstr` | `Cgroup, Clone, Data, Execve, Exit, GenericKprobe, GenericLSM, GenericTracepoint, GenericUSDT, GenericUprobe, Loader, Throttle, Undef` |
 
 ### `tetragon_handling_latency`
 
@@ -213,7 +215,8 @@ The latency of handling messages in us.
 
 | label | values |
 | ----- | ------ |
-| `op   ` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 5, 7` |
+| `opcode` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 5, 7` |
+| `opstr` | `Cgroup, Clone, Data, Execve, Exit, GenericKprobe, GenericLSM, GenericTracepoint, GenericUSDT, GenericUprobe, Loader, Throttle` |
 
 ### `tetragon_map_capacity`
 
@@ -271,7 +274,8 @@ The total number of times we encounter a given message opcode. For internal use 
 
 | label | values |
 | ----- | ------ |
-| `msg_op` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 5, 7` |
+| `opcode` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 5, 7` |
+| `opstr` | `Cgroup, Clone, Data, Execve, Exit, GenericKprobe, GenericLSM, GenericTracepoint, GenericUSDT, GenericUprobe, Loader, Throttle` |
 
 ### `tetragon_notify_overflowed_events_total`
 
@@ -598,10 +602,10 @@ The total number of Tetragon events
 | label | values |
 | ----- | ------ |
 | `binary` | `example-binary` |
+| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
 | `namespace` | `example-namespace` |
 | `node_name` | `example-node-name` |
 | `pod  ` | `example-pod` |
-| `type ` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
 | `workload` | `example-workload` |
 
 ### `tetragon_policy_events_total`

@@ -76,20 +76,20 @@ func TestHandleProcessedEvent(t *testing.T) {
 
 	expected := strings.NewReader(`# HELP tetragon_events_total The total number of Tetragon events
 # TYPE tetragon_events_total counter
-tetragon_events_total{binary="",namespace="",node_name="",pod="",type="PROCESS_KPROBE",workload=""} 1
-tetragon_events_total{binary="",namespace="",node_name="",pod="",type="PROCESS_EXEC",workload=""} 1
-tetragon_events_total{binary="",namespace="",node_name="",pod="",type="PROCESS_EXIT",workload=""} 1
-tetragon_events_total{binary="",namespace="",node_name="",pod="",type="PROCESS_TRACEPOINT",workload=""} 1
-tetragon_events_total{binary="",namespace="",node_name="",pod="",type="unknown",workload=""} 1
-tetragon_events_total{binary="binary_a",namespace="",node_name="",pod="",type="PROCESS_KPROBE",workload=""} 1
-tetragon_events_total{binary="binary_a",namespace="namespace_a",node_name="",pod="pod_a",type="PROCESS_KPROBE",workload="workload_a"} 1
-tetragon_events_total{binary="binary_b",namespace="",node_name="",pod="",type="PROCESS_EXEC",workload=""} 1
-tetragon_events_total{binary="binary_b",namespace="namespace_b",node_name="",pod="pod_b",type="PROCESS_EXEC",workload="workload_b"} 1
-tetragon_events_total{binary="binary_c",namespace="",node_name="",pod="",type="PROCESS_TRACEPOINT",workload=""} 1
-tetragon_events_total{binary="binary_c",namespace="namespace_c",node_name="",pod="pod_c",type="PROCESS_TRACEPOINT",workload="workload_c"} 1
-tetragon_events_total{binary="binary_e",namespace="",node_name="",pod="",type="PROCESS_EXIT",workload=""} 1
-tetragon_events_total{binary="binary_e",namespace="namespace_e",node_name="",pod="pod_e",type="PROCESS_EXIT",workload="workload_e"} 1
-tetragon_events_total{binary="binary_f",namespace="",node_name="node_a",pod="",type="PROCESS_KPROBE",workload=""} 1
+tetragon_events_total{binary="",event_type="PROCESS_KPROBE",namespace="",node_name="",pod="",workload=""} 1
+tetragon_events_total{binary="",event_type="PROCESS_EXEC",namespace="",node_name="",pod="",workload=""} 1
+tetragon_events_total{binary="",event_type="PROCESS_EXIT",namespace="",node_name="",pod="",workload=""} 1
+tetragon_events_total{binary="",event_type="PROCESS_TRACEPOINT",namespace="",node_name="",pod="",workload=""} 1
+tetragon_events_total{binary="",event_type="unknown",namespace="",node_name="",pod="",workload=""} 1
+tetragon_events_total{binary="binary_a",event_type="PROCESS_KPROBE",namespace="",node_name="",pod="",workload=""} 1
+tetragon_events_total{binary="binary_a",event_type="PROCESS_KPROBE",namespace="namespace_a",node_name="",pod="pod_a",workload="workload_a"} 1
+tetragon_events_total{binary="binary_b",event_type="PROCESS_EXEC",namespace="",node_name="",pod="",workload=""} 1
+tetragon_events_total{binary="binary_b",event_type="PROCESS_EXEC",namespace="namespace_b",node_name="",pod="pod_b",workload="workload_b"} 1
+tetragon_events_total{binary="binary_c",event_type="PROCESS_TRACEPOINT",namespace="",node_name="",pod="",workload=""} 1
+tetragon_events_total{binary="binary_c",event_type="PROCESS_TRACEPOINT",namespace="namespace_c",node_name="",pod="pod_c",workload="workload_c"} 1
+tetragon_events_total{binary="binary_e",event_type="PROCESS_EXIT",namespace="",node_name="",pod="",workload=""} 1
+tetragon_events_total{binary="binary_e",event_type="PROCESS_EXIT",namespace="namespace_e",node_name="",pod="pod_e",workload="workload_e"} 1
+tetragon_events_total{binary="binary_f",event_type="PROCESS_KPROBE",namespace="",node_name="node_a",pod="",workload=""} 1
 `)
 	require.NoError(t, testutil.CollectAndCompare(EventsProcessed, expected))
 }
