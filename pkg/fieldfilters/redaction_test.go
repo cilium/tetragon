@@ -16,22 +16,22 @@ func TestRedactString_Simple(t *testing.T) {
 	re := regexp.MustCompile(`(ab)cd`)
 
 	s := "abcd"
-	res, modified := redactString(re, s)
+	res, modified := redactString(re, s, REDACTION_STR)
 	assert.Equal(t, REDACTION_STR+"cd", res)
 	assert.True(t, modified)
 
 	s = "cdef"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, REDACTION_STR)
 	assert.Equal(t, "cdef", res)
 	assert.False(t, modified)
 
 	s = "abef"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, REDACTION_STR)
 	assert.Equal(t, "abef", res)
 	assert.False(t, modified)
 
 	s = "innocent"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, REDACTION_STR)
 	assert.Equal(t, "innocent", res)
 	assert.False(t, modified)
 }
@@ -40,17 +40,17 @@ func TestRedactString_NonCapturing(t *testing.T) {
 	re := regexp.MustCompile(`(?:--password|-p)\s+(\S+)`)
 
 	s := "--password fooBarQuxBaz!"
-	res, modified := redactString(re, s)
+	res, modified := redactString(re, s, REDACTION_STR)
 	assert.Equal(t, "--password "+REDACTION_STR, res)
 	assert.True(t, modified)
 
 	s = "-p fooBarQuxBaz!"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, REDACTION_STR)
 	assert.Equal(t, "-p "+REDACTION_STR, res)
 	assert.True(t, modified)
 
 	s = "innocent"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, REDACTION_STR)
 	assert.Equal(t, "innocent", res)
 	assert.False(t, modified)
 }
@@ -59,12 +59,12 @@ func TestRedactString_Nested(t *testing.T) {
 	re := regexp.MustCompile(`(foo(bar))qux`)
 
 	s := "foobarqux"
-	res, modified := redactString(re, s)
+	res, modified := redactString(re, s, REDACTION_STR)
 	assert.Equal(t, REDACTION_STR+"qux", res)
 	assert.True(t, modified)
 
 	s = "innocent"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, REDACTION_STR)
 	assert.Equal(t, "innocent", res)
 	assert.False(t, modified)
 }
@@ -152,4 +152,59 @@ func TestRedact_ArgsWithEnvs(t *testing.T) {
 
 	str := strings.Join(envs, " ")
 	assert.Equal(t, "VAR1=XXX SSH_PASSWORD="+REDACTION_STR+" VAR2=YYY", str)
+}
+
+func TestRedactString_CustomStr(t *testing.T) {
+	re := regexp.MustCompile(`(?:--password|-p)\s+(\S+)`)
+	customStr := "<redacted:password>"
+
+	s := "--password fooBarQuxBaz!"
+	res, modified := redactString(re, s, customStr)
+	assert.Equal(t, "--password "+customStr, res)
+	assert.True(t, modified)
+
+	s = "innocent"
+	res, modified = redactString(re, s, customStr)
+	assert.Equal(t, "innocent", res)
+	assert.False(t, modified)
+}
+
+func TestRedact_CustomRedactStr(t *testing.T) {
+	args := "--verbose=true --password ybx511!ackt544 --username foobar"
+
+	filterList := `{"redact": ["(?:--password|-p)[\\s=]+(\\S+)"], "redact_str": "<redacted:password>"}`
+	filters, err := ParseRedactionFilterList(filterList)
+	require.NoError(t, err)
+
+	redacted, _ := filters.Redact("", args, []string{""})
+	assert.Equal(t, "--verbose=true --password <redacted:password> --username foobar", redacted)
+}
+
+func TestRedact_DefaultRedactStr(t *testing.T) {
+	args := "--verbose=true --password ybx511!ackt544 --username foobar"
+
+	// No redact_str specified, should default to REDACTION_STR
+	filterList := `{"redact": ["(?:--password|-p)[\\s=]+(\\S+)"]}`
+	filters, err := ParseRedactionFilterList(filterList)
+	require.NoError(t, err)
+
+	redacted, _ := filters.Redact("", args, []string{""})
+	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar", redacted)
+}
+
+func TestRedact_CustomRedactStr_Envs(t *testing.T) {
+	envs := []string{
+		"VAR1=XXX",
+		"SSH_PASSWORD=verysecretpassword",
+		"VAR2=YYY",
+	}
+
+	filterList := `{"redact": ["(?:SSH_PASSWORD)[\\s=]+(\\S+)"], "redact_str": "<redacted:env>"}`
+	filters, err := ParseRedactionFilterList(filterList)
+	require.NoError(t, err)
+
+	_, redacted := filters.Redact("", "", envs)
+
+	str := strings.Join(redacted, " ")
+	assert.Equal(t, "VAR1=XXX SSH_PASSWORD=<redacted:env> VAR2=YYY", str)
 }
