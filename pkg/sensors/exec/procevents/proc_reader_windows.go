@@ -20,7 +20,6 @@ import (
 	"github.com/cilium/tetragon/pkg/pidfile"
 
 	"github.com/cilium/tetragon/pkg/api"
-	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/proc"
@@ -93,8 +92,6 @@ var (
 	system = procs{
 		ppid:         4,
 		pnspid:       0,
-		pexe:         stringToUTF8([]byte("<kernel>")),
-		pcmdline:     stringToUTF8([]byte("<kernel>")),
 		pflags:       api.EventProcFS | api.EventNeedsCWD,
 		pktime:       bootTimeEpoch,
 		pid:          4,
@@ -200,13 +197,10 @@ func convertUTF16ToString(src []byte) string {
 func procKernel() procs {
 	kernelArgs := []byte("<kernel>\u0000")
 	return procs{
-		psize:       uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
 		ppid:        kernelPid,
 		pnspid:      0,
 		pflags:      api.EventProcFS,
 		pktime:      1,
-		pexe:        kernelArgs,
-		size:        uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
 		pid:         kernelPid,
 		tid:         kernelPid,
 		nspid:       0,
@@ -233,13 +227,9 @@ func getCWD(pid uint32) (string, uint32) {
 	cwd, err := os.Readlink(filepath.Join(option.Config.ProcFS, pidstr, "cwd"))
 	if err != nil {
 		flags |= api.EventRootCWD | api.EventErrorCWD
-		return " ", flags
+		return "", flags
 	}
 
-	if cwd == "/" {
-		cwd = " "
-		flags |= api.EventRootCWD
-	}
 	return cwd, flags
 }
 
@@ -480,7 +470,6 @@ func fetchProcessCmdLineFromHandle(hProc windows.Handle) (string, error) {
 // nolint:revive
 func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	var empty procs
-	var pcmdline string
 	var cmdline string
 	var ktime uint64
 	var pktime uint64
@@ -488,7 +477,6 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	var ppid = procEntry.ParentProcessID
 	var execPath = windows.UTF16ToString(procEntry.ExeFile[:])
 	var origExecPath = execPath
-	var pexecPath string
 	hProc, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_VM_READ|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
 	if err != nil {
 		logger.GetLogger().Warn(fmt.Sprintf("Failed Opening Process %d (%s)", pid, execPath), logfields.Error, err)
@@ -563,7 +551,6 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	var timeForChildrenNs uint32
 
 	var cgroupNs, userNs uint32
-	pcmdline = ""
 	pktime = 0
 	var pnspid uint32
 	if ppid != 0 {
@@ -574,19 +561,11 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 		if (err == nil) && (pidfile.IsPidAliveByHandle(hPProc)) {
 
 			defer windows.CloseHandle(hPProc)
-			pcmdline, err = fetchProcessCmdLineFromHandle(hPProc)
-			if err != nil {
-				logger.GetLogger().Warn("Reading parent process cmdline error", logfields.Error, err)
-			}
 			ptimes, err := getProcessTimesFromHandle(hPProc)
 			if err != nil {
 				logger.GetLogger().Warn("Reading parent process times error", logfields.Error, err)
 			} else {
 				pktime = uint64(ptimes.CreationTime.Nanoseconds())
-			}
-			pexecPath, err = getProcessImagePathFromHandle(hPProc)
-			if err != nil {
-				logger.GetLogger().Warn("Reading parent process image path error", logfields.Error, err)
 			}
 		} else {
 			logger.GetLogger().Warn(fmt.Sprintf("Failed Opening Parent Process %d", ppid), logfields.Error, err)
@@ -597,8 +576,6 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	p := procs{
 		ppid:              uint32(ppid),
 		pnspid:            pnspid,
-		pexe:              stringToUTF8([]byte(pexecPath)),
-		pcmdline:          stringToUTF8([]byte(pcmdline)),
 		pflags:            api.EventProcFS | api.EventNeedsCWD,
 		pktime:            pktime,
 		uids:              uids,
@@ -627,8 +604,6 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 		kernelThread:      false,
 	}
 
-	p.size = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.args()) + processapi.MSG_SIZEOF_CWD)
-	p.psize = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.pargs()) + processapi.MSG_SIZEOF_CWD)
 	return p, nil
 
 }

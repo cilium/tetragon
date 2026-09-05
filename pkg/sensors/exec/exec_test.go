@@ -44,7 +44,6 @@ import (
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper/docker"
 	"github.com/cilium/tetragon/pkg/option"
-	proc "github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -772,8 +771,7 @@ func TestExecParse(t *testing.T) {
 	// reflected in MsgExec::Flags.
 	//
 	// Based on the MsgExec::Flags the execParse function parses out MsgProcess
-	// object, and we retrieve and check its Args value with ArgsDecoder
-	// function which is used in GetProcess.
+	// object.
 
 	var err error
 
@@ -801,11 +799,8 @@ func TestExecParse(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, string(filename), process.Filename)
-		assert.Equal(t, string(cwd), process.Args)
-
-		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
-		assert.Empty(t, decArgs)
-		assert.Equal(t, string(cwd), decCwd)
+		assert.Equal(t, string(cwd), process.Cwd)
+		assert.Empty(t, process.Args)
 	})
 
 	t.Run("Empty args and cwd", func(t *testing.T) {
@@ -832,10 +827,7 @@ func TestExecParse(t *testing.T) {
 
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Empty(t, process.Args)
-
-		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
-		assert.Empty(t, decArgs)
-		assert.Empty(t, decCwd)
+		assert.Empty(t, process.Cwd)
 	})
 
 	t.Run("Filename as data event", func(t *testing.T) {
@@ -866,14 +858,9 @@ func TestExecParse(t *testing.T) {
 		process, err := execParse(reader)
 		require.NoError(t, err)
 
-		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
-		assert.Equal(t, string(cwd), process.Args)
-
-		// ArgsDecoder check
-		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
-		assert.Empty(t, decArgs)
-		assert.Equal(t, string(cwd), decCwd)
+		assert.Equal(t, string(cwd), process.Cwd)
+		assert.Empty(t, process.Args)
 	})
 
 	t.Run("Args as data event", func(t *testing.T) {
@@ -908,14 +895,9 @@ func TestExecParse(t *testing.T) {
 		process, err := execParse(reader)
 		require.NoError(t, err)
 
-		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
-		assert.Equal(t, string(args)+string(cwd), process.Args)
-
-		// ArgsDecoder check
-		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
-		assert.Equal(t, "arg1 arg2", decArgs)
-		assert.Equal(t, string(cwd), decCwd)
+		assert.Equal(t, "arg1 arg2", process.Args)
+		assert.Equal(t, string(cwd), process.Cwd)
 	})
 
 	t.Run("Filename and args as data event", func(t *testing.T) {
@@ -955,14 +937,9 @@ func TestExecParse(t *testing.T) {
 		process, err := execParse(reader)
 		require.NoError(t, err)
 
-		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
-		assert.Equal(t, string(args)+string(cwd), process.Args)
-
-		// ArgsDecoder check
-		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
-		assert.Equal(t, "arg1 arg2", decArgs)
-		assert.Equal(t, string(cwd), decCwd)
+		assert.Equal(t, "arg1 arg2", process.Args)
+		assert.Equal(t, string(cwd), process.Cwd)
 	})
 
 	t.Run("Filename and args as non-utf8", func(t *testing.T) {
@@ -1001,12 +978,8 @@ func TestExecParse(t *testing.T) {
 
 		// execParse check
 		assert.Equal(t, strutils.UTF8FromBPFBytes(filename), process.Filename)
-		assert.Equal(t, strutils.UTF8FromBPFBytes(args)+strutils.UTF8FromBPFBytes(cwd), process.Args)
-
-		// ArgsDecoder check
-		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
-		assert.Equal(t, "�( arg2", decArgs)
-		assert.Equal(t, strutils.UTF8FromBPFBytes(cwd), decCwd)
+		assert.Equal(t, strutils.UTF8FromBPFBytes(cwd), process.Cwd)
+		assert.Equal(t, "�( arg2", process.Args)
 	})
 
 	t.Run("Filename with api.EventErrorFilename", func(t *testing.T) {
@@ -1032,11 +1005,8 @@ func TestExecParse(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "<enomem>", process.Filename)
-		assert.Equal(t, string(cwd), process.Args)
-
-		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
-		assert.Empty(t, decArgs)
-		assert.Equal(t, string(cwd), decCwd)
+		assert.Equal(t, string(cwd), process.Cwd)
+		assert.Empty(t, process.Args)
 	})
 
 	t.Run("Filename, args, cwd and envs", func(t *testing.T) {
@@ -1074,10 +1044,8 @@ func TestExecParse(t *testing.T) {
 
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, []string{"A=1", "B=2"}, process.Envs)
-
-		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
-		assert.Equal(t, "arg1 arg2", decArgs)
-		assert.Equal(t, string(cwd), decCwd)
+		assert.Equal(t, "arg1 arg2", process.Args)
+		assert.Equal(t, string(cwd), process.Cwd)
 	})
 
 	t.Run("Filename, args, cwd and zero envs", func(t *testing.T) {
@@ -1111,10 +1079,8 @@ func TestExecParse(t *testing.T) {
 
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, []string(nil), process.Envs)
-
-		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
-		assert.Equal(t, "arg1 arg2", decArgs)
-		assert.Equal(t, string(cwd), decCwd)
+		assert.Equal(t, "arg1 arg2", process.Args)
+		assert.Equal(t, string(cwd), process.Cwd)
 	})
 
 	observer.DataPurge()

@@ -329,7 +329,10 @@ func initProcessInternalExec(
 	parent tetragonAPI.MsgExecveKey,
 ) *ProcessInternal {
 	process := event.Process
-	args, cwd := ArgsDecoder(process.Args, process.Flags)
+
+	args := process.Args
+	cwd := process.Cwd
+
 	var parentExecID string
 	if parent.Pid != 0 {
 		parentExecID = GetExecIDFromKey(&parent)

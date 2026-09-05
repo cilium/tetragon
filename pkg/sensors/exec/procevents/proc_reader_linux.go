@@ -4,6 +4,7 @@
 package procevents
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -37,13 +38,10 @@ const (
 func procKernel() procs {
 	kernelArgs := []byte("<kernel>\u0000")
 	return procs{
-		psize:       uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
 		ppid:        kernelPid,
 		pnspid:      0,
 		pflags:      api.EventProcFS,
 		pktime:      1,
-		pexe:        kernelArgs,
-		size:        uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
 		pid:         kernelPid,
 		tid:         kernelPid,
 		nspid:       0,
@@ -70,13 +68,9 @@ func getCWD(pid uint32) (string, uint32) {
 	cwd, err := os.Readlink(filepath.Join(option.Config.ProcFS, pidstr, "cwd"))
 	if err != nil {
 		flags |= api.EventRootCWD | api.EventErrorCWD
-		return " ", flags
+		return "", flags
 	}
 
-	if cwd == "/" {
-		cwd = " "
-		flags |= api.EventRootCWD
-	}
 	return cwd, flags
 }
 
@@ -152,10 +146,8 @@ func listRunningProcs(procPath string) ([]procs, error) {
 	pidForChildrenWarned := false
 
 	for _, d := range procFS {
-		var pcmdline []byte
 		var pstats []string
 		var pktime uint64
-		var pexecPath string
 		var pnspid uint32
 
 		if !d.IsDir() {
@@ -296,21 +288,6 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			var err error
 			parentPath := filepath.Join(procPath, ppid)
 
-			pcmdline, err = os.ReadFile(filepath.Join(parentPath, "cmdline"))
-			if err != nil {
-				logger.GetLogger().Warn("parent cmdline error", "path", parentPath, logfields.Error, err)
-				continue
-			}
-
-			pcomm, err := os.ReadFile(filepath.Join(parentPath, "comm"))
-			if err != nil {
-				continue
-			}
-
-			if string(pcmdline) == "" {
-				pcmdline = pcomm
-			}
-
 			pstats, err = proc.GetProcStatStrings(string(parentPath))
 			if err != nil {
 				logger.GetLogger().Warn("parent stats read error", logfields.Error, err)
@@ -327,7 +304,6 @@ func listRunningProcs(procPath string) ([]procs, error) {
 				pnspid, _, _, _ = caps.GetPIDCaps(filepath.Join(procPath, ppid, "status"))
 			}
 		} else {
-			pcmdline = nil
 			pstats = nil
 			pktime = 0
 			pnspid = 0
@@ -342,24 +318,9 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			}
 		}
 
-		if _ppid != 0 {
-			pexecPath, err = os.Readlink(filepath.Join(procPath, ppid, "exe"))
-			if err != nil {
-				if kernelThread {
-					pexecPath = strings.TrimSuffix(string(pcmdline), "\n")
-				} else {
-					logger.GetLogger().Warn("reading process exe error", "process", ppid, logfields.Error, err)
-				}
-			}
-		} else {
-			pexecPath = ""
-		}
-
 		p := procs{
 			ppid:              uint32(_ppid),
 			pnspid:            pnspid,
-			pexe:              stringToUTF8([]byte(pexecPath)),
-			pcmdline:          stringToUTF8(pcmdline),
 			pflags:            api.EventProcFS | api.EventNeedsCWD,
 			pktime:            pktime,
 			uids:              uids,
@@ -387,9 +348,6 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			userNs:            userNs,
 			kernelThread:      kernelThread,
 		}
-
-		p.size = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.args()) + processapi.MSG_SIZEOF_CWD)
-		p.psize = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.pargs()) + processapi.MSG_SIZEOF_CWD)
 
 		processes = append(processes, p)
 	}
@@ -426,7 +384,7 @@ func procToKeyValue(p procs, inInitTree map[uint32]struct{}) (*execvemap.ExecveK
 	v.Binary.PathLength = int32(pathLength)
 	// The execve map stores argv[1:] because argv[0] is represented by
 	// Binary.Path. procfs cmdline includes argv[0] as its first entry.
-	args, _ := procsFilename(p.cmdline)
+	_, args, _ := bytes.Cut(p.cmdline, []byte{'\x00'})
 	argsLength := copy(v.Args.Buf[:], args)
 	v.Args.Len = uint32(argsLength)
 

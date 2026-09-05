@@ -4,8 +4,10 @@
 package procevents
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/cilium/tetragon/pkg/api"
@@ -19,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/proc"
 	"github.com/cilium/tetragon/pkg/sensors/exec/userinfo"
+	"github.com/cilium/tetragon/pkg/strutils"
 )
 
 const (
@@ -38,14 +41,10 @@ func stringToUTF8(s []byte) []byte {
 }
 
 type procs struct {
-	psize             uint32
 	ppid              uint32
 	pnspid            uint32
 	pflags            uint32
 	pktime            uint64
-	pcmdline          []byte
-	pexe              []byte
-	size              uint32
 	uids              []uint32
 	gids              []uint32
 	pid               uint32
@@ -72,75 +71,76 @@ type procs struct {
 	kernelThread      bool
 }
 
-func (p procs) args() []byte {
-	// exe and cmdline are already in UTF8
-	return proc.PrependPath(string(p.exe), p.cmdline)
+func procFilename(p *procs) string {
+	filename := string(p.exe)
+
+	// If this is a kernel thread, we use its filename as process name
+	// similarly to what ps reports.
+	if p.kernelThread {
+		return fmt.Sprintf("[%s]", filename)
+	}
+
+	return filename
 }
 
-func (p procs) pargs() []byte {
-	return proc.PrependPath(string(p.pexe), p.pcmdline)
+func procArgs(p *procs) string {
+	if p.kernelThread {
+		return ""
+	}
+
+	// skip argv[0], it's already resolved as the filename
+	_, data, _ := bytes.Cut(p.cmdline, []byte{'\x00'})
+
+	if len(data) > 0 && data[len(data)-1] == '\x00' {
+		data = data[:len(data)-1]
+	}
+
+	if len(data) == 0 {
+		return ""
+	}
+
+	var args strings.Builder
+
+	for arg := range bytes.SplitSeq(data, []byte{'\x00'}) {
+		if args.Len() > 0 {
+			args.WriteByte(' ')
+		}
+
+		if len(arg) == 0 {
+			args.WriteString(`""`)
+			continue
+		}
+
+		hasWhiteSpace := bytes.Contains(arg, []byte{' '})
+
+		if hasWhiteSpace {
+			args.WriteByte('"')
+		}
+
+		if utf8.Valid(arg) {
+			args.Write(arg)
+		} else {
+			args.WriteString(strutils.UTF8FromBPFBytes(arg))
+		}
+
+		if hasWhiteSpace {
+			args.WriteByte('"')
+		}
+	}
+
+	return args.String()
 }
 
 func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 	var err error
 
-	/* If we can't fit this in the buffer lets trim some parts and
-	 * make it fit.
-	 */
-	rawArgs := p.args()
-	rawPargs := p.pargs()
-
-	if p.size+p.psize > processapi.MSG_SIZEOF_BUFFER {
-		var deduct uint32
-		var need int32
-
-		need = int32((p.size + p.psize) - processapi.MSG_SIZEOF_BUFFER)
-		// First consume CWD space from parent because this speculative extra space
-		// next try to consume CWD space from child and finally start truncating args
-		// if necessary.
-		deduct = processapi.MSG_SIZEOF_CWD
-		p.pflags = p.pflags & ^uint32(api.EventNeedsCWD)
-		p.pflags = p.pflags | api.EventNoCWDSupport
-		p.psize -= deduct
-		need -= int32(deduct)
-		if need > 0 {
-			deduct = processapi.MSG_SIZEOF_CWD
-			p.size -= deduct
-			p.flags = p.flags & ^uint32(api.EventNeedsCWD)
-			p.flags = p.flags | api.EventNoCWDSupport
-			need -= int32(deduct)
-		}
-
-		for range need {
-			if len(rawPargs) > len(rawArgs) {
-				p.pflags |= api.EventTruncArgs
-				rawPargs = rawPargs[:len(rawPargs)-1]
-				p.psize--
-			} else {
-				p.flags |= api.EventTruncArgs
-				rawArgs = rawArgs[:len(rawArgs)-1]
-				p.size--
-			}
-		}
-	}
-
-	args, filename := procsFilename(rawArgs)
+	filename := procFilename(&p)
+	args := procArgs(&p)
 	cwd, flags := getCWD(p.pid)
-	if (flags & api.EventRootCWD) == 0 {
-		args = args + " " + cwd
-	}
-
-	// If this is a kernel thread, we use its filename as process name
-	// similarly to what ps reports.
-	if p.kernelThread {
-		filename = fmt.Sprintf("[%s]", filename)
-		args = ""
-	}
 
 	if p.kernelThread {
 		m := exec.MsgKThreadInitUnix{}
 		m.Unix = &processapi.MsgExecveEventUnix{}
-		m.Unix.Msg = &processapi.MsgExecveEvent{}
 
 		m.Unix.Msg.Common = processapi.MsgCommon{}
 		m.Unix.Msg.Kube = processapi.MsgK8s{}
@@ -152,7 +152,6 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 		m.Unix.Msg.Creds.Cap = processapi.MsgCapabilities{}
 		m.Unix.Msg.Namespaces = processapi.MsgNamespaces{}
 
-		m.Unix.Process.Size = p.size
 		m.Unix.Process.PID = p.pid
 		m.Unix.Process.TID = p.pid
 		m.Unix.Process.NSPID = p.nspid
@@ -167,10 +166,7 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 		observer.AllListeners(&m)
 	} else {
 		m := exec.MsgExecveEventUnix{}
-		m.Unix = &processapi.MsgExecveEventUnix{}
-		m.Unix.Msg = &processapi.MsgExecveEvent{}
 		m.Unix.Msg.Common.Op = ops.MSG_OP_EXECVE
-		m.Unix.Msg.Common.Size = processapi.MsgUnixSize + p.psize + p.size
 
 		m.Unix.Msg.Kube.Cgrpid = 0
 		if p.pid > 0 {
@@ -210,7 +206,6 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 		m.Unix.Msg.Namespaces.CgroupInum = p.cgroupNs
 		m.Unix.Msg.Namespaces.UserInum = p.userNs
 
-		m.Unix.Process.Size = p.size
 		m.Unix.Process.PID = p.pid
 		m.Unix.Process.TID = p.tid
 		m.Unix.Process.NSPID = p.nspid
@@ -227,12 +222,13 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 		m.Unix.Msg.Common.Ktime = p.ktime
 		m.Unix.Process.Filename = filename
 		m.Unix.Process.Args = args
+		m.Unix.Process.Cwd = cwd
 
 		if _, ok := inInitTreeMap[m.Unix.Process.PID]; ok {
 			m.Unix.Process.Flags |= api.EventInInitTree
 		}
 
-		err := userinfo.MsgToExecveAccountUnix(m.Unix)
+		err := userinfo.MsgToExecveAccountUnix(&m.Unix)
 		if err != nil {
 			logger.Trace(logger.GetLogger(), "Resolving process uid to username record failed",
 				logfields.Error, err,

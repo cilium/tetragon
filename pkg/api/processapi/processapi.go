@@ -139,7 +139,7 @@ type MsgExecveEvent struct {
 }
 
 type MsgExecveEventUnix struct {
-	Msg     *MsgExecveEvent
+	Msg     MsgExecveEvent
 	Kube    MsgK8sUnix
 	Process MsgProcess
 }
@@ -215,6 +215,7 @@ type MsgProcess struct {
 	Ktime      uint64
 	Filename   string
 	Args       string
+	Cwd        string
 	Envs       []string
 	User       MsgUserRecord
 }

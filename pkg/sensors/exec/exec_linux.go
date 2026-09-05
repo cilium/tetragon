@@ -8,6 +8,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
+	"unicode/utf8"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
@@ -30,12 +32,9 @@ import (
 	"github.com/cilium/tetragon/pkg/strutils"
 )
 
-func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
-	unix := &exec.MsgExecveEventUnix{}
-	unix.Unix = &processapi.MsgExecveEventUnix{}
-	unix.Unix.Msg = m
-	return unix
-}
+const (
+	errorNoMem = "<enomem>"
+)
 
 func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, execID string, filename string) processapi.MsgK8sUnix {
 	kube := processapi.MsgK8sUnix{
@@ -80,10 +79,198 @@ func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, execID string, filename s
 	return kube
 }
 
+func readData(reader *bytes.Reader, size uint16) ([]byte, error) {
+	var desc dataapi.DataEventDesc
+
+	if uint16(unsafe.Sizeof(desc)) != size {
+		return nil, errors.New("msg exec mismatched size")
+	}
+	if err := binary.Read(reader, binary.LittleEndian, &desc); err != nil {
+		return nil, err
+	}
+	return observer.DataGet(desc)
+}
+
+func readRawBytes(reader *bytes.Reader, exec *processapi.MsgExec, size uint16, flags uint32) ([]byte, error) {
+	if size == 0 {
+		return nil, nil
+	}
+
+	if exec.Flags&flags != 0 {
+		data, err := readData(reader, size)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return data, nil
+	}
+
+	data := make([]byte, size)
+
+	nread, err := reader.Read(data)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if nread != int(size) {
+		return nil, errors.New("size mismatch")
+	}
+
+	return data, nil
+}
+
+func resolveArgs(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) {
+	if exec.SizeArgs == 0 {
+		return "", nil
+	}
+
+	data, err := readRawBytes(reader, exec, exec.SizeArgs, api.EventDataArgs)
+
+	if err != nil {
+		return "", err
+	}
+
+	if len(data) > 0 && data[len(data)-1] == '\x00' {
+		data = data[:len(data)-1]
+	}
+
+	if len(data) == 0 {
+		return "", nil
+	}
+
+	size := 0
+	numArgs := 0
+
+	for arg := range bytes.SplitSeq(data, []byte{'\x00'}) {
+		numArgs++
+
+		if len(arg) == 0 {
+			size += 2
+			continue
+		}
+
+		size += len(arg)
+
+		if bytes.Contains(arg, []byte{' '}) {
+			size += 2
+		}
+	}
+
+	if numArgs > 1 {
+		size += numArgs - 1
+	}
+
+	var args strings.Builder
+	args.Grow(size)
+
+	for arg := range bytes.SplitSeq(data, []byte{'\x00'}) {
+		if args.Len() > 0 {
+			args.WriteByte(' ')
+		}
+
+		if len(arg) == 0 {
+			args.WriteString(`""`)
+			continue
+		}
+
+		hasWhiteSpace := bytes.Contains(arg, []byte{' '})
+
+		if hasWhiteSpace {
+			args.WriteByte('"')
+		}
+
+		if utf8.Valid(arg) {
+			args.Write(arg)
+		} else {
+			args.WriteString(strutils.UTF8FromBPFBytes(arg))
+		}
+
+		if hasWhiteSpace {
+			args.WriteByte('"')
+		}
+	}
+
+	return args.String(), nil
+}
+
+func resolveCwd(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) {
+	var cwd []byte
+
+	if exec.SizeCwd > 0 {
+		cwd = make([]byte, exec.SizeCwd)
+
+		nread, err := reader.Read(cwd)
+
+		if err != nil {
+			return "", err
+		}
+
+		if nread != int(exec.SizeCwd) {
+			return "", errors.New("cwd size mismatch")
+		}
+	}
+
+	if (exec.Flags & api.EventNoCWDSupport) != 0 {
+		return "", nil
+	} else if (exec.Flags & api.EventErrorCWD) != 0 {
+		return "", nil
+	} else if (exec.Flags & api.EventRootCWD) != 0 {
+		return "/", nil
+	}
+
+	if len(cwd) == 0 {
+		return "", nil
+	}
+
+	return strutils.UTF8FromBPFBytes(cwd), nil
+}
+
+func resolveFilename(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) {
+	if exec.SizePath == 0 {
+		return errorNoMem, nil
+	}
+
+	data, err := readRawBytes(reader, exec, exec.SizePath, api.EventDataFilename)
+
+	if err != nil {
+		return "", err
+	}
+
+	return strutils.UTF8FromBPFBytes(data), nil
+}
+
+func resolveProcEnvs(reader *bytes.Reader, exec *processapi.MsgExec) ([]string, error) {
+	if exec.SizeEnvs == 0 {
+		return nil, nil
+	}
+
+	data, err := readRawBytes(reader, exec, exec.SizeEnvs, api.EventDataEnvs)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// cut the zero byte
+	if data[len(data)-1] == '\x00' {
+		data = data[:len(data)-1]
+	}
+
+	var ret []string
+
+	for v := range bytes.SplitSeq(data, []byte{0}) {
+		ret = append(ret, strutils.UTF8FromBPFBytes(v))
+	}
+
+	return ret, nil
+}
+
 func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 	proc := processapi.MsgProcess{
-		Filename: "<enomem>",
-		Args:     "<enomem>",
+		Filename: errorNoMem,
+		Args:     errorNoMem,
+		Cwd:      errorNoMem,
 		Size:     processapi.MSG_SIZEOF_EXECVE,
 	}
 	exec := processapi.MsgExec{}
@@ -116,104 +303,52 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 		return proc, err
 	}
 
-	readData := func(size uint16) ([]byte, error) {
-		var desc dataapi.DataEventDesc
+	filename, err := resolveFilename(reader, &exec)
 
-		if uint16(unsafe.Sizeof(desc)) != size {
-			return nil, errors.New("msg exec mismatched size")
-		}
-		if err := binary.Read(reader, binary.LittleEndian, &desc); err != nil {
-			return nil, err
-		}
-		return observer.DataGet(desc)
+	if err != nil {
+		return proc, err
 	}
 
-	if exec.SizePath != 0 {
-		if exec.Flags&api.EventDataFilename != 0 {
-			data, err := readData(exec.SizePath)
-			if err != nil {
-				return proc, err
-			}
-			proc.Filename = strutils.UTF8FromBPFBytes(data[:])
-		} else {
-			path := make([]byte, exec.SizePath)
+	proc.Filename = filename
 
-			if err := binary.Read(reader, binary.LittleEndian, &path); err != nil {
-				return proc, err
-			}
-			proc.Filename = strutils.UTF8FromBPFBytes(path[:exec.SizePath])
-		}
+	arguments, err := resolveArgs(reader, &exec)
+
+	if err != nil {
+		return proc, err
 	}
 
-	var cmdArgs [][]byte
+	proc.Args = arguments
 
-	if exec.SizeArgs != 0 {
-		if exec.Flags&api.EventDataArgs != 0 {
-			data, err := readData(exec.SizeArgs)
-			if err != nil {
-				return proc, err
-			}
-			// cut the zero byte
-			if len(data) > 0 {
-				n := len(data) - 1
-				cmdArgs = bytes.Split(data[:n], []byte{0x00})
-			}
-		} else {
-			data := make([]byte, exec.SizeArgs)
-			if err := binary.Read(reader, binary.LittleEndian, &data); err != nil {
-				return proc, err
-			}
-			cmdArgs = bytes.Split(data[:exec.SizeArgs], []byte{0x00})
-		}
+	cwd, err := resolveCwd(reader, &exec)
+
+	if err != nil {
+		return proc, err
 	}
 
-	if exec.SizeCwd != 0 {
-		cwd := make([]byte, exec.SizeCwd)
+	proc.Cwd = cwd
 
-		if err := binary.Read(reader, binary.LittleEndian, &cwd); err != nil {
-			return proc, err
-		}
-		cmdArgs = append(cmdArgs, cwd)
+	envs, err := resolveProcEnvs(reader, &exec)
+
+	if err != nil {
+		return proc, err
 	}
 
-	if exec.SizeEnvs != 0 {
-		var data []byte
-		var err error
-
-		if exec.Flags&api.EventDataEnvs != 0 {
-			data, err = readData(exec.SizeEnvs)
-			if err != nil {
-				return proc, err
-			}
-			// cut the zero byte
-			data = data[:len(data)-1]
-		} else {
-			data = make([]byte, exec.SizeEnvs)
-			if err := binary.Read(reader, binary.LittleEndian, &data); err != nil {
-				return proc, err
-			}
-		}
-
-		for v := range bytes.SplitSeq(data, []byte{0}) {
-			proc.Envs = append(proc.Envs, strutils.UTF8FromBPFBytes(v))
-		}
-	}
+	proc.Envs = envs
 
 	proc.Size = exec.Size
-	proc.Args = strutils.UTF8FromBPFBytes(bytes.Join(cmdArgs[0:], []byte{0x00}))
 	return proc, nil
 }
 
 func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
-	m := processapi.MsgExecveEvent{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	msgUnix := &exec.MsgExecveEventUnix{}
+
+	err := binary.Read(r, binary.LittleEndian, &msgUnix.Unix.Msg)
 	if err != nil {
 		return nil, err
 	}
-	msgUnix := msgToExecveUnix(&m)
 	msgUnix.Unix.Process, err = execParse(r)
 	if err == nil {
-		err = userinfo.MsgToExecveAccountUnix(msgUnix.Unix)
+		err = userinfo.MsgToExecveAccountUnix(&msgUnix.Unix)
 		if err != nil {
 			logger.Trace(logger.GetLogger(), "Resolving process uid to username record failed",
 				logfields.Error, err,
@@ -222,7 +357,7 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 				"process.uid", msgUnix.Unix.Process.UID)
 		}
 	}
-	msgUnix.Unix.Kube = msgToExecveKubeUnix(&m, process.GetExecID(&msgUnix.Unix.Process), msgUnix.Unix.Process.Filename)
+	msgUnix.Unix.Kube = msgToExecveKubeUnix(&msgUnix.Unix.Msg, process.GetExecID(&msgUnix.Unix.Process), msgUnix.Unix.Process.Filename)
 	return []observer.Event{msgUnix}, nil
 }
 
