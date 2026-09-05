@@ -275,6 +275,25 @@ Another example is to redact `SSHPASS` environment variable with:
 Now, an event that contains the string `"SSHPASS=password"` would have that string
 replaced with `"SSHPASS=*****"`.
 
+Optionally, you can specify a custom replacement string using the `redact_str`
+field. If not specified, it defaults to `"*****"` for backwards compatibility.
+This is useful for distinguishing different redaction rules in alerts:
+
+```json
+{"redact": ["--password(?:\\\\s+|=)(\\\\S*)"], "redact_str": "<redacted:password>"}
+```
+
+Now, an event that contains the string `"--password=foo"` would have that string
+replaced with `"--password=<redacted:password>"`.
+
+Different rules can use different replacement strings to make it easy to
+identify which rule triggered:
+
+```json
+{"redact": ["(?i)--private[-_]?key(?:\\\\s+|=)(\\\\S+)"], "redact_str": "<redacted:private-key>"}
+{"redact": ["(?i)[a-z][a-z0-9+.-]*://[^\\\\s:/@]*:([^\\\\s@/]+)@"], "redact_str": "<redacted:url-credential>"}
+```
+
 It's also possible to store only requested environment variables with
 '--filter-environment-variables VAR1[,VAR2..]' option.
 

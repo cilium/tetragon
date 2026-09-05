@@ -147,6 +147,13 @@ tetragon:
   #
   # With both of the above redaction filters in place, we are now redacting all
   # password arguments.
+  #
+  # Optionally, you can specify a custom replacement string using the `redact_str`
+  # field. If not specified, it defaults to "*****" for backwards compatibility.
+  # This is useful for distinguishing different redaction rules:
+  #
+  #   {"redact": ["--password(?:\\\\s+|=)(\\\\S*)"], "redact_str": "<redacted:password>"}
+  #
   redactionFilters: ""
   # -- Name of the cluster where Tetragon is installed. Tetragon uses this value
   # to set the cluster_name field in GetEventsResponse messages.
