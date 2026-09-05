@@ -47,6 +47,7 @@ type observerUsdtSensor struct {
 type usdtHas struct {
 	sleepableOffload bool
 	sleepablePreload bool
+	uprobeHeapSize   int
 }
 
 var (
@@ -152,6 +153,9 @@ func createGenericUsdtSensor(
 		useMulti:   !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
 	}
 
+	// user process_call_heap override
+	has.uprobeHeapSize = polInfo.specOpts.UprobeHeapSize
+
 	hasSetAction := false
 
 	defer func() {
@@ -243,8 +247,9 @@ func createMultiUsdtSensor(
 	tailCalls := program.MapBuilderProgram("usdt_calls", load)
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	workloadsMap := program.MapBuilderProgram("workloads_map", load)
+	processCallHeap := getProcessCallHeapMap(has.uprobeHeapSize, load)
 
-	maps = append(maps, configMap, tailCalls, filterMap, workloadsMap)
+	maps = append(maps, configMap, tailCalls, filterMap, workloadsMap, processCallHeap)
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))

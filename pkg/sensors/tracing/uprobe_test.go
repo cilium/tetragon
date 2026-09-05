@@ -1392,6 +1392,126 @@ spec:` + opts + `
 	})
 }
 
+func TestUprobeProcessCallHeapMapConfig(t *testing.T) {
+	testUprobeProcessCallHeapMapConfig(t, false)
+}
+
+func TestUprobeProcessCallHeapMapConfigWithMax(t *testing.T) {
+	testUprobeProcessCallHeapMapConfig(t, true)
+}
+
+func testUprobeProcessCallHeapMapConfig(t *testing.T, withMax bool) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping, x86_64 only test")
+	}
+	if !bpf.HasUprobeMulti() {
+		t.Skip("skipping, no uprobe multi support in kernel; process_call_heap is only wired up for the multi-attach path")
+	}
+
+	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+
+	// uprobe policy with a return probe, so both the entry and retprobe
+	// programs build their own process_call_heap map; opts is the options
+	// block (may be empty)
+	policy := func(opts string) string {
+		return `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-heap"
+spec:` + opts + `
+  uprobes:
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_arg1"
+    return: true
+    returnArg:
+      index: 0
+      type: "int"
+`
+	}
+
+	loadSensors := func(t *testing.T, config string) []*sensors.Sensor {
+		createCrdFile(t, config)
+		sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile,
+			tus.Conf().TetragonLib, observertesthelper.WithKeepCollection())
+		require.NoError(t, err)
+		return sens
+	}
+
+	unloadSensors := func(sens []*sensors.Sensor) {
+		sensi := make([]sensors.SensorIface, 0, len(sens))
+		for _, s := range sens {
+			sensi = append(sensi, s)
+		}
+		sensors.UnloadSensors(sensi)
+	}
+
+	findProcessCallHeapMaps := func(sens []*sensors.Sensor) []*program.Map {
+		var maps []*program.Map
+		for _, s := range sens {
+			for _, m := range s.Maps {
+				if m.Name == "process_call_heap" {
+					maps = append(maps, m)
+				}
+			}
+		}
+		return maps
+	}
+
+	getMaxEntries := func(m *program.Map) uint32 {
+		path := filepath.Join(bpf.MapPrefixPath(), m.PinPath)
+		val, err := program.GetMaxEntriesPinnedMap(path)
+		require.NoError(t, err)
+		return val
+	}
+
+	if withMax {
+		originalSize := option.Config.UprobeHeapSize
+		option.Config.UprobeHeapSize = 2048
+		t.Cleanup(func() { option.Config.UprobeHeapSize = originalSize })
+	}
+
+	// process_call_heap as MapShared at global scope
+	// (/sys/fs/bpf/tetragon/process_call_heap), covering both the entry
+	// and retprobe programs
+	t.Run("shared", func(t *testing.T) {
+		sens := loadSensors(t, policy(""))
+		defer unloadSensors(sens)
+
+		maps := findProcessCallHeapMaps(sens)
+		require.NotEmpty(t, maps, "process_call_heap map not found in sensor")
+
+		for _, m := range maps {
+			assert.Equal(t, "process_call_heap", m.PinPath)
+			if withMax {
+				assert.Equal(t, uint32(2048), getMaxEntries(m))
+			} else {
+				assert.Equal(t, uint32(defaults.DefaultUprobeHeapSize), getMaxEntries(m))
+			}
+		}
+	})
+
+	// process_call_heap as MapBuilderProgram at program scope
+	// (.../policy/sensor/prog/process_call_heap)
+	t.Run("program", func(t *testing.T) {
+		sens := loadSensors(t, policy(`
+  options:
+  - name: "uprobe-heap-size"
+    value: "1024"`))
+		defer unloadSensors(sens)
+
+		maps := findProcessCallHeapMaps(sens)
+		require.NotEmpty(t, maps, "process_call_heap map not found in sensor")
+
+		for _, m := range maps {
+			assert.NotEqual(t, "process_call_heap", m.PinPath)
+			assert.Equal(t, "process_call_heap", filepath.Base(m.PinPath))
+			assert.Equal(t, uint32(1024), getMaxEntries(m))
+		}
+	})
+}
+
 // Some uprobes configurations (ie digest verification) disallow disable/re-enable of a policy.
 // This test ensures that we can disable and re-enable a policy when
 // policy configuration allows it.

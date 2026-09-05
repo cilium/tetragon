@@ -469,6 +469,7 @@ type uprobeHas struct {
 	substring            bool
 	sleepablePreloadSize int
 	sleepableOffloadSize int
+	uprobeHeapSize       int
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -926,6 +927,9 @@ func createGenericUprobeSensor(
 
 	// user sleepable_offload override
 	has.sleepableOffloadSize = polInfo.specOpts.SleepableOffloadSize
+
+	// user process_call_heap override
+	has.uprobeHeapSize = polInfo.specOpts.UprobeHeapSize
 
 	if useMulti {
 		// if we are using multi-uprobe, CEL expressions are shared across all uprobes
@@ -1462,6 +1466,19 @@ func getSleepableOffloadMap(userSize int, load *program.Program) *program.Map {
 	return m
 }
 
+func getProcessCallHeapMap(userSize int, load *program.Program) *program.Map {
+	var m *program.Map
+
+	if userSize != 0 {
+		m = program.MapBuilderProgram("process_call_heap", load)
+		m.SetMaxEntries(userSize)
+	} else {
+		m = program.MapShared("process_call_heap", load)
+		m.SetMaxEntries(option.Config.UprobeHeapSize)
+	}
+	return m
+}
+
 func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []idtable.EntryID, has uprobeHas) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
@@ -1511,8 +1528,9 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	tailCalls := program.MapBuilderProgram("uprobe_calls", load)
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
+	processCallHeap := getProcessCallHeapMap(has.uprobeHeapSize, load)
 
-	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
+	maps = append(maps, configMap, tailCalls, filterMap, retProbe, processCallHeap)
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil))...)
 
 	if has.substring {
@@ -1569,6 +1587,9 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		maps = append(maps, retTailCalls)
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
+
+		retProcessCallHeap := getProcessCallHeapMap(has.uprobeHeapSize, loadret)
+		maps = append(maps, retProcessCallHeap)
 	}
 
 	return progs, maps, nil
