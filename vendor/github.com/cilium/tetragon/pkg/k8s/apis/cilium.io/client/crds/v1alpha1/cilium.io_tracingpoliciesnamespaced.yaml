@@ -624,6 +624,11 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
+                                  type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -1153,6 +1158,11 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -2013,6 +2023,11 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
+                                  type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -2542,6 +2557,11 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -3124,6 +3144,11 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
+                                  type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -3653,6 +3678,11 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -4196,6 +4226,11 @@ spec:
                               limiting applies regardless of which process or thread caused the action.
                               Only valid with the post action and with a rateLimit specified.
                             type: string
+                          sopath:
+                            description: |-
+                              For ArgNewSymbol, indicates to load the new symbol
+                              from a shared object located at sopath.
+                            type: string
                           userStackTrace:
                             description: Enable user stack trace export. Only valid
                               with the post action.
@@ -4718,6 +4753,11 @@ spec:
                               then rate limiting applies per process; if "global" is selected then rate
                               limiting applies regardless of which process or thread caused the action.
                               Only valid with the post action and with a rateLimit specified.
+                            type: string
+                          sopath:
+                            description: |-
+                              For ArgNewSymbol, indicates to load the new symbol
+                              from a shared object located at sopath.
                             type: string
                           userStackTrace:
                             description: Enable user stack trace export. Only valid
@@ -5251,6 +5291,11 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
+                                  type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -5780,6 +5825,11 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -6602,6 +6652,11 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
+                                  type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -7131,6 +7186,11 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -7695,6 +7755,11 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
+                                  type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -8224,6 +8289,11 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, indicates to load the new symbol
+                                    from a shared object located at sopath.
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only

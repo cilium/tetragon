@@ -93,6 +93,39 @@ var (
 	}
 )
 
+func getTgRuntimeConf() (*confmap.TetragonConfValue, error) {
+	nspid := os.Getpid()
+
+	// First let's detect cgroupfs magic
+	cgroupFsMagic, err := cgroups.DetectCgroupFSMagic()
+	if err != nil {
+		return nil, err
+	}
+
+	// This must be called before probing cgroup configurations
+	if err = cgroups.DiscoverSubSysIds(); err != nil { // nolint: staticcheck // DiscoverSubSysIds is always return non-nil error in windows
+		return nil, err
+	}
+
+	// Detect deployment mode
+	_, err = cgroups.DetectDeploymentMode()
+	if err != nil {
+		return nil, err
+	}
+
+	return &confmap.TetragonConfValue{
+		LogLevel:          uint32(logger.GetLogLevel(logger.GetLogger())),
+		TgCgrpHierarchy:   cgroups.GetCgrpHierarchyID(),
+		TgCgrpv1SubsysIdx: cgroups.GetCgrpv1SubsystemIdx(),
+		NSPID:             uint32(nspid),
+		CgrpFsMagic:       cgroupFsMagic,
+	}, nil
+}
+
+func readTgRuntimeConf(mapDir string) (*confmap.TetragonConfValue, error) {
+	return confmap.ReadTgRuntimeConf(mapDir)
+}
+
 func getTrackingLevel(cgroupHierarchy []cgroupHierarchy) uint32 {
 	level := 0
 	for i, cgroup := range cgroupHierarchy {
@@ -118,7 +151,7 @@ func logDefaultCgroupConfig(t *testing.T) {
 }
 
 func logTetragonConfig(t *testing.T, mapDir string) error {
-	conf, err := testutils.ReadTgRuntimeConf(mapDir)
+	conf, err := readTgRuntimeConf(mapDir)
 	if err != nil {
 		return err
 	}
@@ -541,7 +574,7 @@ func getTestCgroupDirAndHierarchy(t *testing.T) (string, string) {
 // Returns the name of controller to be used on success, empty on failures
 func changeTestCgrpController(t *testing.T, trackingCgrpLevel, traceLevel uint32, selectedController string) string {
 	// First ensure that we detect full environment
-	_, err := testutils.GetTgRuntimeConf()
+	_, err := getTgRuntimeConf()
 	require.NoError(t, err)
 
 	for _, ctrl := range cgroups.CgroupControllers {
@@ -557,7 +590,7 @@ func changeTestCgrpController(t *testing.T, trackingCgrpLevel, traceLevel uint32
 }
 
 func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, subSysIdx uint32) {
-	val, err := testutils.GetTgRuntimeConf()
+	val, err := getTgRuntimeConf()
 	if err != nil {
 		t.Fatalf("GetTgRuntimeConf() failed: %v", err)
 	}
@@ -605,7 +638,7 @@ func TestTgRuntimeConf(t *testing.T) {
 
 	tus.LoadInitialSensor(t)
 
-	val, err := testutils.GetTgRuntimeConf()
+	val, err := getTgRuntimeConf()
 	require.NoError(t, err)
 
 	assert.NotZero(t, val.NSPID)
@@ -615,7 +648,7 @@ func TestTgRuntimeConf(t *testing.T) {
 	err = confmap.UpdateConfMap(mapDir, val)
 	require.NoError(t, err)
 
-	ret, err := testutils.ReadTgRuntimeConf(mapDir)
+	ret, err := readTgRuntimeConf(mapDir)
 	require.NoError(t, err)
 
 	assert.Equal(t, ret, val)
@@ -859,7 +892,7 @@ func testCgroupv2HierarchyInUnified(ctx context.Context, t *testing.T,
 // Test Cgroupv2 tries to emulate k8s hierarchy without exec context
 // Works in systemd unified and hybrid mode according to parameter
 func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.CgroupModeCode, withExec bool) {
-	_, err := testutils.GetTgRuntimeConf()
+	_, err := getTgRuntimeConf()
 	require.NoError(t, err)
 	if mode != cgroups.CGROUP_HYBRID && mode != cgroups.CGROUP_UNIFIED {
 		logDefaultCgroupConfig(t)
@@ -1072,7 +1105,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 	tus.LoadSensor(t, testsensor.GetCgroupSensor())
 
 	// Probe full environment detection
-	_, err := testutils.GetTgRuntimeConf()
+	_, err := getTgRuntimeConf()
 	require.NoError(t, err)
 	if cgroups.GetCgroupMode() != cgroups.CGROUP_HYBRID {
 		logDefaultCgroupConfig(t)
@@ -1327,7 +1360,7 @@ func TestCgroupv2ExecK8sHierarchyInUnified(t *testing.T) {
 	tus.LoadSensor(t, testsensor.GetCgroupSensor())
 
 	// Probe full environment detection
-	_, err := testutils.GetTgRuntimeConf()
+	_, err := getTgRuntimeConf()
 	require.NoError(t, err)
 	// We support only unified mode as in hybrid mode, controllers
 	// are part of the hybrid cgroupv1 hierarchy, the cgroupv2 of

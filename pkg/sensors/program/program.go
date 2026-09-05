@@ -191,6 +191,8 @@ type Program struct {
 	// This is currently used for generated code for cel expressions, but can be extended to
 	// other uses.
 	RewriteProg map[string]func(prog *ebpf.ProgramSpec) error
+
+	DynOv *DynamicOverride
 }
 
 func (p *Program) String() string {
@@ -220,6 +222,11 @@ func (p *Program) SetTailCall(prefix string, m *Map) *Program {
 
 func (p *Program) SetPolicy(policy string) *Program {
 	p.Policy = policy
+	return p
+}
+
+func (p *Program) SetDynOv(dynOv *DynamicOverride) *Program {
+	p.DynOv = dynOv
 	return p
 }
 
