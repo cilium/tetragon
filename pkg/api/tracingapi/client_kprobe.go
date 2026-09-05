@@ -47,17 +47,17 @@ type MsgLoader struct {
 }
 
 type MsgGenericKprobe struct {
-	Common        processapi.MsgCommon
-	ProcessKey    processapi.MsgExecveKey
-	Namespaces    processapi.MsgNamespaces
-	Capabilities  processapi.MsgCapabilities
-	FuncId        uint64
-	RetProbeId    uint64
-	ActionId      uint64
-	ActionArgId   uint32
-	Tid           uint32 // The recorded TID that triggered the event
-	KernelStackID int64
-	UserStackID   int64
+	Common        processapi.MsgCommon       `align:"common"`
+	ProcessKey    processapi.MsgExecveKey    `align:"current"`
+	Namespaces    processapi.MsgNamespaces   `align:"ns"`
+	Capabilities  processapi.MsgCapabilities `align:"caps"`
+	FuncId        uint64                     `align:"func_id"`
+	RetProbeId    uint64                     `align:"retprobe_id"`
+	ActionId      uint64                     `align:"action"`
+	ActionArgId   uint32                     `align:"action_arg_id"`
+	Tid           uint32                     `align:"tid"` // The recorded TID that triggered the event
+	KernelStackID int64                      `align:"kernel_stack_id"`
+	UserStackID   int64                      `align:"user_stack_id"`
 }
 
 func (m MsgGenericKprobe) HasKernelStack() bool {

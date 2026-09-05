@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -86,7 +87,7 @@ func HandleData(r *bytes.Reader) ([]Event, error) {
 	DataEventMetricInc(DataEventReceived)
 
 	m := dataapi.MsgData{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
 		return nil, errors.New("failed to read data msg")
 	}
