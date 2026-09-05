@@ -27,7 +27,7 @@ FailureAction=poweroff
 Environment={{ quote . }}
 {{ end -}}
 ExecStartPre=/bin/sh -c 'until {{ .tetraBinary }} info >/dev/null; do sleep 2; done'
-ExecStart={{ .tetraBinary }} policytest run --bindir {{ .testerProgsDir }} --all-tests --all-params --output json --output-file {{ .resultsDir }}/results.json
+ExecStart={{ .tetraBinary }} policytest run{{ range .policytestArgs }} {{ quote . }}{{ end }} --bindir {{ .testerProgsDir }} --all-tests --all-params --output json --output-file {{ .resultsDir }}/results.json
 Type=oneshot
 StandardOutput=tty
 # StandardOutput=journal+console
@@ -37,7 +37,7 @@ TimeoutStartSec="60min"
 WantedBy=multi-user.target
 `
 
-func makeTetragonPolicyTesterServiceFile(fname string, environment []string) (string, error) {
+func makeTetragonPolicyTesterServiceFile(fname string, environment, policytestArgs []string) (string, error) {
 	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE, 0722)
 	if err != nil {
 		return "", err
@@ -49,6 +49,7 @@ func makeTetragonPolicyTesterServiceFile(fname string, environment []string) (st
 		"resultsDir":     policytestsVmResultsDir,
 		"testerProgsDir": policytestsVmTestProgsDir,
 		"environment":    environment,
+		"policytestArgs": policytestArgs,
 	}
 
 	t := template.Must(template.New("tetragon-policytester-service").Funcs(template.FuncMap{
@@ -60,8 +61,8 @@ func makeTetragonPolicyTesterServiceFile(fname string, environment []string) (st
 	return fname, nil
 }
 
-func mustMakeTetragonPolicyTesterServiceFile(fname string, environment []string) string {
-	fname, err := makeTetragonPolicyTesterServiceFile(fname, environment)
+func mustMakeTetragonPolicyTesterServiceFile(fname string, environment, policytestArgs []string) string {
+	fname, err := makeTetragonPolicyTesterServiceFile(fname, environment, policytestArgs)
 	if err != nil {
 		panic(err)
 	}

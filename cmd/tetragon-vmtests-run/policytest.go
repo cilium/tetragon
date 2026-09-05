@@ -44,6 +44,7 @@ type PolicyTestConf struct {
 	testerProgsDir     string
 	testerProgsTarball string
 	environment        []string
+	policytestArgs     []string
 	resultsDir         string
 }
 
@@ -164,6 +165,7 @@ func policyTestCmd() *cobra.Command {
 	cmd.Flags().StringVar(&cnf.testerProgsDir, "tester-progs-dir", "", "tetragon tester progs directory")
 	cmd.Flags().StringVar(&cnf.testerProgsTarball, "tester-progs-tarball", "", "tetragon tester progs tarball")
 	cmd.Flags().StringArrayVar(&cnf.environment, "env", nil, "Set an environment variable for policytests (NAME=VALUE)")
+	cmd.Flags().StringArrayVar(&cnf.policytestArgs, "policytest-arg", nil, "Pass an argument to tetra policytest run")
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&mountHostPath, "mount-host-path", "", "host path to mount inside VM")
 	cmd.Flags().StringVar(&cnf.btfFile, "btf-file", "", "BTF file to use.")
@@ -323,7 +325,7 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 		// tetragon policytester systemd service
 		ret = append(ret,
 			images.Action{Op: &images.CopyInCommand{
-				LocalPath: mustMakeTetragonPolicyTesterServiceFile(filepath.Join(tmpDir, tetragonPolicyTesterService), ptConf.environment),
+				LocalPath: mustMakeTetragonPolicyTesterServiceFile(filepath.Join(tmpDir, tetragonPolicyTesterService), ptConf.environment, ptConf.policytestArgs),
 				RemoteDir: "/etc/systemd/system/",
 			}},
 			images.Action{Op: &images.RunCommand{
