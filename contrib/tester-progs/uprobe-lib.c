@@ -96,3 +96,9 @@ int uprobe_test_lib_string_arg_substring(char *str)
 	printf("uprobe_test_lib_string_arg_substring called\n");
 	return 0;
 }
+
+int uprobe_test_lib_callback(int (*callback)(int), int arg)
+{
+	printf("uprobe_test_lib_callback called\n");
+	return callback(arg);
+}

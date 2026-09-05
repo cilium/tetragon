@@ -6,12 +6,14 @@
 package selectors
 
 import (
+	"debug/elf"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
 	"net"
 	"net/netip"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -19,9 +21,12 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	telf "github.com/cilium/tetragon/pkg/elf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/idtable"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
@@ -387,6 +392,176 @@ func ParseMatchPids(k *KernelSelectorState, matchPids []v1alpha1.PIDSelector) er
 		}
 	}
 	WriteSelectorLength(&k.data, loff)
+	return nil
+}
+
+func ParseMatchCaller(k *KernelSelectorState, caller *v1alpha1.UserCallerSelector,
+	buildIDRef uint32, elfFile *telf.SafeELFFile, path string) error {
+	if !config.EnableLargeProgs() {
+		return errors.New("caller selector requires kernel version >= 5.3")
+	}
+
+	if !kernels.MinKernelVersion("5.9.0") {
+		notes := elfFile.SectionsByType(elf.SHT_NOTE)
+		if len(notes) > 1 && notes[0].Name != ".note.gnu.build-id" {
+			return fmt.Errorf("kernel versions <5.9 require the caller binary to have its .note.gnu.build-id section as the first notes section, but %q does not. The order of the notes sections can be influenced by linker scripts", path)
+		}
+	}
+
+	// This constant is mirrored in the BPF code in `bpf/lib/generic.h`.
+	// If you adjust this constant, you must also adjust the BPF code.
+	const maxStackDepth = 16
+
+	var depth uint32
+	if caller.Depth == "any" {
+		if runtime.GOARCH == "amd64" && !bpf.HasUprobeImmediateCallerAddressAMD64() {
+			logger.GetLogger().Warn("kernel missing commit cfa7f3d2c526, therefore the immediate caller is missing from the callchain on amd64.")
+		}
+		depth = 0x0
+	} else {
+		d, err := strconv.ParseUint(caller.Depth, 10, 32)
+		if err != nil {
+			return fmt.Errorf("invalid depth value: %w", err)
+		}
+
+		if d >= maxStackDepth || d == 0 {
+			return fmt.Errorf("caller selector depth %d must be between 1 and %d, or 'any'", d, maxStackDepth-1)
+		}
+
+		depth = uint32(d)
+		// Kernels after 6.12 include https://github.com/torvalds/linux/commit/cfa7f3d2c526c224a6271cc78a4a27a0de06f4f0
+		// The result is that the immediate caller is missing in the array on non fixed machines and all entries are shifted by one.
+		if runtime.GOARCH == "amd64" && !bpf.HasUprobeImmediateCallerAddressAMD64() {
+			if depth == 1 {
+				return errors.New("matching the immediate caller on amd64 requires kernel support for complete uprobe perf callchains")
+			}
+			depth--
+		}
+	}
+
+	WriteSelectorUint32(&k.data, depth)
+	WriteSelectorUint32(&k.data, buildIDRef)
+
+	start, end, err := findCallerRange(caller, elfFile)
+	if err != nil {
+		return err
+	}
+
+	WriteSelectorUint64(&k.data, start)
+	WriteSelectorUint64(&k.data, end)
+
+	return nil
+}
+
+func findCallerRange(caller *v1alpha1.UserCallerSelector, elfFile *telf.SafeELFFile) (uint64, uint64, error) {
+	if caller.Symbol != "" && (caller.StartRange == 0 && caller.EndRange == 0) {
+		offset, err := elfFile.Offset(caller.Symbol)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to get offset for symbol %s: %w", caller.Symbol, err)
+		}
+
+		size, err := elfFile.SymbolSize(caller.Symbol)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to get size for symbol %s: %w", caller.Symbol, err)
+		}
+		// Size 0 is valid according to the ELF spec, reject it here.
+		if size == 0 {
+			return 0, 0, fmt.Errorf("caller selector symbol %s has size 0", caller.Symbol)
+		}
+
+		return offset, offset + size - 1, nil // The eBPF range check will include both bounds
+	} else if caller.StartRange != 0 && caller.EndRange != 0 && (caller.Symbol == "") {
+		if caller.StartRange >= caller.EndRange {
+			return 0, 0, fmt.Errorf("caller selector range start %d must be less than range end %d", caller.StartRange, caller.EndRange)
+		}
+		return caller.StartRange, caller.EndRange, nil
+	}
+	return 0, 0, errors.New("caller selector must have either symbol or range specified")
+}
+
+func ParseMatchCallers(k *KernelSelectorState, matchUserCallers []v1alpha1.UserCallerSelector, binaryPath string) error {
+	if len(matchUserCallers) > 0 && !k.isUprobe {
+		return errors.New("matchUserCallers is only supported for uprobes")
+	}
+
+	// should match the value of MAX_MATCH_CALLERS in caller_filter.h
+	const maxMatchCallers = 5
+	if len(matchUserCallers) > maxMatchCallers {
+		return fmt.Errorf("caller selector does not support more than %d matchCallers", maxMatchCallers)
+	}
+
+	matchCallerLenOff := AdvanceSelectorLength(&k.data)
+
+	// At buildIDsLenOff we will write the total length of the buildID array, which holds up to 5 buildIDs.
+	// Each buildID has size `KernelBuildIDSize`.
+	buildIDsLenOff := AdvanceSelectorLength(&k.data)
+
+	if len(matchUserCallers) == 0 {
+		WriteSelectorLength(&k.data, buildIDsLenOff)
+		WriteSelectorLength(&k.data, matchCallerLenOff)
+		return nil
+	}
+
+	paths := map[string]struct{}{}
+	if binaryPath != "" {
+		paths[binaryPath] = struct{}{}
+	}
+	for _, p := range matchUserCallers {
+		if p.Path != "" {
+			paths[p.Path] = struct{}{}
+		}
+	}
+
+	// Make paths and buildIDs order deterministic
+	pathsSlice := make([]string, 0, len(paths))
+	for p := range paths {
+		pathsSlice = append(pathsSlice, p)
+	}
+	slices.Sort(pathsSlice)
+
+	// build map from path to pathToBuildIDRef
+	pathToBuildIDRef := map[string]uint32{}
+	pathToELFFile := map[string]*telf.SafeELFFile{}
+	for _, binPath := range pathsSlice {
+		callerELFFile, err := telf.OpenSafeELFFile(binPath)
+		if err != nil {
+			return fmt.Errorf("failed to open ELF file for caller selector %q: %w", binPath, err)
+		}
+		defer callerELFFile.Close()
+		pathToELFFile[binPath] = callerELFFile
+
+		normalizedBuildID, err := pathToELFFile[binPath].NormalizedBuildID()
+		if err != nil {
+			return fmt.Errorf("failed to get build ID for caller selector %q: %w", binPath, err)
+		}
+
+		WriteSelectorByteArray(&k.data, normalizedBuildID[:], telf.KernelBuildIDSize)
+		pathToBuildIDRef[binPath] = uint32(len(pathToBuildIDRef))
+	}
+
+	WriteSelectorLength(&k.data, buildIDsLenOff)
+
+	for _, p := range matchUserCallers {
+		binPath := binaryPath
+		if p.Path != "" {
+			binPath = p.Path
+		}
+
+		buildIDRef, ok := pathToBuildIDRef[binPath]
+		if !ok {
+			return fmt.Errorf("failed to find build ID for caller selector %q for symbol %q", binPath, p.Symbol)
+		}
+		elfFile, ok := pathToELFFile[binPath]
+		if !ok {
+			return fmt.Errorf("failed to find ELF file for caller selector %q for symbol %q", binPath, p.Symbol)
+		}
+
+		if err := ParseMatchCaller(k, &p, buildIDRef, elfFile, binPath); err != nil {
+			return err
+		}
+	}
+	WriteSelectorLength(&k.data, matchCallerLenOff)
+
 	return nil
 }
 
@@ -1726,6 +1901,8 @@ type KernelSelectorArgs struct {
 	// by ParseMatchAction().
 	OverrideActionIPDelta int64
 	CelExprs              *CelExprFunctions
+	// BinaryPath is used as default binary path for matchCaller selectors.
+	BinaryPath string
 }
 
 // The byte array storing the selector configuration has the following format
@@ -1746,6 +1923,7 @@ type KernelSelectorArgs struct {
 //	[matchNamespaceChanges]
 //	[matchCapabilityChanges]
 //	[matchCmdArgs]
+//	[matchCallers]
 //	[matchArgs]
 //	[matchActions]
 //
@@ -1755,12 +1933,14 @@ type KernelSelectorArgs struct {
 // matchNamespaceChanges := [length][NCx][NCy]...[NCn]
 // matchCapabilityChanges := [length][CAx][CAy]...[CAn]
 // matchCmdArgs := [length][CMDARGx][CMDARGy]...[CMDARGn]
+// matchCallers := [length u32][BuildIDLength u32][BuildID1 [20]byte]...[BuildIDn][CAL1]...[CALn]
 // matchArgs := [length][ARGx][ARGy]...[ARGn]
 // PIDn := [op][flags][nValues][v1]...[vn]
 // Argn := [index][op][valueGen]
 // NSn := [namespace][op][valueInt]
 // NCn := [op][valueInt]
 // CAn := [type][op][namespacecap][valueInt]
+// CALn := [depth uint32][BuildIDRef uint32][startRange uint64][endRange uint64]
 // valueGen := [type][len][v]
 // valueInt := [len][v]
 //
@@ -1843,6 +2023,9 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		}
 		if err := ParseMatchCmdArgs(k, selector.MatchCmdArgs); err != nil {
 			return fmt.Errorf("parseMatchCmdArgs error: %w", err)
+		}
+		if err := ParseMatchCallers(k, selector.MatchUserCallers, args.BinaryPath); err != nil {
+			return fmt.Errorf("parseMatchCallers error: %w", err)
 		}
 		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, selector.MatchCEL, args.Args, args.Data); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)

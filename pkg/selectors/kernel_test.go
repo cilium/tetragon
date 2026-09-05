@@ -336,11 +336,12 @@ func TestParseMatchCmdArgsRejects(t *testing.T) {
 //
 //	[selector header and entry sections]
 //	[matchCmdArgs: length + filter offsets + filters]
+//	[matchCallers: length + filter offsets + filters]
 //	[matchArgs:    length + filter offsets]
 //	[actions]
 //
 // In particular, matchCmdArgs must be part of the process-filter portion of
-// the selector, immediately before matchArgs.
+// the selector.
 func TestInitKernelSelectorsMatchCmdArgsLayout(t *testing.T) {
 	origForceLargeProgs := option.Config.ForceLargeProgs
 	origForceSmallProgs := option.Config.ForceSmallProgs
@@ -386,7 +387,10 @@ func TestInitKernelSelectorsMatchCmdArgsLayout(t *testing.T) {
 	require.Equal(t, uint32(SelectorOpEQ), readUint32(filterOffset+4))
 	require.Equal(t, uint32(gt.GenericStringType), readUint32(filterOffset+12))
 
-	matchArgsOffset := matchCmdArgsOffset + int(matchCmdArgsLength)
+	// Skip over matchCallers section
+	matchCallersLength := readUint32(matchCmdArgsOffset + int(matchCmdArgsLength))
+	matchArgsOffset := matchCmdArgsOffset + int(matchCmdArgsLength) + int(matchCallersLength)
+
 	require.Equal(t, uint32(24), readUint32(matchArgsOffset))
 	actionsOffset := matchArgsOffset + 24
 	require.Equal(t, uint32(4), readUint32(actionsOffset))
@@ -1099,8 +1103,8 @@ func TestMultipleSelectorsExample(t *testing.T) {
 		expectedLen += 4
 	}
 
-	selectorLen := 96
-	secondOff := 100
+	selectorLen := 104
+	secondOff := 108
 	if matchCmdArgsEnabled() {
 		selectorLen += 24
 		secondOff += 24
@@ -1127,6 +1131,8 @@ func TestMultipleSelectorsExample(t *testing.T) {
 			expU32Push(0) // selector1: matchCmdArgs offsets
 		}
 	}
+	expU32Push(8)                 // selector1: matchCaller: len
+	expU32Push(4)                 // selector1: matchCaller: BuildIDlen
 	expU32Push(48)                // selector1: matchArgs: len
 	expU32Push(24)                // selector1: matchArgs[0]: offset
 	expU32Push(0)                 // selector1: matchArgs[1]: offset
@@ -1144,8 +1150,20 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	// ... everything else should be the same as selector1 ...
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
-		t.Errorf("\ngot: %v\nexp: %v\n", expected[:expectedLen], b[:expectedLen])
+		t.Errorf("\ngot: %v\nexp: %v\n", b[:expectedLen], expected[:expectedLen])
 	}
+}
+
+func TestMatchUserCallersRequireUprobe(t *testing.T) {
+	_, err := InitKernelSelectorState(&KernelSelectorArgs{
+		Selectors: []v1alpha1.KProbeSelector{{
+			MatchUserCallers: []v1alpha1.UserCallerSelector{{
+				Depth:  "1",
+				Symbol: "caller",
+			}},
+		}},
+	})
+	require.ErrorContains(t, err, "matchUserCallers is only supported for uprobes")
 }
 
 func TestInitKernelSelectors(t *testing.T) {
@@ -1157,11 +1175,11 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expectedSelsizeSmall := []byte{
-		0xC, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
+		0x14, 0x01, 0x00, 0x00, // size = pids + args + matchCallers + actions + namespaces + capabilities  + 4
 	}
 
 	expectedSelsizeLarge := []byte{
-		0x58, 0x01, 0x00, 0x00, // size = pids + args + cmdArgs + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		0x60, 0x01, 0x00, 0x00, // size = pids + args + cmdArgs + matchCallers + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
 	expectedFilters := []byte{
@@ -1255,6 +1273,10 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expectedLastLarge := []byte{
+		// matchCaller header
+		8, 0x00, 0x00, 0x00, // size = sizeof(matchCaller)
+		4, 0x00, 0x00, 0x00, // matchCaller: offset of buildID
+
 		// arg header
 		108, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 24
 		24, 0x00, 0x00, 0x00, // arg[0] offset
@@ -1299,6 +1321,10 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expectedLastSmall := []byte{
+		// matchCaller header
+		8, 0x00, 0x00, 0x00, // size = sizeof(matchCaller)
+		4, 0x00, 0x00, 0x00, // matchCaller: offset of buildID
+
 		// arg header
 		84, 0x00, 0x00, 0x00, // size = sizeof(arg1) + 24
 		24, 0x00, 0x00, 0x00, // arg[0] offset

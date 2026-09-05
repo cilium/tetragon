@@ -19,6 +19,7 @@
 #include "generic_arg.h"
 #include "event_config.h"
 #include "errmetrics.h"
+#include "builtins.h"
 
 #ifdef GENERIC_USDT
 #include "usdt_arg.h"
@@ -84,6 +85,10 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 
 	msg->lsm.post = false;
 	msg->common.flags = 0;
+	/* Marks the user stack as not fetched yet for this event; see
+	 * generic_filter_caller().
+	 */
+	msg->user_stack_ret = 0;
 
 	/* Tail call into filters. */
 	tail_call(ctx, calls, TAIL_CALL_FILTER);
@@ -1124,10 +1129,9 @@ do_actions(void *ctx, struct selector_action *actions)
 FUNC_INLINE long
 generic_actions(void *ctx, struct bpf_map_def *calls)
 {
-	struct selector_arg_filters *arg;
 	struct selector_action *actions;
 	struct msg_generic_kprobe *e;
-	int actoff, pass, zero = 0;
+	int actoff, zero = 0;
 	bool postit;
 	__u8 *f;
 
@@ -1135,20 +1139,14 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 	if (!e)
 		return 0;
 
-	pass = e->pass;
-	if (pass <= 1)
+	if (e->actions_offset <= 1)
 		return 0;
 
 	f = map_lookup_elem(&filter_map, &e->idx);
 	if (!f)
 		return 0;
 
-	asm volatile("%[pass] &= 0x7ff;\n"
-		     : [pass] "+r"(pass)
-		     :);
-	arg = (struct selector_arg_filters *)&f[pass];
-
-	actoff = pass + arg->arglen;
+	actoff = e->actions_offset;
 	asm volatile("%[actoff] &= 0x7ff;\n"
 		     : [actoff] "+r"(actoff)
 		     :);
@@ -1319,7 +1317,8 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	return 1;
 }
 
-// generic_process_filter performs first pass filtering based on pid/nspid.
+// generic_process_filter performs first pass filtering based on pid/nspid
+// and other criteria.
 // We keep a list of selectors that pass.
 //
 // if filter check was successful, it will return PFILTER_ACCEPT and properly
@@ -1328,7 +1327,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 //    current->ktime
 // for the memory located at index 0 of @msg_heap assuming the value follows the
 // msg_generic_hdr structure.
-FUNC_INLINE int generic_process_filter(void)
+FUNC_INLINE int generic_process_filter(void *ctx)
 {
 	int selectors, pass, zero = 0;
 	struct execve_map_value *enter;
@@ -1371,7 +1370,7 @@ FUNC_INLINE int generic_process_filter(void)
 	if (selectors <= sel->curr)
 		return process_filter_done(sel, enter, current);
 
-	pass = selector_process_filter(f, sel->curr, enter, msg);
+	pass = selector_process_filter(ctx, f, sel->curr, enter, msg);
 	if (pass) {
 		/* Verify lost that msg is not null here so recheck */
 		int curr = sel->curr;
@@ -1388,6 +1387,11 @@ FUNC_INLINE int generic_process_filter(void)
 	return PFILTER_CONTINUE; /* will iterate to the next selector */
 }
 
+/* filter_args returns
+ * - 0 if the selector does not match,
+ * - 1 if no filters or active selectors could be found, or
+ * - the offset immediately after the argument filters.
+ */
 FUNC_INLINE int filter_args(void *ctx, struct bpf_map_def *tailcalls,
 			    struct msg_generic_kprobe *e, int selidx, bool is_entry,
 			    int arg)
@@ -1484,7 +1488,7 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 	// If pass >1 then we need to consult the selector actions
 	// otherwise pass==1 indicates using default action.
 	if (pass > 1) {
-		e->pass = pass;
+		e->actions_offset = pass;
 		tail_call(ctx, tailcalls, TAIL_CALL_ACTIONS);
 	}
 
