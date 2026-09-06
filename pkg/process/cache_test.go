@@ -19,6 +19,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/ktime"
 )
 
 func TestProcessCache(t *testing.T) {
@@ -244,4 +245,67 @@ func TestProcessCacheDoubleParentDecrease(t *testing.T) {
 
 		assert.Equal(t, uint32(1), parent.refcnt.Load())
 	})
+}
+
+func TestProcessCachePIDIndex(t *testing.T) {
+	cache, err := NewCache(3, defaults.DefaultProcessCacheGCInterval)
+	require.NoError(t, err)
+	defer cache.purge()
+
+	const (
+		oldKtime     = uint64(10 * time.Second)
+		currentKtime = uint64(20 * time.Second)
+	)
+
+	pid := wrapperspb.UInt32Value{Value: 1234}
+	old := &ProcessInternal{process: &tetragon.Process{
+		ExecId:    GetProcessID(pid.Value, oldKtime),
+		Pid:       &pid,
+		StartTime: ktime.ToProto(oldKtime),
+	}}
+	current := &ProcessInternal{process: &tetragon.Process{
+		ExecId:    GetProcessID(pid.Value, currentKtime),
+		Pid:       &pid,
+		StartTime: ktime.ToProto(currentKtime),
+	}}
+	cache.add(old)
+	cache.add(current)
+
+	found, _ := cache.getByPID(pid.Value, oldKtime+5*uint64(time.Second))
+	assert.Same(t, old, found)
+	found, _ = cache.getByPID(pid.Value, currentKtime+5*uint64(time.Second))
+	assert.Same(t, current, found)
+
+	assert.True(t, cache.remove(old.process))
+	found, _ = cache.getByPID(pid.Value, oldKtime+5*uint64(time.Second))
+	assert.Nil(t, found)
+}
+
+func TestProcessCachePIDIndexEviction(t *testing.T) {
+	cache, err := NewCache(1, defaults.DefaultProcessCacheGCInterval)
+	require.NoError(t, err)
+	defer cache.purge()
+
+	const (
+		firstKtime  = uint64(10 * time.Second)
+		secondKtime = uint64(20 * time.Second)
+	)
+
+	first := &ProcessInternal{process: &tetragon.Process{
+		ExecId:    GetProcessID(1234, firstKtime),
+		Pid:       &wrapperspb.UInt32Value{Value: 1234},
+		StartTime: ktime.ToProto(firstKtime),
+	}}
+	second := &ProcessInternal{process: &tetragon.Process{
+		ExecId:    GetProcessID(5678, secondKtime),
+		Pid:       &wrapperspb.UInt32Value{Value: 5678},
+		StartTime: ktime.ToProto(secondKtime),
+	}}
+	cache.add(first)
+	cache.add(second)
+
+	found, _ := cache.getByPID(1234, secondKtime)
+	assert.Nil(t, found)
+	found, _ = cache.getByPID(5678, secondKtime+5*uint64(time.Second))
+	assert.Same(t, second, found)
 }
