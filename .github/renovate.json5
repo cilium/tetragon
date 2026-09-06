@@ -30,6 +30,7 @@
   "includePaths": [
     ".github/renovate.json5",
     ".github/workflows/**",
+    ".github/actions/**",
     "go.mod",
     "go.sum",
     "api/go.mod",
@@ -109,7 +110,8 @@
       "groupName": "all github action dependencies",
       "groupSlug": "all-github-action",
       "matchFileNames": [
-        ".github/workflows/**"
+        ".github/workflows/**",
+        ".github/actions/**"
       ],
       "matchManagers": [
         "github-actions"
@@ -128,7 +130,8 @@
     },
     {
       "matchFileNames": [
-        ".github/workflows/**"
+        ".github/workflows/**",
+        ".github/actions/**"
       ],
       "matchManagers": [
         "github-actions"
@@ -521,6 +524,7 @@
       "customType": "regex",
       "managerFilePatterns": [
         "/^\\.github/workflows/[^/]+\\.ya?ml$/",
+        "/^\\.github/actions/[^/]+\\.ya?ml$/",
         "docs/hugo.toml",
       ],
       "matchStrings": [
