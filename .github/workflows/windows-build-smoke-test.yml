@@ -177,7 +177,10 @@ jobs:
           New-Item -ItemType Directory -Path ${{ runner.temp }}/Tetragon-Windows
           Copy-Item ${{ github.workspace }}/*.exe -Destination ${{ runner.temp }}/Tetragon-Windows/
           Compress-Archive -Path ${{ runner.temp }}/Tetragon-Windows/* -DestinationPath ${{ runner.temp }}/Tetragon-Windows.zip
-          Get-ChildItem -Recurse ${{ runner.temp }}
+
+          # Sanity check
+          Get-ChildItem ${{ runner.temp }}/Tetragon-Windows.zip
+          Get-ChildItem -Recurse ${{ runner.temp }}/Tetragon-Windows/
 
       - name: Upload Tetragon Windows binaries
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
