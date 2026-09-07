@@ -153,3 +153,29 @@ func TestRedact_ArgsWithEnvs(t *testing.T) {
 	str := strings.Join(envs, " ")
 	assert.Equal(t, "VAR1=XXX SSH_PASSWORD="+DefaultRedactionString+" VAR2=YYY", str)
 }
+
+func TestRedactString_CustomStr(t *testing.T) {
+	re := regexp.MustCompile(`(?:--password|-p)\s+(\S+)`)
+	customStr := "<redacted:password>"
+
+	s := "--password fooBarQuxBaz!"
+	res, modified := redactString(re, s, customStr)
+	assert.Equal(t, "--password "+customStr, res)
+	assert.True(t, modified)
+
+	s = "innocent"
+	res, modified = redactString(re, s, customStr)
+	assert.Equal(t, "innocent", res)
+	assert.False(t, modified)
+}
+
+func TestRedact_CustomRedactStr(t *testing.T) {
+	args := "--verbose=true --password ybx511!ackt544 --username foobar"
+
+	filterList := `{"redact": ["(?:--password|-p)[\\s=]+(\\S+)"], "redact_str": "<redacted:password>"}`
+	filters, err := ParseRedactionFilterList(filterList)
+	require.NoError(t, err)
+
+	redacted, _ := filters.Redact("", args, []string{""})
+	assert.Equal(t, "--verbose=true --password <redacted:password> --username foobar", redacted)
+}
