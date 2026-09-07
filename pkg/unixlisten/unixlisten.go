@@ -46,11 +46,13 @@ func ListenWithRename(path string, mode os.FileMode) (net.Listener, error) {
 	}
 
 	if err := os.Chmod(tmpPath, mode); err != nil {
+		_ = l.Close()
 		return nil, err
 	}
 
 	err = os.Rename(tmpPath, path)
 	if err != nil {
+		_ = l.Close()
 		return nil, err
 	}
 	return l, nil
