@@ -10,7 +10,7 @@
 # https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/
 
 # First builder (cross-)compile the BPF programs
-FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:b97f5b3d5c38da62fb009f21a53cd42aefd54a2f@sha256:e1c8ed0acd2e24ed05377f2861d8174af28e09bef3bbc79649c8eba165207df0 AS bpf-builder
+FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:969f95f8ef7923af36bf657ba6d4c65691f56882@sha256:ff83e52d3ea150b3d93e4ae40ae86620003ac3f6d91fe6e939dcc95469f83ff2 AS bpf-builder
 WORKDIR /go/src/github.com/cilium/tetragon
 RUN apt-get update && apt-get install -y linux-libc-dev gzip ccache
 COPY . ./
@@ -41,7 +41,7 @@ RUN apk add --no-cache git \
 # This builder (cross-)compile a stripped static version of bpftool.
 # This step was kept because the downloaded version includes LLVM libs with the
 # disassembler that makes the static binary grow from ~2Mo to ~30Mo.
-FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:b97f5b3d5c38da62fb009f21a53cd42aefd54a2f@sha256:e1c8ed0acd2e24ed05377f2861d8174af28e09bef3bbc79649c8eba165207df0 AS bpftool-builder
+FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:969f95f8ef7923af36bf657ba6d4c65691f56882@sha256:ff83e52d3ea150b3d93e4ae40ae86620003ac3f6d91fe6e939dcc95469f83ff2 AS bpftool-builder
 WORKDIR /bpftool
 ARG TARGETARCH BUILDARCH
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
