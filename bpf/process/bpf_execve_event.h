@@ -116,9 +116,11 @@ FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
 	free_size = (char *)&event->process + BUFFER - envs;
 	envs_size = env_end - env_start;
 
-	if (envs_size < BUFFER && envs_size < free_size) {
-		if (envs_size)
-			envs_size -= 1;
+	if (envs_size < 2) {
+		/* envs contains at most a '\0', nothing to read */
+		size = 0;
+	} else if (envs_size < BUFFER && envs_size < free_size) {
+		envs_size -= 1; // strip trailing '\0'
 		size = envs_size & 0x3ff; /* BUFFER - 1 */
 
 		err = probe_read(envs, size, (char *)env_start);
