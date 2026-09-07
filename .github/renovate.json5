@@ -59,7 +59,7 @@
   "separateMultipleMajor": true,
   "separateMinorPatch": true,
   "pruneStaleBranches": true,
-  "baseBranches": [
+  "baseBranchPatterns": [
     "main",
     "v1.5",
     "v1.6",
