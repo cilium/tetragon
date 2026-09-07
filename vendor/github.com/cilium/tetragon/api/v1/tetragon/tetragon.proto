@@ -638,6 +638,17 @@ message ProcessUsdt {
   string flags = 12;
 }
 
+// ProcessJava reports entry into an instrumented Java method.
+message ProcessJava {
+  Process process = 1;
+  Process parent = 2;
+  repeated Process ancestors = 3;
+  uint64 method_id = 4;
+  string class_name = 5;
+  string method_name = 6;
+  string descriptor = 7;
+}
+
 message ProcessLsm {
   Process process = 1;
   Process parent = 2;
