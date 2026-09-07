@@ -297,6 +297,11 @@
         "pinDigest"
       ],
     },
+    {
+      // limit Renovate's own container image updates to once a month.
+      "matchPackageNames": ["ghcr.io/renovatebot/renovate"],
+      "schedule": ["* * 1-7 * *"]
+    },
     // stable branches section
     {
       // no updates into stable branches (apart from security ones)
