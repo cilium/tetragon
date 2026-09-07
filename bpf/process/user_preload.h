@@ -124,6 +124,9 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	case 4:
 		a = PT_REGS_PARM5_CORE(ctx);
 		break;
+	default:
+		// This can't happen, but it keeps clang analyzer happier.
+		a = 0;
 	}
 #endif
 
