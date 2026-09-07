@@ -14,8 +14,11 @@ jobs:
 
       # this step uses latest renovate slim release
       - name: Validate configuration
+        env:
+          # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
+          version: "44.69.2"
         run: >
           docker run --rm --entrypoint "renovate-config-validator"
           -v "${{ github.workspace }}/.github/renovate.json5":"/renovate.json5"
-          ghcr.io/renovatebot/renovate:latest "/renovate.json5"
+          ghcr.io/renovatebot/renovate:${{ env.version }} "/renovate.json5"
 
