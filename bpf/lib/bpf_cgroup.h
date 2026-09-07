@@ -353,7 +353,7 @@ __tg_get_current_cgroup_id(struct cgroup *cgrp, __u64 cgrpfs_ver)
  */
 FUNC_INLINE __u64 tg_get_current_cgroup_id(void)
 {
-	__u32 error_flags;
+	__u32 error_flags = 0;
 	struct cgroup *cgrp;
 	__u64 cgrpfs_magic = 0;
 	struct task_struct *task;
