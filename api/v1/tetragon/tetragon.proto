@@ -657,6 +657,8 @@ message ProcessLsm {
   repeated Process ancestors = 10;
   // IMA file hash. Format algorithm:value.
   string ima_hash = 11;
+  // Data definition of the observed LSM hook.
+  repeated KprobeArgument data = 12;
 }
 
 message KernelModule {
