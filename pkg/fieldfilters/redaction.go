@@ -13,7 +13,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 )
 
-const REDACTION_STR = "*****"
+const DefaultRedactionString = "*****"
 
 type RedactionFilter struct {
 	binaryRegex []*regexp.Regexp
@@ -147,7 +147,7 @@ func redactString(re *regexp.Regexp, s string) (string, bool) {
 			}
 			modified = true
 			redacted.WriteString(s[lastOffset:idx[i]])
-			redacted.WriteString(REDACTION_STR)
+			redacted.WriteString(DefaultRedactionString)
 			lastOffset = idx[i+1]
 		}
 		// Write the rest of the string

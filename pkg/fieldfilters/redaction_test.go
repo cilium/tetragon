@@ -17,7 +17,7 @@ func TestRedactString_Simple(t *testing.T) {
 
 	s := "abcd"
 	res, modified := redactString(re, s)
-	assert.Equal(t, REDACTION_STR+"cd", res)
+	assert.Equal(t, DefaultRedactionString+"cd", res)
 	assert.True(t, modified)
 
 	s = "cdef"
@@ -41,12 +41,12 @@ func TestRedactString_NonCapturing(t *testing.T) {
 
 	s := "--password fooBarQuxBaz!"
 	res, modified := redactString(re, s)
-	assert.Equal(t, "--password "+REDACTION_STR, res)
+	assert.Equal(t, "--password "+DefaultRedactionString, res)
 	assert.True(t, modified)
 
 	s = "-p fooBarQuxBaz!"
 	res, modified = redactString(re, s)
-	assert.Equal(t, "-p "+REDACTION_STR, res)
+	assert.Equal(t, "-p "+DefaultRedactionString, res)
 	assert.True(t, modified)
 
 	s = "innocent"
@@ -60,7 +60,7 @@ func TestRedactString_Nested(t *testing.T) {
 
 	s := "foobarqux"
 	res, modified := redactString(re, s)
-	assert.Equal(t, REDACTION_STR+"qux", res)
+	assert.Equal(t, DefaultRedactionString+"qux", res)
 	assert.True(t, modified)
 
 	s = "innocent"
@@ -77,7 +77,7 @@ func TestRedact_Simple(t *testing.T) {
 	require.NoError(t, err)
 
 	redacted, _ := filters.Redact("", args, []string{""})
-	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar", redacted)
+	assert.Equal(t, "--verbose=true --password "+DefaultRedactionString+" --username foobar", redacted)
 }
 
 func TestRedact_BinaryFilter(t *testing.T) {
@@ -91,7 +91,7 @@ func TestRedact_BinaryFilter(t *testing.T) {
 	assert.Equal(t, args, redacted, "redaction without binary match")
 
 	redacted, _ = filters.Redact("/bin/mysql", args, []string{""})
-	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar", redacted, "redaction with binary match")
+	assert.Equal(t, "--verbose=true --password "+DefaultRedactionString+" --username foobar", redacted, "redaction with binary match")
 }
 
 func TestRedact_Multi(t *testing.T) {
@@ -102,7 +102,7 @@ func TestRedact_Multi(t *testing.T) {
 	require.NoError(t, err)
 
 	redacted, _ := filters.Redact("", args, []string{""})
-	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar "+REDACTION_STR+"cake "+REDACTION_STR+" innocent", redacted)
+	assert.Equal(t, "--verbose=true --password "+DefaultRedactionString+" --username foobar "+DefaultRedactionString+"cake "+DefaultRedactionString+" innocent", redacted)
 }
 
 func TestRedact_Envs(t *testing.T) {
@@ -119,7 +119,7 @@ func TestRedact_Envs(t *testing.T) {
 	_, redacted := filters.Redact("", "", envs)
 
 	str := strings.Join(redacted, " ")
-	assert.Equal(t, "VAR1=XXX SSH_PASSWORD="+REDACTION_STR+" VAR2=YYY", str)
+	assert.Equal(t, "VAR1=XXX SSH_PASSWORD="+DefaultRedactionString+" VAR2=YYY", str)
 }
 
 func TestRedact_EnvsMulti(t *testing.T) {
@@ -132,7 +132,7 @@ func TestRedact_EnvsMulti(t *testing.T) {
 	_, redacted := filters.Redact("", "", envs)
 
 	str := strings.Join(redacted, " ")
-	assert.Equal(t, "CREDS=--password "+REDACTION_STR+" "+REDACTION_STR+" end", str)
+	assert.Equal(t, "CREDS=--password "+DefaultRedactionString+" "+DefaultRedactionString+" end", str)
 }
 
 func TestRedact_ArgsWithEnvs(t *testing.T) {
@@ -148,8 +148,8 @@ func TestRedact_ArgsWithEnvs(t *testing.T) {
 	require.NoError(t, err)
 
 	args, envs = filters.Redact("", args, envs)
-	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar "+REDACTION_STR+"cake "+REDACTION_STR+" innocent", args)
+	assert.Equal(t, "--verbose=true --password "+DefaultRedactionString+" --username foobar "+DefaultRedactionString+"cake "+DefaultRedactionString+" innocent", args)
 
 	str := strings.Join(envs, " ")
-	assert.Equal(t, "VAR1=XXX SSH_PASSWORD="+REDACTION_STR+" VAR2=YYY", str)
+	assert.Equal(t, "VAR1=XXX SSH_PASSWORD="+DefaultRedactionString+" VAR2=YYY", str)
 }
