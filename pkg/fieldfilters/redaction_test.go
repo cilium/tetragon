@@ -16,22 +16,22 @@ func TestRedactString_Simple(t *testing.T) {
 	re := regexp.MustCompile(`(ab)cd`)
 
 	s := "abcd"
-	res, modified := redactString(re, s)
+	res, modified := redactString(re, s, DefaultRedactionString)
 	assert.Equal(t, DefaultRedactionString+"cd", res)
 	assert.True(t, modified)
 
 	s = "cdef"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, DefaultRedactionString)
 	assert.Equal(t, "cdef", res)
 	assert.False(t, modified)
 
 	s = "abef"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, DefaultRedactionString)
 	assert.Equal(t, "abef", res)
 	assert.False(t, modified)
 
 	s = "innocent"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, DefaultRedactionString)
 	assert.Equal(t, "innocent", res)
 	assert.False(t, modified)
 }
@@ -40,17 +40,17 @@ func TestRedactString_NonCapturing(t *testing.T) {
 	re := regexp.MustCompile(`(?:--password|-p)\s+(\S+)`)
 
 	s := "--password fooBarQuxBaz!"
-	res, modified := redactString(re, s)
+	res, modified := redactString(re, s, DefaultRedactionString)
 	assert.Equal(t, "--password "+DefaultRedactionString, res)
 	assert.True(t, modified)
 
 	s = "-p fooBarQuxBaz!"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, DefaultRedactionString)
 	assert.Equal(t, "-p "+DefaultRedactionString, res)
 	assert.True(t, modified)
 
 	s = "innocent"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, DefaultRedactionString)
 	assert.Equal(t, "innocent", res)
 	assert.False(t, modified)
 }
@@ -59,12 +59,12 @@ func TestRedactString_Nested(t *testing.T) {
 	re := regexp.MustCompile(`(foo(bar))qux`)
 
 	s := "foobarqux"
-	res, modified := redactString(re, s)
+	res, modified := redactString(re, s, DefaultRedactionString)
 	assert.Equal(t, DefaultRedactionString+"qux", res)
 	assert.True(t, modified)
 
 	s = "innocent"
-	res, modified = redactString(re, s)
+	res, modified = redactString(re, s, DefaultRedactionString)
 	assert.Equal(t, "innocent", res)
 	assert.False(t, modified)
 }

@@ -120,6 +120,8 @@ message RedactionFilter {
   repeated string redact = 2;
   // RE2 regular expression to match binary name. If supplied, redactions will only be applied to matching processes.
   repeated string binary_regex = 3;
+  // Optional replacement string for redacted content. Defaults to "*****" if not specified.
+  string redact_str = 4;
 }
 
 // Determines the behavior of a field filter
