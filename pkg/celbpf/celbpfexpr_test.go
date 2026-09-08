@@ -50,6 +50,14 @@ func addTestsTyped[T myInt](values []T, operators []string) []exprTest {
 
 	literal := func(x any) string {
 		switch x.(type) {
+		case int8:
+			return fmt.Sprintf("int8(%d)", x)
+		case uint8:
+			return fmt.Sprintf("uint8(%du)", x)
+		case int16:
+			return fmt.Sprintf("int16(%d)", x)
+		case uint16:
+			return fmt.Sprintf("uint16(%du)", x)
 		case int32:
 			return fmt.Sprintf("int32(%d)", x)
 		case uint32:
@@ -121,6 +129,23 @@ func TestExprs(t *testing.T) {
 		{"uint32(3u) == uint32(5u) - uint32(2u)", 1},
 		{"int32(10) == int32(5) + int32(5)", 1},
 		{"int32(-2) == int32(5) - int32(7)", 1},
+		{"int16(10) == int16(5) + int16(5)", 1},
+		{"int16(-2) == int16(5) - int16(7)", 1},
+		{"int8(10) == int8(5) + int8(5)", 1},
+		{"int8(-2) == int8(5) - int8(7)", 1},
+		{"uint16(10u) == uint16(5u) + uint16(5u)", 1},
+		{"uint16(3u) == uint16(5u) - uint16(2u)", 1},
+		{"uint16(65535u) + uint16(1u) == uint16(0u)", 1},
+		{"uint8(10u) == uint8(5u) + uint8(5u)", 1},
+		{"uint8(3u) == uint8(5u) - uint8(2u)", 1},
+		{"uint8(255u) + uint8(1u) == uint8(0u)", 1},
+		{"int16(-1) == int16(65535)", 1},
+		{"not(int16(0)) == int16(-1)", 1},
+		{"int16(0) == int16(65535) + int16(1)", 1},
+		{"int8(-1) == int8(255)", 1},
+		{"not(int8(0)) == int8(-1)", 1},
+		{"not(uint8(0u)) == uint8(255u)", 1},
+		{"int8(0) == int8(255) + int8(1)", 1},
 	}
 	testCases = append(testCases, testComparisons()...)
 
