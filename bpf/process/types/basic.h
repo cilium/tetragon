@@ -1050,11 +1050,20 @@ filter_file_type(struct selector_arg_filter *filter, struct string_buf *args)
 		return 0;
 
 	__u32 mode_off = args->len;
-	// Avoid unbounded access, needed on 4.19 only
-	asm volatile("%[mode_off] &= 0xfff;\n" : [mode_off] "+r"(mode_off));
+	char *mode_ptr = (char *)args;
+
+	/* Mask and add in one asm block so nothing can be scheduled between
+	 * them: clang > 20 otherwise spills the masked value and reloads it,
+	 * and pre-5.7 verifiers lose the range across the spill. The constant
+	 * part of the offset stays out of the mask so it cannot wrap it.
+	 */
+	asm volatile("%[mode_off] &= 0xfff;\n"
+		     "%[mode_ptr] += %[mode_off];\n"
+		     : [mode_off] "+r"(mode_off),
+		       [mode_ptr] "+r"(mode_ptr));
+
 	// Offset from args: args->len (path) + 4 (len field) + 4 (flags)
-	mode_off += sizeof(args->len) + sizeof(__u32);
-	memcpy(&mode, (char *)args + mode_off, sizeof(mode));
+	memcpy(&mode, mode_ptr + sizeof(args->len) + sizeof(__u32), sizeof(mode));
 
 	/* filter->value contains the target file type constants (e.g. S_IFREG,
 	 * S_IFIFO) written by the userspace agent from the fileTypeTable.
