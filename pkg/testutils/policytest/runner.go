@@ -64,12 +64,7 @@ func NewLocalRunner(
 		}
 	}
 
-	timeout := time.Second * 20
-	if cnf.Timeout != nil {
-		timeout = *(cnf.Timeout)
-	}
-
-	cli, err := cli.NewClient(ctx, cnf.GrpcAddr, timeout)
+	cli, err := cli.NewClient(ctx, cnf.GrpcAddr, cnf.Timeout)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %w", err)
 	}

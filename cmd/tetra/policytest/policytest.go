@@ -183,13 +183,11 @@ func runCmd() *cobra.Command {
 			}
 
 			tests := policytest.AllPolicyTests.GetByFunction(ptFilterFn)
-			runnerTimeout := time.Minute * time.Duration(len(tests))
-
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
 				GrpcAddr:        common.ServerAddress,
 				BinsDir:         testBinsPath,
 				DumpPolicyPath:  dumpPolicyPath,
-				Timeout:         &runnerTimeout,
+				Timeout:         time.Minute * time.Duration(len(tests)),
 				ScenarioTimeout: time.Minute,
 			})
 			if err != nil {
