@@ -4,12 +4,6 @@
 #ifndef __RATELIMIT_MAPS_H__
 #define __RATELIMIT_MAPS_H__
 
-/* The number of bytes per argument to include in the key
- * that we use to check for repeating data.
- * 40 is good for IPv6 data.
- */
-#define KEY_BYTES_PER_ARG 40
-
 /* Can't really include generic.h in here..
  */
 #define MAX_POSSIBLE_ARGS 5
@@ -19,11 +13,81 @@
 #define ACTION_RATE_LIMIT_SCOPE_PROCESS 1
 #define ACTION_RATE_LIMIT_SCOPE_GLOBAL	2
 
+/* FNV-1a hash constants for 64-bit. */
+#define FNV_OFFSET_BASIS 0xcbf29ce484222325ULL
+#define FNV_PRIME        0x100000001b3ULL
+
+/*
+ * Maximum bytes of each argument to hash for the rate-limit dedup key.
+ *
+ * We hash up to MAX_HASH_BYTES of each arg with FNV-1a, producing
+ * one u64 per arg. copy_path() already caps paths at 255 bytes
+ * (size &= 0xff), so 255 matches that cap exactly and fits within
+ * the BPF verifier loop bound.
+ */
+#define MAX_HASH_BYTES 255
+
+/* MurmurHash3 fmix64 finalizer — guarantees full avalanche. */
+static inline __attribute__((always_inline)) __u64
+fnv1a_wordmix_fmix64(__u64 h)
+{
+	h ^= h >> 33;
+	h *= 0xff51afd7ed558ccdULL;
+	h ^= h >> 33;
+	h *= 0xc4ceb9fe1a85ec53ULL;
+	h ^= h >> 33;
+	return h;
+}
+
+/*
+ * FNV-1a hash of up to MAX_HASH_BYTES of src into a single u64.
+ * Processes 8-byte words for efficiency, with fmix64 avalanche finalizer.
+ */
+static inline __attribute__((always_inline)) __u64
+fnv1a_wordmix_hash_bytes(char *src, __u32 len)
+{
+	__u64 hash = FNV_OFFSET_BASIS;
+	__u32 i = 0;
+	__u64 word;
+
+	if (len > MAX_HASH_BYTES)
+		len = MAX_HASH_BYTES;
+	// Mask len so the verifier can prove the loop bound.
+	asm volatile("%[len] &= 0xff;\n"
+		     : [len] "+r"(len)
+		     :);
+
+	// Process 8-bytes per iteration vs 1-byte per iteration in FNV-1a.
+	for (__u32 j = 0; j < MAX_HASH_BYTES / 8; j++) {
+		if (i + 8 > len)
+			break;
+		__builtin_memcpy(&word, &src[i], sizeof(word));
+		hash ^= word;
+		hash *= FNV_PRIME;
+		i += 8;
+	}
+
+	// Process remaining bytes (at most 7).
+	for (__u32 j = 0; j < 7; j++) {
+		if (i >= len)
+			break;
+		hash ^= (__u64)(__u8)src[i];
+		hash *= FNV_PRIME;
+		i++;
+	}
+
+	// Apply MurmurHash finalizer to ensure bit mixing.
+	hash ^= (__u64)len;
+	hash = fnv1a_wordmix_fmix64(hash);
+
+	return hash;
+}
+
 struct ratelimit_key {
 	__u64 func_id;
 	__u64 action;
 	__u64 tid;
-	__u8 data[MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG];
+	__u64 arg_hash[MAX_POSSIBLE_ARGS];
 };
 
 struct ratelimit_value {
@@ -37,13 +101,11 @@ struct {
 	__type(value, struct ratelimit_value);
 } ratelimit_map SEC(".maps");
 
-// The value has extra headroom to allow copying argument data without upsetting the verifier.
-// This is not hashed when the key is used in the ratelimit_map.
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
-	__type(value, __u8[sizeof(struct ratelimit_key) + 128]);
+	__type(value, __u8[sizeof(struct ratelimit_key) + MAX_HASH_BYTES]); // Extra headroom after the key for probe_read scratch space.
 } ratelimit_heap SEC(".maps");
 
 #endif /* __RATELIMIT_MAPS_H__ */
