@@ -31,6 +31,12 @@ var (
 		Help:      "Timestamp of the most recent event to be exported",
 	})
 
+	eventsExportFailedTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: consts.MetricsNamespace,
+		Name:      "events_export_failed_total",
+		Help:      "Total number of events that failed to export",
+	})
+
 	rateLimitDropped = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "export_ratelimit_events_dropped_total",
@@ -44,6 +50,7 @@ func RegisterMetrics(group metrics.Group) {
 		eventsExportedTotal,
 		eventsExportedBytesTotal,
 		eventsExportTimestamp,
+		eventsExportFailedTotal,
 		rateLimitDropped,
 	)
 }
