@@ -264,8 +264,8 @@ func TestExporter_SendEncodeErrorCountsFailed(t *testing.T) {
 	}
 	require.NoError(t, e.Send(ev), "Send keeps warn+continue semantics and returns nil")
 
-	assert.Equal(t, exportedBefore, testutil.ToFloat64(eventsExportedTotal), "failed encodes must not count as exported")
-	assert.Equal(t, failedBefore+1, testutil.ToFloat64(eventsExportFailedTotal), "failed encodes must increment failed counter")
+	assert.InDelta(t, exportedBefore, testutil.ToFloat64(eventsExportedTotal), 1e-9, "failed encodes must not count as exported")
+	assert.InDelta(t, failedBefore+1, testutil.ToFloat64(eventsExportFailedTotal), 1e-9, "failed encodes must increment failed counter")
 }
 
 func TestExporterSetLoggingParams(t *testing.T) {
