@@ -913,6 +913,14 @@ Currently, `MatchCEL` supports:
 * Integer casting to 32-bits (`int32()`, `uint32()`)
 * Bitwise operations (`and()`, `or()`, `xor()`, `not()`, `lsh()`, `rsh()`)
 
+Shift operations (`lsh()`, `rsh()`) mask the shift amount to the bit width of
+the operand. In other words, the shift amount is reduced modulo the bit width
+of the operand.
+
+For example, `lsh(uint8(16u), uint8(9u))` is equal to `lsh(uint8(16u),
+uint8(1u))` because the shift amount is masked by 7 (the bit width of a `uint8`
+minus 1) thus `9 & 7 = 1` or reduced modulo the bit width, thus `9 % 8 = 1`.
+
 ## Actions filter
 
 Actions filters are a list of actions that execute when an appropriate selector
