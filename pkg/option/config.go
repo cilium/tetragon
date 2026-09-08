@@ -44,6 +44,7 @@ type config struct {
 	EnableProcessUsdtAncestors        bool
 	EnableProcessJavaAncestors        bool
 	EnableProcessEnvironmentVariables bool
+	JavaIPCPath                       string
 
 	FilterEnvironmentVariables map[string]struct{}
 
