@@ -638,6 +638,24 @@ message ProcessUsdt {
   string flags = 12;
 }
 
+// ProcessJava reports entry into an instrumented Java method.
+message ProcessJava {
+  // JVM process that entered the method.
+  Process process = 1;
+  // Immediate parent of the JVM process.
+  Process parent = 2;
+  // Ancestors of the JVM process beyond the immediate parent.
+  repeated Process ancestors = 3;
+  // Deterministic identifier derived from class_name, method_name, and descriptor.
+  uint64 method_id = 4;
+  // JVM internal-form class name, for example com/example/Foo.
+  string class_name = 5;
+  // Java method name, including <init> for constructors.
+  string method_name = 6;
+  // JVM method descriptor, for example (Ljava/lang/String;)V.
+  string descriptor = 7;
+}
+
 message ProcessLsm {
   Process process = 1;
   Process parent = 2;

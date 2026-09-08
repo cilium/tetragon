@@ -37,6 +37,8 @@ enum msg_ops {
 
 	MSG_OP_GENERIC_USDT = 28,
 
+	MSG_OP_JAVA = 29,
+
 	MSG_OP_MAX,
 };
 

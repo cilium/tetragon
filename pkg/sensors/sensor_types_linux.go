@@ -21,5 +21,6 @@ var (
 		"kprobe":         program.LoadKprobeProgram,
 		"lsm":            program.LoadLSMProgram,
 		"socket":         program.LoadSeccompProgram,
+		"syscall":        program.LoadSyscallProgram,
 	}
 )

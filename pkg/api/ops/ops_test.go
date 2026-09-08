@@ -41,3 +41,9 @@ func TestCgroupState(t *testing.T) {
 		}
 	}
 }
+
+func TestJavaOpCode(t *testing.T) {
+	if MSG_OP_JAVA != 29 || OpCode(MSG_OP_JAVA).String() != "Java" {
+		t.Fatalf("unexpected Java opcode: %d (%s)", MSG_OP_JAVA, OpCode(MSG_OP_JAVA))
+	}
+}

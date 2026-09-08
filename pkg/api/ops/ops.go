@@ -37,6 +37,7 @@ const (
 	MSG_OP_LOADER       = 26
 	MSG_OP_THROTTLE     = 27
 	MSG_OP_GENERIC_USDT = 28
+	MSG_OP_JAVA         = 29
 
 	// just for testing
 	MSG_OP_TEST = 254
@@ -81,6 +82,7 @@ var OpCodeStrings = map[OpCode]string{
 	MSG_OP_LOADER:             "Loader",
 	MSG_OP_THROTTLE:           "Throttle",
 	MSG_OP_GENERIC_USDT:       "GenericUSDT",
+	MSG_OP_JAVA:               "Java",
 	MSG_OP_TEST:               "Test",
 }
 

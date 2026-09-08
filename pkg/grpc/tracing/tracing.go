@@ -4,6 +4,7 @@
 package tracing
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/api/javaapi"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/constants"
@@ -483,6 +485,78 @@ func userStack(event *MsgGenericKprobeUnix) []*tetragon.StackTraceEntry {
 	}
 
 	return stackTrace
+}
+
+// MsgJavaEvent is the observer-to-gRPC representation of a Java record.
+type MsgJavaEvent struct {
+	Msg *javaapi.MsgJava
+}
+
+func (msg *MsgJavaEvent) Notify() bool { return true }
+
+func (msg *MsgJavaEvent) Cast(o any) notify.Message {
+	return &MsgJavaEvent{Msg: new(o.(javaapi.MsgJava))}
+}
+
+func (msg *MsgJavaEvent) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	return eventcache.HandleGenericInternal(ev, msg.Msg.ProcessKey.Pid, &msg.Msg.TID, timestamp)
+}
+
+func (msg *MsgJavaEvent) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.TID)
+}
+
+func wireString(v []byte) string {
+	if i := bytes.IndexByte(v, 0); i >= 0 {
+		v = v[:i]
+	}
+	return string(v)
+}
+
+func (msg *MsgJavaEvent) HandleMessage() *tetragon.GetEventsResponse {
+	var ancestors []*process.ProcessInternal
+	var tetragonAncestors []*tetragon.Process
+
+	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&msg.Msg.ProcessKey, msg.Msg.Common.Flags)
+	if option.Config.EnableProcessJavaAncestors && proc.NeededAncestors() {
+		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
+		for _, ancestor := range ancestors {
+			tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+		}
+	}
+
+	ev := &tetragon.ProcessJava{
+		Process:     tetragonProcess,
+		Parent:      tetragonParent,
+		Ancestors:   tetragonAncestors,
+		MethodId:    msg.Msg.MethodID,
+		ClassName:   wireString(msg.Msg.ClassName[:]),
+		MethodName:  wireString(msg.Msg.MethodName[:]),
+		Descriptor_: wireString(msg.Msg.Descriptor[:]),
+	}
+
+	if ev.Process.Pid == nil {
+		eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(ev)).Inc()
+		return nil
+	}
+
+	if cache := eventcache.Get(); cache != nil && !isUnknown(ev.Process) &&
+		(cache.Needed(ev.Process) ||
+			(ev.Process.Pid.Value > 1 && cache.Needed(ev.Parent)) ||
+			(option.Config.EnableProcessJavaAncestors && cache.NeededAncestors(parent, ancestors))) {
+		cache.Add(nil, ev, msg.Msg.Common.Ktime, msg.Msg.ProcessKey.Ktime, msg)
+		return nil
+	}
+
+	if proc != nil {
+		ev.Process = proc.GetProcessCopy()
+		process.UpdateEventProcessTid(ev.Process, &msg.Msg.TID)
+	}
+
+	return &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessJava{ProcessJava: ev},
+		Time:  ktime.ToProto(msg.Msg.Common.Ktime),
+	}
 }
 
 type MsgGenericTracepointUnix struct {
