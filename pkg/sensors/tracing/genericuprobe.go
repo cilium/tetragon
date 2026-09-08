@@ -1268,8 +1268,8 @@ func getUprobeReturnArg(spec *v1alpha1.UProbeSpec, argCfg uprobeArgConfig, event
 	return setRetprobe, argReturnPrinters, nil
 }
 
-func procSelfFDPath(f *os.File) string {
-	return filepath.Join("/proc", "self", "fd", strconv.FormatUint(uint64(f.Fd()), 10))
+func procSelfFDPath(fd int) string {
+	return filepath.Join("/proc", "self", "fd", strconv.Itoa(fd))
 }
 
 // getLinkPath returns the path to use for the uprobe link. If a file is provided, it returns the /proc/self/fd path to that file.
@@ -1277,7 +1277,7 @@ func procSelfFDPath(f *os.File) string {
 // This trick allows us to avoid a TOCTOU race where the target binary is modified after we create the sensor, but before we load it.
 func getLinkPath(file *os.File, targetPath string) string {
 	if file != nil {
-		return procSelfFDPath(file)
+		return procSelfFDPath(int(file.Fd()))
 	}
 	return targetPath
 }

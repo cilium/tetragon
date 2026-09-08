@@ -84,7 +84,7 @@ func ParseCgroupsPath(cgroupPath string) (string, error) {
 	return "", fmt.Errorf("unknown cgroup path: %s", cgroupPath)
 }
 
-func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerID string) (string, error) {
+func containerInfoJSON(ctx context.Context, cli criapi.RuntimeServiceClient, containerID string) (string, error) {
 	req := criapi.ContainerStatusRequest{
 		ContainerId: containerID,
 		Verbose:     true,
@@ -94,20 +94,34 @@ func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerI
 		return "", err
 	}
 
-	info := res.GetInfo()
-	if info == nil {
-		return "", errors.New("no container info")
-	}
-
-	var path, json string
-	if infoJson, ok := info["info"]; ok {
-		json = infoJson
-		path = "runtimeSpec.linux.cgroupsPath"
-	} else {
+	json, ok := res.GetInfo()["info"]
+	if !ok {
 		return "", errors.New("could not find info")
 	}
+	return json, nil
+}
 
-	ret := gjson.Get(json, path).String()
+// ContainerPID returns the host-namespace PID of the container's main process.
+func ContainerPID(ctx context.Context, cli criapi.RuntimeServiceClient, containerID string) (uint32, error) {
+	json, err := containerInfoJSON(ctx, cli, containerID)
+	if err != nil {
+		return 0, fmt.Errorf("CRI container info for %s: %w", containerID, err)
+	}
+
+	pid := gjson.Get(json, "pid").Int()
+	if pid <= 0 {
+		return 0, errors.New("failed to find pid in container info")
+	}
+	return uint32(pid), nil
+}
+
+func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerID string) (string, error) {
+	json, err := containerInfoJSON(ctx, cli, containerID)
+	if err != nil {
+		return "", err
+	}
+
+	ret := gjson.Get(json, "runtimeSpec.linux.cgroupsPath").String()
 	if ret == "" {
 		return "", errors.New("failed to find cgroupsPath in json")
 	}
