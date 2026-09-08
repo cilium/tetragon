@@ -475,10 +475,19 @@ type UProbeSpec struct {
 	// The uprobe/hook is installed only if the digest of the traced binary matches a digest in the set.
 	// Tetragon's tracing policy status API can be used to see each hook's status in order to determine
 	// if the hook was attached or not.
+	// A mismatch rejects the policy at load, except with resolvePathInContainer,
+	// where the digest is checked per container and a mismatching container is
+	// skipped.
 	BinaryDigests []string `json:"binaryDigests,omitempty"`
 	// +kubebuilder:validation:Optional
 	// Conditions for ignoring this uprobe
 	Ignore *UprobeIgnore `json:"ignore,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	// ResolvePathInContainer resolves Path in the root filesystem of each
+	// container selected by the policy's podSelector, and attaches the uprobe
+	// per matching container instead of in the agent's mount namespace.
+	ResolvePathInContainer bool `json:"resolvePathInContainer"`
 }
 
 type UsdtSpec struct {
