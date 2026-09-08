@@ -56,6 +56,7 @@ const (
 	KeyEnableEventMetrics = "enable-event-metrics"
 	KeyMetricsLabelFilter = "metrics-label-filter"
 	KeyServerAddress      = "server-address"
+	KeyJavaIPCPath        = "java-ipc-path"
 	KeyGopsAddr           = "gops-address"
 
 	KeyEnableProcessEnvironmentVariables = "enable-process-environment-variables"
@@ -232,6 +233,7 @@ func ReadAndSetFlags() error {
 		Config.EnableProcessUprobeAncestors = slices.Contains(enableAncestors, "uprobe")
 		Config.EnableProcessLsmAncestors = slices.Contains(enableAncestors, "lsm")
 		Config.EnableProcessUsdtAncestors = slices.Contains(enableAncestors, "usdt")
+		Config.EnableProcessJavaAncestors = slices.Contains(enableAncestors, "java")
 	}
 
 	Config.EnableProcessEnvironmentVariables = viper.GetBool(KeyEnableProcessEnvironmentVariables)
@@ -270,6 +272,7 @@ func ReadAndSetFlags() error {
 	Config.EnableEventMetrics = viper.GetBool(KeyEnableEventMetrics)
 	Config.MetricsLabelFilter = DefaultLabelFilter().WithEnabledLabels(ParseMetricsLabelFilter(viper.GetString(KeyMetricsLabelFilter)))
 	Config.ServerAddress = viper.GetString(KeyServerAddress)
+	Config.JavaIPCPath = viper.GetString(KeyJavaIPCPath)
 
 	Config.ExportFilename = viper.GetString(KeyExportFilename)
 	Config.ExportFileMaxSizeMB = viper.GetInt(KeyExportFileMaxSizeMB)
@@ -545,12 +548,13 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnableEventMetrics, true, fmt.Sprintf("Enable per-event metrics. Enabled by default. Health and resource metrics are always available when --%s is set.", KeyMetricsServer))
 	flags.String(KeyMetricsLabelFilter, "namespace,workload,pod,binary", "Comma-separated list of enabled metrics labels. Unknown labels will be ignored.")
 	flags.String(KeyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'). An empty address disables the gRPC server. WARNING: Exposing gRPC on a TCP socket without TLS client verification exposes Tetragon to unprivileged users on the host or with network access.")
+	flags.String(KeyJavaIPCPath, defaults.DefaultJavaRingPath, "Shared-memory ring file for Java monitoring agent method events. Tetragon creates this file; an empty path disables Java IPC.")
 	flags.String(KeyGopsAddr, "", "gops server address (e.g. 'localhost:8118'). Disabled by default")
 	flags.Bool(KeyEnableProcessCred, false, "Enable process_cred events")
 	flags.Bool(KeyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
 	flags.Uint(KeyEventQueueSize, 10000, "Set the size of the internal event queue.")
 	flags.Bool(KeyEnablePodAnnotations, false, "Add pod annotations field to events.")
-	flags.StringSlice(KeyEnableAncestors, []string{}, "Comma-separated list of process event types to enable ancestors for. Supported event types are: base, kprobe, tracepoint, loader, uprobe, lsm, usdt. Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting. An empty string disables ancestors completely")
+	flags.StringSlice(KeyEnableAncestors, []string{}, "Comma-separated list of process event types to enable ancestors for. Supported event types are: base, kprobe, tracepoint, loader, uprobe, lsm, usdt, java. Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting. An empty string disables ancestors completely")
 
 	flags.Bool(KeyEnableProcessEnvironmentVariables, false, "Include environment variables in process_exec events. Disabled by default. Note that this option can significantly increase the size of the events and may impact performance, as well as capture sensitive information such as passwords in the events (you can use --redaction-filters to redact the data).")
 

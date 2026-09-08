@@ -17,6 +17,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/javaipc"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/strutils"
@@ -96,6 +97,16 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 
 		if err != nil {
 			return fmt.Errorf("creating ring buffer reader failed: %w", err)
+		}
+	}
+
+	// Create the Java shared-memory ring before readiness so the agent can
+	// attach to it as soon as the daemon announces that it is ready.
+	var javaRing *javaipc.Ring
+	if option.Config.JavaIPCPath != "" {
+		javaRing, err = javaipc.CreateRing(option.Config.JavaIPCPath)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -182,6 +193,23 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 					}
 				}
 			}
+		})
+	}
+
+	if javaRing != nil {
+		wg.Go(func() {
+			defer javaRing.Close()
+			javaRing.Serve(stopCtx, func(data []byte) {
+				bufPtr := rawSampleBufPool.Get().(*[]byte)
+				*bufPtr = append((*bufPtr)[:0], data...)
+				select {
+				case eventsQueue <- bufPtr:
+					RingbufReceived.Inc()
+				default:
+					rawSampleBufPool.Put(bufPtr)
+					queueLost.Inc()
+				}
+			})
 		})
 	}
 
