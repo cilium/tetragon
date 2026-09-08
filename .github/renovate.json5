@@ -524,7 +524,7 @@
       "customType": "regex",
       "managerFilePatterns": [
         "/^\\.github/workflows/[^/]+\\.ya?ml$/",
-        "/^\\.github/actions/[^/]+\\.ya?ml$/",
+        "/^\\.github/actions/[^/]+/[^/]+\\.ya?ml$/",
         "docs/hugo.toml",
       ],
       "matchStrings": [
