@@ -186,10 +186,11 @@ func runCmd() *cobra.Command {
 			runnerTimeout := time.Minute * time.Duration(len(tests))
 
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
-				GrpcAddr:       common.ServerAddress,
-				BinsDir:        testBinsPath,
-				DumpPolicyPath: dumpPolicyPath,
-				Timeout:        &runnerTimeout,
+				GrpcAddr:        common.ServerAddress,
+				BinsDir:         testBinsPath,
+				DumpPolicyPath:  dumpPolicyPath,
+				Timeout:         &runnerTimeout,
+				ScenarioTimeout: time.Minute,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to start local runner: %w", err)

@@ -234,9 +234,7 @@ func processCacheDisabled(info *tetragoninfo.Info) bool {
 func (r *LocalRunner) RunScenario(
 	l *slog.Logger, scenario *Scenario, polHandler *PolicyHandler, testConf *TestConf,
 ) ScenarioRes {
-	// set the scenario timeout to 10s
-	// TODO: make it configurable
-	ctx, cancel := context.WithTimeout(r.cli.Ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(r.cli.Ctx, r.conf.ScenarioTimeout)
 	defer cancel()
 
 	// the process cache is disabled, so Process/Parent fields won't be populated: skip those checks
