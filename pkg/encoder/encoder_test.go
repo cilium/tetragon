@@ -6,6 +6,7 @@ package encoder
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
 
@@ -20,6 +21,26 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 )
+
+type failingWriter struct {
+	err error
+}
+
+func (w *failingWriter) Write(_ []byte) (int, error) {
+	return 0, w.err
+}
+
+func TestProtojsonEncoder_WriteError(t *testing.T) {
+	writeErr := errors.New("disk full")
+	enc := NewProtojsonEncoder(&failingWriter{err: writeErr})
+	ev := &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessExec{
+			ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Binary: "a"}},
+		},
+	}
+	err := enc.Encode(ev)
+	require.ErrorIs(t, err, writeErr)
+}
 
 func TestCompactEncoder_InvalidEventToString(t *testing.T) {
 	p := NewCompactEncoder(os.Stdout, Never, false, false, false)
