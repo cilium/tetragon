@@ -99,7 +99,7 @@ generic_fentry_actions(void *ctx)
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fentry_output(void *ctx)
 {
-	return generic_output(ctx, MSG_OP_GENERIC_KPROBE);
+	return generic_output(ctx);
 }
 
 #ifndef __V61_BPF_PROG
