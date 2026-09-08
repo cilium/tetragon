@@ -42,6 +42,7 @@ type config struct {
 	EnableProcessUprobeAncestors      bool
 	EnableProcessLsmAncestors         bool
 	EnableProcessUsdtAncestors        bool
+	EnableProcessJavaAncestors        bool
 	EnableProcessEnvironmentVariables bool
 
 	FilterEnvironmentVariables map[string]struct{}
@@ -235,6 +236,8 @@ func AncestorsEnabled(eventType tetragon.EventType) bool {
 		return Config.EnableProcessLsmAncestors
 	case tetragon.EventType_PROCESS_USDT:
 		return Config.EnableProcessUsdtAncestors
+	case tetragon.EventType_PROCESS_JAVA:
+		return Config.EnableProcessJavaAncestors
 	default:
 		return false
 	}
