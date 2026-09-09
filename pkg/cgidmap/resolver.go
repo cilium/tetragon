@@ -35,7 +35,7 @@ type unmappedID struct {
 }
 
 // containerPathFn returns the absolute host cgroup path for a container. It is the
-// only part of resolution that differs between backends.
+// only part of resolution that differs between the CRI and cgroupfs backends.
 type containerPathFn func(unmappedID) (string, error)
 
 type resolver struct {
