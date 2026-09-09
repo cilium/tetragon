@@ -13,6 +13,7 @@ struct heap_ro_value {
 	 * sizeof(struct msg_generic_kprobe)
 	 * sizeof(struct buffer_heap_map_value)
 	 * sizeof(struct string_prefix_lpm_trie)
+	 * sizeof(struct string_postfix_lpm_trie)
 	 */
 	char buf[HEAP_RO_SIZE];
 };

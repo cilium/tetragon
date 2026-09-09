@@ -863,7 +863,6 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 	__u32 map_idx = *(__u32 *)&filter->value;
 	struct string_postfix_lpm_trie *arg;
 	uint orig_len = arg_len;
-	int zero = 0;
 
 	addrmap = map_lookup_elem(&string_postfix_maps, &map_idx);
 	if (!addrmap || !arg_len)
@@ -872,7 +871,7 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 	if (arg_len >= STRING_POSTFIX_MAX_MATCH_LENGTH)
 		arg_len = STRING_POSTFIX_MAX_MATCH_LENGTH - 1;
 
-	arg = (struct string_postfix_lpm_trie *)map_lookup_elem(&string_postfix_maps_heap, &zero);
+	arg = (struct string_postfix_lpm_trie *)string_postfix_maps_heap_get();
 	if (!arg)
 		return 0;
 
@@ -2095,7 +2094,6 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 	struct string_prefix_lpm_trie *prefix_key;
 	struct string_postfix_lpm_trie *postfix_key;
 	__u64 postfix_len = STRING_POSTFIX_MAX_MATCH_LENGTH - 1;
-	int zero = 0;
 #endif /* __LARGE_BPF_PROG */
 
 	struct match_binaries_sel_opts *selector_options;
@@ -2163,7 +2161,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 				return 0;
 			if (bin->path_length < STRING_POSTFIX_MAX_MATCH_LENGTH)
 				postfix_len = bin->path_length;
-			postfix_key = (struct string_postfix_lpm_trie *)map_lookup_elem(&string_postfix_maps_heap, &zero);
+			postfix_key = (struct string_postfix_lpm_trie *)string_postfix_maps_heap_get();
 			if (!postfix_key)
 				return 0;
 			postfix_key->prefixlen = postfix_len * 8; // prefixlen is in bits
