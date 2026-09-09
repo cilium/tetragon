@@ -1545,6 +1545,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 
 	maps = append(maps, getUprobeHeapMap("process_call_heap", load))
+	maps = append(maps, getUprobeHeapMap("buffer_heap_map", load))
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil), substringMapEntries)...)
 
@@ -1603,6 +1604,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
 
 		maps = append(maps, getUprobeHeapMap("process_call_heap", loadret))
+		maps = append(maps, getUprobeHeapMap("buffer_heap_map", loadret))
 	}
 
 	return progs, maps, nil
