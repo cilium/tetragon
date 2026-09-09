@@ -167,8 +167,7 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 
 	// Get file hashes calculated using IMA
 	if m.Common.Flags&processapi.MSG_COMMON_FLAG_IMA_HASH != 0 {
-		var state int8
-		err := binary.Read(r, binary.LittleEndian, &state)
+		state, err := tetragonapi.ReadIntegerLE[int8](r)
 		if err != nil {
 			gl.LogAttrs(slog.LevelWarn, "failed to read IMA hash state", slog.Any(logfields.Error, err))
 			return nil, errors.New("failed to read IMA hash state")
@@ -177,8 +176,7 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 			gl.LogAttrs(slog.LevelWarn, "LSM bpf program chain is violated", slog.Any(logfields.Error, err))
 			return nil, errors.New("LSM bpf program chain is violated")
 		}
-		var algo int8
-		err = binary.Read(r, binary.LittleEndian, &algo)
+		algo, err := tetragonapi.ReadIntegerLE[int8](r)
 		if err != nil {
 			gl.LogAttrs(slog.LevelWarn, "failed to read IMA hash algorithm", slog.Any(logfields.Error, err))
 			return nil, errors.New("failed to read IMA hash algorithm")
