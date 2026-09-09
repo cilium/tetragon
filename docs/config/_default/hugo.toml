@@ -60,6 +60,11 @@ weight = 1
     url = "/enterprise"
 
 [[menu.main]]
+    name = "Labs"
+    weight = 45
+    url = "/labs"
+
+[[menu.main]]
     name = "GitHub"
     weight = 60
     url = "https://github.com/cilium/tetragon/"
@@ -84,6 +89,11 @@ weight = 1
     name = "Enterprise"
     weight = 40
     url = "/enterprise"
+
+[[menu.navbar_main]]
+    name = "Labs"
+    weight = 45
+    url = "/labs"
 
 [[menu.navbar_main]]
     name = "GitHub"
