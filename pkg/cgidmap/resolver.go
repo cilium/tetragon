@@ -6,8 +6,8 @@
 package cgidmap
 
 import (
-	"container/list"
 	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/cgroups"
@@ -41,9 +41,10 @@ type containerPathFn func(unmappedID) (string, error)
 type resolver struct {
 	mu   sync.Mutex
 	cond sync.Cond
-	// unresolvedIDs implements a LIFO for unresolved IDs: a recent request is
-	// more likely to still reflect the current state of the pod than an old one.
-	unresolvedIDs *list.List
+	// unresolvedIDs holds pending ids, oldest first; the worker pops the
+	// newest from the end (LIFO), because a recent request is more likely to
+	// still reflect the current state of the pod than an old one.
+	unresolvedIDs []unmappedID
 
 	m             Map
 	containerPath containerPathFn
@@ -63,7 +64,6 @@ func newResolver(m Map, containerPath containerPathFn, addCgTrackerPath func(str
 		getCgroupID = cgroups.GetCgroupIdFromPath
 	}
 	ret := &resolver{
-		unresolvedIDs:    list.New(),
 		m:                m,
 		containerPath:    containerPath,
 		getCgroupID:      getCgroupID,
@@ -78,15 +78,14 @@ func newResolver(m Map, containerPath containerPathFn, addCgTrackerPath func(str
 		defer ret.mu.Unlock()
 
 		for {
-			for ret.unresolvedIDs.Len() == 0 {
+			for len(ret.unresolvedIDs) == 0 {
 				ret.cond.Wait()
 			}
 
-			// grab one container id and try to resolve it
-			elem := ret.unresolvedIDs.Front()
-			ret.unresolvedIDs.Remove(elem)
+			// grab the most recently added id and try to resolve it
+			id := ret.unresolvedIDs[len(ret.unresolvedIDs)-1]
+			ret.unresolvedIDs = ret.unresolvedIDs[:len(ret.unresolvedIDs)-1]
 			ret.mu.Unlock()
-			id := elem.Value.(unmappedID)
 			if err := ret.resolve(id); err != nil {
 				ret.errored.WithLabelValues().Inc()
 				logger.GetLogger().Warn("cgidmap resolve failed",
@@ -105,27 +104,19 @@ func (r *resolver) enqueue(unmappedIDs []unmappedID) {
 	defer r.mu.Unlock()
 	defer r.cond.Signal()
 
-	// unmapped ids to be enqueued are larger than our capacity. Create a new list and add as
-	// many as we  can.
-	if len(unmappedIDs) >= maxUnmappedIDs {
-		newL := list.New()
-		for _, id := range unmappedIDs[:maxUnmappedIDs] {
-			newL.PushFront(id)
-		}
-		r.unresolvedIDs = newL
-		return
-	}
-
-	// remove IDs from the end that for which we don't have the capacity
-	newCnt := len(unmappedIDs) + r.unresolvedIDs.Len()
-	if newCnt > maxUnmappedIDs {
-		for range newCnt - maxUnmappedIDs {
-			r.unresolvedIDs.Remove(r.unresolvedIDs.Back())
-		}
-	}
-
+	// pod updates can repeat ids that are still waiting for resolution; skip
+	// them so duplicates do not evict other pending ids.
 	for _, id := range unmappedIDs {
-		r.unresolvedIDs.PushFront(id)
+		if slices.Contains(r.unresolvedIDs, id) {
+			continue
+		}
+		r.unresolvedIDs = append(r.unresolvedIDs, id)
+	}
+	// drop the oldest ids over capacity. Dropped ids that are still alive get
+	// re-added by subsequent pod hook sync updates.
+	if dropped := len(r.unresolvedIDs) - maxUnmappedIDs; dropped > 0 {
+		r.unresolvedIDs = slices.Delete(r.unresolvedIDs, 0, dropped)
+		logger.GetLogger().Debug("cgidmap resolver queue is full, dropped oldest unresolved ids", "dropped", dropped)
 	}
 }
 

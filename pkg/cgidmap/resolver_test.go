@@ -18,12 +18,71 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics"
 )
 
+// drain returns the queued ids in the order the worker would resolve them
+// (newest first), emptying the queue.
+func drain(r *resolver) []unmappedID {
+	got := drainOldestLast(r)
+	slices.Reverse(got)
+	return got
+}
+
+// drainOldestLast drains the queue and returns the ids in enqueue order
+// (oldest first), so it can be compared against the expected surviving window.
+func drainOldestLast(r *resolver) []unmappedID {
+	got := r.unresolvedIDs
+	r.unresolvedIDs = nil
+	return got
+}
+
 func mkIDs(n int) []unmappedID {
 	ret := make([]unmappedID, 0, n)
 	for range n {
 		ret = append(ret, unmappedID{podID: uuid.New(), contID: ContainerID(uuid.New().String())})
 	}
 	return ret
+}
+
+func TestResolverEnqueueLIFO(t *testing.T) {
+	r := &resolver{}
+	ids := mkIDs(3)
+	r.enqueue(ids)
+
+	// the worker pops the newest first, so the last id enqueued is drained first.
+	got := drain(r)
+	require.Equal(t, []unmappedID{ids[2], ids[1], ids[0]}, got)
+}
+
+func TestResolverEnqueueOverCapacity(t *testing.T) {
+	r := &resolver{}
+	// a single batch larger than capacity keeps only the most recent maxUnmappedIDs.
+	ids := mkIDs(maxUnmappedIDs + 50)
+	r.enqueue(ids)
+	require.Len(t, r.unresolvedIDs, maxUnmappedIDs)
+	require.Equal(t, ids[len(ids)-maxUnmappedIDs:], drainOldestLast(r))
+}
+
+func TestResolverEnqueueDedup(t *testing.T) {
+	r := &resolver{}
+	ids := mkIDs(3)
+	r.enqueue(ids)
+	// re-enqueueing a pending id (e.g. from a repeated pod update) must not add
+	// a duplicate that would evict other pending ids.
+	r.enqueue(ids[1:2])
+	require.Len(t, r.unresolvedIDs, len(ids))
+	require.Equal(t, ids, drainOldestLast(r))
+}
+
+func TestResolverEnqueueTrimsOldest(t *testing.T) {
+	r := &resolver{}
+	a := mkIDs(100)
+	b := mkIDs(50)
+	r.enqueue(a)
+	// 100 + 50 = 150 > capacity, so the oldest ids are trimmed to keep the newest 128.
+	r.enqueue(b)
+	require.Len(t, r.unresolvedIDs, maxUnmappedIDs)
+
+	all := append(append([]unmappedID{}, a...), b...)
+	require.Equal(t, all[len(all)-maxUnmappedIDs:], drainOldestLast(r))
 }
 
 // fakeMap records Add calls so resolve() can be exercised without a real cgidmap.
