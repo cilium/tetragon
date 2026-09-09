@@ -918,6 +918,17 @@ var digestAlgos = map[string]crypto.Hash{
 	"sha512": crypto.SHA512,
 }
 
+// resolvePathInContainerSpec returns the policy's resolvePathInContainer
+// uprobe, of which validation allows at most one, or nil.
+func resolvePathInContainerSpec(spec *v1alpha1.TracingPolicySpec) *v1alpha1.UProbeSpec {
+	for i := range spec.UProbes {
+		if spec.UProbes[i].ResolvePathInContainer {
+			return &spec.UProbes[i]
+		}
+	}
+	return nil
+}
+
 // createGenericUprobeSensor builds the uprobe sensor for spec. attachPath, when
 // set, overrides where the uprobe attaches and its ELF is parsed, while events
 // keep reporting the spec's Path.
@@ -1087,6 +1098,9 @@ func createGenericUprobeSensor(
 		},
 		NoHooksAttached: len(ids) == 0,
 	}
+
+	// No-op unless the policy has a resolvePathInContainer uprobe.
+	setupResolvePathInContainer(sensor, spec, polInfo)
 
 	return sensor, nil
 }

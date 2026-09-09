@@ -24,6 +24,7 @@ import (
 type policyInfo struct {
 	name          string
 	namespace     string
+	domain        string
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
 	policyConf    *program.Map
@@ -37,14 +38,20 @@ func newPolicyInfo(
 	policy tracingpolicy.TracingPolicy,
 	policyID policyfilter.PolicyID,
 ) (*policyInfo, error) {
-	return newPolicyInfoFromSpec(
+	pi, err := newPolicyInfoFromSpec(
 		policy.TpNamespace(),
 		policy.TpName(),
 		policyID,
 		policy.TpSpec(),
 		eventhandler.GetCustomEventhandler(policy),
 	)
-
+	if err != nil {
+		return nil, err
+	}
+	// The resolvePathInContainer registry keys on domain, so policies sharing a
+	// namespace and name (e.g. k8s vs static) do not collide.
+	pi.domain = policy.TpDomain()
+	return pi, nil
 }
 
 func hasEnforcementActions(spec *v1alpha1.TracingPolicySpec) bool {
