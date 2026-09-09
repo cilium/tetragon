@@ -1367,10 +1367,11 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 	meta = get_arg_meta(argm, e);
 
 	if (has_return_copy(argm)) {
+		int ret = return_error(s, char_buf_saved_for_retprobe);
 		u64 retid = retprobe_map_get_key(ctx);
 
 		retprobe_map_set_iovec(e->func_id, retid, e->common.ktime, arg, meta);
-		return return_error(s, char_buf_saved_for_retprobe);
+		return ret;
 	}
 	return __copy_char_iovec(off, arg, meta, 0, e);
 }

@@ -135,10 +135,15 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	int *s = (int *)args_off(e, off);
 
 	if (has_return_copy(argm)) {
+		/* Write the error before the calls below. Otherwise clang
+		 * computes 's' only after them, which means keeping the offset
+		 * on the stack across the calls.
+		 */
+		int ret = return_error(s, char_buf_saved_for_retprobe);
 		__u64 retid = retprobe_map_get_key(ctx);
 
 		retprobe_map_set(e->func_id, retid, e->common.ktime, arg);
-		return return_error(s, char_buf_saved_for_retprobe);
+		return ret;
 	}
 	return __copy_char_buf(ctx, off, arg, get_arg_meta(argm, e), has_max_data(argm), e);
 }
