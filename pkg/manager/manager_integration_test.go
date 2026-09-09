@@ -64,6 +64,16 @@ func (suite *ManagerTestSuite) TestListNamespaces() {
 	assert.Equal(suite.T(), namespaces[0].Name, namespace.Name)
 }
 
+func (suite *ManagerTestSuite) TestListPods() {
+	pods, err := suite.manager.ListPods()
+	require.NoError(suite.T(), err)
+	require.NotEmpty(suite.T(), pods)
+	// The cache is field-selected to this node, so nothing else may appear.
+	for _, pod := range pods {
+		require.Equal(suite.T(), nodeName, pod.Spec.NodeName)
+	}
+}
+
 func (suite *ManagerTestSuite) TestFindPod() {
 	var pods corev1.PodList
 	err := suite.manager.Manager.GetCache().List(context.Background(), &pods, client.InNamespace("kube-system"))
