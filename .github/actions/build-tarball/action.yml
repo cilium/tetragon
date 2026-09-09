@@ -20,6 +20,20 @@ runs:
       run: |
         sudo apt-get update
         sudo apt-get install -y jq
+        sudo apt-get install -y libelf-dev netcat-traditional libcap-dev gcc pahole llvm
+        echo `which clang`
+        echo `which llc`
+        echo `clang --version`
+
+    - name: Install dependencies x86
+      shell: bash
+      run: sudo apt-get -y install libc6-dev-i386
+      if: runner.arch != 'ARM64'
+
+    - name: Install dependencies ARM
+      shell: bash
+      run: sudo apt-get -y install gcc-arm-linux-gnueabihf
+      if: runner.arch == 'ARM64'
 
     - name: Getting version tag
       id: tag
@@ -31,3 +45,8 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: make tarball
+
+    - name: Generate tester-progs tarball
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: make tester-progs-tarball

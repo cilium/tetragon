@@ -28,21 +28,12 @@ jobs:
           # renovate: datasource=golang-version depName=go
           go-version: '1.27.1'
 
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libelf-dev netcat-traditional libcap-dev gcc libc6-dev-i386 pahole llvm
-          echo `which clang`
-          echo `which llc`
-          echo `clang --version`
-
-      - name: Build tester progs and vmtests
+      - name: Build vmtests
         env:
           GOPATH: /home/runner/work/tetragon/tetragon/go
         run: |
           cd go/src/github.com/cilium/tetragon/
           make -C tests/vmtests
-          make tester-progs-tarball
 
       - name: Tar build
         run: |
@@ -131,6 +122,12 @@ jobs:
           dest="go/src/github.com/cilium/tetragon/build/amd64/linux-tarball"
           mkdir -p "$dest"
           mv ./tarball-download/tetragon-${{ inputs.tag }}-amd64.tar.gz "$dest/"
+
+      - name: Download amd64 tester-progs tarball
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: tetragon-${{ inputs.tag }}-amd64-tester-progs
+          path: go/src/github.com/cilium/tetragon/
 
       - name: Test kernel ${{ matrix.kernel }}
         if: ${{ !startsWith(matrix.kernel, '4.19') }}

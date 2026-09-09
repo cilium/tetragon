@@ -29,7 +29,7 @@ jobs:
         id: tarball
         uses: ./.github/actions/build-tarball
 
-      - name: Move tarball to upload directory
+      - name: Move Tetragon tarball to upload directory
         run: |
           mkdir upload/
           mv ./build/${{ matrix.arch }}/linux-tarball/tetragon-${{ steps.tarball.outputs.tag }}-${{ matrix.arch }}.tar.gz ./upload/
@@ -39,6 +39,13 @@ jobs:
         with:
           name: tetragon-${{ steps.tarball.outputs.tag }}-${{ matrix.arch }}
           path: upload/
+          retention-days: 1
+
+      - name: Save tetragon-${{ steps.tarball.outputs.tag }}-${{ matrix.arch }}-tester-progs.tar.gz Tarball
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tetragon-${{ steps.tarball.outputs.tag }}-${{ matrix.arch }}-tester-progs
+          path: tester-progs.tar.gz
           retention-days: 1
 
   standalone-tarball-tests:
@@ -136,20 +143,16 @@ jobs:
             sudo tetra tracingpolicy list | grep bpf -
             sudo tetra bugtool 2>&1 | grep "Successfully dumped gops pprof.*profile=heap" -
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install libelf-dev netcat-traditional libcap-dev gcc pahole llvm
+      - name: Retrieve tetragon-${{ needs.standalone-tarball-builds.outputs.tag }}-${{ matrix.arch }}-tester-progs.tar.gz
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: tetragon-${{ needs.standalone-tarball-builds.outputs.tag }}-${{ matrix.arch }}-tester-progs
+          path: ./download
 
-      - name: Install dependencies x86
+      - name: Prepare tester-progs
         run: |
-          sudo apt-get -y install libc6-dev-i386
-        if: matrix.arch != 'arm64'
-
-      - name: Install dependencies ARM
-        run: |
-          sudo apt-get -y install gcc-arm-linux-gnueabihf
-        if: matrix.arch == 'arm64'
+          tar zxvf ./download/tester-progs.tar.gz
+          mv ./tester-progs/* contrib/tester-progs/
 
       # Run policytest
       # Since we don't support vmtests yet for arm64,
@@ -158,7 +161,6 @@ jobs:
       # at least on github runners.
       - name: Run policytest
         run: |
-          make tester-progs
           sudo tetra policytest run --all-tests --output-file /tmp/tetragon.policytest.txt
           cat /tmp/tetragon.policytest.txt
 
