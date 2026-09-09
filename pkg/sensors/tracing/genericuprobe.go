@@ -204,7 +204,7 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 	var ktimeEnter uint64
 	if returnEvent {
 		// if this a return event, also read the ktime of the enter event
-		err = binary.Read(r, binary.LittleEndian, &ktimeEnter)
+		ktimeEnter, err = tetragonapi.ReadIntegerLE[uint64](r)
 		if err != nil {
 			return nil, errors.New("failed to read ktimeEnter")
 		}
