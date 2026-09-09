@@ -4,13 +4,14 @@
 #ifndef __HEAP_H__
 #define __HEAP_H__
 
-#include "ratelimit_maps.h"
+#define HEAP_RO_SIZE 16384
 
 struct heap_ro_value {
-	union {
-		char string_maps_heap[STRING_MAPS_HEAP_SIZE];
-		char ratelimit_heap[sizeof(struct ratelimit_key) + 128];
-	};
+	/*
+	 * STRING_MAPS_HEAP_SIZE
+	 * sizeof(struct ratelimit_key) + 128
+	 */
+	char buf[HEAP_RO_SIZE];
 };
 
 struct {

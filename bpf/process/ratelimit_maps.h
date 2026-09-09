@@ -4,6 +4,8 @@
 #ifndef __RATELIMIT_MAPS_H__
 #define __RATELIMIT_MAPS_H__
 
+#include "heap.h"
+
 /* The number of bytes per argument to include in the key
  * that we use to check for repeating data.
  * 40 is good for IPv6 data.
@@ -25,6 +27,9 @@ struct ratelimit_key {
 	__u64 tid;
 	__u8 data[MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG];
 };
+
+_Static_assert(sizeof(struct ratelimit_key) <= HEAP_RO_SIZE,
+	       "heap_ro_value's buffer must fit ratelimit_key");
 
 struct ratelimit_value {
 	__u64 ktime;
