@@ -760,7 +760,6 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	void *addrmap;
 	__u32 map_idx = *(__u32 *)&filter->value;
 	struct string_prefix_lpm_trie *arg;
-	int zero = 0;
 
 	addrmap = map_lookup_elem(&string_prefix_maps, &map_idx);
 	if (!addrmap || !arg_len)
@@ -771,7 +770,7 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	if (arg_len >= STRING_PREFIX_MAX_LENGTH)
 		arg_len = STRING_PREFIX_MAX_LENGTH - 1;
 
-	arg = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_prefix_maps_heap, &zero);
+	arg = (struct string_prefix_lpm_trie *)string_prefix_maps_heap_get();
 	if (!arg)
 		return 0;
 
