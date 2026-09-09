@@ -246,7 +246,7 @@ func tpListCmd() *cobra.Command {
 }
 
 func tpListDomainsCmd() *cobra.Command {
-	var output string
+	var output *option.Enum
 	ret := &cobra.Command{
 		Use:   "domains",
 		Short: "list loaded tracing policies domains",
@@ -263,7 +263,7 @@ func tpListDomainsCmd() *cobra.Command {
 				return fmt.Errorf("failed to list domains: %w", err)
 			}
 
-			switch output {
+			switch output.Value {
 			case "json":
 				b, err := res.MarshalJSON()
 				if err != nil {
@@ -277,8 +277,10 @@ func tpListDomainsCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	output, _ = option.NewEnum([]string{"text", "json"}, "text")
 	flags := ret.Flags()
-	flags.StringVarP(&output, common.KeyOutput, "o", "text", "Output format. text or json")
+	flags.VarP(output, common.KeyOutput, "o", "Output format "+output.Allowed())
 	return ret
 }
 
