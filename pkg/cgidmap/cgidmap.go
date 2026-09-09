@@ -101,6 +101,17 @@ func newMap() (*cgidm, error) {
 	return m, nil
 }
 
+// cgTrackerAdd registers a resolved container cgroup path with the cgroup
+// tracker. The tracker map only exists when cgroup tracker ids are enabled (see
+// cgtracker.RegisterCgroupTracker), so without them registration is skipped:
+// otherwise the resolver would block on a map that is never created.
+func cgTrackerAdd(path string) error {
+	if !option.Config.EnableCgTrackerID {
+		return nil
+	}
+	return cgtracker.AddCgroupTrackerPath(path)
+}
+
 // addEntryAllocID allocates space for a new entry, adds it, and returns its id
 func (m *cgidm) addEntryAllocID(e entry) int {
 	l := len(m.entries)

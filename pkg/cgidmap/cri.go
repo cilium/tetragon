@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 
 	"github.com/cilium/tetragon/pkg/cgroups"
-	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/cri"
 	"github.com/cilium/tetragon/pkg/metrics/crimetrics"
 )
@@ -20,7 +19,7 @@ import (
 
 // newCriResolver returns a resolver that finds container cgroup paths via the CRI.
 func newCriResolver(m Map) *resolver {
-	return newResolver(m, criContainerPath, cgtracker.AddCgroupTrackerPath,
+	return newResolver(m, criContainerPath, cgTrackerAdd,
 		crimetrics.CriResolutionsTotal, crimetrics.CriResolutionErrorsTotal)
 }
 
