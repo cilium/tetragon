@@ -11,6 +11,7 @@ struct heap_ro_value {
 	 * STRING_MAPS_HEAP_SIZE
 	 * sizeof(struct ratelimit_key) + 128
 	 * sizeof(struct msg_generic_kprobe)
+	 * sizeof(struct buffer_heap_map_value)
 	 */
 	char buf[HEAP_RO_SIZE];
 };
