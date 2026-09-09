@@ -44,7 +44,9 @@ jobs:
   standalone-tarball-tests:
     name: Packages e2e tests (${{ matrix.arch }})
     needs: [standalone-tarball-builds]
-    runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-22.04-arm') || 'ubuntu-22.04' }}
+    # Ships kernel >= 7.x to test as many policytest cases as possible.
+    # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2604-Readme.md
+    runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-26.04-arm') || 'ubuntu-26.04' }}
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -133,6 +135,40 @@ jobs:
             sudo grep "tetra" /var/log/tetragon/tetragon.log
             sudo tetra tracingpolicy list | grep bpf -
             sudo tetra bugtool 2>&1 | grep "Successfully dumped gops pprof.*profile=heap" -
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install libelf-dev netcat-traditional libcap-dev gcc pahole llvm
+
+      - name: Install dependencies x86
+        run: |
+          sudo apt-get -y install libc6-dev-i386
+        if: matrix.arch != 'arm64'
+
+      - name: Install dependencies ARM
+        run: |
+          sudo apt-get -y install gcc-arm-linux-gnueabihf
+        if: matrix.arch == 'arm64'
+
+      # Run policytest
+      # Since we don't support vmtests yet for arm64,
+      # and we are slowly moving existing tests to use policytest framework
+      # we are losing arm64 coverage unless we run policytest
+      # at least on github runners.
+      - name: Run policytest
+        run: |
+          make tester-progs
+          sudo tetra policytest run --all-tests --output-file /tmp/tetragon.policytest.txt
+          cat /tmp/tetragon.policytest.txt
+
+      - name: Upload policytest results
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tetragon-policytest-${{ matrix.arch }}
+          path: /tmp/tetragon.policytest.txt
+          retention-days: 5
 
       - name: Uninstall Tetragon Tarball
         run: |
