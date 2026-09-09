@@ -245,7 +245,7 @@ func (h policyHandler) PolicyHandler(
 		return createGenericLsmSensor(spec, "generic_lsm", polInfo)
 	}
 	if len(spec.UProbes) > 0 {
-		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo)
+		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo, "")
 	}
 	if len(spec.Usdts) > 0 {
 		return createGenericUsdtSensor(spec, "generic_usdt", polInfo)
