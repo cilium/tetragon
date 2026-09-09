@@ -18,6 +18,7 @@ const (
 	FilesystemTypeCgroup2 = "cgroup2"
 	FilesystemTypeDebugFS = "debugfs"
 	FilesystemTypeTraceFS = "tracefs"
+	FilesystemTypeOverlay = "overlay"
 
 	mountInfoFilepath = "/proc/self/mountinfo"
 )
@@ -107,9 +108,15 @@ func parseMountInfoFile(r io.Reader) ([]*MountInfo, error) {
 // GetMountInfo returns a slice of *MountInfo with information parsed from
 // /proc/self/mountinfo
 func GetMountInfo() ([]*MountInfo, error) {
-	fMounts, err := os.Open(mountInfoFilepath)
+	return GetMountInfoAt(mountInfoFilepath)
+}
+
+// GetMountInfoAt returns a slice of *MountInfo parsed from the given
+// mountinfo file, for reading another process's mount table.
+func GetMountInfoAt(path string) ([]*MountInfo, error) {
+	fMounts, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open mount information at %s: %w", mountInfoFilepath, err)
+		return nil, fmt.Errorf("failed to open mount information at %s: %w", path, err)
 	}
 	defer fMounts.Close()
 
