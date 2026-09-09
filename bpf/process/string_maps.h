@@ -96,12 +96,48 @@ DEFINE_ARRAY_OF_STRING_MAPS(9)
 DEFINE_ARRAY_OF_STRING_MAPS(10)
 #endif
 
+#ifdef USE_HASH_HEAP
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(map_flags, BPF_F_NO_PREALLOC);
+	__uint(max_entries, 1); // will be resized by agent
+	__type(key, __u64);
+	__uint(value_size, STRING_MAPS_HEAP_SIZE);
+} string_maps_heap SEC(".maps");
+
+FUNC_INLINE void *string_maps_heap_get(void)
+{
+	__u64 key = get_current_pid_tgid();
+	void *val = map_lookup_elem(&string_maps_heap, &key);
+	struct heap_ro_value *ro;
+	__u32 zidx = 0;
+
+	if (val)
+		return val;
+	ro = map_lookup_elem(&heap_ro_zero, &zidx);
+	if (!ro)
+		return 0;
+	if (map_update_elem(&string_maps_heap, &key, ro, BPF_ANY))
+		return 0;
+	return map_lookup_elem(&string_maps_heap, &key);
+}
+
+#else
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
 	__uint(value_size, STRING_MAPS_HEAP_SIZE);
 } string_maps_heap SEC(".maps");
+
+FUNC_INLINE void *string_maps_heap_get(void)
+{
+	__u32 zero = 0;
+
+	return map_lookup_elem(&string_maps_heap, &zero);
+}
+
+#endif /* USE_HASH_HEAP */
 
 #define STRING_PREFIX_MAX_LENGTH 256
 

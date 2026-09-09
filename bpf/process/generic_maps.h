@@ -132,6 +132,7 @@ FUNC_INLINE long heap_dtor(long ret)
 
 	map_delete_elem(&process_call_heap, &key);
 	map_delete_elem(&buffer_heap_map, &key);
+	map_delete_elem(&string_maps_heap, &key);
 	return ret;
 }
 

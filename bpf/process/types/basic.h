@@ -701,7 +701,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	if (map_idx == 0xffffffff)
 		return 0;
 
-	heap = (char *)map_lookup_elem(&string_maps_heap, &zero);
+	heap = (char *)string_maps_heap_get();
 	zero_heap = (char *)map_lookup_elem(&heap_ro_zero, &zero);
 	if (!heap || !zero_heap)
 		return 0;
@@ -2148,7 +2148,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 			if (!path_map)
 				return 0;
 			// prepare the key to perform lookup in the LPM_TRIE
-			prefix_key = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_maps_heap, &zero);
+			prefix_key = (struct string_prefix_lpm_trie *)string_maps_heap_get();
 			if (!prefix_key)
 				return 0;
 			memset(prefix_key, 0, sizeof(*prefix_key));
