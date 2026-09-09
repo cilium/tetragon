@@ -4,6 +4,8 @@
 #ifndef STRING_MAPS_H__
 #define STRING_MAPS_H__
 
+#include "heap.h"
+
 #define STRING_MAPS_OUTER_MAX_ENTRIES 8
 
 /*
@@ -61,6 +63,9 @@
 #define STRING_MAPS_HEAP_SIZE 16384
 #define STRING_MAPS_HEAP_MASK (8192 - 1)
 #define STRING_MAPS_COPY_MASK 4095
+
+_Static_assert(STRING_MAPS_HEAP_SIZE <= HEAP_RO_SIZE,
+	       "heap_ro_value's value must fit STRING_MAPS_HEAP_SIZE");
 
 #define DEFINE_ARRAY_OF_STRING_MAPS(N)                                   \
 	struct {                                                         \
