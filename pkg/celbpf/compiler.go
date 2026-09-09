@@ -18,6 +18,7 @@ import (
 	cgTypes "cel.dev/cel-go/common/types"
 	cgRef "cel.dev/cel-go/common/types/ref"
 	"github.com/cilium/ebpf/asm"
+	"github.com/cilium/ebpf/features"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
@@ -116,6 +117,45 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 				scratchRegs[1], argTypes[1],
 			); err != nil {
 				return fmt.Errorf("subtraction %w", err)
+			}
+			return nil
+		}
+
+	case cgOperators.Multiply:
+		emitCall = func() error {
+			if err := c.cg.emitArithOp(
+				asm.Mul,
+				scratchRegs[0], argTypes[0],
+				scratchRegs[1], argTypes[1],
+			); err != nil {
+				return fmt.Errorf("multiplication %w", err)
+			}
+			return nil
+		}
+
+	case cgOperators.Divide:
+		divOp := asm.Div
+
+		arg1Ty := argTypes[0].TypeName()
+		arg2Ty := argTypes[1].TypeName()
+		if arg1Ty == s64Ty.TypeName() && arg2Ty == s64Ty.TypeName() ||
+			arg1Ty == s32Ty.TypeName() && arg2Ty == s32Ty.TypeName() ||
+			arg1Ty == s16Ty.TypeName() && arg2Ty == s16Ty.TypeName() ||
+			arg1Ty == s8Ty.TypeName() && arg2Ty == s8Ty.TypeName() {
+			if err := features.HaveV4ISA(); err != nil {
+				return fmt.Errorf("cannot emit signed division on non-V4 ISA: %w", err)
+			}
+
+			divOp = asm.SDiv
+		}
+
+		emitCall = func() error {
+			if err := c.cg.emitArithOp(
+				divOp,
+				scratchRegs[0], argTypes[0],
+				scratchRegs[1], argTypes[1],
+			); err != nil {
+				return fmt.Errorf("division %w", err)
 			}
 			return nil
 		}
