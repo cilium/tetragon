@@ -929,6 +929,90 @@ func resolvePathInContainerSpec(spec *v1alpha1.TracingPolicySpec) *v1alpha1.UPro
 	return nil
 }
 
+// validateBinaryDigests rejects a malformed digest at policy load, rather than
+// silently failing every per-container attach.
+func validateBinaryDigests(digests []string) error {
+	for _, d := range digests {
+		d = strings.TrimSpace(d)
+		if d == "" {
+			return errors.New("empty binaryDigests entry")
+		}
+		algo, value, found := strings.Cut(d, ":")
+		if !found {
+			return fmt.Errorf("invalid digest %q, expected '<algo>:<value>'", d)
+		}
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return fmt.Errorf("digest %q has an empty value", d)
+		}
+		// A non-hex or wrong-length value can never match.
+		algo = strings.ToLower(strings.TrimSpace(algo))
+		hash, sized := digestAlgos[algo]
+		if !sized && algo != "build-id" {
+			return fmt.Errorf("unsupported digest algorithm %q", algo)
+		}
+		if _, err := hex.DecodeString(value); err != nil {
+			return fmt.Errorf("digest %q value is not hex-encoded", d)
+		}
+		// Size panics on the zero Hash, so only ask a known algorithm.
+		if sized {
+			if want := hash.Size() * 2; len(value) != want {
+				return fmt.Errorf("digest %q value must be %d hex characters", d, want)
+			}
+		}
+	}
+	return nil
+}
+
+// preValidateUprobes validates a uprobe policy spec before any sensor is
+// created. CEL on TracingPolicySpec enforces the selector rules too; this also
+// covers specs that never pass through API-server validation.
+func preValidateUprobes(spec *v1alpha1.TracingPolicySpec) error {
+	ric := resolvePathInContainerSpec(spec)
+	if ric == nil {
+		return nil
+	}
+	if len(spec.UProbes) > 1 {
+		return errors.New("a policy may hold one resolvePathInContainer uprobe " +
+			"and nothing else: the per-container sensor rebuilds the policy's maps from it alone")
+	}
+	if spec.PodSelector == nil {
+		return errors.New("resolvePathInContainer requires a podSelector")
+	}
+	// The reconciler matches pods only, so a containerSelector would still
+	// attach in the excluded containers.
+	if spec.ContainerSelector != nil {
+		return errors.New("resolvePathInContainer does not support containerSelector")
+	}
+	// Digests are verified per container at attach, so a malformed one would
+	// load Enabled and then silently never attach.
+	if err := validateBinaryDigests(ric.BinaryDigests); err != nil {
+		return err
+	}
+	// A mismatching container is skipped already; ignoring the failure would
+	// only turn that skip into an attach with no uprobes.
+	if ric.Ignore != nil && ric.Ignore.DigestVerificationFailure {
+		return errors.New("resolvePathInContainer does not support ignore.digestVerificationFailure")
+	}
+	// Fail the load rather than accept a policy no pod event will ever drive.
+	if err := checkResolvePathInContainerSupport(); err != nil {
+		return err
+	}
+	// Without containment, a symlink planted in the container could redirect
+	// the attach to a host binary.
+	if !hasOpenat2InRoot() {
+		return errNoContainment
+	}
+
+	// Macro expansion mutates selectors, so validate a copy: the child sensor
+	// expands the unchanged spec when it is built.
+	uprobe := ric.DeepCopy()
+	if err := appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
+		return fmt.Errorf("append macros selectors: %w", err)
+	}
+	return validateUprobeConfig(uprobe, &addUprobeIn{}, &uprobeHas{})
+}
+
 // createGenericUprobeSensor builds the uprobe sensor for spec. attachPath, when
 // set, overrides where the uprobe attaches and its ELF is parsed, while events
 // keep reporting the spec's Path.
