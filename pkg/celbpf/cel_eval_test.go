@@ -199,6 +199,35 @@ var celSubtract = celBinArithOp(
 	func(a, b uint8) uint8 { return a - b },
 )
 
+var celMultiply = celBinArithOp(
+	func(a, b celTypes.Int) celTypes.Int { return a * b },
+	func(a, b celTypes.Uint) celTypes.Uint { return a * b },
+	func(a, b int32) int32 { return a * b },
+	func(a, b uint32) uint32 { return a * b },
+	func(a, b int16) int16 { return a * b },
+	func(a, b uint16) uint16 { return a * b },
+	func(a, b int8) int8 { return a * b },
+	func(a, b uint8) uint8 { return a * b },
+)
+
+func divideIntegers[T number | celTypes.Int | celTypes.Uint](dividend, divisor T) T {
+	if divisor == 0 {
+		return 0
+	}
+	return dividend / divisor
+}
+
+var celDivide = celBinArithOp(
+	divideIntegers[celTypes.Int],
+	divideIntegers[celTypes.Uint],
+	divideIntegers[int32],
+	divideIntegers[uint32],
+	divideIntegers[int16],
+	divideIntegers[uint16],
+	divideIntegers[int8],
+	divideIntegers[uint8],
+)
+
 var celBitwiseAND = celBinArithOp(
 	func(a, b celTypes.Int) celTypes.Int { return a & b },
 	func(a, b celTypes.Uint) celTypes.Uint { return a & b },
@@ -387,6 +416,14 @@ func getOverloadOpts(t *testing.T, o *fnOverload) []cel.OverloadOpt {
 
 	if strings.HasPrefix(o.name, "add_") {
 		return append(ret, cel.BinaryBinding(celAdd))
+	}
+
+	if strings.HasPrefix(o.name, "mul_") {
+		return append(ret, cel.BinaryBinding(celMultiply))
+	}
+
+	if strings.HasPrefix(o.name, "div_") {
+		return append(ret, cel.BinaryBinding(celDivide))
 	}
 
 	if strings.HasPrefix(o.name, andFn) {
