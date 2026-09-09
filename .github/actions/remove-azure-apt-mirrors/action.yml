@@ -1,0 +1,16 @@
+name: "Remove slow Azure apt mirrors"
+description: "Drop the azure.archive.ubuntu.com apt mirrors on GitHub-hosted Ubuntu runners so apt uses the official Ubuntu mirrors"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Remove slow Azure apt mirrors
+      shell: bash
+      run: |
+        # The default 'azure.archive.ubuntu.com' mirrors can be really slow.
+        # Removing azure.archive will pioritize the official Ubuntu mirrors.
+        if [ -f /etc/apt/apt-mirrors.txt ]; then
+          sudo sed -i '/azure.archive.ubuntu.com/d' /etc/apt/apt-mirrors.txt
+          echo "Using mirrors:"
+          cat /etc/apt/apt-mirrors.txt
+        fi
