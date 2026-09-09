@@ -2494,7 +2494,7 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	if (!ratelimit_interval)
 		return false;
 
-	key = map_lookup_elem(&ratelimit_heap, &zero);
+	key = ratelimit_heap_get();
 	if (!key)
 		return false;
 	ro_heap = map_lookup_elem(&heap_ro_zero, &zero);
