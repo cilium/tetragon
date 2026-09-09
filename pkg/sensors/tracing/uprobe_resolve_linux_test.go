@@ -16,9 +16,7 @@ import (
 )
 
 func TestResolveBinaryUnderRoot(t *testing.T) {
-	if !hasOpenat2InRoot() {
-		t.Skip("openat2(RESOLVE_IN_ROOT) not supported on this kernel")
-	}
+	requireOpenat2InRoot(t)
 
 	root := filepath.Join(t.TempDir(), "root")
 	require.NoError(t, os.MkdirAll(filepath.Join(root, "usr", "bin"), 0o755))
