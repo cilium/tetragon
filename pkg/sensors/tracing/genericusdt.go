@@ -248,6 +248,7 @@ func createMultiUsdtSensor(
 	maps = append(maps, getUprobeHeapMap("buffer_heap_map", load))
 	maps = append(maps, getUprobeHeapMap("string_maps_heap", load))
 	maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", load))
+	maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", load))
 	maps = append(maps, configMap, tailCalls, filterMap, workloadsMap)
 
 	filterMap.SetMaxEntries(len(multiIDs))
