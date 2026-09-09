@@ -219,6 +219,9 @@ struct string_postfix_lpm_trie {
 	__u8 data[STRING_POSTFIX_MAX_LENGTH];
 };
 
+_Static_assert(sizeof(struct string_postfix_lpm_trie) <= HEAP_RO_SIZE,
+	       "heap_ro_value's value must fit struct string_postfix_lpm_trie");
+
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
 	__uint(max_entries, STRING_MAPS_OUTER_MAX_ENTRIES);
@@ -233,12 +236,48 @@ struct {
 		});
 } string_postfix_maps SEC(".maps");
 
+#ifdef USE_HASH_HEAP
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(map_flags, BPF_F_NO_PREALLOC);
+	__uint(max_entries, 1); // will be resized by agent
+	__type(key, __u64);
+	__type(value, struct string_postfix_lpm_trie);
+} string_postfix_maps_heap SEC(".maps");
+
+FUNC_INLINE void *string_postfix_maps_heap_get(void)
+{
+	__u64 key = get_current_pid_tgid();
+	void *val = map_lookup_elem(&string_postfix_maps_heap, &key);
+	struct heap_ro_value *ro;
+	__u32 zidx = 0;
+
+	if (val)
+		return val;
+	ro = map_lookup_elem(&heap_ro_zero, &zidx);
+	if (!ro)
+		return 0;
+	if (map_update_elem(&string_postfix_maps_heap, &key, ro, BPF_ANY))
+		return 0;
+	return map_lookup_elem(&string_postfix_maps_heap, &key);
+}
+
+#else
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
 	__type(value, struct string_postfix_lpm_trie);
 } string_postfix_maps_heap SEC(".maps");
+
+FUNC_INLINE void *string_postfix_maps_heap_get(void)
+{
+	__u32 zero = 0;
+
+	return map_lookup_elem(&string_postfix_maps_heap, &zero);
+}
+
+#endif /* USE_HASH_HEAP */
 
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
