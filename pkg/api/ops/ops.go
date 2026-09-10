@@ -87,7 +87,10 @@ var OpCodeStrings = map[OpCode]string{
 func (op OpCode) String() string {
 	s, ok := OpCodeStrings[op]
 	if !ok {
-		logger.GetLogger().With("opcode", op).Info("Unknown OpCode. This is a bug, please report it to Tetragon developers.")
+		// Log the numeric value, not op: op is a Stringer, so formatting
+		// the record would call this method again and recurse until the
+		// stack overflows.
+		logger.GetLogger().With("opcode", int(op)).Info("Unknown OpCode. This is a bug, please report it to Tetragon developers.")
 		return fmt.Sprintf("Unknown(%d)", op)
 	}
 	return s
