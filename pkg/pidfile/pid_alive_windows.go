@@ -22,7 +22,6 @@ func IsPidAliveByHandle(hProc windows.Handle) bool {
 	return exitCode == 259
 }
 func IsPidAlive(pid int32) bool {
-
 	if (pid == 4) || (pid == 0) {
 		return true // pid 0(kernel) and 4(system) are always alive
 	}

@@ -115,7 +115,6 @@ func (st *randExprSt) celNullaryExpr(ty *cgTypes.Type) string {
 
 // Some of the types here are parametric, so make them concrete
 func concretizeArgs(r *rand.Rand, tys []*cgTypes.Type) []*cgTypes.Type {
-
 	allTys := []*cgTypes.Type{cgTypes.BoolType}
 	for _, ity := range intTypes {
 		allTys = append(allTys, ity.ty)

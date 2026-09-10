@@ -1181,7 +1181,6 @@ spec:
 }
 
 func TestUprobeNULLStringAndReturnArg(t *testing.T) {
-
 	if !bpf.HasKfunc("bpf_copy_from_user_str") {
 		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
 	}

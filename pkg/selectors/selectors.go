@@ -519,7 +519,6 @@ func (k *KernelSelectorState) createStringMaps() SelectorStringMaps {
 //
 // For a simpler example of this construction, see the InMap functionality.
 func (k *KernelSelectorState) insertStringMaps(stringMaps SelectorStringMaps) [StringMapsNumSubMaps]uint32 {
-
 	details := [StringMapsNumSubMaps]uint32{}
 	mapid := uint32(0)
 

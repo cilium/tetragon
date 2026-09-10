@@ -978,7 +978,6 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 
 func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe,
 	progs []*program.Program, maps []*program.Map, has hasMaps) ([]*program.Program, []*program.Map) {
-
 	loadProgName, loadProgRetName := config.GenericKprobeObjs(false)
 	isSecurityFunc := strings.HasPrefix(kprobeEntry.funcName, "security_")
 
@@ -1195,7 +1194,6 @@ func getMapLoad(load *program.Program, kprobeEntry *genericKprobe, index uint32)
 
 func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, maps []*program.Map,
 	verbose int, fentry bool) error {
-
 	gk, err := genericKprobeTableGet(id)
 	if err != nil {
 		return err

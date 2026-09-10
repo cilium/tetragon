@@ -61,6 +61,5 @@ func CgroupIDFromPID(_ uint32) (uint64, error) {
 }
 
 func GetCgroupIDFromSubCgroup(_ string) (uint64, error) {
-
 	return 0, constants.ErrWindowsNotSupported
 }

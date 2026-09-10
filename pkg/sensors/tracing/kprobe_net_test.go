@@ -1379,7 +1379,6 @@ spec:
 }
 
 func (suite *KprobeNet) TestKprobeSocketAndSockaddrUn() {
-
 	if !kernels.MinKernelVersion("5.11") {
 		suite.T().Skip("skipping test: sockaddr_un tests are gated at kernel >=5.11")
 	}
@@ -1460,7 +1459,6 @@ spec:
 }
 
 func (suite *KprobeNet) TestKprobeSockaddrUnPathEquals() {
-
 	if !kernels.MinKernelVersion("5.11") {
 		suite.T().Skip("skipping test: sockaddr_un tests are gated at kernel >=5.11")
 	}
@@ -1546,7 +1544,6 @@ spec:
 }
 
 func (suite *KprobeNet) TestKprobeSockaddrUnPathNotEqual() {
-
 	if !kernels.MinKernelVersion("5.11") {
 		suite.T().Skip("skipping test: sockaddr_un tests are gated at kernel >=5.11")
 	}
@@ -1619,7 +1616,6 @@ spec:
 }
 
 func (suite *KprobeNet) TestKprobeSockaddrUnPathNotPrefix() {
-
 	if !kernels.MinKernelVersion("5.11") {
 		suite.T().Skip("skipping test: sockaddr_un tests are gated at kernel >=5.11")
 	}

@@ -253,7 +253,6 @@ func U16ToBytes(u []uint16) []byte {
 }
 
 func writeExecveMap(procs []procs) map[uint32]struct{} {
-
 	retMap := make(map[uint32]struct{})
 	// on Windows we use a different map atructure.
 	// There are two maps, one for commandline and another for image path
@@ -402,7 +401,6 @@ func init() {
 }
 
 func isProcess32Bit(h windows.Handle) bool {
-
 	var wow64Process uint
 	is2Bit := (unsafe.Sizeof(wow64Process) == 4)
 	switch processorArch {
@@ -444,7 +442,6 @@ func getProcessImagePathFromHandle(hProc windows.Handle) (string, error) {
 }
 
 func fetchProcessCmdLineFromHandle(hProc windows.Handle) (string, error) {
-
 	is32Bit := isProcess32Bit(hProc)
 
 	if is32Bit {
@@ -572,7 +569,6 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 			hPProc, err = windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(ppid))
 		}
 		if (err == nil) && (pidfile.IsPidAliveByHandle(hPProc)) {
-
 			defer windows.CloseHandle(hPProc)
 			pcmdline, err = fetchProcessCmdLineFromHandle(hPProc)
 			if err != nil {

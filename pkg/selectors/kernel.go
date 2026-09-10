@@ -685,7 +685,6 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 
 	for _, v := range values {
 		switch ty {
-
 		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType, gt.GenericS16Type, gt.GenericS8Type:
 			if (ty == gt.GenericS16Type || ty == gt.GenericS8Type) && !config.EnableLargeProgs() {
 				return fmt.Errorf("MatchArgs type %s is only supported in kernels supporting large programs (normally versions >= 5.3)", gt.GenericTypeString(int(ty)))
@@ -1818,7 +1817,6 @@ func createKernelSelectorState(
 }
 
 func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, error) {
-
 	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
 		if err := ParseMatchPids(k, selector.MatchPIDs); err != nil {
 			return fmt.Errorf("parseMatchPids error: %w", err)
@@ -1861,7 +1859,6 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 
 func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
 	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
-
 	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
 		if err := ParseMatchCmdArgs(k, nil); err != nil {
 			return fmt.Errorf("parseMatchCmdArgs error: %w", err)

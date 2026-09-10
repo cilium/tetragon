@@ -129,7 +129,6 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 		complChecker := testsensor.NewCompletionChecker()
 
 		for ctxPerfRing.Err() == nil {
-
 			record, err := perfReader.Read()
 			if err != nil {
 				if ctxPerfRing.Err() == nil && !errors.Is(err, os.ErrClosed) {
@@ -154,11 +153,9 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 		// Service the BPF ring buffer.
 		ctxBPFRing, cancelBPFRing = context.WithCancel(ctx)
 		wg.Go(func() {
-
 			complChecker := testsensor.NewCompletionChecker()
 
 			for ctxBPFRing.Err() == nil {
-
 				record, err := ringBufReader.Read()
 				if err != nil {
 					if ctxBPFRing.Err() == nil && !errors.Is(err, os.ErrClosed) {

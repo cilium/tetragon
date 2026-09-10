@@ -539,7 +539,6 @@ func imaProgName(lsmEntry *genericLsm) (string, string) {
 
 func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
-
 	loadProgCoreName, loadProgOutputName := config.GenericLsmObjs()
 	pinName := lsmEntry.instance.PinProg(lsmEntry.hook)
 

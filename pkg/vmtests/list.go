@@ -29,7 +29,6 @@ func (t *GoTest) ToPattern() string {
 }
 
 func fromString(testDir, s string) []GoTest {
-
 	sl := strings.SplitN(s, ":", 2)
 	prog := sl[0]
 	if len(sl) < 2 {
@@ -81,7 +80,6 @@ func ListTests(
 	packagesOnly bool,
 	ignorelist []GoTest,
 ) ([]GoTest, error) {
-
 	progs, err := listTestProgs(testDir, ignorelist)
 	if err != nil {
 		return nil, err

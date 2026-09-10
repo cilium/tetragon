@@ -153,7 +153,6 @@ func TestMapMultipleSensors(t *testing.T) {
 	// ./policy/sensor1
 	// ./policy/sensor1/p1
 	// ./policy/sensor1/p1/prog
-
 	p1 := program.Builder(
 		"bpf_map_test_p1.o",
 		"wake_up_new_task",

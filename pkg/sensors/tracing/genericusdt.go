@@ -289,7 +289,6 @@ func createSingleUsdtSensor(polInfo *policyInfo, ids []idtable.EntryID, has usdt
 
 func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	progs []*program.Program, maps []*program.Map, has usdtHas) ([]*program.Program, []*program.Map) {
-
 	loadProgName := config.GenericUsdtObjs(false)
 
 	attachData := &program.UprobeAttachData{

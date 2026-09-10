@@ -711,7 +711,6 @@ func testKprobeObjectFiltered(t *testing.T,
 	mode int,
 	perm uint32,
 	fentry bool) {
-
 	if useMount == true {
 		if err := syscall.Mount("tmpfs", mntPath, "tmpfs", 0, ""); err != nil {
 			t.Logf("Mount failed: %s\n", err)
@@ -836,7 +835,6 @@ func testKprobeStringMatch(t *testing.T,
 	readHook string,
 	checker ec.MultiEventChecker,
 	dir string) {
-
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -1735,7 +1733,6 @@ func testKprobeObjectFilteredReturnValue(t *testing.T,
 	checker ec.MultiEventChecker,
 	path string,
 	expectFailure bool) {
-
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -4310,7 +4307,6 @@ func TestKprobeMatchBinaries(t *testing.T) {
 }
 
 func matchBinariesLargePathTest(t *testing.T, operator string, values []string, binary string, fentry bool) {
-
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6837,7 +6833,6 @@ spec:
 	})
 
 	t.Run("dentry", func(t *testing.T) {
-
 		var doneWG, readyWG sync.WaitGroup
 		defer doneWG.Wait()
 
@@ -7693,7 +7688,6 @@ func TestKprobeResolveCurrent(t *testing.T) {
 }
 
 func testKprobeRangeOp(t *testing.T, in, fentry bool) {
-
 	if !config.EnableLargeProgs() {
 		t.Skipf("Skipping test since it needs kernel >= 5.3")
 	}
@@ -7786,7 +7780,6 @@ func TestKprobeRangeNotIn(t *testing.T) {
 }
 
 func testKprobeGT(t *testing.T, value uint64, fail, fentry bool) {
-
 	if !config.EnableLargeProgs() {
 		t.Skipf("Skipping test since it needs kernel >= 5.3")
 	}

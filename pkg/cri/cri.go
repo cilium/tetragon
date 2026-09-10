@@ -46,7 +46,6 @@ func NewClient(ctx context.Context, endpoint string) (criapi.RuntimeServiceClien
 }
 
 func newClientTry(ctx context.Context, endpoint string) (criapi.RuntimeServiceClient, error) {
-
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, err

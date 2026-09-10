@@ -28,7 +28,6 @@ func actCountsCheck(
 	before, after *tetragon.TracingPolicyActionCounters,
 	expect *ActionCounts,
 ) error {
-
 	var err error
 	doCheck := func(cnt string, expected, before, after uint64) {
 		if expected != after-before {

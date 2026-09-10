@@ -81,7 +81,6 @@ func getCWD(pid uint32) (string, uint32) {
 }
 
 func updateExecveMapStats(procs int64) {
-
 	execveMapStats := base.GetExecveMapStats()
 
 	m, err := ebpf.LoadPinnedMap(filepath.Join(bpf.MapPrefixPath(), execveMapStats.Name), nil)

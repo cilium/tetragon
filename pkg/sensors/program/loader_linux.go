@@ -42,7 +42,6 @@ func LinkPin(lnk link.Link, bpfDir string, load *Program, extra ...string) error
 func RawAttachWithFlags(targetFD int, flags uint32) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 		err := link.RawAttachProgram(link.RawAttachProgramOptions{
 			Target:  targetFD,
 			Program: prog,
@@ -70,7 +69,6 @@ func RawAttachWithFlags(targetFD int, flags uint32) AttachFunc {
 func TracepointAttach(load *Program, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 		parts := strings.Split(load.Attach, "/")
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("tracepoint attach argument must be in the form category/tracepoint, got: %s", load.Attach)
@@ -98,7 +96,6 @@ func TracepointAttach(load *Program, bpfDir string) AttachFunc {
 func RawTracepointAttach(load *Program) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 		var lnk link.Link
 		var err error
 
@@ -184,7 +181,6 @@ func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 
 func kprobeAttachOverride(load *Program, bpfDir string,
 	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec) error {
-
 	spec, ok := collSpec.Programs["generic_kprobe_override"]
 	if !ok {
 		return errors.New("spec for generic_kprobe_override program not found")
@@ -216,7 +212,6 @@ func kprobeAttachOverride(load *Program, bpfDir string,
 
 func fmodretAttachOverride(load *Program, bpfDir string,
 	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec) error {
-
 	spec, ok := collSpec.Programs["generic_fmodret_override"]
 	if !ok {
 		return errors.New("spec for generic_fmodret_override program not found")
@@ -268,7 +263,6 @@ func fmodretAttachOverride(load *Program, bpfDir string,
 func KprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 		if load.Override {
 			if load.OverrideFmodRet {
 				if err := fmodretAttachOverride(load, bpfDir, coll, collSpec); err != nil {
@@ -301,14 +295,12 @@ func UprobeOpen(load *Program) OpenFunc {
 func UprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 		return uprobeAttach(load, bpfDir, coll, collSpec, prog, spec, uprobeAttachSingle)
 	}
 }
 
 func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	bpfDir string, extra ...string) (unloader.Unloader, error) {
-
 	data, ok := load.AttachData.(*UprobeAttachData)
 	if !ok {
 		return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
@@ -352,7 +344,6 @@ func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpe
 func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 		return uprobeAttach(load, bpfDir, coll, collSpec, prog, spec, uprobeAttachMulti)
 	}
 }
@@ -360,7 +351,6 @@ func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 func attachMultiUpobeLink(load *Program, prog *ebpf.Program, path string,
 	attach *MultiUprobeAttachSymbolsCookies, bpfDir string,
 	idx int, extra ...string) (link.Link, error) {
-
 	exec, err := link.OpenExecutable(path)
 	if err != nil {
 		return nil, err
@@ -391,7 +381,6 @@ func attachMultiUpobeLink(load *Program, prog *ebpf.Program, path string,
 
 func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	bpfDir string, extra ...string) (unloader.Unloader, error) {
-
 	data, ok := load.AttachData.(*MultiUprobeAttachData)
 	if !ok {
 		return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
@@ -432,7 +421,6 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 func uprobeAttachExtra(load *Program, bpfDir string,
 	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 	progName, pin string, attach uprobeAttachFunc) (unloader.Unloader, error) {
-
 	spec, ok := collSpec.Programs[progName]
 	if !ok {
 		return nil, fmt.Errorf("spec for %s program not found", progName)
@@ -464,7 +452,6 @@ func uprobeAttachExtra(load *Program, bpfDir string,
 func uprobeAttach(load *Program, bpfDir string,
 	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 	prog *ebpf.Program, spec *ebpf.ProgramSpec, attach uprobeAttachFunc) (un unloader.Unloader, err error) {
-
 	var (
 		main             unloader.Unloader
 		sleepableOffload unloader.Unloader
@@ -568,7 +555,6 @@ func LSMOpen(load *Program) OpenFunc {
 func LSMAttach(load *Program, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 		linkFn := func() (link.Link, error) {
 			return link.AttachLSM(link.LSMOptions{
 				Program: prog,
@@ -594,7 +580,6 @@ func LSMAttach(load *Program, bpfDir string) AttachFunc {
 func multiKprobeAttach(load *Program, prog *ebpf.Program,
 	spec *ebpf.ProgramSpec, opts link.KprobeMultiOptions,
 	bpfDir string, extra ...string) (unloader.Unloader, error) {
-
 	var lnk link.Link
 	var err error
 
@@ -625,7 +610,6 @@ func multiKprobeAttach(load *Program, prog *ebpf.Program,
 func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 		data, ok := load.AttachData.(*MultiKprobeAttachData)
 		if !ok {
 			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
@@ -700,7 +684,6 @@ func LoadKprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) e
 func KprobeAttachMany(load *Program, syms []string, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 		unloader := unloader.ChainUnloader{
 			unloader.ProgUnloader{
 				Prog: prog,
@@ -820,7 +803,6 @@ func LoadMultiUprobeProgram(bpfDir string, load *Program, maps []*Map, verbose i
 func SeccompAttach() AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, _ *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 		return &unloader.ProgUnloader{
 			Prog: prog,
 		}, nil
@@ -839,7 +821,6 @@ func slimVerifierError(errStr string) string {
 	// The error is potentially up to 'verifierLogBufferSize' bytes long,
 	// and most of it is not interesting. For a user-friendly output, we'll
 	// only keep the first and last N lines.
-
 	nLines := 30
 	headLines := 0
 	headEnd := 0
@@ -872,7 +853,6 @@ func slimVerifierError(errStr string) string {
 
 func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, load *Program) error {
 	// FIXME(JM): This should be replaced by using the cilium/ebpf prog array initialization.
-
 	secToProgName := make(map[string]string)
 	for name, prog := range spec.Programs {
 		secToProgName[prog.SectionName] = name

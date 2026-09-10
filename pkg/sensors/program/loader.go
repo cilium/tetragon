@@ -87,7 +87,6 @@ func loadProgram(
 	opts *LoadOpts,
 	verbose int,
 ) error {
-
 	// Attach function is mandatory
 	if opts.Attach == nil {
 		return errors.New("attach function is not provided")

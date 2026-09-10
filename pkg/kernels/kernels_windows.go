@@ -17,7 +17,6 @@ func GetKernelVersion(kernelVersion, procfs string) (int, string, error) {
 		version = int(KernelStringToNumeric(kernelVersion))
 		verStr = kernelVersion
 	} else {
-
 		var mod = syscall.NewLazyDLL("ntdll.dll")
 		var proc = mod.NewProc("RtlGetVersion")
 
@@ -52,7 +51,6 @@ func GenericKprobeObjs() (string, string) {
 }
 
 func MinKernelVersion(kernel string) bool {
-
 	runningVersion, _, _ := GetKernelVersion("", "")
 
 	minVersion := int(KernelStringToNumeric(kernel))

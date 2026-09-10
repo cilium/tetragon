@@ -453,7 +453,6 @@ func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *sl
 
 // DelPolicy will destroy all information for the provided policy
 func (m *state) DelPolicy(polID PolicyID) error {
-
 	if polID == NoFilterPolicyID || polID == AllPodsPolicyID {
 		return nil
 	}
@@ -637,7 +636,6 @@ func (m *state) AddPodContainer(podID PodID, namespace string, podLabels labels.
 // delPodCgroupIDsFromPolicyMaps will delete cgorup entries for containers belonging to pod on all
 // policy maps.
 func (m *state) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []containerInfo) {
-
 	if len(containers) == 0 {
 		return
 	}
@@ -798,7 +796,6 @@ func (m *state) applyPodPolicyDiff(pod *podInfo, polDiff *policiesDiffRes) {
 }
 
 func (pod *podInfo) containerDiff(newContainerIDs []string) ([]string, []string) {
-
 	// maintain a hash of new ids. The values indicate whether the id was seen in existing ids
 	// or not
 	newIDs := make(map[string]bool)

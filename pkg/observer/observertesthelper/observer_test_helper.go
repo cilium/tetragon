@@ -439,7 +439,6 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 
 func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 	tp tracingpolicy.TracingPolicy) error {
-
 	if err := base.Load(option.Config.BpfDir); err != nil {
 		tb.Fatalf("Load base error: %s\n", err)
 	}
@@ -522,7 +521,6 @@ func WaitForProcess(process string) error {
 	procDir, _ := os.ReadDir(procfs)
 	for range 120 {
 		for _, d := range procDir {
-
 			cmdline, err := os.ReadFile(filepath.Join(procfs, d.Name(), "/cmdline"))
 			if err != nil {
 				continue

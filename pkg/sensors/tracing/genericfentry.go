@@ -33,7 +33,6 @@ func createGenericFentrySensor(
 	polInfo *policyInfo,
 	valInfo []*kpValidateInfo,
 ) (*sensors.Sensor, error) {
-
 	// TODO support enforcement ;-)
 	for _, fentry := range spec.Fentries {
 		if selectors.HasEnforcementAction(fentry.Selectors) {

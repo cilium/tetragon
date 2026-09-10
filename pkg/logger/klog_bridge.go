@@ -133,7 +133,6 @@ func writerScanner(
 	reader *io.PipeReader,
 	defaultPrintFunc func(msg string, args ...any),
 	overrides []logLevelOverride) {
-
 	defer reader.Close()
 
 	scanner := bufio.NewScanner(reader)

@@ -16,7 +16,6 @@ import (
 )
 
 func TestSaveAndLoad(t *testing.T) {
-
 	tmpFile, err := os.CreateTemp(t.TempDir(), "tetragon-bugtool-test-")
 	if err != nil {
 		t.Error("failed to create temporary file")

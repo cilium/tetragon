@@ -12,7 +12,6 @@ import (
 )
 
 func requirePfmEqualTo(t *testing.T, m PfMap, val map[uint64][]uint64) {
-
 	checkVals := map[PolicyID]map[CgroupID]struct{}{}
 	for k, ids := range val {
 		checkVals[PolicyID(k)] = map[CgroupID]struct{}{}

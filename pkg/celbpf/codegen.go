@@ -102,7 +102,6 @@ func (g *codeGenerator) emitPopU32(reg asm.Register) {
 }
 
 func (g *codeGenerator) emitU32(reg asm.Register, regTy *cgTypes.Type) error {
-
 	switch regTy {
 	case u64Ty:
 	default:
@@ -247,7 +246,6 @@ func (g *codeGenerator) emitBranch(
 	op string,
 	tmp asm.Register,
 ) error {
-
 	var signed bool
 	var alu32 bool
 	switch {

@@ -159,7 +159,6 @@ func (out *genericTracepointArg) String() string {
 // getGenericTypeId: returns the generic type Id of a tracepoint argument
 // if such an id cannot be termined, it returns an GenericInvalidType and an error
 func (out *genericTracepointArg) getGenericTypeId() (int, error) {
-
 	if out.userType != "" && out.userType != "auto" {
 		if out.userType == "const_buf" {
 			// const_buf type depends on the .format.field.Type to decode the result, so
@@ -516,7 +515,6 @@ func tpValidateAndAdjustEnforcerAction(
 	tpID int,
 	policyName string,
 	spec *v1alpha1.TracingPolicySpec) error {
-
 	registeredEnforcerMetrics := false
 	for _, sel := range tp.Selectors {
 		for _, act := range sel.MatchActions {
@@ -747,7 +745,6 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 }
 
 func (tp *genericTracepoint) EventConfig() (*tracingapi.EventConfig, error) {
-
 	if len(tp.args) > tracingapi.EventConfigMaxArgs {
 		return nil, fmt.Errorf("number of arguments (%d) larger than max (%d)", len(tp.args), tracingapi.EventConfigMaxArgs)
 	}
@@ -764,7 +761,6 @@ func (tp *genericTracepoint) EventConfig() (*tracingapi.EventConfig, error) {
 }
 
 func (tp *genericTracepoint) eventConfigRaw(config *tracingapi.EventConfig) (*tracingapi.EventConfig, error) {
-
 	// iterate over output arguments
 	for i, tpArg := range tp.args {
 		config.BTFArg[i] = tpArg.btf
@@ -778,7 +774,6 @@ func (tp *genericTracepoint) eventConfigRaw(config *tracingapi.EventConfig) (*tr
 }
 
 func (tp *genericTracepoint) eventConfig(config *tracingapi.EventConfig) (*tracingapi.EventConfig, error) {
-
 	// iterate over output arguments
 	for i, tpArg := range tp.args {
 		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
@@ -793,7 +788,6 @@ func (tp *genericTracepoint) eventConfig(config *tracingapi.EventConfig) (*traci
 }
 
 func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
-
 	tracepointLog = logger.GetLogger()
 
 	id, ok := load.LoaderData.(idtable.EntryID)
@@ -866,7 +860,6 @@ func handleMsgGenericTracepoint(
 	tp *genericTracepoint,
 	r *bytes.Reader,
 ) ([]observer.Event, error) {
-
 	switch m.ActionId {
 	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
 		actionArgEntry, err := tp.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
@@ -892,7 +885,6 @@ func handleMsgGenericTracepoint(
 	unix.Tags = tp.tags
 
 	for idx, out := range tp.args {
-
 		if out.nopTy {
 			continue
 		}

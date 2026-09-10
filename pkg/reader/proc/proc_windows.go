@@ -43,7 +43,6 @@ func getIDFromSID(strSID string) (string, error) {
 }
 
 func getStrLuidFromToken(token windows.Token) (string, error) {
-
 	var size uint32
 	err := windows.GetTokenInformation(token, windows.TokenStatistics, nil, 0, &size)
 	if !errors.Is(err, syscall.ERROR_INSUFFICIENT_BUFFER) {
@@ -114,7 +113,6 @@ func getTokenInfo(t syscall.Token, class uint32, initSize int) (unsafe.Pointer, 
 }
 
 func fillLoginUid(hProc windows.Handle, status *Status) error {
-
 	var token syscall.Token
 	err := syscall.OpenProcessToken(syscall.Handle(hProc), syscall.TOKEN_QUERY, &token)
 	if err != nil {

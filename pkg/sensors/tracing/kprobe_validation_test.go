@@ -31,9 +31,7 @@ func checkCrd(t *testing.T, crd string) error {
 }
 
 func TestKprobeValidationListWrongSyscallName(t *testing.T) {
-
 	// messed up syscall name in the list
-
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -54,9 +52,7 @@ spec:
 }
 
 func TestKprobeValidationListWrongOverride(t *testing.T) {
-
 	// override on non override-able functions in list
-
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -82,9 +78,7 @@ spec:
 }
 
 func TestKprobeValidationListWrongName(t *testing.T) {
-
 	// wrong list name reference in kprobe's call
-
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -106,9 +100,7 @@ spec:
 }
 
 func TestKprobeValidationListGeneratedSyscallsNotEmpty(t *testing.T) {
-
 	// not empty values for generated syscalls list
-
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -130,9 +122,7 @@ spec:
 }
 
 func TestKprobeValidationListGeneratedFtraceNotEmpty(t *testing.T) {
-
 	// not empty values for generated ftrace list
-
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -154,9 +144,7 @@ spec:
 }
 
 func TestKprobeValidationListGeneratedFtraceNoPattern(t *testing.T) {
-
 	// no pattern specified for generated ftrace list
-
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -174,9 +162,7 @@ spec:
 	require.Error(t, err)
 }
 func TestKprobeValidationWrongSyscallName(t *testing.T) {
-
 	// messed up syscall name in kprobe's call
-
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -192,9 +178,7 @@ spec:
 }
 
 func TestKprobeValidationWrongOverride(t *testing.T) {
-
 	// override on non override-able functions in list
-
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -214,9 +198,7 @@ spec:
 }
 
 func TestKprobeValidationNonSyscallOverride(t *testing.T) {
-
 	// override on non syscall (non override-able) function
-
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -318,9 +300,7 @@ func TestKprobeValidationReturnArgActionInvalid(t *testing.T) {
 }
 
 func TestKprobeLTOp(t *testing.T) {
-
 	// missing returnArg while having return: true
-
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -349,9 +329,7 @@ spec:
 }
 
 func TestKprobeGTOp(t *testing.T) {
-
 	// missing returnArg while having return: true
-
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy

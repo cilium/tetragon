@@ -81,7 +81,6 @@ func newCgroupRate(
 	listener observer.Listener,
 	hash *program.Map,
 	opts *option.CgroupRate) *CgroupRate {
-
 	return &CgroupRate{
 		listener: listener,
 		log:      logger.GetLogger(),
@@ -95,7 +94,6 @@ func newCgroupRate(
 func NewCgroupRate(ctx context.Context,
 	listener observer.Listener,
 	opts *option.CgroupRate) error {
-
 	if opts.Events == 0 || opts.Interval == 0 {
 		logger.GetLogger().Info(fmt.Sprintf("Cgroup rate disabled (%d/%s)", opts.Events, time.Duration(opts.Interval).String()))
 		return nil
@@ -115,7 +113,6 @@ func NewCgroupRate(ctx context.Context,
 func NewTestCgroupRate(listener observer.Listener,
 	hash *program.Map,
 	opts *option.CgroupRate) {
-
 	glSt.handle = newCgroupRate(listener, hash, opts)
 }
 

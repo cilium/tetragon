@@ -15,9 +15,7 @@ import (
 )
 
 func TestUsdtValidationSetWrongReturnSize1B(t *testing.T) {
-
 	// Using 1 bytes return argument with usdt set action
-
 	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt-override")
 	crd := `
 apiVersion: cilium.io/v1alpha1
@@ -48,9 +46,7 @@ spec:
 }
 
 func TestUsdtValidationSetWrongReturnSize8B(t *testing.T) {
-
 	// Using 8 bytes return argument with usdt set action
-
 	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt-override")
 	crd := `
 apiVersion: cilium.io/v1alpha1

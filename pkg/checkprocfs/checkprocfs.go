@@ -16,7 +16,6 @@ import (
 
 // Check tries to determine whether the configured procfs is the host's procfs
 func Check() {
-
 	path := filepath.Join(option.Config.ProcFS, "1", "ns", "pid")
 	var stat syscall.Stat_t
 	if err := syscall.Stat(path, &stat); err != nil {

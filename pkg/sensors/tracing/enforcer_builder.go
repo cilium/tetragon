@@ -101,7 +101,6 @@ func (ksb *EnforcerSpecBuilder) MustYAML() string {
 }
 
 func (ksb *EnforcerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
-
 	var listNames []string
 	var lists []v1alpha1.ListSpec
 	var enforcers []v1alpha1.EnforcerSpec

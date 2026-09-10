@@ -67,7 +67,6 @@ func (e *ParseError) Error() string {
 }
 
 func parseTy(tyFields []string) (any, error) {
-
 	fidx := 0
 	nfields := len(tyFields)
 	isConst := false
@@ -167,7 +166,6 @@ func parseTy(tyFields []string) (any, error) {
 }
 
 func parseField(s string) (*Field, error) {
-
 	fields := strings.Fields(s)
 	nfields := len(fields)
 	if nfields < 2 {
