@@ -2218,6 +2218,10 @@ FUNC_INLINE bool is_filter_arg_1(long type)
 	case int_type:
 	case s32_ty:
 	case u32_ty:
+	case skb_type:
+	case sock_type:
+	case socket_type:
+	case sockaddr_type:
 #ifdef __LARGE_BPF_PROG
 	case s16_ty:
 	case u16_ty:
@@ -2260,6 +2264,11 @@ filter_arg_1(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 	case s32_ty:
 	case u32_ty:
 		return filter_32ty(filter, args);
+	case skb_type:
+	case sock_type:
+	case socket_type:
+	case sockaddr_type:
+		return filter_inet(filter, args);
 #ifdef __LARGE_BPF_PROG
 	case s16_ty:
 	case u16_ty:
@@ -2295,11 +2304,6 @@ filter_arg_2(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 		 * length that was actually read (see: __copy_char_buf)
 		 */
 		return filter_char_buf(filter, args, 8);
-	case skb_type:
-	case sock_type:
-	case socket_type:
-	case sockaddr_type:
-		return filter_inet(filter, args);
 #if defined(__V511_BPF_PROG)
 	case sockaddr_un_type:
 		return filter_sockaddr_un(filter, args);
