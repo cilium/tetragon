@@ -114,11 +114,7 @@ func procArgs(p *procs) string {
 			args.WriteByte('"')
 		}
 
-		if utf8.Valid(arg) {
-			args.Write(arg)
-		} else {
-			args.WriteString(strutils.UTF8FromBPFBytes(arg))
-		}
+		strutils.WriteUTF8FromBPFBytes(&args, arg)
 
 		if hasWhiteSpace {
 			args.WriteByte('"')

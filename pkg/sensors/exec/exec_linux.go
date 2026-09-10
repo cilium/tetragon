@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"unicode/utf8"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
@@ -169,11 +168,8 @@ func resolveArgs(reader *bytes.Reader, exec *processapi.MsgExec) (string, error)
 			args.WriteByte('"')
 		}
 
-		if utf8.Valid(arg) {
-			args.Write(arg)
-		} else {
-			args.WriteString(strutils.UTF8FromBPFBytes(arg))
-		}
+		strutils.WriteUTF8FromBPFBytes(&args, arg)
+
 		if hasWhiteSpace {
 			args.WriteByte('"')
 		}
