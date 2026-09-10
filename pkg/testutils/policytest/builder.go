@@ -35,6 +35,12 @@ func (b *Builder) WithParameter(p Parameter) *Builder {
 	return b
 }
 
+// WithCLIFlags adds agent CLI flag requirements to a policy test.
+func (b *Builder) WithCLIFlags(flags ...CLIFlag) *Builder {
+	b.policytest.CLIFlags = append(b.policytest.CLIFlags, flags...)
+	return b
+}
+
 // WithPolicyTemplate adds a policy to a policy test using a text template.
 //
 // In the template, the following functions are supported
