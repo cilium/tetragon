@@ -1,0 +1,6 @@
+# Helm values for the uprobe resolvePathInContainer e2e test. Container roots
+# are found through the host proc mount, so neither CRI nor runtime hooks are
+# needed.
+tetragon:
+  exportAllowList: "" # export all events for the checker
+  enablePolicyFilter: true

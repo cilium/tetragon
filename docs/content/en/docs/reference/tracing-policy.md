@@ -79,6 +79,8 @@ Resource Types:
         <td>object</td>
         <td>
           Tracing policy specification.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer) || has(self.podSelector): uprobe resolvePathInContainer requires a podSelector</li><li>!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer) || !has(self.containerSelector): uprobe resolvePathInContainer cannot be combined with a containerSelector</li>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -8860,7 +8862,10 @@ merge patch.<br/>
           BinaryDigests specifies a set of digests for the traced binary.
 The uprobe/hook is installed only if the digest of the traced binary matches a digest in the set.
 Tetragon's tracing policy status API can be used to see each hook's status in order to determine
-if the hook was attached or not.<br/>
+if the hook was attached or not.
+A mismatch rejects the policy at load, except with resolvePathInContainer,
+where the digest is checked per container and a mismatching container is
+skipped.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8904,6 +8909,17 @@ in the event output to inform users what is going on.<br/>
         <td>[]integer</td>
         <td>
           List of the traced ref_ctr_offsets<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resolvePathInContainer</b></td>
+        <td>boolean</td>
+        <td>
+          ResolvePathInContainer resolves Path in the root filesystem of each
+container selected by the policy's podSelector, and attaches the uprobe
+per matching container instead of in the agent's mount namespace.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12282,6 +12298,8 @@ merge patch.<br/>
         <td>object</td>
         <td>
           Tracing policy specification.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer) || has(self.podSelector): uprobe resolvePathInContainer requires a podSelector</li><li>!has(self.uprobes) || !self.uprobes.exists(u, u.resolvePathInContainer) || !has(self.containerSelector): uprobe resolvePathInContainer cannot be combined with a containerSelector</li>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -21063,7 +21081,10 @@ merge patch.<br/>
           BinaryDigests specifies a set of digests for the traced binary.
 The uprobe/hook is installed only if the digest of the traced binary matches a digest in the set.
 Tetragon's tracing policy status API can be used to see each hook's status in order to determine
-if the hook was attached or not.<br/>
+if the hook was attached or not.
+A mismatch rejects the policy at load, except with resolvePathInContainer,
+where the digest is checked per container and a mismatching container is
+skipped.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -21107,6 +21128,17 @@ in the event output to inform users what is going on.<br/>
         <td>[]integer</td>
         <td>
           List of the traced ref_ctr_offsets<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resolvePathInContainer</b></td>
+        <td>boolean</td>
+        <td>
+          ResolvePathInContainer resolves Path in the root filesystem of each
+container selected by the policy's podSelector, and attaches the uprobe
+per matching container instead of in the agent's mount namespace.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr><tr>

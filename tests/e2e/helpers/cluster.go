@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/e2e-framework/support/kind"
 
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/tests/e2e/flags"
 	"github.com/cilium/tetragon/tests/e2e/state"
 )
 
@@ -184,6 +185,26 @@ func GetTempKindClusterName(ctx context.Context) string {
 		return name
 	}
 	return ""
+}
+
+// LoadTesterProgsImage loads the tester-progs workload image (see
+// -tetragon.tester-progs-image) into the temporary kind cluster. No-op against
+// an existing cluster, where the image must be pullable instead.
+func LoadTesterProgsImage() env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		image := flags.Opts.TesterProgsImage
+		// runners.Init swaps envfuncs.LoadDockerImageToCluster for the minikube
+		// loader, so the same call covers both cluster types.
+		clusterName := GetTempKindClusterName(ctx)
+		if flags.Opts.Minikube {
+			clusterName = "minikube"
+		} else if clusterName == "" {
+			klog.InfoS("No temporary kind cluster, skipping tester-progs image load", "image", image)
+			return ctx, nil
+		}
+		klog.InfoS("Loading tester-progs image", "cluster", clusterName, "image", image)
+		return envfuncs.LoadDockerImageToCluster(clusterName, image)(ctx, cfg)
+	}
 }
 
 // LoadImageToMinikubeEnvFunc loads a container image into the minikube cluster via

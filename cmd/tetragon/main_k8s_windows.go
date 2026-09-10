@@ -5,9 +5,16 @@
 
 package main
 
-import "github.com/cilium/tetragon/pkg/manager/events"
+import (
+	corev1 "k8s.io/api/core/v1"
 
-// EnableCgIDmap is a no-op on Windows because the cgidmap
-// package is unavailable there. The shape matches the unix variant so the
-// caller in main_k8s.go can call it unconditionally.
+	"github.com/cilium/tetragon/pkg/manager/events"
+)
+
+// EnableCgIDmap is a no-op on Windows, where cgidmap is unavailable.
 func EnableCgIDmap(_ events.PodEventSource) error { return nil }
+
+// EnableUprobeResolvePathInContainer is a no-op on Windows.
+func EnableUprobeResolvePathInContainer(_ events.PodEventSource, _ func() ([]*corev1.Pod, error)) error {
+	return nil
+}

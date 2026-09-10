@@ -196,6 +196,10 @@ image-rthooks:
 	@echo "Push like this when ready:"
 	@echo "${CONTAINER_ENGINE} push cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
 
+.PHONY: image-tester-progs
+image-tester-progs: ## Build the workload image for the uprobe resolvePathInContainer e2e test.
+	$(CONTAINER_ENGINE) build -f contrib/tester-progs/Dockerfile -t "$(E2E_TESTER_PROGS)" --platform=linux/${TARGET_ARCH} contrib/tester-progs
+
 .PHONY: image-test
 image-test: image-clang
 	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
@@ -352,6 +356,8 @@ E2E_AGENT ?= "cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 E2E_OPERATOR ?= "cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 # RTHooks image to use for end-to-end tests
 E2E_RTHOOKS ?= "cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
+# Workload image for the uprobe resolvePathInContainer e2e test
+E2E_TESTER_PROGS ?= "cilium/tetragon-tester-progs:$(DOCKER_IMAGE_TAG)"
 # BTF file to use in the E2E test. Set to nothing to use system BTF.
 E2E_BTF ?= ""
 # Actual flags to use for BTF file in e2e test. Use E2E_BTF instead.
@@ -378,7 +384,12 @@ e2e-test: image image-operator
 else
 e2e-test:
 endif
+# The uprobe_ric workload image is not published anywhere, and the default
+# E2E_TESTS wildcard selects that package, so build it even when the other
+# images are not rebuilt.
+e2e-test: image-tester-progs
 	$(GO) list $(E2E_TESTS) | xargs -Ipkg $(GO) test $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover pkg ${EXTRA_TESTFLAGS} -fail-fast \
+	-tetragon.tester-progs-image="$(E2E_TESTER_PROGS)" \
 	-tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" \
 	-tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" \
 	-tetragon.helm.set tetragon.gops.enabled=true \
