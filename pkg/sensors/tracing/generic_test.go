@@ -148,7 +148,6 @@ spec:
 	for _, hook := range successHook {
 		for _, arg := range hook.Args {
 			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false)
-
 			if err != nil {
 				t.Fatal(hook.Call, err)
 			}

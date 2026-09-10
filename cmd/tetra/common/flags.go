@@ -62,7 +62,6 @@ func readActiveServerAddressFromFile(fname string) (string, error) {
 func ResolveServerAddress() string {
 	if ServerAddress == "" {
 		sa, err := readActiveServerAddressFromFile(defaults.InitInfoFile)
-
 		if err != nil {
 			logger.GetLogger().
 				Debug("failed to resolve server address reading init info file, using default value",

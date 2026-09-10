@@ -81,7 +81,6 @@ func (fti *forkTesterInfo) ParseLine(l string) error {
 	var v uint64
 	if match := parentRe.FindStringSubmatch(l); len(match) > 0 {
 		v, err = strconv.ParseUint(match[1], 10, 32)
-
 		if err == nil {
 			fti.parentPid = uint32(v)
 		}
