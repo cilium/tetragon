@@ -10,6 +10,8 @@ import (
 	"unicode/utf8"
 )
 
+const replacementChar = "�"
+
 // UTF8FromBPFBytes transforms bpf (C) strings to valid utf-8 strings
 //
 // NB(kkourt): strings we get from BPF/kernel are C strings: null-terminated sequence of bytes. They
@@ -30,7 +32,16 @@ func UTF8FromBPFBytes(b []byte) string {
 		return string(b)
 	}
 
-	return strings.ToValidUTF8(string(b), "�")
+	return strings.ToValidUTF8(string(b), replacementChar)
+}
+
+func WriteUTF8FromBPFBytes(b *strings.Builder, data []byte) {
+	if utf8.Valid(data) {
+		// fast path, does not materialise a temp string
+		b.Write(data)
+	} else {
+		b.WriteString(strings.ToValidUTF8(string(data), replacementChar))
+	}
 }
 
 func ParseSize(str string) (int, error) {
