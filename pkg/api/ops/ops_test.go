@@ -41,3 +41,17 @@ func TestCgroupState(t *testing.T) {
 		}
 	}
 }
+
+func TestOpCode(t *testing.T) {
+	testcases := map[OpCode]string{
+		MSG_OP_EXECVE: "Execve",
+		MSG_OP_EXIT:   "Exit",
+		OpCode(200):   "Unknown(200)",
+	}
+
+	for op, str := range testcases {
+		if op.String() != str {
+			t.Errorf("OpCode mismatch - want:%s  got:%s", str, op.String())
+		}
+	}
+}
