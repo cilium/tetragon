@@ -353,7 +353,6 @@ func (c *collection) setMode(mode tetragon.TracingPolicyMode) error {
 // load will attempt to load a collection of sensors. If loading one of the sensors fails, it
 // will attempt to unload the already loaded sensors.
 func (c *collection) load(bpfDir string) error {
-
 	var err error
 	for _, sensor := range c.sensors {
 		if sensor.IsLoaded() {

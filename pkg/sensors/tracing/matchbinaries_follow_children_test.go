@@ -42,7 +42,6 @@ import (
 )
 
 func testMatchBinariesFollowChildren(t *testing.T, op string, result, resultMyPid int) {
-
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -139,7 +138,6 @@ func TestMatchBinariesFollowChildrenIDs(t *testing.T) {
 	// Limit this test to kprobe_multi systems, otherwise it'd take too long.
 	// The mbset functionality works the same for kprobe or kprobe_multi,
 	// so no harm done.
-
 	if !bpf.HasKprobeMulti() || !config.EnableLargeProgs() {
 		t.Skip("Test requires kprobe multi and large programs")
 	}

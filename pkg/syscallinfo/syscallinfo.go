@@ -44,7 +44,6 @@ func init() {
 }
 
 func syscallNames(abi string) (map[int]string, error) {
-
 	switch abi {
 	case "x64":
 		return x64.Names, nil

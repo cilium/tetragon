@@ -1039,7 +1039,6 @@ func writeDropInConf(fullDir string, options map[string]any) error {
 }
 
 func setupConfig(testPath string, test testCase) error {
-
 	// Patch expected config-dir path with test path prefix
 	c := testCases[globalTestIndex]
 	val, ok := c.expectedOptions["config-dir"]

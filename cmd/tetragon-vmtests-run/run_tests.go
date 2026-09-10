@@ -32,7 +32,6 @@ type runTestsResults struct {
 func runGoTests(
 	rcnf *GoTestConf, qemuBin string, qemuArgs []string,
 ) (*runTestsResults, error) {
-
 	ctx := context.Background()
 	ctx, cancel := signal.NotifyContext(ctx, unix.SIGINT, unix.SIGTERM)
 	defer cancel()
@@ -114,7 +113,6 @@ type TestEvent struct {
 }
 
 func updateResultsDetailed(w io.Writer, res *vmtests.Result, out *runTestsResults) {
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

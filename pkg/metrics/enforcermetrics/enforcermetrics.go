@@ -43,7 +43,6 @@ type state struct {
 }
 
 func newState() *state {
-
 	st := &state{
 		policies: map[string]map[uint32]func(arg uint32) string{},
 	}

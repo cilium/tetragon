@@ -44,7 +44,6 @@ func makeGUID(data1 uint32, data2 uint16, data3 uint16, data4 [8]byte) windows.G
 
 func winAttachStub(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 	_ *ebpf.Program, _ *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 	return nil, constants.ErrWindowsNotSupported
 }
 
@@ -62,7 +61,6 @@ func getAttachTypeForAttachTarget(attachTarget string) (ebpf.AttachType, error) 
 
 func windowsAttach(_ *Program, prog *ebpf.Program, _ *ebpf.ProgramSpec,
 	attach string, _ string, _ ...string) (unloader.Unloader, error) {
-
 	attachType, err := getAttachTypeForAttachTarget(attach)
 	if err != nil {
 		return nil, err
@@ -89,7 +87,6 @@ func windowsAttach(_ *Program, prog *ebpf.Program, _ *ebpf.ProgramSpec,
 func WindowsAttach(load *Program, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
 		return windowsAttach(load, prog, spec, load.Attach, bpfDir)
 	}
 }
@@ -124,7 +121,6 @@ func doLoadProgram(
 	_ int,
 	_ bool,
 ) (*LoadedCollection, error) {
-
 	coll, err := bpf.GetCollectionByPath(load.Name)
 	if err != nil {
 		coll, err = ebpf.LoadCollection(load.Name)
@@ -138,7 +134,6 @@ func doLoadProgram(
 	collMaps := map[ebpf.MapID]*ebpf.Map{}
 	// we need a mapping by ID
 	for _, m := range coll.Maps {
-
 		info, err := m.Info()
 		if err != nil {
 			logger.GetLogger().Warn("failed to retrieve BPF map info", "map", m.String(), logfields.Error, err)

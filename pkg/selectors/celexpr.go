@@ -33,7 +33,6 @@ func addMatchCelExpr(
 	arg *v1alpha1.ArgSelector,
 	sig, data []v1alpha1.KProbeArg,
 ) ([]uint16, error) {
-
 	if len(arg.Values) != 1 {
 		return nil, errors.New("addMatchCelExpr: only a single CelExpr value is supported")
 	}

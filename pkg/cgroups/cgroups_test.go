@@ -126,7 +126,6 @@ perf_event	8	2	1
 }
 
 func TestParseCgroupSubSysIds(t *testing.T) {
-
 	testDir := t.TempDir()
 
 	d := struct {

@@ -107,7 +107,6 @@ func getFnsOpts() []fnOpts {
 }
 
 func checkerAddFunctions(env *cgChecker.Env) error {
-
 	fnsOpts := getFnsOpts()
 	fns := make([]*cgDecls.FunctionDecl, 0, len(fnsOpts))
 	for _, fnOpts := range fnsOpts {

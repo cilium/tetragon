@@ -231,7 +231,6 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 func CheckSensorLoadBase(t *testing.T, sensors []*sensors.Sensor,
 	sensorMaps []SensorMap, sensorProgs []SensorProg,
 	baseMaps []SensorMap, baseProgs []SensorProg) {
-
 	sensorMaps, sensorProgs = mergeSensorMaps(t, sensorMaps, baseMaps, sensorProgs, baseProgs)
 
 	var cache []*prog

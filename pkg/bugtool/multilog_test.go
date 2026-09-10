@@ -13,7 +13,6 @@ import (
 )
 
 func TestMultiLog(t *testing.T) {
-
 	removeTimestamp := func(_ []string, a slog.Attr) slog.Attr {
 		if a.Key == slog.TimeKey {
 			return slog.Attr{} // Remove the "time" key

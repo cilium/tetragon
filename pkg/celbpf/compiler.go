@@ -59,7 +59,6 @@ func (c *compiler) compileLiteral(lit cgRef.Val) error {
 }
 
 func (c *compiler) compileCall(expr cgAst.Expr) error {
-
 	call := expr.AsCall()
 
 	callArgs := call.Args()

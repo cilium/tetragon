@@ -102,7 +102,6 @@ func (e *UnknownV4ProtocolError) Error() string {
 }
 
 func CreateVTupleV4(proto byte, saddr [4]byte, sport uint16, daddr [4]byte, dport uint16) (Impl, error) {
-
 	switch proto {
 	case VT_TCP, VT_UDP:
 	default:

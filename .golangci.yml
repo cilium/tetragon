@@ -64,6 +64,7 @@ linters:
       default: none
       enable:
         - err
+        - leading-whitespace
     gomodguard:
       blocked:
         modules:

@@ -798,7 +798,6 @@ func CgroupIDFromPID(pid uint32) (uint64, error) {
 // This function deals with this by checking for a child directory. If it finds one (and only one)
 // it uses the cgroup id from the child.
 func GetCgroupIDFromSubCgroup(p string) (uint64, error) {
-
 	getSingleDirChild := func() string {
 		var ret string
 		dentries, err := os.ReadDir(p)

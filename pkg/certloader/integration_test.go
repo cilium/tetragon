@@ -187,7 +187,6 @@ func TestServerOnlyTLSRejectsPlaintextClient(t *testing.T) {
 // that do not yet exist, the watcher observes their CREATE, and handshakes
 // start succeeding without a server restart.
 func TestLazyReloaderRecoversWhenFilesAppear(t *testing.T) {
-
 	mountDir := t.TempDir()
 	certPath := filepath.Join(mountDir, "tls.crt")
 	keyPath := filepath.Join(mountDir, "tls.key")

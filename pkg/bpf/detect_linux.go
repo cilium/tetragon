@@ -669,7 +669,6 @@ func detectKfunc(name string) bool {
 }
 
 func HasKfunc(name string) bool {
-
 	// If we are using an external BTF file, the loader might poison the kfunc calls,
 	// even if the kernel supports them.
 	// The kfunc fixup logic in the loader ignores the BTF file that tetragon passes

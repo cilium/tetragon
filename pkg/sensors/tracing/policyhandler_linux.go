@@ -174,7 +174,6 @@ func (h policyHandler) PolicyHandler(
 	policy tracingpolicy.TracingPolicy,
 	policyID policyfilter.PolicyID,
 ) (sensors.SensorIface, error) {
-
 	spec := policy.TpSpec()
 	sections := 0
 	if len(spec.KProbes) > 0 {

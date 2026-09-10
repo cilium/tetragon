@@ -20,7 +20,6 @@ var (
 )
 
 func getArgsFromPID(PID uint32) (string, string, error) {
-
 	if (cmdMap == nil) || (imageMap == nil) {
 		coll, _ := bpf.GetCollection("ProcessMonitor")
 		if coll == nil {

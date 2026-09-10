@@ -99,7 +99,6 @@ func printProgress(f *os.File, done <-chan struct{}) {
 // An error is returned only if something unexpected happen and not if the
 // tests failed.
 func Run(cnf *Conf) error {
-
 	testDir := filepath.Join(cnf.TetragonDir, "go-tests")
 
 	if cnf.BTFFile != "" {
@@ -217,7 +216,6 @@ func gatherExportFiles(cnf *Conf) error {
 }
 
 func runTest(cnf *Conf, testName string, cmd string, args ...string) (*Result, error) {
-
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 

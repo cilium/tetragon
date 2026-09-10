@@ -22,7 +22,6 @@ import (
 )
 
 func New() *cobra.Command {
-
 	var matchBinary string
 	addSelectors := func(kprobe *v1alpha1.KProbeSpec) {
 		if matchBinary != "" {

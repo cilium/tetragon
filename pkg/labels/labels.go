@@ -121,7 +121,6 @@ func SelectorFromLabelSelector(ls *slimv1.LabelSelector) (Selector, error) {
 
 // Cmp checks if the labels are different. Returns true if they are.
 func (l Labels) Cmp(a Labels) bool {
-
 	if len(l) != len(a) {
 		return true
 	}

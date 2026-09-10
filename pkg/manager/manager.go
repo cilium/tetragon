@@ -428,7 +428,6 @@ func (cm *ControllerManager) FindMirrorPod(hash string) (*corev1.Pod, error) {
 //   - *ControllerManager: The created controller manager instance, or nil on failure.
 //   - error: An error if the controller manager could not be created or api_server connectivity failed.
 func newControllerManagerWithRetry(ctx context.Context, cfg *rest.Config, controllerOptions ctrl.Options) (cm *ControllerManager, err error) {
-
 	retryCount := conf.K8sConfigRetry()
 	if retryCount < 0 {
 		// max int retries, until connection succeeds.

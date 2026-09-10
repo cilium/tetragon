@@ -134,7 +134,6 @@ func TestHelperMain() {
 
 //revive:disable:context-as-argument
 func StartTester(t *testing.T, ctx context.Context) *Tester {
-
 	prog := testutils.RepoRootPath("contrib/tester-progs/test-helper")
 	cmd := exec.CommandContext(ctx, prog)
 

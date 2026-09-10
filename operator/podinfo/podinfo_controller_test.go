@@ -155,7 +155,6 @@ func TestGeneratePod(t *testing.T) {
 // TestHasAllRequiredFields checks if a pod is ready or not.
 func TestHasAllRequiredFields(t *testing.T) {
 	t.Run("Check if all the necessary fields of pod are available", func(t *testing.T) {
-
 		// test ready pod.
 		t.Run("All fields available", func(*testing.T) {
 			pod := randomPodGenerator()

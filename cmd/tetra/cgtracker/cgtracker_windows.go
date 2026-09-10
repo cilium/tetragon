@@ -24,11 +24,9 @@ func New() *cobra.Command {
 }
 
 func dumpCmd() *cobra.Command {
-
 	return nil
 }
 
 func addCommand() *cobra.Command {
-
 	return nil
 }

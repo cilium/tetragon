@@ -89,7 +89,6 @@ func (kp *enforcerPolicy) PolicyHandler(
 	policy tracingpolicy.TracingPolicy,
 	_ policyfilter.PolicyID,
 ) (sensors.SensorIface, error) {
-
 	spec := policy.TpSpec()
 
 	if len(spec.Lists) > 0 {
@@ -192,7 +191,6 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	policyName string,
 	policyNamespace string,
 ) (*sensors.Sensor, error) {
-
 	if len(enforcers) > 1 {
 		return nil, errors.New("failed: we support only single enforcer sensor")
 	}

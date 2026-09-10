@@ -26,7 +26,6 @@ var (
 )
 
 func buildFilesystemActions(fs []QemuFS, tmpDir string) ([]images.Action, error) {
-
 	actions := make([]images.Action, 0, len(fs)+1)
 
 	var b bytes.Buffer
@@ -216,7 +215,6 @@ func (rc *NoNetworkCommand) ToSteps(s *images.StepConf) ([]step.Step, error) {
 }
 
 func buildTestImage(log slogger.Logger, rcnf *GoTestConf) error {
-
 	imagesDir, baseImage := filepath.Split(rcnf.baseImageFilename)
 
 	tmpDir, err := os.MkdirTemp("", "tetragon-vmtests-")

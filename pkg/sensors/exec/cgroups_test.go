@@ -782,7 +782,6 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 func testCgroupv2HierarchyInHybrid(ctx context.Context, t *testing.T,
 	cgroupRoot string, cgroupHierarchy []cgroupHierarchy, trackingCgrpLevel uint32,
 	triggers []func()) {
-
 	t.Logf("Test %s running in %s", t.Name(), cgroups.CgroupModeCode(cgroups.CGROUP_HYBRID).String())
 	unifiedCgroup := "unified" // in Hybrid setup the unified cgroup is the cgroupv2 instance
 	t.Logf("Test %s cgroup mount point: %s -> %s", t.Name(), filepath.Join(cgroups.GetCgroupFSPath(), unifiedCgroup), cgroupRoot)
@@ -807,7 +806,6 @@ func testCgroupv2HierarchyInHybrid(ctx context.Context, t *testing.T,
 func testCgroupv1HierarchyInHybrid(ctx context.Context, t *testing.T,
 	cgroupRoot string, usedController string, cgroupHierarchiesMap map[string][]cgroupHierarchy, trackingCgrpLevel uint32,
 	triggers []func()) {
-
 	t.Logf("Test %s running in %s", t.Name(), cgroups.CgroupModeCode(cgroups.CGROUP_HYBRID).String())
 
 	for hierarchy, cgroupHierarchy := range cgroupHierarchiesMap {
@@ -835,7 +833,6 @@ func testCgroupv1HierarchyInHybrid(ctx context.Context, t *testing.T,
 func testCgroupv2HierarchyInUnified(ctx context.Context, t *testing.T,
 	cgroupRoot string, cgroupHierarchy []cgroupHierarchy, trackingCgrpLevel uint32,
 	triggers []func()) {
-
 	t.Logf("Test %s running in %s", t.Name(), cgroups.CgroupModeCode(cgroups.CGROUP_UNIFIED).String())
 	t.Logf("Test %s cgroup mount point: %s -> %s", t.Name(), cgroups.GetCgroupFSPath(), cgroupRoot)
 

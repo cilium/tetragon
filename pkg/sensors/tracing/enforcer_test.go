@@ -61,7 +61,6 @@ func newCmdChecker(cmd string, checkFn func(t *testing.T, err error, rc int)) cm
 func testEnforcer(t *testing.T, configHook string,
 	checker *eventchecker.UnorderedEventChecker,
 	cmds ...cmdChecker) {
-
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -912,7 +911,6 @@ func TestEnforcerPersistentOverride(t *testing.T) {
 }
 
 func TestEnforcerPersistentKill(t *testing.T) {
-
 	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester")
 
 	builder := func() *EnforcerSpecBuilder {

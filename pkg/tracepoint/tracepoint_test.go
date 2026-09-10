@@ -140,7 +140,6 @@ func TestTracepointLoadFormat(t *testing.T) {
 }
 
 func TestTracepointsAll(t *testing.T) {
-
 	tracepoints, err := GetAllTracepoints()
 	if err != nil {
 		t.Log(err)

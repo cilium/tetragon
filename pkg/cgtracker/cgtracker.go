@@ -122,7 +122,6 @@ func (m *Map) AddCgroupTrackerPath(trackerPath string) error {
 }
 
 func RegisterCgroupTracker(sensor *sensors.Sensor) (*sensors.Sensor, error) {
-
 	if !option.Config.EnableCgTrackerID {
 		return sensor, nil
 	}

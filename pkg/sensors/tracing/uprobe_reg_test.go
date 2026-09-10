@@ -627,7 +627,6 @@ func testUprobeOverrideRegsActionSize(t *testing.T, ass, num string) {
 
 	switch runtime.GOARCH {
 	case "amd64":
-
 		// Put uprobe in test_2 function at:
 		//
 		//       "push   %rbp\n"                        /* +0  55                            */

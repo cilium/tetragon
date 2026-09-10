@@ -195,7 +195,6 @@ type testCmp struct {
 }
 
 func TestCmp(t *testing.T) {
-
 	cases := []testCmp{
 		{l1: map[string]string{}, l2: map[string]string{}, expected: false},
 		{l1: map[string]string{"label1": "a"}, l2: map[string]string{}, expected: true},

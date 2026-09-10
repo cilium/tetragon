@@ -1591,7 +1591,6 @@ func createSingleUprobeSensor(polInfo *policyInfo, ids []idtable.EntryID, has up
 
 func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe,
 	progs []*program.Program, maps []*program.Map, has uprobeHas) ([]*program.Program, []*program.Map) {
-
 	var substringMapEntries int
 
 	if has.substring {
