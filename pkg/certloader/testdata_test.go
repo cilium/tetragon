@@ -65,10 +65,13 @@ type IssueOpts struct {
 	IsServer   bool
 }
 
-// LeafFiles holds the paths to a freshly-issued leaf cert + key on disk.
+// LeafFiles holds the paths to a freshly-issued leaf cert + key on disk,
+// plus the serial the CA assigned, so a test can tell two leaves apart
+// without parsing the file back.
 type LeafFiles struct {
 	CertPath string
 	KeyPath  string
+	Serial   string
 }
 
 // Issue creates a new ECDSA key + certificate signed by the test CA and writes
@@ -83,8 +86,9 @@ func (p *TestPKI) Issue(dir string, opts IssueOpts) (*LeafFiles, error) {
 	if opts.IsServer {
 		extUsage = append(extUsage, x509.ExtKeyUsageServerAuth)
 	}
+	serial := big.NewInt(time.Now().UnixNano())
 	tmpl := &x509.Certificate{
-		SerialNumber: big.NewInt(time.Now().UnixNano()),
+		SerialNumber: serial,
 		Subject:      pkix.Name{CommonName: opts.CommonName},
 		NotBefore:    time.Now().Add(-time.Hour),
 		NotAfter:     time.Now().Add(24 * time.Hour),
@@ -112,5 +116,5 @@ func (p *TestPKI) Issue(dir string, opts IssueOpts) (*LeafFiles, error) {
 	if err := os.WriteFile(keyPath, keyPEM, 0600); err != nil {
 		return nil, err
 	}
-	return &LeafFiles{CertPath: certPath, KeyPath: keyPath}, nil
+	return &LeafFiles{CertPath: certPath, KeyPath: keyPath, Serial: serial.String()}, nil
 }

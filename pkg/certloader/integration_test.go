@@ -69,18 +69,24 @@ func loadKeyPair(t *testing.T, certPath, keyPath string) tls.Certificate {
 	return c
 }
 
-func setupServer(t *testing.T, mtls bool) (*certloader.TestPKI, string) {
+func issueServerLeaf(t *testing.T, pki *certloader.TestPKI, dir string) *certloader.LeafFiles {
 	t.Helper()
-	dir := t.TempDir()
-	pki, err := certloader.NewTestPKI(dir)
-	require.NoError(t, err)
-	server, err := pki.Issue(dir, certloader.IssueOpts{
+	leaf, err := pki.Issue(dir, certloader.IssueOpts{
 		CommonName: "server",
 		DNSNames:   []string{"localhost"},
 		IPs:        []net.IP{net.ParseIP("127.0.0.1")},
 		IsServer:   true,
 	})
 	require.NoError(t, err)
+	return leaf
+}
+
+func setupServer(t *testing.T, mtls bool) (*certloader.TestPKI, string) {
+	t.Helper()
+	dir := t.TempDir()
+	pki, err := certloader.NewTestPKI(dir)
+	require.NoError(t, err)
+	server := issueServerLeaf(t, pki, dir)
 	cfg := certloader.Config{CertFile: server.CertPath, KeyFile: server.KeyPath}
 	if mtls {
 		cfg.RequireClientCert = true
@@ -194,13 +200,7 @@ func TestLazyReloaderRecoversWhenFilesAppear(t *testing.T) {
 
 	pki, err := certloader.NewTestPKI(t.TempDir())
 	require.NoError(t, err)
-	issued, err := pki.Issue(t.TempDir(), certloader.IssueOpts{
-		CommonName: "server",
-		DNSNames:   []string{"localhost"},
-		IPs:        []net.IP{net.ParseIP("127.0.0.1")},
-		IsServer:   true,
-	})
-	require.NoError(t, err)
+	issued := issueServerLeaf(t, pki, t.TempDir())
 
 	r, err := certloader.NewReloaderLazy(certloader.Config{CertFile: certPath, KeyFile: keyPath})
 	require.NoError(t, err)
@@ -226,8 +226,8 @@ func TestLazyReloaderRecoversWhenFilesAppear(t *testing.T) {
 	copyFile(t, issued.CertPath, certPath)
 	copyFile(t, issued.KeyPath, keyPath)
 
-	// 15s covers one full retryInterval before certwatcher.New succeeds,
-	// plus slack for the immediate-fire callback and TLS handshake.
+	// 15s covers one full watchInterval, in case the CREATE events are
+	// missed, plus slack for the reload and TLS handshake.
 	require.Eventually(t, func() bool {
 		if !r.Ready() {
 			return false
@@ -240,6 +240,51 @@ func TestLazyReloaderRecoversWhenFilesAppear(t *testing.T) {
 		_, err = healthgrpc.NewHealthClient(conn).Check(dialContext(t), &healthgrpc.HealthCheckRequest{})
 		return err == nil
 	}, 15*time.Second, 50*time.Millisecond)
+}
+
+func TestWatchReloadsRotatedCertificate(t *testing.T) {
+	mountDir := t.TempDir()
+	certPath := filepath.Join(mountDir, "tls.crt")
+	keyPath := filepath.Join(mountDir, "tls.key")
+
+	pki, err := certloader.NewTestPKI(t.TempDir())
+	require.NoError(t, err)
+
+	first := issueServerLeaf(t, pki, t.TempDir())
+	copyFile(t, first.CertPath, certPath)
+	copyFile(t, first.KeyPath, keyPath)
+
+	r, err := certloader.NewReloader(certloader.Config{CertFile: certPath, KeyFile: keyPath})
+	require.NoError(t, err)
+	certloader.Watch(t.Context(), r)
+	addr := startServer(t, credentials.NewTLS(r.ServerConfig()))
+
+	pool := rootPool(t, pki)
+	require.Equal(t, first.Serial, servedSerial(t, addr, pool))
+
+	second := issueServerLeaf(t, pki, t.TempDir())
+	copyFile(t, second.CertPath, certPath)
+	copyFile(t, second.KeyPath, keyPath)
+
+	// 15s covers one full watchInterval, in case the fsnotify events are
+	// missed, plus slack for the reload and TLS handshake.
+	require.Eventually(t, func() bool {
+		return servedSerial(t, addr, pool) == second.Serial
+	}, 15*time.Second, 50*time.Millisecond)
+}
+
+func servedSerial(t *testing.T, addr string, pool *x509.CertPool) string {
+	t.Helper()
+	conn, err := tls.Dial("tcp", addr, &tls.Config{
+		MinVersion: tls.VersionTLS13,
+		RootCAs:    pool,
+		ServerName: "localhost",
+	})
+	if err != nil {
+		return ""
+	}
+	defer conn.Close()
+	return conn.ConnectionState().PeerCertificates[0].SerialNumber.String()
 }
 
 func copyFile(t *testing.T, src, dst string) {
