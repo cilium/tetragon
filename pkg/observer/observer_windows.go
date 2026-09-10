@@ -25,8 +25,8 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 	ringBufMap := coll.Maps["process_ringbuf"]
 	defer ringBufMap.Close()
 	var ringBufReader *ringbuf.Reader
-	ringBufReader, err := ringbuf.NewReader(ringBufMap)
 
+	ringBufReader, err := ringbuf.NewReader(ringBufMap)
 	if err != nil {
 		return fmt.Errorf("creating ring buffer reader failed: %w", err)
 	}

@@ -22,7 +22,6 @@ func OpenMap(fname string) (Map, error) {
 	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{
 		ReadOnly: true,
 	})
-
 	if err != nil {
 		return Map{}, err
 	}

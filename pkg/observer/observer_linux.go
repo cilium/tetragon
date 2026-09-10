@@ -77,8 +77,8 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	defer perfMap.Close()
 
 	rbSize := k.getRBSize(int(perfMap.MaxEntries()))
-	perfReader, err := perf.NewReader(perfMap, rbSize)
 
+	perfReader, err := perf.NewReader(perfMap, rbSize)
 	if err != nil {
 		return fmt.Errorf("creating perf array reader failed: %w", err)
 	}
@@ -93,7 +93,6 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 		defer ringBufMap.Close()
 
 		ringBufReader, err = ringbuf.NewReader(ringBufMap)
-
 		if err != nil {
 			return fmt.Errorf("creating ring buffer reader failed: %w", err)
 		}

@@ -46,8 +46,8 @@ func TestProcessCache(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		processes, err := GetProcessCacheForDump(ctx, mockClient, 4194304, false, false)
 
+		processes, err := GetProcessCacheForDump(ctx, mockClient, 4194304, false, false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -69,8 +69,8 @@ func TestProcessCache(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		_, err := GetProcessCacheForDump(ctx, mockClient, 4194304, false, false)
 
+		_, err := GetProcessCacheForDump(ctx, mockClient, 4194304, false, false)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -90,8 +90,8 @@ func TestProcessCache(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		_, err := GetProcessCacheForDump(ctx, mockClient, 4194304, false, false)
 
+		_, err := GetProcessCacheForDump(ctx, mockClient, 4194304, false, false)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}

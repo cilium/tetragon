@@ -27,6 +27,7 @@ linters:
     - staticcheck
     - testifylint
     - unused
+    - wsl_v5
   settings:
     dupword:
       keywords:
@@ -59,6 +60,10 @@ linters:
       template: |-
         SPDX-License-Identifier: Apache-2.0
         Copyright Authors of {{ PROJECT }}
+    wsl_v5:
+      default: none
+      enable:
+        - err
     gomodguard:
       blocked:
         modules:
