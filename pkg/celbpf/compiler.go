@@ -78,8 +78,7 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 		}
 	case uint32Fn:
 		emitCall = func() error {
-			c.cg.emitU32(scratchRegs[0], argTypes[0])
-			return nil
+			return c.cg.emitU32(scratchRegs[0], argTypes[0])
 		}
 
 	case cgOperators.Add:
