@@ -79,8 +79,11 @@ jobs:
 
     # Run some somple nok8s tests in packages where there is meaningful differentiation
     - name: Run nok8s go tests
+      # on 26.04 we skip the go test and therefore also building the tester-progs
+      # make sure that they are built before running the nok8s tests
       run: |
         cd go/src/github.com/cilium/tetragon/
+        make tester-progs
         go vet -tags nok8s ./pkg/sensors ./pkg/policyfilter ./pkg/tracingpolicy ./pkg/testutils/policytest
         go test -tags nok8s ./pkg/tracingpolicy ./pkg/testutils/policytest
 
