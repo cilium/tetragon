@@ -6,6 +6,7 @@ package exporter
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/cilium/lumberjack/v2"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -240,6 +242,30 @@ func Test_rateLimitExport(t *testing.T) {
 			})
 		})
 	}
+}
+
+type failingEncoder struct {
+	err error
+}
+
+func (f *failingEncoder) Encode(_ any) error {
+	return f.err
+}
+
+func TestExporter_SendEncodeErrorCountsFailed(t *testing.T) {
+	exportedBefore := testutil.ToFloat64(eventsExportedTotal)
+	failedBefore := testutil.ToFloat64(eventsExportFailedTotal)
+
+	e := &Exporter{encoder: &failingEncoder{err: errors.New("disk full")}}
+	ev := &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessExec{
+			ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Binary: "a"}},
+		},
+	}
+	require.NoError(t, e.Send(ev), "Send keeps warn+continue semantics and returns nil")
+
+	assert.InDelta(t, exportedBefore, testutil.ToFloat64(eventsExportedTotal), 1e-9, "failed encodes must not count as exported")
+	assert.InDelta(t, failedBefore+1, testutil.ToFloat64(eventsExportFailedTotal), 1e-9, "failed encodes must increment failed counter")
 }
 
 func TestExporterSetLoggingParams(t *testing.T) {

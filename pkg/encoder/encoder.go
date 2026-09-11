@@ -175,7 +175,9 @@ func (p *ProtojsonEncoder) Encode(v any) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(p.w, string(out))
+	if _, err := fmt.Fprintln(p.w, string(out)); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -155,6 +155,10 @@ Number of retries when fetching info from the event cache.
 
 Number of inserts to the event cache.
 
+### `tetragon_events_export_failed_total`
+
+Total number of events that failed to export
+
 ### `tetragon_events_exported_bytes_total`
 
 Number of bytes exported for events

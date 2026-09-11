@@ -161,6 +161,8 @@ func (e *Exporter) Send(event *tetragon.GetEventsResponse) error {
 
 	if err := e.encoder.Encode(event); err != nil {
 		logger.GetLogger().Warn("Failed to JSON encode", logfields.Error, err)
+		eventsExportFailedTotal.Inc()
+		return nil
 	}
 	eventsExportedTotal.Inc()
 	eventsExportTimestamp.Set(float64(event.GetTime().GetSeconds()))
