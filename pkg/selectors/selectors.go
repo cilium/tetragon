@@ -99,6 +99,8 @@ type KernelSelectorMaps struct {
 	stringPrefixMaps []map[KernelLPMTrieStringPrefix]struct{}
 	// stringPostfixMaps are used to populate string and char buf postfix matches
 	stringPostfixMaps []map[KernelLPMTrieStringPostfix]struct{}
+	// subStrs are shared by selectors loaded into the same substring map
+	subStrs []string
 }
 
 type MatchBinariesSelectorOptions struct {
@@ -140,8 +142,6 @@ type KernelSelectorState struct {
 	overrideActionIPDelta int64
 
 	regs map[int][]processapi.RegAssignment
-
-	subStrs []string
 
 	celExprFunctions *CelExprFunctions
 
@@ -258,7 +258,7 @@ func (k *KernelSelectorState) Regs() map[int][]processapi.RegAssignment {
 }
 
 func (k *KernelSelectorState) SubStrings() []string {
-	return k.subStrs
+	return k.maps.subStrs
 }
 
 // ValueMapsMaxEntries returns the maximum entries over all maps
