@@ -44,7 +44,8 @@ PROGS = sigkill-tester \
 	pclntab-unstripped \
 	pclntab-stripped \
 	null-mount \
-	resolve-nested-anon-struct
+	resolve-nested-anon-struct \
+	cel-regs-override
 
 LIBS =	libuprobe.so \
 	libtester.so
