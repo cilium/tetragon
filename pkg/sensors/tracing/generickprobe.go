@@ -619,6 +619,9 @@ func createGenericKprobeSensor(
 		if err := appendMacrosSelectors(kprobes[i].Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
+		if err := validateSubStringSelectorFeatures(kprobes[i].Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
 
 		if valInfo[i].ignore {
 			continue
