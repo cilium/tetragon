@@ -467,7 +467,6 @@ type addUprobeIn struct {
 type uprobeHas struct {
 	sleepableOffload     bool
 	sleepablePreload     bool
-	substring            bool
 	sleepablePreloadSize int
 	sleepableOffloadSize int
 }
@@ -627,11 +626,6 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 			return errors.New("can't use set action, no kernel support")
 		}
 		has.sleepableOffload = true
-	}
-
-	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubString) ||
-		selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubStringIgnCase) {
-		has.substring = true
 	}
 	return nil
 }
@@ -1483,7 +1477,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 			selector = gu.loadArgs.selectors.retrn
 		}
 
-		if has.substring && substringMapEntries == 0 {
+		if substringMapEntries == 0 {
 			substringMapEntries = len(gu.loadArgs.selectors.entry.SubStrings())
 		}
 
@@ -1516,13 +1510,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
-	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil))...)
-
-	if has.substring {
-		substringMap := program.MapBuilderProgram("substring_map", load)
-		substringMap.SetMaxEntries(substringMapEntries)
-		maps = append(maps, substringMap)
-	}
+	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil), substringMapEntries)...)
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
@@ -1566,7 +1554,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
-		maps = append(maps, createSelectorMaps(loadret, getUprobeProgramSelector(loadret, nil))...)
+		maps = append(maps, createSelectorMaps(loadret, getUprobeProgramSelector(loadret, nil), substringMapEntries)...)
 
 		retTailCalls := program.MapBuilderProgram("retuprobe_calls", loadret)
 		maps = append(maps, retTailCalls)
@@ -1594,12 +1582,6 @@ func createSingleUprobeSensor(polInfo *policyInfo, ids []idtable.EntryID, has up
 
 func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe,
 	progs []*program.Program, maps []*program.Map, has uprobeHas) ([]*program.Program, []*program.Map) {
-	var substringMapEntries int
-
-	if has.substring {
-		substringMapEntries = len(uprobeEntry.loadArgs.selectors.entry.SubStrings())
-	}
-
 	loadProgName, loadProgRetName := config.GenericUprobeObjs(false)
 
 	pinSymbol := strings.ReplaceAll(uprobeEntry.symbol, ".", "_")
@@ -1625,13 +1607,8 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	workloadsMap := program.MapBuilderProgram("workloads_map", load)
 
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe, workloadsMap)
-	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, uprobeEntry))...)
-
-	if has.substring {
-		substringMap := program.MapBuilderProgram("substring_map", load)
-		substringMap.SetMaxEntries(substringMapEntries)
-		maps = append(maps, substringMap)
-	}
+	state := getUprobeProgramSelector(load, uprobeEntry)
+	maps = append(maps, createSelectorMaps(load, state, len(state.SubStrings()))...)
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
