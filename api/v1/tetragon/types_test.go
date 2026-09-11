@@ -26,3 +26,11 @@ func TestEventIsType(t *testing.T) {
 	assert.False(t, EventType_PROCESS_EXIT.EventIsType(&event))
 	assert.False(t, EventType_UNDEF.EventIsType(&event))
 }
+
+func TestProcessJavaEventType(t *testing.T) {
+	event := &ProcessJava{}
+	assert.True(t, EventType_PROCESS_JAVA.EventIsType(event))
+	response := &GetEventsResponse{Event: event.Encapsulate()}
+	assert.Equal(t, EventType_PROCESS_JAVA, response.EventType())
+	assert.Same(t, event, UnwrapGetEventsResponse(response))
+}

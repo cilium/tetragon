@@ -560,6 +560,15 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 	return process, parent
 }
 
+// GetParentProcessInternalByPID selects the newest cached exec for pid whose
+// start time is not later than the Java submission timestamp.
+func GetParentProcessInternalByPID(pid uint32, eventKtime uint64) (*ProcessInternal, *ProcessInternal) {
+	if option.Config.DisableProcessCache {
+		return nil, nil
+	}
+	return procCache.getByPID(pid, eventKtime)
+}
+
 // GetAncestorProcessesInternal returns a slice, representing a continuous sequence of ancestors
 // of the process up to init process (PID 1) or kthreadd (PID 2), including the immediate parent.
 func GetAncestorProcessesInternal(execId string) ([]*ProcessInternal, error) {
