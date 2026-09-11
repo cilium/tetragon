@@ -299,6 +299,11 @@ func appendMacrosSelectors(selectors []v1alpha1.KProbeSelector, macros map[strin
 			if err != nil {
 				return err
 			}
+
+			selector.MatchUserCallers, err = useMacro(selector.MatchUserCallers, macro.MatchUserCallers)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
