@@ -1639,3 +1639,19 @@ func TestParseCapabilityMask(t *testing.T) {
 	_, err = parseCapabilitiesMask("CAP_PIZZA")
 	assert.Error(t, err)
 }
+
+func TestHasEnforcerAction(t *testing.T) {
+	sel := func(a v1alpha1.ActionSelector) []v1alpha1.KProbeSelector {
+		return []v1alpha1.KProbeSelector{{MatchActions: []v1alpha1.ActionSelector{a}}}
+	}
+	for _, action := range []string{"NotifyEnforcer", "notifyEnforcer", "CleanupEnforcerNotification"} {
+		require.True(t, HasEnforcerAction(sel(v1alpha1.ActionSelector{Action: action})), action)
+	}
+	// matchReturnActions runs in the return program, which is outside the gate too
+	require.True(t, HasEnforcerAction([]v1alpha1.KProbeSelector{{
+		MatchReturnActions: []v1alpha1.ActionSelector{{Action: "NotifyEnforcer"}},
+	}}))
+	for _, action := range []string{"Sigkill", "Signal", "Post", "Override", "Set"} {
+		require.False(t, HasEnforcerAction(sel(v1alpha1.ActionSelector{Action: action})), action)
+	}
+}

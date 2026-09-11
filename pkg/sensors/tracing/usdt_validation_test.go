@@ -145,3 +145,25 @@ func TestUsdtEventConfigCarriesPolicyID(t *testing.T) {
 		require.Equal(t, uint32(7), usdtEntry.config.PolicyID)
 	}
 }
+
+// The enforcer actions are only implemented for kprobes and tracepoints, so
+// they have to be rejected here rather than silently do nothing.
+func TestUsdtValidationEnforcerAction(t *testing.T) {
+	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt-override")
+	err := checkCrd(t, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdt-notify-enforcer"
+spec:
+  usdts:
+  - path: "`+usdt+`"
+    provider: "tetragon"
+    name: "test_1B"
+    selectors:
+    - matchActions:
+      - action: NotifyEnforcer
+`)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "enforcer actions are not supported")
+}
