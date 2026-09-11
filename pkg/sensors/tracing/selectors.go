@@ -169,8 +169,13 @@ func populateSubStringMap(m *ebpf.Map, k *selectors.KernelSelectorState) error {
 	return nil
 }
 
-func createSelectorMaps(load *program.Program, state *selectors.KernelSelectorState) []*program.Map {
+func createSelectorMaps(load *program.Program, state *selectors.KernelSelectorState, substringMapEntries int) []*program.Map {
 	var maps []*program.Map
+	if substringMapEntries > 0 {
+		substringMap := program.MapBuilderProgram("substring_map", load)
+		substringMap.SetMaxEntries(substringMapEntries)
+		maps = append(maps, substringMap)
+	}
 
 	argFilterMaps := program.MapBuilderProgram("argfilter_maps", load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
