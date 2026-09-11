@@ -196,6 +196,24 @@ func TestReloadIsSerialized(t *testing.T) {
 	assert.Equal(t, string(want.Certificate[0]), string(cert.Certificate[0]))
 }
 
+func TestReloadDetectsClientCARotation(t *testing.T) {
+	r, _, _ := newServerReloader(t, true)
+
+	changed, err := r.reloadIfChanged()
+	require.NoError(t, err)
+	require.False(t, changed, "unchanged material must not reload")
+
+	next, err := NewTestPKI(t.TempDir())
+	require.NoError(t, err)
+	bundle, err := os.ReadFile(r.cfg.ClientCAFiles[0])
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(r.cfg.ClientCAFiles[0], append(bundle, next.CACertPEM...), 0600))
+
+	changed, err = r.reloadIfChanged()
+	require.NoError(t, err)
+	require.True(t, changed, "client CA rotation must reload")
+}
+
 func TestWatchTriggersReload(t *testing.T) {
 	r, pki, srv := newServerReloader(t, false)
 
