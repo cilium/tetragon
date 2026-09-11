@@ -31,6 +31,15 @@ func validateSubStringSelectorFeatures(selectorSpecs []v1alpha1.KProbeSelector) 
 	return nil
 }
 
+func createSubStringMap(load *program.Program, entries int) *program.Map {
+	if entries == 0 {
+		return nil
+	}
+	substringMap := program.MapBuilderSensor("substring_map", load)
+	substringMap.SetMaxEntries(entries)
+	return substringMap
+}
+
 func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*program.MapLoad {
 	selBuff := ks.CopyToFixedBuffer()
 	maps := []*program.MapLoad{
@@ -171,6 +180,11 @@ func populateSubStringMap(m *ebpf.Map, k *selectors.KernelSelectorState) error {
 
 func createSelectorMaps(load *program.Program, state *selectors.KernelSelectorState) []*program.Map {
 	var maps []*program.Map
+	if state != nil {
+		if substringMap := createSubStringMap(load, len(state.SubStrings())); substringMap != nil {
+			maps = append(maps, substringMap)
+		}
+	}
 
 	argFilterMaps := program.MapBuilderProgram("argfilter_maps", load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
