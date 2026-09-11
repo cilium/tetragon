@@ -47,7 +47,16 @@ func DataAdd(id dataapi.DataEventId, msgData []byte) error {
 }
 
 func add(r *bytes.Reader, m *dataapi.MsgData) error {
-	size := m.Common.Size - uint32(unsafe.Sizeof(*m))
+	const msgDataHeaderSize = uint32(unsafe.Sizeof(dataapi.MsgData{}))
+	if m.Common.Size < msgDataHeaderSize {
+		DataEventMetricInc(DataEventBad)
+		return fmt.Errorf("data msg size %d smaller than header %d", m.Common.Size, msgDataHeaderSize)
+	}
+	size := m.Common.Size - msgDataHeaderSize
+	if size > uint32(r.Len()) {
+		DataEventMetricInc(DataEventBad)
+		return fmt.Errorf("data msg payload size %d exceeds remaining %d bytes", size, r.Len())
+	}
 	msgData := make([]byte, size)
 
 	err := binary.Read(r, binary.LittleEndian, &msgData)
