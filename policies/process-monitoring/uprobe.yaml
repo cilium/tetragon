@@ -1,0 +1,10 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbols:
+    - "readline"
+    - "main"

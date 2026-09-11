@@ -1,0 +1,7 @@
+{{- $path := .Get 0 -}}
+{{- $file := resources.Get (printf "policies/%s" $path) -}}
+{{- if not $file -}}
+  {{- errorf "policy-ref: policies/%s not found (%s)" $path .Position -}}
+{{- end -}}
+{{- $urlPath := replace $path " " "%20" -}}
+<a href="https://github.com/cilium/tetragon/blob/main/policies/{{ $urlPath }}">{{ path.Base $path }}</a> <a href="https://raw.githubusercontent.com/cilium/tetragon/main/policies/{{ $urlPath }}"></a>
