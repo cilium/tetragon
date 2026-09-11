@@ -19,3 +19,23 @@ func TestUprobeEventConfigCarriesPolicyID(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint32(7), state.eventConfig.PolicyID)
 }
+
+// The enforcer actions are only implemented for kprobes and tracepoints, so
+// they have to be rejected here rather than silently do nothing.
+func TestUprobeValidationEnforcerAction(t *testing.T) {
+	err := checkCrd(t, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-notify-enforcer"
+spec:
+  uprobes:
+  - path: "/proc/self/exe"
+    symbols: ["main"]
+    selectors:
+    - matchActions:
+      - action: NotifyEnforcer
+`)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "enforcer actions are not supported")
+}
