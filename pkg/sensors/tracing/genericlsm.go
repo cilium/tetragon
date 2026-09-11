@@ -442,6 +442,9 @@ func createGenericLsmSensor(
 		if err := appendMacrosSelectors(hook.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
+		if err := validateSubStringSelectorFeatures(hook.Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
 
 		in.selectorStatsBase = selectorStatsBase
 		selectorStatsBase += uint32(len(hook.Selectors))
