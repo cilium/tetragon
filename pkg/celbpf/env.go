@@ -21,6 +21,10 @@ import (
 )
 
 var (
+	int8Fn   = "int8"
+	uint8Fn  = "uint8"
+	int16Fn  = "int16"
+	uint16Fn = "uint16"
 	int32Fn  = "int32"
 	uint32Fn = "uint32"
 
@@ -87,6 +91,10 @@ func getFnsOpts() []fnOpts {
 		{name: cgOperators.Add, overloads: intBinaryOperatorFnOverloads("add")},
 		{name: cgOperators.Subtract, overloads: intBinaryOperatorFnOverloads("sub")},
 
+		// Multiplication and Division
+		{name: cgOperators.Multiply, overloads: intBinaryOperatorFnOverloads("mul")},
+		{name: cgOperators.Divide, overloads: intBinaryOperatorFnOverloads("div")},
+
 		// Bitwise functions
 		// NB(kkourt): it seems that there is no way to add custom operators to CEL
 		{name: andFn, overloads: intBinaryOperatorFnOverloads(andFn)},
@@ -97,6 +105,18 @@ func getFnsOpts() []fnOpts {
 		{name: rshFn, overloads: intBinaryOperatorFnOverloads(rshFn)},
 
 		// Integer casting
+		{name: int8Fn, overloads: []fnOverload{
+			{name: "s8fromint", args: []*cgTypes.Type{cgTypes.IntType}, res: s8Ty},
+		}},
+		{name: uint8Fn, overloads: []fnOverload{
+			{name: "u8fromuint", args: []*cgTypes.Type{cgTypes.UintType}, res: u8Ty},
+		}},
+		{name: int16Fn, overloads: []fnOverload{
+			{name: "s16fromint", args: []*cgTypes.Type{cgTypes.IntType}, res: s16Ty},
+		}},
+		{name: uint16Fn, overloads: []fnOverload{
+			{name: "u16fromuint", args: []*cgTypes.Type{cgTypes.UintType}, res: u16Ty},
+		}},
 		{name: int32Fn, overloads: []fnOverload{
 			{name: "s32fromint", args: []*cgTypes.Type{cgTypes.IntType}, res: s32Ty},
 		}},

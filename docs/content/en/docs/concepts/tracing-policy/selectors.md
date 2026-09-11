@@ -907,11 +907,13 @@ python3 -c "import os; os.lseek(-1, 0, os.getpid() - 42)"
 ```
 
 Currently, `MatchCEL` supports:
-* Addition (`+`) and subtraction (`-`)
+* Addition (`+`), subtraction (`-`), multiplication (`*`), and division (`/`)
 * Logical AND (`&&`), OR (`||`), and NOT (`!`) operators
 * Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
 * Integer casting to 32-bits (`int32()`, `uint32()`)
 * Bitwise operations (`and()`, `or()`, `xor()`, `not()`, `lsh()`, `rsh()`)
+
+Shift operations (`lsh()`, `rsh()`) mask the shift amount by the bit width of the operand.
 
 ## Actions filter
 

@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf/asm"
+	"github.com/cilium/ebpf/features"
 	cgCommon "github.com/google/cel-go/common"
 	cgAst "github.com/google/cel-go/common/ast"
 	cgOperators "github.com/google/cel-go/common/operators"
@@ -78,8 +79,23 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 		}
 	case uint32Fn:
 		emitCall = func() error {
-			c.cg.emitU32(scratchRegs[0], argTypes[0])
-			return nil
+			return c.cg.emitU32(scratchRegs[0], argTypes[0])
+		}
+	case int16Fn:
+		emitCall = func() error {
+			return c.cg.emitS16(scratchRegs[0], argTypes[0])
+		}
+	case uint16Fn:
+		emitCall = func() error {
+			return c.cg.emitU16(scratchRegs[0], argTypes[0])
+		}
+	case int8Fn:
+		emitCall = func() error {
+			return c.cg.emitS8(scratchRegs[0], argTypes[0])
+		}
+	case uint8Fn:
+		emitCall = func() error {
+			return c.cg.emitU8(scratchRegs[0], argTypes[0])
 		}
 
 	case cgOperators.Add:
@@ -102,6 +118,45 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 				scratchRegs[1], argTypes[1],
 			); err != nil {
 				return fmt.Errorf("subtraction %w", err)
+			}
+			return nil
+		}
+
+	case cgOperators.Multiply:
+		emitCall = func() error {
+			if err := c.cg.emitArithOp(
+				asm.Mul,
+				scratchRegs[0], argTypes[0],
+				scratchRegs[1], argTypes[1],
+			); err != nil {
+				return fmt.Errorf("multiplication %w", err)
+			}
+			return nil
+		}
+
+	case cgOperators.Divide:
+		divOp := asm.Div
+
+		arg1Ty := argTypes[0].TypeName()
+		arg2Ty := argTypes[1].TypeName()
+		if arg1Ty == s64Ty.TypeName() && arg2Ty == s64Ty.TypeName() ||
+			arg1Ty == s32Ty.TypeName() && arg2Ty == s32Ty.TypeName() ||
+			arg1Ty == s16Ty.TypeName() && arg2Ty == s16Ty.TypeName() ||
+			arg1Ty == s8Ty.TypeName() && arg2Ty == s8Ty.TypeName() {
+			if err := features.HaveV4ISA(); err != nil {
+				return fmt.Errorf("cannot emit signed division on non-V4 ISA: %w", err)
+			}
+
+			divOp = asm.SDiv
+		}
+
+		emitCall = func() error {
+			if err := c.cg.emitArithOp(
+				divOp,
+				scratchRegs[0], argTypes[0],
+				scratchRegs[1], argTypes[1],
+			); err != nil {
+				return fmt.Errorf("division %w", err)
 			}
 			return nil
 		}
@@ -195,7 +250,10 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 			op := asm.RSh
 
 			// Use Arithmetic shift to sign extend for signed types
-			if argTypes[0].TypeName() == s32Ty.TypeName() || argTypes[0].TypeName() == s64Ty.TypeName() {
+			if argTypes[0].TypeName() == s64Ty.TypeName() ||
+				argTypes[0].TypeName() == s32Ty.TypeName() ||
+				argTypes[0].TypeName() == s16Ty.TypeName() ||
+				argTypes[0].TypeName() == s8Ty.TypeName() {
 				op = asm.ArSh
 			}
 			if err := c.cg.emitArithOp(
@@ -227,14 +285,8 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 		i := len(callArgs) - j - 1
 		ty := argTypes[i]
 		switch ty.TypeName() {
-		case "int", "uint":
+		case "bool", "int", "uint", "s32", "u32", "u16", "s16", "u8", "s8":
 			c.cg.emitPopInt64(scratchRegs[i])
-		case "bool":
-			c.cg.emitPopBool(scratchRegs[i])
-		case "s32":
-			c.cg.emitPopS32(scratchRegs[i])
-		case "u32":
-			c.cg.emitPopU32(scratchRegs[i])
 		default:
 			return fmt.Errorf("unsupported argument type: %s", ty.TypeName())
 		}
@@ -318,7 +370,7 @@ func (c *compiler) compile() (asm.Instructions, []uint16, error) {
 	if err := c.compileExpr(expr); err != nil {
 		return nil, nil, fmt.Errorf("failed to compile CEL expression: %w", err)
 	}
-	c.cg.emitPopBool(asm.R0)
+	c.cg.emitPopInt64(asm.R0)
 	c.cg.emitRaw(asm.Return())
 
 	return c.cg.instructions(), c.arg_indexes, nil
