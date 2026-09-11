@@ -167,6 +167,9 @@ func createGenericUsdtSensor(
 		if err = appendMacrosSelectors(usdt.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
+		if err = validateSubStringSelectorFeatures(usdt.Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
 
 		in.selectorStatsBase = selectorStatsBase
 		selectorStatsBase += uint32(len(usdt.Selectors))
