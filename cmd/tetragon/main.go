@@ -962,6 +962,7 @@ func serveOne(
 			log.Error("gRPC Serve returned", logfields.Error, err)
 		}
 	}()
+
 	go func() {
 		<-ctx.Done()
 		grpcServer.Stop()
