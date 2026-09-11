@@ -4,6 +4,7 @@
 #include "bpf_process_event.h"
 #include "policy_filter.h"
 #include "types/basic.h"
+#include "caller_filter.h"
 
 /**
  * Process filters (see generic_process_filter)
@@ -755,6 +756,11 @@ selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_valu
 	}
 	if (res == PFILTER_REJECT)
 		return res;
+#endif
+
+#ifdef __LARGE_BPF_PROG
+	if (generic_filter_caller(ctx, msg, f, index) == CALLER_FILTER_REJECT)
+		return PFILTER_REJECT;
 #endif
 
 	return res;

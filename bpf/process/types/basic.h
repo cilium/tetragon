@@ -2374,6 +2374,11 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 #endif
 
+	if (is_entry) {
+		/* skip the matchCaller section by reading its length */
+		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	}
+
 	/* Making binary selectors fixes size helps on some kernels */
 	seloff &= INDEX_MASK;
 	filters = (struct selector_arg_filters *)&f[seloff];
