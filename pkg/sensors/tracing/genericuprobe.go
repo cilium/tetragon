@@ -460,6 +460,9 @@ func createGenericUprobeSensor(
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
+		if err = validateSubStringSelectorFeatures(uprobe.Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
 
 		ids, err = addUprobe(&uprobe, ids, &in, &has)
 		if err != nil {
@@ -551,17 +554,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		has.sleepableOffload = true
 	}
 
-	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubString) {
-		if !bpf.HasKfunc("bpf_strnstr") {
-			return nil, errors.New("can't use SubString operator, no kernel support")
-		}
-		has.substring = true
-	}
-
-	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubStringIgnCase) {
-		if !bpf.HasKfunc("bpf_strncasestr") {
-			return nil, errors.New("can't use SubStringIgnCase operator, no kernel support")
-		}
+	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubString) ||
+		selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubStringIgnCase) {
 		has.substring = true
 	}
 
