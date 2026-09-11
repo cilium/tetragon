@@ -379,10 +379,12 @@ func TestLsmNamespacedPolicyClearsPostState(t *testing.T) {
 	matchingProcess := newCgroupShell(t, ctx)
 	nonMatchingProcess := newCgroupShell(t, ctx)
 
+	// Pin both processes to the same CPU so the rejected invocations reuse the
+	// per-CPU message left by the matching invocation.
 	var availableCPUs unix.CPUSet
 	require.NoError(t, unix.SchedGetaffinity(0, &availableCPUs))
 	cpu := -1
-	for i := 0; i < 1024; i++ {
+	for i := range 1024 {
 		if availableCPUs.IsSet(i) {
 			cpu = i
 			break
