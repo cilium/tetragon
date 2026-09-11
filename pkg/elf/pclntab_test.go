@@ -8,16 +8,29 @@ package elf
 import (
 	"debug/elf"
 	"os"
+	"path/filepath"
+	"runtime"
 	"slices"
 	"testing"
-
-	"github.com/cilium/tetragon/pkg/testutils"
 )
+
+// local redefinition of testutils.RepoRootPath to avoid import cycle in test:
+// package github.com/cilium/tetragon/pkg/elf
+//
+//	imports github.com/cilium/tetragon/pkg/testutils from pclntab_test.go
+//	imports github.com/cilium/tetragon/pkg/testutils/sensors from logcapture.go
+//	imports github.com/cilium/tetragon/pkg/sensors/program from load.go
+//
+// Error: 	imports github.com/cilium/tetragon/pkg/elf from dynamic_so.go: import cycle not allowed in test
+func repoRootPath(fname string) string {
+	_, testFname, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(testFname), "..", "..", fname)
+}
 
 func pclntabSkipIfNoBins(t *testing.T) (stripped, unstripped string) {
 	t.Helper()
-	stripped = testutils.RepoRootPath("contrib/tester-progs/pclntab-stripped")
-	unstripped = testutils.RepoRootPath("contrib/tester-progs/pclntab-unstripped")
+	stripped = repoRootPath("contrib/tester-progs/pclntab-stripped")
+	unstripped = repoRootPath("contrib/tester-progs/pclntab-unstripped")
 	if _, err := os.Stat(stripped); err != nil {
 		t.Skipf("pclntab-stripped not found: %v", err)
 	}

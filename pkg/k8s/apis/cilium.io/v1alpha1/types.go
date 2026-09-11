@@ -359,6 +359,10 @@ type ActionSelector struct {
 	// Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
 	ArgNewOffset int64 `json:"argNewOffset,omitempty"`
 	// +kubebuilder:validation:Optional
+	// For ArgNewSymbol, indicates to load the new symbol
+	// from a shared object located at sopath.
+	SoPath string `json:"sopath,omitempty"`
+	// +kubebuilder:validation:Optional
 	// A time period within which repeated messages will not be posted. Can be
 	// specified in seconds (default or with 's' suffix), minutes ('m' suffix)
 	// or hours ('h' suffix). Only valid with the post action.
