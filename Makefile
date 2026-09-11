@@ -251,26 +251,14 @@ tester-progs-tarball: tester-progs
 
 ##@ Test
 
-# renovate: datasource=docker
-GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v2.13.1@sha256:d371321370bf2907bd13a8f6f8baff0e0ca7438d76fdf636b281eadf7e2305e3
-GOLANGCILINT_WANT_VERSION := $(subst @sha256,,$(patsubst v%,%,$(word 2,$(subst :, ,$(lastword $(subst /, ,$(GOLANGCILINT_IMAGE)))))))
-GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
-.PHONY: check
-ifneq (,$(findstring $(GOLANGCILINT_WANT_VERSION),$(GOLANGCILINT_VERSION)))
-check: ## Run Go linters.
-	golangci-lint run
-else
-check:
-	$(CONTAINER_ENGINE) run --rm -v `pwd`:/app:Z -w /app --env GOTOOLCHAIN=auto $(GOLANGCILINT_IMAGE) golangci-lint run
-endif
+GOLANGCI_LINT ?= $(GO) -C tools tool golangci-lint
+GOLANGCI_LINT_FLAGS ?=
+.PHONY: lint
+lint: ## Run Go linters.
+	$(GOLANGCI_LINT) run $(GOLANGCI_LINT_FLAGS)
 
-.PHONY: copy-golangci-lint
-copy-golangci-lint:
-	mkdir -p bin/
-	$(eval xid=$(shell $(CONTAINER_ENGINE) create $(GOLANGCILINT_IMAGE)))
-	echo ${xid}
-	docker cp ${xid}:/usr/bin/golangci-lint bin/golangci-lint
-	docker rm ${xid}
+.PHONY: check
+check: lint
 
 .PHONY: test
 test: tester-progs tetragon-bpf ## Run Go tests.
