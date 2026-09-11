@@ -1392,6 +1392,144 @@ spec:` + opts + `
 	})
 }
 
+func TestUprobeHeapMapConfig(t *testing.T) {
+	testUprobeHeapMapConfig(t, false)
+}
+
+func TestUprobeHeapMapConfigWithMax(t *testing.T) {
+	testUprobeHeapMapConfig(t, true)
+}
+
+func testUprobeHeapMapConfig(t *testing.T, withMax bool) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping, x86_64 only test")
+	}
+	if !bpf.HasUprobeMulti() {
+		t.Skip("skipping, no uprobe multi support in kernel; process_call_heap is only wired up for the multi-attach path")
+	}
+
+	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+
+	// uprobe policy with a return probe, so both the entry and retprobe
+	// programs build their own process_call_heap map; opts is the options
+	// block (may be empty)
+	policy := func(opts string) string {
+		return `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-heap"
+spec:` + opts + `
+  uprobes:
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_arg1"
+    return: true
+    returnArg:
+      index: 0
+      type: "int"
+`
+	}
+
+	loadSensors := func(t *testing.T, config string) []*sensors.Sensor {
+		createCrdFile(t, config)
+		sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile,
+			tus.Conf().TetragonLib, observertesthelper.WithKeepCollection())
+		require.NoError(t, err)
+		return sens
+	}
+
+	unloadSensors := func(sens []*sensors.Sensor) {
+		sensi := make([]sensors.SensorIface, 0, len(sens))
+		for _, s := range sens {
+			sensi = append(sensi, s)
+		}
+		sensors.UnloadSensors(sensi)
+	}
+
+	// all the per-process heap maps resized by the uprobe-heap-size option
+	// (see getUprobeHeapMap in genericuprobe.go)
+	heapMapNames := []string{
+		"process_call_heap",
+		"buffer_heap_map",
+		"string_maps_heap",
+		"string_prefix_maps_heap",
+		"string_postfix_maps_heap",
+		"ratelimit_heap",
+	}
+
+	findHeapMaps := func(sens []*sensors.Sensor) map[string][]*program.Map {
+		maps := make(map[string][]*program.Map)
+		for _, s := range sens {
+			for _, m := range s.Maps {
+				for _, name := range heapMapNames {
+					if m.Name == name {
+						maps[name] = append(maps[name], m)
+					}
+				}
+			}
+		}
+		return maps
+	}
+
+	getMaxEntries := func(m *program.Map) uint32 {
+		path := filepath.Join(bpf.MapPrefixPath(), m.PinPath)
+		val, err := program.GetMaxEntriesPinnedMap(path)
+		require.NoError(t, err)
+		return val
+	}
+
+	if withMax {
+		originalSize := option.Config.UprobeHeapSize
+		option.Config.UprobeHeapSize = 2048
+		t.Cleanup(func() { option.Config.UprobeHeapSize = originalSize })
+	}
+
+	// heap maps as MapShared at global scope (/sys/fs/bpf/tetragon/<name>),
+	// covering both the entry and retprobe programs
+	t.Run("shared", func(t *testing.T) {
+		sens := loadSensors(t, policy(""))
+		defer unloadSensors(sens)
+
+		mapsByName := findHeapMaps(sens)
+		for _, name := range heapMapNames {
+			maps := mapsByName[name]
+			require.NotEmpty(t, maps, "%s map not found in sensor", name)
+
+			for _, m := range maps {
+				assert.Equal(t, name, m.PinPath)
+				if withMax {
+					assert.Equal(t, uint32(2048), getMaxEntries(m))
+				} else {
+					assert.Equal(t, uint32(defaults.DefaultUprobeHeapSize), getMaxEntries(m))
+				}
+			}
+		}
+	})
+
+	// heap maps as MapBuilderProgram at program scope
+	// (.../policy/sensor/prog/<name>)
+	t.Run("program", func(t *testing.T) {
+		sens := loadSensors(t, policy(`
+  options:
+  - name: "uprobe-heap-size"
+    value: "1024"`))
+		defer unloadSensors(sens)
+
+		mapsByName := findHeapMaps(sens)
+		for _, name := range heapMapNames {
+			maps := mapsByName[name]
+			require.NotEmpty(t, maps, "%s map not found in sensor", name)
+
+			for _, m := range maps {
+				assert.NotEqual(t, name, m.PinPath)
+				assert.Equal(t, name, filepath.Base(m.PinPath))
+				assert.Equal(t, uint32(1024), getMaxEntries(m))
+			}
+		}
+	})
+}
+
 // Some uprobes configurations (ie digest verification) disallow disable/re-enable of a policy.
 // This test ensures that we can disable and re-enable a policy when
 // policy configuration allows it.

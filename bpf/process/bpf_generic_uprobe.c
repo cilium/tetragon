@@ -66,32 +66,32 @@ struct {
 __attribute__((section((MAIN)), used)) int
 generic_uprobe_event(struct pt_regs *ctx)
 {
-	return generic_start_process_filter(ctx, (struct bpf_map_def *)&uprobe_calls);
+	return heap_dtor(generic_start_process_filter(ctx, (struct bpf_map_def *)&uprobe_calls));
 }
 
 __attribute__((section(COMMON), used)) int
 generic_uprobe_setup_event(void *ctx)
 {
-	return generic_process_event_and_setup(ctx, (struct bpf_map_def *)&uprobe_calls);
+	return heap_dtor(generic_process_event_and_setup(ctx, (struct bpf_map_def *)&uprobe_calls));
 }
 
 #ifdef __LARGE_BPF_PROG
 __attribute__((section(COMMON), used)) int
 generic_uprobe_process_event(void *ctx)
 {
-	return generic_process_event(ctx, (struct bpf_map_def *)&uprobe_calls, __READ_ARG_ALL);
+	return heap_dtor(generic_process_event(ctx, (struct bpf_map_def *)&uprobe_calls, __READ_ARG_ALL));
 }
 #else
 __attribute__((section(COMMON), used)) int
 generic_uprobe_process_event(void *ctx)
 {
-	return generic_process_event(ctx, (struct bpf_map_def *)&uprobe_calls, __READ_ARG_1);
+	return heap_dtor(generic_process_event(ctx, (struct bpf_map_def *)&uprobe_calls, __READ_ARG_1));
 }
 
 __attribute__((section(COMMON), used)) int
 generic_uprobe_process_event_2(void *ctx)
 {
-	return generic_process_event(ctx, (struct bpf_map_def *)&uprobe_calls, __READ_ARG_2);
+	return heap_dtor(generic_process_event(ctx, (struct bpf_map_def *)&uprobe_calls, __READ_ARG_2));
 }
 #endif
 
@@ -108,50 +108,50 @@ generic_uprobe_process_filter(void *ctx)
 	/* If filter does not accept drop it. Ideally we would
 	 * log error codes for later review, TBD.
 	 */
-	return PFILTER_REJECT;
+	return heap_dtor(PFILTER_REJECT);
 }
 
 #ifdef __LARGE_BPF_PROG
 __attribute__((section(COMMON), used)) int
 generic_uprobe_filter_arg(void *ctx)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&uprobe_calls, true,
-				  __FILTER_ARG_ALL);
+	return heap_dtor(generic_filter_arg(ctx, (struct bpf_map_def *)&uprobe_calls, true,
+					    __FILTER_ARG_ALL));
 }
 #else
 __attribute__((section(COMMON), used)) int
 generic_uprobe_filter_arg(void *ctx)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&uprobe_calls, true,
-				  __FILTER_ARG_1);
+	return heap_dtor(generic_filter_arg(ctx, (struct bpf_map_def *)&uprobe_calls, true,
+					    __FILTER_ARG_1));
 }
 
 __attribute__((section(COMMON), used)) int
 generic_uprobe_filter_arg_2(void *ctx)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&uprobe_calls, true,
-				  __FILTER_ARG_2);
+	return heap_dtor(generic_filter_arg(ctx, (struct bpf_map_def *)&uprobe_calls, true,
+					    __FILTER_ARG_2));
 }
 #endif
 
 __attribute__((section(COMMON), used)) int
 generic_uprobe_actions(void *ctx)
 {
-	generic_actions(ctx, (struct bpf_map_def *)&uprobe_calls);
+	heap_dtor(generic_actions(ctx, (struct bpf_map_def *)&uprobe_calls));
 	return 0;
 }
 
 __attribute__((section(COMMON), used)) int
 generic_uprobe_output(void *ctx)
 {
-	return generic_output(ctx, MSG_OP_GENERIC_UPROBE);
+	return heap_dtor(generic_output(ctx, MSG_OP_GENERIC_UPROBE));
 }
 
 #ifndef __V61_BPF_PROG
 __attribute__((section(COMMON), used)) int
 generic_uprobe_path(void *ctx)
 {
-	return generic_path(ctx, (struct bpf_map_def *)&uprobe_calls);
+	return heap_dtor(generic_path(ctx, (struct bpf_map_def *)&uprobe_calls));
 }
 #endif
 

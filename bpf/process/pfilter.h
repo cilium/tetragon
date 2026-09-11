@@ -464,17 +464,16 @@ FUNC_INLINE long
 copy_cmd_arg_to_heap(char *src, __u64 remaining, char **dst)
 {
 	char *heap;
-	__u32 zero = 0;
 	long read;
 
-	asm volatile("%[remaining] &= 0x1ff;\n"
-		     : [remaining] "+r"(remaining));
-
-	heap = map_lookup_elem(&string_maps_heap, &zero);
+	heap = string_maps_heap_get();
 	if (!heap)
 		return -1;
 	/* We reuse this unused space at the end of the heap */
 	heap += CMD_ARG_HEAP_OFFSET;
+
+	asm volatile("%[remaining] &= 0x1ff;\n"
+		     : [remaining] "+r"(remaining));
 
 	read = probe_read_str(heap, remaining, src);
 	if (read <= 0)
@@ -568,11 +567,10 @@ match_cmd_args(__u8 *f, __u32 selidx, struct args *cached_args)
 			max_index = key;
 	}
 
-	key = 0;
 	/* Initially, the BPF stack was used to store these offsets but the
 	 * variable stack reads are supported only from 5.12
 	 */
-	arg_offsets = map_lookup_elem(&string_maps_heap, &key);
+	arg_offsets = string_maps_heap_get();
 	if (!arg_offsets)
 		return 0;
 	arg_offsets += CMD_ARG_OFFSETS_OFFSET;

@@ -4,13 +4,18 @@
 #ifndef __HEAP_H__
 #define __HEAP_H__
 
-#include "ratelimit_maps.h"
+#define HEAP_RO_SIZE 25712
 
 struct heap_ro_value {
-	union {
-		char string_maps_heap[STRING_MAPS_HEAP_SIZE];
-		char ratelimit_heap[sizeof(struct ratelimit_key) + 128];
-	};
+	/*
+	 * STRING_MAPS_HEAP_SIZE
+	 * sizeof(struct ratelimit_key) + 128
+	 * sizeof(struct msg_generic_kprobe)
+	 * sizeof(struct buffer_heap_map_value)
+	 * sizeof(struct string_prefix_lpm_trie)
+	 * sizeof(struct string_postfix_lpm_trie)
+	 */
+	char buf[HEAP_RO_SIZE];
 };
 
 struct {
@@ -32,5 +37,13 @@ struct {
 	__type(key, __u32);
 	__type(value, struct heap_value);
 } heap SEC(".maps");
+
+/* Uprobe/uretprobe/usdt probes run in a context that does not disable
+ * preemption, unlike kprobes/tracepoints/fentry/fexit, so their per-process
+ * heap maps need to be hashes (keyed by pid_tgid) instead of per-cpu arrays.
+ */
+#if defined(GENERIC_UPROBE) || defined(GENERIC_URETPROBE) || defined(GENERIC_USDT)
+#define USE_HASH_HEAP
+#endif
 
 #endif // __HEAP_H__

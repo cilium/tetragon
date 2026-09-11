@@ -4,6 +4,8 @@
 #ifndef __RATELIMIT_MAPS_H__
 #define __RATELIMIT_MAPS_H__
 
+#include "heap.h"
+
 /* The number of bytes per argument to include in the key
  * that we use to check for repeating data.
  * 40 is good for IPv6 data.
@@ -26,6 +28,9 @@ struct ratelimit_key {
 	__u8 data[MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG];
 };
 
+_Static_assert(sizeof(struct ratelimit_key) <= HEAP_RO_SIZE,
+	       "heap_ro_value's buffer must fit ratelimit_key");
+
 struct ratelimit_value {
 	__u64 ktime;
 };
@@ -37,13 +42,52 @@ struct {
 	__type(value, struct ratelimit_value);
 } ratelimit_map SEC(".maps");
 
-// The value has extra headroom to allow copying argument data without upsetting the verifier.
-// This is not hashed when the key is used in the ratelimit_map.
+// The ratelimit_heap value has extra headroom to allow copying argument data without
+// upsetting the verifier. This is not hashed when the key is used in the ratelimit_map.
+
+#ifdef USE_HASH_HEAP
+
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(map_flags, BPF_F_NO_PREALLOC);
+	__uint(max_entries, 1); // will be resized by agent
+	__type(key, __u64);
+	__type(value, __u8[sizeof(struct ratelimit_key) + 128]);
+} ratelimit_heap SEC(".maps");
+
+FUNC_INLINE void *ratelimit_heap_get(void)
+{
+	__u64 key = get_current_pid_tgid();
+	void *val = map_lookup_elem(&ratelimit_heap, &key);
+	struct heap_ro_value *ro;
+	__u32 zidx = 0;
+
+	if (val)
+		return val;
+	ro = map_lookup_elem(&heap_ro_zero, &zidx);
+	if (!ro)
+		return 0;
+	if (map_update_elem(&ratelimit_heap, &key, ro, BPF_ANY))
+		return 0;
+	return map_lookup_elem(&ratelimit_heap, &key);
+}
+
+#else
+
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
 	__type(value, __u8[sizeof(struct ratelimit_key) + 128]);
 } ratelimit_heap SEC(".maps");
+
+FUNC_INLINE void *ratelimit_heap_get(void)
+{
+	__u32 zero = 0;
+
+	return map_lookup_elem(&ratelimit_heap, &zero);
+}
+
+#endif /* USE_HASH_HEAP */
 
 #endif /* __RATELIMIT_MAPS_H__ */

@@ -703,7 +703,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	if (map_idx == 0xffffffff)
 		return 0;
 
-	heap = (char *)map_lookup_elem(&string_maps_heap, &zero);
+	heap = (char *)string_maps_heap_get();
 	zero_heap = (char *)map_lookup_elem(&heap_ro_zero, &zero);
 	if (!heap || !zero_heap)
 		return 0;
@@ -762,7 +762,6 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	void *addrmap;
 	__u32 map_idx = *(__u32 *)&filter->value;
 	struct string_prefix_lpm_trie *arg;
-	int zero = 0;
 
 	addrmap = map_lookup_elem(&string_prefix_maps, &map_idx);
 	if (!addrmap || !arg_len)
@@ -773,7 +772,7 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	if (arg_len >= STRING_PREFIX_MAX_LENGTH)
 		arg_len = STRING_PREFIX_MAX_LENGTH - 1;
 
-	arg = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_prefix_maps_heap, &zero);
+	arg = (struct string_prefix_lpm_trie *)string_prefix_maps_heap_get();
 	if (!arg)
 		return 0;
 
@@ -866,7 +865,6 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 	__u32 map_idx = *(__u32 *)&filter->value;
 	struct string_postfix_lpm_trie *arg;
 	uint orig_len = arg_len;
-	int zero = 0;
 
 	addrmap = map_lookup_elem(&string_postfix_maps, &map_idx);
 	if (!addrmap || !arg_len)
@@ -875,7 +873,7 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 	if (arg_len >= STRING_POSTFIX_MAX_MATCH_LENGTH)
 		arg_len = STRING_POSTFIX_MAX_MATCH_LENGTH - 1;
 
-	arg = (struct string_postfix_lpm_trie *)map_lookup_elem(&string_postfix_maps_heap, &zero);
+	arg = (struct string_postfix_lpm_trie *)string_postfix_maps_heap_get();
 	if (!arg)
 		return 0;
 
@@ -2108,7 +2106,6 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 	struct string_prefix_lpm_trie *prefix_key;
 	struct string_postfix_lpm_trie *postfix_key;
 	__u64 postfix_len = STRING_POSTFIX_MAX_MATCH_LENGTH - 1;
-	int zero = 0;
 #endif /* __LARGE_BPF_PROG */
 
 	struct match_binaries_sel_opts *selector_options;
@@ -2160,7 +2157,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 			if (!path_map)
 				return 0;
 			// prepare the key to perform lookup in the LPM_TRIE
-			prefix_key = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_maps_heap, &zero);
+			prefix_key = (struct string_prefix_lpm_trie *)string_maps_heap_get();
 			if (!prefix_key)
 				return 0;
 			memset(prefix_key, 0, sizeof(*prefix_key));
@@ -2176,7 +2173,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 				return 0;
 			if (bin->path_length < STRING_POSTFIX_MAX_MATCH_LENGTH)
 				postfix_len = bin->path_length;
-			postfix_key = (struct string_postfix_lpm_trie *)map_lookup_elem(&string_postfix_maps_heap, &zero);
+			postfix_key = (struct string_postfix_lpm_trie *)string_postfix_maps_heap_get();
 			if (!postfix_key)
 				return 0;
 			postfix_key->prefixlen = postfix_len * 8; // prefixlen is in bits
@@ -2230,6 +2227,10 @@ FUNC_INLINE bool is_filter_arg_1(long type)
 	case int_type:
 	case s32_ty:
 	case u32_ty:
+	case skb_type:
+	case sock_type:
+	case socket_type:
+	case sockaddr_type:
 #ifdef __LARGE_BPF_PROG
 	case s16_ty:
 	case u16_ty:
@@ -2272,6 +2273,11 @@ filter_arg_1(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 	case s32_ty:
 	case u32_ty:
 		return filter_32ty(filter, args);
+	case skb_type:
+	case sock_type:
+	case socket_type:
+	case sockaddr_type:
+		return filter_inet(filter, args);
 #ifdef __LARGE_BPF_PROG
 	case s16_ty:
 	case u16_ty:
@@ -2307,11 +2313,6 @@ filter_arg_2(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 		 * length that was actually read (see: __copy_char_buf)
 		 */
 		return filter_char_buf(filter, args, 8);
-	case skb_type:
-	case sock_type:
-	case socket_type:
-	case sockaddr_type:
-		return filter_inet(filter, args);
 #if defined(__V511_BPF_PROG)
 	case sockaddr_un_type:
 		return filter_sockaddr_un(filter, args);
@@ -2505,7 +2506,7 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	if (!ratelimit_interval)
 		return false;
 
-	key = map_lookup_elem(&ratelimit_heap, &zero);
+	key = ratelimit_heap_get();
 	if (!key)
 		return false;
 	ro_heap = map_lookup_elem(&heap_ro_zero, &zero);
