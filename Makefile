@@ -497,10 +497,10 @@ vendor: ## Tidy and vendor Go modules.
 	$(MAKE) -C api vendor
 	$(MAKE) -C pkg/k8s vendor
 	$(MAKE) -C contrib/tetragon-rthooks vendor
-	$(MAKE) -C tools tidy
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
+	$(MAKE) -C tools tidy
 
 .PHONY: clang-format
 ifeq (1,$(LOCAL_CLANG_FORMAT))
