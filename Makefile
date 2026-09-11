@@ -255,14 +255,15 @@ tester-progs-tarball: tester-progs
 GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v2.13.1@sha256:d371321370bf2907bd13a8f6f8baff0e0ca7438d76fdf636b281eadf7e2305e3
 GOLANGCILINT_WANT_VERSION := $(subst @sha256,,$(patsubst v%,%,$(word 2,$(subst :, ,$(lastword $(subst /, ,$(GOLANGCILINT_IMAGE)))))))
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
-.PHONY: check
 ifneq (,$(findstring $(GOLANGCILINT_WANT_VERSION),$(GOLANGCILINT_VERSION)))
-check: ## Run Go linters.
-	golangci-lint run
+GOLANGCILINT_BIN = golangci-lint
 else
-check:
-	$(CONTAINER_ENGINE) run --rm -v `pwd`:/app:Z -w /app --env GOTOOLCHAIN=auto $(GOLANGCILINT_IMAGE) golangci-lint run
+GOLANGCILINT_BIN = $(CONTAINER_ENGINE) run --rm -v `pwd`:/app:Z -w /app --env GOTOOLCHAIN=auto $(GOLANGCILINT_IMAGE) golangci-lint
 endif
+
+.PHONY: check
+check: ## Run Go linters.
+	$(GOLANGCILINT_BIN) run
 
 .PHONY: copy-golangci-lint
 copy-golangci-lint:
@@ -521,6 +522,7 @@ go-format: ## Run code formatter on Go code.
 	-not -path '**/zz_generated.deepcopy.go' | \
 	  xargs realpath | \
 	  xargs $(GO) -C tools tool goimports -local github.com/cilium/tetragon,github.com/cilium/tetragon/api,github.com/cilium/tetragon/pkg/k8s,github.com/cilium/tetragon/tools -w
+	$(GOLANGCILINT_BIN) run --fix --enable-only wsl_v5
 
 .PHONY: format
 format: go-format clang-format ## Convenience alias for clang-format and go-format.
