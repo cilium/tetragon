@@ -381,6 +381,10 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		return ids, fmt.Errorf("failed to configure usdt '%s/%s', GetUrl and DnsLookup actions not supported", spec.Provider, spec.Name)
 	}
 
+	if selectors.HasEnforcerAction(spec.Selectors) {
+		return ids, fmt.Errorf("failed to configure usdt '%s/%s', enforcer actions are not supported", spec.Provider, spec.Name)
+	}
+
 	// Parse Filters into kernel filter logic
 	state, err = selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,

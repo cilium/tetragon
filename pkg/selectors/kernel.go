@@ -2036,6 +2036,21 @@ func HasNotifyEnforcerAction(selectors []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+// HasEnforcerAction returns true if any selector has an action that needs the
+// enforcer sensor. Unlike HasNotifyEnforcerAction it also covers
+// CleanupEnforcerNotification and matchReturnActions.
+func HasEnforcerAction(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
+		for _, action := range slices.Concat(s.MatchActions, s.MatchReturnActions) {
+			switch actionTypeTable[strings.ToLower(action.Action)] {
+			case ActionTypeNotifyEnforcer, ActionTypeCleanupEnforcerNotification:
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func HasRateLimit(selectors []v1alpha1.KProbeSelector) bool {
 	for _, selector := range selectors {
 		for _, matchAction := range selector.MatchActions {
