@@ -129,13 +129,13 @@ type MsgGenericCred struct {
 }
 
 type MsgExecveEvent struct {
-	Common         MsgCommon
-	Kube           MsgK8s
-	Parent         MsgExecveKey
-	ParentFlags    uint64
-	Creds          MsgGenericCred
-	Namespaces     MsgNamespaces
-	CleanupProcess MsgExecveKey
+	Common         MsgCommon      `align:"common"`
+	Kube           MsgK8s         `align:"kube"`
+	Parent         MsgExecveKey   `align:"parent"`
+	ParentFlags    uint64         `align:"parent_flags"`
+	Creds          MsgGenericCred `align:"creds"`
+	Namespaces     MsgNamespaces  `align:"ns"`
+	CleanupProcess MsgExecveKey   `align:"cleanup_key"`
 }
 
 type MsgExecveEventUnix struct {
@@ -145,13 +145,13 @@ type MsgExecveEventUnix struct {
 }
 
 type MsgCloneEvent struct {
-	Common MsgCommon
-	Parent MsgExecveKey
-	PID    uint32
-	TID    uint32
-	NSPID  uint32
-	Flags  uint32
-	Ktime  uint64
+	Common MsgCommon    `align:"common"`
+	Parent MsgExecveKey `align:"parent"`
+	PID    uint32       `align:"tgid"`
+	TID    uint32       `align:"tid"`
+	NSPID  uint32       `align:"nspid"`
+	Flags  uint32       `align:"flags"`
+	Ktime  uint64       `align:"ktime"`
 }
 
 type MsgCapabilities struct {
@@ -257,8 +257,8 @@ type MsgCgroupEvent struct {
 }
 
 type MsgThrottleEvent struct {
-	Common MsgCommon
-	Kube   MsgK8s
+	Common MsgCommon `align:"common"`
+	Kube   MsgK8s    `align:"kube"`
 }
 
 type KernelStats struct {

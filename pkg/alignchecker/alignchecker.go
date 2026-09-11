@@ -10,6 +10,7 @@ import (
 
 	"github.com/cilium/ebpf/btf"
 
+	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/testapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -27,6 +28,8 @@ var defaultChecks = map[string][]any{
 	"execve_map_value": {execvemap.ExecveValue{}},
 	"msg_cgroup_event": {processapi.MsgCgroupEvent{}},
 	"msg_cred":         {processapi.MsgGenericCred{}},
+	"msg_clone_event":  {processapi.MsgCloneEvent{}},
+	"msg_throttle":     {processapi.MsgThrottleEvent{}},
 
 	// configuration
 	"event_config":  {tracingapi.EventConfig{}},
@@ -42,9 +45,18 @@ var defaultChecks = map[string][]any{
 	"policy_stats": {policystats.PolicyStats{}},
 }
 
+var defaultPrefixChecks = map[string][]any{
+	"msg_generic_kprobe": {tracingapi.MsgGenericKprobe{}, tracingapi.MsgGenericTracepoint{}},
+	"msg_execve_event":   {processapi.MsgExecveEvent{}},
+	"msg_data":           {dataapi.MsgData{}},
+}
+
 // CheckStructAlignmentsDefault calls CheckStructAlignments with the default alignment defaultChecks.
 func CheckStructAlignmentsDefault(pathToObj string) error {
-	return CheckStructAlignments(pathToObj, defaultChecks, true)
+	if err := CheckStructAlignments(pathToObj, defaultChecks, true); err != nil {
+		return err
+	}
+	return CheckPrefixStructAlignments(pathToObj, defaultPrefixChecks)
 }
 
 // CheckStructAlignments defaultChecks whether size and offsets match of the given
@@ -70,6 +82,30 @@ func CheckStructAlignments(pathToObj string, toCheck map[string][]any, checkOffs
 
 	for cName, goStructs := range toCheck {
 		if err := check(cName, goStructs, structInfo, checkOffsets); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CheckPrefixStructAlignments is like CheckStructAlignments, but for Go
+// structs that only mirror the leading portion of a larger C struct (the
+// remainder being variable-length or not exposed to userspace). It checks
+// that the Go struct is no larger than the C struct, and that every
+// `align`-tagged field lands at the correct offset.
+func CheckPrefixStructAlignments(pathToObj string, toCheck map[string][]any) error {
+	spec, err := btf.LoadSpec(pathToObj)
+	if err != nil {
+		return fmt.Errorf("cannot parse BTF debug info %s: %w", pathToObj, err)
+	}
+
+	structInfo, err := getStructInfosFromBTF(spec, toCheck)
+	if err != nil {
+		return fmt.Errorf("cannot extract struct info from BTF %s: %w", pathToObj, err)
+	}
+
+	for cName, goStructs := range toCheck {
+		if err := checkPrefix(cName, goStructs, structInfo); err != nil {
 			return err
 		}
 	}
@@ -184,6 +220,41 @@ func memberOffsets(members []btf.Member) map[string]uint32 {
 	return offsets
 }
 
+func checkGoType(i any, name string) (reflect.Type, error) {
+	g := reflect.TypeOf(i)
+	if g == nil {
+		return nil, fmt.Errorf("nil interface passed for type %s", name)
+	}
+
+	if g.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("type %s is not a struct", name)
+	}
+
+	if bs, rs := binary.Size(i), int(g.Size()); bs != rs {
+		return nil, fmt.Errorf("type %s's binary.Size (%d) does not equal its unsafe.Sizeof (%d) size (struct with implicit trailing padding?)", g.Name(), bs, rs)
+	}
+
+	return g, nil
+}
+
+func checkFieldOffsets(g reflect.Type, name string, c *structInfo) error {
+	for field := range g.Fields() {
+		fieldName := field.Tag.Get("align")
+		if fieldName == "" {
+			continue
+		}
+		goOffset := uint32(field.Offset)
+		if cOffset, ok := c.fieldOffsets[fieldName]; !ok {
+			return fmt.Errorf("%s.%s does not match any field (should match %s.%s) [debug=%v]",
+				g, field.Name, name, fieldName, c.fieldOffsets)
+		} else if goOffset != cOffset {
+			return fmt.Errorf("%s.%s offset(%d) does not match %s.%s(%d) [debug=%v]",
+				g, field.Name, goOffset, name, fieldName, cOffset, c.fieldOffsets)
+		}
+	}
+	return nil
+}
+
 func check(name string, toCheck []any, structs map[string]*structInfo, checkOffsets bool) error {
 	for _, i := range toCheck {
 		c, found := structs[name]
@@ -191,18 +262,9 @@ func check(name string, toCheck []any, structs map[string]*structInfo, checkOffs
 			return fmt.Errorf("could not find C struct %s", name)
 		}
 
-		g := reflect.TypeOf(i)
-		if g == nil {
-			return fmt.Errorf("nil interface passed for type %s", name)
-		}
-
-		// Input type must be a struct.
-		if g.Kind() != reflect.Struct {
-			return fmt.Errorf("type %s is not a struct", name)
-		}
-
-		if bs, rs := binary.Size(i), int(g.Size()); bs != rs {
-			return fmt.Errorf("type %s's binary.Size (%d) does not equal its unsafe.Sizeof (%d) size (struct with implicit trailing padding?)", g.Name(), bs, rs)
+		g, err := checkGoType(i, name)
+		if err != nil {
+			return err
 		}
 
 		if c.size != uint32(g.Size()) {
@@ -214,20 +276,32 @@ func check(name string, toCheck []any, structs map[string]*structInfo, checkOffs
 			continue
 		}
 
-		for field := range g.Fields() {
-			fieldName := field.Tag.Get("align")
-			// Ignore fields without `align` struct tag
-			if fieldName == "" {
-				continue
-			}
-			goOffset := uint32(field.Offset)
-			if cOffset, ok := c.fieldOffsets[fieldName]; !ok {
-				return fmt.Errorf("%s.%s does not match any field (should match %s.%s) [debug=%v]",
-					g, field.Name, name, fieldName, c.fieldOffsets)
-			} else if goOffset != cOffset {
-				return fmt.Errorf("%s.%s offset(%d) does not match %s.%s(%d) [debug=%v]",
-					g, field.Name, goOffset, name, fieldName, cOffset, c.fieldOffsets)
-			}
+		if err := checkFieldOffsets(g, name, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func checkPrefix(name string, toCheck []any, structs map[string]*structInfo) error {
+	for _, i := range toCheck {
+		c, found := structs[name]
+		if !found {
+			return fmt.Errorf("could not find C struct %s", name)
+		}
+
+		g, err := checkGoType(i, name)
+		if err != nil {
+			return err
+		}
+
+		if uint32(g.Size()) > c.size {
+			return fmt.Errorf("%s(%d) is larger than %s(%d), cannot be a valid prefix", g, g.Size(), name, c.size)
+		}
+
+		if err := checkFieldOffsets(g, name, c); err != nil {
+			return err
 		}
 	}
 

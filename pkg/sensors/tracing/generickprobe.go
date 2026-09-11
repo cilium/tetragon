@@ -24,6 +24,7 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 
 	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
+	tetragonapi "github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -1317,7 +1318,7 @@ func dnsLookup(fqdn string) {
 
 func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 	m := api.MsgGenericKprobe{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := tetragonapi.ReadBPFStruct(r, &m)
 	if err != nil {
 		logger.GetLogger().Warn("Failed to read process call msg", logfields.Error, err)
 		return nil, errors.New("failed to read process call msg")
@@ -1373,7 +1374,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	var printers []argPrinter
 	if returnEvent {
 		// if this a return event, also read the ktime of the enter event
-		err := binary.Read(r, binary.LittleEndian, &ktimeEnter)
+		ktimeEnter, err = tetragonapi.ReadIntegerLE[uint64](r)
 		if err != nil {
 			return nil, errors.New("failed to read ktimeEnter")
 		}
