@@ -8,6 +8,7 @@ import (
 	"debug/elf"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -27,6 +28,9 @@ type note struct {
 	Descsz uint32
 	Type   uint32
 }
+
+// KernelBuildIDSize is the size of all buildIDs in the kernel.
+const KernelBuildIDSize = 20
 
 // ParseBuildIdFromNotes returns the GNU build ID found in a raw ELF notes blob,
 // decoded with the given byte order. Callers holding notes without an ELF
@@ -76,4 +80,21 @@ func (se *SafeELFFile) ParseBuildID() ([]byte, error) {
 		}
 	}
 	return []byte{}, errors.New("failed to find build ID note")
+}
+
+// The kernel expects BuildIDs to be <=20.
+// If the BuildID is shorter than 20 bytes, it is padded with zeros.
+// Return the BuildID so that it matches the kernel's in e.g., `bpf_stack_build_id`
+func (se *SafeELFFile) NormalizedBuildID() ([KernelBuildIDSize]byte, error) {
+	buildID, err := se.ParseBuildID()
+	if err != nil {
+		return [KernelBuildIDSize]byte{}, err
+	}
+
+	var normalized [KernelBuildIDSize]byte
+	if len(buildID) == 0 || len(buildID) > KernelBuildIDSize {
+		return normalized, fmt.Errorf("build ID has invalid length %d, expected between 1 and %d bytes", len(buildID), KernelBuildIDSize)
+	}
+	copy(normalized[:], buildID)
+	return normalized, nil
 }
