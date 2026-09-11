@@ -80,10 +80,23 @@
   {{- toYaml .Values.tetragon.livenessProbe | nindent 4 }}
 {{- else if .Values.tetragon.healthGrpc.enabled }}
   livenessProbe:
+     failureThreshold: 1
      timeoutSeconds: 60
      grpc:
       port: {{ .Values.tetragon.healthGrpc.port }}
       service: "liveness"
+{{- end -}}
+{{- if .Values.tetragon.startupProbe }}
+  startupProbe:
+  {{- toYaml .Values.tetragon.startupProbe | nindent 4 }}
+{{- else if .Values.tetragon.healthGrpc.enabled }}
+  startupProbe:
+     failureThreshold: 30
+     periodSeconds: 10
+     timeoutSeconds: 5
+     grpc:
+      port: {{ .Values.tetragon.healthGrpc.port }}
+      service: "startup"
 {{- end -}}
 {{- end -}}
 
