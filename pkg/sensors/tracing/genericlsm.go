@@ -610,7 +610,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 
-	maps = append(maps, createSelectorMaps(load, lsmEntry.selectors)...)
+	maps = append(maps, createSelectorMaps(load, lsmEntry.selectors, len(lsmEntry.selectors.SubStrings()))...)
 
 	callHeap := program.MapBuilderProgram("process_call_heap", load)
 	maps = append(maps, callHeap)
