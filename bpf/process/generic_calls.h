@@ -53,8 +53,9 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 #ifdef GENERIC_LSM
 	/* The LSM output program runs even when this program returns early. */
 	msg->lsm.post = false;
-	msg->common.flags = 0;
 #endif
+	/* Filtering can set MSG_COMMON_FLAG_PROCESS_NOT_FOUND. */
+	msg->common.flags = 0;
 
 	/* setup index, check policy filter, and setup function id */
 	msg->idx = get_index(ctx);
@@ -701,7 +702,6 @@ FUNC_INLINE void
 generic_process_init(struct msg_generic_kprobe *e, u8 op)
 {
 	e->common.op = op;
-	e->common.flags = 0;
 
 	e->common.pad[0] = 0;
 	e->common.pad[1] = 0;
