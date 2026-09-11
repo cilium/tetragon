@@ -52,6 +52,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
+      actions: read
     uses: ./.github/workflows/common-post-jobs.yml
     with:
       sha: ${{ inputs.SHA || github.sha }}
