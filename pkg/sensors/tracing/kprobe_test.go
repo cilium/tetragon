@@ -5764,6 +5764,14 @@ func TestSubStringPath(t *testing.T) {
 	})
 }
 
+func TestSubStringSharedMapMulti(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-shared-map-multi", nil)
+}
+
+func TestSubStringSharedMapSingle(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-shared-map-single", nil)
+}
+
 // Test module loading/unloading on Ubuntu
 func testTraceKernelModule(t *testing.T, fentry bool) {
 	_, err := ftrace.ReadAvailFuncs("^find_module_sections$")
