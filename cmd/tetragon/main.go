@@ -1054,6 +1054,9 @@ func execute() error {
 			}
 
 			if err := tetragonExecute(); err != nil {
+				if errors.Is(err, context.Canceled) {
+					return
+				}
 				logger.Fatal(log, "Failed to execute tetragon", logfields.Error, err)
 			}
 		},
