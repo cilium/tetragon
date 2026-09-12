@@ -447,6 +447,79 @@ spec:
 	}
 }).RegisterAtInit()
 
+type triggerSubStringSharedMap struct{}
+
+func (t *triggerSubStringSharedMap) Trigger(ctx context.Context) error {
+	if err := policytest.NewCmdTrigger("/usr/bin/id").Trigger(ctx); err != nil {
+		return err
+	}
+	return (&triggerSubStringPath{}).Trigger(ctx)
+}
+
+var _ = policytest.NewBuilder("kprobe-substring-shared-map").
+	WithLabels("kprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if reason := skipSubStringKfunc(si); reason != "" {
+			return reason
+		}
+		if !si.AgentInfo.Probes[bpf.KprobeMultiProbe] {
+			return "test requires kprobe multi"
+		}
+		return ""
+	}).
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "substring-shared-map"
+spec:
+  kprobes:
+  - call: "security_bprm_check"
+    syscall: false
+    args:
+    - index: 0
+      type: "linux_binprm"
+    selectors:
+    - matchArgs:
+      - operator: SubString
+        index: 0
+        values:
+        - "/i"
+  - call: "security_path_mkdir"
+    syscall: false
+    args:
+    - index: 0
+      type: "path"
+    selectors:
+    - matchArgs:
+      - operator: SubString
+        index: 0
+        values:
+        - "_id_"
+`).AddScenario(func(_ *policytest.Conf) *policytest.Scenario {
+	bprmChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_bprm_check")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithLinuxBinprmArg(ec.NewKprobeLinuxBinprmChecker().WithPath(sm.Suffix("/id"))),
+			))
+
+	pathChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_path_mkdir")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().WithPath(sm.Suffix("match_id_test"))),
+			))
+
+	return &policytest.Scenario{
+		Name:         "different substring selectors share a multi-kprobe map",
+		Trigger:      &triggerSubStringSharedMap{},
+		EventChecker: ec.NewUnorderedEventChecker(bprmChecker, pathChecker),
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("cel-mix-args-and-data").
 	WithLabels("kprobes", "cel").
 	WithSkip(func(si *policytest.SkipInfo) string {

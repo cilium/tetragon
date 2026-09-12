@@ -5569,6 +5569,10 @@ func TestSubStringPath(t *testing.T) {
 	})
 }
 
+func TestSubStringSharedMap(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-shared-map", nil)
+}
+
 func TestFdRetrival(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-fd-arg", map[string]any{
 		"Hook": "kprobes",
