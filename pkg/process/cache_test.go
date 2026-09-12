@@ -110,8 +110,7 @@ func TestProcessCacheGCLeak(t *testing.T) {
 		assert.Equal(t, deletePending, proc.getColor())
 
 		cache.refInc(&proc, "test")
-		time.Sleep(interval + 1*time.Millisecond)
-		synctest.Wait()
+		synctest.Sleep(interval + 1*time.Millisecond)
 		assert.Equal(t, inUse, proc.getColor())
 
 		// Trigger refDec to 0 again and wait for GC cycles to remove it.
@@ -121,11 +120,9 @@ func TestProcessCacheGCLeak(t *testing.T) {
 		cache.refDec(&proc, "test")
 		synctest.Wait()
 
-		time.Sleep(interval + 1*time.Millisecond)
-		synctest.Wait()
+		synctest.Sleep(interval + 1*time.Millisecond)
 
-		time.Sleep(interval + 1*time.Millisecond)
-		synctest.Wait()
+		synctest.Sleep(interval + 1*time.Millisecond)
 
 		assert.Equal(t, deleted, proc.getColor())
 		assert.Equal(t, 0, cache.len())
@@ -229,8 +226,7 @@ func TestProcessCacheDoubleParentDecrease(t *testing.T) {
 
 		// simulate resurrection: refInc after deletePending
 		cache.refInc(child, "late-event")
-		time.Sleep(interval + 1*time.Millisecond)
-		synctest.Wait()
+		synctest.Sleep(interval + 1*time.Millisecond)
 		assert.Equal(t, inUse, child.getColor())
 
 		// trigger LRU eviction of child
