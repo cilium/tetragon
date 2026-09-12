@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"sync"
+	"uuid"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/aggregator"
@@ -26,8 +27,6 @@ import (
 	"github.com/cilium/tetragon/pkg/tetragoninfo"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/version"
-
-	"github.com/google/uuid"
 )
 
 const GrpcDomain = "grpc"

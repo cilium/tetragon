@@ -7,8 +7,8 @@ package cgidmap
 
 import (
 	"fmt"
+	"uuid"
 
-	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/cilium/tetragon/pkg/logger"

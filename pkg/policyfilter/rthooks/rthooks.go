@@ -8,8 +8,7 @@ package rthooks
 import (
 	"context"
 	"strings"
-
-	"github.com/google/uuid"
+	"uuid"
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"

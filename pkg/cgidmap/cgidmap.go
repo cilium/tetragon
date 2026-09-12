@@ -11,14 +11,13 @@ package cgidmap
 
 import (
 	"sync"
+	"uuid"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
-
-	"github.com/google/uuid"
 )
 
 // convinience types to make APIs more readable
