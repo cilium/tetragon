@@ -7,7 +7,7 @@ package syscallinfo
 
 import (
 	_ "embed"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"runtime"
 	"strings"

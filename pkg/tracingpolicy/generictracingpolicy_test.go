@@ -158,3 +158,35 @@ func TestYamlLabels(t *testing.T) {
 	require.True(t, ok, "key should exist in labels")
 	require.Equal(t, "pizza", val, "best food should be pizza")
 }
+
+func TestUnknownFieldTracingPolicy(t *testing.T) {
+	for name, policy := range map[string]string{
+		"top level": `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tracepoint-test"
+unknown: true
+spec:
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+`,
+		"metadata": `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tracepoint-test"
+  unknown: true
+spec:
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := FromYAML(policy)
+			require.Error(t, err)
+		})
+	}
+}
