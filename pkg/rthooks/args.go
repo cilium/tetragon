@@ -88,8 +88,8 @@ func (arg *CreateContainerArg) PodID() (string, error) {
 func containerIDFromCgroupPath(p string) string {
 	containerID := filepath.Base(p)
 	// crio has cgroups paths such as crio-<ID> and crio-conmon-<ID>. Strip those prefixes.
-	if idx := strings.LastIndex(containerID, "-"); idx != -1 {
-		containerID = containerID[idx+1:]
+	if _, after, ok := strings.CutLast(containerID, "-"); ok {
+		containerID = after
 	}
 	containerID = strings.TrimSuffix(containerID, ".scope")
 	return containerID

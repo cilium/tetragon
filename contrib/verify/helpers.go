@@ -16,8 +16,8 @@ import (
 )
 
 func extractKernelVersion(fileName string) string {
-	if idx := strings.LastIndex(fileName, "_v"); idx != -1 {
-		versionPart := strings.TrimSuffix(fileName[idx+2:], ".o")
+	if _, after, ok := strings.CutLast(fileName, "_v"); ok {
+		versionPart := strings.TrimSuffix(after, ".o")
 		if len(versionPart) >= 2 {
 			if versionPart[:1] == "1" {
 				panic("version 10.x not supported (we will need to disambiguate notation): " + versionPart)
@@ -30,8 +30,8 @@ func extractKernelVersion(fileName string) string {
 }
 
 func extractBaseName(fileName string) string {
-	if idx := strings.LastIndex(fileName, "_v"); idx != -1 {
-		return fileName[:idx]
+	if before, _, ok := strings.CutLast(fileName, "_v"); ok {
+		return before
 	}
 	return strings.TrimSuffix(fileName, ".o")
 }
