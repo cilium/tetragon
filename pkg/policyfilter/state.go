@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"maps"
 	"sync"
+	"uuid"
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
@@ -20,7 +21,6 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 
-	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
 )
 

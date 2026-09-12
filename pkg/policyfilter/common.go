@@ -5,8 +5,7 @@ package policyfilter
 
 import (
 	"math"
-
-	"github.com/google/uuid"
+	"uuid"
 )
 
 const (
