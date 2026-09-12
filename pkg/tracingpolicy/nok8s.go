@@ -8,7 +8,7 @@ package tracingpolicy
 import (
 	"bytes"
 	_ "embed"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 
 	"github.com/google/cel-go/cel"
@@ -149,7 +149,7 @@ func FromYAML(data string) (TracingPolicy, error) {
 	switch kind {
 	case v1alpha1.TPKindDefinition:
 		var gtp GenericTracingPolicy
-		if err := json.Unmarshal(jsonBytes, &gtp); err != nil {
+		if err := json.Unmarshal(jsonBytes, &gtp, json.RejectUnknownMembers(true)); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal TracingPolicy: %w", err)
 		}
 

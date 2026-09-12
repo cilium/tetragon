@@ -7,6 +7,7 @@ package crdutils
 
 import (
 	_ "embed"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -427,7 +428,9 @@ func TestInvalidYAMLInTracingPolicy(t *testing.T) {
 	path := tempfile.CreateTempFile(t, "<not-quite-yaml>")
 	_, err := TPContext.FromFile(path)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to unmarshal YAML: error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type map[string]interface {}")
+	assert.Contains(t, err.Error(), "failed to unmarshal YAML")
+	var typeErr *json.UnmarshalTypeError
+	require.ErrorAs(t, err, &typeErr)
 }
 
 const tpWithoutMetadata = `
