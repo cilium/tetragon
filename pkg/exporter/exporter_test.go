@@ -232,8 +232,7 @@ func Test_rateLimitExport(t *testing.T) {
 				// Allow the rate limiter (50ms tick) to fire and flush pending
 				// events / emit the rate-limit-info record. Under synctest,
 				// time advances deterministically while goroutines are blocked.
-				time.Sleep(100 * time.Millisecond)
-				synctest.Wait()
+				synctest.Sleep(100 * time.Millisecond)
 
 				cancel()
 				<-eventNotifier.removed
