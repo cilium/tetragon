@@ -5569,6 +5569,18 @@ func TestSubStringPath(t *testing.T) {
 	})
 }
 
+func TestSubStringSharedMapMulti(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-shared-map", map[string]any{
+		"AttachMode": "multi",
+	})
+}
+
+func TestSubStringSharedMapSingle(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-shared-map", map[string]any{
+		"AttachMode": "single",
+	})
+}
+
 func TestFdRetrival(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-fd-arg", map[string]any{
 		"Hook": "kprobes",
