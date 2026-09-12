@@ -1022,14 +1022,17 @@ const (
 
 func writeMatchSubString(k *KernelSelectorState, values []string) error {
 	for _, v := range values {
-		id := len(k.subStrs)
-		if id >= SubstringMapEntries {
-			return fmt.Errorf("substring error: Only %d substrings allowed", SubstringMapEntries)
-		}
 		if len(v) >= substringMaxLen {
 			return fmt.Errorf("substring error: Substring is bigger than 100 chars (%d) %s", len(v), v)
 		}
-		k.subStrs = append(k.subStrs, v)
+		id := slices.Index(k.maps.subStrs, v)
+		if id < 0 {
+			id = len(k.maps.subStrs)
+			if id >= SubstringMapEntries {
+				return fmt.Errorf("substring error: Only %d substrings allowed", SubstringMapEntries)
+			}
+			k.maps.subStrs = append(k.maps.subStrs, v)
+		}
 		WriteSelectorUint32(&k.data, uint32(id))
 	}
 	return nil
