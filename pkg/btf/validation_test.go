@@ -6,6 +6,7 @@
 package btf
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"github.com/cilium/ebpf/btf"
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -112,4 +114,110 @@ func TestEnum(t *testing.T) {
 			Size:   4,
 			Signed: true,
 		}))
+}
+
+// A gcc-built kernel exposes "long int" where an LLVM=1 one exposes "long".
+// Both must validate identically. See github.com/cilium/tetragon/issues/5598.
+
+func TestCanonicalKernelType(t *testing.T) {
+	for _, tc := range []struct{ gcc, clang string }{
+		{"long int", "long"},
+		{"long unsigned int", "unsigned long"},
+		{"long long int", "long long"},
+		{"long long unsigned int", "unsigned long long"},
+		{"short int", "short"},
+		{"short unsigned int", "unsigned short"},
+	} {
+		require.Equal(t, tc.clang, canonicalKernelType(tc.gcc))
+		require.Equal(t, tc.clang, canonicalKernelType(tc.clang))
+	}
+
+	// Spelled the same by both compilers, or not an integer: pass through.
+	for _, same := range []string{
+		"char", "signed char", "unsigned char", "int", "unsigned int", "_Bool",
+		"void *", "const char *", "struct file *", "size_t", "umode_t",
+	} {
+		require.Equal(t, same, canonicalKernelType(same))
+	}
+}
+
+func TestTypesCompatibleAcrossCompilers(t *testing.T) {
+	for _, tc := range []struct {
+		specTy     string
+		gcc, clang string
+	}{
+		{"int64", "long int", "long"},
+		{"uint64", "long unsigned int", "unsigned long"},
+		{"int16", "short int", "short"},
+		{"uint16", "short unsigned int", "unsigned short"},
+	} {
+		t.Run(tc.specTy, func(t *testing.T) {
+			require.True(t, typesCompatible(tc.specTy, tc.gcc), "gcc spelling %q", tc.gcc)
+			require.True(t, typesCompatible(tc.specTy, tc.clang), "clang spelling %q", tc.clang)
+		})
+	}
+}
+
+// syscallWrapperBTF builds BTF for `<retName> <call>(const struct pt_regs *)`,
+// the shape ValidateKprobeSpec expects for a `syscall: true` spec.
+func syscallWrapperBTF(t *testing.T, call, retName string) *btf.Spec {
+	t.Helper()
+
+	ret := &btf.Int{Name: retName, Size: 8, Encoding: btf.Signed}
+	fn := &btf.Func{
+		Name:    call,
+		Linkage: btf.StaticFunc,
+		Type: &btf.FuncProto{
+			Return: ret,
+			Params: []btf.FuncParam{{
+				Name: "regs",
+				Type: &btf.Pointer{Target: &btf.Const{Type: &btf.Struct{Name: "pt_regs"}}},
+			}},
+		},
+	}
+
+	b, err := btf.NewBuilder([]btf.Type{fn}, nil)
+	require.NoError(t, err)
+	raw, err := b.Marshal(nil, nil)
+	require.NoError(t, err)
+	spec, err := btf.LoadSpecFromReader(bytes.NewReader(raw))
+	require.NoError(t, err)
+	return spec
+}
+
+func TestValidateSyscallReturnTypeAcrossCompilers(t *testing.T) {
+	const call = "__x64_sys_setns"
+
+	// setns(int fd, int flags), as in the docs' deny-namespace-access policy.
+	kspec := func() *v1alpha1.KProbeSpec {
+		return &v1alpha1.KProbeSpec{
+			Call:    "sys_setns",
+			Syscall: true,
+			Args: []v1alpha1.KProbeArg{
+				{Index: 0, Type: "int"},
+				{Index: 1, Type: "int"},
+			},
+		}
+	}
+
+	// Empty table => GetKmod() reports "not a module", as for setns on a real
+	// host, so the spec we pass in is the one validated.
+	ks := &ksyms.Ksyms{}
+
+	t.Run("gcc", func(t *testing.T) {
+		err := ValidateKprobeSpec(syscallWrapperBTF(t, call, "long int"), call, kspec(), ks)
+		require.NoError(t, err)
+	})
+
+	t.Run("clang", func(t *testing.T) {
+		err := ValidateKprobeSpec(syscallWrapperBTF(t, call, "long"), call, kspec(), ks)
+		require.NoError(t, err)
+	})
+
+	// A genuinely non-long return is still rejected, and named in the error.
+	t.Run("rejects non-long", func(t *testing.T) {
+		err := ValidateKprobeSpec(syscallWrapperBTF(t, call, "int"), call, kspec(), ks)
+		require.ErrorContains(t, err, "syscall return type is not long")
+		require.ErrorContains(t, err, `"int"`)
+	})
 }

@@ -122,8 +122,8 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 		if !ok {
 			return errors.New("kprobe spec validation failed: syscall return type is not Int")
 		}
-		if ret.Name != "long int" {
-			return errors.New("kprobe spec validation failed: syscall return type is not long int")
+		if canonicalKernelType(ret.Name) != "long" {
+			return fmt.Errorf("kprobe spec validation failed: syscall return type is not long, but %q", ret.Name)
 		}
 
 		if len(proto.Params) != 1 {
@@ -187,6 +187,26 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 	return nil
 }
 
+// gcc and clang spell these six integer types differently in DWARF, and hence
+// in BTF. Kernels built with LLVM=1 use the clang spellings.
+var gccToCanonicalInt = map[string]string{
+	"long int":               "long",
+	"long unsigned int":      "unsigned long",
+	"long long int":          "long long",
+	"long long unsigned int": "unsigned long long",
+	"short int":              "short",
+	"short unsigned int":     "unsigned short",
+}
+
+// canonicalKernelType normalizes a kernel type name to its C source spelling,
+// which is what pkg/syscallinfo's tables use. Other names pass through.
+func canonicalKernelType(name string) string {
+	if canonical, ok := gccToCanonicalInt[name]; ok {
+		return canonical
+	}
+	return name
+}
+
 func getKernelType(arg btf.Type) string {
 	suffix := ""
 	ptr, ok := arg.(*btf.Pointer)
@@ -248,13 +268,16 @@ func getKernelType(arg btf.Type) string {
 }
 
 func typesCompatible(specTy string, kernelTy string) bool {
+	// kernelTy may come from BTF, whose spelling depends on the compiler.
+	kernelTy = canonicalKernelType(kernelTy)
+
 	switch specTy {
 	case "nop":
 		return true
 
 	case "uint64":
 		switch kernelTy {
-		case "u64", "void *", "long unsigned int", "unsigned long":
+		case "u64", "void *", "unsigned long":
 			return true
 		}
 	case "int64":
@@ -276,12 +299,12 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		}
 	case "int16":
 		switch kernelTy {
-		case "s16", "short int":
+		case "s16", "short":
 			return true
 		}
 	case "uint16":
 		switch kernelTy {
-		case "u16", "short unsigned int", "umode_t":
+		case "u16", "unsigned short", "umode_t":
 			return true
 		}
 	case "uint8":
