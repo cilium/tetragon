@@ -67,6 +67,6 @@ generic_fexit_actions(void *ctx)
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fexit_output(void *ctx)
 {
-	generic_output(ctx, MSG_OP_GENERIC_KPROBE);
+	generic_output(ctx);
 	return 0;
 }
