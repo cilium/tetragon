@@ -24,7 +24,7 @@ var Files = map[uint8]string{
 	15: "bpf_process_event.h",
 	16: "bpf_cgroup.h",
 	17: "basic.h",
-	18: "bpf_exit.h",
+	18: "bpf_exit.c",
 	19: "syscall64.h",
 	20: "bpf_generic_lsm_output.c",
 	21: "bpf_cgroup_events.h",
