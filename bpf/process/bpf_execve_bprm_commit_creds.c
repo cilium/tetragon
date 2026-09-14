@@ -65,7 +65,7 @@ BPF_KPROBE(tg_kp_bprm_committing_creds, struct linux_binprm *bprm)
 	if (!heap)
 		return;
 
-	memset(&heap->info, 0, sizeof(struct execve_info));
+	__bpf_memzero(&heap->info, sizeof(struct execve_info));
 
 	/* Read binary file information */
 	if (BPF_CORE_READ_INTO(&file, bprm, file) != 0)

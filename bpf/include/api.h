@@ -118,6 +118,10 @@ static int BPF_FUNC(probe_read_user, void *dst, uint32_t size, const void *src);
 static int BPF_FUNC(probe_write_user, void *dst, const void *src, uint32_t len);
 static int BPF_FUNC(copy_from_user, void *dst, uint32_t size, const void *src);
 
+// similar to https://github.com/torvalds/linux/blob/704340f1cd0dcef829eb62f5b48ae95a2ce17bdf/tools/testing/selftests/bpf/progs/iters.c#L705
+// bpf_probe_read_kernel in failure zeros the dst (i.e. https://github.com/torvalds/linux/blob/704340f1cd0dcef829eb62f5b48ae95a2ce17bdf/include/linux/bpf.h#L3580-L3581)
+#define __bpf_memzero(p, sz) probe_read_kernel((p), (sz), 0)
+
 /* Time access */
 static uint64_t BPF_FUNC(ktime_get_ns);
 static uint64_t BPF_FUNC(ktime_get_boot_ns);

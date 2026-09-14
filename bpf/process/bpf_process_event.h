@@ -373,7 +373,7 @@ __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 	__u32 flags = 0;
 
 	/* Clear cgroup info at the beginning, so if we return early we do not pass previous data */
-	memset(kube, 0, sizeof(struct msg_k8s));
+	__bpf_memzero(kube, sizeof(struct msg_k8s));
 
 	conf = map_lookup_elem(&tg_conf_map, &zero);
 	if (conf) {
