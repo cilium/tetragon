@@ -9,7 +9,7 @@
 struct heap_ro_value {
 	union {
 		char string_maps_heap[STRING_MAPS_HEAP_SIZE];
-		char ratelimit_heap[sizeof(struct ratelimit_key) + 128];
+		char ratelimit_heap[sizeof(struct ratelimit_key) + MAX_HASH_BYTES];
 	};
 };
 
