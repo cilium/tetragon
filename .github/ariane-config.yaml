@@ -3,5 +3,7 @@ allowed-teams:
 
 triggers:
   /default\s*:
-    workflows:
+    workflows: &test-workflows
       - mock-ci.yaml
+  /test\s*:
+    workflows: *test-workflows
