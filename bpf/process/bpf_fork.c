@@ -21,6 +21,19 @@ int _version __attribute__((section(("version")), used)) =
 	VMLINUX_KERNEL_VERSION;
 #endif
 
+#ifndef __RHEL7_BPF_PROG
+FUNC_INLINE bool
+event_clone_rate_check(void *ctx, struct task_struct *task, __u64 ktime)
+{
+	struct msg_k8s kube;
+
+	if (__event_get_cgroup_info(task, &kube))
+		errmetrics(ENOENT);
+
+	return cgroup_rate(ctx, &kube, ktime);
+}
+#endif
+
 __attribute__((section("kprobe/wake_up_new_task"), used)) int
 BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 {
@@ -94,12 +107,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	msg.flags = curr->flags;
 
 #ifndef __RHEL7_BPF_PROG
-	struct msg_k8s kube;
-
-	if (__event_get_cgroup_info(task, &kube))
-		errmetrics(ENOENT);
-
-	if (cgroup_rate(ctx, &kube, msg.ktime))
+	if (event_clone_rate_check(ctx, task, msg.ktime))
 #endif
 		event_output_metric(ctx, MSG_OP_CLONE, &msg, msg_size);
 
