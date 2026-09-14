@@ -46,6 +46,10 @@ const (
 	// without TLS material.
 	DefaultUnixSocket = DefaultRunDir + "tetragon.sock"
 
+	// DefaultJavaRingPath is the shared-memory ring file Tetragon creates for
+	// the Java monitoring agent to write method-entry records into.
+	DefaultJavaRingPath = DefaultRunDir + "java.ring"
+
 	// BugtoolExtraFiles is the file location for extra files to include in bugtool archives.
 	// Written by the daemon at startup, read by the CLI at bugtool time.
 	BugtoolExtraFiles = DefaultRunDir + "tetragon-bugtool-extra-files.json"

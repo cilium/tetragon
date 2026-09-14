@@ -842,6 +842,20 @@ loader sensor event triggered for loaded binary/library
 | action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the USDT hook matched. |
 | flags | [string](#string) |  | Flags are for debugging purposes only and should not be considered a reliable source of information. |
 
+<a name="tetragon-ProcessJava"></a>
+
+### ProcessJava
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process | [Process](#tetragon-Process) |  | JVM process that entered the method. |
+| parent | [Process](#tetragon-Process) |  | Immediate parent of the JVM process. |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the JVM process. |
+| method_id | [uint64](#uint64) |  | Deterministic method identifier. |
+| class_name | [string](#string) |  | JVM internal-form class name. |
+| method_name | [string](#string) |  | Java method name. |
+| descriptor | [string](#string) |  | JVM method descriptor. |
+
 <a name="tetragon-RuntimeHookRequest"></a>
 
 ### RuntimeHookRequest
@@ -1086,6 +1100,7 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | process_throttle | [ProcessThrottle](#tetragon-ProcessThrottle) |  |  |
 | process_lsm | [ProcessLsm](#tetragon-ProcessLsm) |  |  |
 | process_usdt | [ProcessUsdt](#tetragon-ProcessUsdt) |  |  |
+| process_java | [ProcessJava](#tetragon-ProcessJava) |  |  |
 | test | [Test](#tetragon-Test) |  |  |
 | rate_limit_info | [RateLimitInfo](#tetragon-RateLimitInfo) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
@@ -1151,6 +1166,7 @@ GetEventsResponse event oneof.
 | PROCESS_THROTTLE | 27 |  |
 | PROCESS_LSM | 28 |  |
 | PROCESS_USDT | 29 |  |
+| PROCESS_JAVA | 30 |  |
 | TEST | 40000 |  |
 | RATE_LIMIT_INFO | 40001 |  |
 

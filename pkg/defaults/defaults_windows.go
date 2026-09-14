@@ -22,6 +22,9 @@ const (
 	// DefaultRunDir is the default run directory for runtime
 	DefaultRunDir = `C:\Program Files\Tetragon\`
 
+	// DefaultJavaRingPath is unused because Java IPC is Linux-only.
+	DefaultJavaRingPath = ""
+
 	// Default Path to where cgroup2 is mounted (Prefix with /run)
 	Cgroup2Dir = ""
 
