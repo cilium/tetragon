@@ -8,7 +8,6 @@ package program
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/cilium/ebpf"
@@ -86,12 +85,15 @@ func ValidateSODynamic(uprobe *v1alpha1.UProbeSpec) error {
 			if action.Action != "Override" || action.ArgNewSymbol == "" || action.SoPath == "" {
 				continue
 			}
-			st, err := os.Stat(action.SoPath)
+			// Check that sopath actually contains argNewSymbol
+			f, err := elf.OpenSafeELFFile(action.SoPath)
 			if err != nil {
 				return err
 			}
-			if st.IsDir() {
-				return fmt.Errorf("uprobe Override action sopath %q is a directory", action.SoPath)
+			defer f.Close()
+			_, err = f.Address(action.ArgNewSymbol)
+			if err != nil {
+				return fmt.Errorf("sopath %q does not contain symbol %q", action.SoPath, action.ArgNewSymbol)
 			}
 
 			// Fetch host libc and resolve required symbols addresses.
