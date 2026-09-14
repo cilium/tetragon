@@ -15,13 +15,6 @@
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
-struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, int);
-	__type(value, struct msg_exit);
-} exit_heap_map SEC(".maps");
-
 FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 {
 	struct execve_map_value *enter;
@@ -40,26 +33,21 @@ FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 	if (enter->key.ktime) {
 		struct task_struct *task = (struct task_struct *)get_current_task();
 		size_t size = sizeof(struct msg_exit);
-		struct msg_exit *exit;
-		int zero = 0;
+		struct msg_exit exit;
 
-		exit = map_lookup_elem(&exit_heap_map, &zero);
-		if (!exit)
-			return;
+		exit.common.op = MSG_OP_EXIT;
+		exit.common.flags = 0;
+		exit.common.pad[0] = 0;
+		exit.common.pad[1] = 0;
+		exit.common.size = size;
+		exit.common.ktime = tg_get_ktime();
 
-		exit->common.op = MSG_OP_EXIT;
-		exit->common.flags = 0;
-		exit->common.pad[0] = 0;
-		exit->common.pad[1] = 0;
-		exit->common.size = size;
-		exit->common.ktime = tg_get_ktime();
-
-		exit->current.pid = tgid;
-		exit->current.pad[0] = 0;
-		exit->current.pad[1] = 0;
-		exit->current.pad[2] = 0;
-		exit->current.pad[3] = 0;
-		exit->current.ktime = enter->key.ktime;
+		exit.current.pid = tgid;
+		exit.current.pad[0] = 0;
+		exit.current.pad[1] = 0;
+		exit.current.pad[2] = 0;
+		exit.current.pad[3] = 0;
+		exit.current.ktime = enter->key.ktime;
 
 		/**
 		 * Per thread tracking rules TID == PID :
@@ -67,11 +55,11 @@ FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 		 *  we report the thread group leader, do same here as we read the exec
 		 *  entry from the execve_map anyway and explicitly set it to the to tgid.
 		 */
-		exit->info.tid = tgid;
-		with_errmetrics(probe_read, &exit->info.code, sizeof(exit->info.code),
+		exit.info.tid = tgid;
+		with_errmetrics(probe_read, &exit.info.code, sizeof(exit.info.code),
 				_(&task->exit_code));
 
-		event_output_metric(ctx, MSG_OP_EXIT, exit, size);
+		event_output_metric(ctx, MSG_OP_EXIT, &exit, size);
 	}
 	execve_map_delete(tgid);
 	map_delete_elem(&tg_parents_bin, &enter->key.pid);
