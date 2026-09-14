@@ -3,7 +3,7 @@
 
 CLI_GO_BUILD = CGO_ENABLED=0 $(GO) build
 # renovate: datasource=docker
-GO_IMAGE = docker.io/library/golang:1.25.14-alpine@sha256:1ae0735f00daffa3aaf1363a5184c0d2dc55c78e3db4ec70241cdac97bf84b59
+GO_IMAGE = docker.io/library/golang:1.26.8-alpine@sha256:ce864e7223ac17b1775e6fd0b4c0db580c2eb50e7953a427916379e4b92a1628
 TARGET=tetra
 
 RELEASE_UID ?= $(shell id -u)
