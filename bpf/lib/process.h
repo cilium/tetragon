@@ -681,6 +681,16 @@ event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
 
 	return true;
 }
+
+FUNC_INLINE void *
+event_ringbuf_reserve(u8 msg_op, u64 size)
+{
+	void *event = ringbuf_reserve(&tg_rb_events, size, 0);
+
+	if (!event)
+		event_output_update_error_metric(msg_op, -EAGAIN);
+	return event;
+}
 #else
 FUNC_INLINE long
 event_output(void *ctx, void *data, u64 size)
