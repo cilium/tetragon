@@ -25,9 +25,8 @@ __attribute__((section("lsm/generic_lsm_output"), used)) int
 generic_lsm_output(void *ctx)
 {
 	struct msg_generic_kprobe *e;
-	int zero = 0;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = lsm_heap_get_or_create();
 	if (!e)
 		return 0;
 #ifdef __V511_BPF_PROG
@@ -47,5 +46,12 @@ generic_lsm_output(void *ctx)
 #endif
 	if (e->lsm.post)
 		generic_output(ctx, MSG_OP_GENERIC_LSM);
-	return try_override(ctx, (struct bpf_map_def *)&override_tasks);
+
+	int ret = try_override(ctx, (struct bpf_map_def *)&override_tasks);
+
+	/* Terminal stage for this task's LSM chain: clean up now rather
+	 * than relying on LRU eviction (see PR discussion on #5237).
+	 */
+	lsm_heap_delete();
+	return ret;
 }

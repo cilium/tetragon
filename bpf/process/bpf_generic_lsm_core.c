@@ -109,9 +109,8 @@ generic_lsm_actions(void *ctx)
 	bool postit = generic_actions(ctx, (struct bpf_map_def *)&lsm_calls);
 
 	struct msg_generic_kprobe *e;
-	int zero = 0;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = lsm_heap_get_or_create();
 	if (!e)
 		return 0;
 
@@ -129,9 +128,16 @@ generic_lsm_actions(void *ctx)
 	}
 #endif
 
-	// If NoPost action is set, check for Override action here
-	if (!e->lsm.post)
-		return try_override(ctx, (struct bpf_map_def *)&override_tasks);
+	// If NoPost action is set, check for Override action here.
+	// This is a terminal path for this chain (generic_lsm_output will
+	// not run), so clean up the task's heap entry here rather than
+	// leaving it for a consumer that isn't coming.
+	if (!e->lsm.post) {
+		int ret = try_override(ctx, (struct bpf_map_def *)&override_tasks);
+
+		lsm_heap_delete();
+		return ret;
+	}
 
 	return 0;
 }
