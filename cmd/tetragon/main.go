@@ -629,7 +629,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 
 	if option.Config.HealthServerAddress != "" {
-		health.StartHealthServer(ctx, option.Config.HealthServerAddress, option.Config.HealthServerInterval)
+		_ = health.StartHealthServer(ctx, option.Config.HealthServerAddress, option.Config.HealthServerInterval)
 	}
 
 	log.Info("Exporter configuration", "enabled", option.Config.ExportFilename != "", "fileName", option.Config.ExportFilename)
@@ -681,7 +681,14 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		go logBPFDebug(ctx)
 	}
 
-	return obs.StartReady(ctx, ready)
+	// Wrap the caller's ready callback so the health package also reports the
+	// agent as fully initialized once startup completes.
+	wrappedReady := func() {
+		ready()
+		health.SetReady()
+	}
+
+	return obs.StartReady(ctx, wrappedReady)
 }
 
 func loadTpFromDir(ctx context.Context, dir string) error {
