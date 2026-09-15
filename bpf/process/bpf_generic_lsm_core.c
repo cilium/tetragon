@@ -123,7 +123,7 @@ generic_lsm_actions(void *ctx)
 
 		__u64 pid_tgid = get_current_pid_tgid();
 
-		memset(&hash, 0, sizeof(struct ima_hash));
+		__bpf_memzero(&hash, sizeof(struct ima_hash));
 		hash.state = 1;
 		map_update_elem(&ima_hash_map, &pid_tgid, &hash, BPF_ANY);
 	}

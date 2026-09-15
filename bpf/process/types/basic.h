@@ -505,7 +505,7 @@ FUNC_INLINE long copy_load_module(char *args, unsigned long arg)
 	if (!bpf_core_type_exists(struct load_info))
 		return 0;
 
-	memset(info, 0, sizeof(struct tg_kernel_module));
+	__bpf_memzero(info, sizeof(struct tg_kernel_module));
 
 	if (BPF_CORE_READ_INTO(&name, mod, name) != 0)
 		return 0;
@@ -526,7 +526,7 @@ FUNC_INLINE long copy_kernel_module(char *args, unsigned long arg)
 	const struct module *mod = (struct module *)arg;
 	struct tg_kernel_module *info = (struct tg_kernel_module *)args;
 
-	memset(info, 0, sizeof(struct tg_kernel_module));
+	__bpf_memzero(info, sizeof(struct tg_kernel_module));
 
 	if (probe_read_str(&info->name, TG_MODULE_NAME_LEN - 1, mod->name) < 0)
 		return 0;
@@ -2163,7 +2163,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 			prefix_key = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_maps_heap, &zero);
 			if (!prefix_key)
 				return 0;
-			memset(prefix_key, 0, sizeof(*prefix_key));
+			__bpf_memzero(prefix_key, sizeof(*prefix_key));
 			prefix_key->prefixlen = bin->path_length * 8; // prefixlen is in bits
 			if (probe_read(prefix_key->data, bin->path_length & (STRING_PREFIX_MAX_LENGTH - 1), bin->path) < 0)
 				return 0;

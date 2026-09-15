@@ -24,7 +24,7 @@ set_event_from_sockaddr_in(struct sockaddr_in_type *event, struct sockaddr *addr
 	struct sockaddr_in *ipv4 = (struct sockaddr_in *)address;
 	__u32 addr;
 
-	memset(event, 0, sizeof(*event));
+	__bpf_memzero(event, sizeof(*event));
 	if (probe_read(&event->sin_family, sizeof(event->sin_family), _(&address->sa_family)) < 0)
 		return;
 	switch (event->sin_family) {

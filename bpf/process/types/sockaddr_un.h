@@ -25,7 +25,7 @@ set_event_from_sockaddr_un(struct sockaddr_un_type *event, struct sockaddr *addr
 	const char *src_path = un->sun_path;
 	int ret;
 
-	memset(event, 0, sizeof(*event));
+	__bpf_memzero(event, sizeof(*event));
 	if (probe_read(&event->family, sizeof(event->family), _(&address->sa_family)) < 0)
 		return;
 	if (probe_read(&first, sizeof(first), src_path) < 0)
