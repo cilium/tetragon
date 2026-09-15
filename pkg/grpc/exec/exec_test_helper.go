@@ -121,7 +121,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 	// Create a parent event to hand events off of and convince execCache that parents are known. In order for this to
 	// work we set the Pid == 1 here so that system believes this is the root of the tree.
 	rootEv := tetragonAPI.MsgExecveEventUnix{
-		Msg: &tetragonAPI.MsgExecveEvent{
+		Msg: tetragonAPI.MsgExecveEvent{
 			Common: tetragonAPI.MsgCommon{
 				Op:    5,
 				Flags: 0,
@@ -160,7 +160,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 	execRootMsg = execRootMsg.Cast(rootEv).(EXEC)
 
 	parentEv := tetragonAPI.MsgExecveEventUnix{
-		Msg: &tetragonAPI.MsgExecveEvent{
+		Msg: tetragonAPI.MsgExecveEvent{
 			Common: tetragonAPI.MsgCommon{
 				Op:    5,
 				Flags: 0,
@@ -191,7 +191,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 			Flags:      16385,
 			Ktime:      ParentKtime,
 			Filename:   "/usr/bin/bash",
-			Args:       "--color=auto\x00/home/apapag/tetragon",
+			Args:       "--color=auto /home/apapag/tetragon",
 		},
 	}
 
@@ -199,7 +199,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 	execParentMsg = execParentMsg.Cast(parentEv).(EXEC)
 
 	execEv := tetragonAPI.MsgExecveEventUnix{
-		Msg: &tetragonAPI.MsgExecveEvent{
+		Msg: tetragonAPI.MsgExecveEvent{
 			Common: tetragonAPI.MsgCommon{
 				Op:    5,
 				Flags: 0,
@@ -229,7 +229,7 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 			Flags:    16385,
 			Ktime:    Ktime,
 			Filename: "/usr/bin/ls",
-			Args:     "--color=auto\x00/home/apapag/tetragon",
+			Args:     "--color=auto /home/apapag/tetragon",
 		},
 	}
 
@@ -319,7 +319,7 @@ func CreateAncestorEvents[EXEC notify.Message, EXIT notify.Message](
 	Docker string,
 ) (*EXEC, *EXIT) {
 	execEv := tetragonAPI.MsgExecveEventUnix{
-		Msg: &tetragonAPI.MsgExecveEvent{
+		Msg: tetragonAPI.MsgExecveEvent{
 			Common: tetragonAPI.MsgCommon{
 				Op:    5,
 				Flags: 0,

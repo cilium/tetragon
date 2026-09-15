@@ -7,7 +7,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
+
+const replacementChar = "�"
 
 // UTF8FromBPFBytes transforms bpf (C) strings to valid utf-8 strings
 //
@@ -24,7 +27,21 @@ import (
 // solution would be to update the fields in the proto description to be bytes, and let the proto
 // clients (e.g., tetra CLI and JSON writer) choose their preffered approach.
 func UTF8FromBPFBytes(b []byte) string {
-	return strings.ToValidUTF8(string(b), "�")
+	// fast path
+	if utf8.Valid(b) {
+		return string(b)
+	}
+
+	return strings.ToValidUTF8(string(b), replacementChar)
+}
+
+func WriteUTF8FromBPFBytes(b *strings.Builder, data []byte) {
+	if utf8.Valid(data) {
+		// fast path, does not materialise a temp string
+		b.Write(data)
+	} else {
+		b.WriteString(strings.ToValidUTF8(string(data), replacementChar))
+	}
 }
 
 func ParseSize(str string) (int, error) {

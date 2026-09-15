@@ -5,7 +5,6 @@ package proc
 
 import (
 	"strconv"
-	"strings"
 )
 
 // Status reflects fields of `/proc/[pid]/status` and other
@@ -108,11 +107,4 @@ func (status *Status) GetLoginUid() (uint32, error) {
 	}
 
 	return uint32(auid), nil
-}
-
-func PrependPath(s string, b []byte) []byte {
-	split := strings.Split(string(b), "\u0000")
-	split[0] = s
-	fullCmd := strings.Join(split[0:], "\u0000")
-	return []byte(fullCmd)
 }
