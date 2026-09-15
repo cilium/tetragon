@@ -931,7 +931,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil))...)
 
 	if has.substring {
-		substringMap := program.MapBuilderSensor("substring_map", load)
+		substringMap := program.MapBuilderProgram("substring_map", load)
 		substringMap.SetMaxEntries(substringMapEntries)
 		maps = append(maps, substringMap)
 	}
@@ -1042,7 +1042,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, uprobeEntry))...)
 
 	if has.substring {
-		substringMap := program.MapBuilderSensor("substring_map", load)
+		substringMap := program.MapBuilderProgram("substring_map", load)
 		substringMap.SetMaxEntries(substringMapEntries)
 		maps = append(maps, substringMap)
 	}
