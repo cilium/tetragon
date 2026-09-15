@@ -22,6 +22,63 @@ under [/docs/content/en/docs/contribution-guide/\_index.md](https://github.com/c
 We generally follow the Kubernetes docs style guide
 [k8s.io/docs/contribute/style/style-guide](https://kubernetes.io/docs/contribute/style/style-guide/).
 
+## Reference a policy from the policy collection
+
+[`policies/`](https://github.com/cilium/tetragon/tree/main/policies), at the
+root of the repository, is the single, central place where every example
+`TracingPolicy` referenced from the docs lives, organized into subfolders by
+use case (`network-monitoring`, `file-monitoring`, `process-credentials`,
+`process-monitoring`, `system-integrity`, `cves`, `others`). Keeping policies
+here instead of scattered across doc pages means each policy exists exactly
+once, is easy to find, and is easy to reference from anywhere in the docs.
+
+### Adding a new policy to the docs
+
+If you're writing or updating a doc page and need a policy that doesn't exist
+in the library yet, follow this two-step process:
+
+1. **Add the policy file to `policies/`**, in the subfolder that matches the
+   policy's primary use case. For example, a policy about monitoring network
+   connections goes in `policies/network-monitoring/`; a policy about kernel
+   modules goes in `policies/system-integrity/`. If none of the existing
+   subfolders fit, it's fine to to put it the `others` subfolder.
+2. **Reference it from your doc page using a `policy-*` shortcode** (see
+   below) instead of hand-typing a link, a `raw.githubusercontent.com` URL, or
+   pasting the YAML content directly into the page.
+
+**N/B**: the docs never duplicate a policy's content or link to it by a
+hardcoded URL, and the docs build will fail loudly if the path is ever wrong.
+
+If you mistype the path or forget to add the file, `hugo`/`make docs` stops
+the build with an error naming the exact path it couldn't find, for example:
+`policy-ref: policies/<category>/<file>.yaml not found`.
+
+### Available shortcodes
+
+In all three shortcodes below, the argument is the path relative to
+`policies/`. Each entry shows the shortcode as you'd write it in a doc page,
+followed by what it actually looks like once rendered.
+
+`{{</* policy-ref "process-monitoring/uprobe.yaml" */>}}`
+: Renders a link to the file on GitHub. Use this for prose like "Apply the
+  `{{</* policy-ref "..." */>}}` policy". In practice it renders as:
+
+  {{< policy-ref "process-monitoring/uprobe.yaml" >}}
+
+`{{</* policy-raw-url "process-monitoring/uprobe.yaml" */>}}`
+: Prints the bare `raw.githubusercontent.com` URL for the file. Use this
+  inside shell commands, for example `kubectl apply -f {{</* policy-raw-url "..." */>}}`.
+  In practice it renders as:
+
+  {{< policy-raw-url "process-monitoring/uprobe.yaml" >}}
+
+`{{</* policy-example "process-monitoring/uprobe.yaml" */>}}`
+: Renders the file's content inline as a highlighted YAML code block, followed
+  by a link to view it on GitHub. Use this when the page should show the
+  policy itself rather than just link to it. In practice it renders as:
+
+  {{< policy-example "process-monitoring/uprobe.yaml" >}}
+
 ## Preview locally
 
 To preview the documentation locally, use one of the method below. Then browse

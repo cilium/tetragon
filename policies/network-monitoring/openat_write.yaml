@@ -1,0 +1,41 @@
+# This policy is provided as a sample only, and does not provide any security observability
+# guarantees. Users are strongly encouraged to evaluate the functionality defined in this policy and
+# make any modifications necessary to achieve their desired security posture. In particular, syscall
+# tracing suffers from Time-of-Check-to-Time-of-Use (TOCTOU) issues that may limit the utility of
+# this policy.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-openat"
+spec:
+  kprobes:
+  - call: "sys_openat"
+    return: true
+    syscall: true
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "string"
+    - index: 2
+      type: "int"
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "/etc/passwd"
+      - index: 2
+        operator: "Mask"
+        values:
+        - "64" # CREATE (0x40)
+        - "1"  # WRONLY (0x01)
+        - "2"  # RDWR (0x02)
+      matchReturnArgs:
+      - index: 0
+        operator: "GT"
+        values:
+        - "0"

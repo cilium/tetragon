@@ -1,0 +1,26 @@
+# This policy is provided as a sample only, and does not provide any security observability
+# guarantees. Users are strongly encouraged to evaluate the functionality defined in this policy and
+# make any modifications necessary to achieve their desired security posture. In particular, syscall
+# tracing suffers from Time-of-Check-to-Time-of-Use (TOCTOU) issues that may limit the utility of
+# this policy.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-symlink-passwd"
+spec:
+  kprobes:
+  - call: "sys_symlinkat"
+    syscall: true
+    args:
+    - index: 0
+      type: "string"
+    - index: 1
+      type: "int"
+    - index: 2
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "/etc/passwd"

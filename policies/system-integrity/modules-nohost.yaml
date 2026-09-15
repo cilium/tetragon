@@ -1,0 +1,86 @@
+# This tracing policy blocks (and kills) processes trying to load modules if they are not executed
+# in the host pid namespace. The intention here is to allow loading modules from host, but not from
+# pods in a k8s environment.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "monitor-kernel-modules"
+  annotations:
+    description: "Monitor kernel modules operations"
+spec:
+  podSelector:
+    matchLabels: {}
+  kprobes:
+  - call: "security_kernel_module_request"
+    message: "Kernel module requested and is being loaded automatically"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "string"
+    returnArg:
+      index: 0
+      type: "int"
+    selectors:
+    - matchNamespaces:
+      - namespace: Pid
+        operator: "NotIn"
+        values:
+          - "host_ns"
+      matchActions:
+        - action: Override
+          argError: -1
+        - action: Sigkill
+  - call: "security_kernel_read_file"
+    message: "Kernel module is being loaded"
+    # Explicit module loading using file descriptor finit_module() to print module full path
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file"
+    - index: 1
+      type: "int"
+    returnArg:
+      index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "2"  # READING_MODULE
+      matchNamespaces:
+      - namespace: Pid
+        operator: "NotIn"
+        values:
+          - "host_ns"
+      matchActions:
+        - action: Override
+          argError: -1
+        - action: Sigkill
+  - call: "security_kernel_load_data"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "int"
+    returnArg:
+      index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+       - index: 0
+         operator: "Equal"
+         values:
+         - "2" # READING_MODULE
+      matchNamespaces:
+      - namespace: Pid
+        operator: "NotIn"
+        values:
+          - "host_ns"
+      matchActions:
+        - action: Override
+          argError: -1
+        - action: Sigkill
+

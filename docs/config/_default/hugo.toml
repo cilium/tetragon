@@ -260,3 +260,35 @@ sidebar_search_disable = false
   [[module.imports]]
     path = "github.com/google/docsy/dependencies"
     disable = false
+  # Adding an explicit mount below requires listing Hugo's implicit default
+  # mounts too, otherwise they stop applying (see
+  # https://gohugo.io/hugo-modules/configuration/#module-configuration-mounts).
+  [[module.mounts]]
+    source = "content/en"
+    target = "content"
+  [[module.mounts]]
+    source = "data"
+    target = "data"
+  [[module.mounts]]
+    source = "layouts"
+    target = "layouts"
+  [[module.mounts]]
+    source = "i18n"
+    target = "i18n"
+  [[module.mounts]]
+    source = "archetypes"
+    target = "archetypes"
+  [[module.mounts]]
+    source = "assets"
+    target = "assets"
+  [[module.mounts]]
+    source = "static"
+    target = "static"
+
+  # Exposes the repo-wide policy library (one level up from docs/) as Hugo
+  # assets, so doc pages can reference a policy's real file under
+  # policies/<category>/<name>.yaml. This is better than duplicating or 
+  # hand-linking it.
+  [[module.mounts]]
+    source = "../policies"
+    target = "assets/policies"

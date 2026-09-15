@@ -1,0 +1,37 @@
+# This 'creds-capability-usage' Tracing Policy monitors
+# capability checks performed by the kernel when a process
+# tries a privileged operation.
+#
+# This Tracing Policy works inside a pid namespace, if you
+# want to monitor all processes including host ones, remove
+# the matchNamespaces selector.
+#
+
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "creds-capability-checks"
+  #annotations:
+    #author: "Djalal Harouni"
+spec:
+  kprobes:
+  - call: "cap_capable"
+    syscall: false
+    return: true
+    args:
+    - index: 1
+      type: "user_namespace"
+    - index: 2
+      type: "capability"
+    returnArg:
+      index: 0
+      type: "int"
+    selectors:
+      - matchNamespaces:
+        - namespace: Pid
+          operator: NotIn
+          values:
+          - "host_ns"
+        matchActions:
+          - action: Post
+            rateLimit: "1m"  # Rate limit messages to 1min

@@ -1,0 +1,20 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sample-no-exec-id"
+spec:
+  kprobes:
+  - call: "security_bprm_check"
+    syscall: false
+    args:
+    - index: 0
+      type: "linux_binprm"
+    returnArg:
+      index: 0
+      type: "int"
+    selectors:
+      - matchArgs:
+          - index: 0
+            operator: "Equal"
+            values:
+              - "/usr/bin/sample-exec"

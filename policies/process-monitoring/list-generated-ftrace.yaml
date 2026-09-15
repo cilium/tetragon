@@ -1,0 +1,16 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "all-ksys-for-kill"
+spec:
+  lists:
+  - name: "ksys"
+    type: "generated_ftrace"
+    pattern: "^ksys_*"
+  kprobes:
+  - call: "list:ksys"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/kill"

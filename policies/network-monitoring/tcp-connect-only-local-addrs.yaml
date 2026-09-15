@@ -1,0 +1,38 @@
+# This tracing policy 'connect-only-local-addrs' will report attempts
+# to make outbound TCP connections to any IP address other than those
+# within the 127.0.0.0/8 CIDR, from the binary /usr/bin/curl. In
+# addition it will also kill the offending curl process.
+#
+# Description:
+#  Report and block outbound TCP connections outside loopback from
+#  /usr/bin/curl.
+#
+# In production, this could be used to force processes to only connect
+# to their side cars on their local loopback, and to treat transgressions
+# as evidence of malicious activity, resulting in the process being
+# killed.
+
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "connect-only-local-addrs"
+spec:
+  kprobes:
+  - call: "tcp_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "NotDAddr"
+        values:
+        - "127.0.0.0/8"
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/curl"
+      matchActions:
+      - action: Sigkill
+
