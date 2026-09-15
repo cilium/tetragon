@@ -85,5 +85,15 @@
       port: {{ .Values.tetragon.healthGrpc.port }}
       service: "liveness"
 {{- end -}}
+{{- if .Values.tetragon.startupProbe }}
+  startupProbe:
+  {{- toYaml .Values.tetragon.startupProbe | nindent 4 }}
+{{- else if .Values.tetragon.healthGrpc.enabled }}
+  startupProbe:
+     timeoutSeconds: 60
+     grpc:
+      port: {{ .Values.tetragon.healthGrpc.port }}
+      service: "startup"
+{{- end -}}
 {{- end -}}
 
