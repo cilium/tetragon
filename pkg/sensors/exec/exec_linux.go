@@ -88,7 +88,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 	}
 	exec := processapi.MsgExec{}
 
-	if err := binary.Read(reader, binary.LittleEndian, &exec); err != nil {
+	if err := api.ReadBPFStruct(reader, &exec); err != nil {
 		logger.GetLogger().Debug("Failed to read exec event", logfields.Error, err)
 		return proc, err
 	}
@@ -122,7 +122,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 		if uint16(unsafe.Sizeof(desc)) != size {
 			return nil, errors.New("msg exec mismatched size")
 		}
-		if err := binary.Read(reader, binary.LittleEndian, &desc); err != nil {
+		if err := api.ReadBPFStruct(reader, &desc); err != nil {
 			return nil, err
 		}
 		return observer.DataGet(desc)
@@ -206,7 +206,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 
 func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	m := processapi.MsgExecveEvent{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +232,7 @@ func msgToExitUnix(m *processapi.MsgExitEvent) *exec.MsgExitEventUnix {
 
 func handleExit(r *bytes.Reader) ([]observer.Event, error) {
 	m := processapi.MsgExitEvent{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +242,7 @@ func handleExit(r *bytes.Reader) ([]observer.Event, error) {
 
 func handleClone(r *bytes.Reader) ([]observer.Event, error) {
 	m := processapi.MsgCloneEvent{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +252,7 @@ func handleClone(r *bytes.Reader) ([]observer.Event, error) {
 
 func handleCgroupEvent(r *bytes.Reader) ([]observer.Event, error) {
 	m := processapi.MsgCgroupEvent{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +262,7 @@ func handleCgroupEvent(r *bytes.Reader) ([]observer.Event, error) {
 
 func handleThrottleEvent(r *bytes.Reader) ([]observer.Event, error) {
 	m := processapi.MsgThrottleEvent{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
 		return nil, err
 	}

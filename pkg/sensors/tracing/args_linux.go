@@ -8,10 +8,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"strconv"
 
+	tetragonapi "github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	processapi "github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -125,10 +125,10 @@ func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
 }
 
 func getArgStatus(r *bytes.Reader) (*api.MsgGenericKprobeArgError, error) {
-	var status uint32
 	var arg api.MsgGenericKprobeArgError
 
-	if err := binary.Read(r, binary.LittleEndian, &status); err != nil {
+	status, err := tetragonapi.ReadIntegerLE[uint32](r)
+	if err != nil {
 		return nil, err
 	}
 
@@ -161,14 +161,13 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 
 	switch a.ty {
 	case gt.GenericIntType, gt.GenericS32Type:
-		var output int32
 		var arg api.MsgGenericKprobeArgInt
 
 		if a.userType != gt.GenericInvalidType {
 			arg.UserSpaceType = int32(a.userType)
 		}
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		output, err := tetragonapi.ReadIntegerLE[int32](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "int type error",
 				slog.String("arg.usertype", gt.GenericUserTypeToString(a.userType)),
@@ -181,8 +180,6 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		return arg
 	case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
 		var arg api.MsgGenericKprobeArgFile
-		var flags uint32
-		var mode uint16
 
 		arg.Index = uint64(a.index)
 		arg.Value, err = parseString(r)
@@ -200,13 +197,13 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		}
 
 		// read the first byte that keeps the flags
-		err := binary.Read(r, binary.LittleEndian, &flags)
+		flags, err := tetragonapi.ReadIntegerLE[uint32](r)
 		if err != nil {
 			flags = 0
 		}
 
 		if a.ty == gt.GenericFileType || a.ty == gt.GenericFdType || a.ty == gt.GenericKiocb {
-			err := binary.Read(r, binary.LittleEndian, &mode)
+			mode, err := tetragonapi.ReadIntegerLE[uint16](r)
 			if err != nil {
 				mode = 0
 			}
@@ -218,8 +215,6 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		return arg
 	case gt.GenericPathType, gt.GenericDentryType:
 		var arg api.MsgGenericKprobeArgPath
-		var flags uint32
-		var mode uint16
 
 		arg.Index = uint64(a.index)
 		arg.Value, err = parseString(r)
@@ -232,12 +227,12 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		}
 
 		// read the first byte that keeps the flags
-		err := binary.Read(r, binary.LittleEndian, &flags)
+		flags, err := tetragonapi.ReadIntegerLE[uint32](r)
 		if err != nil {
 			flags = 0
 		}
 
-		err = binary.Read(r, binary.LittleEndian, &mode)
+		mode, err := tetragonapi.ReadIntegerLE[uint16](r)
 		if err != nil {
 			mode = 0
 		}
@@ -261,7 +256,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var cred processapi.MsgGenericCred
 		var arg api.MsgGenericKprobeArgCred
 
-		err := binary.Read(r, binary.LittleEndian, &cred)
+		err := tetragonapi.ReadBPFStruct(r, &cred)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "error paring arg type cred", slog.Any(logfields.Error, err))
 		}
@@ -296,7 +291,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var skb api.MsgGenericKprobeSkb
 		var arg api.MsgGenericKprobeArgSkb
 
-		err := binary.Read(r, binary.LittleEndian, &skb)
+		err := tetragonapi.ReadBPFStruct(r, &skb)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "skb type err", slog.Any(logfields.Error, err))
 		}
@@ -320,7 +315,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var sock api.MsgGenericKprobeSock
 		var arg api.MsgGenericKprobeArgSock
 
-		err := binary.Read(r, binary.LittleEndian, &sock)
+		err := tetragonapi.ReadBPFStruct(r, &sock)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "sock type err", slog.Any(logfields.Error, err))
 		}
@@ -343,7 +338,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var address api.MsgGenericKprobeSockaddr
 		var arg api.MsgGenericKprobeArgSockaddr
 
-		err := binary.Read(r, binary.LittleEndian, &address)
+		err := tetragonapi.ReadBPFStruct(r, &address)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "sockaddr type err", slog.Any(logfields.Error, err))
 		}
@@ -357,7 +352,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var sockaddr api.MsgGenericKprobeSockaddrUn
 		var arg api.MsgGenericKprobeArgSockaddrUn
 
-		err := binary.Read(r, binary.LittleEndian, &sockaddr)
+		err := tetragonapi.ReadBPFStruct(r, &sockaddr)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "sockaddrun type err", slog.Any(logfields.Error, err))
 		}
@@ -367,10 +362,9 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Path = decodeSockaddrUnPath(sockaddr.Path[:], sockaddr.PathLen, sockaddr.IsAbstract)
 		return arg
 	case gt.GenericS64Type:
-		var output int64
 		var arg api.MsgGenericKprobeArgLong
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		output, err := tetragonapi.ReadIntegerLE[int64](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "s64 type err", slog.Any(logfields.Error, err))
 		}
@@ -380,10 +374,9 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Label = a.label
 		return arg
 	case gt.GenericSizeType, gt.GenericU64Type:
-		var output uint64
 		var arg api.MsgGenericKprobeArgSize
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		output, err := tetragonapi.ReadIntegerLE[uint64](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "size/u64 type err", slog.Any(logfields.Error, err))
 		}
@@ -398,7 +391,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var output api.MsgGenericKprobeBpfAttr
 		var arg api.MsgGenericKprobeArgBpfAttr
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		err := tetragonapi.ReadBPFStruct(r, &output)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "bpf_attr type err", slog.Any(logfields.Error, err))
 		}
@@ -412,7 +405,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var output api.MsgGenericKprobeBpfProg
 		var arg api.MsgGenericKprobeArgBpfProg
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		err := tetragonapi.ReadBPFStruct(r, &output)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "bpf_prog type err", slog.Any(logfields.Error, err))
 		}
@@ -426,7 +419,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var output api.MsgGenericKprobePerfEvent
 		var arg api.MsgGenericKprobeArgPerfEvent
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		err := tetragonapi.ReadBPFStruct(r, &output)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "perf_event type error", slog.Any(logfields.Error, err))
 		}
@@ -441,7 +434,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var output api.MsgGenericKprobeBpfMap
 		var arg api.MsgGenericKprobeArgBpfMap
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		err := tetragonapi.ReadBPFStruct(r, &output)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "bpf_map type error", slog.Any(logfields.Error, err))
 		}
@@ -455,10 +448,9 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Label = a.label
 		return arg
 	case gt.GenericU32Type:
-		var output uint32
 		var arg api.MsgGenericKprobeArgUInt
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		output, err := tetragonapi.ReadIntegerLE[uint32](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "u32 type error", slog.Any(logfields.Error, err))
 		}
@@ -471,7 +463,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var output api.MsgGenericUserNamespace
 		var arg api.MsgGenericKprobeArgUserNamespace
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		err := tetragonapi.ReadBPFStruct(r, &output)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "user_namespace type error", slog.Any(logfields.Error, err))
 		}
@@ -485,7 +477,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var output api.MsgGenericKprobeCapability
 		var arg api.MsgGenericKprobeArgCapability
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		err := tetragonapi.ReadBPFStruct(r, &output)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "capability type error", slog.Any(logfields.Error, err))
 		}
@@ -496,7 +488,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var output api.MsgGenericLoadModule
 		var arg api.MsgGenericKprobeArgLoadModule
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		err := tetragonapi.ReadBPFStruct(r, &output)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "load_module type error", slog.Any(logfields.Error, err))
 		} else if output.Name[0] != 0x00 {
@@ -514,7 +506,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		var output api.MsgGenericLoadModule
 		var arg api.MsgGenericKprobeArgKernelModule
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		err := tetragonapi.ReadBPFStruct(r, &output)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "kernel module type error", slog.Any(logfields.Error, err))
 		} else if output.Name[0] != 0x00 {
@@ -528,10 +520,10 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Label = a.label
 		return arg
 	case gt.GenericU16Type:
-		var output uint32
 		var arg api.MsgGenericKprobeArgUInt
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		// reads a uint16 + 16-bit padding (hence uint32)
+		output, err := tetragonapi.ReadIntegerLE[uint32](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "u16 type error", slog.Any(logfields.Error, err))
 		}
@@ -541,10 +533,10 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Label = a.label
 		return arg
 	case gt.GenericU8Type:
-		var output uint32
 		var arg api.MsgGenericKprobeArgUInt
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		// reads a uint8 + 24-bit padding (hence uint32)
+		output, err := tetragonapi.ReadIntegerLE[uint32](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "u8 type error", slog.Any(logfields.Error, err))
 		}
@@ -554,10 +546,10 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Label = a.label
 		return arg
 	case gt.GenericS16Type:
-		var output uint32
 		var arg api.MsgGenericKprobeArgInt
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		// reads an int16 + 16-bit padding (hence uint32)
+		output, err := tetragonapi.ReadIntegerLE[uint32](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "s16 type error", slog.Any(logfields.Error, err))
 		}
@@ -567,10 +559,10 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Label = a.label
 		return arg
 	case gt.GenericS8Type:
-		var output uint32
 		var arg api.MsgGenericKprobeArgInt
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		// reads an int8 + 24-bit padding (hence uint32)
+		output, err := tetragonapi.ReadIntegerLE[uint32](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "s8 type error", slog.Any(logfields.Error, err))
 		}
@@ -580,10 +572,9 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Label = a.label
 		return arg
 	case gt.GenericKernelCap:
-		var output uint64
 		var arg api.MsgGenericKprobeArgKernelCapType
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		output, err := tetragonapi.ReadIntegerLE[uint64](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "kernel_cap_t type error", slog.Any(logfields.Error, err))
 		} else {
@@ -594,10 +585,9 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Label = a.label
 		return arg
 	case gt.GenericCapInheritable:
-		var output uint64
 		var arg api.MsgGenericKprobeArgCapInheritable
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		output, err := tetragonapi.ReadIntegerLE[uint64](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "kernel_cap_t cap_inheritable type error", slog.Any(logfields.Error, err))
 		} else {
@@ -608,10 +598,9 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Label = a.label
 		return arg
 	case gt.GenericCapPermitted:
-		var output uint64
 		var arg api.MsgGenericKprobeArgCapPermitted
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		output, err := tetragonapi.ReadIntegerLE[uint64](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "kernel_cap_t cap_permitted type error", slog.Any(logfields.Error, err))
 		} else {
@@ -622,10 +611,9 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Label = a.label
 		return arg
 	case gt.GenericCapEffective:
-		var output uint64
 		var arg api.MsgGenericKprobeArgCapEffective
 
-		err := binary.Read(r, binary.LittleEndian, &output)
+		output, err := tetragonapi.ReadIntegerLE[uint64](r)
 		if err != nil {
 			l.LogAttrs(slog.LevelWarn, "kernel_cap_t cap_effective type error", slog.Any(logfields.Error, err))
 		} else {
@@ -637,8 +625,6 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		return arg
 	case gt.GenericLinuxBinprmType:
 		var arg api.MsgGenericKprobeArgLinuxBinprm
-		var flags uint32
-		var mode uint16
 
 		arg.Index = uint64(a.index)
 		arg.Value, err = parseString(r)
@@ -650,12 +636,12 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 			}
 		}
 
-		err := binary.Read(r, binary.LittleEndian, &flags)
+		flags, err := tetragonapi.ReadIntegerLE[uint32](r)
 		if err != nil {
 			flags = 0
 		}
 
-		err = binary.Read(r, binary.LittleEndian, &mode)
+		mode, err := tetragonapi.ReadIntegerLE[uint16](r)
 		if err != nil {
 			mode = 0
 		}
@@ -675,9 +661,8 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 // | 4 bytes | N bytes |
 // |  size   | string  |
 // *---------*---------*
-func parseString(r io.Reader) (string, error) {
-	var size int32
-	err := binary.Read(r, binary.LittleEndian, &size)
+func parseString(r *bytes.Reader) (string, error) {
+	size, err := tetragonapi.ReadIntegerLE[int32](r)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", errParseStringSize, err)
 	}
@@ -705,18 +690,18 @@ func parseString(r io.Reader) (string, error) {
 }
 
 func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericKprobeArgBytes, error) {
-	var bytes, bytesRd, hasDataEvents int32
 	var arg api.MsgGenericKprobeArgBytes
 
 	if hasMaxData {
 		/* First int32 indicates if data events are used (1) or not (0). */
-		if err := binary.Read(r, binary.LittleEndian, &hasDataEvents); err != nil {
+		hasDataEvents, err := tetragonapi.ReadIntegerLE[int32](r)
+		if err != nil {
 			return nil, fmt.Errorf("failed to read original size for buffer argument: %w", err)
 		}
 		if hasDataEvents != 0 {
 			var desc dataapi.DataEventDesc
 
-			if err := binary.Read(r, binary.LittleEndian, &desc); err != nil {
+			if err := tetragonapi.ReadBPFStruct(r, &desc); err != nil {
 				return nil, err
 			}
 			data, err := observer.DataGet(desc)
@@ -730,7 +715,8 @@ func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericK
 		}
 	}
 
-	if err := binary.Read(r, binary.LittleEndian, &bytes); err != nil {
+	bytes, err := tetragonapi.ReadIntegerLE[int32](r)
+	if err != nil {
 		return nil, fmt.Errorf("failed to read original size for buffer argument: %w", err)
 	}
 
@@ -746,7 +732,8 @@ func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericK
 		return &arg, nil
 	}
 	arg.OrigSize = uint64(bytes)
-	if err := binary.Read(r, binary.LittleEndian, &bytesRd); err != nil {
+	bytesRd, err := tetragonapi.ReadIntegerLE[int32](r)
+	if err != nil {
 		return nil, fmt.Errorf("failed to read size for buffer argument: %w", err)
 	}
 

@@ -15,6 +15,7 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -830,7 +831,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 
 func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 	m := tracingapi.MsgGenericTracepoint{}
-	err := binary.Read(r, binary.LittleEndian, &m)
+	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read tracepoint: %w", err)
 	}
@@ -899,40 +900,35 @@ func handleMsgGenericTracepoint(
 
 		switch out.genericTypeId {
 		case gt.GenericU64Type:
-			var val uint64
-			err := binary.Read(r, binary.LittleEndian, &val)
+			val, err := api.ReadIntegerLE[uint64](r)
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			unix.Args = append(unix.Args, val)
 
 		case gt.GenericS64Type:
-			var val int64
-			err := binary.Read(r, binary.LittleEndian, &val)
+			val, err := api.ReadIntegerLE[int64](r)
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			unix.Args = append(unix.Args, val)
 
 		case gt.GenericU32Type:
-			var val uint32
-			err := binary.Read(r, binary.LittleEndian, &val)
+			val, err := api.ReadIntegerLE[uint32](r)
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			unix.Args = append(unix.Args, val)
 
 		case gt.GenericIntType, gt.GenericS32Type:
-			var val int32
-			err := binary.Read(r, binary.LittleEndian, &val)
+			val, err := api.ReadIntegerLE[int32](r)
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			unix.Args = append(unix.Args, val)
 
 		case gt.GenericU16Type:
-			var val uint16
-			err := binary.Read(r, binary.LittleEndian, &val)
+			val, err := api.ReadIntegerLE[uint16](r)
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
@@ -945,8 +941,7 @@ func handleMsgGenericTracepoint(
 			unix.Args = append(unix.Args, val)
 
 		case gt.GenericS16Type:
-			var val int16
-			err := binary.Read(r, binary.LittleEndian, &val)
+			val, err := api.ReadIntegerLE[int16](r)
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
@@ -959,8 +954,7 @@ func handleMsgGenericTracepoint(
 			unix.Args = append(unix.Args, val)
 
 		case gt.GenericU8Type:
-			var val uint8
-			err := binary.Read(r, binary.LittleEndian, &val)
+			val, err := api.ReadIntegerLE[uint8](r)
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
@@ -973,8 +967,7 @@ func handleMsgGenericTracepoint(
 			unix.Args = append(unix.Args, val)
 
 		case gt.GenericS8Type:
-			var val int8
-			err := binary.Read(r, binary.LittleEndian, &val)
+			val, err := api.ReadIntegerLE[int8](r)
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
@@ -987,9 +980,7 @@ func handleMsgGenericTracepoint(
 			unix.Args = append(unix.Args, val)
 
 		case gt.GenericSizeType:
-			var val uint64
-
-			err := binary.Read(r, binary.LittleEndian, &val)
+			val, err := api.ReadIntegerLE[uint64](r)
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
@@ -1016,9 +1007,8 @@ func handleMsgGenericTracepoint(
 
 				switch intTy.Base {
 				case tracepoint.IntTyLong:
-					var val uint64
 					for i := range arrTy.Size {
-						err := binary.Read(r, binary.LittleEndian, &val)
+						val, err := api.ReadIntegerLE[uint64](r)
 						if err != nil {
 							logger.GetLogger().Warn(fmt.Sprintf("failed to read element %d from array", i), logfields.Error, err)
 							return nil, err
@@ -1039,7 +1029,7 @@ func handleMsgGenericTracepoint(
 			var skb tracingapi.MsgGenericKprobeSkb
 			var arg tracingapi.MsgGenericKprobeArgSkb
 
-			err := binary.Read(r, binary.LittleEndian, &skb)
+			err := api.ReadBPFStruct(r, &skb)
 			if err != nil {
 				logger.GetLogger().Warn("skb type err", logfields.Error, err)
 			}
@@ -1061,7 +1051,7 @@ func handleMsgGenericTracepoint(
 			var sock tracingapi.MsgGenericKprobeSock
 			var arg tracingapi.MsgGenericKprobeArgSock
 
-			err := binary.Read(r, binary.LittleEndian, &sock)
+			err := api.ReadBPFStruct(r, &sock)
 			if err != nil {
 				logger.GetLogger().Warn("sock type err", logfields.Error, err)
 			}
@@ -1083,7 +1073,7 @@ func handleMsgGenericTracepoint(
 			var address tracingapi.MsgGenericKprobeSockaddr
 			var arg tracingapi.MsgGenericKprobeArgSockaddr
 
-			err := binary.Read(r, binary.LittleEndian, &address)
+			err := api.ReadBPFStruct(r, &address)
 			if err != nil {
 				logger.GetLogger().Warn("sockaddr type err", logfields.Error, err)
 			}
@@ -1097,7 +1087,7 @@ func handleMsgGenericTracepoint(
 			var sockaddr tracingapi.MsgGenericKprobeSockaddrUn
 			var arg tracingapi.MsgGenericKprobeArgSockaddrUn
 
-			err := binary.Read(r, binary.LittleEndian, &sockaddr)
+			err := api.ReadBPFStruct(r, &sockaddr)
 			if err != nil {
 				logger.GetLogger().Warn("sockaddrun type err", logfields.Error, err)
 			}
@@ -1107,8 +1097,7 @@ func handleMsgGenericTracepoint(
 			unix.Args = append(unix.Args, arg)
 
 		case gt.GenericSyscall64:
-			var val uint64
-			err := binary.Read(r, binary.LittleEndian, &val)
+			val, err := api.ReadIntegerLE[uint64](r)
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
@@ -1117,8 +1106,6 @@ func handleMsgGenericTracepoint(
 
 		case gt.GenericLinuxBinprmType:
 			var arg tracingapi.MsgGenericKprobeArgLinuxBinprm
-			var flags uint32
-			var mode uint16
 			var err error
 
 			arg.Value, err = parseString(r)
@@ -1130,12 +1117,12 @@ func handleMsgGenericTracepoint(
 				}
 			}
 
-			err = binary.Read(r, binary.LittleEndian, &flags)
+			flags, err := api.ReadIntegerLE[uint32](r)
 			if err != nil {
 				flags = 0
 			}
 
-			err = binary.Read(r, binary.LittleEndian, &mode)
+			mode, err := api.ReadIntegerLE[uint16](r)
 			if err != nil {
 				mode = 0
 			}
@@ -1145,8 +1132,6 @@ func handleMsgGenericTracepoint(
 
 		case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
 			var arg tracingapi.MsgGenericKprobeArgFile
-			var flags uint32
-			var mode uint16
 			var err error
 
 			arg.Value, err = parseString(r)
@@ -1164,13 +1149,13 @@ func handleMsgGenericTracepoint(
 			}
 
 			// read the first byte that keeps the flags
-			err = binary.Read(r, binary.LittleEndian, &flags)
+			flags, err := api.ReadIntegerLE[uint32](r)
 			if err != nil {
 				flags = 0
 			}
 
 			if out.genericTypeId == gt.GenericFileType || out.genericTypeId == gt.GenericFdType || out.genericTypeId == gt.GenericKiocb {
-				err = binary.Read(r, binary.LittleEndian, &mode)
+				mode, err := api.ReadIntegerLE[uint16](r)
 				if err != nil {
 					mode = 0
 				}
