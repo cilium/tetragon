@@ -1,5 +1,11 @@
 #include <stdio.h>
 
+int uprobe_test_lib_pizza()
+{
+    printf("uprobe_test_lib_pizza called\n");
+    return 100;
+}
+
 int uprobe_test_lib()
 {
 	printf("uprobe_test_lib called\n");
