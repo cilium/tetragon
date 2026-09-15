@@ -613,7 +613,10 @@ func createGenericTracepointSensor(
 	progs := make([]*program.Program, 0, len(tracepoints))
 	for _, tp := range tracepoints {
 		if err := appendMacrosSelectors(tp.Spec.Selectors, spec.SelectorsMacros); err != nil {
-			return nil, fmt.Errorf("append macros selectos: %w", err)
+			return nil, fmt.Errorf("append macros selectors: %w", err)
+		}
+		if err := validateSubStringSelectorFeatures(tp.Spec.Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
 
 		pinProg := sensors.PathJoin(fmt.Sprintf("%s:%s", tp.Info.Subsys, tp.Info.Event))
@@ -647,7 +650,7 @@ func createGenericTracepointSensor(
 		workloadsMap := program.MapBuilderProgram("workloads_map", prog0)
 		maps = append(maps, workloadsMap)
 
-		maps = append(maps, createSelectorMaps(prog0, tp.selectors)...)
+		maps = append(maps, createSelectorMaps(prog0, tp.selectors, len(tp.selectors.SubStrings()))...)
 
 		if has.enforcer {
 			maps = append(maps, enforcerMapsUser(prog0)...)

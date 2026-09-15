@@ -60,6 +60,10 @@ func TestUprobeMultipleTargets(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-multiple-targets", nil)
 }
 
+func TestUprobePostfixSharedMap(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-postfix-shared-map", nil)
+}
+
 func TestUretprobeGeneric(t *testing.T) {
 	testUretprobe := testutils.RepoRootPath("contrib/tester-progs/uretprobe")
 	uretprobeHook := `

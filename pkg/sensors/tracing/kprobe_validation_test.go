@@ -30,6 +30,57 @@ func checkCrd(t *testing.T, crd string) error {
 	return err
 }
 
+func TestValidateSubStringSelectorFeatures(t *testing.T) {
+	tests := []struct {
+		name          string
+		operator      string
+		kfunc         string
+		selectorSpecs []v1alpha1.KProbeSelector
+		macros        map[string]v1alpha1.KProbeSelector
+	}{
+		{
+			name:     "direct SubString selector",
+			operator: "SubString",
+			kfunc:    "bpf_strnstr",
+			selectorSpecs: []v1alpha1.KProbeSelector{{
+				MatchArgs: []v1alpha1.ArgSelector{{Operator: "SubString"}},
+			}},
+		},
+		{
+			name:     "direct SubStringIgnCase selector",
+			operator: "SubStringIgnCase",
+			kfunc:    "bpf_strncasestr",
+			selectorSpecs: []v1alpha1.KProbeSelector{{
+				MatchArgs: []v1alpha1.ArgSelector{{Operator: "SubStringIgnCase"}},
+			}},
+		},
+		{
+			name:          "macro SubString selector",
+			operator:      "SubString",
+			kfunc:         "bpf_strnstr",
+			selectorSpecs: []v1alpha1.KProbeSelector{{Macros: []string{"substring"}}},
+			macros: map[string]v1alpha1.KProbeSelector{
+				"substring": {
+					MatchArgs: []v1alpha1.ArgSelector{{Operator: "SubString"}},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.NoError(t, appendMacrosSelectors(test.selectorSpecs, test.macros))
+			err := validateSubStringSelectorFeatures(test.selectorSpecs)
+			if bpf.HasKfunc(test.kfunc) {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, "can't use "+test.operator+" operator, no kernel support")
+			}
+			require.Equal(t, test.operator, test.selectorSpecs[0].MatchArgs[0].Operator)
+		})
+	}
+}
+
 func TestKprobeValidationListWrongSyscallName(t *testing.T) {
 	// messed up syscall name in the list
 	crd := `

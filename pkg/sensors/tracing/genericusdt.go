@@ -107,6 +107,7 @@ type addUsdtIn struct {
 	policyName        string
 	policyID          policyfilter.PolicyID
 	useMulti          bool
+	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32
 }
 
@@ -151,6 +152,9 @@ func createGenericUsdtSensor(
 		policyID:   polInfo.policyID,
 		useMulti:   !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
 	}
+	if in.useMulti {
+		in.selMaps = &selectors.KernelSelectorMaps{}
+	}
 
 	hasSetAction := false
 
@@ -166,6 +170,9 @@ func createGenericUsdtSensor(
 	for _, usdt := range spec.Usdts {
 		if err = appendMacrosSelectors(usdt.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
+		}
+		if err = validateSubStringSelectorFeatures(usdt.Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
 
 		in.selectorStatsBase = selectorStatsBase
@@ -222,6 +229,14 @@ func createMultiUsdtSensor(
 ) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
+	var substringMapEntries int
+	if len(multiIDs) > 0 {
+		entry, err := genericUsdtTableGet(multiIDs[0])
+		if err != nil {
+			return nil, nil, err
+		}
+		substringMapEntries = len(entry.selectors.SubStrings())
+	}
 
 	loadProgName := config.GenericUsdtObjs(true)
 
@@ -249,7 +264,7 @@ func createMultiUsdtSensor(
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
-	maps = append(maps, createSelectorMaps(load, nil)...)
+	maps = append(maps, createSelectorMaps(load, nil, substringMapEntries)...)
 
 	if has.sleepableOffload {
 		sleepableOffloadMap := program.MapShared("write_offload", load)
@@ -319,7 +334,7 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
 
-	maps = append(maps, createSelectorMaps(load, usdtEntry.selectors)...)
+	maps = append(maps, createSelectorMaps(load, usdtEntry.selectors, len(usdtEntry.selectors.SubStrings()))...)
 
 	if has.sleepableOffload {
 		sleepableOffloadMap := program.MapShared("write_offload", load)
@@ -386,6 +401,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		Args:       spec.Args,
 		Data:       []v1alpha1.KProbeArg{},
 		BinaryPath: spec.Path,
+		Maps:       in.selMaps,
 	})
 	if err != nil {
 		return nil, err

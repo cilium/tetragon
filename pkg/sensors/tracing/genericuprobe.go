@@ -460,13 +460,13 @@ type addUprobeIn struct {
 	policyName        string
 	policyID          policyfilter.PolicyID
 	celExprs          *selectors.CelExprFunctions
+	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32
 }
 
 type uprobeHas struct {
 	sleepableOffload     bool
 	sleepablePreload     bool
-	substring            bool
 	sleepablePreloadSize int
 	sleepableOffloadSize int
 }
@@ -623,21 +623,6 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 		}
 		has.sleepableOffload = true
 	}
-
-	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubString) {
-		if !bpf.HasKfunc("bpf_strnstr") {
-			return errors.New("can't use SubString operator, no kernel support")
-		}
-		has.substring = true
-	}
-
-	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubStringIgnCase) {
-		if !bpf.HasKfunc("bpf_strncasestr") {
-			return errors.New("can't use SubStringIgnCase operator, no kernel support")
-		}
-		has.substring = true
-	}
-
 	return nil
 }
 
@@ -710,6 +695,7 @@ func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *upro
 		OverrideActionIPDelta: ipDelta,
 		BinaryPath:            spec.Path,
 		CelExprs:              in.celExprs,
+		Maps:                  in.selMaps,
 	})
 	if err != nil {
 		return err
@@ -722,7 +708,7 @@ func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *upro
 	var retrn *selectors.KernelSelectorState
 	if spec.Return {
 		retrn, err = selectors.InitKernelReturnSelectorState(spec.Selectors, spec.ReturnArg,
-			nil, nil, nil)
+			nil, nil, in.selMaps)
 		if err != nil {
 			// we rely on addUprobe cleanup for entry selector
 			return err
@@ -915,6 +901,7 @@ func createGenericUprobeSensor(
 	var err error
 	var has uprobeHas
 	var celExprs *selectors.CelExprFunctions
+	var selMaps *selectors.KernelSelectorMaps
 	var statuses []*tetragon.HookStatus
 
 	// use multi uprobe only if:
@@ -931,12 +918,14 @@ func createGenericUprobeSensor(
 	if useMulti {
 		// if we are using multi-uprobe, CEL expressions are shared across all uprobes
 		celExprs = &selectors.CelExprFunctions{}
+		selMaps = &selectors.KernelSelectorMaps{}
 	}
 
 	in := addUprobeIn{
 		policyName: polInfo.name,
 		policyID:   polInfo.policyID,
 		celExprs:   celExprs,
+		selMaps:    selMaps,
 	}
 
 	if useMulti {
@@ -961,6 +950,9 @@ func createGenericUprobeSensor(
 	for cfgIdx, uprobe := range spec.UProbes {
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
+		}
+		if err = validateSubStringSelectorFeatures(uprobe.Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
 
 		in.selectorStatsBase = selectorStatsBase
@@ -1481,7 +1473,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 			selector = gu.loadArgs.selectors.retrn
 		}
 
-		if has.substring && substringMapEntries == 0 {
+		if substringMapEntries == 0 {
 			substringMapEntries = len(gu.loadArgs.selectors.entry.SubStrings())
 		}
 
@@ -1514,13 +1506,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
-	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil))...)
-
-	if has.substring {
-		substringMap := program.MapBuilderSensor("substring_map", load)
-		substringMap.SetMaxEntries(substringMapEntries)
-		maps = append(maps, substringMap)
-	}
+	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil), substringMapEntries)...)
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
@@ -1564,7 +1550,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
-		maps = append(maps, createSelectorMaps(loadret, getUprobeProgramSelector(loadret, nil))...)
+		maps = append(maps, createSelectorMaps(loadret, getUprobeProgramSelector(loadret, nil), substringMapEntries)...)
 
 		retTailCalls := program.MapBuilderProgram("retuprobe_calls", loadret)
 		maps = append(maps, retTailCalls)
@@ -1592,12 +1578,6 @@ func createSingleUprobeSensor(polInfo *policyInfo, ids []idtable.EntryID, has up
 
 func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe,
 	progs []*program.Program, maps []*program.Map, has uprobeHas) ([]*program.Program, []*program.Map) {
-	var substringMapEntries int
-
-	if has.substring {
-		substringMapEntries = len(uprobeEntry.loadArgs.selectors.entry.SubStrings())
-	}
-
 	loadProgName, loadProgRetName := config.GenericUprobeObjs(false)
 
 	pinSymbol := strings.ReplaceAll(uprobeEntry.symbol, ".", "_")
@@ -1623,13 +1603,8 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	workloadsMap := program.MapBuilderProgram("workloads_map", load)
 
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe, workloadsMap)
-	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, uprobeEntry))...)
-
-	if has.substring {
-		substringMap := program.MapBuilderSensor("substring_map", load)
-		substringMap.SetMaxEntries(substringMapEntries)
-		maps = append(maps, substringMap)
-	}
+	state := getUprobeProgramSelector(load, uprobeEntry)
+	maps = append(maps, createSelectorMaps(load, state, len(state.SubStrings()))...)
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)

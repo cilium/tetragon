@@ -442,6 +442,9 @@ func createGenericLsmSensor(
 		if err := appendMacrosSelectors(hook.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
+		if err := validateSubStringSelectorFeatures(hook.Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
 
 		in.selectorStatsBase = selectorStatsBase
 		selectorStatsBase += uint32(len(hook.Selectors))
@@ -606,7 +609,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	workloadsMap := program.MapBuilderProgram("workloads_map", load)
 	maps = append(maps, workloadsMap)
 
-	maps = append(maps, createSelectorMaps(load, lsmEntry.selectors)...)
+	maps = append(maps, createSelectorMaps(load, lsmEntry.selectors, len(lsmEntry.selectors.SubStrings()))...)
 
 	callHeap := program.MapBuilderProgram("process_call_heap", load)
 	maps = append(maps, callHeap)

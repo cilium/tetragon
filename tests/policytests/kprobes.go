@@ -393,6 +393,81 @@ spec:
 	}
 }).RegisterAtInit()
 
+type triggerSubStringFileTwoFilters struct{}
+
+func (t *triggerSubStringFileTwoFilters) Trigger(_ context.Context) error {
+	file, err := os.CreateTemp("", "test0-test1-")
+	if err != nil {
+		return err
+	}
+	name := file.Name()
+	if err := file.Close(); err != nil {
+		return err
+	}
+	return os.Remove(name)
+}
+
+var _ = policytest.NewBuilder("kprobe-substring-file-two-filters").
+	WithLabels("kprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if reason := skipSubStringKfunc(si); reason != "" {
+			return reason
+		}
+		if si.ParamValues["AttachMode"] == "multi" && !si.AgentInfo.Probes[bpf.KprobeMultiProbe] {
+			return "test requires kprobe multi"
+		}
+		return ""
+	}).
+	WithParameter(policytest.Parameter{
+		Name:    "AttachMode",
+		Default: "multi",
+		Values:  []any{"multi", "single"},
+		Help:    "kprobe attachment mode",
+	}).
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "test"
+spec:
+  {{- if eq .AttachMode "single" }}
+  options:
+  - name: "disable-kprobe-multi"
+    value: "1"
+  {{- end }}
+  kprobes:
+  - call: security_file_open
+    syscall: false
+    args:
+    - index: 0
+      type: file
+      label: "path"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "SubString"
+        values:
+        - test0
+      - index: 0
+        operator: "SubString"
+        values:
+        - test1
+`).AddScenario(func(_ *policytest.Conf) *policytest.Scenario {
+	checker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_file_open")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Contains("test0-test1-"))),
+			))
+
+	return &policytest.Scenario{
+		Name:         "SubString filters on one file argument both match",
+		Trigger:      &triggerSubStringFileTwoFilters{},
+		EventChecker: ec.NewUnorderedEventChecker(checker),
+	}
+}).RegisterAtInit()
+
 type triggerSubStringPath struct{}
 
 func (t *triggerSubStringPath) Trigger(context context.Context) error {
@@ -444,6 +519,89 @@ spec:
 		Name:         "SubString filter on path type matches directory with _id_ in name",
 		Trigger:      &triggerSubStringPath{},
 		EventChecker: ec.NewUnorderedEventChecker(checker),
+	}
+}).RegisterAtInit()
+
+type triggerSubStringSharedMap struct{}
+
+func (t *triggerSubStringSharedMap) Trigger(ctx context.Context) error {
+	if err := policytest.NewCmdTrigger("/usr/bin/id").Trigger(ctx); err != nil {
+		return err
+	}
+	return (&triggerSubStringPath{}).Trigger(ctx)
+}
+
+var _ = policytest.NewBuilder("kprobe-substring-shared-map").
+	WithLabels("kprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if reason := skipSubStringKfunc(si); reason != "" {
+			return reason
+		}
+		if si.ParamValues["AttachMode"] == "multi" && !si.AgentInfo.Probes[bpf.KprobeMultiProbe] {
+			return "test requires kprobe multi"
+		}
+		return ""
+	}).WithParameter(policytest.Parameter{
+	Name:    "AttachMode",
+	Default: "multi",
+	Values:  []any{"multi", "single"},
+	Help:    "kprobe attachment mode",
+}).
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "substring-shared-map"
+spec:
+  {{- if eq .AttachMode "single" }}
+  options:
+  - name: "disable-kprobe-multi"
+    value: "true"
+  {{- end }}
+  kprobes:
+  - call: "security_bprm_check"
+    syscall: false
+    args:
+    - index: 0
+      type: "linux_binprm"
+    selectors:
+    - matchArgs:
+      - operator: SubString
+        index: 0
+        values:
+        - "/i"
+  - call: "security_path_mkdir"
+    syscall: false
+    args:
+    - index: 0
+      type: "path"
+    selectors:
+    - matchArgs:
+      - operator: SubString
+        index: 0
+        values:
+        - "_id_"
+`).AddScenario(func(_ *policytest.Conf) *policytest.Scenario {
+	bprmChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_bprm_check")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithLinuxBinprmArg(ec.NewKprobeLinuxBinprmChecker().WithPath(sm.Suffix("/id"))),
+			))
+
+	pathChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_path_mkdir")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().WithPath(sm.Suffix("match_id_test"))),
+			))
+
+	return &policytest.Scenario{
+		Name:         "different substring selectors share a multi-kprobe map",
+		Trigger:      &triggerSubStringSharedMap{},
+		EventChecker: ec.NewUnorderedEventChecker(bprmChecker, pathChecker),
 	}
 }).RegisterAtInit()
 

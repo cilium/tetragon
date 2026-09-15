@@ -6,18 +6,30 @@
 package tracing
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cilium/ebpf"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
+
+func validateSubStringSelectorFeatures(selectorSpecs []v1alpha1.KProbeSelector) error {
+	if selectors.HasOperator(selectorSpecs, selectors.SelectorOpSubString) && !bpf.HasKfunc("bpf_strnstr") {
+		return errors.New("can't use SubString operator, no kernel support")
+	}
+	if selectors.HasOperator(selectorSpecs, selectors.SelectorOpSubStringIgnCase) && !bpf.HasKfunc("bpf_strncasestr") {
+		return errors.New("can't use SubStringIgnCase operator, no kernel support")
+	}
+	return nil
+}
 
 func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*program.MapLoad {
 	selBuff := ks.CopyToFixedBuffer()
@@ -157,8 +169,13 @@ func populateSubStringMap(m *ebpf.Map, k *selectors.KernelSelectorState) error {
 	return nil
 }
 
-func createSelectorMaps(load *program.Program, state *selectors.KernelSelectorState) []*program.Map {
+func createSelectorMaps(load *program.Program, state *selectors.KernelSelectorState, substringMapEntries int) []*program.Map {
 	var maps []*program.Map
+	if substringMapEntries > 0 {
+		substringMap := program.MapBuilderProgram("substring_map", load)
+		substringMap.SetMaxEntries(substringMapEntries)
+		maps = append(maps, substringMap)
+	}
 
 	argFilterMaps := program.MapBuilderProgram("argfilter_maps", load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {

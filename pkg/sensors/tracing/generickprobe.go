@@ -176,6 +176,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
 	var maps []*program.Map
+	var substringMapEntries int
 
 	data := &genericKprobeData{}
 
@@ -190,6 +191,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		gk.data = data
 
 		has.stackTrace = has.stackTrace || gk.hasStackTrace
+		substringMapEntries = len(gk.loadArgs.selectors.entry.SubStrings())
 	}
 
 	loadProgName, loadProgRetName := config.GenericKprobeObjs(true)
@@ -214,7 +216,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	maps = append(maps, filterMap)
 
 	if has.selector {
-		maps = append(maps, createSelectorMaps(load, nil)...)
+		maps = append(maps, createSelectorMaps(load, nil, substringMapEntries)...)
 
 		selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 		maps = append(maps, selMatchBinariesMap)
@@ -292,7 +294,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		maps = append(maps, retFilterMap)
 
 		if has.selector {
-			maps = append(maps, createSelectorMaps(loadret, nil)...)
+			maps = append(maps, createSelectorMaps(loadret, nil, substringMapEntries)...)
 		}
 
 		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
@@ -601,6 +603,9 @@ func createGenericKprobeSensor(
 	for i := range kprobes {
 		if err := appendMacrosSelectors(kprobes[i].Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
+		}
+		if err := validateSubStringSelectorFeatures(kprobes[i].Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
 
 		in.selStatsBase = selectorStatsBase
@@ -1033,7 +1038,8 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	maps = append(maps, workloadsMap)
 
 	if has.selector {
-		maps = append(maps, createSelectorMaps(load, getProgramSelector(load, kprobeEntry))...)
+		state := getProgramSelector(load, kprobeEntry)
+		maps = append(maps, createSelectorMaps(load, state, len(state.SubStrings()))...)
 
 		selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 		maps = append(maps, selMatchBinariesMap)
@@ -1140,8 +1146,8 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		filterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, filterMap)
 
-		if has.selector {
-			maps = append(maps, createSelectorMaps(loadret, getProgramSelector(loadret, kprobeEntry))...)
+		if state := getProgramSelector(loadret, kprobeEntry); state != nil {
+			maps = append(maps, createSelectorMaps(loadret, state, len(state.SubStrings()))...)
 		}
 
 		// add maps with non-default paths (pins) to the retprobe
