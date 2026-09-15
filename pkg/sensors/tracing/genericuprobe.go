@@ -555,6 +555,10 @@ type uprobeArgConfig struct {
 }
 
 func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) error {
+	if selectors.HasEnforcerAction(spec.Selectors) {
+		return errors.New("enforcer actions are not supported for uprobes")
+	}
+
 	state.symbols = len(spec.Symbols)
 	state.offsets = len(spec.Offsets)
 	state.addrs = len(spec.Addrs)
