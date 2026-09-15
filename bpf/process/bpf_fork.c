@@ -21,6 +21,63 @@ int _version __attribute__((section(("version")), used)) =
 	VMLINUX_KERNEL_VERSION;
 #endif
 
+FUNC_INLINE void
+event_clone_fill(struct msg_clone_event *event, struct execve_map_value *curr,
+		 struct task_struct *task)
+{
+	event->common.op = MSG_OP_CLONE;
+	event->common.flags = 0;
+	event->common.pad[0] = 0;
+	event->common.pad[1] = 0;
+	event->common.size = sizeof(*event);
+	event->common.ktime = curr->key.ktime;
+	event->parent = curr->pkey;
+	event->tgid = curr->key.pid;
+	/* Per thread tracking rules TID == PID :
+	 *  Since we generate one event per thread group, then when this task
+	 *  wakes up it will be the only one in the thread group, and it is
+	 *  the leader. Ensure to pass TID to user space.
+	 */
+	event->tid = BPF_CORE_READ(task, pid);
+	event->ktime = curr->key.ktime;
+	event->nspid = curr->nspid;
+	event->flags = curr->flags;
+}
+
+#ifndef __RHEL7_BPF_PROG
+FUNC_INLINE bool
+event_clone_rate_check(void *ctx, struct task_struct *task, __u64 ktime)
+{
+	struct msg_k8s kube;
+
+	if (__event_get_cgroup_info(task, &kube))
+		errmetrics(ENOENT);
+
+	return cgroup_rate(ctx, &kube, ktime);
+}
+#endif
+
+#ifdef __V511_BPF_PROG
+FUNC_INLINE int
+rb_clone_output(void *ctx, struct execve_map_value *curr, struct task_struct *task)
+{
+	struct msg_clone_event *event;
+
+	event = event_ringbuf_reserve(MSG_OP_CLONE, sizeof(struct msg_clone_event));
+	if (!event)
+		return 0;
+
+	event_clone_fill(event, curr, task);
+
+	if (!event_clone_rate_check(ctx, task, event->common.ktime)) {
+		ringbuf_discard(event, 0);
+		return 0;
+	}
+	ringbuf_submit(event, 0);
+	return 0;
+}
+#endif
+
 __attribute__((section("kprobe/wake_up_new_task"), used)) int
 BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 {
@@ -78,28 +135,15 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	set_in_init_tree(curr, parent);
 
 	/* Setup the msg_clone_event and sent to the user. */
-	msg.common.op = MSG_OP_CLONE;
-	msg.common.size = msg_size;
-	msg.common.ktime = curr->key.ktime;
-	msg.parent = curr->pkey;
-	msg.tgid = curr->key.pid;
-	/* Per thread tracking rules TID == PID :
-	 *  Since we generate one event per thread group, then when this task
-	 *  wakes up it will be the only one in the thread group, and it is
-	 *  the leader. Ensure to pass TID to user space.
-	 */
-	msg.tid = BPF_CORE_READ(task, pid);
-	msg.ktime = curr->key.ktime;
-	msg.nspid = curr->nspid;
-	msg.flags = curr->flags;
+#ifdef __V511_BPF_PROG
+	if (!CONFIG(USE_PERF_RING_BUF))
+		return rb_clone_output(ctx, curr, task);
+#endif
+
+	event_clone_fill(&msg, curr, task);
 
 #ifndef __RHEL7_BPF_PROG
-	struct msg_k8s kube;
-
-	if (__event_get_cgroup_info(task, &kube))
-		errmetrics(ENOENT);
-
-	if (cgroup_rate(ctx, &kube, msg.ktime))
+	if (event_clone_rate_check(ctx, task, msg.ktime))
 #endif
 		event_output_metric(ctx, MSG_OP_CLONE, &msg, msg_size);
 
