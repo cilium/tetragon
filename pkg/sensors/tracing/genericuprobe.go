@@ -418,6 +418,7 @@ type addUprobeIn struct {
 	policyID   policyfilter.PolicyID
 	useMulti   bool
 	celExprs   *selectors.CelExprFunctions
+	selMaps    *selectors.KernelSelectorMaps
 }
 
 type uprobeHas struct {
@@ -437,6 +438,7 @@ func createGenericUprobeSensor(
 	var err error
 	var has uprobeHas
 	var celExprs *selectors.CelExprFunctions
+	var selMaps *selectors.KernelSelectorMaps
 
 	// use multi uprobe only if:
 	// - it's not disabled by spec option
@@ -446,6 +448,7 @@ func createGenericUprobeSensor(
 	if useMulti {
 		// if we are using multi-uprobe, CEL expressions are shared across all uprobes
 		celExprs = &selectors.CelExprFunctions{}
+		selMaps = &selectors.KernelSelectorMaps{}
 	}
 
 	in := addUprobeIn{
@@ -454,6 +457,7 @@ func createGenericUprobeSensor(
 		policyID:   polInfo.policyID,
 		useMulti:   useMulti,
 		celExprs:   celExprs,
+		selMaps:    selMaps,
 	}
 
 	for _, uprobe := range spec.UProbes {
@@ -571,6 +575,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		IsUprobe:  true,
 		UprobeID:  len(ids),
 		CelExprs:  in.celExprs,
+		Maps:      in.selMaps,
 	})
 	if err != nil {
 		return nil, err
@@ -579,7 +584,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	var uprobeRetSelectorState *selectors.KernelSelectorState
 	if spec.Return {
 		uprobeRetSelectorState, err = selectors.InitKernelReturnSelectorState(spec.Selectors, spec.ReturnArg,
-			nil, nil, nil)
+			nil, nil, in.selMaps)
 		if err != nil {
 			return nil, err
 		}
