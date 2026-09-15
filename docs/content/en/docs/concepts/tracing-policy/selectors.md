@@ -907,7 +907,7 @@ python3 -c "import os; os.lseek(-1, 0, os.getpid() - 42)"
 ```
 
 Currently, `MatchCEL` supports:
-* Addition (`+`) and subtraction (`-`)
+* Addition (`+`), subtraction (`-`), multiplication (`*`), and division (`/`)
 * Logical AND (`&&`), OR (`||`), and NOT (`!`) operators
 * Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
 * Integer casting to 32-bits (`int32()`, `uint32()`)
