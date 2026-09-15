@@ -393,6 +393,81 @@ spec:
 	}
 }).RegisterAtInit()
 
+type triggerSubStringFileTwoFilters struct{}
+
+func (t *triggerSubStringFileTwoFilters) Trigger(_ context.Context) error {
+	file, err := os.CreateTemp("", "test0-test1-")
+	if err != nil {
+		return err
+	}
+	name := file.Name()
+	if err := file.Close(); err != nil {
+		return err
+	}
+	return os.Remove(name)
+}
+
+var _ = policytest.NewBuilder("kprobe-substring-file-two-filters").
+	WithLabels("kprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if reason := skipSubStringKfunc(si); reason != "" {
+			return reason
+		}
+		if si.ParamValues["AttachMode"] == "multi" && !si.AgentInfo.Probes[bpf.KprobeMultiProbe] {
+			return "test requires kprobe multi"
+		}
+		return ""
+	}).
+	WithParameter(policytest.Parameter{
+		Name:    "AttachMode",
+		Default: "multi",
+		Values:  []any{"multi", "single"},
+		Help:    "kprobe attachment mode",
+	}).
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "test"
+spec:
+  {{- if eq .AttachMode "single" }}
+  options:
+  - name: "disable-kprobe-multi"
+    value: "1"
+  {{- end }}
+  kprobes:
+  - call: security_file_open
+    syscall: false
+    args:
+    - index: 0
+      type: file
+      label: "path"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "SubString"
+        values:
+        - test0
+      - index: 0
+        operator: "SubString"
+        values:
+        - test1
+`).AddScenario(func(_ *policytest.Conf) *policytest.Scenario {
+	checker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_file_open")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Contains("test0-test1-"))),
+			))
+
+	return &policytest.Scenario{
+		Name:         "SubString filters on one file argument both match",
+		Trigger:      &triggerSubStringFileTwoFilters{},
+		EventChecker: ec.NewUnorderedEventChecker(checker),
+	}
+}).RegisterAtInit()
+
 type triggerSubStringPath struct{}
 
 func (t *triggerSubStringPath) Trigger(context context.Context) error {

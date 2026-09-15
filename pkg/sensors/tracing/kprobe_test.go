@@ -5563,6 +5563,18 @@ func TestSubStringFile(t *testing.T) {
 	})
 }
 
+func TestSubStringFileTwoFiltersMulti(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-file-two-filters", map[string]any{
+		"AttachMode": "multi",
+	})
+}
+
+func TestSubStringFileTwoFiltersSingle(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-file-two-filters", map[string]any{
+		"AttachMode": "single",
+	})
+}
+
 func TestSubStringPath(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-path", map[string]any{
 		"Hook": "kprobes",
