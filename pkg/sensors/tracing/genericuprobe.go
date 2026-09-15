@@ -460,6 +460,7 @@ type addUprobeIn struct {
 	policyName        string
 	policyID          policyfilter.PolicyID
 	celExprs          *selectors.CelExprFunctions
+	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32
 }
 
@@ -704,6 +705,7 @@ func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *upro
 		OverrideActionIPDelta: ipDelta,
 		BinaryPath:            spec.Path,
 		CelExprs:              in.celExprs,
+		Maps:                  in.selMaps,
 	})
 	if err != nil {
 		return err
@@ -716,7 +718,7 @@ func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *upro
 	var retrn *selectors.KernelSelectorState
 	if spec.Return {
 		retrn, err = selectors.InitKernelReturnSelectorState(spec.Selectors, spec.ReturnArg,
-			nil, nil, nil)
+			nil, nil, in.selMaps)
 		if err != nil {
 			// we rely on addUprobe cleanup for entry selector
 			return err
@@ -909,6 +911,7 @@ func createGenericUprobeSensor(
 	var err error
 	var has uprobeHas
 	var celExprs *selectors.CelExprFunctions
+	var selMaps *selectors.KernelSelectorMaps
 	var statuses []*tetragon.HookStatus
 
 	// use multi uprobe only if:
@@ -925,12 +928,14 @@ func createGenericUprobeSensor(
 	if useMulti {
 		// if we are using multi-uprobe, CEL expressions are shared across all uprobes
 		celExprs = &selectors.CelExprFunctions{}
+		selMaps = &selectors.KernelSelectorMaps{}
 	}
 
 	in := addUprobeIn{
 		policyName: polInfo.name,
 		policyID:   polInfo.policyID,
 		celExprs:   celExprs,
+		selMaps:    selMaps,
 	}
 
 	if useMulti {
