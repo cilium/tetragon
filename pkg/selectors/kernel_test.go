@@ -1646,3 +1646,62 @@ func TestParseCapabilityMask(t *testing.T) {
 	_, err = parseCapabilitiesMask("CAP_PIZZA")
 	assert.Error(t, err)
 }
+
+// The BPF side reverse-copies at most STRING_POSTFIX_MAX_MATCH_LENGTH-1 bytes
+// of the argument before the LPM lookup (see __copy_reverse in
+// bpf/process/types/basic.h), so a longer postfix value is loaded but can
+// never match. Check that userspace rejects such values for both the
+// large-program bound (128) and the small-program bound (88) defined in
+// bpf/process/string_maps.h.
+func TestWritePostfixMaxLength(t *testing.T) {
+	origForceLargeProgs := option.Config.ForceLargeProgs
+	origForceSmallProgs := option.Config.ForceSmallProgs
+	t.Cleanup(func() {
+		option.Config.ForceLargeProgs = origForceLargeProgs
+		option.Config.ForceSmallProgs = origForceSmallProgs
+	})
+
+	tests := []struct {
+		name       string
+		largeProgs bool
+		length     int
+		wantErr    bool
+	}{
+		{name: "large progs, 127 bytes accepted", largeProgs: true, length: 127},
+		{name: "large progs, 128 bytes refused", largeProgs: true, length: 128, wantErr: true},
+		{name: "small progs, 87 bytes accepted", largeProgs: false, length: 87},
+		{name: "small progs, 88 bytes refused", largeProgs: false, length: 88, wantErr: true},
+		{name: "small progs, 90 bytes refused", largeProgs: false, length: 90, wantErr: true},
+		{name: "small progs, 127 bytes refused", largeProgs: false, length: 127, wantErr: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			option.Config.ForceLargeProgs = tc.largeProgs
+			option.Config.ForceSmallProgs = !tc.largeProgs
+			value := strings.Repeat("a", tc.length)
+
+			for _, ty := range []uint32{gt.GenericStringType, gt.GenericCharBuffer} {
+				ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+				err := writePostfixStrings(ks, []string{value}, ty)
+				if tc.wantErr {
+					require.Error(t, err, "matchArgs type %d", ty)
+				} else {
+					require.NoError(t, err, "matchArgs type %d", ty)
+				}
+			}
+
+			// matchBinaries Postfix/NotPostfix is rejected earlier by
+			// ParseMatchBinary when large programs are unavailable, so
+			// writePostfixBinaries is only reachable with large programs.
+			if tc.largeProgs {
+				ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+				_, err := writePostfixBinaries(ks, []string{value})
+				if tc.wantErr {
+					require.Error(t, err, "matchBinaries")
+				} else {
+					require.NoError(t, err, "matchBinaries")
+				}
+			}
+		})
+	}
+}
