@@ -5764,6 +5764,14 @@ func TestSubStringPath(t *testing.T) {
 	})
 }
 
+func TestSubStringFileTwoFiltersMulti(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-file-two-filters-multi", nil)
+}
+
+func TestSubStringFileTwoFiltersSingle(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-file-two-filters-single", nil)
+}
+
 func TestSubStringSharedMapMulti(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-substring-shared-map-multi", nil)
 }
