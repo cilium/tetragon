@@ -811,9 +811,14 @@ func writePostfix(k *KernelSelectorState, values []string, ty uint32, selector s
 			value, size = ArgPostfixSelectorValue(v, true)
 		}
 		// Due to the constraints of the reverse copy in BPF, we will not be able to match a postfix
-		// longer than 127 characters, so throw an error if the user specified one.
-		if size >= StringPostfixMaxLength {
-			return 0, fmt.Errorf("%s value %s invalid: string is longer than %d characters", selector, v, StringPostfixMaxLength-1)
+		// longer than STRING_POSTFIX_MAX_MATCH_LENGTH-1 characters (127 with large programs, 87
+		// without), so throw an error if the user specified one.
+		maxLength := uint32(StringPostfixMaxLength)
+		if !config.EnableLargeProgs() {
+			maxLength = StringPostfixMaxMatchLengthSmall
+		}
+		if size >= maxLength {
+			return 0, fmt.Errorf("%s value %s invalid: string is longer than %d characters", selector, v, maxLength-1)
 		}
 		val := KernelLPMTrieStringPostfix{prefixLen: size * 8} // postfix is in bits, but size is in bytes
 		// Copy postfix in reverse order, so that it can be used in LPM map
