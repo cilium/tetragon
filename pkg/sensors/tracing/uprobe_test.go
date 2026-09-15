@@ -178,6 +178,10 @@ func TestUprobePclntab(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-pclntab", nil)
 }
 
+func TestUprobePostfixSharedMap(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-postfix-shared-map", nil)
+}
+
 func TestUretprobeGeneric(t *testing.T) {
 	testUretprobe := testutils.RepoRootPath("contrib/tester-progs/uretprobe")
 	uretprobeHook := `

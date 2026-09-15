@@ -221,3 +221,67 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(upArg2Checker, upArg1Checker),
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-postfix-shared-map").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-postfix-shared-map"
+spec:
+  uprobes:
+  - path: {{ testBinary "libuprobe.so" }}
+    symbols:
+    - "uprobe_test_lib_string_arg0"
+    args:
+    - index: 0
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Postfix"
+        values:
+        - "one"
+  - path: {{ testBinary "libuprobe.so" }}
+    symbols:
+    - "uprobe_test_lib_string_arg1"
+    args:
+    - index: 1
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Postfix"
+        values:
+        - "two"
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeMultiProbe] {
+		return "need uprobe multi support"
+	}
+	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+		return "need 5.3 or newer kernel"
+	}
+	if !si.AgentInfo.Probes[bpf.UprobeRefCtrOffsetProbe] {
+		return "need uprobe ref_ctr_off support"
+	}
+	if !si.AgentInfo.Probes[bpf.MixBPFAndTailCallsProbe] {
+		return "need kernel where we can mix bpf and tail calls"
+	}
+	if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+		return "Postfix operator requires bpf_copy_from_user_str kfunc"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-test-1")
+	arg0Checker := ec.NewProcessUprobeChecker("uprobe-postfix-shared-map").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("uprobe_test_lib_string_arg0"))
+	arg1Checker := ec.NewProcessUprobeChecker("uprobe-postfix-shared-map").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("uprobe_test_lib_string_arg1"))
+
+	return &policytest.Scenario{
+		Name:         "check postfix maps remain distinct across attach points",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(arg0Checker, arg1Checker),
+	}
+}).RegisterAtInit()
