@@ -837,6 +837,123 @@ spec:
 	}
 }).RegisterAtInit()
 
+var _ = policytest.NewBuilder("uprobe-multi-override-new-symbol-so").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-mulit-override-new-symbol-so"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    - "lasagna"
+    - "maccheroni"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_pizza
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeMultiProbe] {
+		return "need uprobe multi support"
+	}
+
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+
+	if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+		return "SubString operator requires bpf_copy_from_user_str kfunc"
+	}
+
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-simple").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin)))
+
+	// Multi uprobe; symbols share the attached program.
+	//
+	// we trigger uprobed symbols 7 times: 3 times for real:
+	// * 1 time pizza()
+	// * 1 time lasagna (cached call)
+	// * 1 time normally from a secondary thread (maccheroni())
+	// plus 2 times while resolving the symbol from sopath on each thread,
+	// since the sopath override implementation re-triggers the symbol itself
+	// instead of attaching uretprobes to mmap and dlopen.
+	overrideCount := uint64(3) + 4
+	return &policytest.Scenario{
+		Name:         "check calls were overridden with symbol loaded by SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(33), // 1 + 11 + 21
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Override: &overrideCount,
+		},
+	}
+}).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so"
+spec:
+  options:
+  - name: "disable-uprobe-multi"
+    value: "1"
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    - "lasagna"
+    - "maccheroni"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_pizza
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+
+	if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+		return "SubString operator requires bpf_copy_from_user_str kfunc"
+	}
+
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-simple").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin)))
+
+	// Single uprobe; each symbol has its own attached program.
+	//
+	// We trigger uprobed symbols 9 times.
+	// 3 times for real:
+	// * 1 time pizza()
+	// * 1 time lasagna()
+	// * 1 time normally from a secondary thread (maccheroni())
+	// plus 2 times while resolving the symbol from sopath on each invocation,
+	// since the sopath override implementation re-triggers the symbol itself
+	// instead of attaching uretprobes to mmap and dlopen.
+	// thus ending up with 3 uprobe triggers for each symbol.
+	// NOTE: lasagna() call is non-cached in non-multi-uprobe mode
+	// because tg_dyn_sm is program specific, and each symbol has its own program.
+	overrideCount := uint64(3) * 3
+	return &policytest.Scenario{
+		Name:         "check calls were overridden with symbol loaded by SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(33), // 1 + 11 + 21
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Override: &overrideCount,
+		},
+	}
+}).RegisterAtInit()
+
 // resolveFuncStart is a helper function to be used in the yaml.
 func resolveFuncStart(bin, funcName string) (uint64, error) {
 	se, err := telf.OpenSafeELFFile(bin)
