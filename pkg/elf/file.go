@@ -84,6 +84,23 @@ func (se *SafeELFFile) Address(name string) (uint64, error) {
 	return 0, fmt.Errorf("failed to resolve %q", name)
 }
 
+func (se *SafeELFFile) DynamicAddress(name string) (uint64, error) {
+	symbols, err := se.DynamicSymbols()
+	if err != nil {
+		return 0, err
+	}
+
+	for _, sym := range symbols {
+		if elf.ST_TYPE(sym.Info) != elf.STT_FUNC {
+			continue
+		}
+		if name == sym.Name {
+			return sym.Value, nil
+		}
+	}
+	return 0, fmt.Errorf("failed to resolve %q", name)
+}
+
 // Offset returns the file offset for the named symbol, for uprobe attachment.
 // Resolves via ELF symtab only. For stripped Go binaries, use Pclntab().OffsetByName instead.
 func (se *SafeELFFile) Offset(name string) (uint64, error) {
