@@ -563,7 +563,7 @@
         "Dockerfile"
       ],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+&& git clone --depth 1 --branch (?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+.*(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
       ]
     },
     {
