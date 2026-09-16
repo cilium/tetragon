@@ -21,6 +21,7 @@ char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 int generic_lsm_setup_event(void *ctx);
 int generic_lsm_process_event(void *ctx);
 int generic_lsm_process_filter(void *ctx);
+int generic_lsm_process_filter_2(void *ctx);
 int generic_lsm_filter_arg(void *ctx);
 int generic_lsm_filter_arg_2(void *ctx);
 int generic_lsm_actions(void *ctx);
@@ -36,6 +37,7 @@ struct {
 		[TAIL_CALL_SETUP] = (void *)&generic_lsm_setup_event,
 		[TAIL_CALL_PROCESS] = (void *)&generic_lsm_process_event,
 		[TAIL_CALL_FILTER] = (void *)&generic_lsm_process_filter,
+		[TAIL_CALL_FILTER_2] = (void *)&generic_lsm_process_filter_2,
 		[TAIL_CALL_ARGS] = (void *)&generic_lsm_filter_arg,
 		[TAIL_CALL_ACTIONS] = (void *)&generic_lsm_actions,
 #ifndef __V61_BPF_PROG
@@ -73,14 +75,19 @@ generic_lsm_process_event(void *ctx)
 __attribute__((section("lsm"), used)) int
 generic_lsm_process_filter(void *ctx)
 {
-	int ret;
+	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_1,
+					    TAIL_CALL_FILTER, /* fail */
+					    TAIL_CALL_FILTER_2, /* pass */
+					    (struct bpf_map_def *)&lsm_calls);
+}
 
-	ret = generic_process_filter(ctx);
-	if (ret == PFILTER_CONTINUE)
-		tail_call(ctx, &lsm_calls, TAIL_CALL_FILTER);
-	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, &lsm_calls, TAIL_CALL_SETUP);
-	return PFILTER_REJECT;
+__attribute__((section("lsm"), used)) int
+generic_lsm_process_filter_2(void *ctx)
+{
+	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_2,
+					    TAIL_CALL_FILTER, /* fail */
+					    TAIL_CALL_SETUP, /* pass */
+					    (struct bpf_map_def *)&lsm_calls);
 }
 
 #ifdef __LARGE_BPF_PROG

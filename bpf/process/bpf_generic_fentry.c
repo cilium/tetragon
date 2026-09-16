@@ -19,6 +19,7 @@ char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 int generic_fentry_setup_event(void *ctx);
 int generic_fentry_process_event(void *ctx);
 int generic_fentry_process_filter(void *ctx);
+int generic_fentry_process_filter_2(void *ctx);
 int generic_fentry_filter_arg(void *ctx);
 int generic_fentry_actions(void *ctx);
 int generic_fentry_output(void *ctx);
@@ -34,6 +35,7 @@ struct {
 		[TAIL_CALL_SETUP] = (void *)&generic_fentry_setup_event,
 		[TAIL_CALL_PROCESS] = (void *)&generic_fentry_process_event,
 		[TAIL_CALL_FILTER] = (void *)&generic_fentry_process_filter,
+		[TAIL_CALL_FILTER_2] = (void *)&generic_fentry_process_filter_2,
 		[TAIL_CALL_ARGS] = (void *)&generic_fentry_filter_arg,
 		[TAIL_CALL_ACTIONS] = (void *)&generic_fentry_actions,
 		[TAIL_CALL_SEND] = (void *)&generic_fentry_output,
@@ -70,17 +72,19 @@ generic_fentry_process_event(void *ctx)
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fentry_process_filter(void *ctx)
 {
-	int ret;
+	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_1,
+					    TAIL_CALL_FILTER, /* fail */
+					    TAIL_CALL_FILTER_2, /* pass */
+					    (struct bpf_map_def *)&fentry_calls);
+}
 
-	ret = generic_process_filter(ctx);
-	if (ret == PFILTER_CONTINUE)
-		tail_call(ctx, &fentry_calls, TAIL_CALL_FILTER);
-	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, &fentry_calls, TAIL_CALL_SETUP);
-	/* If filter does not accept drop it. Ideally we would
-	 * log error codes for later review, TBD.
-	 */
-	return PFILTER_REJECT;
+__attribute__((section(SECTION_TAIL), used)) int
+generic_fentry_process_filter_2(void *ctx)
+{
+	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_2,
+					    TAIL_CALL_FILTER, /* fail */
+					    TAIL_CALL_SETUP, /* pass */
+					    (struct bpf_map_def *)&fentry_calls);
 }
 
 __attribute__((section(SECTION_TAIL), used)) int

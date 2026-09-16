@@ -148,7 +148,11 @@ enum {
 	TAIL_CALL_PATH = 6,
 	TAIL_CALL_PROCESS_2 = 7,
 	TAIL_CALL_ARGS_2 = 8,
+	TAIL_CALL_FILTER_2 = 9,
 };
+
+#define GENERIC_FILTER_STAGE_1 1
+#define GENERIC_FILTER_STAGE_2 2
 
 struct selector_action {
 	__u32 actionlen;

@@ -18,6 +18,7 @@ char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 int generic_usdt_setup_event(void *ctx);
 int generic_usdt_process_event(void *ctx);
 int generic_usdt_process_filter(void *ctx);
+int generic_usdt_process_filter_2(void *ctx);
 int generic_usdt_filter_arg(void *ctx);
 int generic_usdt_filter_arg_2(void *ctx);
 int generic_usdt_actions(void *ctx);
@@ -34,6 +35,7 @@ struct {
 		[TAIL_CALL_SETUP] = (void *)&generic_usdt_setup_event,
 		[TAIL_CALL_PROCESS] = (void *)&generic_usdt_process_event,
 		[TAIL_CALL_FILTER] = (void *)&generic_usdt_process_filter,
+		[TAIL_CALL_FILTER_2] = (void *)&generic_usdt_process_filter_2,
 		[TAIL_CALL_ARGS] = (void *)&generic_usdt_filter_arg,
 		[TAIL_CALL_ACTIONS] = (void *)&generic_usdt_actions,
 		[TAIL_CALL_SEND] = (void *)&generic_usdt_output,
@@ -82,17 +84,19 @@ generic_usdt_process_event(void *ctx)
 __attribute__((section(COMMON), used)) int
 generic_usdt_process_filter(void *ctx)
 {
-	int ret;
+	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_1,
+					    TAIL_CALL_FILTER, /* fail */
+					    TAIL_CALL_FILTER_2, /* pass */
+					    (struct bpf_map_def *)&usdt_calls);
+}
 
-	ret = generic_process_filter(ctx);
-	if (ret == PFILTER_CONTINUE)
-		tail_call(ctx, &usdt_calls, TAIL_CALL_FILTER);
-	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, &usdt_calls, TAIL_CALL_SETUP);
-	/* If filter does not accept drop it. Ideally we would
-	 * log error codes for later review, TBD.
-	 */
-	return PFILTER_REJECT;
+__attribute__((section(COMMON), used)) int
+generic_usdt_process_filter_2(void *ctx)
+{
+	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_2,
+					    TAIL_CALL_FILTER, /* fail */
+					    TAIL_CALL_SETUP, /* pass */
+					    (struct bpf_map_def *)&usdt_calls);
 }
 
 #ifdef __LARGE_BPF_PROG

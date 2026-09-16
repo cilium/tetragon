@@ -1322,17 +1322,10 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	return 1;
 }
 
-// generic_process_filter performs first pass filtering based on pid/nspid
-// and other criteria.
-// We keep a list of selectors that pass.
-//
-// if filter check was successful, it will return PFILTER_ACCEPT and properly
-// set the values of:
-//    current->pid
-//    current->ktime
-// for the memory located at index 0 of @msg_heap assuming the value follows the
-// msg_generic_hdr structure.
-FUNC_INLINE int generic_process_filter(void *ctx)
+// generic_process_filter performs process filtering in two stages. The first
+// stage performs the inexpensive filters before handing the current selector
+// to stage 2.
+FUNC_INLINE int generic_process_filter(void *ctx, int stage)
 {
 	int selectors, pass, zero = 0;
 	struct execve_map_value *enter;
@@ -1375,8 +1368,11 @@ FUNC_INLINE int generic_process_filter(void *ctx)
 	if (selectors <= sel->curr)
 		return process_filter_done(sel, enter, current);
 
-	pass = selector_process_filter(ctx, f, sel->curr, enter, msg);
-	if (pass) {
+	pass = selector_process_filter(ctx, f, sel->curr, enter, msg, stage);
+	if (stage == GENERIC_FILTER_STAGE_1) {
+		if (pass == PFILTER_ACCEPT)
+			return PFILTER_ACCEPT;
+	} else if (pass) {
 		/* Verify lost that msg is not null here so recheck */
 		int curr = sel->curr;
 
@@ -1390,6 +1386,22 @@ FUNC_INLINE int generic_process_filter(void *ctx)
 	if (sel->curr > selectors)
 		return process_filter_done(sel, enter, current);
 	return PFILTER_CONTINUE; /* will iterate to the next selector */
+}
+
+// generic_process_filter_stage runs the process filter and tail calls the
+// supplied programs for a selector continuation or a successful match.
+FUNC_INLINE int
+generic_process_filter_stage(void *ctx, int stage, __u32 fail, __u32 pass,
+			     struct bpf_map_def *calls)
+{
+	int ret;
+
+	ret = generic_process_filter(ctx, stage);
+	if (ret == PFILTER_CONTINUE)
+		tail_call(ctx, calls, fail);
+	else if (ret == PFILTER_ACCEPT)
+		tail_call(ctx, calls, pass);
+	return PFILTER_REJECT;
 }
 
 /* filter_args returns

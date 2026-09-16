@@ -509,6 +509,8 @@ match_cmd_arg(__u8 *f, __u32 section_off, __u32 filter_off, __u8 *arg_offsets,
 		return -1;
 
 	argsoff = arg_offsets[key];
+	asm volatile("%[argsoff] &= 0xff;\n"
+		     : [argsoff] "+r"(argsoff));
 	remaining = sizeof(cached_args->buf) - argsoff;
 
 	/* Ideally we would skip this copy and send the cached argument to
@@ -636,8 +638,35 @@ match_cmd_args(__u8 *f, __u32 selidx, struct args *cached_args)
 #endif /* __LARGE_BPF_PROG */
 
 FUNC_INLINE int
-selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_value *enter,
-			struct msg_generic_kprobe *msg)
+selector_process_filter_1(__u32 *f, __u32 index, struct execve_map_value *enter)
+{
+	/* Do workload filter first for selector index */
+	if (!match_workloads(index))
+		return PFILTER_REJECT;
+
+	if (!match_binaries(index, enter, &enter->bin))
+		return PFILTER_REJECT;
+
+#ifdef __LARGE_BPF_PROG
+	if (CONFIG(PARENTS_MAP_ENABLED)) {
+		struct binary *parent_bin = map_lookup_elem(&tg_parents_bin, &enter->key.pid);
+
+		if (parent_bin)
+			/* matchParentBinaries key is in range [MAX_SELECTORS; MAX_SELECTORS * 2) */
+			if (!match_binaries(index + MAX_SELECTORS, enter, parent_bin))
+				return PFILTER_REJECT;
+	}
+
+	if (!match_cmd_args((__u8 *)f, index, &enter->args))
+		return PFILTER_REJECT;
+#endif
+
+	return PFILTER_ACCEPT;
+}
+
+FUNC_INLINE int
+selector_process_filter_2(void *ctx, __u32 *f, __u32 index, struct execve_map_value *enter,
+			  struct msg_generic_kprobe *msg)
 {
 	int res = PFILTER_ACCEPT;
 	struct pid_filter *pid;
@@ -648,27 +677,6 @@ selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_valu
 	struct caps_filter *caps;
 	__u32 len;
 	__u64 i;
-
-	/* Do workload filter first for selector index */
-	if (!match_workloads(index))
-		return 0;
-
-	if (!match_binaries(index, enter, &enter->bin))
-		return 0;
-
-#ifdef __LARGE_BPF_PROG
-	if (CONFIG(PARENTS_MAP_ENABLED)) {
-		struct binary *parent_bin = map_lookup_elem(&tg_parents_bin, &enter->key.pid);
-
-		if (parent_bin)
-			/* matchParentBinaries key is in range [MAX_SELECTORS; MAX_SELECTORS * 2) */
-			if (!match_binaries(index + MAX_SELECTORS, enter, parent_bin))
-				return 0;
-	}
-
-	if (!match_cmd_args((__u8 *)f, index, &enter->args))
-		return PFILTER_REJECT;
-#endif
 
 	/* Find selector offset byte index */
 	index *= 4;
@@ -800,6 +808,15 @@ selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_valu
 #endif
 
 	return res;
+}
+
+FUNC_INLINE int
+selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_value *enter,
+			struct msg_generic_kprobe *msg, int stage)
+{
+	if (stage == GENERIC_FILTER_STAGE_1)
+		return selector_process_filter_1(f, index, enter);
+	return selector_process_filter_2(ctx, f, index, enter, msg);
 }
 
 FUNC_INLINE int
