@@ -1,0 +1,148 @@
+.labs {
+
+  &-hero {
+    padding: 64px 0 0;
+    text-align: center;
+
+    @media (max-width: $tablet) {
+      padding-top: 48px;
+    }
+
+    @media (max-width: $mobile) {
+      padding-top: 32px;
+    }
+
+    h1 {
+      color: #253737;
+    }
+
+    p {
+      max-width: 640px;
+      margin: 14px auto 0;
+      color: #5E636E;
+    }
+  }
+
+  &-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+    margin: 56px 0 112px;
+
+    @media (max-width: $desktop) {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin: 48px 0 96px;
+    }
+
+    @media (max-width: $tablet) {
+      margin: 40px 0 80px;
+    }
+
+    @media (max-width: $mobile) {
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 32px 0 56px;
+    }
+  }
+
+  &-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background-color: #fff;
+    border: 1px solid #E0E6F0;
+    border-radius: 12px;
+    transition: all 0.3s ease-in-out;
+
+    &:focus,
+    &:hover {
+      box-shadow: 0 3px 8px 0 rgba(201, 206, 207, 0.8);
+      border-color: #C9CECF;
+
+      .button {
+        color: #5C6D70 !important;
+      }
+    }
+
+    &__image {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+
+      > img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    &__image-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #F7FDFD 0%, #E7F6F6 100%);
+
+      img {
+        width: 48px;
+        height: 48px;
+        opacity: 0.7;
+      }
+    }
+
+    &__body {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      padding: 24px 28px 28px;
+
+      @media (max-width: $tablet) {
+        padding: 20px;
+      }
+    }
+
+    &__source {
+      align-self: flex-start;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background-color: #F7F9FD;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #5E636E;
+    }
+
+    &__title {
+      margin-top: 14px;
+      margin-bottom: 0;
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.375;
+      color: #253737;
+
+      @media (max-width: $tablet) {
+        font-size: 18px;
+      }
+    }
+
+    &__description {
+      flex-grow: 1;
+      margin-top: 6px;
+      margin-bottom: 0;
+      font-size: 15px;
+      line-height: 1.5;
+      color: #5E636E;
+    }
+
+    .button {
+      margin-top: 20px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #253737;
+    }
+  }
+}
