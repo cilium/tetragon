@@ -18,7 +18,9 @@ struct reg_assignment {
 
 #if defined(GENERIC_UPROBE)
 
-#define REGS_MAX 18
+#define REGS_MAX   18
+#define SOPATH_MAX 128
+#define SONAME_MAX 32
 
 #define ASM_ASSIGNMENT_TYPE_NONE      0
 #define ASM_ASSIGNMENT_TYPE_CONST     1
@@ -28,16 +30,43 @@ struct reg_assignment {
 
 struct uprobe_regs {
 	struct reg_assignment ass[REGS_MAX];
-	u32 cnt;
-	u32 pad;
+	__u32 cnt;
+
+	// Below is for dynamic override feature via SO loading; see "uprobe_dyn.h"
+	char sopath[SOPATH_MAX]; // e.g. "/opt/safeguards/libsafemalloc.so"
+	__u32 sopath_len;
+	char soname[SONAME_MAX]; // e.g. "libsafemalloc.so"
+	__u64 sym_addr; // symbol address without account for sopath base address
+	__u64 mmap_addr; // mmap address without accounting for libc base address
+	__u64 dlopen_addr; // mmap address without accounting for libc base address
 };
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 1);
-	__type(key, __u32);
+	__type(key, __u32); // sym_id, based upon UprobeID and selector idx (see UprobeRegsMapID())
 	__type(value, struct uprobe_regs);
 } regs_map SEC(".maps");
+
+// uprobe_dyn uses `regs_map`; import it after the map has been declared.
+#ifdef __V61_BPF_PROG
+
+// While this code only runs for 6.18+,
+// it uses BPF_MAP_TYPE_TASK_STORAGE for pending_calls map
+// that requires 5.11+. The code gets compiled and verified
+// even if we won't run it.
+// Only attach this for v61+ objects.
+#include "uprobe_dyn.h"
+
+#else /* __V61_BPF_PROG */
+
+FUNC_INLINE int
+uprobe_dyn_state_machine(struct pt_regs *ctx, struct uprobe_regs *regs, __u32 sym_id)
+{
+	return 0;
+}
+
+#endif /* __V61_BPF_PROG */
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
@@ -89,6 +118,12 @@ uprobe_offload(struct pt_regs *ctx)
 	regs = map_lookup_elem(&regs_map, idx);
 	if (!regs)
 		return 0;
+
+	// We expect to fully override the call to
+	// a dynamically loaded one
+	if (regs->sopath_len > 0) {
+		return uprobe_dyn_state_machine(ctx, regs, *idx);
+	}
 
 	for (i = 0; i < REGS_MAX && i < regs->cnt; i++) {
 		ass = &regs->ass[i];
