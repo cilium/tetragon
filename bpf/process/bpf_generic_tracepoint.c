@@ -19,6 +19,7 @@
 
 int generic_tracepoint_process_event(void *ctx);
 int generic_tracepoint_filter(void *ctx);
+int generic_tracepoint_process_filter_2(void *ctx);
 int generic_tracepoint_arg(void *ctx);
 int generic_tracepoint_arg_2(void *ctx);
 int generic_tracepoint_actions(void *ctx);
@@ -34,6 +35,7 @@ struct {
 	.values = {
 		[TAIL_CALL_PROCESS] = (void *)&generic_tracepoint_process_event,
 		[TAIL_CALL_FILTER] = (void *)&generic_tracepoint_filter,
+		[TAIL_CALL_FILTER_2] = (void *)&generic_tracepoint_process_filter_2,
 		[TAIL_CALL_ARGS] = (void *)&generic_tracepoint_arg,
 		[TAIL_CALL_ACTIONS] = (void *)&generic_tracepoint_actions,
 		[TAIL_CALL_SEND] = (void *)&generic_tracepoint_output,
@@ -290,17 +292,19 @@ generic_tracepoint_process_event_2(void *ctx)
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_filter(void *ctx)
 {
-	int ret;
+	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_1,
+					    TAIL_CALL_FILTER, /* fail */
+					    TAIL_CALL_FILTER_2, /* pass */
+					    (struct bpf_map_def *)&tp_calls);
+}
 
-	ret = generic_process_filter(ctx);
-	if (ret == PFILTER_CONTINUE)
-		tail_call(ctx, &tp_calls, TAIL_CALL_FILTER);
-	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, &tp_calls, TAIL_CALL_PROCESS);
-	/* If filter does not accept drop it. Ideally we would
-	 * log error codes for later review, TBD.
-	 */
-	return PFILTER_REJECT;
+__attribute__((section("tracepoint"), used)) int
+generic_tracepoint_process_filter_2(void *ctx)
+{
+	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_2,
+					    TAIL_CALL_FILTER, /* fail */
+					    TAIL_CALL_PROCESS, /* pass */
+					    (struct bpf_map_def *)&tp_calls);
 }
 
 #ifdef __LARGE_BPF_PROG
