@@ -802,6 +802,40 @@ func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32, o
 	return nil
 }
 
+// length of the ::ffff:0:0/96 prefix an IPv4-mapped address sits behind
+const v4MappedPrefixLen = 96
+
+// addV4 adds an IPv4 prefix, plus its ::ffff:a.b.c.d form to the IPv6 map.
+func addV4(m4 map[KernelLPMTrie4]struct{}, m6 map[KernelLPMTrie6]struct{}, addr []byte, maskLen uint32) {
+	m4[KernelLPMTrie4{prefixLen: maskLen, addr: binary.LittleEndian.Uint32(addr)}] = struct{}{}
+
+	mapped := KernelLPMTrie6{prefixLen: maskLen + v4MappedPrefixLen}
+	mapped.addr[10], mapped.addr[11] = 0xff, 0xff
+	copy(mapped.addr[12:], addr)
+	m6[mapped] = struct{}{}
+}
+
+// addV6 adds an IPv6 prefix, plus its plain IPv4 form if it is IPv4-mapped.
+func addV6(m4 map[KernelLPMTrie4]struct{}, m6 map[KernelLPMTrie6]struct{}, addr []byte, maskLen uint32) {
+	val := KernelLPMTrie6{prefixLen: maskLen}
+	copy(val.addr[:], addr)
+	m6[val] = struct{}{}
+
+	// only prefixes inside ::ffff:0:0/96 have an IPv4 equivalent
+	a, ok := netip.AddrFromSlice(addr)
+	if !ok || !a.Is4In6() || maskLen < v4MappedPrefixLen {
+		return
+	}
+	m4[KernelLPMTrie4{
+		prefixLen: maskLen - v4MappedPrefixLen,
+		addr:      binary.LittleEndian.Uint32(addr[12:]),
+	}] = struct{}{}
+}
+
+// writeMatchAddrsInMap fills both LPM maps, whichever way the address is
+// written: filter_addr_map() picks the map by socket family, so a dual-stack
+// socket carrying ::ffff:a.b.c.d would otherwise hit an absent IPv6 map, which
+// fails open for NotSAddr/NotDAddr.
 func writeMatchAddrsInMap(k *KernelSelectorState, values []string) error {
 	m4 := k.createAddr4Map()
 	m6 := k.createAddr6Map()
@@ -811,14 +845,12 @@ func writeMatchAddrsInMap(k *KernelSelectorState, values []string) error {
 			return fmt.Errorf("MatchArgs value %s invalid: parse IP: %w", v, err)
 		}
 
-		if len(addr) == net.IPv4len {
-			val := KernelLPMTrie4{prefixLen: maskLen, addr: binary.LittleEndian.Uint32(addr)}
-			m4[val] = struct{}{}
-		} else if len(addr) == net.IPv6len {
-			val := KernelLPMTrie6{prefixLen: maskLen}
-			copy(val.addr[:], addr)
-			m6[val] = struct{}{}
-		} else {
+		switch len(addr) {
+		case net.IPv4len:
+			addV4(m4, m6, addr, maskLen)
+		case net.IPv6len:
+			addV6(m4, m6, addr, maskLen)
+		default:
 			return fmt.Errorf("MatchArgs value '%s' invalid: should be either 4 or 16 bytes long", v)
 		}
 	}

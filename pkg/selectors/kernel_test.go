@@ -565,7 +565,7 @@ func TestParseMatchData(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x07, 0x00, 0x00, 0x00, // value type == sock
 		0x00, 0x00, 0x00, 0x00, // Addr4LPM mapid = 0
-		0xff, 0xff, 0xff, 0xff, // Addr6LPM no map
+		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0 (IPv4-mapped equivalents)
 	}
 	if err := ParseMatchData(k, arg3, sig, 2); err != nil || bytes.Equal(expected3, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[nextArg:], arg3)
@@ -605,7 +605,7 @@ func TestParseMatchData(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x07, 0x00, 0x00, 0x00, // value type == sock
 		1, 0x00, 0x00, 0x00, // Addr4LPM mapid = 1
-		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0
+		1, 0x00, 0x00, 0x00, // Addr6LPM mapid = 1
 	}
 	if err := ParseMatchData(k, arg6, sig, 2); err != nil || bytes.Equal(expected6, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected6, d.e[nextArg:], arg6)
@@ -619,7 +619,7 @@ func TestParseMatchData(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x28, 0x00, 0x00, 0x00, // value type == sockaddr
 		2, 0x00, 0x00, 0x00, // Addr4LPM mapid = 2
-		1, 0x00, 0x00, 0x00, // Addr6LPM mapid = 1
+		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
 	}
 	if err := ParseMatchData(k, arg7, sig, 2); err != nil || bytes.Equal(expected7, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected7, d.e[nextArg:], arg7)
@@ -633,7 +633,7 @@ func TestParseMatchData(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x29, 0x00, 0x00, 0x00, // value type == socket
 		3, 0x00, 0x00, 0x00, // Addr4LPM mapid = 3
-		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
+		3, 0x00, 0x00, 0x00, // Addr6LPM mapid = 3
 	}
 	if err := ParseMatchData(k, arg8, sig, 2); err != nil || bytes.Equal(expected8, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:], arg8)
@@ -736,7 +736,7 @@ func TestParseMatchArg(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x07, 0x00, 0x00, 0x00, // value type == sock
 		0x00, 0x00, 0x00, 0x00, // Addr4LPM mapid = 0
-		0xff, 0xff, 0xff, 0xff, // Addr6LPM no map
+		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0 (IPv4-mapped equivalents)
 	}
 	if err := ParseMatchArg(k, arg3, sig); err != nil || bytes.Equal(expected3, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[nextArg:], arg3)
@@ -776,7 +776,7 @@ func TestParseMatchArg(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x07, 0x00, 0x00, 0x00, // value type == sock
 		1, 0x00, 0x00, 0x00, // Addr4LPM mapid = 1
-		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0
+		1, 0x00, 0x00, 0x00, // Addr6LPM mapid = 1
 	}
 	if err := ParseMatchArg(k, arg6, sig); err != nil || bytes.Equal(expected6, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected6, d.e[nextArg:], arg6)
@@ -790,7 +790,7 @@ func TestParseMatchArg(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x28, 0x00, 0x00, 0x00, // value type == sockaddr
 		2, 0x00, 0x00, 0x00, // Addr4LPM mapid = 2
-		1, 0x00, 0x00, 0x00, // Addr6LPM mapid = 1
+		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
 	}
 	if err := ParseMatchArg(k, arg7, sig); err != nil || bytes.Equal(expected7, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected7, d.e[nextArg:], arg7)
@@ -804,7 +804,7 @@ func TestParseMatchArg(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x29, 0x00, 0x00, 0x00, // value type == socket
 		3, 0x00, 0x00, 0x00, // Addr4LPM mapid = 3
-		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
+		3, 0x00, 0x00, 0x00, // Addr6LPM mapid = 3
 	}
 	if err := ParseMatchArg(k, arg8, sig); err != nil || bytes.Equal(expected8, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:], arg8)
