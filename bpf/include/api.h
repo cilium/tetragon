@@ -117,6 +117,7 @@ static int BPF_FUNC(probe_read_kernel, void *dst, uint32_t size, const void *src
 static int BPF_FUNC(probe_read_user, void *dst, uint32_t size, const void *src);
 static int BPF_FUNC(probe_write_user, void *dst, const void *src, uint32_t len);
 static int BPF_FUNC(copy_from_user, void *dst, uint32_t size, const void *src);
+static int BPF_FUNC(probe_read_kernel_str, void *dst, int size, const void *src);
 
 /* Time access */
 static uint64_t BPF_FUNC(ktime_get_ns);
@@ -243,6 +244,9 @@ static uint64_t BPF_FUNC(get_current_cgroup_id);
 static uint64_t BPF_FUNC(get_current_ancestor_cgroup_id, int ancestor_level);
 static uint64_t BPF_FUNC(get_current_uid_gid);
 static uint64_t BPF_FUNC(get_current_pid_tgid);
+
+static void *BPF_FUNC(task_storage_get, void *map, struct task_struct *task, void *value, __u64 flags);
+static long BPF_FUNC(task_storage_delete, void *map, struct task_struct *task);
 
 static int BPF_FUNC(get_current_comm, char *buf, uint32_t size);
 
