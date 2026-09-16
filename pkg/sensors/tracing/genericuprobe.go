@@ -117,22 +117,28 @@ type genericUprobe struct {
 	// the retprobe_id (thread_id) and the enter ktime as the key.
 	pendingEvents *lru.Cache[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]]
 	data          *genericStackTraceData
+
+	dynOv *DynamicOverride
 }
 
-func populateUprobeRegs(m *ebpf.Map, id uint32, regs []processapi.RegAssignment) error {
+func populateUprobeRegs(m *ebpf.Map, id uint32, regs []processapi.RegAssignment, dynOv *DynamicOverride) error {
 	uprobeRegs := processapi.UprobeRegs{}
 
-	n := copy(uprobeRegs.Ass[:], regs)
-	if n != len(regs) {
-		logger.GetLogger().Warn("register assignments count mismatch", "#regs", len(regs))
+	if dynOv != nil {
+		uprobeRegs = dynOv.PopulateUprobeRegs()
+	} else {
+		n := copy(uprobeRegs.Ass[:], regs)
+		if n != len(regs) {
+			logger.GetLogger().Warn("register assignments count mismatch", "#regs", len(regs))
+		}
+		uprobeRegs.Cnt = uint32(n)
 	}
-	uprobeRegs.Cnt = uint32(n)
 	return m.Update(id, uprobeRegs, ebpf.UpdateAny)
 }
 
-func populateSelectorRegsMap(m *ebpf.Map, selector *selectors.KernelSelectorState) error {
+func populateSelectorRegsMap(m *ebpf.Map, selector *selectors.KernelSelectorState, dynOv *DynamicOverride) error {
 	for selIdx, regs := range selector.Regs() {
-		err := populateUprobeRegs(m, selector.UprobeRegsMapID(selIdx), regs)
+		err := populateUprobeRegs(m, selector.UprobeRegsMapID(selIdx), regs, dynOv)
 		if err != nil {
 			return err
 		}
@@ -295,7 +301,7 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 				&program.MapLoad{
 					Name: "regs_map",
 					Load: func(m *ebpf.Map, _ string) error {
-						return populateSelectorRegsMap(m, selector)
+						return populateSelectorRegsMap(m, selector, uprobeEntry.dynOv)
 					},
 				},
 			)
@@ -412,7 +418,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 					&program.MapLoad{
 						Name: "regs_map",
 						Load: func(m *ebpf.Map, _ string) error {
-							return populateSelectorRegsMap(m, selector)
+							return populateSelectorRegsMap(m, selector, uprobeEntry.dynOv)
 						},
 					},
 				)
@@ -483,6 +489,7 @@ type uprobeHas struct {
 	userStackTrace       bool
 	uprobeHeapSize       int
 	rateLimit            bool
+	dynOv                *DynamicOverride
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -630,6 +637,11 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 			}
 		}
 	}
+
+	// validate that `sopath` is correctly set to a regular file
+	if err := ValidateSODynamic(spec); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -637,6 +649,9 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 	if selectors.HasOverride(spec.Selectors) {
 		if !bpf.HasUprobeRegsChange() {
 			return errors.New("can't use override regs action, no kernel support")
+		}
+		if IsSODynamic(spec.Selectors) && !bpf.HasProbeWriteUserHelper() {
+			return errors.New("can't use override sopath option, no kernel support")
 		}
 		has.sleepableOffload = true
 	}
@@ -652,8 +667,11 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 
 // computeArgNewOffsets returns the instruction pointer delta of each Override
 // action redirecting to a new target, keyed by selector index.
-func computeArgNewOffsets(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAddr uint64) (map[int]int64, error) {
+// It can also return the DynamicOverride struct if the override action requested a sopath.
+func computeArgNewOffsets(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAddr uint64) (map[int]int64, *DynamicOverride, error) {
 	ipDeltas := map[int]int64{}
+	var dynOv *DynamicOverride
+
 	for selIdx, sel := range spec.Selectors {
 		for _, matchAct := range sel.MatchActions {
 			if matchAct.Action != "Override" {
@@ -661,6 +679,16 @@ func computeArgNewOffsets(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolA
 			}
 
 			// Load override-symbol VA
+			if matchAct.SoPath != "" {
+				var dynOverride DynamicOverride
+				// For now, we enforce a single sopath action to be present, see ValidateSODynamic()
+				err := dynOverride.Init(&matchAct, spec.Path)
+				if err != nil {
+					return nil, nil, err
+				}
+				dynOv = &dynOverride
+				continue
+			}
 			var (
 				overrideSymbAddr uint64
 				err              error
@@ -676,9 +704,8 @@ func computeArgNewOffsets(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolA
 				continue
 			}
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-
 			// Store the relative-to-traced-symbol delta.
 			// This is computed based on virtual address for both symbols.
 			// Since ASLR just changes the base address,
@@ -689,15 +716,15 @@ func computeArgNewOffsets(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolA
 			ipDeltas[selIdx] = int64(overrideSymbAddr - symbolAddr)
 		}
 	}
-	if len(ipDeltas) == 0 {
-		return nil, errors.New("state.overrideSymbol is true but no corresponding Override action found in spec.Selectors")
+	if len(ipDeltas) == 0 && dynOv == nil {
+		return nil, nil, errors.New("state.overrideSymbol is true but no corresponding Override action found in spec.Selectors")
 	}
-	return ipDeltas, nil
+	return ipDeltas, dynOv, nil
 }
 
-func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigState, f *elf.SafeELFFile) (map[int]int64, error) {
+func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigState, f *elf.SafeELFFile) (map[int]int64, *DynamicOverride, error) {
 	if !state.overrideSymbol {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	// Load probed symbol offset
@@ -713,13 +740,13 @@ func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigStat
 		symbolAddr, err = f.AddrFromOffset(spec.Offsets[0])
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	return computeArgNewOffsets(spec, f, symbolAddr)
 }
 
-func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState, f *elf.SafeELFFile, nextIdx int) error {
-	ipDeltas, err := initOverrideSymbolOffset(spec, state, f)
+func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState, f *elf.SafeELFFile, nextIdx int, has *uprobeHas) error {
+	ipDeltas, dynOv, err := initOverrideSymbolOffset(spec, state, f)
 	if err != nil {
 		return err
 	}
@@ -737,6 +764,8 @@ func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *upro
 	if err != nil {
 		return err
 	}
+
+	has.dynOv = dynOv
 
 	state.selectors = kprobeSelectors{
 		entry: entry,
@@ -1317,7 +1346,7 @@ func getLinkPath(file *os.File, targetPath string) string {
 	return targetPath
 }
 
-func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *uprobeConfigState, f *elf.SafeELFFile) ([]idtable.EntryID, error) {
+func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *uprobeConfigState, f *elf.SafeELFFile, has *uprobeHas) ([]idtable.EntryID, error) {
 	addUprobeEntry := func(sym string, offset uint64, idx int) error {
 		var refCtrOffset uint64
 		var err error
@@ -1344,6 +1373,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 			argReturnPrinters: state.argReturnPrinters,
 			tags:              state.tags,
 			pendingEvents:     nil,
+			dynOv:             has.dynOv,
 		}
 
 		if selectors.HasStackTrace(spec.Selectors) {
@@ -1456,7 +1486,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, entryFile *os.File, ids []idtable.Entr
 		return ids, err
 	}
 
-	if err := initUprobeSelectors(spec, in, &state, f, len(ids)); err != nil {
+	if err := initUprobeSelectors(spec, in, &state, f, len(ids), has); err != nil {
 		return ids, err
 	}
 
@@ -1468,7 +1498,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, entryFile *os.File, ids []idtable.Entr
 		return ids, err
 	}
 
-	return addUprobeEntries(spec, ids, &state, f)
+	return addUprobeEntries(spec, ids, &state, f, has)
 }
 
 func multiUprobePinPath(sensorPath string) string {
@@ -1570,6 +1600,10 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		regsMap.SetMaxEntries(max(regsMapEntries, 1))
 		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, load)
 		maps = append(maps, regsMap, sleepableOffloadMap)
+
+		if has.dynOv != nil {
+			maps = append(maps, has.dynOv.GetMaps(load)...)
+		}
 	}
 
 	if has.sleepablePreload {
@@ -1692,6 +1726,10 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		regsMap.SetMaxEntries(regsMapEntries)
 		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, load)
 		maps = append(maps, regsMap, sleepableOffloadMap)
+
+		if has.dynOv != nil {
+			maps = append(maps, has.dynOv.GetMaps(load)...)
+		}
 	}
 
 	if has.sleepablePreload {
