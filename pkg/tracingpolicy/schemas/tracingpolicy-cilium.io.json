@@ -575,6 +575,17 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -1176,6 +1187,17 @@
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
                           },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
@@ -2071,6 +2093,17 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -2672,6 +2705,17 @@
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
                           },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
@@ -3301,6 +3345,17 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -3903,6 +3958,17 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -4478,6 +4544,17 @@
                     "rateLimitScope": {
                       "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                       "type": "string"
+                    },
+                    "sopath": {
+                      "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                      "maxLength": 127,
+                      "type": "string",
+                      "x-kubernetes-validations": [
+                        {
+                          "message": "sopath basename should be at most 31 chars long",
+                          "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                        }
+                      ]
                     },
                     "userStackTrace": {
                       "description": "Enable user stack trace export. Only valid with the post action.",
@@ -5081,6 +5158,17 @@
                       "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                       "type": "string"
                     },
+                    "sopath": {
+                      "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                      "maxLength": 127,
+                      "type": "string",
+                      "x-kubernetes-validations": [
+                        {
+                          "message": "sopath basename should be at most 31 chars long",
+                          "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                        }
+                      ]
+                    },
                     "userStackTrace": {
                       "description": "Enable user stack trace export. Only valid with the post action.",
                       "type": "boolean"
@@ -5640,6 +5728,17 @@
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
                           },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
@@ -6242,6 +6341,17 @@
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
                           },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
@@ -7100,6 +7210,17 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -7701,6 +7822,17 @@
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
                           },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
@@ -8303,6 +8435,17 @@
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -8904,6 +9047,17 @@
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
+                          },
+                          "sopath": {
+                            "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
+                            "maxLength": 127,
+                            "type": "string",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "sopath basename should be at most 31 chars long",
+                                "rule": "self.size() - (self.lastIndexOf('/') + 1) < 32"
+                              }
+                            ]
                           },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
