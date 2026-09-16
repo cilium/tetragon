@@ -828,6 +828,45 @@ spec:
 	}
 }).RegisterAtInit()
 
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-symbol-so"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    - "lasagna"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_pizza
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+
+	if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+		return "SubString operator requires bpf_copy_from_user_str kfunc"
+	}
+
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-simple").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin)))
+
+	return &policytest.Scenario{
+		Name:         "check calls were overridden with symbol loaded by SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(210), // 100 + 110
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
+
 // resolveFuncStart is a helper function to be used in the yaml.
 func resolveFuncStart(bin, funcName string) (uint64, error) {
 	se, err := telf.OpenSafeELFFile(bin)
