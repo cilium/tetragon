@@ -70,9 +70,9 @@ RUN apt-get update
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
     then apt-get install -y curl git llvm gcc pkg-config zlib1g-dev libelf-dev libelf-dev:arm64 libcap-dev:arm64 crossbuild-essential-$TARGETARCH; \
     else apt-get install -y curl git llvm gcc pkg-config zlib1g-dev libelf-dev libcap-dev; fi
-# v7.3.0
-ENV BPFTOOL_REV="687e7f06f2ee104ed6515ec3a9816af77bfa7a17"
-RUN git clone https://github.com/libbpf/bpftool.git . && git checkout ${BPFTOOL_REV} && git submodule update --init --recursive
+# renovate: datasource=github-releases depName=libbpf/bpftool
+ARG BPFTOOL_TAG=v7.3.0
+RUN git clone https://github.com/libbpf/bpftool.git . && git checkout ${BPFTOOL_TAG} && git submodule update --init --recursive
 # From Ubuntu 24.04 builder image, libzstd must be added at the end of LIBS and LIBS_BOOTSTRAP to compile statically
 RUN sed -i 's/\(LIBS = $(LIBBPF) -lelf -lz\)/\1 -lzstd/; s/\(LIBS_BOOTSTRAP = $(LIBBPF_BOOTSTRAP) -lelf -lz\)/\1 -lzstd/' src/Makefile
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
@@ -82,7 +82,8 @@ RUN if [ $BUILDARCH != $TARGETARCH ]; \
 # This stage downloads a stripped static version of bpftool with LLVM disassembler
 FROM --platform=$BUILDPLATFORM quay.io/cilium/alpine-curl@sha256:408430f548a8390089b9b83020148b0ef80b0be1beb41a98a8bfe036709c196e AS bpftool-downloader
 ARG TARGETARCH
-ARG BPFTOOL_TAG=v7.2.0-snapshot.0
+# renovate: datasource=github-releases depName=libbpf/bpftool
+ARG BPFTOOL_TAG=v7.3.0
 RUN curl -L https://github.com/libbpf/bpftool/releases/download/${BPFTOOL_TAG}/bpftool-${BPFTOOL_TAG}-${TARGETARCH}.tar.gz | tar xz && chmod +x bpftool
 
 # Get bash-completion manifests and generate tetra CLI bash
