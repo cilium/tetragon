@@ -284,6 +284,9 @@ func UprobeOpen(load *Program) OpenFunc {
 		if !load.SleepableOffload {
 			disableProg(coll, "generic_sleepable_offload")
 		}
+		if load.DynOv == nil {
+			load.DynOv.uprobeDisableExtraProgs(coll)
+		}
 		if !load.SleepablePreload {
 			disableProg(coll, "generic_sleepable_preload")
 			disableProg(coll, "generic_sleepable_preload_cleanup")
@@ -348,7 +351,7 @@ func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
-func attachMultiUpobeLink(load *Program, prog *ebpf.Program, path string,
+func attachMultiUprobeLink(load *Program, prog *ebpf.Program, path string,
 	attach *MultiUprobeAttachSymbolsCookies, bpfDir string,
 	idx int, extra ...string) (link.Link, error) {
 	exec, err := link.OpenExecutable(path)
@@ -391,7 +394,7 @@ func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 
 		idx := 0
 		for path, attach := range data.Attach {
-			lnk, err := attachMultiUpobeLink(load, prog, path, attach, bpfDir, idx, extra...)
+			lnk, err := attachMultiUprobeLink(load, prog, path, attach, bpfDir, idx, extra...)
 			if err != nil {
 				return nil, err
 			}
@@ -457,6 +460,9 @@ func uprobeAttach(load *Program, bpfDir string,
 		sleepableOffload unloader.Unloader
 		sleepablePreload unloader.Unloader
 		sleepableCleanup unloader.Unloader
+		dynOvMmap        unloader.Unloader
+		dynOvDlopen      unloader.Unloader
+		dynOvDlsym       unloader.Unloader
 	)
 
 	defer func() {
@@ -465,6 +471,9 @@ func uprobeAttach(load *Program, bpfDir string,
 			sleepableOffload,
 			sleepablePreload,
 			sleepableCleanup,
+			dynOvMmap,
+			dynOvDlopen,
+			dynOvDlsym,
 		}
 		if err != nil {
 			un.Unload(true)
@@ -476,6 +485,12 @@ func uprobeAttach(load *Program, bpfDir string,
 		if sleepableOffload, err = uprobeAttachExtra(load, bpfDir, coll, collSpec,
 			"generic_sleepable_offload", "sleepable_offload", attach); err != nil {
 			return nil, err
+		}
+
+		if load.DynOv != nil {
+			if dynOvMmap, dynOvDlopen, dynOvDlsym, err = load.DynOv.uprobeExtraAttach(load, bpfDir, coll, collSpec, attach); err != nil {
+				return nil, err
+			}
 		}
 	}
 
