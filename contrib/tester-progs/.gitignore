@@ -47,6 +47,10 @@ uprobe-null.btf
 /uprobe-simple
 /uprobe-selector-targets-1
 /uprobe-selector-targets-2
+/uprobe-execve
+/uprobe-static-chain
+/uprobe-big-struct
+libuprobe-static-chain.so
 pclntab-stripped
 pclntab-unstripped
 null-mount

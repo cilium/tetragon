@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <pthread.h>
 
 int
 __attribute__((noinline))
@@ -14,6 +15,13 @@ __attribute__((noinline))
 lasagna(int c)
 {
 	return c - 10;
+}
+
+int
+__attribute__((noinline))
+maccheroni(int c)
+{
+	return c - 20;
 }
 
 int
@@ -45,11 +53,26 @@ manyargs(int zero, int one, int two, int three, int four, uint64_t five, int six
 	}
 }
 
+static void *
+thread_start(void *argp)
+{
+    int *ret = (int *)argp;
+    *ret += maccheroni(20);
+    return NULL;
+}
+
+
 int
 main(int argc, char *argv[])
 {
 	int ret = pizza(0);
 	printf("pizza() returned %d\n", ret);
+
+	ret += lasagna(10);
+
+	pthread_t th;
+	pthread_create(&th, NULL, &thread_start, &ret);
+	pthread_join(th, NULL);
 
 	if (argc == 2) {
 		ret = manyargs(0, 1, 2, 3, 4, 5, 6, 7, (int)strtol(argv[1], NULL, 10));
