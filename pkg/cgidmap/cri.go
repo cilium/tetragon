@@ -38,8 +38,9 @@ type criResolver struct {
 }
 
 type unmappedID struct {
-	podID  PodID
-	contID ContainerID
+	podID     PodID
+	contID    ContainerID
+	isSandbox bool
 }
 
 func (c *criResolver) enqeue(unmappedIDs []unmappedID) {
@@ -106,7 +107,11 @@ func criResolve(m Map, id unmappedID) error {
 	if err := cgtracker.AddCgroupTrackerPath(path); err != nil {
 		logger.GetLogger().Warn("failed to add path to cgroup tracker", "cri-resolve", true, logfields.Error, err)
 	}
-	m.Add(id.podID, id.contID, cgID)
+	if id.isSandbox {
+		m.AddPodSandbox(id.podID, id.contID, cgID)
+	} else {
+		m.Add(id.podID, id.contID, cgID)
+	}
 	return nil
 }
 
