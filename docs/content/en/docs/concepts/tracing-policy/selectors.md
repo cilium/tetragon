@@ -1179,7 +1179,7 @@ Note that it can be successfully used only when following conditions are met:
 - uprobe is attached to the beginning of the user space function;
 - user space function is called via `call` instruction;
 - user space function returns `int` type;
-- kernel support to manipulate raw registers is available (6.18+).
+- kernel support to manipulate raw registers is only available on 6.18+.
 
 It's also possible to override the traced symbol with a new symbol call, like:
 ```yaml
@@ -1219,8 +1219,48 @@ uprobes:
 ```
 
 There are, however, some restrictions:
-- kernel support to manipulate raw registers is required (6.18+);
+- uprobe is attached to the beginning of the user space function;
+- only a single uprobe symbol can be redirected;
+- user space function is called via `call` instruction;
+- kernel support to manipulate raw registers is only available on 6.18+;
 - new symbol must be already present in the binary;
+- new symbol must have the same signature as the original symbol.
+
+{{< warning >}}
+Since tetragon enforces no verification for the last point, this can lead to
+crashing the traced application.
+{{< /warning >}}
+
+Leveraging `sopath`, it's also possible to override the symbol call
+with a symbol loaded from a shared object.
+
+{{< tip >}}
+`sopath` is to be considered experimental.
+{{< /tip >}}
+
+In that case, `sopath` should be set to the shared object path:
+```yaml
+uprobes:
+- path: "test"
+  symbols:
+  - "malloc"
+  selectors:
+  - matchActions:
+    - action: Override
+      argNewSymbol: "malloc_patched"
+      sopath: "/home/test/mymalloc.so"
+```
+
+Note that it also supports directly providing `argNewAddr` or `argNewOffset` 
+for the symbol within the shared object.
+
+In this case, following restrictions apply:
+- uprobe is attached to the beginning of the user space function;
+- user space function is called via `call` instruction;
+- kernel support to manipulate raw registers is only available on 6.18+;
+- the executable must dynamically link libc.so.6;
+- libc.so.6 must offer `dlopen` function, incorporating `libdl` ([libc.so.6 >= 2.34](https://lists.gnu.org/archive/html/info-gnu/2021-08/msg00001.html));
+- libc.so.6 must be somewhere under `/usr/lib/`;
 - new symbol must have the same signature as the original symbol.
 
 {{< warning >}}
