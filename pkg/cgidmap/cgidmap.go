@@ -23,6 +23,7 @@ import (
 // convinience types to make APIs more readable
 type CgroupID = uint64
 type ContainerID = string
+type PodSandboxID = string
 type PodID = uuid.UUID
 
 // Map implements the a cgroup id to container id maping
@@ -40,22 +41,33 @@ type Map interface {
 	// Get retrieves a container id based on a cgroup id
 	Get(cgID CgroupID) (ContainerID, bool)
 
+	// GetPodSandbox retrieves a pod sandbox id based on a cgroup id
+	GetPodSandbox(cgID CgroupID) (PodSandboxID, bool)
+
 	// Add adds a <podID, contID, cgroupID> entry in the mapping
 	Add(podID PodID, contID ContainerID, cgroupID CgroupID)
+
+	// AddPodSandbox adds a <podID, sandboxID, cgroupID> entry for a pod sandbox
+	AddPodSandbox(podID PodID, sandboxID PodSandboxID, cgroupID CgroupID)
 
 	// Update updates the state of pod and containers.
 	// For example, previous container ids added for a certain pod will be removed if the
 	// container ids are not in the provided list. Removing all information for a pod (e.g.,
 	// when a pod is deleted) can be done by passing an empty list of container ids.
 	Update(podID PodID, contIDs []ContainerID)
+
+	// UpdatePodSandbox updates the state of pod sandbox.
+	// If the sandboxID is different or empty, previous sandbox entries for the pod are removed.
+	UpdatePodSandbox(podID PodID, sandboxID PodSandboxID)
 }
 
 // map entry
 type entry struct {
-	cgID    CgroupID
-	contID  ContainerID
-	podID   PodID
-	invalid bool
+	cgID      CgroupID
+	contID    ContainerID
+	podID     PodID
+	isSandbox bool
+	invalid   bool
 }
 
 // cgidm implements Map
@@ -150,6 +162,7 @@ func (m *cgidm) updateEntry(idx int, newEntry entry) {
 			"oldcgID", oldEntry.cgID)
 		oldEntry.cgID = newEntry.cgID
 	}
+	oldEntry.isSandbox = newEntry.isSandbox
 }
 
 // Add adds a new entry to the cgid map
@@ -157,14 +170,35 @@ func (m *cgidm) Add(podID PodID, contID ContainerID, cgroupID CgroupID) {
 	m.DebugLogWithCallers(2).Info("cgidmap.Add", "podID", podID, "contID", contID, "cgroupID", cgroupID)
 
 	newEntry := entry{
-		podID:  podID,
-		contID: contID,
-		cgID:   cgroupID,
+		podID:     podID,
+		contID:    contID,
+		cgID:      cgroupID,
+		isSandbox: false,
 	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if idx, ok := m.contMap[contID]; ok {
+		m.updateEntry(idx, newEntry)
+		return
+	}
+	m.addEntry(newEntry)
+}
+
+// AddPodSandbox adds a new pod sandbox entry to the cgid map
+func (m *cgidm) AddPodSandbox(podID PodID, sandboxID PodSandboxID, cgroupID CgroupID) {
+	m.DebugLogWithCallers(2).Info("cgidmap.AddPodSandbox", "podID", podID, "sandboxID", sandboxID, "cgroupID", cgroupID)
+
+	newEntry := entry{
+		podID:     podID,
+		contID:    sandboxID,
+		cgID:      cgroupID,
+		isSandbox: true,
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if idx, ok := m.contMap[sandboxID]; ok {
 		m.updateEntry(idx, newEntry)
 		return
 	}
@@ -177,7 +211,22 @@ func (m *cgidm) Get(cgID CgroupID) (ContainerID, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if idx, ok := m.cgMap[cgID]; ok {
-		return m.entries[idx].contID, true
+		if !m.entries[idx].isSandbox {
+			return m.entries[idx].contID, true
+		}
+	}
+	return "", false
+}
+
+func (m *cgidm) GetPodSandbox(cgID CgroupID) (PodSandboxID, bool) {
+	m.DebugLogWithCallers(2).Debug("cgidmap.GetPodSandbox", "cgroupID", cgID)
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if idx, ok := m.cgMap[cgID]; ok {
+		if m.entries[idx].isSandbox {
+			return m.entries[idx].contID, true
+		}
 	}
 	return "", false
 }
@@ -196,8 +245,8 @@ func (m *cgidm) Update(podID PodID, contIDs []ContainerID) {
 	for idx := range m.entries {
 		e := &m.entries[idx]
 
-		// skip invalid entries and entries from other pods
-		if e.invalid || e.podID != podID {
+		// skip invalid entries, sandbox entries, and entries from other pods
+		if e.invalid || e.podID != podID || e.isSandbox {
 			continue
 		}
 
@@ -223,12 +272,58 @@ func (m *cgidm) Update(podID PodID, contIDs []ContainerID) {
 	unmappedIDs := make([]unmappedID, 0, len(tmp))
 	for id := range tmp {
 		unmappedIDs = append(unmappedIDs, unmappedID{
-			podID:  podID,
-			contID: id,
+			podID:     podID,
+			contID:    id,
+			isSandbox: false,
 		})
 	}
 	if m.criResolver != nil {
 		m.criResolver.enqeue(unmappedIDs)
+	}
+}
+
+// UpdatePodSandbox updates the cgid map for the sandbox id of a given pod
+func (m *cgidm) UpdatePodSandbox(podID PodID, sandboxID PodSandboxID) {
+	m.DebugLogWithCallers(2).Info("cgidmap.UpdatePodSandbox", "podID", podID, "sandboxID", sandboxID)
+
+	unmappedSandboxID := sandboxID
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for idx := range m.entries {
+		e := &m.entries[idx]
+
+		// skip invalid entries, non-sandbox entries, and entries from other pods
+		if e.invalid || e.podID != podID || !e.isSandbox {
+			continue
+		}
+
+		if sandboxID != "" && e.contID == sandboxID {
+			unmappedSandboxID = ""
+			continue
+		}
+
+		// sandbox was removed or changed, remove the entry
+		delete(m.cgMap, e.cgID)
+		delete(m.contMap, e.contID)
+		e.invalid = true
+		m.invalidCnt++
+	}
+
+	// sandbox is already mapped or empty, nothing more to do
+	if unmappedSandboxID == "" {
+		return
+	}
+
+	// schedule unmapped sandbox id to be resolved by the CRI resolver
+	if m.criResolver != nil {
+		m.criResolver.enqeue([]unmappedID{
+			{
+				podID:     podID,
+				contID:    unmappedSandboxID,
+				isSandbox: true,
+			},
+		})
 	}
 }
 
