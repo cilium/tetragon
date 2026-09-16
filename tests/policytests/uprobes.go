@@ -837,6 +837,200 @@ spec:
 	}
 }).RegisterAtInit()
 
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-multi").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-multi"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    - "lasagna"
+    - "maccheroni"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_pizza
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeMultiProbe] {
+		return "need uprobe multi support"
+	}
+
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+
+	if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+		return "SubString operator requires bpf_copy_from_user_str kfunc"
+	}
+
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-simple").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin)))
+
+	// Multi uprobe; symbols share the attached program.
+	//
+	// we trigger uprobed symbols 7 times: 3 times for real:
+	// * 1 time pizza()
+	// * 1 time lasagna (cached call)
+	// * 1 time normally from a secondary thread (maccheroni())
+	// plus 2 times while resolving the symbol from sopath on each thread,
+	// since the sopath override implementation re-triggers the symbol itself
+	// instead of attaching uretprobes to mmap and dlopen.
+	overrideCount := uint64(3) + 4
+	return &policytest.Scenario{
+		Name:         "check calls were overridden with symbol loaded by SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(33), // 1 + 11 + 21
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Override: &overrideCount,
+		},
+	}
+}).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so"
+spec:
+  options:
+  - name: "disable-uprobe-multi"
+    value: "1"
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    - "lasagna"
+    - "maccheroni"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_pizza
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+
+	if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+		return "SubString operator requires bpf_copy_from_user_str kfunc"
+	}
+
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-simple").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin)))
+
+	// Single uprobe; each symbol has its own attached program.
+	//
+	// We trigger uprobed symbols 9 times.
+	// 3 times for real:
+	// * 1 time pizza()
+	// * 1 time lasagna()
+	// * 1 time normally from a secondary thread (maccheroni())
+	// plus 2 times while resolving the symbol from sopath on each invocation,
+	// since the sopath override implementation re-triggers the symbol itself
+	// instead of attaching uretprobes to mmap and dlopen.
+	// thus ending up with 3 uprobe triggers for each symbol.
+	// NOTE: lasagna() call is non-cached in non-multi-uprobe mode
+	// because tg_dyn_sm is program specific, and each symbol has its own program.
+	overrideCount := uint64(3) * 3
+	return &policytest.Scenario{
+		Name:         "check calls were overridden with symbol loaded by SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(33), // 1 + 11 + 21
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Override: &overrideCount,
+		},
+	}
+}).RegisterAtInit()
+
+// GCC nested functions receive a pointer to the enclosing function's frame in
+// the static chain register (r10 on x86_64, x18 on arm64), a hidden argument
+// that must be preserved across the mmap()/dlopen() detour done while
+// resolving the symbol from sopath. See uprobe-static-chain.c for the exit
+// code and how the replacement library is built.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-static-chain").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-static-chain"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-static-chain" }}
+    symbols:
+    - "static_chain_target.0"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: "static_chain_target.0"
+        sopath: {{ testBinary "libuprobe-static-chain.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-static-chain")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-static-chain").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("static_chain_target.0"))
+
+	return &policytest.Scenario{
+		Name:         "check static chain register is preserved while resolving symbol from SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
+
+// Structs larger than 16 bytes are returned through memory: the caller passes
+// the result address in x8 on arm64 (in rdi on x86_64), which must be
+// preserved across the mmap()/dlopen() detour done while resolving the symbol
+// from sopath. See uprobe-big-struct.c for the exit code.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-big-struct").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-big-struct"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-big-struct" }}
+    symbols:
+    - "big_struct_ret"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_big_struct
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-big-struct")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-big-struct").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("big_struct_ret"))
+
+	return &policytest.Scenario{
+		Name:         "check struct return address is preserved while resolving symbol from SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
+
 // resolveFuncStart is a helper function to be used in the yaml.
 func resolveFuncStart(bin, funcName string) (uint64, error) {
 	se, err := telf.OpenSafeELFFile(bin)

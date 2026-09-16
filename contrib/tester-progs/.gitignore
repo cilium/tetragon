@@ -45,6 +45,9 @@ uprobe-caller.btf
 uprobe-null
 uprobe-null.btf
 /uprobe-simple
+/uprobe-static-chain
+/uprobe-big-struct
+libuprobe-static-chain.so
 pclntab-stripped
 pclntab-unstripped
 null-mount
