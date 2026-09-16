@@ -2000,7 +2000,10 @@ There are different types supported for each operator. In case of `matchArgs`:
 * NotDPort - Not Destination Port
 * DPortPriv - Destination Port is Privileged (0-1023)
 * NotDPortPriv - Destination Port is Not Privileged (Not 0-1023)
-* SAddr - Source Address, can be IPv4/6 address or IPv4/6 CIDR (for ex 1.2.3.4/24 or 2a1:56::1/128)
+* SAddr - Source Address, can be IPv4/6 address or IPv4/6 CIDR (for ex 1.2.3.4/24 or 2a1:56::1/128).
+  An IPv4 value also matches the same address seen on a dual-stack socket, where it
+  appears as the IPv4-mapped address `::ffff:1.2.3.4` with family `AF_INET6`, and
+  vice versa. There is no need to list both forms.
 * NotSAddr - Not Source Address
 * DAddr - Destination Address
 * NotDAddr - Not Destination Address
