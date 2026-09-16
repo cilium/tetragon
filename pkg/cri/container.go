@@ -85,18 +85,29 @@ func ParseCgroupsPath(cgroupPath string) (string, error) {
 }
 
 func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerID string) (string, error) {
+	var info map[string]string
+
 	req := criapi.ContainerStatusRequest{
 		ContainerId: containerID,
 		Verbose:     true,
 	}
 	res, err := cli.ContainerStatus(ctx, &req)
-	if err != nil {
-		return "", err
+	if err == nil {
+		info = res.GetInfo()
+	} else {
+		sbReq := criapi.PodSandboxStatusRequest{
+			PodSandboxId: containerID,
+			Verbose:      true,
+		}
+		sbRes, sbErr := cli.PodSandboxStatus(ctx, &sbReq)
+		if sbErr != nil {
+			return "", errors.Join(err, sbErr)
+		}
+		info = sbRes.GetInfo()
 	}
 
-	info := res.GetInfo()
 	if info == nil {
-		return "", errors.New("no container info")
+		return "", errors.New("no container or pod sandbox info")
 	}
 
 	var path, json string
