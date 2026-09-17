@@ -502,7 +502,7 @@ FUNC_INLINE void update_parents_map(struct msg_execve_event *event, struct execv
 			// use current binary as parent binary if exec events is not preceded
 			// by clone, i.e. exec call was invoked in the same process.
 			if (!(event->process.flags & EVENT_CLONE)) {
-				__bpf_memcpy_builtin(bin, &curr->bin, sizeof(curr->bin));
+				memcpy(bin, &curr->bin, sizeof(curr->bin));
 				with_errmetrics(map_update_elem, &tg_parents_bin, &curr->key.pid, bin, BPF_ANY);
 			} else {
 				struct execve_map_value *parent = event_find_parent();

@@ -283,7 +283,10 @@ __bpf_no_builtin_memcpy(void *d __maybe_unused, const void *s __maybe_unused,
 FUNC_INLINE __nobuiltin("memcpy") void memcpy(void *d, const void *s,
 							 __u64 len)
 {
-	return __bpf_memcpy(d, s, len);
+	if (len > 32)
+		probe_read_kernel(d, len, s);
+	else
+		__bpf_memcpy(d, s, len);
 }
 
 /* Explicit opt-in for __builtin_memcmp(). We use the bcmp builtin
