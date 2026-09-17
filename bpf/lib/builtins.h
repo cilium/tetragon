@@ -153,18 +153,13 @@ __bpf_no_builtin_memset(void *d __maybe_unused, __u8 c __maybe_unused,
 FUNC_INLINE __nobuiltin("memset") void memset(void *d, int c,
 							 __u64 len)
 {
-	if (__builtin_constant_p(len) && __builtin_constant_p(c) && c == 0) {
-		if (len > 32) {
-			// Similar to https://github.com/torvalds/linux/blob/704340f1cd0dcef829eb62f5b48ae95a2ce17bdf/tools/testing/selftests/bpf/progs/iters.c#L705.
-			// bpf_probe_read_kernel in failure zeros the dst
-			// (i.e. https://github.com/torvalds/linux/blob/704340f1cd0dcef829eb62f5b48ae95a2ce17bdf/include/linux/bpf.h#L3580-L3581)
-			probe_read_kernel(d, len, 0);
-		} else {
-			__bpf_memzero(d, len);
-		}
-	} else {
-		__bpf_memset_builtin(d, (__u8)c, len);
-	}
+	if (c != 0)
+		__throw_build_bug();
+
+	// Similar to https://github.com/torvalds/linux/blob/704340f1cd0dcef829eb62f5b48ae95a2ce17bdf/tools/testing/selftests/bpf/progs/iters.c#L705.
+	// bpf_probe_read_kernel in failure zeros the dst
+	// (i.e. https://github.com/torvalds/linux/blob/704340f1cd0dcef829eb62f5b48ae95a2ce17bdf/include/linux/bpf.h#L3580-L3581)
+	probe_read_kernel(d, len, 0);
 }
 
 #define __bpf_memcpy_builtin(d, s, len) \
