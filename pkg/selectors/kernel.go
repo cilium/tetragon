@@ -988,6 +988,9 @@ func writePrefixStrings(k *KernelSelectorState, values []string) error {
 func writePostfix(k *KernelSelectorState, values []string, ty uint32, selector string) (uint32, error) {
 	mid, m := k.newStringPostfixMap()
 	for _, v := range values {
+		if len(v) == 0 {
+			return 0, fmt.Errorf("%s value invalid: empty value not allowed", selector)
+		}
 		var value []byte
 		var size uint32
 		if ty == gt.GenericCharBuffer {
@@ -999,6 +1002,11 @@ func writePostfix(k *KernelSelectorState, values []string, ty uint32, selector s
 		// longer than 127 characters, so throw an error if the user specified one.
 		if size >= StringPostfixMaxLength {
 			return 0, fmt.Errorf("%s value %s invalid: string is longer than %d characters", selector, v, StringPostfixMaxLength-1)
+		}
+		// An empty value (or one stripped down to nothing) would widen
+		// to a match-all entry; reject it instead.
+		if size == 0 {
+			return 0, fmt.Errorf("%s value invalid: empty value not allowed", selector)
 		}
 		val := KernelLPMTrieStringPostfix{prefixLen: size * 8} // postfix is in bits, but size is in bytes
 		// Copy postfix in reverse order, so that it can be used in LPM map
