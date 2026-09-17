@@ -24,7 +24,18 @@ var (
 	// special error to inidicate that fileystem scanning found a file that
 	// matches the container id, without, however, matching the pod id.
 	ErrContainerPathWithoutMatchingPodID = errors.New("found cgroup file that matches the container id, but not the pod id")
+
+	// ErrEmptyContainerID is returned for an empty container id, which would
+	// otherwise substring-match an arbitrary cgroup directory.
+	ErrEmptyContainerID = errors.New("empty container id")
 )
+
+// isConmonDir reports whether a cgroup directory belongs to crio's conmon
+// container. Conmon directories contain the container id but are not the
+// container's own cgroup.
+func isConmonDir(name string) bool {
+	return strings.Contains(name, "crio-conmon")
+}
 
 // FsScanner is a utility for scanning the filesystem to find container cgroup directories.
 type FsScanner interface {
@@ -69,6 +80,10 @@ func findContainerDirectoryFromRoot(root string, containerID string) string {
 			return nil
 		}
 		base := filepath.Base(path)
+		// skip crio's conmon container
+		if isConmonDir(base) {
+			return filepath.SkipDir
+		}
 		if strings.Contains(base, containerID) {
 			retPath = path
 			return found
@@ -80,6 +95,10 @@ func findContainerDirectoryFromRoot(root string, containerID string) string {
 
 // FindContainer implements FindContainer method from FsScanner
 func (fs *fsScannerState) FindContainerPath(podID types.UID, containerID string) (string, error) {
+	if containerID == "" {
+		return "", ErrEmptyContainerID
+	}
+
 	// first, check the known (cached) locations
 	for _, loc := range fs.knownParentPodDirs {
 		podDir, containerDir := findPodAndContainerDirectory(loc, podID, containerID)
@@ -190,7 +209,7 @@ func findContainerDirectoryFromPod(podDir string, containerID string) string {
 
 		name := dentry.Name()
 		// skip crio's conmon container
-		if strings.Contains(name, "crio-conmon") {
+		if isConmonDir(name) {
 			continue
 		}
 		if strings.Contains(name, containerID) {
