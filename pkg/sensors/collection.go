@@ -11,7 +11,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"go.uber.org/multierr"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -371,7 +370,7 @@ func (c *collection) load(bpfDir string) error {
 		// NB: we could try to unload sensors going back from the one that failed, but since
 		// unload() checks s.IsLoaded, is easier to just to use unload().
 		if unloadErr := c.unload(true); unloadErr != nil {
-			err = multierr.Append(err, fmt.Errorf("unloading after loading failure failed: %w", unloadErr))
+			err = errors.Join(err, fmt.Errorf("unloading after loading failure failed: %w", unloadErr))
 		}
 	}
 
@@ -386,7 +385,7 @@ func (c *collection) unload(unpin bool) error {
 			continue
 		}
 		unloadErr := s.Unload(unpin)
-		err = multierr.Append(err, unloadErr)
+		err = errors.Join(err, unloadErr)
 	}
 
 	if err != nil {

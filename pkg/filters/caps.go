@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	mapset "github.com/deckarep/golang-set/v2"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -17,34 +16,55 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 )
 
+type capSet map[tetragon.CapabilitiesType]struct{}
+
+func newCapSet(caps []tetragon.CapabilitiesType) capSet {
+	s := make(capSet, len(caps))
+	for _, c := range caps {
+		s[c] = struct{}{}
+	}
+	return s
+}
+
+func (s capSet) hasAny(caps []tetragon.CapabilitiesType) bool {
+	for _, c := range caps {
+		if _, ok := s[c]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func (s capSet) hasAll(caps []tetragon.CapabilitiesType) bool {
+	for _, c := range caps {
+		if _, ok := s[c]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
 func filterSingleCapSet(caps []tetragon.CapabilitiesType, filters *tetragon.CapFilterSet) bool {
 	if filters == nil {
 		return true
 	}
 
-	filterset := mapset.NewSet[tetragon.CapabilitiesType]()
-
-	capset := mapset.NewSet[tetragon.CapabilitiesType]()
-	capset.Append(caps...)
+	capset := newCapSet(caps)
 
 	if len(filters.Any) > 0 {
-		filterset.Append(filters.Any...)
-		return capset.ContainsAny(filterset.ToSlice()...)
+		return capset.hasAny(filters.Any)
 	}
 
 	if len(filters.All) > 0 {
-		filterset.Append(filters.All...)
-		return capset.Intersect(filterset).Equal(filterset)
+		return capset.hasAll(filters.All)
 	}
 
 	if len(filters.Exactly) > 0 {
-		filterset.Append(filters.Exactly...)
-		return capset.Equal(filterset)
+		return len(capset) == len(newCapSet(filters.Exactly)) && capset.hasAll(filters.Exactly)
 	}
 
 	if len(filters.None) > 0 {
-		filterset.Append(filters.None...)
-		return capset.Intersect(filterset).IsEmpty()
+		return !capset.hasAny(filters.None)
 	}
 
 	return false

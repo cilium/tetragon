@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/api"
+	"github.com/cilium/tetragon/pkg/filters"
 )
 
 func argsDecoderTrim(r rune) bool {
@@ -44,20 +45,11 @@ func ArgsDecoder(s string, flags uint32) (string, string) {
 	}
 
 	if len(argTokens) > hasCWD {
-		for i, a := range argTokens {
-			if i == len(argTokens)-hasCWD {
-				continue
-			}
-			if strings.Contains(string(a), " ") {
-				args = args + " \"" + string(a) + "\""
-			} else {
-				if args == "" {
-					args = string(a)
-				} else {
-					args = args + " " + string(a)
-				}
-			}
+		list := make([]string, 0, len(argTokens)-hasCWD)
+		for _, a := range argTokens[:len(argTokens)-hasCWD] {
+			list = append(list, string(a))
 		}
+		args = filters.JoinArgs(list)
 	}
 	return args, cwd
 }
