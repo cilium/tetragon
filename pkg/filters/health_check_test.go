@@ -58,6 +58,18 @@ func Test_maybeExecProbe(t *testing.T) {
 	assert.False(t, MaybeExecProbe("/bin/grpc_health_probe", "-addr=:5050", []string{}))
 	assert.True(t, MaybeExecProbe("/bin/bash_health_probe.sh", "/bin/bash_health_probe.sh test arguments", []string{"/bin/bash_health_probe.sh", "test", "arguments"}))
 	assert.False(t, MaybeExecProbe("/bin/bash_health_probe_no_ext", "/bin/bash_health_probe_no_ext test arguments", []string{"/bin/bash_health_probe", "test", "arguments"}))
+	assert.True(t, MaybeExecProbe("/bin/grep", "'x' /tmp/ready", []string{"grep", "'x'", "/tmp/ready"}))
+	assert.True(t, MaybeExecProbe("/bin/echo", `a\b it's`, []string{"echo", `a\b`, "it's"}))
+	assert.True(t, MaybeExecProbe("/bin/sh", `-c "echo "a b""`, []string{"sh", "-c", `echo "a b"`}))
+	assert.False(t, MaybeExecProbe("/bin/sh", "-c echo ok", []string{"sh", "-c", "echo ok"}))
+}
+
+func TestJoinArgs(t *testing.T) {
+	assert.Empty(t, JoinArgs(nil))
+	assert.Equal(t, "a b", JoinArgs([]string{"a", "b"}))
+	assert.Equal(t, `-c "echo a b"`, JoinArgs([]string{"-c", "echo a b"}))
+	assert.Equal(t, ` "a b" c`, JoinArgs([]string{"a b", "c"}))
+	assert.Equal(t, "b", JoinArgs([]string{"", "b"}))
 }
 
 func Test_healthCheckFilter(t *testing.T) {
