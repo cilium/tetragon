@@ -29,7 +29,6 @@ import (
 	"github.com/cilium/ebpf"
 	gopssignal "github.com/google/gops/signal"
 	"github.com/vishvananda/netlink"
-	"go.uber.org/multierr"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
@@ -555,7 +554,7 @@ func (s *bugtoolInfo) ExecCmd(dstFname string, cmdName string, cmdArgs ...string
 	ret := s.tarAddBuff(dstFname, outbuff)
 	if errbuff.Len() > 0 {
 		errstderr := s.tarAddBuff(dstFname+".err", errbuff)
-		ret = multierr.Append(ret, errstderr)
+		ret = errors.Join(ret, errstderr)
 	}
 	return ret
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 	"github.com/vishvananda/netlink"
-	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
 )
 
@@ -122,12 +121,12 @@ func (u *RelinkUnloader) Unload(unpin bool) error {
 			u.Link.Unpin()
 		}
 		if err := u.Link.Close(); err != nil {
-			ret = multierr.Append(ret, err)
+			ret = errors.Join(ret, err)
 		} else {
 			u.IsLinked = false
 		}
 	}
-	ret = multierr.Append(ret, u.UnloadProg(unpin))
+	ret = errors.Join(ret, u.UnloadProg(unpin))
 	return ret
 }
 
@@ -178,10 +177,10 @@ func (u *MultiRelinkUnloader) Unload(unpin bool) error {
 			link.Unpin()
 		}
 		if err := link.Close(); err != nil {
-			ret = multierr.Append(ret, err)
+			ret = errors.Join(ret, err)
 		}
 	}
-	ret = multierr.Append(ret, u.UnloadProg(unpin))
+	ret = errors.Join(ret, u.UnloadProg(unpin))
 	return ret
 }
 
@@ -192,11 +191,11 @@ func (u *MultiRelinkUnloader) Unlink() error {
 	}
 	for _, link := range u.Links {
 		if err := link.Close(); err != nil {
-			ret = multierr.Append(ret, err)
+			ret = errors.Join(ret, err)
 		}
 	}
 	u.IsLinked = false
-	return nil
+	return ret
 }
 
 func (u *MultiRelinkUnloader) Relink() error {
