@@ -108,5 +108,12 @@ func (s *Server) GetEventLogParams(_ context.Context, _ *tetragon.GetEventLogPar
 	if len(s.logParamsSetter) == 0 {
 		return nil, errors.New("no log params setters available")
 	}
-	return &s.GetEventLogParamsResponse, nil
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return &tetragon.GetEventLogParamsResponse{
+		MaxSize:          s.MaxSize,
+		RotationInterval: s.RotationInterval,
+		MaxBackups:       s.MaxBackups,
+	}, nil
 }
