@@ -34,7 +34,6 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/sryoya/protorand v0.0.0-20250114120907-8c1a8e3138f2
 	github.com/stretchr/testify v1.12.1
-	github.com/tidwall/gjson v1.19.0
 	github.com/vishvananda/netlink v1.3.1
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/sys v0.48.0
@@ -124,8 +123,6 @@ require (
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/vladimirvivien/gexe v0.5.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
