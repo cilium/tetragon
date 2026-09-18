@@ -600,6 +600,9 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		return fmt.Errorf("uprobe Override action needs exactly one of either argNewSymbol, argNewOffset or argNewAddr defined; %d found", numArgNewArgs)
 	}
 	state.overrideSymbol = numArgNewArgs == 1
+	if state.overrideSymbol && !program.IsSODynamic(spec.Selectors) && len(spec.Symbols) > 1 {
+		return errors.New("only a single uprobe symbol can be redirected")
+	}
 
 	if selectors.HasGetUrlOrDnsLookup(spec.Selectors) {
 		return errors.New("failed to configure uprobe, GetUrl and DnsLookup actions not supported")
