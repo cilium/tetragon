@@ -7,12 +7,12 @@ package cri
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 
-	"github.com/tidwall/gjson"
 	criapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -110,15 +110,23 @@ func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerI
 		return "", errors.New("no container or pod sandbox info")
 	}
 
-	var path, json string
-	if infoJson, ok := info["info"]; ok {
-		json = infoJson
-		path = "runtimeSpec.linux.cgroupsPath"
-	} else {
+	infoJSON, ok := info["info"]
+	if !ok {
 		return "", errors.New("could not find info")
 	}
 
-	ret := gjson.Get(json, path).String()
+	var spec struct {
+		RuntimeSpec struct {
+			Linux struct {
+				CgroupsPath string `json:"cgroupsPath"`
+			} `json:"linux"`
+		} `json:"runtimeSpec"`
+	}
+	if err := json.Unmarshal([]byte(infoJSON), &spec); err != nil {
+		return "", fmt.Errorf("failed to parse info: %w", err)
+	}
+
+	ret := spec.RuntimeSpec.Linux.CgroupsPath
 	if ret == "" {
 		return "", errors.New("failed to find cgroupsPath in json")
 	}
