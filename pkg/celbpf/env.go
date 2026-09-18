@@ -91,6 +91,10 @@ func getFnsOpts() []fnOpts {
 		{name: cgOperators.Add, overloads: intBinaryOperatorFnOverloads("add")},
 		{name: cgOperators.Subtract, overloads: intBinaryOperatorFnOverloads("sub")},
 
+		// Multiplication and Division
+		{name: cgOperators.Multiply, overloads: intBinaryOperatorFnOverloads("mul")},
+		{name: cgOperators.Divide, overloads: intBinaryOperatorFnOverloads("div")},
+
 		// Bitwise functions
 		// NB(kkourt): it seems that there is no way to add custom operators to CEL
 		{name: andFn, overloads: intBinaryOperatorFnOverloads(andFn)},
