@@ -1,6 +1,6 @@
 ![example workflow](https://github.com/deckarep/golang-set/actions/workflows/ci.yml/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/deckarep/golang-set/v2)](https://goreportcard.com/report/github.com/deckarep/golang-set/v2)
-[![GoDoc](https://godoc.org/github.com/deckarep/golang-set/v2?status.svg)](http://godoc.org/github.com/deckarep/golang-set/v2)
+[![Go Report Card](https://goreportcard.com/badge/github.com/deckarep/golang-set/v3)](https://goreportcard.com/report/github.com/deckarep/golang-set/v3)
+[![GoDoc](https://godoc.org/github.com/deckarep/golang-set/v3?status.svg)](http://godoc.org/github.com/deckarep/golang-set/v3)
 
 # golang-set
 
@@ -8,6 +8,21 @@ The missing `generic` set collection for the Go language.  Until Go has sets bui
 
 ## Psst
 * Hi there, 👋! Do you use or have interest in the [Zig programming language](https://ziglang.org/) created by Andrew Kelley? If so, the golang-set project has a new sibling project: [ziglang-set](https://github.com/deckarep/ziglang-set)! Come check it out!
+
+## Update 9/15/2026
+Golang-set now squeezes out more performance which adds up to something significant thanks to the work of some of our open-source contributors. (See the benchmarks in the mentioned PRS!)
+Additionally some convenience methods have been added and a new `IsDisjoint` method. We cut a major release because the Mongo Driver/BSON support is fully removed from this version. The community 
+in general was not happy to bring in such a large dependency just for supporting BSON Marshaling/Unmarshaling. Additionally, this did impact the project with a security CVE affecting the Mongo driver.
+Going forward, Golang-set will remain a 100% stdlib only package. The users have spoken and they appreciate the simplicity and minimal attack vector having this package be small in scope.
+
+* Packaged version: `3.0.0` contains the following:
+  * New Filter method added for set element filtering: [PR #175](https://github.com/deckarep/golang-set/pull/175)
+  * Perf: now using Go's maps.Clone() instead of custom implemenation: [PR #176](https://github.com/deckarep/golang-set/pull/176)
+  * New AppendFrom method: [PR #178](https://github.com/deckarep/golang-set/pull/178)
+  * Perf: removes function call overhead internal when marshaling: [PR #180](https://github.com/deckarep/golang-set/pull/180)
+  * Perf: Optimize method calls: [PR #195](https://github.com/deckarep/golang-set/pull/195)
+  * New IsDisjoint method: [PR #179](https://github.com/deckarep/golang-set/pull/179)
+  * Remove Mongo DB driver and BSON support: [PR #198](https://github.com/deckarep/golang-set/pull/198)
 
 ## Update 4/20/2026
 * Packaged version: `2.9.0` contains the following:
@@ -43,7 +58,7 @@ You can of course argue that there is no need for a set in Go, otherwise the cre
 Use `go get` to install this package.
 
 ```shell
-go get github.com/deckarep/golang-set/v2
+go get github.com/deckarep/golang-set/v3
 ```
 
 ## Features
@@ -111,7 +126,7 @@ package main
 
 import (
   "fmt"
-  mapset "github.com/deckarep/golang-set/v2"
+  mapset "github.com/deckarep/golang-set/v3"
 )
 
 func main() {

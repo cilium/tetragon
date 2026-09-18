@@ -23,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-// Package mapset implements a simple and  set collection.
+// Package mapset implements a simple, generic set collection.
 // Items stored within it are unordered and unique. It supports
 // typical set operations: membership testing, intersection, union,
 // difference, symmetric difference and cloning.
@@ -34,8 +34,6 @@ SOFTWARE.
 // programs that can benefit from the slight speed improvement and
 // that can enforce mutual exclusion through other means.
 package mapset
-
-import "go.mongodb.org/mongo-driver/bson/bsontype"
 
 // Set is the primary interface provided by the mapset package.  It
 // represents an unordered set of data and a large number of
@@ -48,6 +46,10 @@ type Set[T comparable] interface {
 	// Append multiple elements to the set. Returns
 	// the number of elements added.
 	Append(val ...T) int
+
+	// AppendFrom elements from another set into this set. (shorthand of s.Append(other.ToSlice()...))
+	// Returns the number of elements added.
+	AppendFrom(other Set[T]) int
 
 	// Cardinality returns the number of elements in the set.
 	Cardinality() int
@@ -141,6 +143,16 @@ type Set[T comparable] interface {
 	// panic.
 	IsSubset(other Set[T]) bool
 
+	// IsDisjoint determines if this set and the other set have
+	// no elements in common. Returns true if the two sets are
+	// disjoint (no common elements), false otherwise.
+	//
+	// Note that the argument to IsDisjoint
+	// must be of the same type as the receiver
+	// of the method. Otherwise, IsDisjoint will
+	// panic.
+	IsDisjoint(other Set[T]) bool
+
 	// IsSuperset determines if every element in the other set
 	// is in this set.
 	//
@@ -153,6 +165,10 @@ type Set[T comparable] interface {
 	// Each iterates over elements and executes the passed func against each element.
 	// If passed func returns true, stop iteration at the time.
 	Each(func(T) bool)
+
+	// Filter iterates over elements and executes the passed func against each element.
+	// If passed func returns true, the element will be added to the returned set.
+	Filter(func(T) bool) Set[T]
 
 	// Iter returns a channel of elements that you can
 	// range over.
@@ -193,8 +209,8 @@ type Set[T comparable] interface {
 
 	// PopN removes and returns up to n arbitrary items from the set.
 	// It returns a slice of the removed items and the actual number of items removed.
-	// If the set is empty or n is less than or equal to 0s, it returns an empty slice and 0.
-	// If n is greater than the set's size, all items are
+	// If the set is empty or n is less than or equal to 0, it returns an empty slice and 0.
+	// If n is greater than the set's size, all items are popped.
 	PopN(n int) ([]T, int)
 
 	// ToSlice returns the members of the set as a slice.
@@ -206,56 +222,43 @@ type Set[T comparable] interface {
 	// UnmarshalJSON will unmarshal a JSON-based byte slice into a full Set datastructure.
 	// For this to work, set subtypes must implement the Marshal/Unmarshal interface.
 	UnmarshalJSON(b []byte) error
-
-	// MarshalBSONValue will marshal the set into a BSON-based representation.
-	MarshalBSONValue() (bsontype.Type, []byte, error)
-
-	// UnmarshalBSONValue will unmarshal a BSON-based byte slice into a full Set datastructure.
-	// For this to work, set subtypes must implement the Marshal/Unmarshal interface.
-	UnmarshalBSONValue(bt bsontype.Type, b []byte) error
 }
 
 // NewSet creates and returns a new set with the given elements.
 // Operations on the resulting set are thread-safe.
-func NewSet[T comparable](vals ...T) Set[T] {
-	s := newThreadSafeSetWithSize[T](len(vals))
-	for _, item := range vals {
-		s.Add(item)
-	}
+func NewSet[T comparable](vs ...T) Set[T] {
+	s := newThreadSafeSetWithSize[T](len(vs))
+	s.uss.append(vs...)
 	return s
 }
 
 // NewSetWithSize creates and returns a reference to an empty set with a specified
 // capacity. Operations on the resulting set are thread-safe.
 func NewSetWithSize[T comparable](cardinality int) Set[T] {
-	s := newThreadSafeSetWithSize[T](cardinality)
-	return s
+	return newThreadSafeSetWithSize[T](cardinality)
 }
 
 // NewThreadUnsafeSet creates and returns a new set with the given elements.
 // Operations on the resulting set are not thread-safe.
-func NewThreadUnsafeSet[T comparable](vals ...T) Set[T] {
-	s := newThreadUnsafeSetWithSize[T](len(vals))
-	for _, item := range vals {
-		s.Add(item)
-	}
+func NewThreadUnsafeSet[T comparable](vs ...T) Set[T] {
+	s := newThreadUnsafeSetWithSize[T](len(vs))
+	s.append(vs...)
 	return s
 }
 
 // NewThreadUnsafeSetWithSize creates and returns a reference to an empty set with
 // a specified capacity. Operations on the resulting set are not thread-safe.
 func NewThreadUnsafeSetWithSize[T comparable](cardinality int) Set[T] {
-	s := newThreadUnsafeSetWithSize[T](cardinality)
-	return s
+	return newThreadUnsafeSetWithSize[T](cardinality)
 }
 
 // NewSetFromMapKeys creates and returns a new set with the given keys of the map.
 // Operations on the resulting set are thread-safe.
 func NewSetFromMapKeys[T comparable, V any](val map[T]V) Set[T] {
-	s := NewSetWithSize[T](len(val))
+	s := newThreadSafeSetWithSize[T](len(val))
 
 	for k := range val {
-		s.Add(k)
+		s.uss.add(k)
 	}
 
 	return s
@@ -264,10 +267,10 @@ func NewSetFromMapKeys[T comparable, V any](val map[T]V) Set[T] {
 // NewThreadUnsafeSetFromMapKeys creates and returns a new set with the given keys of the map.
 // Operations on the resulting set are not thread-safe.
 func NewThreadUnsafeSetFromMapKeys[T comparable, V any](val map[T]V) Set[T] {
-	s := NewThreadUnsafeSetWithSize[T](len(val))
+	s := newThreadUnsafeSetWithSize[T](len(val))
 
 	for k := range val {
-		s.Add(k)
+		s.add(k)
 	}
 
 	return s

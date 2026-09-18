@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	mapset "github.com/deckarep/golang-set/v2"
+	mapset "github.com/deckarep/golang-set/v3"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"

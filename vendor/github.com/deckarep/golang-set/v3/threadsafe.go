@@ -27,19 +27,11 @@ package mapset
 
 import (
 	"sync"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 type threadSafeSet[T comparable] struct {
 	sync.RWMutex
 	uss *threadUnsafeSet[T]
-}
-
-func newThreadSafeSet[T comparable]() *threadSafeSet[T] {
-	return &threadSafeSet[T]{
-		uss: newThreadUnsafeSet[T](),
-	}
 }
 
 func newThreadSafeSetWithSize[T comparable](cardinality int) *threadSafeSet[T] {
@@ -60,6 +52,17 @@ func (t *threadSafeSet[T]) Append(v ...T) int {
 	ret := t.uss.Append(v...)
 	t.Unlock()
 	return ret
+}
+
+func (t *threadSafeSet[T]) AppendFrom(other Set[T]) int {
+	o := other.(*threadSafeSet[T])
+
+	t.Lock()  // Write Lock
+	o.RLock() // Read Lock
+	defer t.Unlock()
+	defer o.RUnlock()
+
+	return t.uss.AppendFrom(o.uss)
 }
 
 func (t *threadSafeSet[T]) Contains(v ...T) bool {
@@ -110,6 +113,18 @@ func (t *threadSafeSet[T]) IsSubset(other Set[T]) bool {
 	o.RLock()
 
 	ret := t.uss.IsSubset(o.uss)
+	t.RUnlock()
+	o.RUnlock()
+	return ret
+}
+
+func (t *threadSafeSet[T]) IsDisjoint(other Set[T]) bool {
+	o := other.(*threadSafeSet[T])
+
+	t.RLock()
+	o.RLock()
+
+	ret := t.uss.IsDisjoint(o.uss)
 	t.RUnlock()
 	o.RUnlock()
 	return ret
@@ -220,6 +235,18 @@ func (t *threadSafeSet[T]) Each(cb func(T) bool) {
 	}
 }
 
+func (t *threadSafeSet[T]) Filter(cb func(T) bool) Set[T] {
+	t.RLock()
+	defer t.RUnlock()
+	mappedSet := newThreadSafeSetWithSize[T](t.uss.Cardinality())
+	for elem := range *t.uss {
+		if cb(elem) {
+			mappedSet.uss.add(elem)
+		}
+	}
+	return mappedSet
+}
+
 func (t *threadSafeSet[T]) Iter() <-chan T {
 	ch := make(chan T)
 	go func() {
@@ -317,22 +344,6 @@ func (t *threadSafeSet[T]) MarshalJSON() ([]byte, error) {
 func (t *threadSafeSet[T]) UnmarshalJSON(p []byte) error {
 	t.Lock()
 	err := t.uss.UnmarshalJSON(p)
-	t.Unlock()
-
-	return err
-}
-
-func (t *threadSafeSet[T]) MarshalBSONValue() (bsontype.Type, []byte, error) {
-	t.RLock()
-	bt, b, err := t.uss.MarshalBSONValue()
-	t.RUnlock()
-
-	return bt, b, err
-}
-
-func (t *threadSafeSet[T]) UnmarshalBSONValue(bt bsontype.Type, p []byte) error {
-	t.Lock()
-	err := t.uss.UnmarshalBSONValue(bt, p)
 	t.Unlock()
 
 	return err
