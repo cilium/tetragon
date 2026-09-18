@@ -18,7 +18,6 @@ import (
 	"sync"
 	"syscall"
 
-	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/pkg/logger/logfields"
@@ -723,7 +722,7 @@ func HostCgroupRoot() (string, error) {
 		return path2, nil
 	}
 
-	err := multierr.Append(
+	err := errors.Join(
 		fmt.Errorf("failed to set path %s as cgroup root %w", path1, err1),
 		fmt.Errorf("failed to set path %s as cgroup root %w", path2, err2),
 	)

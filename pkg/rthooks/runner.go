@@ -7,9 +7,8 @@ package rthooks
 
 import (
 	"context"
+	"errors"
 	"fmt"
-
-	"go.uber.org/multierr"
 
 	v1 "github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/watcher"
@@ -30,7 +29,7 @@ func (r *Runner) RunHooks(ctx context.Context, req *v1.RuntimeHookRequest) error
 					Req:     createReq,
 					Watcher: r.watcher,
 				})
-				ret = multierr.Append(ret, err)
+				ret = errors.Join(ret, err)
 			}
 		}
 		return ret
