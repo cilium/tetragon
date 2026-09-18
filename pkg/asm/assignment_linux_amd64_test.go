@@ -185,3 +185,44 @@ func TestAssignmentInvalid(t *testing.T) {
 		})
 	}
 }
+
+func TestCutCelAssignment(t *testing.T) {
+	tests := []struct {
+		in   string
+		reg  string
+		expr string
+	}{
+		{"rdi=cel(41 + 1)", "rdi", "41+1"},
+		{"rdi=cel(data0 - data1 + data2)", "rdi", "data0-data1+data2"},
+		{"rdi=cel(and(data0, data1))", "rdi", "and(data0,data1)"},
+		{"rdi=cel(data0 == 5)", "rdi", "data0==5"},
+		{"edi=cel(data0)", "edi", "data0"},
+		{"rdi = cel(data0 + 1)", "rdi", "data0+1"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.in, func(t *testing.T) {
+			reg, expr, ok, err := CutCelAssignment(tc.in)
+			require.True(t, ok)
+			assert.Equal(t, tc.reg, reg)
+			assert.Equal(t, tc.expr, expr)
+			assert.Nil(t, err)
+		})
+	}
+}
+
+func TestCutCelAssignmentNotCel(t *testing.T) {
+	tests := []string{
+		"rax=11",
+		"rbp=(%rsp)",
+		"rsp=8%rsp",
+	}
+
+	for _, exp := range tests {
+		t.Run(exp, func(t *testing.T) {
+			_, _, ok, err := CutCelAssignment(exp)
+			assert.False(t, ok)
+			assert.Nil(t, err)
+		})
+	}
+}
