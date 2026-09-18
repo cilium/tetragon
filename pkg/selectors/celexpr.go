@@ -55,6 +55,22 @@ func addMatchCelExpr(
 	return arg_indexes, nil
 }
 
+func addRegCelExpr(exprs *CelExprFunctions, expr string, sig, data []v1alpha1.KProbeArg) (int, error) {
+	if !celbpf.Supported() {
+		return 0, errors.New("celbpf not supported in this kernel")
+	}
+	idx := len(*exprs)
+	if idx >= MaxCelExprFunctions {
+		return 0, fmt.Errorf("no more than %d CelExpr allowed per policy", MaxCelExprFunctions)
+	}
+	insts, _, err := celbpf.CompileValueFn(CelExprFuncName(idx), expr, sig, data)
+	if err != nil {
+		return 0, err
+	}
+	*exprs = append(*exprs, insts)
+	return idx, nil
+}
+
 func parseMatchCelExpr(
 	k *KernelSelectorState,
 	arg *v1alpha1.ArgSelector,

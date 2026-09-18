@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -143,5 +144,35 @@ func TestExprs(t *testing.T) {
 			dumpProg(t, prog)
 		}
 		require.Equal(t, tc.ret, val, "result of %q was %d and not %d", tc.expr, val, tc.ret)
+	}
+}
+
+// XXX Remove this before finalizing. PolicyTest should ensure this works
+func TestCompileValueTypeGuard(t *testing.T) {
+	accepted := []string{
+		"41 + 1",
+		"18446744073709551615u",
+		"0 - 1",
+		"and(12, 10)",
+	}
+	for _, expr := range accepted {
+		t.Run("ok/"+expr, func(t *testing.T) {
+			_, _, err := CompileValue(expr, nil, nil, "tc")
+			require.NoError(t, err)
+		})
+	}
+
+	rejected := []string{
+		"true",
+		"10 == 10",
+		"int32(1) + int32(2)",
+		"uint32(1u)",
+	}
+	for _, expr := range rejected {
+		t.Run("bad/"+expr, func(t *testing.T) {
+			_, _, err := CompileValue(expr, nil, nil, "tc")
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "int64 or uint64")
+		})
 	}
 }

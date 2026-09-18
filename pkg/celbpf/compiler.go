@@ -310,15 +310,40 @@ func (c *compiler) compileExpr(expr cgAst.Expr) error {
 	return fmt.Errorf("unsupported CEL expr: %d (%+v)", expr.Kind(), expr)
 }
 
-func (c *compiler) compile() (asm.Instructions, []uint16, error) {
+type retMode int
+
+const (
+	retBool retMode = iota
+	retValue
+)
+
+func (c *compiler) compile(mode retMode) (asm.Instructions, []uint16, error) {
 	expr := c.ast.Expr()
-	if cgAst.NavigateExpr(c.ast, expr).Type().Kind() != cgTypes.BoolKind {
-		return nil, nil, errors.New("expecting CEL expression to return bool")
+	ty := cgAst.NavigateExpr(c.ast, expr).Type()
+
+	switch mode {
+	case retBool:
+		if ty.Kind() != cgTypes.BoolKind {
+			return nil, nil, errors.New("expecting CEL expression to return bool")
+		}
+	case retValue:
+		if k := ty.Kind(); k != cgTypes.IntKind && k != cgTypes.UintKind {
+			return nil, nil, fmt.Errorf(
+				"expecting CEL expression to return int64 or uint64, got %s", ty)
+		}
 	}
+
 	if err := c.compileExpr(expr); err != nil {
 		return nil, nil, fmt.Errorf("failed to compile CEL expression: %w", err)
 	}
-	c.cg.emitPopBool(asm.R0)
+
+	switch mode {
+	case retBool:
+		c.cg.emitPopBool(asm.R0)
+	case retValue:
+		c.cg.emitPopInt64(asm.R0)
+	}
+
 	c.cg.emitRaw(asm.Return())
 
 	return c.cg.instructions(), c.arg_indexes, nil

@@ -40,6 +40,14 @@ func Supported() bool {
 }
 
 func Compile(celExpr string, sig, data []v1alpha1.KProbeArg, labelPrefix string) (asm.Instructions, []uint16, error) {
+	return compileMode(celExpr, sig, data, labelPrefix, retBool)
+}
+
+func CompileValue(celExpr string, sig, data []v1alpha1.KProbeArg, labelPrefix string) (asm.Instructions, []uint16, error) {
+	return compileMode(celExpr, sig, data, labelPrefix, retValue)
+}
+
+func compileMode(celExpr string, sig, data []v1alpha1.KProbeArg, labelPrefix string, mode retMode) (asm.Instructions, []uint16, error) {
 	source := cgCommon.NewTextSource(celExpr)
 	parser, err := cgParser.NewParser()
 	if err != nil {
@@ -62,7 +70,7 @@ func Compile(celExpr string, sig, data []v1alpha1.KProbeArg, labelPrefix string)
 	}
 
 	compiler := newCompiler(ast, source, sig, data, labelPrefix)
-	return compiler.compile()
+	return compiler.compile(mode)
 }
 
 type s struct {
@@ -100,6 +108,16 @@ func CompileEmptyFunction(fnName string) asm.Instructions {
 
 func CompileFn(fnName, celExpr string, sig, data []v1alpha1.KProbeArg) (asm.Instructions, []uint16, error) {
 	insns, arg_indexes, err := Compile(celExpr, sig, data, fnName)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to compile CEL expression %q: %w", celExpr, err)
+	}
+	fnTy := btfCelExprTy(fnName)
+	insns[0] = btf.WithFuncMetadata(insns[0].WithSymbol(fnTy.Name), fnTy).WithSource(s{celExpr})
+	return insns, arg_indexes, nil
+}
+
+func CompileValueFn(fnName, celExpr string, sig, data []v1alpha1.KProbeArg) (asm.Instructions, []uint16, error) {
+	insns, arg_indexes, err := CompileValue(celExpr, sig, data, fnName)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to compile CEL expression %q: %w", celExpr, err)
 	}
