@@ -6,7 +6,7 @@ go 1.27.0
 require (
 	github.com/alecthomas/kong v1.16.1
 	github.com/cilium/ebpf v0.22.0
-	github.com/cilium/little-vm-helper v0.0.31-0.20260709074401-9f0cc14bf168
+	github.com/cilium/little-vm-helper v0.0.31
 	github.com/cilium/lumberjack/v2 v2.4.2
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
@@ -39,7 +39,7 @@ require (
 	github.com/vishvananda/netlink v1.3.1
 	go.uber.org/multierr v1.11.0
 	go.yaml.in/yaml/v3 v3.0.5
-	golang.org/x/sys v0.47.0
+	golang.org/x/sys v0.48.0
 	golang.org/x/term v0.45.0
 	golang.org/x/text v0.41.0
 	golang.org/x/time v0.15.0
