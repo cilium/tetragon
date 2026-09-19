@@ -1,7 +1,20 @@
 FROM docker.io/library/ubuntu:24.04@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30
 
-RUN apt-get -y update && apt-get -y install clang-format-18
-RUN ln -s /bin/clang-format-18 /bin/clang-format
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        gnupg \
+        wget \
+    && wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+        | gpg --dearmor -o /usr/share/keyrings/llvm.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/llvm.gpg] https://apt.llvm.org/noble/ llvm-toolchain-noble-22 main" \
+        > /etc/apt/sources.list.d/llvm.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        clang-format-22 \
+    && ln -vsnf /usr/lib/llvm-22/bin/clang-format /usr/bin/clang-format \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 USER 1000
 WORKDIR /tetragon
