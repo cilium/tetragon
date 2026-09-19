@@ -25,6 +25,8 @@ import (
 
 const dialTimeout = 5 * time.Second
 
+const reloadTimeout = 15 * time.Second
+
 type stubHealth struct {
 	healthgrpc.UnimplementedHealthServer
 }
@@ -220,8 +222,6 @@ func TestLazyReloaderRecoversWhenFilesAppear(t *testing.T) {
 	copyFile(t, issued.CertPath, certPath)
 	copyFile(t, issued.KeyPath, keyPath)
 
-	// 15s covers one full retryInterval before certwatcher.New succeeds,
-	// plus slack for the immediate-fire callback and TLS handshake.
 	require.Eventually(t, func() bool {
 		if !r.Ready() {
 			return false
@@ -233,7 +233,50 @@ func TestLazyReloaderRecoversWhenFilesAppear(t *testing.T) {
 		defer conn.Close()
 		_, err = healthgrpc.NewHealthClient(conn).Check(dialContext(t), &healthgrpc.HealthCheckRequest{})
 		return err == nil
-	}, 15*time.Second, 50*time.Millisecond)
+	}, reloadTimeout, 50*time.Millisecond)
+}
+
+func TestWatchReloadsRotatedCertificate(t *testing.T) {
+	mountDir := t.TempDir()
+	certPath := filepath.Join(mountDir, "tls.crt")
+	keyPath := filepath.Join(mountDir, "tls.key")
+
+	pki, err := certloader.NewTestPKI(t.TempDir())
+	require.NoError(t, err)
+
+	first := issueServerLeaf(t, pki, t.TempDir())
+	copyFile(t, first.CertPath, certPath)
+	copyFile(t, first.KeyPath, keyPath)
+
+	r, err := certloader.NewReloader(certloader.Config{CertFile: certPath, KeyFile: keyPath})
+	require.NoError(t, err)
+	certloader.Watch(t.Context(), r)
+	addr := startServer(t, credentials.NewTLS(r.ServerConfig()))
+
+	pool := rootPool(t, pki)
+	require.Equal(t, first.Serial, servedSerial(t, addr, pool))
+
+	second := issueServerLeaf(t, pki, t.TempDir())
+	copyFile(t, second.CertPath, certPath)
+	copyFile(t, second.KeyPath, keyPath)
+
+	require.Eventually(t, func() bool {
+		return servedSerial(t, addr, pool) == second.Serial
+	}, reloadTimeout, 50*time.Millisecond)
+}
+
+func servedSerial(t *testing.T, addr string, pool *x509.CertPool) string {
+	t.Helper()
+	conn, err := tls.Dial("tcp", addr, &tls.Config{
+		MinVersion: tls.VersionTLS13,
+		RootCAs:    pool,
+		ServerName: "localhost",
+	})
+	if err != nil {
+		return ""
+	}
+	defer conn.Close()
+	return conn.ConnectionState().PeerCertificates[0].SerialNumber.String()
 }
 
 func copyFile(t *testing.T, src, dst string) {

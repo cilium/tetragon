@@ -4,6 +4,7 @@
 package certloader
 
 import (
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -57,8 +58,13 @@ type Reloader struct {
 	tlsConf *tls.Config
 
 	// reloadMu serializes Reload so a slow read cannot overwrite a newer
-	// snapshot and roll the listener back to stale material.
+	// snapshot and roll the listener back to stale material. It also
+	// guards fingerprint.
 	reloadMu sync.Mutex
+
+	// fingerprint identifies the material behind the live snapshot, so the
+	// poll in [Watch] can tell a rotation from an unchanged tick.
+	fingerprint [sha256.Size]byte
 }
 
 type snapshot struct {
@@ -94,34 +100,62 @@ func (r *Reloader) Ready() bool {
 	return r.snap.Load() != nil
 }
 
-// Reload re-reads the cert/key and CA bundle from disk and atomically
-// replaces the active snapshot. Concurrent calls are serialized by reloadMu.
+// Reload re-reads the cert/key and CA bundles from disk and atomically
+// replaces the active snapshot when they changed. Concurrent calls are
+// serialized by reloadMu.
 func (r *Reloader) Reload() error {
+	_, err := r.reloadIfChanged()
+	return err
+}
+
+// reloadIfChanged reloads the TLS material and reports whether it differed
+// from what is already loaded.
+func (r *Reloader) reloadIfChanged() (bool, error) {
 	r.reloadMu.Lock()
 	defer r.reloadMu.Unlock()
-	cert, err := tls.LoadX509KeyPair(r.cfg.CertFile, r.cfg.KeyFile)
+
+	certPEM, err := os.ReadFile(r.cfg.CertFile)
 	if err != nil {
-		return fmt.Errorf("loading server cert/key: %w", err)
+		return false, fmt.Errorf("reading server cert: %w", err)
 	}
+	keyPEM, err := os.ReadFile(r.cfg.KeyFile)
+	if err != nil {
+		return false, fmt.Errorf("reading server key: %w", err)
+	}
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return false, fmt.Errorf("loading server cert/key: %w", err)
+	}
+	// Fingerprint the bytes rather than file metadata: mtime and size can
+	// repeat across a rotation, and the content is in hand either way.
+	h := sha256.New()
+	h.Write(certPEM)
+	h.Write(keyPEM)
 	var pool *x509.CertPool
 	if r.cfg.RequireClientCert {
 		pool = x509.NewCertPool()
 		for _, p := range r.cfg.ClientCAFiles {
-			pem, err := os.ReadFile(p)
+			caPEM, err := os.ReadFile(p)
 			if err != nil {
-				return fmt.Errorf("reading client CA bundle %q: %w", p, err)
+				return false, fmt.Errorf("reading client CA bundle %q: %w", p, err)
 			}
-			if !pool.AppendCertsFromPEM(pem) {
-				return fmt.Errorf("client CA bundle %q contained no valid PEM certificates", p)
+			if !pool.AppendCertsFromPEM(caPEM) {
+				return false, fmt.Errorf("client CA bundle %q contained no valid PEM certificates", p)
 			}
+			h.Write(caPEM)
 		}
+	}
+	sum := [sha256.Size]byte(h.Sum(nil))
+	if sum == r.fingerprint {
+		return false, nil
 	}
 	r.snap.Store(&snapshot{
 		cert:    &cert,
 		caPool:  pool,
 		require: r.cfg.RequireClientCert,
 	})
-	return nil
+	r.fingerprint = sum
+	return true, nil
 }
 
 // ServerConfig returns a [tls.Config] suitable for [credentials.NewTLS].
