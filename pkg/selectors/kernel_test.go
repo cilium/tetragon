@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"net/netip"
 	"strings"
 	"syscall"
 	"testing"
@@ -565,7 +566,7 @@ func TestParseMatchData(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x07, 0x00, 0x00, 0x00, // value type == sock
 		0x00, 0x00, 0x00, 0x00, // Addr4LPM mapid = 0
-		0xff, 0xff, 0xff, 0xff, // Addr6LPM no map
+		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0 (IPv4-mapped equivalents)
 	}
 	if err := ParseMatchData(k, arg3, sig, 2); err != nil || bytes.Equal(expected3, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[nextArg:], arg3)
@@ -605,7 +606,7 @@ func TestParseMatchData(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x07, 0x00, 0x00, 0x00, // value type == sock
 		1, 0x00, 0x00, 0x00, // Addr4LPM mapid = 1
-		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0
+		1, 0x00, 0x00, 0x00, // Addr6LPM mapid = 1
 	}
 	if err := ParseMatchData(k, arg6, sig, 2); err != nil || bytes.Equal(expected6, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected6, d.e[nextArg:], arg6)
@@ -619,7 +620,7 @@ func TestParseMatchData(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x28, 0x00, 0x00, 0x00, // value type == sockaddr
 		2, 0x00, 0x00, 0x00, // Addr4LPM mapid = 2
-		1, 0x00, 0x00, 0x00, // Addr6LPM mapid = 1
+		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
 	}
 	if err := ParseMatchData(k, arg7, sig, 2); err != nil || bytes.Equal(expected7, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected7, d.e[nextArg:], arg7)
@@ -633,7 +634,7 @@ func TestParseMatchData(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x29, 0x00, 0x00, 0x00, // value type == socket
 		3, 0x00, 0x00, 0x00, // Addr4LPM mapid = 3
-		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
+		3, 0x00, 0x00, 0x00, // Addr6LPM mapid = 3
 	}
 	if err := ParseMatchData(k, arg8, sig, 2); err != nil || bytes.Equal(expected8, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:], arg8)
@@ -736,7 +737,7 @@ func TestParseMatchArg(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x07, 0x00, 0x00, 0x00, // value type == sock
 		0x00, 0x00, 0x00, 0x00, // Addr4LPM mapid = 0
-		0xff, 0xff, 0xff, 0xff, // Addr6LPM no map
+		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0 (IPv4-mapped equivalents)
 	}
 	if err := ParseMatchArg(k, arg3, sig); err != nil || bytes.Equal(expected3, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[nextArg:], arg3)
@@ -776,7 +777,7 @@ func TestParseMatchArg(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x07, 0x00, 0x00, 0x00, // value type == sock
 		1, 0x00, 0x00, 0x00, // Addr4LPM mapid = 1
-		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0
+		1, 0x00, 0x00, 0x00, // Addr6LPM mapid = 1
 	}
 	if err := ParseMatchArg(k, arg6, sig); err != nil || bytes.Equal(expected6, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected6, d.e[nextArg:], arg6)
@@ -790,7 +791,7 @@ func TestParseMatchArg(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x28, 0x00, 0x00, 0x00, // value type == sockaddr
 		2, 0x00, 0x00, 0x00, // Addr4LPM mapid = 2
-		1, 0x00, 0x00, 0x00, // Addr6LPM mapid = 1
+		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
 	}
 	if err := ParseMatchArg(k, arg7, sig); err != nil || bytes.Equal(expected7, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected7, d.e[nextArg:], arg7)
@@ -804,7 +805,7 @@ func TestParseMatchArg(t *testing.T) {
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x29, 0x00, 0x00, 0x00, // value type == socket
 		3, 0x00, 0x00, 0x00, // Addr4LPM mapid = 3
-		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
+		3, 0x00, 0x00, 0x00, // Addr6LPM mapid = 3
 	}
 	if err := ParseMatchArg(k, arg8, sig); err != nil || bytes.Equal(expected8, d.e[nextArg:]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:], arg8)
@@ -1686,5 +1687,78 @@ func TestHasEnforcerAction(t *testing.T) {
 	}}))
 	for _, action := range []string{"Sigkill", "Signal", "Post", "Override", "Set"} {
 		require.False(t, HasEnforcerAction(sel(v1alpha1.ActionSelector{Action: action})), action)
+	}
+}
+
+// Both maps must be filled whichever way the address is written, since the BPF
+// side picks the map by socket family.
+func TestWriteMatchAddrsInMapV4Mapped(t *testing.T) {
+	v4 := func(a netip.Addr, bits uint32) KernelLPMTrie4 {
+		b := a.As4()
+		return KernelLPMTrie4{prefixLen: bits, addr: binary.LittleEndian.Uint32(b[:])}
+	}
+	v6 := func(s string, bits uint32) KernelLPMTrie6 {
+		k := KernelLPMTrie6{prefixLen: bits}
+		copy(k.addr[:], netip.MustParseAddr(s).AsSlice())
+		return k
+	}
+
+	tests := map[string]struct {
+		values     []string
+		expectedV4 []KernelLPMTrie4
+		expectedV6 []KernelLPMTrie6
+	}{
+		"ipv4 cidr also lands in the ipv6 map": {
+			values:     []string{"172.16.0.0/12"},
+			expectedV4: []KernelLPMTrie4{v4(netip.MustParseAddr("172.16.0.0"), 12)},
+			expectedV6: []KernelLPMTrie6{v6("::ffff:172.16.0.0", 12+96)},
+		},
+		"bare ipv4 address": {
+			values:     []string{"127.0.0.1"},
+			expectedV4: []KernelLPMTrie4{v4(netip.MustParseAddr("127.0.0.1"), 32)},
+			expectedV6: []KernelLPMTrie6{v6("::ffff:127.0.0.1", 128)},
+		},
+		"ipv4 default route maps to the whole ::ffff:0:0/96 block": {
+			values:     []string{"0.0.0.0/0"},
+			expectedV4: []KernelLPMTrie4{v4(netip.MustParseAddr("0.0.0.0"), 0)},
+			expectedV6: []KernelLPMTrie6{v6("::ffff:0.0.0.0", 96)},
+		},
+		"ipv4-mapped value also lands in the ipv4 map": {
+			values:     []string{"::ffff:172.16.0.0/108"},
+			expectedV4: []KernelLPMTrie4{v4(netip.MustParseAddr("172.16.0.0"), 12)},
+			expectedV6: []KernelLPMTrie6{v6("::ffff:172.16.0.0", 108)},
+		},
+		"native ipv6 stays out of the ipv4 map": {
+			values:     []string{"::1/128"},
+			expectedV4: nil,
+			expectedV6: []KernelLPMTrie6{v6("::1", 128)},
+		},
+		"a prefix shorter than /96 has no ipv4 equivalent": {
+			values:     []string{"::/64"},
+			expectedV4: nil,
+			expectedV6: []KernelLPMTrie6{v6("::", 64)},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			k := &KernelSelectorState{}
+			require.NoError(t, writeMatchAddrsInMap(k, tc.values))
+
+			var got4 []KernelLPMTrie4
+			for _, m := range k.Addr4Maps() {
+				for key := range m {
+					got4 = append(got4, key)
+				}
+			}
+			var got6 []KernelLPMTrie6
+			for _, m := range k.Addr6Maps() {
+				for key := range m {
+					got6 = append(got6, key)
+				}
+			}
+			require.ElementsMatch(t, tc.expectedV4, got4)
+			require.ElementsMatch(t, tc.expectedV6, got6)
+		})
 	}
 }
