@@ -4,7 +4,8 @@
 package eventchecker
 
 import (
-	"github.com/jpillora/longestcommon"
+	"strings"
+
 	"google.golang.org/protobuf/compiler/protogen"
 
 	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
@@ -127,7 +128,7 @@ func getLongestPreifx(enum *Enum) string {
 	for _, value := range enum.Values {
 		valueNames = append(valueNames, string(value.Desc.Name()))
 	}
-	longestPrefix := longestcommon.Prefix(valueNames)
+	longestPrefix := longestCommonPrefix(valueNames)
 
 	// DAC_OVERRIDE messes everything up, so set capabilities prefix manually
 	if enum.GoIdent.GoName == "CapabilitiesType" {
@@ -135,4 +136,17 @@ func getLongestPreifx(enum *Enum) string {
 	}
 
 	return longestPrefix
+}
+
+func longestCommonPrefix(strs []string) string {
+	if len(strs) == 0 {
+		return ""
+	}
+	prefix := strs[0]
+	for _, s := range strs[1:] {
+		for !strings.HasPrefix(s, prefix) {
+			prefix = prefix[:len(prefix)-1]
+		}
+	}
+	return prefix
 }
