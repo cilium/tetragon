@@ -2233,7 +2233,7 @@ exist.
   `GT`, `LT`, etc.)
 - Max file match values (using `fd` or `file` arg): 8 on kernels ≥5.3, 2 on kernels <5.3
 - String prefix max length: 256 chars
-- String postfix max length: 128 chars
+- String postfix max length: 127 chars on kernels ≥5.3, 87 chars on kernels <5.3
 
 For larger sets of values, consider using the `InMap` or `NotInMap`
 operators which store values in a BPF map.
