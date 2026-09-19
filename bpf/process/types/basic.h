@@ -715,8 +715,8 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	if (!heap || !zero_heap)
 		return 0;
 
-		// Copy string to heap, preceded by length -
-		// u8 for first 6 maps; u16 for latter maps
+	// Copy string to heap, preceded by length -
+	// u8 for first 6 maps; u16 for latter maps
 #ifdef __LARGE_BPF_PROG
 	if (index <= 5)
 		heap[0] = len;

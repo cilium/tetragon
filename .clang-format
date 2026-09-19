@@ -48,5 +48,8 @@ SpacesInContainerLiterals: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
+StatementMacros:
+  - FIND_PIDSET
+  - PARSE_IOVEC_ENTRY
 TabWidth: 8
 UseTab: Always
