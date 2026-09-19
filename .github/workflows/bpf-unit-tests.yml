@@ -26,10 +26,17 @@ jobs:
         # renovate: datasource=golang-version depName=go
         go-version: '1.27.1'
 
-    - name: Install LLVM
+    - name: Install LLVM 22
       run: |
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+          | sudo gpg --dearmor -o /usr/share/keyrings/llvm.gpg
+        echo "deb [signed-by=/usr/share/keyrings/llvm.gpg] https://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-22 main" \
+          | sudo tee /etc/apt/sources.list.d/llvm.list
         sudo apt-get update
-        sudo apt-get -y install clang llvm
+        sudo apt-get -y install clang-22 llvm-22
+        sudo ln -vsnf /usr/lib/llvm-22/bin/clang /usr/bin/clang
+        sudo ln -vsnf /usr/lib/llvm-22/bin/llc /usr/bin/llc
+        clang --version
 
     - name: Run BPF unit test
       run: make bpf-test BPFGOTESTFLAGS="-v"

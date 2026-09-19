@@ -204,7 +204,7 @@ image-test: image-clang
 
 .PHONY: image-clang
 image-clang:
-	$(CONTAINER_ENGINE) build -f Dockerfile.clang --build-arg VERSION=1:15.0.7-0ubuntu0.22.04.2 -t "cilium/clang:${DOCKER_IMAGE_TAG}" .
+	$(CONTAINER_ENGINE) build -f Dockerfile.clang -t "cilium/clang:${DOCKER_IMAGE_TAG}" .
 	@echo "Push like this when ready:"
 	@echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
 
