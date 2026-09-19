@@ -305,15 +305,15 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 	}
 
 // We parse a max iovec entries and any more can be detected in db
-#define PARSE_IOVEC_ENTRIES       \
-	{                         \
-		PARSE_IOVEC_ENTRY \
-		PARSE_IOVEC_ENTRY \
-		PARSE_IOVEC_ENTRY \
-		PARSE_IOVEC_ENTRY \
-		PARSE_IOVEC_ENTRY \
-		PARSE_IOVEC_ENTRY \
-		PARSE_IOVEC_ENTRY \
+#define PARSE_IOVEC_ENTRIES                                                       \
+	{                                                                         \
+		PARSE_IOVEC_ENTRY                                                 \
+			PARSE_IOVEC_ENTRY                                         \
+				PARSE_IOVEC_ENTRY                                 \
+					PARSE_IOVEC_ENTRY                         \
+						PARSE_IOVEC_ENTRY                 \
+							PARSE_IOVEC_ENTRY         \
+								PARSE_IOVEC_ENTRY \
 	}
 
 #ifdef __LARGE_BPF_PROG
@@ -711,8 +711,8 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	if (!heap || !zero_heap)
 		return 0;
 
-		// Copy string to heap, preceded by length -
-		// u8 for first 6 maps; u16 for latter maps
+	// Copy string to heap, preceded by length -
+	// u8 for first 6 maps; u16 for latter maps
 #ifdef __LARGE_BPF_PROG
 	if (index <= 5)
 		heap[0] = len;
