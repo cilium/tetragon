@@ -19,6 +19,7 @@ const (
 	ASM_ASSIGNMENT_TYPE_REG       uint8 = 2
 	ASM_ASSIGNMENT_TYPE_REG_OFF   uint8 = 3
 	ASM_ASSIGNMENT_TYPE_REG_DEREF uint8 = 4
+	ASM_ASSIGNMENT_TYPE_CEL       uint8 = 5
 )
 
 var errNext = errors.New("next")
@@ -230,4 +231,22 @@ func ParseAssignment(str string) (*Assignment, error) {
 	}
 
 	return nil, fmt.Errorf("failed to parse '%s'", str)
+}
+
+func CutCelAssignment(str string) (reg, expr string, ok bool, err error) {
+	str = strings.ReplaceAll(str, " ", "")
+	reg, celPart, found := strings.Cut(str, "=cel")
+
+	if !found {
+		return "", "", false, nil
+	}
+
+	// Strip the outer parenthesis so only the CEL expression is returned
+	if !strings.HasPrefix(celPart, "(") || !strings.HasSuffix(celPart, ")") {
+		return "", "", false, fmt.Errorf("Missing cel enclosure parentheses '%s'", celPart)
+	}
+
+	celPart = celPart[1 : len(celPart)-1]
+
+	return reg, celPart, true, nil
 }

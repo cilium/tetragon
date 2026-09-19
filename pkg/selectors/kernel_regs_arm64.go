@@ -36,6 +36,20 @@ func parseOverrideRegs(k *KernelSelectorState, selIdx int, values []string, errV
 	}
 
 	for _, val := range values {
+		_, _, found, err := asm.CutCelAssignment(val)
+		if err != nil {
+			return err
+		}
+
+		if found {
+			//ass, err := parseCelAssignment(k, reg, expr)
+			//if err != nil {
+			//	return err
+			//}
+			//regs = append(regs, ass)
+			continue
+		}
+
 		ass, err := asm.ParseAssignment(val)
 		if err != nil {
 			return err

@@ -165,3 +165,46 @@ func TestAssignmentInvalid(t *testing.T) {
 		})
 	}
 }
+
+func TestCutCelAssignment(t *testing.T) {
+	tests := []struct {
+		in   string
+		reg  string
+		expr string
+	}{
+		{"x0=cel(41 + 1)", "x0", "41+1"},
+		{"x0=cel(data0 - data1 + data2)", "x0", "data0-data1+data2"},
+		{"x0=cel(and(data0, data1))", "x0", "and(data0,data1)"},
+		{"x0=cel(data0 == 5)", "x0", "data0==5"},
+		{"w0=cel(data0)", "w0", "data0"},
+		{"x0 = cel(data0 + 1)", "x0", "data0+1"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.in, func(t *testing.T) {
+			reg, expr, ok, err := CutCelAssignment(tc.in)
+			t.Logf("in=%q -> reg=%q expr=%q ok=%v err=%v", tc.in, reg, expr, ok, err)
+			require.True(t, ok)
+			assert.Equal(t, tc.reg, reg)
+			assert.Equal(t, tc.expr, expr)
+			assert.Nil(t, err)
+		})
+	}
+}
+
+func TestCutCelAssignmentNotCel(t *testing.T) {
+	tests := []string{
+		"x0=11",
+		"x29=(%sp)",
+		"sp=16%sp",
+	}
+
+	for _, exp := range tests {
+		t.Run(exp, func(t *testing.T) {
+			reg, expr, ok, err := CutCelAssignment(exp)
+			t.Logf("in=%q -> reg=%q expr=%q ok=%v err=%v", exp, reg, expr, ok, err)
+			assert.False(t, ok)
+			assert.Nil(t, err)
+		})
+	}
+}
