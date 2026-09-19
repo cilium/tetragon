@@ -178,7 +178,7 @@ func Trace(logger FieldLogger, msg string, args ...any) {
 func Fatal(logger FieldLogger, msg string, args ...any) {
 	logger.Error(msg, args...)
 	(*exitHandler.Load())()
-	os.Exit(-1)
+	os.Exit(1)
 }
 
 func Panic(logger FieldLogger, msg string, args ...any) {
