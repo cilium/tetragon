@@ -50,6 +50,8 @@ main(int argc, char *argv[])
 	int ret = pizza(0);
 	printf("pizza() returned %d\n", ret);
 
+	ret += lasagna(10);
+
 	if (argc == 2) {
 		ret = manyargs(0, 1, 2, 3, 4, 5, 6, 7, (int)strtol(argv[1], NULL, 10));
 	}
