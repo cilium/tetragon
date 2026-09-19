@@ -82,6 +82,7 @@ struct msg_generic_kprobe {
 	__u32 tid; // Thread ID that triggered the event
 	__u64 kernel_stack_id; // Kernel stack trace ID on u32 and potential error, see flag in msg_common.flags
 	__u64 user_stack_id; // User Stack trace ID
+	__u64 cgrp_tracker_id; // Cgroup tracker ID of the process that triggered the event
 	/* anything above is shared with the userspace so it should match structs MsgGenericKprobe and MsgGenericTracepoint in Go */
 	char args[24000];
 	struct bpf_stack_build_id user_stack[MAX_STACK_DEPTH];
