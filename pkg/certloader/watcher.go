@@ -5,70 +5,76 @@ package certloader
 
 import (
 	"context"
-	"crypto/tls"
-	"errors"
+	"path/filepath"
+	"slices"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
+	"github.com/fsnotify/fsnotify"
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
-// watchInterval polls cert/key as a safety net for fsnotify events missed
-// during atomic rotations (notably Kubernetes Secret ..data symlink swaps,
-// which file-level fsnotify cannot observe).
+// watchInterval backstops the fsnotify events with a poll, covering both a
+// missed event and lazy bootstrap, when the TLS files are written after the
+// agent starts (e.g. cert-manager / cilium-certgen).
 const watchInterval = 5 * time.Second
 
-// retryInterval governs construction retries during lazy bootstrap (cert
-// files written after the agent starts, e.g. cert-manager / cilium-certgen).
-const retryInterval = 5 * time.Second
-
-// Watch starts a background watcher that calls r.Reload whenever the cert or
-// key change on disk. Reload re-reads the client CA bundle too, so all TLS
-// material stays in sync. Runs until ctx is canceled; failures are logged.
+// Watch starts a background watcher that reloads r whenever any of its TLS
+// files change on disk. Runs until ctx is canceled; failures are logged.
 func Watch(ctx context.Context, r *Reloader) {
-	log := logger.GetLogger().With("component", "certloader")
-	go func() {
-		cw, err := waitForCertWatcher(ctx, r.cfg.CertFile, r.cfg.KeyFile)
-		if err != nil {
-			return
-		}
-		// RegisterCallback fires once immediately, promoting a lazy
-		// Reloader to Ready as soon as the cert can be loaded.
-		cw.RegisterCallback(func(_ tls.Certificate) {
-			if err := r.Reload(); err != nil {
-				log.Error("TLS reload failed", logfields.Error, err)
-				return
-			}
-			log.Info("TLS material reloaded")
-		})
-		if err := cw.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			log.Error("certwatcher exited", logfields.Error, err)
-		}
-	}()
+	go watch(ctx, r)
 }
 
-// waitForCertWatcher retries certwatcher.New until it succeeds or ctx is
-// canceled. Construction can fail for missing files, mid-rotation cert/key
-// mismatch, bad permissions, or malformed PEM — all retried so a transient
-// bootstrap race does not crash the agent. Errors are logged so a permanent
-// misconfiguration is visible instead of silently spinning.
-func waitForCertWatcher(ctx context.Context, certPath, keyPath string) (*certwatcher.CertWatcher, error) {
+func watch(ctx context.Context, r *Reloader) {
 	log := logger.GetLogger().With("component", "certloader")
-	timer := time.NewTimer(retryInterval)
-	defer timer.Stop()
+	fsw, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Error("failed to create file watcher, TLS material will not be reloaded", logfields.Error, err)
+		return
+	}
+	defer fsw.Close()
+
+	ticker := time.NewTicker(watchInterval)
+	defer ticker.Stop()
+
+	// Watch parent directories: atomic rotations (rename into place,
+	// Kubernetes Secret ..data swap) replace the inode and drop a file
+	// watch.
+	var dirs []string
+	for _, f := range append([]string{r.cfg.CertFile, r.cfg.KeyFile}, r.cfg.ClientCAFiles...) {
+		dirs = append(dirs, filepath.Dir(f))
+	}
+	slices.Sort(dirs)
+	dirs = slices.Compact(dirs)
+
+	// A directory a provisioner has yet to create cannot be watched, so
+	// retry until Add succeeds.
+	pending := slices.Clone(dirs)
 	for {
-		cw, err := certwatcher.New(certPath, keyPath)
-		if err == nil {
-			return cw.WithWatchInterval(watchInterval), nil
+		pending = slices.DeleteFunc(pending, func(d string) bool {
+			return fsw.Add(d) == nil
+		})
+		if changed, err := r.reloadIfChanged(); err != nil {
+			// Expected while the files are missing or mid-rotation;
+			// the next event or tick retries.
+			log.Warn("TLS material reload failed, retrying", logfields.Error, err)
+		} else if changed {
+			log.Info("TLS material reloaded")
 		}
-		log.Warn("certwatcher init failed; retrying", logfields.Error, err)
-		timer.Reset(retryInterval)
+
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-timer.C:
+			return
+		case ev := <-fsw.Events:
+			// Removing a watched directory drops its watch.
+			if ev.Has(fsnotify.Remove|fsnotify.Rename) && slices.Contains(dirs, ev.Name) &&
+				!slices.Contains(pending, ev.Name) {
+				pending = append(pending, ev.Name)
+			}
+		case err := <-fsw.Errors:
+			log.Warn("TLS file watch error", logfields.Error, err)
+		case <-ticker.C:
 		}
 	}
 }
