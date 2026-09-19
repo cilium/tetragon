@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"net"
 	"os"
 	"path/filepath"
 	"sync"
@@ -79,12 +78,7 @@ func newServerReloader(t *testing.T, mtls bool) (*Reloader, *TestPKI, *LeafFiles
 	dir := t.TempDir()
 	pki, err := NewTestPKI(dir)
 	require.NoError(t, err)
-	srv, err := pki.Issue(dir, IssueOpts{
-		CommonName: "server",
-		DNSNames:   []string{"localhost"},
-		IPs:        []net.IP{net.ParseIP("127.0.0.1")},
-		IsServer:   true,
-	})
+	srv, err := pki.IssueServer(dir)
 	require.NoError(t, err)
 	cfg := Config{CertFile: srv.CertPath, KeyFile: srv.KeyPath}
 	if mtls {

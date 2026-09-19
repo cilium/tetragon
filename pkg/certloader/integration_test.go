@@ -69,18 +69,19 @@ func loadKeyPair(t *testing.T, certPath, keyPath string) tls.Certificate {
 	return c
 }
 
+func issueServerLeaf(t *testing.T, pki *certloader.TestPKI, dir string) *certloader.LeafFiles {
+	t.Helper()
+	leaf, err := pki.IssueServer(dir)
+	require.NoError(t, err)
+	return leaf
+}
+
 func setupServer(t *testing.T, mtls bool) (*certloader.TestPKI, string) {
 	t.Helper()
 	dir := t.TempDir()
 	pki, err := certloader.NewTestPKI(dir)
 	require.NoError(t, err)
-	server, err := pki.Issue(dir, certloader.IssueOpts{
-		CommonName: "server",
-		DNSNames:   []string{"localhost"},
-		IPs:        []net.IP{net.ParseIP("127.0.0.1")},
-		IsServer:   true,
-	})
-	require.NoError(t, err)
+	server := issueServerLeaf(t, pki, dir)
 	cfg := certloader.Config{CertFile: server.CertPath, KeyFile: server.KeyPath}
 	if mtls {
 		cfg.RequireClientCert = true
@@ -193,13 +194,7 @@ func TestLazyReloaderRecoversWhenFilesAppear(t *testing.T) {
 
 	pki, err := certloader.NewTestPKI(t.TempDir())
 	require.NoError(t, err)
-	issued, err := pki.Issue(t.TempDir(), certloader.IssueOpts{
-		CommonName: "server",
-		DNSNames:   []string{"localhost"},
-		IPs:        []net.IP{net.ParseIP("127.0.0.1")},
-		IsServer:   true,
-	})
-	require.NoError(t, err)
+	issued := issueServerLeaf(t, pki, t.TempDir())
 
 	r, err := certloader.NewReloaderLazy(certloader.Config{CertFile: certPath, KeyFile: keyPath})
 	require.NoError(t, err)
