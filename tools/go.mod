@@ -9,7 +9,6 @@ replace github.com/cilium/tetragon => ../
 
 require (
 	github.com/cilium/tetragon v1.7.1
-	github.com/iancoleman/strcase v0.3.0
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629
 	google.golang.org/protobuf v1.36.12
 	k8s.io/code-generator v0.37.0

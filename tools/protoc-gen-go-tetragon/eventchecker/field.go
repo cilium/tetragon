@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/iancoleman/strcase"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -682,7 +681,7 @@ func (field *Field) listCheckerName(g *protogen.GeneratedFile) string {
 		return ret
 	}
 	varIdent := field.kind().String()
-	return strcase.ToCamel(varIdent) + "ListMatcher"
+	return upperFirst(varIdent) + "ListMatcher"
 }
 
 func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
@@ -710,7 +709,7 @@ func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
 		return ret
 	}
 	varIdent := field.kind().String()
-	return fmt.Sprintf("New%sListMatcher", strcase.ToCamel(varIdent))
+	return fmt.Sprintf("New%sListMatcher", upperFirst(varIdent))
 }
 
 func (field *Field) kind() protoreflect.Kind {
@@ -895,4 +894,18 @@ func kindToFormat(k protoreflect.Kind) string {
 		return "%v"
 
 	}
+}
+
+func upperFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+func lowerFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToLower(s[:1]) + s[1:]
 }

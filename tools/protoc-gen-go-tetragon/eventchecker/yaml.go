@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/iancoleman/strcase"
 	"google.golang.org/protobuf/compiler/protogen"
 
 	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
@@ -26,7 +25,7 @@ func generateEventCheckerSpec(g *protogen.GeneratedFile, f []*protogen.File) err
 
 	g.P(`type eventCheckerHelper struct {`)
 	for _, event := range events {
-		jsonName := strcase.ToLowerCamel(strings.TrimPrefix(event.GoIdent.GoName, "Process"))
+		jsonName := lowerFirst(strings.TrimPrefix(event.GoIdent.GoName, "Process"))
 		checkerIdent := common.GeneratedIdent(g, "eventchecker", event.checkerName(g))
 		g.P(event.GoIdent.GoName + `*` + checkerIdent +
 			common.StructTag(fmt.Sprintf("json:\"%s,omitempty\"", jsonName)))
