@@ -2170,7 +2170,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 			prefix_key = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_maps_heap, &zero);
 			if (!prefix_key)
 				return 0;
-			__bpf_memset_builtin(prefix_key, 0, sizeof(*prefix_key));
+			memset(prefix_key, 0, sizeof(*prefix_key));
 			prefix_key->prefixlen = bin->path_length * 8; // prefixlen is in bits
 			if (probe_read(prefix_key->data, bin->path_length & (STRING_PREFIX_MAX_LENGTH - 1), bin->path) < 0)
 				return 0;
