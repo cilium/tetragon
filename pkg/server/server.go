@@ -139,6 +139,21 @@ func (s *Server) removeNotifierAndDrain(l *getEventsListener) {
 // an error if the loop exits unexpectedly.
 type ListenerFunc func() error
 
+type eventFieldFilter interface {
+	Filter(event *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error)
+}
+
+func applyFieldFilters[T eventFieldFilter](event *tetragon.GetEventsResponse, filters []T) (*tetragon.GetEventsResponse, error) {
+	for _, filter := range filters {
+		ev, err := filter.Filter(event)
+		if err != nil {
+			return nil, fmt.Errorf("failed to apply field filter: %w", err)
+		}
+		event = ev
+	}
+	return event, nil
+}
+
 func (s *Server) GetEvents(request *tetragon.GetEventsRequest, server tetragon.FineGuidanceSensors_GetEventsServer) error {
 	run, err := s.GetEventsListener(request, server, nil)
 	if err != nil {
@@ -196,13 +211,9 @@ func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server te
 				if err != nil {
 					return fmt.Errorf("failed to create field filters: %w", err)
 				}
-				for _, filter := range fieldFilters {
-					ev, err := filter.Filter(event)
-					if err != nil {
-						logger.GetLogger().Warn("Failed to apply field filter", "filter", filter, logfields.Error, err)
-						continue
-					}
-					event = ev
+				event, err = applyFieldFilters(event, fieldFilters)
+				if err != nil {
+					return err
 				}
 
 				if agg != nil {
