@@ -19,6 +19,16 @@ type blockingGetEventsServer struct {
 	releaseSend chan struct{}
 }
 
+type recordingGetEventsServer struct {
+	tetragon.FineGuidanceSensors_GetEventsServer
+	sent chan *tetragon.GetEventsResponse
+}
+
+func (s *recordingGetEventsServer) Send(event *tetragon.GetEventsResponse) error {
+	s.sent <- event
+	return nil
+}
+
 func (s *blockingGetEventsServer) Send(*tetragon.GetEventsResponse) error {
 	close(s.sendStarted)
 	<-s.releaseSend
@@ -48,6 +58,45 @@ func TestAggregatorStopsWhenContextIsCanceled(t *testing.T) {
 	case <-done:
 	case <-time.After(time.Second):
 		t.Fatal("Aggregator did not stop after context cancellation")
+	}
+}
+
+func TestAggregatorNonPositiveWindow(t *testing.T) {
+	for _, window := range []time.Duration{0, -time.Second} {
+		t.Run(window.String(), func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			server := &recordingGetEventsServer{
+				sent: make(chan *tetragon.GetEventsResponse, 1),
+			}
+			a := &Aggregator{
+				server: server,
+				window: window,
+				events: make(chan *tetragon.GetEventsResponse, 1),
+			}
+			done := make(chan any, 1)
+			go func() {
+				defer func() {
+					done <- recover()
+				}()
+				a.Start(ctx)
+			}()
+
+			event := &tetragon.GetEventsResponse{}
+			a.events <- event
+			select {
+			case sent := <-server.sent:
+				assert.Same(t, event, sent)
+			case <-time.After(time.Second):
+				t.Fatal("Aggregator did not process event with non-positive window")
+			}
+			cancel()
+			select {
+			case panicValue := <-done:
+				assert.Nil(t, panicValue)
+			case <-time.After(time.Second):
+				t.Fatal("Aggregator did not stop after context cancellation")
+			}
+		})
 	}
 }
 

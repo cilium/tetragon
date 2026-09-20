@@ -41,8 +41,12 @@ func NewAggregator(
 }
 
 func (a *Aggregator) Start(ctx context.Context) {
-	ticker := time.NewTicker(a.window)
-	defer ticker.Stop()
+	var tick <-chan time.Time
+	if a.window > 0 {
+		ticker := time.NewTicker(a.window)
+		defer ticker.Stop()
+		tick = ticker.C
+	}
 
 	for {
 		select {
@@ -50,7 +54,7 @@ func (a *Aggregator) Start(ctx context.Context) {
 			return
 		case event := <-a.events:
 			a.handleEvent(event)
-		case <-ticker.C:
+		case <-tick:
 			a.flush()
 		}
 	}
