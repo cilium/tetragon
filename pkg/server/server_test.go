@@ -4,6 +4,7 @@
 package server
 
 import (
+	"errors"
 	"log/slog"
 	"runtime"
 	"testing"
@@ -14,6 +15,88 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policystore"
 )
+
+type testEventFieldFilter func(*tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error)
+
+func (f testEventFieldFilter) Filter(event *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
+	return f(event)
+}
+
+func eventWithArguments(arguments string) *tetragon.GetEventsResponse {
+	return &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessExec{
+			ProcessExec: &tetragon.ProcessExec{
+				Process: &tetragon.Process{Arguments: arguments},
+			},
+		},
+	}
+}
+
+func redactArguments(event *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
+	return eventWithArguments("[redacted]"), nil
+}
+
+func TestApplyFieldFilters(t *testing.T) {
+	errFilter := errors.New("field filter failed")
+	tests := []struct {
+		name            string
+		filters         []testEventFieldFilter
+		wantArguments   string
+		wantErr         error
+		wantNilResponse bool
+	}{
+		{
+			name:          "normal filtering",
+			filters:       []testEventFieldFilter{redactArguments},
+			wantArguments: "[redacted]",
+		},
+		{
+			name: "first filter fails",
+			filters: []testEventFieldFilter{func(event *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
+				return nil, errFilter
+			}},
+			wantErr:         errFilter,
+			wantNilResponse: true,
+		},
+		{
+			name: "later filter fails",
+			filters: []testEventFieldFilter{
+				redactArguments,
+				func(event *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
+					return nil, errFilter
+				},
+			},
+			wantErr:         errFilter,
+			wantNilResponse: true,
+		},
+		{
+			name: "multiple filters succeed",
+			filters: []testEventFieldFilter{
+				redactArguments,
+				func(event *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
+					return eventWithArguments(event.GetProcessExec().GetProcess().GetArguments() + " twice"), nil
+				},
+			},
+			wantArguments: "[redacted] twice",
+		},
+		{
+			name:          "no filters",
+			wantArguments: "secret",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filtered, err := applyFieldFilters(eventWithArguments("secret"), tt.filters)
+			require.ErrorIs(t, err, tt.wantErr)
+			if tt.wantNilResponse {
+				require.Nil(t, filtered)
+				return
+			}
+			require.Equal(t, tt.wantArguments, filtered.GetProcessExec().GetProcess().GetArguments())
+		})
+	}
+}
 
 func TestServer(t *testing.T) {
 	t.Run("GetDebug", TestGetDebug)
