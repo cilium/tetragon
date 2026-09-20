@@ -198,7 +198,16 @@ func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server te
 		defer s.ctxCleanupWG.Done()
 		defer s.removeNotifierAndDrain(l)
 		if agg != nil {
-			go agg.Start()
+			aggCtx, cancelAgg := context.WithCancel(server.Context())
+			aggDone := make(chan struct{})
+			go func() {
+				defer close(aggDone)
+				agg.Start(aggCtx)
+			}()
+			defer func() {
+				cancelAgg()
+				<-aggDone
+			}()
 		}
 		for {
 			select {

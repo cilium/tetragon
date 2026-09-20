@@ -4,14 +4,20 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"runtime"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policystore"
 )
@@ -94,6 +100,141 @@ func TestApplyFieldFilters(t *testing.T) {
 				return
 			}
 			require.Equal(t, tt.wantArguments, filtered.GetProcessExec().GetProcess().GetArguments())
+		})
+	}
+}
+
+type testNotifier struct {
+	mu       sync.Mutex
+	listener Listener
+	removed  chan struct{}
+}
+
+func newTestNotifier() *testNotifier {
+	return &testNotifier{removed: make(chan struct{})}
+}
+
+func (n *testNotifier) AddListener(listener Listener) {
+	n.mu.Lock()
+	n.listener = listener
+	n.mu.Unlock()
+}
+
+func (n *testNotifier) RemoveListener(listener Listener) {
+	n.mu.Lock()
+	if n.listener == listener {
+		n.listener = nil
+	}
+	n.mu.Unlock()
+	close(n.removed)
+}
+
+func (n *testNotifier) NotifyListener(_ any, event *tetragon.GetEventsResponse) {
+	n.mu.Lock()
+	listener := n.listener
+	n.mu.Unlock()
+	listener.Notify(event)
+}
+
+type testGetEventsServer struct {
+	grpc.ServerStream
+	ctx  context.Context
+	sent chan *tetragon.GetEventsResponse
+}
+
+func (s *testGetEventsServer) Context() context.Context {
+	return s.ctx
+}
+
+func (s *testGetEventsServer) Send(event *tetragon.GetEventsResponse) error {
+	s.sent <- event
+	return nil
+}
+
+func TestGetEventsListenerFieldFilterFailure(t *testing.T) {
+	failingFilter := &tetragon.FieldFilter{
+		Fields: &fieldmaskpb.FieldMask{Paths: []string{"process.arguments"}},
+		Action: tetragon.FieldFilterAction_EXCLUDE,
+	}
+	tests := []struct {
+		name        string
+		filters     []*tetragon.FieldFilter
+		aggregation *tetragon.AggregationOptions
+	}{
+		{
+			name:    "first filter fails",
+			filters: []*tetragon.FieldFilter{failingFilter},
+		},
+		{
+			name: "later filter fails",
+			filters: []*tetragon.FieldFilter{
+				{
+					EventSet: []tetragon.EventType{tetragon.EventType_PROCESS_EXIT},
+					Fields:   &fieldmaskpb.FieldMask{Paths: []string{"process.arguments"}},
+					Action:   tetragon.FieldFilterAction_EXCLUDE,
+				},
+				failingFilter,
+			},
+		},
+		{
+			name:        "aggregation",
+			filters:     []*tetragon.FieldFilter{failingFilter},
+			aggregation: &tetragon.AggregationOptions{ChannelBufferSize: 1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := &tetragon.GetEventsRequest{
+				FieldFilters:       tt.filters,
+				AggregationOptions: tt.aggregation,
+			}
+			event := &tetragon.GetEventsResponse{
+				Event:    &tetragon.GetEventsResponse_ProcessExec{},
+				NodeName: "must-not-be-sent",
+			}
+			filters, err := fieldfilters.FieldFiltersFromGetEventsRequest(request)
+			require.NoError(t, err)
+			partial, err := filters[len(filters)-1].Filter(event)
+			require.Error(t, err)
+			require.NotNil(t, partial)
+			require.NotSame(t, event, partial)
+
+			notifier := newTestNotifier()
+			var cleanupWG sync.WaitGroup
+			serverCtx, cancelServer := context.WithCancel(t.Context())
+			defer cancelServer()
+			stream := &testGetEventsServer{
+				ctx:  t.Context(),
+				sent: make(chan *tetragon.GetEventsResponse, 1),
+			}
+			srv := NewServer(serverCtx, &cleanupWG, notifier, nil, nil, nil)
+			run, err := srv.GetEventsListener(request, stream, nil)
+			require.NoError(t, err)
+
+			result := make(chan error, 1)
+			go func() {
+				result <- run()
+			}()
+			notifier.NotifyListener(nil, event)
+
+			select {
+			case err := <-result:
+				require.ErrorContains(t, err, "failed to apply field filter")
+			case <-time.After(time.Second):
+				t.Fatal("GetEventsListener did not return after field filter failure")
+			}
+			select {
+			case sent := <-stream.sent:
+				t.Fatalf("field filter failure delivered event: %v", sent)
+			default:
+			}
+			select {
+			case <-notifier.removed:
+			case <-time.After(time.Second):
+				t.Fatal("GetEventsListener did not remove listener")
+			}
+			cleanupWG.Wait()
 		})
 	}
 }

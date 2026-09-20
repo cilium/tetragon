@@ -4,6 +4,7 @@
 package aggregator
 
 import (
+	"context"
 	"sort"
 	"strings"
 	"time"
@@ -39,15 +40,17 @@ func NewAggregator(
 	}, nil
 }
 
-func (a *Aggregator) Start() {
-	// nolint Since Aggregator.Start is an endless function,
-	// this qualifies as an acceptable use of time.Tick
-	tick := time.Tick(a.window)
+func (a *Aggregator) Start(ctx context.Context) {
+	ticker := time.NewTicker(a.window)
+	defer ticker.Stop()
+
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case event := <-a.events:
 			a.handleEvent(event)
-		case <-tick:
+		case <-ticker.C:
 			a.flush()
 		}
 	}
