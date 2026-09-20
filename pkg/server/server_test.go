@@ -142,6 +142,21 @@ type testGetEventsServer struct {
 	sent chan *tetragon.GetEventsResponse
 }
 
+type blockingGetEventsServer struct {
+	*testGetEventsServer
+	sendStarted  chan struct{}
+	releaseSend  chan struct{}
+	sendReturned chan struct{}
+}
+
+func (s *blockingGetEventsServer) Send(event *tetragon.GetEventsResponse) error {
+	s.testGetEventsServer.Send(event)
+	close(s.sendStarted)
+	<-s.releaseSend
+	close(s.sendReturned)
+	return nil
+}
+
 func (s *testGetEventsServer) Context() context.Context {
 	return s.ctx
 }
@@ -237,6 +252,78 @@ func TestGetEventsListenerFieldFilterFailure(t *testing.T) {
 			cleanupWG.Wait()
 		})
 	}
+}
+
+func TestGetEventsListenerFilterFailureDoesNotWaitForBlockedAggregatorSend(t *testing.T) {
+	request := &tetragon.GetEventsRequest{
+		FieldFilters: []*tetragon.FieldFilter{
+			{
+				Fields: &fieldmaskpb.FieldMask{Paths: []string{"process.arguments"}},
+				Action: tetragon.FieldFilterAction_EXCLUDE,
+			},
+		},
+		AggregationOptions: &tetragon.AggregationOptions{ChannelBufferSize: 1},
+	}
+	notifier := newTestNotifier()
+	var cleanupWG sync.WaitGroup
+	serverCtx, cancelServer := context.WithCancel(t.Context())
+	defer cancelServer()
+	stream := &blockingGetEventsServer{
+		testGetEventsServer: &testGetEventsServer{
+			ctx:  t.Context(),
+			sent: make(chan *tetragon.GetEventsResponse, 2),
+		},
+		sendStarted:  make(chan struct{}),
+		releaseSend:  make(chan struct{}),
+		sendReturned: make(chan struct{}),
+	}
+	srv := NewServer(serverCtx, &cleanupWG, notifier, nil, nil, nil)
+	run, err := srv.GetEventsListener(request, stream, nil)
+	require.NoError(t, err)
+
+	result := make(chan error, 1)
+	go func() {
+		result <- run()
+	}()
+
+	first := eventWithArguments("first")
+	notifier.NotifyListener(nil, first)
+	select {
+	case <-stream.sendStarted:
+	case <-time.After(time.Second):
+		t.Fatal("aggregator did not enter the blocked send")
+	}
+	require.Empty(t, (<-stream.sent).GetProcessExec().GetProcess().GetArguments())
+
+	failing := &tetragon.GetEventsResponse{
+		Event:    &tetragon.GetEventsResponse_ProcessExec{},
+		NodeName: "must-not-be-sent",
+	}
+	notifier.NotifyListener(nil, failing)
+	select {
+	case err := <-result:
+		require.ErrorContains(t, err, "failed to apply field filter")
+	case <-time.After(time.Second):
+		t.Fatal("GetEventsListener waited for the blocked aggregator send")
+	}
+	select {
+	case sent := <-stream.sent:
+		t.Fatalf("field filter failure delivered event: %v", sent)
+	default:
+	}
+
+	close(stream.releaseSend)
+	select {
+	case <-stream.sendReturned:
+	case <-time.After(time.Second):
+		t.Fatal("blocked aggregator send did not return")
+	}
+	select {
+	case <-notifier.removed:
+	case <-time.After(time.Second):
+		t.Fatal("GetEventsListener did not remove listener")
+	}
+	cleanupWG.Wait()
 }
 
 func TestServer(t *testing.T) {
