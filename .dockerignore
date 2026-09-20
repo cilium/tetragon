@@ -1,25 +1,38 @@
-# Ignore VCS
-.git/
+# Ignore everything by default and opt in what the images need, so that local
+# build artifacts and scratch files stay out of the context. A new top-level
+# path needed by a Dockerfile has to be added below.
+*
 
-# Ignore dockerignore and Dockerfiles
-.dockerignore
-Dockerfile
-Dockerfile.*
+# Build system
+!Makefile
+!Makefile.cli
+!Makefile.defs
 
-# Ignore compiled binaries and libraries
-go-tests/
-lib/
-bin/
+# Go modules and sources
+!go.mod
+!go.sum
+!vendor
+!api
+!cmd
+!operator
+!pkg
+!tests
+!contrib/tetragon-rthooks
+
+# BPF programs
+!bpf
+
+# Linux tarball packaging
+!install
+
+# Compiled artifacts of a local build living in the directories above
+bpf/deps
 bpf/objs
-tetra
-tetragon
-tetragon-alignchecker
-contrib/tester-progs/capabilities-tester
-contrib/tester-progs/dup-tester
-contrib/tester-progs/fork-tester
-contrib/tester-progs/namespace-tester
-contrib/tester-progs/sigkill-tester
-contrib/tester-progs/trigger-test-events
-# ignore files downloaded by tests/vmtests/fetch-data.sh
+contrib/tetragon-rthooks/tetragon-nri-hook
+contrib/tetragon-rthooks/tetragon-oci-hook
+contrib/tetragon-rthooks/tetragon-oci-hook-setup
+tests/vmtests/tetragon-tester
+tests/vmtests/tetragon-vmtests-run
 tests/vmtests/test-data
+tests/vmtests/test-group-*
 tests/vmtests/vmtests-results-*
