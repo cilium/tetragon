@@ -124,7 +124,7 @@ func resolveArgs(reader *bytes.Reader, exec *processapi.MsgExec) (string, error)
 	if err != nil {
 		return "", err
 	}
-	if len(data) > 0 && data[len(data)-1] == '\x00' {
+	if exec.Flags&api.EventDataArgs != 0 && len(data) > 0 && data[len(data)-1] == '\x00' {
 		data = data[:len(data)-1]
 	}
 	if len(data) == 0 {

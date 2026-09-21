@@ -900,6 +900,77 @@ func TestExecParse(t *testing.T) {
 		assert.Equal(t, string(cwd), process.Cwd)
 	})
 
+	t.Run("Empty last arg", func(t *testing.T) {
+		observer.DataPurge()
+
+		// - filename (string)
+		// - args (string), last one empty
+		// - cwd (string)
+
+		// BPF strips the trailing '\0', so the one left ends "arg1"
+		// and starts the empty argument.
+		var args []byte
+		args = append(args, 'a', 'r', 'g', '1', 0)
+
+		exec.Flags = 0
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + len(args) + len(cwd))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = uint16(len(args))
+		exec.SizeCwd = uint16(len(cwd))
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, filename)
+		binary.Write(&buf, binary.LittleEndian, args)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, err := execParse(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Equal(t, `arg1 ""`, process.Args)
+		assert.Equal(t, string(cwd), process.Cwd)
+	})
+
+	t.Run("Empty last arg as data event", func(t *testing.T) {
+		observer.DataPurge()
+
+		// - filename (string)
+		// - args (data event), last one empty
+		// - cwd (string)
+
+		var args []byte
+		args = append(args, 'a', 'r', 'g', '1', 0, 0)
+
+		id := dataapi.DataEventId{Pid: 1, Time: 2}
+		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), Id: id}
+		err = observer.DataAdd(id, args)
+		require.NoError(t, err)
+
+		exec.Flags = api.EventDataArgs
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = uint16(binary.Size(desc))
+		exec.SizeCwd = uint16(len(cwd))
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, filename)
+		binary.Write(&buf, binary.LittleEndian, desc)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, err := execParse(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Equal(t, `arg1 ""`, process.Args)
+		assert.Equal(t, string(cwd), process.Cwd)
+	})
+
 	t.Run("Filename and args as data event", func(t *testing.T) {
 		observer.DataPurge()
 
