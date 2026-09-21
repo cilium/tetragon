@@ -38,7 +38,7 @@ func eventWithArguments(arguments string) *tetragon.GetEventsResponse {
 	}
 }
 
-func redactArguments(event *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
+func redactArguments(_ *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
 	return eventWithArguments("[redacted]"), nil
 }
 
@@ -58,7 +58,7 @@ func TestApplyFieldFilters(t *testing.T) {
 		},
 		{
 			name: "first filter fails",
-			filters: []testEventFieldFilter{func(event *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
+			filters: []testEventFieldFilter{func(_ *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
 				return nil, errFilter
 			}},
 			wantErr:         errFilter,
@@ -68,7 +68,7 @@ func TestApplyFieldFilters(t *testing.T) {
 			name: "later filter fails",
 			filters: []testEventFieldFilter{
 				redactArguments,
-				func(event *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
+				func(_ *tetragon.GetEventsResponse) (*tetragon.GetEventsResponse, error) {
 					return nil, errFilter
 				},
 			},
@@ -218,7 +218,6 @@ func TestGetEventsListenerFieldFilterFailure(t *testing.T) {
 			notifier := newTestNotifier()
 			var cleanupWG sync.WaitGroup
 			serverCtx, cancelServer := context.WithCancel(t.Context())
-			defer cancelServer()
 			stream := &testGetEventsServer{
 				ctx:  t.Context(),
 				sent: make(chan *tetragon.GetEventsResponse, 1),
@@ -235,14 +234,37 @@ func TestGetEventsListenerFieldFilterFailure(t *testing.T) {
 
 			select {
 			case err := <-result:
-				require.ErrorContains(t, err, "failed to apply field filter")
-			case <-time.After(time.Second):
-				t.Fatal("GetEventsListener did not return after field filter failure")
+				t.Fatalf("GetEventsListener returned after field filter failure: %v", err)
+			default:
 			}
 			select {
 			case sent := <-stream.sent:
 				t.Fatalf("field filter failure delivered event: %v", sent)
 			default:
+			}
+
+			validEvent := eventWithArguments("deliver-after-failure")
+			validEvent.NodeName = "delivered-after-failure"
+			notifier.NotifyListener(nil, validEvent)
+			select {
+			case sent := <-stream.sent:
+				require.Equal(t, "delivered-after-failure", sent.GetNodeName())
+				require.Empty(t, sent.GetProcessExec().GetProcess().GetArguments())
+			case <-time.After(time.Second):
+				t.Fatal("GetEventsListener did not continue after field filter failure")
+			}
+			select {
+			case sent := <-stream.sent:
+				t.Fatalf("field filter failure delivered an additional event: %v", sent)
+			default:
+			}
+
+			cancelServer()
+			select {
+			case err := <-result:
+				require.ErrorIs(t, err, context.Canceled)
+			case <-time.After(time.Second):
+				t.Fatal("GetEventsListener did not return after server cancellation")
 			}
 			select {
 			case <-notifier.removed:
@@ -302,14 +324,21 @@ func TestGetEventsListenerFilterFailureDoesNotWaitForBlockedAggregatorSend(t *te
 	notifier.NotifyListener(nil, failing)
 	select {
 	case err := <-result:
-		require.ErrorContains(t, err, "failed to apply field filter")
-	case <-time.After(time.Second):
-		t.Fatal("GetEventsListener waited for the blocked aggregator send")
+		t.Fatalf("GetEventsListener returned after field filter failure: %v", err)
+	default:
 	}
 	select {
 	case sent := <-stream.sent:
 		t.Fatalf("field filter failure delivered event: %v", sent)
 	default:
+	}
+
+	cancelServer()
+	select {
+	case err := <-result:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(time.Second):
+		t.Fatal("GetEventsListener waited for the blocked aggregator send during cancellation")
 	}
 
 	close(stream.releaseSend)

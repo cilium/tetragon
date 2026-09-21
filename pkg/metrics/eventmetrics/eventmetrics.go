@@ -78,6 +78,11 @@ var (
 		"The total number of events dropped because listener buffer was full",
 		nil, nil, nil,
 	), nil)
+	FieldFilterErrors = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "field_filter_errors_total",
+		"The total number of events dropped because field filtering failed",
+		nil, nil, nil,
+	), nil)
 
 	policyStats = metrics.MustNewGranularCounterWithInit[metrics.ProcessLabels](
 		metrics.NewOpts(
@@ -99,6 +104,7 @@ func RegisterHealthMetrics(group metrics.Group) {
 	group.MustRegister(
 		FlagCount,
 		NotifyOverflowedEvents,
+		FieldFilterErrors,
 		NewBPFCollector(),
 		missingProcessInfo,
 	)

@@ -215,7 +215,9 @@ func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server te
 				}
 				event, err = applyFieldFilters(event, fieldFilters)
 				if err != nil {
-					return err
+					logger.GetLogger().Warn("Failed to apply field filter; dropping event", logfields.Error, err)
+					eventmetrics.FieldFilterErrors.WithLabelValues().Inc()
+					continue
 				}
 
 				if agg != nil {

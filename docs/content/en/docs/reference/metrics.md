@@ -179,6 +179,10 @@ Number of events missing process info.
 
 Number of events dropped on export due to rate limiting
 
+### `tetragon_field_filter_errors_total`
+
+The total number of events dropped because field filtering failed
+
 ### `tetragon_flags_total`
 
 The total number of Tetragon flags. For internal use only.
