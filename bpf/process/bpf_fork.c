@@ -68,11 +68,6 @@ rb_clone_output(void *ctx, struct execve_map_value *curr, struct task_struct *ta
 		return 0;
 
 	event_clone_fill(event, curr, task);
-
-	if (!event_clone_rate_check(ctx, task, event->common.ktime)) {
-		ringbuf_discard(event, 0);
-		return 0;
-	}
 	ringbuf_submit(event, 0);
 	return 0;
 }
@@ -85,6 +80,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	struct msg_clone_event msg;
 	u64 msg_size = sizeof(struct msg_clone_event);
 	u32 tgid = 0;
+	u64 ktime;
 
 	if (!task)
 		return 0;
@@ -109,10 +105,17 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	if (curr->key.ktime != 0)
 		return 0;
 
+	ktime = tg_get_ktime();
+
+#ifndef __RHEL7_BPF_PROG
+	if (!event_clone_rate_check(ctx, task, ktime))
+		return 0;
+#endif
+
 	/* Setup the execve_map entry. */
 	curr->flags = EVENT_COMMON_FLAG_CLONE;
 	curr->key.pid = tgid;
-	curr->key.ktime = tg_get_ktime();
+	curr->key.ktime = ktime;
 	curr->nspid = get_task_pid_vnr_by_task(task);
 	__bpf_memcpy_builtin(&curr->bin, &parent->bin, sizeof(curr->bin));
 	__bpf_memcpy_builtin(&curr->args, &parent->args, sizeof(curr->args));
@@ -141,11 +144,6 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 #endif
 
 	event_clone_fill(&msg, curr, task);
-
-#ifndef __RHEL7_BPF_PROG
-	if (event_clone_rate_check(ctx, task, msg.ktime))
-#endif
-		event_output_metric(ctx, MSG_OP_CLONE, &msg, msg_size);
-
+	event_output_metric(ctx, MSG_OP_CLONE, &msg, msg_size);
 	return 0;
 }
