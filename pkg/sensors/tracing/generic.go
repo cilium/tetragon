@@ -248,7 +248,7 @@ func hasPtRegsSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "pt_regs"
 }
 
-func resolvePtRegsArg(resolve string) (api.ConfigRegArg, [api.MaxBTFArgDepth]api.ConfigBTFArg, bool, error) {
+func resolvePtRegsArg(resolve string, userBTFSpec *ebtf.Spec) (api.ConfigRegArg, [api.MaxBTFArgDepth]api.ConfigBTFArg, bool, error) {
 	var (
 		regArg api.ConfigRegArg
 		btfArg [api.MaxBTFArgDepth]api.ConfigBTFArg
@@ -279,14 +279,14 @@ func resolvePtRegsArg(resolve string) (api.ConfigRegArg, [api.MaxBTFArgDepth]api
 		return regArg, btfArg, false, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", resolve, api.MaxBTFArgDepth)
 	}
 
-	_, err = btf.ResolveBTFPath(&btfArg, &ebtf.Void{}, path, nil)
+	_, err = btf.ResolveBTFPath(&btfArg, &ebtf.Void{}, path, userBTFSpec)
 	if err != nil {
 		return regArg, btfArg, false, fmt.Errorf("failed to resolve pt_regs path %q: %w", resolve, err)
 	}
 	return regArg, btfArg, true, nil
 }
 
-func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type, spec *ebtf.Spec) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
 	pathBase, err := formatBTFPath(arg.Resolve)
 	if err != nil {
@@ -297,7 +297,7 @@ func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.Max
 		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
 
-	lastBTFType, err := btf.ResolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path, nil)
+	lastBTFType, err := btf.ResolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path, spec)
 	return lastBTFType, btfArg, err
 }
 
@@ -308,7 +308,7 @@ func resolveUserBTFArg(arg *v1alpha1.KProbeArg, userBTFSpec *ebtf.Spec) (*ebtf.T
 		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 	}
 	ty := ebtf.Type(st)
-	return resolveBTFType(arg, ty)
+	return resolveBTFType(arg, ty, userBTFSpec)
 }
 
 func findBTFTypeStruct(hook string, arg *v1alpha1.KProbeArg) (*ebtf.Struct, error) {
@@ -335,7 +335,7 @@ func findBTFTypeStruct(hook string, arg *v1alpha1.KProbeArg) (*ebtf.Struct, erro
 	return nil, fmt.Errorf("failed to find BTF type %q in kernel BTF or module %q: %w", arg.BTFType, module, errors.Join(err, moduleErr))
 }
 
-func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool, spec *ebtf.Spec) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	// tracepoints have extra first internal argument, so we need to adjust the index
 	index := int(arg.Index)
 	if tp {
@@ -374,7 +374,7 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 			}
 		}
 	}
-	return resolveBTFType(arg, ty)
+	return resolveBTFType(arg, ty, spec)
 }
 
 func findTypeFromBTFType(arg *v1alpha1.KProbeArg, btfType *ebtf.Type) int {
