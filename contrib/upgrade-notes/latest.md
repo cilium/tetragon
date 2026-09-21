@@ -22,6 +22,13 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### TracingPolicy (k8s CRD)
 
+* Address selectors (`SAddr`, `NotSAddr`, `DAddr`, `NotDAddr`) now match an
+  address in both its IPv4 and IPv4-mapped IPv6 form. An IPv4 value such as
+  `172.16.0.0/12` previously did not match traffic on a dual-stack socket,
+  where the peer appears as `::ffff:172.16.0.0` with family `AF_INET6`.
+  Policies that listed both forms as a workaround keep working and can drop
+  the `::ffff:` entry. Policies that relied on the old behaviour will now match
+  more traffic, so review any that carry an enforcement action.
 * `returnArgAction` no longer accepts `Post`. Use `returnArg` to include the
   return value in events, and omit `returnArgAction` for the default return-value
   behavior. Only `TrackSock` and `UntrackSock` are supported. Existing policies
