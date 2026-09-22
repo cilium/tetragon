@@ -1321,9 +1321,11 @@ can be expanded to all processes by specifying the same with the value "global".
 
 #### Stack traces
 
-`Post` takes the `kernelStackTrace` parameter, when turned to `true` (by default to
-`false`) it enables dump of the kernel stack trace to the hook point in kprobes
-events. To dump user space stack trace set `userStackTrace` parameter to `true`.
+For kprobes, the `Post` action can include the `kernelStackTrace` and
+`userStackTrace` parameters. Setting either parameter to `true` records the
+corresponding stack trace at the hook point. Uprobes support only
+`userStackTrace`.
+
 For example, the following kprobe hook can be used to retrieve the
 kernel stack to `kfree_skb_reason`, the function called in the kernel to drop
 kernel socket buffers.
@@ -1336,6 +1338,21 @@ kprobes:
       - action: Post
         kernelStackTrace: true
         userStackTrace: true
+```
+
+The following uprobe hook records the user-space stack whenever `sleep` is
+called in the system C library. The library path may differ between
+distributions.
+
+```yaml
+uprobes:
+- path: /lib64/libc.so.6
+  symbols:
+  - sleep
+  selectors:
+  - matchActions:
+    - action: Post
+      userStackTrace: true
 ```
 
 {{< caution >}}
@@ -1351,8 +1368,9 @@ The same thing we can say about retrieving address for user mode processes.
 Stack trace addresses can be used to bypass address space layout randomization (ASLR).
 {{< /caution >}}
 
-Once loaded, events created from this policy will contain a new `kernel_stack_trace`
-field on the `process_kprobe` event with an output similar to:
+Once loaded, events created from these policies will contain a
+`kernel_stack_trace` or `user_stack_trace` field on the corresponding event
+with an output similar to:
 
 ```
 {
