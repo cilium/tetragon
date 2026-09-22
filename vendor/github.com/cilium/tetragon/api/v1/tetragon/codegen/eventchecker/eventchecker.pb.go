@@ -1630,20 +1630,21 @@ func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.P
 
 // ProcessUprobeChecker implements a checker struct to check a ProcessUprobe event
 type ProcessUprobeChecker struct {
-	CheckerName  string                       `json:"checkerName"`
-	Process      *ProcessChecker              `json:"process,omitempty"`
-	Parent       *ProcessChecker              `json:"parent,omitempty"`
-	Path         *stringmatcher.StringMatcher `json:"path,omitempty"`
-	Symbol       *stringmatcher.StringMatcher `json:"symbol,omitempty"`
-	PolicyName   *stringmatcher.StringMatcher `json:"policyName,omitempty"`
-	Message      *stringmatcher.StringMatcher `json:"message,omitempty"`
-	Args         *KprobeArgumentListMatcher   `json:"args,omitempty"`
-	Tags         *StringListMatcher           `json:"tags,omitempty"`
-	Ancestors    *ProcessListMatcher          `json:"ancestors,omitempty"`
-	Offset       *uint64                      `json:"offset,omitempty"`
-	RefCtrOffset *uint64                      `json:"refCtrOffset,omitempty"`
-	Action       *KprobeActionChecker         `json:"action,omitempty"`
-	Data         *KprobeArgumentListMatcher   `json:"data,omitempty"`
+	CheckerName    string                       `json:"checkerName"`
+	Process        *ProcessChecker              `json:"process,omitempty"`
+	Parent         *ProcessChecker              `json:"parent,omitempty"`
+	Path           *stringmatcher.StringMatcher `json:"path,omitempty"`
+	Symbol         *stringmatcher.StringMatcher `json:"symbol,omitempty"`
+	PolicyName     *stringmatcher.StringMatcher `json:"policyName,omitempty"`
+	Message        *stringmatcher.StringMatcher `json:"message,omitempty"`
+	Args           *KprobeArgumentListMatcher   `json:"args,omitempty"`
+	Tags           *StringListMatcher           `json:"tags,omitempty"`
+	Ancestors      *ProcessListMatcher          `json:"ancestors,omitempty"`
+	Offset         *uint64                      `json:"offset,omitempty"`
+	RefCtrOffset   *uint64                      `json:"refCtrOffset,omitempty"`
+	Action         *KprobeActionChecker         `json:"action,omitempty"`
+	Data           *KprobeArgumentListMatcher   `json:"data,omitempty"`
+	UserStackTrace *StackTraceEntryListMatcher  `json:"userStackTrace,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -1750,6 +1751,11 @@ func (checker *ProcessUprobeChecker) Check(event *tetragon.ProcessUprobe) error 
 				return fmt.Errorf("Data check failed: %w", err)
 			}
 		}
+		if checker.UserStackTrace != nil {
+			if err := checker.UserStackTrace.Check(event.UserStackTrace); err != nil {
+				return fmt.Errorf("UserStackTrace check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -1849,6 +1855,12 @@ func (checker *ProcessUprobeChecker) WithData(check *KprobeArgumentListMatcher) 
 	return checker
 }
 
+// WithUserStackTrace adds a UserStackTrace check to the ProcessUprobeChecker
+func (checker *ProcessUprobeChecker) WithUserStackTrace(check *StackTraceEntryListMatcher) *ProcessUprobeChecker {
+	checker.UserStackTrace = check
+	return checker
+}
+
 //FromProcessUprobe populates the ProcessUprobeChecker using data from a ProcessUprobe event
 func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUprobe) *ProcessUprobeChecker {
 	if event == nil {
@@ -1922,6 +1934,19 @@ func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUp
 		lm := NewKprobeArgumentListMatcher().WithOperator(listmatcher.Ordered).
 			WithValues(checks...)
 		checker.Data = lm
+	}
+	{
+		var checks []*StackTraceEntryChecker
+		for _, check := range event.UserStackTrace {
+			var convertedCheck *StackTraceEntryChecker
+			if check != nil {
+				convertedCheck = NewStackTraceEntryChecker().FromStackTraceEntry(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewStackTraceEntryListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.UserStackTrace = lm
 	}
 	return checker
 }
