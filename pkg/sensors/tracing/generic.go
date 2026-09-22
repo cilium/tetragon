@@ -8,19 +8,77 @@ package tracing
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	ebtf "github.com/cilium/ebpf/btf"
 
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/btf"
 	conf "github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/generictypes"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/selectors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 )
+
+type genericStackTraceData struct {
+	// stackTraceMap resolves the stack IDs carried by kprobe and uprobe events.
+	stackTraceMap *program.Map
+}
+
+type stackTraceDestinations struct {
+	// optional destinations for stack IDs resolved from BPF stack_trace_map
+	kernel *[constants.PERF_MAX_STACK_DEPTH]uint64
+	user   *[constants.PERF_MAX_STACK_DEPTH]uint64
+}
+
+func lookupStackTraces(
+	m *api.MsgGenericKprobe,
+	data *genericStackTraceData,
+	destinations stackTraceDestinations,
+	logAttrs func(slog.Level, string, ...slog.Attr),
+) {
+	hasKernel := destinations.kernel != nil && m.HasKernelStack()
+	hasUser := destinations.user != nil && m.HasUserStack()
+
+	if !hasKernel && !hasUser {
+		return
+	}
+	if data == nil || data.stackTraceMap == nil || data.stackTraceMap.MapHandle == nil {
+		logAttrs(slog.LevelWarn, "stack trace map not initialized")
+		return
+	}
+	if hasKernel {
+		if m.KernelStackID < 0 {
+			logAttrs(slog.LevelWarn, "failed to retrieve kernel stacktrace", slog.Any("errno", m.KernelStackID))
+		} else if err := data.stackTraceMap.MapHandle.Lookup(uint32(m.KernelStackID), destinations.kernel); err != nil {
+			logAttrs(slog.LevelWarn, "failed to lookup kernel stacktrace", slog.Any(logfields.Error, err))
+		}
+	}
+	if hasUser {
+		if m.UserStackID < 0 {
+			logAttrs(slog.LevelDebug, "failed to retrieve user stacktrace", slog.Any("errno", m.UserStackID))
+		} else if err := data.stackTraceMap.MapHandle.Lookup(uint32(m.UserStackID), destinations.user); err != nil {
+			logAttrs(slog.LevelWarn, "failed to lookup user stacktrace", slog.Any(logfields.Error, err))
+		}
+	}
+}
+
+func createStackTraceMap(enabled bool, load *program.Program) *program.Map {
+	if !enabled {
+		return nil
+	}
+	stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
+	// The BPF map defaults to one entry to minimize memory usage. Expand it
+	// only when a policy requests stack traces.
+	stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+
+	return stackTraceMap
+}
 
 // Takes arg.Resolve as input and return the path in []string
 // Input   : my.super.field[123].my.sub.field
