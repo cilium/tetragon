@@ -8,6 +8,7 @@ package tracing
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,12 +18,16 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/cilium/ebpf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
+	"github.com/cilium/tetragon/pkg/api/processapi"
+	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
@@ -1449,4 +1454,178 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 
+}
+
+func TestLookupStackTraces(t *testing.T) {
+	stackMap, err := ebpf.NewMap(&ebpf.MapSpec{
+		Name:       "uprobe_stack_test",
+		Type:       ebpf.Hash,
+		KeySize:    4,
+		ValueSize:  constants.PERF_MAX_STACK_DEPTH * 8,
+		MaxEntries: 1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		stackMap.Close()
+	})
+
+	trace := [constants.PERF_MAX_STACK_DEPTH]uint64{0x10, 0x20}
+	require.NoError(t, stackMap.Put(uint32(0), &trace))
+	data := &genericStackTraceData{
+		stackTraceMap: &program.Map{MapHandle: stackMap},
+	}
+
+	tests := []struct {
+		name              string
+		msg               api.MsgGenericKprobe
+		data              *genericStackTraceData
+		kernelDestination bool
+		userDestination   bool
+		wantKernel        [constants.PERF_MAX_STACK_DEPTH]uint64
+		wantUser          [constants.PERF_MAX_STACK_DEPTH]uint64
+		wantLog           string
+	}{
+		{
+			name:            "flag absent",
+			userDestination: true,
+		},
+		{
+			name: "map absent",
+			msg: api.MsgGenericKprobe{
+				Common: processapi.MsgCommon{Flags: processapi.MSG_COMMON_FLAG_USER_STACKTRACE},
+			},
+			userDestination: true,
+			wantLog:         "stack trace map not initialized",
+		},
+		{
+			name: "capture failed",
+			msg: api.MsgGenericKprobe{
+				Common:      processapi.MsgCommon{Flags: processapi.MSG_COMMON_FLAG_USER_STACKTRACE},
+				UserStackID: -14,
+			},
+			data:            data,
+			userDestination: true,
+			wantLog:         "failed to retrieve user stacktrace",
+		},
+		{
+			name: "user stack ID zero",
+			msg: api.MsgGenericKprobe{
+				Common:      processapi.MsgCommon{Flags: processapi.MSG_COMMON_FLAG_USER_STACKTRACE},
+				UserStackID: 0,
+			},
+			data:            data,
+			userDestination: true,
+			wantUser:        trace,
+		},
+		{
+			name: "kernel stack ID zero",
+			msg: api.MsgGenericKprobe{
+				Common:        processapi.MsgCommon{Flags: processapi.MSG_COMMON_FLAG_KERNEL_STACKTRACE},
+				KernelStackID: 0,
+			},
+			data:              data,
+			kernelDestination: true,
+			wantKernel:        trace,
+		},
+		{
+			name: "unsupported kernel destination",
+			msg: api.MsgGenericKprobe{
+				Common:        processapi.MsgCommon{Flags: processapi.MSG_COMMON_FLAG_KERNEL_STACKTRACE},
+				KernelStackID: 0,
+			},
+		},
+		{
+			name: "lookup failed",
+			msg: api.MsgGenericKprobe{
+				Common:      processapi.MsgCommon{Flags: processapi.MSG_COMMON_FLAG_USER_STACKTRACE},
+				UserStackID: 1,
+			},
+			data:            data,
+			userDestination: true,
+			wantLog:         "failed to lookup user stacktrace",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var logs []string
+			logAttrs := func(_ slog.Level, msg string, _ ...slog.Attr) {
+				logs = append(logs, msg)
+			}
+			var kernelDestination [constants.PERF_MAX_STACK_DEPTH]uint64
+			var userDestination [constants.PERF_MAX_STACK_DEPTH]uint64
+			destinations := stackTraceDestinations{}
+			if test.kernelDestination {
+				destinations.kernel = &kernelDestination
+			}
+			if test.userDestination {
+				destinations.user = &userDestination
+			}
+
+			lookupStackTraces(&test.msg, test.data, destinations, logAttrs)
+
+			assert.Equal(t, test.wantKernel, kernelDestination)
+			assert.Equal(t, test.wantUser, userDestination)
+			if test.wantLog == "" {
+				assert.Empty(t, logs)
+			} else {
+				assert.Equal(t, []string{test.wantLog}, logs)
+			}
+		})
+	}
+}
+
+func TestUprobeUserStackTrace(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	testBinary := testutils.RepoRootPath("contrib/tester-progs/user-stacktrace")
+	tracingPolicy := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-user-stack-trace"
+spec:
+  uprobes:
+  - path: "` + testBinary + `"
+    symbols:
+    - "main.main"
+    selectors:
+    - matchActions:
+      - action: Post
+        userStackTrace: true`
+
+	createCrdFile(t, tracingPolicy)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(
+		t,
+		ctx,
+		testConfigFile,
+		tus.Conf().TetragonLib,
+		observertesthelper.WithMyPid(),
+	)
+	require.NoError(t, err)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testCmd := exec.Command(testBinary)
+	require.NoError(t, testCmd.Start())
+	t.Cleanup(func() {
+		testCmd.Process.Kill()
+		testCmd.Wait()
+	})
+
+	stackTraceChecker := ec.NewProcessUprobeChecker("uprobe-user-stack-trace").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(testBinary))).
+		WithSymbol(sm.Full("main.main")).
+		WithUserStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
+			ec.NewStackTraceEntryChecker().
+				WithModule(sm.Suffix("contrib/tester-progs/user-stacktrace")).
+				WithSymbol(sm.Suffix("main.main")),
+		))
+
+	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
+	require.NoError(t, jsonchecker.JsonTestCheck(t, checker))
 }
