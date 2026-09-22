@@ -365,8 +365,8 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		tetragonData = append(tetragonData, getKprobeArgument(arg))
 	}
 
-	kernelStackTrace := kernelStack(event)
-	userStackTrace := userStack(event)
+	kernelStackTrace := kernelStack(event.Msg, event.KernelStackTrace[:])
+	userStackTrace := userStack(event.Msg, event.UserStackTrace[:])
 
 	tetragonEvent := &tetragon.ProcessKprobe{
 		Process:          tetragonProcess,
@@ -416,8 +416,8 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	return tetragonEvent
 }
 
-func kernelStack(event *MsgGenericKprobeUnix) []*tetragon.StackTraceEntry {
-	if !event.Msg.HasKernelStack() {
+func kernelStack(msg *tracingapi.MsgGenericKprobe, addresses []uint64) []*tetragon.StackTraceEntry {
+	if !msg.HasKernelStack() {
 		return nil
 	}
 
@@ -428,12 +428,12 @@ func kernelStack(event *MsgGenericKprobeUnix) []*tetragon.StackTraceEntry {
 		return stackTrace
 	}
 
-	for _, addr := range event.KernelStackTrace {
+	for _, addr := range addresses {
 		if addr == 0 {
-			// the stack trace from the MsgGenericKprobeUnix is a fixed size
-			// array, [unix.PERF_MAX_STACK_DEPTH]uint64, used for binary decode,
-			// it might contain multiple zeros to ignore since stack trace might
-			// be less than PERF_MAX_STACK_DEPTH most of the time.
+			// addresses comes from a fixed-size
+			// [constants.PERF_MAX_STACK_DEPTH]uint64 array used for binary decode;
+			// it may contain trailing zeros to ignore when the stack trace is
+			// shorter than PERF_MAX_STACK_DEPTH.
 			continue
 		}
 		fnOffset, err := kernelSymbols.GetFnOffset(addr)
@@ -455,20 +455,20 @@ func kernelStack(event *MsgGenericKprobeUnix) []*tetragon.StackTraceEntry {
 	return stackTrace
 }
 
-func userStack(event *MsgGenericKprobeUnix) []*tetragon.StackTraceEntry {
-	if !event.Msg.HasUserStack() {
+func userStack(msg *tracingapi.MsgGenericKprobe, addresses []uint64) []*tetragon.StackTraceEntry {
+	if !msg.HasUserStack() {
 		return nil
 	}
 
 	var stackTrace []*tetragon.StackTraceEntry
 
-	for _, addr := range event.UserStackTrace {
+	for _, addr := range addresses {
 		if addr == 0 {
 			continue
 		}
 		// TODO extract symbols from procfs
 		entry := &tetragon.StackTraceEntry{}
-		fsym, err := procsyms.GetFnSymbol(int(event.Msg.Tid), addr)
+		fsym, err := procsyms.GetFnSymbol(int(msg.Tid), addr)
 		if err != nil {
 			logger.GetLogger().Debug("stacktrace: failed to retrieve symbol, offset and module", "address", fmt.Sprintf("0x%x", addr))
 			continue
