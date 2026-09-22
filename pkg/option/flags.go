@@ -322,7 +322,9 @@ func ReadAndSetFlags() error {
 
 	Config.ExposeStackAddresses = viper.GetBool(KeyExposeStackAddresses)
 
-	Config.CgroupRate = ParseCgroupRate(viper.GetString(KeyCgroupRate))
+	if Config.CgroupRate, err = ParseCgroupRate(viper.GetString(KeyCgroupRate)); err != nil {
+		return err
+	}
 	Config.HealthServerAddress = viper.GetString(KeyHealthServerAddress)
 	Config.HealthServerInterval = viper.GetInt(KeyHealthTimeInterval)
 
@@ -453,17 +455,16 @@ type CgroupRate struct {
 	Interval uint64
 }
 
-func ParseCgroupRate(rate string) CgroupRate {
+func ParseCgroupRate(rate string) (CgroupRate, error) {
 	empty := CgroupRate{}
 
 	if rate == "" {
-		return empty
+		return empty, nil
 	}
 
 	s := strings.Split(rate, ",")
 	if len(s) != 2 {
-		logger.GetLogger().Warn(fmt.Sprintf("failed to parse cgroup rate '%s'", rate))
-		return empty
+		return empty, fmt.Errorf("invalid cgroup-rate %q: expected <events,interval>", rate)
 	}
 
 	var interval time.Duration
@@ -472,24 +473,22 @@ func ParseCgroupRate(rate string) CgroupRate {
 
 	if len(s[0]) > 0 {
 		events, err = strconv.Atoi(s[0])
-		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("failed to parse cgroup rate '%s' : %s", rate, err))
-			return empty
+		if err != nil || events < 0 {
+			return empty, fmt.Errorf("invalid cgroup-rate %q: events must be a non-negative integer", rate)
 		}
 	}
 
 	if len(s[1]) > 0 {
 		interval, err = time.ParseDuration(s[1])
-		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("failed to parse cgroup rate '%s'", rate), logfields.Error, err)
-			return empty
+		if err != nil || interval < 0 {
+			return empty, fmt.Errorf("invalid cgroup-rate %q: interval must be a non-negative duration", rate)
 		}
 	}
 
 	return CgroupRate{
 		Events:   uint64(events),
 		Interval: uint64(interval),
-	}
+	}, nil
 }
 
 // StringToSliceHookFunc returns a DecodeHookFunc that converts string to []string

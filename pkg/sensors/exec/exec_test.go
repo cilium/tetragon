@@ -1646,7 +1646,9 @@ func testThrottle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	option.Config.CgroupRate = option.ParseCgroupRate("10,2s")
+	var err error
+	option.Config.CgroupRate, err = option.ParseCgroupRate("10,2s")
+	require.NoError(t, err)
 	t.Cleanup(func() {
 		option.Config.CgroupRate = option.CgroupRate{}
 	})
