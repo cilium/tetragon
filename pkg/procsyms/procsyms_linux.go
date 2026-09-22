@@ -6,6 +6,9 @@ package procsyms
 import (
 	"debug/elf"
 	"fmt"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -13,6 +16,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 var (
@@ -23,20 +27,40 @@ var (
 	setCache sync.Once
 )
 
+// Preserve <procfs>/<pid>/root so module lookup occurs in the traced process's
+// mount namespace. Proc.RootDir() resolves this symlink, typically to "/", and
+// loses the procfs traversal path.
+func procModulePath(pid int, pathname string) string {
+	return filepath.Join(
+		option.Config.ProcFS,
+		strconv.Itoa(pid),
+		"root",
+		strings.TrimPrefix(pathname, "/"),
+	)
+}
+
+func openProcModule(pid int, pathname string) (*elf.File, error) {
+	return elf.Open(procModulePath(pid, pathname))
+}
+
 // GetFnSymbol -- returns the FnSym for a given address and PID
 func GetFnSymbol(pid int, addr uint64) (*FnSym, error) {
 	// TODO: Think about cache [pid+addr] -> [module+offset]
-	p, err := procfs.NewProc(pid)
+	fs, err := procfs.NewFS(option.Config.ProcFS)
 	if err != nil {
-		return nil, fmt.Errorf("can't open /proc/%d", pid)
+		return nil, fmt.Errorf("can't open procfs %q: %w", option.Config.ProcFS, err)
+	}
+	p, err := fs.Proc(pid)
+	if err != nil {
+		return nil, fmt.Errorf("can't open %s/%d: %w", option.Config.ProcFS, pid, err)
 	}
 	maps, err := p.ProcMaps()
 	if err != nil {
-		return nil, fmt.Errorf("can't get proc/%d/maps", pid)
+		return nil, fmt.Errorf("can't get %s/%d/maps: %w", option.Config.ProcFS, pid, err)
 	}
 
 	if len(maps) == 0 {
-		return nil, fmt.Errorf("proc/%d/maps is empty", pid)
+		return nil, fmt.Errorf("%s/%d/maps is empty", option.Config.ProcFS, pid)
 	}
 
 	// binary search
@@ -86,7 +110,7 @@ func GetFnSymbol(pid int, addr uint64) (*FnSym, error) {
 		}
 	}
 
-	if binary, err := elf.Open(entry.Pathname); err == nil {
+	if binary, err := openProcModule(pid, entry.Pathname); err == nil {
 		defer binary.Close()
 		syms, _ := binary.Symbols()
 		if dsyms, err := binary.DynamicSymbols(); err == nil {
