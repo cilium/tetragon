@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
@@ -301,4 +302,32 @@ spec:
         argError: -1
 `)
 	})
+}
+
+func TestUprobeStackTraceMapMaxEntries(t *testing.T) {
+	uprobeBinary := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+	found := false
+
+	runConfig(t, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-stack-traces"
+spec:
+  uprobes:
+  - path: "`+uprobeBinary+`"
+    symbols:
+    - "main"
+    selectors:
+    - matchActions:
+      - action: Post
+        userStackTrace: true
+`, func(name string, entries int) {
+		if name == "stack_trace_map" {
+			found = true
+			assert.Equal(t, stackTraceMapMaxEntries, entries)
+		}
+	})
+
+	assert.True(t, found, "stack_trace_map was not loaded")
 }
