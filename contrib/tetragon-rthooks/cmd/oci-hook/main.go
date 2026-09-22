@@ -283,7 +283,9 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 	spec, err := readJsonSpec(configName)
 	if err != nil {
 		log.Warn("failed to read spec file", "name", configName, "error", err)
-	} else if cgroupPath, err = getCgroupPath(spec); err != nil {
+		return err, nil
+	}
+	if cgroupPath, err = getCgroupPath(spec); err != nil {
 		log.Warn("error getting cgroup path", "error", err)
 	}
 
@@ -297,6 +299,9 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 	// container root directory. In "containerd (createRuntime)" we need to
 	// append the rootDir the root path from the spec.
 	if configName == filepath.Join(rootDir, "config.json") {
+		if spec.Root == nil || spec.Root.Path == "" {
+			return errors.New("root path missing in spec"), spec.Annotations
+		}
 		rootDir = path.Join(rootDir, spec.Root.Path)
 	}
 
