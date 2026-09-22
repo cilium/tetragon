@@ -459,8 +459,7 @@ func (m *state) DelPolicy(polID PolicyID) error {
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	policy := m.delPolicy(polID)
-	if policy != nil {
+	if policy := m.delPolicy(polID); policy != nil {
 		policy.polMap.Inner.Close()
 	} else {
 		m.log.Warn("DelPolicy: policy internal map not found", "policy-id", polID)
@@ -475,7 +474,7 @@ func (m *state) DelPolicy(polID PolicyID) error {
 
 	for i := range m.pods {
 		pod := &m.pods[i]
-		pod.delCachedPolicy(policy.id)
+		pod.delCachedPolicy(polID)
 	}
 
 	return nil
