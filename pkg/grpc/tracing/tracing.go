@@ -864,16 +864,17 @@ func (msg *MsgProcessLoaderUnix) Cast(o any) notify.Message {
 }
 
 type MsgGenericUprobeUnix struct {
-	Msg          *tracingapi.MsgGenericKprobe
-	Path         string
-	Symbol       string
-	Offset       uint64
-	RefCtrOffset uint64
-	PolicyName   string
-	Message      string
-	Args         []tracingapi.MsgGenericKprobeArg
-	Data         []tracingapi.MsgGenericKprobeArg
-	Tags         []string
+	Msg            *tracingapi.MsgGenericKprobe
+	Path           string
+	Symbol         string
+	Offset         uint64
+	RefCtrOffset   uint64
+	PolicyName     string
+	Message        string
+	Args           []tracingapi.MsgGenericKprobeArg
+	Data           []tracingapi.MsgGenericKprobeArg
+	Tags           []string
+	UserStackTrace [constants.PERF_MAX_STACK_DEPTH]uint64
 }
 
 func (msg *MsgGenericUprobeUnix) GetArgs() *[]tracingapi.MsgGenericKprobeArg {
@@ -926,20 +927,23 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		tetragonData = append(tetragonData, getKprobeArgument(data))
 	}
 
+	userStackTrace := userStack(event.Msg, event.UserStackTrace[:])
+
 	tetragonEvent := &tetragon.ProcessUprobe{
-		Process:      tetragonProcess,
-		Parent:       tetragonParent,
-		Ancestors:    tetragonAncestors,
-		Path:         event.Path,
-		Symbol:       event.Symbol,
-		PolicyName:   event.PolicyName,
-		Message:      event.Message,
-		Args:         tetragonArgs,
-		Data:         tetragonData,
-		Tags:         event.Tags,
-		Offset:       event.Offset,
-		RefCtrOffset: event.RefCtrOffset,
-		Action:       kprobeAction(event.Msg.ActionId),
+		Process:        tetragonProcess,
+		Parent:         tetragonParent,
+		Ancestors:      tetragonAncestors,
+		Path:           event.Path,
+		Symbol:         event.Symbol,
+		PolicyName:     event.PolicyName,
+		Message:        event.Message,
+		Args:           tetragonArgs,
+		Data:           tetragonData,
+		Tags:           event.Tags,
+		Offset:         event.Offset,
+		RefCtrOffset:   event.RefCtrOffset,
+		Action:         kprobeAction(event.Msg.ActionId),
+		UserStackTrace: userStackTrace,
 	}
 
 	if tetragonProcess.Pid == nil {

@@ -116,6 +116,7 @@ type genericUprobe struct {
 	// generated. The events are maintained in the map below, using
 	// the retprobe_id (thread_id) and the enter ktime as the key.
 	pendingEvents *lru.Cache[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]]
+	data          *genericStackTraceData
 }
 
 func populateUprobeRegs(m *ebpf.Map, id uint32, regs []processapi.RegAssignment) error {
@@ -213,6 +214,15 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 		ktimeEnter = m.Common.Ktime
 		printers = uprobeEntry.argPrinters
 	}
+
+	lookupStackTraces(
+		&m,
+		uprobeEntry.data,
+		stackTraceDestinations{
+			user: &unix.UserStackTrace,
+		},
+		uprobeEntry.LogAttrs,
+	)
 
 	// Get argument objects for specific printers/types
 	for _, a := range printers {
@@ -470,6 +480,7 @@ type uprobeHas struct {
 	sleepablePreload     bool
 	sleepablePreloadSize int
 	sleepableOffloadSize int
+	userStackTrace       bool
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -601,8 +612,14 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		return errors.New("failed to configure uprobe, GetUrl and DnsLookup actions not supported")
 	}
 
-	for _, s := range spec.Selectors {
-		for _, action := range s.MatchActions {
+	for sid, s := range spec.Selectors {
+		for mid, action := range s.MatchActions {
+			if action.KernelStackTrace {
+				return fmt.Errorf("kernelStackTrace is not supported for uprobes: got kernelStackTrace enabled in selectors[%d].matchActions[%d]", sid, mid)
+			}
+			if action.UserStackTrace && action.Action != "Post" {
+				return fmt.Errorf("userStackTrace can only be used along Post action: got userStackTrace enabled in selectors[%d].matchActions[%d] with action '%s'", sid, mid, action.Action)
+			}
 			if action.Action != "Set" {
 				continue
 			}
@@ -1309,6 +1326,10 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 			pendingEvents:     nil,
 		}
 
+		if selectors.HasStackTrace(spec.Selectors) {
+			uprobeEntry.data = &genericStackTraceData{}
+		}
+
 		uprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]](option.Config.RetprobesCacheSize)
 		if err != nil {
 			return err
@@ -1467,6 +1488,8 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	var substringMapEntries int
 	var regsMapEntries int
 
+	data := &genericStackTraceData{}
+
 	for _, id := range multiIDs {
 		gu, err := genericUprobeTableGet(id)
 		if err != nil {
@@ -1477,6 +1500,8 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 			multiRetIDs = append(multiRetIDs, id)
 			selector = gu.loadArgs.selectors.retrn
 		}
+		has.userStackTrace = has.userStackTrace || gu.data != nil
+		gu.data = data
 
 		if substringMapEntries == 0 {
 			substringMapEntries = len(gu.loadArgs.selectors.entry.SubStrings())
@@ -1523,6 +1548,11 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	if has.sleepablePreload {
 		sleepablePreloadMap := getSleepablePreloadMap(has.sleepablePreloadSize, load)
 		maps = append(maps, sleepablePreloadMap)
+	}
+
+	if hasStackTraceMap := createStackTraceMap(has.userStackTrace, load); hasStackTraceMap != nil {
+		maps = append(maps, hasStackTraceMap)
+		data.stackTraceMap = hasStackTraceMap
 	}
 
 	if option.Config.EnableCgTrackerID {
@@ -1575,6 +1605,8 @@ func createSingleUprobeSensor(polInfo *policyInfo, ids []idtable.EntryID, has up
 		if err != nil {
 			return nil, nil, err
 		}
+		has.userStackTrace = uprobeEntry.data != nil
+
 		progs, maps = createUprobeSensorFromEntry(polInfo, uprobeEntry, progs, maps, has)
 	}
 
@@ -1610,6 +1642,11 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe, workloadsMap)
 	state := getUprobeProgramSelector(load, uprobeEntry)
 	maps = append(maps, createSelectorMaps(load, state, len(state.SubStrings()))...)
+
+	if stackTraceMap := createStackTraceMap(has.userStackTrace, load); stackTraceMap != nil {
+		maps = append(maps, stackTraceMap)
+		uprobeEntry.data.stackTraceMap = stackTraceMap
+	}
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
