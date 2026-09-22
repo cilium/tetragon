@@ -613,6 +613,8 @@ message ProcessUprobe {
   KprobeAction action = 12;
   // Data definition of the observed uprobe.
   repeated KprobeArgument data = 13;
+  // User-mode stack trace to the call.
+  repeated StackTraceEntry user_stack_trace = 14;
 }
 
 message ProcessUsdt {
