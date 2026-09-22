@@ -76,12 +76,6 @@ type kprobeLoadArgs struct {
 	config    *api.EventConfig
 }
 
-type genericKprobeData struct {
-	// stackTraceMap reference is needed when retrieving stack traces from
-	// userspace when receiving events containing stacktrace IDs
-	stackTraceMap *program.Map
-}
-
 // internal genericKprobe info
 type genericKprobe struct {
 	loadArgs          kprobeLoadArgs
@@ -119,7 +113,7 @@ type genericKprobe struct {
 	// sensor specific data that we need when we process event, so it's
 	// unique for each kprobeEntry when we use single kprobes and it's
 	// ont global instance when we use kprobe multi
-	data *genericKprobeData
+	data *genericStackTraceData
 
 	// Does this kprobe is using stacktraces? Note that as specified in the
 	// above data field comment, the map is global for multikprobe and unique
@@ -178,7 +172,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	var maps []*program.Map
 	var substringMapEntries int
 
-	data := &genericKprobeData{}
+	data := &genericStackTraceData{}
 
 	for _, id := range multiIDs {
 		gk, err := genericKprobeTableGet(id)
@@ -230,9 +224,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	callHeap := program.MapBuilderSensor("process_call_heap", load)
 	maps = append(maps, callHeap)
 
-	if has.stackTrace {
-		stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
-		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+	if stackTraceMap := createStackTraceMap(has.stackTrace, load); stackTraceMap != nil {
 		maps = append(maps, stackTraceMap)
 		data.stackTraceMap = stackTraceMap
 	}
@@ -1056,11 +1048,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	// loading the stack trace map in any case so that it does not end up as an
 	// anonymous map (as it's always used by the BPF prog) and is clearly linked
 	// to tetragon
-	if has.stackTrace {
-		stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
-		// to reduce memory footprint however, the stack map is created with a
-		// max entry of 1, we need to expand that at loading.
-		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+	if stackTraceMap := createStackTraceMap(has.stackTrace, load); stackTraceMap != nil {
 		maps = append(maps, stackTraceMap)
 		kprobeEntry.data.stackTraceMap = stackTraceMap
 	}
@@ -1177,7 +1165,7 @@ func createSingleKprobeSensor(polInfo *policyInfo, ids []idtable.EntryID, has ha
 		if err != nil {
 			return nil, nil, err
 		}
-		gk.data = &genericKprobeData{}
+		gk.data = &genericStackTraceData{}
 
 		// setup per kprobe map config
 		has.stackTrace = gk.hasStackTrace
@@ -1389,34 +1377,15 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 		printers = gk.argSigPrinters
 	}
 
-	if m.HasKernelStack() || m.HasUserStack() {
-		if m.KernelStackID < 0 {
-			gk.LogAttrs(slog.LevelWarn, "failed to retrieve kernel stacktrace", slog.Any("errno", m.KernelStackID))
-		}
-		if m.UserStackID < 0 {
-			gk.LogAttrs(slog.LevelDebug, "failed to retrieve user stacktrace", slog.Any("errno", m.UserStackID))
-		}
-		if gk.data.stackTraceMap.MapHandle == nil {
-			gk.LogAttrs(slog.LevelWarn, "failed to load the stacktrace map", slog.Any(logfields.Error, err))
-		}
-		if m.KernelStackID > 0 || m.UserStackID > 0 {
-			// remove the error part
-			if m.KernelStackID > 0 {
-				id := uint32(m.KernelStackID)
-				err = gk.data.stackTraceMap.MapHandle.Lookup(id, &unix.KernelStackTrace)
-				if err != nil {
-					gk.LogAttrs(slog.LevelWarn, "failed to lookup the kernel stacktrace map", slog.Any(logfields.Error, err))
-				}
-			}
-			if m.UserStackID > 0 {
-				id := uint32(m.UserStackID)
-				err = gk.data.stackTraceMap.MapHandle.Lookup(id, &unix.UserStackTrace)
-				if err != nil {
-					gk.LogAttrs(slog.LevelWarn, "failed to lookup the user stacktrace map", slog.Any(logfields.Error, err))
-				}
-			}
-		}
-	}
+	lookupStackTraces(
+		m,
+		gk.data,
+		stackTraceDestinations{
+			kernel: &unix.KernelStackTrace,
+			user:   &unix.UserStackTrace,
+		},
+		gk.LogAttrs,
+	)
 
 	// Get argument objects for specific printers/types
 	for _, a := range printers {
