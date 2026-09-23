@@ -1092,7 +1092,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1784,7 +1784,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3091,7 +3091,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3783,7 +3783,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4759,7 +4759,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5451,7 +5451,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6406,7 +6406,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7098,7 +7098,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8032,7 +8032,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8724,7 +8724,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9975,7 +9975,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10667,7 +10667,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11608,7 +11608,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12300,7 +12300,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13820,7 +13820,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14512,7 +14512,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15819,7 +15819,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16511,7 +16511,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17487,7 +17487,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -18179,7 +18179,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -19134,7 +19134,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -19826,7 +19826,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -20760,7 +20760,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -21452,7 +21452,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -22703,7 +22703,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -23395,7 +23395,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -24336,7 +24336,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -25028,7 +25028,7 @@ Beware that the symbol MUST be binary compatible with the traced uprobe symbol.<
         <td>
           An arg value for the set action<br/>
           <br/>
-            <i>Format</i>: int32<br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>

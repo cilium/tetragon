@@ -371,7 +371,7 @@ type ActionSelector struct {
 	ArgIndex uint32 `json:"argIndex"`
 	// +kubebuilder:validation:Optional
 	// An arg value for the set action
-	ArgValue uint32 `json:"argValue"`
+	ArgValue uint64 `json:"argValue"`
 	// +kubebuilder:validation:Optional
 	// An arg value for the override action, uprobe only.
 	ArgRegs []string `json:"argRegs,omitempty"`

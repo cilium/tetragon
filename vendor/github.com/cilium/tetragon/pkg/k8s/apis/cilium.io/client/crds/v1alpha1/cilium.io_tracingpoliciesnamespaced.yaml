@@ -598,7 +598,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
@@ -1130,7 +1130,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
@@ -2031,7 +2031,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
@@ -2563,7 +2563,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
@@ -3186,7 +3186,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
@@ -3718,7 +3718,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
@@ -4302,7 +4302,7 @@ spec:
                             type: string
                           argValue:
                             description: An arg value for the set action
-                            format: int32
+                            format: int64
                             type: integer
                           imaHash:
                             description: |-
@@ -4827,7 +4827,7 @@ spec:
                             type: string
                           argValue:
                             description: An arg value for the set action
-                            format: int32
+                            format: int64
                             type: integer
                           imaHash:
                             description: |-
@@ -5401,7 +5401,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
@@ -5933,7 +5933,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
@@ -6796,7 +6796,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
@@ -7328,7 +7328,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
@@ -7933,7 +7933,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
@@ -8465,7 +8465,7 @@ spec:
                                   type: string
                                 argValue:
                                   description: An arg value for the set action
-                                  format: int32
+                                  format: int64
                                   type: integer
                                 imaHash:
                                   description: |-
