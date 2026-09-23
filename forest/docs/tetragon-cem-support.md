@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-22
 **Status:** investigation complete
-**Compared against:** Forest CEM v1 in `forest/docs/design/specs/event-model.md`
+**Compared against:** [Forest CEM v1 in `event-model.md`](https://github.com/kvjudson/forest/blob/ed4c870eff73677e59bf5a29adfc9c4a7afd5e15/docs/design/specs/event-model.md) at Forest revision `ed4c870eff73`
 **Tetragon snapshot:** `2ea4b8357` (`2026-09-21`)
 
 ## Conclusion
@@ -106,6 +106,14 @@ identity, and degradation states. Tetragon's event response has an event type
 and observation timestamp, but no CEM event ID or received timestamp. Its
 `exec_id` is a process identity, not an event identity.
 
+`event.time` is another explicit adapter gap. Tetragon's
+`GetEventsResponse.time` is the time the sensor observed or emitted the
+record, not necessarily the time the action occurred. Generic
+`ProcessKprobe`, `ProcessTracepoint`, and `ProcessUprobe` records do not carry
+an action timestamp. The adapter must preserve that distinction, use a
+source-native action timestamp where one exists, and otherwise mark action
+time as unknown rather than mapping observation time into CEM `event.time`.
+
 An adapter can assign `source.id`, `source.kind`, and `event.received`, and can
 obtain a boot ID from the host. It must not pretend that a receiver timestamp
 or a process ID is equivalent to the source sequence/offset required for robust
@@ -181,36 +189,43 @@ reporting, and compatibility work—not only a schema conversion.
 | Full cross-platform CEM support | 12–18+ months, 5–7 engineers | Linux, Windows, and macOS semantic sources plus verification across supported OS versions |
 | Production hardening | Additional 3–6 months | Kernel/OS matrix, upgrade compatibility, performance, security review, and field validation |
 
-A full fork is approximately **40–70 engineer-months**, with ongoing cost for
-rebasing Tetragon changes, kernel compatibility, generated APIs, BPF behavior,
-and third-party source updates. The estimate is materially lower if Forest
-accepts Tetragon as one Linux source and keeps CEM joins and effect semantics
-outside the fork.
+The **40–70 engineer-month** full-fork estimate applies to a Linux-focused
+Tetragon fork plus its CEM adapter and production hardening; it does not
+include implementing Windows and macOS semantic sources. The cross-platform
+estimate above implies approximately **60–126 engineer-months** before
+additional hardening. Either scope also carries ongoing cost for rebasing
+Tetragon changes, kernel compatibility, generated APIs, BPF behavior, and
+third-party source updates. The estimate is materially lower if Forest accepts
+Tetragon as one Linux source and keeps CEM joins and effect semantics outside
+the fork.
 
 ## License and distribution notes
 
-The Tetragon repository is primarily Apache-2.0 licensed. The `bpf/` directory
-has its own dual GPL-2.0-only/BSD-2-Clause notice, and bundled `libbpf` headers
-include LGPL-2.1-or-BSD-2-Clause notices. A fork can be distributed, but it
-must preserve applicable license, copyright, attribution, and modification
-notices and must not imply Cilium/Tetragon trademark endorsement.
+The Tetragon repository is primarily Apache-2.0 licensed (`LICENSE`). The BPF
+sources under `bpf/` carry GPL-2.0-only/BSD-2-Clause notices
+(`bpf/COPYING`, `bpf/LICENSE.GPL-2.0`, `bpf/LICENSE.BSD-2-Clause`), while the
+bundled libbpf headers under `bpf/libbpf/` carry LGPL-2.1-or-BSD-2-Clause SPDX
+headers. A fork can be distributed, but it must preserve applicable license,
+copyright, attribution, and modification notices and must not imply
+Cilium/Tetragon trademark endorsement.
 
-Forest did not have a top-level license or notice file at the time of this
-investigation. Before distributing a combined product, Forest needs an explicit
-license decision and a dependency/license inventory. The investigation also
-identified an Elastic License 2.0 note for a possible development telemetry
-source in `docs/design/open-issues.md`; that source must remain separated from
-any redistributable or embedded product path unless its terms are reviewed.
+Forest did not have a top-level license or notice file at revision
+`ed4c870eff73` at the time of this investigation. Before distributing a
+combined product, Forest needs an explicit license decision and a
+dependency/license inventory. The investigation also identified an Elastic
+License 2.0 note for a possible development telemetry source in Forest's
+`docs/design/open-issues.md`; that source must remain separated from any
+redistributable or embedded product path unless its terms are reviewed.
 
 This section is an engineering compliance summary, not legal advice.
 
 ## Source evidence
 
-Forest sources:
+Forest sources at revision `ed4c870eff73`:
 
-- `docs/design/specs/event-model.md`
-- `docs/design/04-requirements.md`
-- `docs/design/open-issues.md`
+- [`docs/design/specs/event-model.md`](https://github.com/kvjudson/forest/blob/ed4c870eff73677e59bf5a29adfc9c4a7afd5e15/docs/design/specs/event-model.md)
+- [`docs/design/04-requirements.md`](https://github.com/kvjudson/forest/blob/ed4c870eff73677e59bf5a29adfc9c4a7afd5e15/docs/design/04-requirements.md)
+- [`docs/design/open-issues.md`](https://github.com/kvjudson/forest/blob/ed4c870eff73677e59bf5a29adfc9c4a7afd5e15/docs/design/open-issues.md)
 
 Tetragon sources at `2ea4b8357`:
 
