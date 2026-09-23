@@ -7,6 +7,7 @@ package tests
 
 import (
 	"fmt"
+	"math"
 	"runtime"
 	"strconv"
 
@@ -582,7 +583,7 @@ spec:
     - matchActions:
       - action: Set
         argIndex: ` + strconv.Itoa(uprobeSetArgIndex()) + `
-        argValue: 42
+        argValue: ` + strconv.FormatUint(math.MaxUint32+1, 10) + `
 `).WithSkip(func(si *policytest.SkipInfo) string {
 	// skip if uprobe_regs_change is not supported
 	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
@@ -597,15 +598,23 @@ spec:
 		WithSymbol(sm.Full("manyargs"))
 
 	argIndex := uprobeSetArgIndex()
-	exitCode := 42
+	argVal := math.MaxUint32 + 1
+	exitCode := 0 // math.MaxUint32+1 wraps to 0 since main() returns int
 	if c.TestConf != nil && c.TestConf.MonitorMode {
 		exitCode = argIndex
 	}
 	postCnt := uint64(1)
 	setCnt := uint64(1)
+
+	trigger := policytest.NewCmdTrigger(myBin, strconv.Itoa(argIndex)).ExpectExitCode(exitCode)
+	if uprobeSetArgIndex() == 5 {
+		trigger.ExpectedStdout = []string{fmt.Sprintf("manyargs was passed: %d,%d,%d,%d,%d,%d,%d,%d and retargidx: %d", 0, 1, 2, 3, 4, argVal, 6, 7, uprobeSetArgIndex())}
+	} else {
+		trigger.ExpectedStdout = []string{fmt.Sprintf("manyargs was passed: %d,%d,%d,%d,%d,%d,%d,%d and retargidx: %d", 0, 1, 2, 3, 4, 5, 6, argVal, uprobeSetArgIndex())}
+	}
 	return &policytest.Scenario{
 		Name:         "execute uprobe-simple, check set action and events",
-		Trigger:      policytest.NewCmdTrigger(myBin, strconv.Itoa(argIndex)).ExpectExitCode(exitCode),
+		Trigger:      trigger,
 		EventChecker: ec.NewUnorderedEventChecker(upChecker),
 		ActCountChecker: policytest.ActionCounts{
 			Post: &postCnt,
