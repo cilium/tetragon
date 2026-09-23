@@ -1534,7 +1534,7 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		// no arguments
 	case ActionTypeSet:
 		if k.isUprobe {
-			err := parseSetRegs(k, selIdx, action.ArgIndex, uint32(action.ArgValue))
+			err := parseSetRegs(k, selIdx, action.ArgIndex, action.ArgValue)
 			if err != nil {
 				return err
 			}
@@ -2179,20 +2179,20 @@ func HasOperator(selectors []v1alpha1.KProbeSelector, op uint32) bool {
 	return false
 }
 
-func HasSetArgIndex(selectors []v1alpha1.KProbeSelector) (bool, uint32) {
+func HasSetArgIndexValue(selectors []v1alpha1.KProbeSelector) (bool, uint32, uint64) {
 	for _, s := range selectors {
 		for _, action := range s.MatchActions {
 			act := actionTypeTable[strings.ToLower(action.Action)]
 			if act == ActionTypeSet {
-				return true, action.ArgIndex
+				return true, action.ArgIndex, action.ArgValue
 			}
 		}
 	}
-	return false, 0
+	return false, 0, 0
 }
 
 func HasSet(selectors []v1alpha1.KProbeSelector) bool {
-	ok, _ := HasSetArgIndex(selectors)
+	ok, _, _ := HasSetArgIndexValue(selectors)
 	return ok
 }
 
