@@ -1,8 +1,8 @@
 # Forest Tetragon adapter design
 
-**Status:** Design ready for review  
-**Date:** 2026-09-22  
-**Forest CEM reference:** [CEM v1 at revision `ed4c870eff73`](https://github.com/kvjudson/forest/blob/ed4c870eff73677e59bf5a29adfc9c4a7afd5e15/docs/design/specs/event-model.md)  
+**Status:** Design ready for review
+**Date:** 2026-09-22
+**Forest CEM reference:** [CEM v1 at revision `ed4c870eff73`](https://github.com/kvjudson/forest/blob/ed4c870eff73677e59bf5a29adfc9c4a7afd5e15/docs/design/specs/event-model.md)
 **Related investigation:** [`tetragon-cem-support.md`](tetragon-cem-support.md)
 
 ## Decision
