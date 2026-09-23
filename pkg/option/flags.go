@@ -6,13 +6,11 @@ package option
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/cast"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -170,6 +168,9 @@ const (
 	VerifierLogLevelHelp = "set eBPF verifier log level. Pass 0 for silent, 1 for truncated logs, 2 for a full dump"
 )
 
+// Allow disabling via empty string
+var enableAncestors, _ = NewSliceEnum([]string{"base", "kprobe", "tracepoint", "loader", "uprobe", "lsm", "usdt"}, nil)
+
 type UsernameMetadaCode int
 
 const (
@@ -208,7 +209,6 @@ func ReadAndSetFlags() error {
 	Config.DisableKprobeMulti = viper.GetBool(KeyDisableKprobeMulti)
 
 	var err error
-	var enableAncestors []string
 
 	Config.UsePerfRingBuffer = viper.GetBool(KeyUsePerfRingBuffer)
 	if Config.RBSize, err = strutils.ParseSize(viper.GetString(KeyRBSize)); err != nil {
@@ -220,18 +220,24 @@ func ReadAndSetFlags() error {
 	if Config.RBQueueSize, err = strutils.ParseSize(viper.GetString(KeyRBQueueSize)); err != nil {
 		return fmt.Errorf("failed to parse rb-queue-size value: %w", err)
 	}
-	if err = viper.UnmarshalKey(KeyEnableAncestors, &enableAncestors, viper.DecodeHook(stringToSliceHookFunc(","))); err != nil {
-		return fmt.Errorf("failed to parse enable-ancestors value: %w", err)
+
+	// Wire up KeyEnableAncestors viper config to sliceEnum
+	if viper.IsSet(KeyEnableAncestors) && viper.GetString(KeyEnableAncestors) != "" {
+		for ancestor := range strings.SplitSeq(viper.GetString(KeyEnableAncestors), ",") {
+			if err = enableAncestors.Set(ancestor); err != nil {
+				return fmt.Errorf("failed to set ancestor %q from viper: %w", ancestor, err)
+			}
+		}
 	}
 
-	if slices.Contains(enableAncestors, "base") {
+	if slices.Contains(enableAncestors.Values, "base") {
 		Config.EnableProcessAncestors = true
-		Config.EnableProcessKprobeAncestors = slices.Contains(enableAncestors, "kprobe")
-		Config.EnableProcessTracepointAncestors = slices.Contains(enableAncestors, "tracepoint")
-		Config.EnableProcessLoaderAncestors = slices.Contains(enableAncestors, "loader")
-		Config.EnableProcessUprobeAncestors = slices.Contains(enableAncestors, "uprobe")
-		Config.EnableProcessLsmAncestors = slices.Contains(enableAncestors, "lsm")
-		Config.EnableProcessUsdtAncestors = slices.Contains(enableAncestors, "usdt")
+		Config.EnableProcessKprobeAncestors = slices.Contains(enableAncestors.Values, "kprobe")
+		Config.EnableProcessTracepointAncestors = slices.Contains(enableAncestors.Values, "tracepoint")
+		Config.EnableProcessLoaderAncestors = slices.Contains(enableAncestors.Values, "loader")
+		Config.EnableProcessUprobeAncestors = slices.Contains(enableAncestors.Values, "uprobe")
+		Config.EnableProcessLsmAncestors = slices.Contains(enableAncestors.Values, "lsm")
+		Config.EnableProcessUsdtAncestors = slices.Contains(enableAncestors.Values, "usdt")
 	}
 
 	Config.EnableProcessEnvironmentVariables = viper.GetBool(KeyEnableProcessEnvironmentVariables)
@@ -492,23 +498,6 @@ func ParseCgroupRate(rate string) CgroupRate {
 	}
 }
 
-// StringToSliceHookFunc returns a DecodeHookFunc that converts string to []string
-// by splitting on the given sep and removing all leading and trailing white spaces.
-func stringToSliceHookFunc(sep string) mapstructure.DecodeHookFunc {
-	return func(f reflect.Type, t reflect.Type, data any) (any, error) {
-		if f.Kind() != reflect.String || t != reflect.SliceOf(f) {
-			return data, nil
-		}
-
-		outSlice := []string{}
-		for s := range strings.SplitSeq(data.(string), sep) {
-			s = strings.TrimSpace(s)
-			outSlice = append(outSlice, s)
-		}
-		return outSlice, nil
-	}
-}
-
 func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyConfigDir, "", "Configuration directory that contains a file for each option")
 	flags.BoolP(KeyDebug, "d", false, "Enable debug messages. Equivalent to '--log-level=debug'")
@@ -550,7 +539,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
 	flags.Uint(KeyEventQueueSize, 10000, "Set the size of the internal event queue.")
 	flags.Bool(KeyEnablePodAnnotations, false, "Add pod annotations field to events.")
-	flags.StringSlice(KeyEnableAncestors, []string{}, "Comma-separated list of process event types to enable ancestors for. Supported event types are: base, kprobe, tracepoint, loader, uprobe, lsm, usdt. Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting. An empty string disables ancestors completely")
+	flags.Var(enableAncestors, KeyEnableAncestors, "Comma-separated list of process event types to enable ancestors for "+enableAncestors.Allowed()+". Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting.")
 
 	flags.Bool(KeyEnableProcessEnvironmentVariables, false, "Include environment variables in process_exec events. Disabled by default. Note that this option can significantly increase the size of the events and may impact performance, as well as capture sensitive information such as passwords in the events (you can use --redaction-filters to redact the data).")
 
