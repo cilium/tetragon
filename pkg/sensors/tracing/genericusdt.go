@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"path"
 	"path/filepath"
 
@@ -431,11 +432,16 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		}
 
 		// Validate argument for set action
-		if ok, idx := selectors.HasSetArgIndex(spec.Selectors); ok {
+		if ok, idx, value := selectors.HasSetArgIndexValue(spec.Selectors); ok {
 			// argument index is within usdt args in spec
 			if idx >= uint32(len(spec.Args)) {
 				return ids, fmt.Errorf("failed to configure usdt '%s/%s', set action argument spec index %d out of bounds",
 					spec.Provider, spec.Name, idx)
+			}
+
+			if value > math.MaxUint32 {
+				return ids, fmt.Errorf("failed to configure usdt '%s/%s', set action argument spec value %d must be an uint32",
+					spec.Provider, spec.Name, value)
 			}
 
 			// usdt spec argument points to existing usdt defined in elf note
