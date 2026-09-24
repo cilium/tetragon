@@ -93,6 +93,12 @@ var (
 		"Number of events missing process info.",
 		nil, nil, nil,
 	), nil)
+
+	FieldFilterFailed = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "field_filter_failed_total",
+		"Number of events dropped due to field filter failure.",
+		nil, nil, nil,
+	), nil)
 )
 
 func RegisterHealthMetrics(group metrics.Group) {
@@ -101,6 +107,7 @@ func RegisterHealthMetrics(group metrics.Group) {
 		NotifyOverflowedEvents,
 		NewBPFCollector(),
 		missingProcessInfo,
+		FieldFilterFailed,
 	)
 }
 
