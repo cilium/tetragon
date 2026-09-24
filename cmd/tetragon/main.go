@@ -141,6 +141,7 @@ func saveInitInfo() error {
 		GopsAddr:    option.Config.GopsAddr,
 		MapDir:      absPath(bpf.MapPrefixPath()),
 		PID:         os.Getpid(),
+		LogFile:     option.Config.LogOpts[logger.FileOpt],
 	}
 	return bugtool.SaveInitInfo(&info)
 }

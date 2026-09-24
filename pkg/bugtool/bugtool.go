@@ -53,6 +53,7 @@ type InitInfo struct {
 	GopsPath    string `json:"gops_path"`
 	MaxRecvSize int    `json:"max_recv_size"`
 	PID         int    `json:"pid"`
+	LogFile     string `json:"log_file"`
 }
 
 // LoadInitInfo returns the InitInfo by reading the info file from its default location
@@ -314,6 +315,7 @@ func doBugtool(info *InitInfo, outFname string, commandActions []CommandAction, 
 	si.addLibFiles()
 	si.addBTFFile()
 	si.addTetragonLog()
+	si.addAgentLog()
 	si.addMetrics()
 	si.ExecCmd("dmesg.out", "dmesg")
 	si.addTcInfo()
@@ -463,6 +465,20 @@ func (s *bugtoolInfo) addTetragonLog() error {
 	err := s.tarAddFile(s.info.ExportFname, "tetragon.log")
 	if err == nil {
 		s.multiLog.WithField("exportFname", s.info.ExportFname).Info("tetragon log file added")
+	}
+	return err
+}
+
+// addTetragonLog adds the tetragon log file to the archive
+func (s *bugtoolInfo) addAgentLog() error {
+	if s.info.LogFile == "" {
+		s.multiLog.Info("no agent log file specified")
+		return nil
+	}
+
+	err := s.tarAddFile(s.info.LogFile, "agent.log")
+	if err == nil {
+		s.multiLog.WithField("logFname", s.info.LogFile).Info("agent log file added")
 	}
 	return err
 }
