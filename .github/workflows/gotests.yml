@@ -183,6 +183,29 @@ jobs:
       run: |
         go test --failfast .\pkg\... .\cmd\...
 
+  modules:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        path: go/src/github.com/cilium/tetragon/
+
+    - name: Install Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        # renovate: datasource=golang-version depName=go
+        go-version: '1.27.1'
+
+    - name: Run go tests of the api module
+      working-directory: go/src/github.com/cilium/tetragon/api
+      run: go test --failfast ./...
+
+    - name: Run go tests of the rthooks module
+      working-directory: go/src/github.com/cilium/tetragon/contrib/tetragon-rthooks
+      run: go test --failfast ./...
+
   race:
     name: Race detector
     runs-on: ubuntu-24.04
