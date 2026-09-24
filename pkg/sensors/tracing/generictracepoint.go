@@ -369,7 +369,7 @@ func buildArgsRaw(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([
 			}
 			fn := "__bpf_trace_" + info.Event
 
-			lastBTFType, btfArg, err := resolveBTFArg(fn, &tpArg, true)
+			lastBTFType, btfArg, err := resolveBTFArg(fn, &tpArg, true, nil)
 			if err != nil {
 				return nil, fmt.Errorf("error on hook %q for index %d : %w", fn, tpArg.Index, err)
 			}

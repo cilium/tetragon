@@ -18,84 +18,111 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
-func TestFormatBTFPath(t *testing.T) {
+// TestFormatBTFPathValid tests that formatBTFPath tokenizes valid resolve
+// paths.
+func TestFormatBTFPathValid(t *testing.T) {
 	tests := []struct {
-		name    string
-		input   string
-		want    []string
-		wantErr bool
+		input string
+		want  []string
 	}{
+		// standalone paths
+		{input: "field", want: []string{"field"}},
+		{input: "path.to.my.field", want: []string{"path", "to", "my", "field"}},
+
+		// arrays
+		{input: "[0]", want: []string{"[0]"}},
+		{input: "[1].path.to.field", want: []string{"[1]", "path", "to", "field"}},
+		{input: "[0][1].field", want: []string{"[0]", "[1]", "field"}},
+		{input: "path.to[123].my.field", want: []string{"path", "to", "[123]", "my", "field"}},
+		{input: "field[1][2]", want: []string{"field", "[1]", "[2]"}},
+
+		// simple casts
+		{input: "(char**)field", want: []string{"field", "(char**)"}},
+		{input: "(struct task_struct *)field", want: []string{"field", "(struct task_struct *)"}},
+
+		// casts with arrays
+		{input: "(char*)field[0]", want: []string{"field", "[0]", "(char*)"}},
+		{input: "(char*)(field[0])", want: []string{"field", "[0]", "(char*)"}},
+		{input: "(char*)(field)[0]", want: []string{"field", "[0]", "(char*)"}},
+		{input: "((char*)field)[16]", want: []string{"field", "(char*)", "[16]"}},
+
+		// cast as head of the resolve path
+		{input: "(char*)field[123].my.sub.field", want: []string{"field", "[123]", "my", "sub", "field", "(char*)"}},
+
+		// nested casts
 		{
-			name:    "simple resolve path",
-			input:   "path.to.my.field",
-			want:    []string{"path", "to", "my", "field"},
-			wantErr: false,
+			input: "((struct task_struct*)((struct my_struct**)((char*)field)[8])[2]).comm",
+			want:  []string{"field", "(char*)", "[8]", "(struct my_struct**)", "[2]", "(struct task_struct*)", "comm"},
+		},
+
+		// cast mid-path
+		{input: "path.((char*)target)[8].end", want: []string{"path", "target", "(char*)", "[8]", "end"}},
+		{
+			input: "my.super.((struct my_struct**)((char*)field)[123]).my.sub.field",
+			want:  []string{"my", "super", "field", "(char*)", "[123]", "(struct my_struct**)", "my", "sub", "field"},
 		},
 		{
-			name:    "array as first resolve",
-			input:   "[1].path.to.my.field",
-			want:    []string{"[1]", "path", "to", "my", "field"},
-			wantErr: false,
-		},
-		{
-			name:    "array in the resolve path",
-			input:   "path.to[123].my.field",
-			want:    []string{"path", "to", "[123]", "my", "field"},
-			wantErr: false,
-		},
-		{
-			name:    "dot inside bracket",
-			input:   "my.super.field[.123]",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "empty bracket",
-			input:   "my.super.field[].my.sub.field",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "dot before bracket",
-			input:   "my.super.field.[123].my.sub.field",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "consecutive dots",
-			input:   "my..field",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "unclosed bracket",
-			input:   "my.field[123",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "unopened bracket",
-			input:   "my.field.123]",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "nested brackets",
-			input:   "my.field[[123]]",
-			want:    []string{},
-			wantErr: true,
+			input: "path.to[1].((struct my_struct**)((char*)target)[8])[2].my.end",
+			want:  []string{"path", "to", "[1]", "target", "(char*)", "[8]", "(struct my_struct**)", "[2]", "my", "end"},
 		},
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ret, err := formatBTFPath(test.input)
-			if test.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, test.want, ret)
-			}
+		t.Run(test.input, func(t *testing.T) {
+			got, err := formatBTFPath(test.input)
+			require.NoError(t, err)
+			require.Equal(t, test.want, got)
+		})
+	}
+}
+
+// TestFormatBTFPathInvalid tests that formatBTFPath rejects malformed resolve
+// paths.
+func TestFormatBTFPathInvalid(t *testing.T) {
+	inputs := []string{
+		// empty segments
+		"",
+		".field",
+		"field.",
+		"my..field",
+
+		// the index must be a decimal uint32, and an array binds directly to
+		// what precedes it, never across a dot
+		"field[]",
+		"field[123",
+		"field.123]",
+		"field[[123]]",
+		"field[.123]",
+		"field.[123]",
+		"field[-1]",
+
+		// cast types
+		"()(field)", // empty type
+		"(char*",    // unclosed paren
+
+		// a cast takes exactly one target and only arrays may follow it
+		"(char*)",                      // missing target
+		"(char*)()",                    // empty target
+		"(char*)(field",                // unclosed target paren
+		"(char*)(field)abc",            // trailing characters
+		"(char*)(field)((char*)field)", // trailing expression
+		"((char*))(field)",             // trailing expression after a grouped cast
+		"(char*)(char*)field",          // cast applied to a cast
+
+		// a cast that does not open the path must be grouped, ((type*)target),
+		// as only that form says where its operand ends
+		"path.(char*)target.end",
+		"path.(char*)(target)",
+
+		// identifiers hold no parens or brackets of their own
+		"rsp(char*)[16]",
+		"(char*)field)", // unbalanced closing paren
+	}
+
+	for _, input := range inputs {
+		t.Run(input, func(t *testing.T) {
+			_, err := formatBTFPath(input)
+			require.Error(t, err)
 		})
 	}
 }
@@ -147,7 +174,7 @@ spec:
 	successHook := policy.TpSpec().KProbes[:3]
 	for _, hook := range successHook {
 		for _, arg := range hook.Args {
-			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false)
+			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false, nil)
 			if err != nil {
 				t.Fatal(hook.Call, err)
 			}
@@ -161,7 +188,7 @@ spec:
 
 	failHook := policy.TpSpec().KProbes[3]
 	for _, arg := range failHook.Args {
-		_, _, err := resolveBTFArg(failHook.Call, &arg, false)
+		_, _, err := resolveBTFArg(failHook.Call, &arg, false, nil)
 
 		require.ErrorContains(t, err, "The maximum depth allowed is", "The path %q must have len < %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
@@ -229,7 +256,7 @@ spec:
 			require.True(t, ok, "missing test case for %q", arg.Label)
 
 			t.Run(arg.Label, func(t *testing.T) {
-				lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false)
+				lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false, nil)
 				require.NoError(t, err, hook.Call)
 				require.NotNil(t, lastBTFType)
 
@@ -257,7 +284,7 @@ func TestResolveBTFArgWithBTFTypeModule(t *testing.T) {
 		Resolve:       "sun_family",
 	}
 
-	_, _, err := resolveBTFArg("security_socket_connect", &arg, false)
+	_, _, err := resolveBTFArg("security_socket_connect", &arg, false, nil)
 	require.ErrorContains(t, err, `failed to find BTF type "sockaddr_un" in module "tetragon_test_module_that_does_not_exist"`)
 }
 

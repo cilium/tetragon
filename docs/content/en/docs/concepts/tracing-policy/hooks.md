@@ -300,7 +300,8 @@ which is represented as path and permission data in the resulted event:
       }
 ```
 
-It's also possible to resolve data from arguments with `Resolve`, like:
+It's also possible to resolve data from arguments with
+[`resolve`](/docs/concepts/tracing-policy/hooks/#attribute-resolution), like:
 ```yaml
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -390,6 +391,12 @@ spec:
 
 This example shows how to use uprobes to hook into the readline function
 running in all the bash shells.
+
+Fields of a structure passed to a traced function can be reported by giving the
+uprobe a `btfPath`, a BTF file describing the types of the traced binary, and
+using
+[attribute resolution](/docs/concepts/tracing-policy/hooks/#attribute-resolution)
+on its arguments.
 
 ### Selectors
 
@@ -772,24 +779,15 @@ data.
 
 ### Attribute resolution
 
-{{< caution >}}
-- For kprobes, available only from kernel version 5.4.
-- For LSM, available only from kernel version 5.7.
-- For uprobes, this functionality is not supported.
-{{< /caution >}}
+An argument without `resolve` is reported as it is passed: the value at that
+index. The `resolve` field replaces that value with a *path*: Tetragon walks
+the BTF description of the argument, from a root type down to a single field,
+and reports that field instead.
 
-This functionality allows you to dynamically extract specific attributes from
-kernel structures passed as parameters to Kprobes and LSM hooks.
-For example, when using the `bprm_check_security` LSM hook, you can access and
-display attributes from the parameter `struct linux_binprm *bprm` at index 0.
-This parameter contains many informations you may want to access.
-With the resolve flag, you can easily access fields such as
-`mm.owner.real_parent.comm`, which provides the parent process comm.
-
-#### How it works
-
-The following tracing policy demonstrates how to use the resolve flag to extract the
-parent process's comm during the execution of a binary:
+For instance, the `bprm_check_security` LSM hook receives a
+`struct linux_binprm *bprm` at index 0. That structure holds a lot of
+information, and `resolve: "mm.owner.real_parent.comm"` extracts one field from
+it, the `comm` of the parent process:
 
 ```yaml
 apiVersion: cilium.io/v1alpha1
@@ -807,51 +805,97 @@ spec:
     - matchActions:
       - action: Post
 ```
-- `index` flag : The parameter at index 0 is a pointer to the
-`struct linux_binprm`.
-- `resolve` flag : Using the resolve flag, the policy extracts the
-`mm.owner.real_parent.comm` field, representing the parent process's comm.
+
+Resolution is a load-time operation: Tetragon reads BTF, converts the path into
+a fixed sequence of offsets and dereferences, and passes it to the BPF program
+as part of its configuration. The BPF program only replays those steps, paths
+are never interpreted at runtime. A path that does not exist, that does not
+match the types it traverses, or that is too long therefore makes the policy
+fail to load rather than report an empty value.
+
+`resolve` is accepted on the `args` entries of `kprobes`, `tracepoints` (`raw`
+ones included), `lsmhooks`, `uprobes` and `usdts`, and on the `data` entries of
+`kprobes` and `uprobes`. It is not supported on `returnArg`.
 
 {{< caution >}}
-- This feature requires you to read the kernel structure definitions to find what you're
-looking for in the hook parameter attributes. For instance, if you want to have a look
-at what is available inside `struct linux_binprm`, take a look at its definition in
-[include/linux/binfmts.h](https://elixir.bootlin.com/linux/v6.12.5/source/include/linux/binfmts.h#L18)
-- Some structures are dynamic. This means that they may change at runtime.
+- kprobes and tracepoints require kernel 5.4 or later, LSM hooks 5.7 or later.
+- Reading a field requires the type of the traced argument. The kernel exposes
+  it through BTF, a traced binary does not: for `uprobes` and `usdts`,
+  resolving into an argument also requires `btfPath`, a BTF file describing the
+  types of the traced program, and `btfType`, the structure to start from.
+- Writing a path means reading the definition of the structures it traverses.
+  For kernel structures,
+  [Elixir](https://elixir.bootlin.com/linux/latest/source) is a convenient
+  reference, for instance
+  [`struct linux_binprm`](https://elixir.bootlin.com/linux/v6.12.5/source/include/linux/binfmts.h#L18).
+- Some structures are dynamic: they may change at runtime, and a path is only
+  as reliable as the state of the fields it crosses when the hook runs.
 {{< /caution >}}
 
-Tetragon can also handle some structures such as `struct file` or `struct
-path` and a few others. This means you can also extract the whole struct, if it is
-available in the attributes of the parameter, and set the type with the correct type
-like this :
+#### Syntax
 
-```yaml
-...
-  lsmhooks:
-  - hook: "bprm_check_security"
-    args:
-      - index: 0 # struct linux_binprm *bprm
-        type: "file"
-        resolve: "file"
-...
-```
-Or
-```yaml
-...
-  lsmhooks:
-  - hook: "bprm_check_security"
-    args:
-      - index: 0
-        type: "path"
-        resolve: "file.f_path"
-...
+A path is a dot-separated sequence of field names, array indexes and type
+casts:
+
+```text
+path    = segment { "." segment }
+segment = ident { index } | index { index } | cast
+cast    = "(" type ")" operand                    (* opening segment only *)
+        | "(" "(" type ")" operand ")" { index }
+operand = ident { index } | "(" operand ")" | cast
+index   = "[" uint32 "]"
 ```
 
-The following tracing policy demonstrates how to use the `resolve` flag on nested
-pointers. For exemple, the hook `security_inode_copy_up` (defined in
-[security/security.c](https://elixir.bootlin.com/linux/v6.12.5/source/security/security.c#L2753))
-takes two parameters: `struct dentry *src` and `struct cred **new`. The resolve
-flag allows you to access fields within these nested structures transparently.
+- `ident` is a field name. It holds no parenthesis and no bracket of its own.
+- An index binds to what immediately precedes it and never crosses a dot:
+  `field[0]` and `[0][1].field` are valid, `field.[0]` is not.
+- An index is a decimal `uint32` literal: no expression, no negative value, no
+  hexadecimal.
+- `type` is a type expression: a C or Linux primitive alias (`char`, `int`,
+  `unsigned long`, `u32`, `uint64_t`, ...), a typedef name, or a BTF type
+  prefixed by its kind (`struct task_struct`, `union foo`, `enum bar`). All
+  accept the `*` and `[N]` modifiers. Qualifiers (`const`, `volatile`) and the
+  address operator (`&`) are not supported.
+
+Malformed paths are rejected when the policy is loaded:
+
+| Path | Rejected because |
+| ---- | ---------------- |
+| `my..field`, `field.` | a segment is empty |
+| `field[]`, `field[123`, `field[-1]` | the index is not a decimal `uint32` |
+| `field.[123]` | an index crosses a dot, write `field[123]` |
+| `(char *)` | a cast has no target |
+| `(char *)(char *)field` | a cast is applied to a cast |
+| `path.(char *)target.end` | a cast that does not open the path must be grouped, as in `path.((char *)target).end` |
+| `rsp(char *)[16]` | an identifier holds no parenthesis |
+
+#### Semantics
+
+Resolution keeps a *current type*, initialized with the root type (see
+[where resolution starts](/docs/concepts/tracing-policy/hooks/#where-resolution-starts)),
+and consumes the path from left to right. Each element selects a location
+inside the current type, and the type of that location becomes the new current
+type:
+
+| Element | Current type | Effect |
+| ------- | ------------ | ------ |
+| `field` | struct, union | selects the member named `field` |
+| `[N]` | array | selects element `N` |
+| `[N]` | pointer | selects element `N` of the pointed-to array, as `p[N]` does in C |
+| `(type)` | any | reinterprets the location reached so far as `type` |
+
+`typedef`, `const`, `volatile` and `restrict` are transparent. Anonymous
+structs and unions are transparent too: their members are searched as if they
+belonged to the enclosing structure, so an anonymous level is never named in a
+path. `mm.pgd.pgd`, for instance, reaches `pgd` through the anonymous struct of
+`struct mm_struct`.
+
+Pointer members are dereferenced implicitly, so there is no `->` operator: in
+`mm.owner.real_parent.comm` above, `mm`, `owner` and `real_parent` are pointers
+and `comm` is an array, and a single `.` crosses all of them. The same applies
+to a pointer parameter of the hook itself, including a nested one such as the
+`struct cred **new` of `security_inode_copy_up` (defined in
+[security/security.c](https://elixir.bootlin.com/linux/v6.12.5/source/security/security.c#L2753)):
 
 ```yaml
 apiVersion: cilium.io/v1alpha1
@@ -873,27 +917,62 @@ spec:
       - action: Post
 ```
 
-It is also possible to resolve arrays (`int arr[100]`) and dynamic arrays
-(`int **dyn_arr`) by using square bracket notations, similarly as follows:
+Indirections crossed further down a path are best made explicit with an index:
+`dyn[0].field` for a `struct foo **dyn` member.
+
+Array indexes are checked against the length recorded in BTF, except for
+flexible array members, which BTF encodes with a length of 0 and which
+therefore have no static bound.
+
+The last element of the path is what gets reported. The `type` field still
+declares how to read and print it, but when the resolved BTF type is one
+Tetragon knows by name — `file`, `path`, `sock`, `linux_binprm`, ... — that
+type wins over the declared one. This is how a whole structure can be reported
+instead of a scalar:
 
 ```yaml
-- index: 0
-  resolve: some.field[12].some.subfield
-  type: uint32
+...
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0 # struct linux_binprm *bprm
+        type: "file"
+        resolve: "file"
+      - index: 0
+        type: "path"
+        resolve: "file.f_path"
+...
 ```
 
-#### Initial BTF type
+A path holds at most 10 elements. Implicit steps count against that budget: the
+dereferences added for a multi-level pointer root, and each cast.
 
-By default, Tetragon starts `resolve` from the BTF type of the hook argument.
-For kprobes, tracepoints, and LSM hooks, this type comes from the kernel BTF
-prototype. For uprobes and USDT probes, it comes from the BTF file configured
-with `btfPath`.
+#### Where resolution starts
 
-Use `btfType` when the hook argument type is too generic, or when you need to
-cast the argument to a more specific structure before resolving fields. The
-`btfType` value is the BTF struct name without the `struct` prefix.
+By default, resolution starts from the type of the hook argument at `index`,
+read from the BTF prototype of the hooked function for kprobes, tracepoints and
+LSM hooks. A pointer parameter is dereferenced first, unless the path itself
+starts with an index — which is how both ends of the `int *fildes` array of
+`do_pipe2` are read:
 
-The following example resolves fields from the `struct sockaddr_in` view of the
+```yaml
+- call: "do_pipe2"
+  syscall: false
+  args:
+  - index: 0 # int *fildes
+    type: "int"
+    label: "pipefd[0]"
+    resolve: "[0]"
+  - index: 0
+    type: "int"
+    label: "pipefd[1]"
+    resolve: "[1]"
+```
+
+`btfType` replaces that root with a named structure. Use it when the parameter
+type is too generic, or when the argument has to be viewed as a more specific
+structure. The value is the BTF name, without the `struct` keyword. The
+following example resolves fields from the `struct sockaddr_in` view of the
 second `security_socket_connect` argument:
 
 ```yaml
@@ -918,11 +997,9 @@ spec:
       resolve: "sin_addr.s_addr"
 ```
 
-#### Kernel module BTF types
-
-For kprobe arguments, use `btfTypeModule` with `btfType` when the structure is
-defined by a kernel module instead of the main kernel BTF. The module name
-should be the kernel module name, without a `.ko` suffix.
+For kprobe arguments, `btfTypeModule` looks `btfType` up in the BTF of a kernel
+module rather than in the main kernel BTF. The module name carries no `.ko`
+suffix:
 
 ```yaml
 apiVersion: cilium.io/v1alpha1
@@ -949,19 +1026,103 @@ spec:
 ```
 
 {{< caution >}}
-When `btfTypeModule` is set, Tetragon first tries to read module BTF exposed by
-the kernel in `/sys/kernel/btf/<module>`. If that is not available, Tetragon
-fails to load the policy.
+When `btfTypeModule` is set, Tetragon reads the module BTF the kernel exposes
+in `/sys/kernel/btf/<module>`. If that is not available, Tetragon fails to load
+the policy.
 {{< /caution >}}
 
-If `btfTypeModule` is omitted, Tetragon searches the main kernel BTF first. For
-hooks that belong to a loaded module, Tetragon also tries that hook's module BTF.
+If `btfTypeModule` is omitted, Tetragon searches the main kernel BTF first,
+then, for a hook that belongs to a loaded module, that module's BTF.
+
+For `uprobes` and `usdts`, `btfType` is looked up in the BTF file given by
+`btfPath`, and both are required to resolve into an argument:
+
+```yaml
+spec:
+  uprobes:
+  - path: "/usr/bin/example"
+    btfPath: "/usr/lib/debug/example.btf"
+    symbols:
+    - "func"
+    args:
+    - index: 1 # struct mystruct *
+      type: "uint64"
+      btfType: "mystruct"
+      resolve: "subp.v64"
+```
+
+A `data` entry takes its root from `source` instead of an argument index:
+`current_task` starts from the kernel `struct task_struct`, while `pt_regs`
+starts from the machine register named by the first element of the path. A
+register holds no type information, so reading anything through it requires a
+cast:
+
+```yaml
+data:
+- index: 0
+  type: "uint64"
+  source: "pt_regs"
+  resolve: "((uint64_t ***)rsp)[0][0][9]"
+```
+
+Register names are architecture specific (`eax` and `rsp` on `x86_64`, `w0` and
+`x0` on `arm64`), which makes such a policy tied to one architecture. See
+[Data](/docs/concepts/tracing-policy/hooks/#data).
+
+#### Type casts
+
+A cast reinterprets the location reached so far as another type, and resolution
+continues from that type. This is what makes an untyped pointer usable: a
+`void *` field says nothing about what it points to, but the policy author may
+know which structure is stored there at runtime.
+
+```yaml
+args:
+- index: 1
+  type: "uint32"
+  btfType: "mystruct"
+  resolve: "((struct mysubstruct *)subvoid).v32"
+```
+
+Tetragon resolves `subvoid`, reads its value as a `struct mysubstruct *`,
+follows it and reports `v32`.
+
+A cast to a pointer type is dereferenced like any other pointer, so combining
+it with an index reads an element of the pointed-to array:
+
+```yaml
+args:
+- index: 0
+  type: "uint8"
+  resolve: "((char *)buffer)[12]"
+```
+
+Casts nest, innermost first. The path
+`((struct task_struct *)((char *)field)[8]).comm` reads `field` as a `char *`,
+takes element 8, reads that location as a `struct task_struct *`, follows it
+and reports `comm`.
+
+The grouped form, `((type)target)`, is valid anywhere in a path: its
+parentheses delimit the operand, so resolution continues after them, as in
+`path.((char *)target)[8].end`.
+
+The bare form, `(type)target`, is only valid as the opening segment of a path,
+and there its operand is the whole path: `(char *)field[123].my.sub.field`
+resolves the entire path and casts the field it reaches. Prefer the grouped
+form whenever the cast applies to something shorter than the whole path.
+
+{{< note >}}
+Type names used in casts are resolved from the same BTF as `btfType`: the file
+given by `btfPath` for uprobes and USDT probes, the kernel BTF otherwise. A
+type missing from that BTF fails the policy load, there is no fallback from one
+to the other.
+{{< /note >}}
 
 ## Data
 
-Kprobes allow definition of `data` fields and following `matchData` selector
-that allows to retrieve data from kernel current task object and specify
-filter on it.
+Kprobes and uprobes allow definition of `data` fields and following `matchData`
+selector that allows to retrieve data from kernel current task object and
+specify filter on it.
 
 Following example defines data field that retrieves `comm` field from
 kernel `current_task` object.
@@ -980,8 +1141,11 @@ selectors:
     - "example"
 ```
 
-Note all data field spec definitions need to define `source` (ATM only available value
-is `current_task`) and `resolve` string based on kernel `struct task_struct` object.
+Note all data field spec definitions need to define both `source` and
+`resolve`. The `source` field selects what the
+[`resolve`](/docs/concepts/tracing-policy/hooks/#attribute-resolution) path
+starts from: `current_task`, the kernel `struct task_struct` object, or
+`pt_regs`, a machine register named by the first element of the path.
 
 ## Return values
 
