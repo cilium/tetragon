@@ -9,86 +9,87 @@
 FUNC_LOCAL __u64
 read_reg(struct pt_regs *ctx, __u32 src, __u8 shift)
 {
-	/* Using inlined asm for same reason we use WRITE_REG above. */
-#define READ_REG(reg) ({                                        \
-	__u64 val;                                              \
-	asm volatile("%[val] = *(u64 *)(%[ctx] + %[off])\n"     \
-		     : [ctx] "+r"(ctx), [val] "+r"(val)         \
-		     : [off] "i"(offsetof(struct pt_regs, reg)) \
-		     :);                                        \
-	val <<= shift;                                          \
-	val >>= shift;                                          \
-	val;                                                    \
-})
+	__u64 val = 0;
 
 	switch (src) {
 	case offsetof(struct pt_regs, r15):
-		return READ_REG(r15);
+		val = ctx->r15;
+		break;
 	case offsetof(struct pt_regs, r14):
-		return READ_REG(r14);
+		val = ctx->r14;
+		break;
 	case offsetof(struct pt_regs, r13):
-		return READ_REG(r13);
+		val = ctx->r13;
+		break;
 	case offsetof(struct pt_regs, r12):
-		return READ_REG(r12);
+		val = ctx->r12;
+		break;
 	case offsetof(struct pt_regs, bp):
-		return READ_REG(bp);
+		val = ctx->bp;
+		break;
 	case offsetof(struct pt_regs, bx):
-		return READ_REG(bx);
+		val = ctx->bx;
+		break;
 	case offsetof(struct pt_regs, r11):
-		return READ_REG(r11);
+		val = ctx->r11;
+		break;
 	case offsetof(struct pt_regs, r10):
-		return READ_REG(r10);
+		val = ctx->r10;
+		break;
 	case offsetof(struct pt_regs, r9):
-		return READ_REG(r9);
+		val = ctx->r9;
+		break;
 	case offsetof(struct pt_regs, r8):
-		return READ_REG(r8);
+		val = ctx->r8;
+		break;
 	case offsetof(struct pt_regs, ax):
-		return READ_REG(ax);
+		val = ctx->ax;
+		break;
 	case offsetof(struct pt_regs, cx):
-		return READ_REG(cx);
+		val = ctx->cx;
+		break;
 	case offsetof(struct pt_regs, dx):
-		return READ_REG(dx);
+		val = ctx->dx;
+		break;
 	case offsetof(struct pt_regs, si):
-		return READ_REG(si);
+		val = ctx->si;
+		break;
 	case offsetof(struct pt_regs, di):
-		return READ_REG(di);
+		val = ctx->di;
+		break;
 	case offsetof(struct pt_regs, ip):
-		return READ_REG(ip);
+		val = ctx->ip;
+		break;
 	case offsetof(struct pt_regs, sp):
-		return READ_REG(sp);
+		val = ctx->sp;
+		break;
 	}
 
-#undef READ_REG
-	return 0;
+	val <<= shift;
+	val >>= shift;
+	return val;
 }
 
 FUNC_LOCAL int
 write_reg(struct pt_regs *ctx, __u32 dst, __u8 size, __u64 val)
 {
-	/*
-	 * Using inlined asm to make sure we access context via 'ctx-reg + offset'.
-	 * When using switch on all registers offset values, clang-18 uses * modified
-	 * ctx-reg which fails verifier.
-	 *
-	 * Using clang-20 seems to work, but we need to upgrade first ;-)
-	 */
 
-#define WRITE_REG(reg) ({                                                  \
-	asm volatile("if %[size] != 8 goto +2\n"                           \
-		     "*(u64 *)(%[ctx] + %[off]) = %[val]\n"                \
-		     "goto +8\n"                                           \
-		     "if %[size] != 4 goto +2\n"                           \
-		     "*(u32 *)(%[ctx] + %[off]) = %[val]\n"                \
-		     "goto +5\n"                                           \
-		     "if %[size] != 2 goto +2\n"                           \
-		     "*(u16 *)(%[ctx] + %[off]) = %[val]\n"                \
-		     "goto +2\n"                                           \
-		     "if %[size] != 1 goto +1\n"                           \
-		     "*(u8 *)(%[ctx] + %[off]) = %[val]\n"                 \
-		     : [ctx] "+r"(ctx), [val] "+r"(val), [size] "+r"(size) \
-		     : [off] "i"(offsetof(struct pt_regs, reg))            \
-		     :);                                                   \
-	0;                                                                 \
+#define WRITE_REG(reg) ({                 \
+	switch (size) {                   \
+	case 8:                           \
+		*((u64 *)&ctx->reg) = val; \
+		break;                    \
+	case 4:                           \
+		*((u32 *)&ctx->reg) = val; \
+		break;                    \
+	case 2:                           \
+		*((u16 *)&ctx->reg) = val; \
+		break;                    \
+	case 1:                           \
+		*((u8 *)&ctx->reg) = val;  \
+		break;                    \
+	}                                 \
+	0;                                \
 })
 
 	switch (dst) {
