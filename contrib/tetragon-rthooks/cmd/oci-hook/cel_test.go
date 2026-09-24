@@ -170,7 +170,7 @@ func TestCelAllowNamespacesWithPatterns(t *testing.T) {
 	}
 }
 
-// TestAnnotationKeyPriority - all keys must allow; any failing key fails
+// TestAnnotationKeyPriority - any key that allows is enough; fail only if no key allows
 func TestAnnotationKeyPriority(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -178,12 +178,12 @@ func TestAnnotationKeyPriority(t *testing.T) {
 		wantFail    bool
 	}{
 		{
-			name: "first key allowed, second key would fail - fail (all keys must allow)",
+			name: "first key allowed, second key would fail - allow (any key may allow)",
 			annotations: map[string]string{
 				"io.kubernetes.pod.namespace":         nsKubeSystem,
 				"io.kubernetes.cri.sandbox-namespace": nsDefault,
 			},
-			wantFail: true,
+			wantFail: false,
 		},
 		{
 			name: "both keys allowed - allow",
