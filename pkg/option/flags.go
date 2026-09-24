@@ -379,6 +379,14 @@ func ReadAndSetFlags() error {
 		return err
 	}
 
+	// Wire up KeyBpfDebugArea viper config to sliceEnum
+	if viper.GetString(KeyBpfDebugArea) != "" {
+		for _, area := range viper.GetStringSlice(KeyBpfDebugArea) {
+			if err = Config.BPFDebugAreas.Set(area); err != nil {
+				return fmt.Errorf("failed to set bpf-debug-area %q from viper: %w", area, err)
+			}
+		}
+	}
 	Config.BPFDebugLog = viper.GetBool(KeyBpfDebugLog)
 
 	warnIgnoredProcessCacheFlags(Config)
