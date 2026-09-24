@@ -24,7 +24,7 @@ func NewEnum(allowed []string, d string) (*Enum, error) {
 		Value:   d,
 	}
 	if !slices.Contains(allowed, d) {
-		return nil, fmt.Errorf("invalid default value %s, please provide one of %s", d, e.Allowed())
+		return nil, fmt.Errorf("invalid default value %q, please provide one of %s", d, e.Allowed())
 	}
 	return &e, nil
 }
@@ -39,7 +39,7 @@ func (e *Enum) Allowed() string {
 
 func (e *Enum) Set(p string) error {
 	if !slices.Contains(e.allowed, p) {
-		return fmt.Errorf("invalid argument %s, please provide one of %s", p, e.Allowed())
+		return fmt.Errorf("invalid argument %q, please provide one of %s", p, e.Allowed())
 	}
 	e.Value = p
 	return nil
@@ -63,7 +63,7 @@ func NewSliceEnum(allowed []string, d []string) (*SliceEnum, error) {
 	}
 	for _, dd := range d {
 		if !slices.Contains(allowed, dd) {
-			return nil, fmt.Errorf("invalid default value %s, please provide one of %s", dd, e.Allowed())
+			return nil, fmt.Errorf("invalid default value %q, please provide one of %s", dd, e.Allowed())
 		}
 	}
 	return &e, nil
@@ -79,7 +79,7 @@ func (e *SliceEnum) Allowed() string {
 
 func (e *SliceEnum) Set(p string) error {
 	if !slices.Contains(e.allowed, p) {
-		return fmt.Errorf("invalid argument %s, please provide one of %s", p, e.Allowed())
+		return fmt.Errorf("invalid argument %q, please provide one of %s", p, e.Allowed())
 	}
 	if !slices.Contains(e.Values, p) {
 		e.Values = append(e.Values, p)
