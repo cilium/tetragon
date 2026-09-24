@@ -89,6 +89,19 @@ func TestSelectKernelVersionFiles(t *testing.T) {
 			},
 		},
 		{
+			name:          "compares versions numerically",
+			kernelVersion: "5.15.0",
+			fileNames: []string{
+				"bpf_execve_event.o",
+				"bpf_execve_event_v53.o",
+				"bpf_execve_event_v511.o",
+				"bpf_execve_event_v61.o",
+			},
+			expectedFiles: []string{
+				"bpf_execve_event_v511.o",
+			},
+		},
+		{
 			name:          "falls back to base when all versions too new",
 			kernelVersion: "5.4.0",
 			fileNames: []string{
