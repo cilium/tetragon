@@ -103,7 +103,7 @@ func selectKernelVersionFiles(fileNames []string, currentKernelStr string) (map[
 				bestMatch = v
 				bestVersion = v.version
 				found = true
-			} else if bestVersion == "" || v.version > bestVersion {
+			} else if bestVersion == "" || requiredVer > kernels.KernelStringToNumeric(bestVersion) {
 				bestMatch = v
 				bestVersion = v.version
 			}
