@@ -37,7 +37,7 @@ kube-system          tetragon-sdwv6                               2/2     Runnin
 ## Monitor UIDs/GIDs credential changes
 
 We use the
-[process.credentials.changes.at.syscalls](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process.credentials.changes.at.syscalls.yaml)
+{{< policy-ref "process-credentials/process.credentials.changes.at.syscalls.yaml" >}}
 Tracing Policy that hooks the
 [`setuid`](https://man7.org/linux/man-pages/man2/setuid.2.html) system calls
 family:
@@ -51,7 +51,7 @@ family:
 - `setresuid`
 - `setresgid`
 
-Let's apply the [process.credentials.changes.at.syscalls](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process.credentials.changes.at.syscalls.yaml) Tracing Policy.
+Let's apply the {{< policy-ref "process-credentials/process.credentials.changes.at.syscalls.yaml" >}} Tracing Policy.
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process.credentials.changes.at.syscalls.yaml
@@ -251,7 +251,7 @@ they are:
   the root user.
 
 
-To disable the [process.credentials.changes.at.syscalls](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process.credentials.changes.at.syscalls.yaml) Tracing Policy run:
+To disable the {{< policy-ref "process-credentials/process.credentials.changes.at.syscalls.yaml" >}} Tracing Policy run:
 
 ```bash
 kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process.credentials.changes.at.syscalls.yaml

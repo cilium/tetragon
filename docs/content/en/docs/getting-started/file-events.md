@@ -11,8 +11,7 @@ to userspace from the BPF programs running in kernel. This ensures overhead
 remains low even on busy systems.
 
 The instructions below extend the example from [Execution Monitoring]({{< ref "/docs/getting-started/execution" >}})
-with a policy to monitor sensitive files in Linux. The policy used is
-[`file_monitoring.yaml`](https://github.com/cilium/tetragon/blob/main/examples/quickstart/file_monitoring.yaml),
+with a policy to monitor sensitive files in Linux. The policy used is {{< policy-ref "file-monitoring/file-monitoring.yaml">}}
 which you can review and extend as needed. Files monitored here serve as a good
 base set of files.
 

@@ -129,8 +129,7 @@ this:
 
 The following extends the example from [File Access Monitoring]({{< ref "docs/getting-started/file-events" >}})
 with enforcement to ensure sensitive files are not read. The policy used is the
-[`file_monitoring_enforce.yaml`](https://github.com/cilium/tetragon/blob/main/examples/quickstart/file_monitoring_enforce.yaml),
-which you can review and extend as needed. The only difference between the
+{{< policy-ref "file-monitoring/file-monitoring-enforce.yaml" >}} which you can review and extend as needed. The only difference between the
 observation policy and the enforce policy is the addition of an action block
 to `SIGKILL` the application and return an error on the operation.
 
