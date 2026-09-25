@@ -9,8 +9,8 @@ filters as well as a set of (optional) actions to be performed if the selector f
 hook can contain up to 5 selectors. If no selectors are defined on a hook, the default action
 (`Post`, i.e., post an event) will be used.
 
-
 Each selector comprises a set of filters:
+
 - [`matchArgs`](#arguments-filter): filter on the value of arguments.
 - [`matchCmdArgs`](#command-line-arguments-filter): filter on process command-line arguments.
 - [`matchData`](#data-filter): filter on the value of data fields.
@@ -27,6 +27,7 @@ Each selector comprises a set of filters:
 - [`matchUserCallers`](#matchusercallers): filter on the user space callstack of the hooked function.
 
 And a set of actions that will be performed if the specified filters match:
+
 - [`matchActions`](#actions-filter): apply an action on selector matching.
 - [`matchReturnActions`](#return-actions-filter): apply an action on return selector matching.
 
@@ -93,6 +94,7 @@ selectors:
     - "/etc/passwd"
     - "/etc/shadow"
 ```
+
 In the next example, a selector is defined with a `matchArgs` filter that tells
 the BPF code to process only the function call for which the second spec argument,
 `args` equals to [1] (which represents 1st function argument, `index` equals to 0),
@@ -116,6 +118,7 @@ has value `0xcoffee`.
       values:
       - "0xcoffee"
 ```
+
 Note that you can mix `index` and `arg` fields within `matchArgs` selector definitions.
 
 The available operators for `matchArgs` are:
@@ -423,6 +426,7 @@ this, set `followChildren` to `true`. For example:
 ```
 
 There are a number of limitations when using followChildren:
+
 - Children created before the policy was installed will not be matched.
 - The number of `matchBinaries` sections with `followChildren: true` cannot exceed 64.
 - `operator` can be `In` or `NotIn`.
@@ -437,6 +441,7 @@ coming from the `/usr/sbin/sshd` binary and its child processes and writing to
 This is how we can monitor what was written to the console by different users
 during different ssh sessions. The `matchBinaries` selector in this case is the
 following:
+
 ```yaml
 - matchBinaries:
   - operator: "In"
