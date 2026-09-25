@@ -472,16 +472,16 @@ func ParseCgroupRate(rate string) CgroupRate {
 
 	if len(s[0]) > 0 {
 		events, err = strconv.Atoi(s[0])
-		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("failed to parse cgroup rate '%s' : %s", rate, err))
+		if err != nil || events < 0 {
+			logger.GetLogger().Warn(fmt.Sprintf("failed to parse cgroup rate '%s'", rate))
 			return empty
 		}
 	}
 
 	if len(s[1]) > 0 {
 		interval, err = time.ParseDuration(s[1])
-		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("failed to parse cgroup rate '%s'", rate), logfields.Error, err)
+		if err != nil || interval < 0 {
+			logger.GetLogger().Warn(fmt.Sprintf("failed to parse cgroup rate '%s'", rate))
 			return empty
 		}
 	}
