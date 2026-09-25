@@ -209,7 +209,7 @@ read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 
 FUNC_LOCAL void
 execve_event_init(struct bpf_raw_tracepoint_args *ctx,
-		  struct msg_execve_event *event)
+		  struct msg_execve_event *event, bool store_data)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
@@ -249,12 +249,6 @@ execve_event_init(struct bpf_raw_tracepoint_args *ctx,
 	p->auid = get_auid();
 	read_execve_shared_info(ctx, p, pid);
 
-	probe_read(&filename, sizeof(filename), _(&bprm->filename));
-	p->size += read_path(ctx, event, filename);
-	p->size += read_args(ctx, event);
-	p->size += read_cwd(ctx, p);
-	p->size += read_envs(ctx, event);
-
 	event->common.op = MSG_OP_EXECVE;
 	event->common.flags = 0;
 	event->common.ktime = p->ktime;
@@ -272,6 +266,14 @@ execve_event_init(struct bpf_raw_tracepoint_args *ctx,
 
 	// Zero the cleanup key to prevent user space confusion.
 	event->cleanup_key = (struct msg_execve_key){ 0 };
+
+	if (store_data) {
+		probe_read(&filename, sizeof(filename), _(&bprm->filename));
+		p->size += read_path(ctx, event, filename);
+		p->size += read_args(ctx, event);
+		p->size += read_cwd(ctx, p);
+		p->size += read_envs(ctx, event);
+	}
 }
 
 FUNC_LOCAL bool

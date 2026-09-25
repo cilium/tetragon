@@ -28,7 +28,7 @@ event_execve(struct bpf_raw_tracepoint_args *ctx)
 	if (!event)
 		return 0;
 
-	execve_event_init(ctx, event);
+	execve_event_init(ctx, event, true);
 
 	if (execve_rate_check(ctx, event))
 		return execve_send_event(ctx, event);
