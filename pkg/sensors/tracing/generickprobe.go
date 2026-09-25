@@ -1397,21 +1397,22 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 		if m.UserStackID < 0 {
 			gk.LogAttrs(slog.LevelDebug, "failed to retrieve user stacktrace", slog.Any("errno", m.UserStackID))
 		}
-		if gk.data.stackTraceMap.MapHandle == nil {
-			gk.LogAttrs(slog.LevelWarn, "failed to load the stacktrace map", slog.Any(logfields.Error, err))
-		}
-		if m.KernelStackID > 0 || m.UserStackID > 0 {
+		// the map is unloaded concurrently when the policy is disabled
+		stackTraceMap := gk.data.stackTraceMap.MapHandle
+		if stackTraceMap == nil {
+			gk.LogAttrs(slog.LevelWarn, "stacktrace map is not loaded")
+		} else if m.KernelStackID > 0 || m.UserStackID > 0 {
 			// remove the error part
 			if m.KernelStackID > 0 {
 				id := uint32(m.KernelStackID)
-				err = gk.data.stackTraceMap.MapHandle.Lookup(id, &unix.KernelStackTrace)
+				err = stackTraceMap.Lookup(id, &unix.KernelStackTrace)
 				if err != nil {
 					gk.LogAttrs(slog.LevelWarn, "failed to lookup the kernel stacktrace map", slog.Any(logfields.Error, err))
 				}
 			}
 			if m.UserStackID > 0 {
 				id := uint32(m.UserStackID)
-				err = gk.data.stackTraceMap.MapHandle.Lookup(id, &unix.UserStackTrace)
+				err = stackTraceMap.Lookup(id, &unix.UserStackTrace)
 				if err != nil {
 					gk.LogAttrs(slog.LevelWarn, "failed to lookup the user stacktrace map", slog.Any(logfields.Error, err))
 				}

@@ -15,11 +15,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/api/processapi"
+	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
@@ -362,4 +365,16 @@ func Test_validateOverride(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_handleMsgGenericKprobe_UnloadedStackTraceMap(t *testing.T) {
+	gk := &genericKprobe{
+		data: &genericKprobeData{stackTraceMap: &program.Map{}},
+	}
+	m := &api.MsgGenericKprobe{KernelStackID: 1, UserStackID: 1}
+	m.Common.Flags = processapi.MSG_COMMON_FLAG_KERNEL_STACKTRACE | processapi.MSG_COMMON_FLAG_USER_STACKTRACE
+	require.NotPanics(t, func() {
+		_, err := handleMsgGenericKprobe(m, gk, bytes.NewReader(nil))
+		require.NoError(t, err)
+	})
 }
