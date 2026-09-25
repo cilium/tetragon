@@ -175,6 +175,11 @@ func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server te
 		return nil, err
 	}
 
+	fieldFilters, err := fieldfilters.FieldFiltersFromGetEventsRequest(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create field filters: %w", err)
+	}
+
 	l := newListener()
 	s.notifier.AddListener(l)
 	s.ctxCleanupWG.Add(1)
@@ -185,6 +190,7 @@ func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server te
 		if agg != nil {
 			go agg.Start()
 		}
+	outerLoop:
 		for {
 			select {
 			case event := <-l.events:
@@ -192,15 +198,12 @@ func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server te
 					continue
 				}
 
-				fieldFilters, err := fieldfilters.FieldFiltersFromGetEventsRequest(request)
-				if err != nil {
-					return fmt.Errorf("failed to create field filters: %w", err)
-				}
 				for _, filter := range fieldFilters {
 					ev, err := filter.Filter(event)
 					if err != nil {
 						logger.GetLogger().Warn("Failed to apply field filter", "filter", filter, logfields.Error, err)
-						continue
+						eventmetrics.FieldFilterFailed.WithLabelValues().Inc()
+						continue outerLoop
 					}
 					event = ev
 				}
