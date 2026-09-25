@@ -507,6 +507,93 @@ post-installation, they need to reload the policy after installation in
 order to attach to the new version of the binary.
 {{< /caution >}}
 
+### Resolving paths inside other pods
+
+By default, Tetragon opens the uprobe `path` in the agent's own filesystem. A
+binary or library that exists only inside another pod, such as `libpam.so` in
+an sshd pod, is not found there, and the policy fails to load.
+
+With `resolvePathInContainer: true`, Tetragon looks up `path` inside each
+container that the policy selects instead, and attaches the uprobe there. New
+containers are attached when they start, and the uprobe is removed when they
+stop.
+
+Here is an example of a `TracingPolicy` that traces `pam_authenticate` in the
+sshd pods:
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-pod"
+spec:
+  podSelector:
+    matchLabels:
+      app: sshd
+  uprobes:
+  - path: "/usr/lib64/libpam.so.0.85.1"
+    symbols:
+    - "pam_authenticate"
+    resolvePathInContainer: true
+```
+
+A policy with `resolvePathInContainer` has the following requirements:
+
+- It must set a `podSelector`. A `containerSelector` can narrow it down, but a
+  `hostSelector` is not allowed.
+- It holds exactly one uprobe and no other hooks.
+- It needs Kubernetes and the policy filter.
+- It needs a kernel with `openat2(RESOLVE_IN_ROOT)` (5.6 or newer). This keeps
+  the lookup inside the container, so a symlink in the container cannot point
+  the uprobe at a host binary.
+- Tetragon needs [runtime hooks]({{< ref "/docs/concepts/runtime-hooks" >}}),
+  the CRI socket (`tetragon.cri.enabled` in the Helm chart), or both, to find
+  each container's filesystem. Runtime hooks report new containers. The CRI
+  socket also covers containers that were already running. With neither,
+  nothing is traced.
+
+Things to know:
+
+- The `path` and symbol must exist in the container image. A container without
+  them is skipped, and the other containers are still traced. A skipped
+  container is not retried until it restarts.
+- Skipped containers are logged at debug level, and unexpected errors as
+  warnings.
+- A policy attaches to at most 64 different binaries.
+- Containers that run the same binary share one uprobe, because the kernel
+  attaches to the file, not to the container. Each call is reported once, and
+  the pod and process fields of the event show which container made it. If the
+  `path` goes through a symlink, each container gets its own uprobe, and a call
+  can be reported more than once.
+- `binaryDigests` is checked against the binary in each container. A container
+  whose binary does not match is skipped. Prefer a `sha256` digest over
+  `build-id`, because `build-id` does not check the file content.
+
+{{< note >}}
+`btfPath` is read from the Tetragon agent's filesystem, not from the container.
+{{< /note >}}
+
+#### Use in a namespaced policy
+
+A `TracingPolicyNamespaced` can only use uprobes with `resolvePathInContainer`.
+A regular uprobe opens its `path` in the agent's filesystem, which is outside
+the namespace, so it is rejected. With `resolvePathInContainer`, the path is
+only looked up inside the selected pods, which are always in the policy's own
+namespace.
+
+A namespaced policy must still set a `podSelector`. Use `{}` to select every
+pod in the namespace. It cannot set `btfPath`.
+
+{{< caution >}}
+A uprobe attaches to a file on disk. If a pod mounts a host binary, for example
+through a `hostPath` volume, the uprobe is attached to the host's file. It then
+runs for every process on the node that uses that binary. Events are still
+limited to the policy's pods, so nothing is reported from other namespaces, but
+the overhead affects the whole node. Restrict `hostPath` volumes, for example
+with Pod Security admission, in namespaces where users can write tracing
+policies.
+{{< /caution >}}
+
 ## USDTs
 
 Tetragon allows to attach and monitor USDT (User Statically-Defined Tracing) probes.
