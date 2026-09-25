@@ -1,0 +1,25 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-lseek"
+spec:
+  kprobes:
+  - call: "sys_lseek"
+    syscall: true
+    data:
+    - source: current_task
+      index: 0
+      type: int
+      resolve: pid
+    args:
+    - index: 2
+      type: "int"
+      label: "whence"
+    - index: 0
+      type: "int"
+      label: "fd"
+    selectors:
+    - matchActions:
+      - action: Post
+      matchCEL:
+        expr: "arg1 == int32(-1) && data0 == arg0 + int32(42)"
