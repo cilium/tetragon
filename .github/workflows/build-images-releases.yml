@@ -11,13 +11,19 @@ on:
 permissions:
   # To be able to access the repository with `actions/checkout` and upload release artifacts
   contents: write
-  # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
-  id-token: write
 
 jobs:
   build-and-push:
-    environment: release
+    # Pins the OIDC token subject to repo:cilium/tetragon:environment:release,
+    # which is the identity federated with the Quay robot account.
+    environment:
+      name: release
+      deployment: false
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
+      id-token: write
     strategy:
       matrix:
         include:
@@ -37,12 +43,42 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
+      # Quay's registry endpoint only accepts credentials or a JWT signed by
+      # Quay itself, so the GitHub OIDC token cannot be used as the registry
+      # password directly. Trade it for a short lived robot token first.
+      #
+      # Because the job references an environment, the subject of the token is
+      # repo:cilium@21054566/tetragon@473137633:environment:release, the
+      # immutable form that carries the owner and repository ids. That is the
+      # identity federated with the robot account on the Quay side, so renaming
+      # the environment breaks the login.
+      - name: Get a quay.io robot token via OIDC
+        id: registry-token
+        env:
+          ROBOT: ${{ vars.QUAY_ROBOT_RELEASE }}
+        run: |
+          oidc_token="$(curl -sSf --retry 3 --retry-all-errors \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=quay.io" \
+            | jq -er '.value')"
+          echo "::add-mask::${oidc_token}"
+
+          # Pass the credentials on stdin so that the OIDC token is not visible
+          # in the process list of the runner.
+          robot_token="$(printf 'user = "%s:%s"\n' "${ROBOT}" "${oidc_token}" \
+            | curl -sSf --retry 3 --retry-all-errors -K - \
+              "https://quay.io/oauth2/federation/robot/token" \
+            | jq -er '.token')"
+          echo "::add-mask::${robot_token}"
+
+          echo "token=${robot_token}" >> "$GITHUB_OUTPUT"
+
       - name: Login to quay.io
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         with:
           registry: quay.io
-          username: ${{ secrets.QUAY_USERNAME_RELEASE_USERNAME }}
-          password: ${{ secrets.QUAY_PASSWORD_RELEASE_PASSWORD }}
+          username: ${{ vars.QUAY_ROBOT_RELEASE }}
+          password: ${{ steps.registry-token.outputs.token }}
 
       - name: Getting image tag
         id: tag
@@ -203,12 +239,6 @@ jobs:
       - name: Getting version tag
         id: tag
         run: echo "tag=$(make version)" >> $GITHUB_OUTPUT
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME_CI }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD_CI }}
 
       - name: Generate Tetragon Tarball
         run: |
