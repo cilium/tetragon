@@ -51,6 +51,10 @@ func (s *DummyPF) RegisterPodHandlers(_ events.PodEventSource) error {
 	return nil
 }
 
+func (s *DummyPF) WatchPolicyContainers(_ policyfilter.PolicyID, _ func(policyfilter.ContainerChange)) (func(), error) {
+	return func() {}, nil
+}
+
 func (s *DummyPF) Close() error {
 	return nil
 }
