@@ -98,7 +98,11 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 		"cgroup-id", cgID,
 		"container-name", containerName)
 	cgid := policyfilter.CgroupID(cgID)
-	err = pfState.AddPodContainer(policyfilter.PodID(podID), pod.Namespace, pod.Labels, containerID, cgid, podhelpers.ContainerInfo{Name: containerName, Repo: containerRepo})
+	err = pfState.AddPodContainer(policyfilter.PodID(podID), pod.Namespace, pod.Labels, containerID, cgid, podhelpers.ContainerInfo{
+		Name:    containerName,
+		Repo:    containerRepo,
+		RootDir: arg.Req.RootDir,
+	})
 	policyfiltermetrics.OpInc(policyfiltermetrics.RTHooksSubsys, policyfiltermetrics.AddContainerOperation, policyfilter.ErrorLabel(err))
 
 	if err != nil {

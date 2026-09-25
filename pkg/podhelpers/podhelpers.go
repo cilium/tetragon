@@ -46,6 +46,9 @@ func PodContainersIDs(pod *v1.Pod) []string {
 type ContainerInfo struct {
 	Name string
 	Repo string
+	// RootDir is the host path of the container's root filesystem, known
+	// only when a runtime hook reports the container.
+	RootDir string
 }
 
 func PodContainersInfo(pod *v1.Pod) []ContainerInfo {
