@@ -158,7 +158,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Build tetragon Windows binaries
+      - name: Build tetragon no-k8s binaries
         run: |
           GOARCH=amd64 make tetragon-nok8s tetra-nok8s
           GOARCH=arm64 make tetragon-nok8s tetra-nok8s
