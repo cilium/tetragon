@@ -173,7 +173,7 @@ Killed
 ## See more
 
 For more examples of tracing policies, take a look at the
-[examples/tracingpolicy](https://github.com/cilium/tetragon/tree/main/examples/tracingpolicy)
+[policies](https://github.com/cilium/tetragon/tree/main/policies)
 folder in the Tetragon repository. Also read the following sections on
 [hook points]({{< ref "/docs/concepts/tracing-policy/hooks" >}}) and
 [selectors]({{< ref "/docs/concepts/tracing-policy/selectors" >}}).

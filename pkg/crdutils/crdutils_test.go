@@ -397,7 +397,7 @@ func TestYamlData(t *testing.T) {
 
 func TestExamplesSmoke(t *testing.T) {
 	_, filename, _, _ := runtime.Caller(0)
-	examplesDir := filepath.Join(filepath.Dir(filename), "../../examples/tracingpolicy")
+	examplesDir := filepath.Join(filepath.Dir(filename), "../../policies")
 	CheckPolicies(t, examplesDir, func(path string) error {
 		data := map[string]string{
 			"Pid": strconv.Itoa(os.Getpid()),

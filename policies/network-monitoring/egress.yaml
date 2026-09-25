@@ -1,7 +1,7 @@
 apiVersion: cilium.io/v1alpha1
-kind: TracingPolicyNamespaced
+kind: TracingPolicy
 metadata:
-  name: "enforce-network-activity-outside-cluster-cidr-range"
+  name: "monitor-network-activity-outside-cluster-cidr-range"
 spec:
   kprobes:
   - call: "tcp_connect"
@@ -17,5 +17,3 @@ spec:
         - 127.0.0.1
         - ${PODCIDR}
         - ${SERVICECIDR}
-      matchActions:
-      - action: Sigkill
