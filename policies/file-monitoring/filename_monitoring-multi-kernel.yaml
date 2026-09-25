@@ -40,6 +40,7 @@ spec:
         operator: "Prefix"
         values:
         - "/etc/" # filenames to filter for
+# For kernels < 6.2
   - call: "security_path_truncate"
     syscall: false
     return: true
@@ -55,3 +56,23 @@ spec:
         operator: "Prefix"
         values:
         - "/etc/" # filenames to filter for
+    ignore:
+      callNotFound: true
+  - call: "security_file_truncate"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file" # (struct file *) used for getting the path
+    returnArg:
+      index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "/etc/" # filenames to filter for
+    # ...
+    ignore:
+      callNotFound: true
