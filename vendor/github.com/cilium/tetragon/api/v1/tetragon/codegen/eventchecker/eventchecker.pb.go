@@ -276,6 +276,8 @@ func CheckerFromEvent(event Event) (EventChecker, error) {
 		return NewProcessUprobeChecker("").FromProcessUprobe(ev), nil
 	case *tetragon.ProcessUsdt:
 		return NewProcessUsdtChecker("").FromProcessUsdt(ev), nil
+	case *tetragon.ProcessJava:
+		return NewProcessJavaChecker("").FromProcessJava(ev), nil
 	case *tetragon.ProcessLsm:
 		return NewProcessLsmChecker("").FromProcessLsm(ev), nil
 	case *tetragon.Test:
@@ -342,6 +344,8 @@ func EventFromResponse(response *tetragon.GetEventsResponse) (Event, error) {
 		return ev.ProcessUprobe, nil
 	case *tetragon.GetEventsResponse_ProcessUsdt:
 		return ev.ProcessUsdt, nil
+	case *tetragon.GetEventsResponse_ProcessJava:
+		return ev.ProcessJava, nil
 	case *tetragon.GetEventsResponse_ProcessLsm:
 		return ev.ProcessLsm, nil
 	case *tetragon.GetEventsResponse_Test:
@@ -2190,6 +2194,188 @@ func (checker *ProcessUsdtChecker) FromProcessUsdt(event *tetragon.ProcessUsdt) 
 	}
 	checker.Action = NewKprobeActionChecker(event.Action)
 	checker.Flags = stringmatcher.Full(event.Flags)
+	return checker
+}
+
+// ProcessJavaChecker implements a checker struct to check a ProcessJava event
+type ProcessJavaChecker struct {
+	CheckerName string                       `json:"checkerName"`
+	Process     *ProcessChecker              `json:"process,omitempty"`
+	Parent      *ProcessChecker              `json:"parent,omitempty"`
+	Ancestors   *ProcessListMatcher          `json:"ancestors,omitempty"`
+	MethodId    *uint64                      `json:"methodId,omitempty"`
+	ClassName   *stringmatcher.StringMatcher `json:"className,omitempty"`
+	MethodName  *stringmatcher.StringMatcher `json:"methodName,omitempty"`
+	Descriptor_ *stringmatcher.StringMatcher `json:"descriptor,omitempty"`
+}
+
+// CheckEvent checks a single event and implements the EventChecker interface
+func (checker *ProcessJavaChecker) CheckEvent(event Event) error {
+	if ev, ok := event.(*tetragon.ProcessJava); ok {
+		return checker.Check(ev)
+	}
+	return fmt.Errorf("%s: %T is not a ProcessJava event", CheckerLogPrefix(checker), event)
+}
+
+// CheckResponse checks a single gRPC response and implements the EventChecker interface
+func (checker *ProcessJavaChecker) CheckResponse(response *tetragon.GetEventsResponse) error {
+	event, err := EventFromResponse(response)
+	if err != nil {
+		return err
+	}
+	return checker.CheckEvent(event)
+}
+
+// NewProcessJavaChecker creates a new ProcessJavaChecker
+func NewProcessJavaChecker(name string) *ProcessJavaChecker {
+	return &ProcessJavaChecker{CheckerName: name}
+}
+
+// Get the name associated with the checker
+func (checker *ProcessJavaChecker) GetCheckerName() string {
+	return checker.CheckerName
+}
+
+// Get the type of the checker as a string
+func (checker *ProcessJavaChecker) GetCheckerType() string {
+	return "ProcessJavaChecker"
+}
+
+// Check checks a ProcessJava event
+func (checker *ProcessJavaChecker) Check(event *tetragon.ProcessJava) error {
+	if event == nil {
+		return fmt.Errorf("%s: ProcessJava event is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Process != nil {
+			if err := checker.Process.Check(event.Process); err != nil {
+				return fmt.Errorf("Process check failed: %w", err)
+			}
+		}
+		if checker.Parent != nil {
+			if err := checker.Parent.Check(event.Parent); err != nil {
+				return fmt.Errorf("Parent check failed: %w", err)
+			}
+		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
+		if checker.MethodId != nil {
+			if *checker.MethodId != event.MethodId {
+				return fmt.Errorf("MethodId has value %d which does not match expected value %d", event.MethodId, *checker.MethodId)
+			}
+		}
+		if checker.ClassName != nil {
+			if err := checker.ClassName.Match(event.ClassName); err != nil {
+				return fmt.Errorf("ClassName check failed: %w", err)
+			}
+		}
+		if checker.MethodName != nil {
+			if err := checker.MethodName.Match(event.MethodName); err != nil {
+				return fmt.Errorf("MethodName check failed: %w", err)
+			}
+		}
+		if checker.Descriptor_ != nil {
+			if err := checker.Descriptor_.Match(event.Descriptor_); err != nil {
+				return fmt.Errorf("Descriptor_ check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithProcess adds a Process check to the ProcessJavaChecker
+func (checker *ProcessJavaChecker) WithProcess(check *ProcessChecker) *ProcessJavaChecker {
+	checker.Process = check
+	return checker
+}
+
+// UnsetProcess unsets the Process check to the ProcessJavaChecker
+func (checker *ProcessJavaChecker) UnsetProcess() *ProcessJavaChecker {
+	checker.Process = nil
+	return checker
+}
+
+// WithParent adds a Parent check to the ProcessJavaChecker
+func (checker *ProcessJavaChecker) WithParent(check *ProcessChecker) *ProcessJavaChecker {
+	checker.Parent = check
+	return checker
+}
+
+// UnsetParent unsets the Parent check to the ProcessJavaChecker
+func (checker *ProcessJavaChecker) UnsetParent() *ProcessJavaChecker {
+	checker.Parent = nil
+	return checker
+}
+
+// WithAncestors adds a Ancestors check to the ProcessJavaChecker
+func (checker *ProcessJavaChecker) WithAncestors(check *ProcessListMatcher) *ProcessJavaChecker {
+	checker.Ancestors = check
+	return checker
+}
+
+// WithMethodId adds a MethodId check to the ProcessJavaChecker
+func (checker *ProcessJavaChecker) WithMethodId(check uint64) *ProcessJavaChecker {
+	checker.MethodId = &check
+	return checker
+}
+
+// WithClassName adds a ClassName check to the ProcessJavaChecker
+func (checker *ProcessJavaChecker) WithClassName(check *stringmatcher.StringMatcher) *ProcessJavaChecker {
+	checker.ClassName = check
+	return checker
+}
+
+// WithMethodName adds a MethodName check to the ProcessJavaChecker
+func (checker *ProcessJavaChecker) WithMethodName(check *stringmatcher.StringMatcher) *ProcessJavaChecker {
+	checker.MethodName = check
+	return checker
+}
+
+// WithDescriptor_ adds a Descriptor_ check to the ProcessJavaChecker
+func (checker *ProcessJavaChecker) WithDescriptor_(check *stringmatcher.StringMatcher) *ProcessJavaChecker {
+	checker.Descriptor_ = check
+	return checker
+}
+
+//FromProcessJava populates the ProcessJavaChecker using data from a ProcessJava event
+func (checker *ProcessJavaChecker) FromProcessJava(event *tetragon.ProcessJava) *ProcessJavaChecker {
+	if event == nil {
+		return checker
+	}
+	if event.Process != nil {
+		checker.Process = NewProcessChecker().FromProcess(event.Process)
+	}
+	if event.Parent != nil {
+		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
+	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
+	}
+	{
+		val := event.MethodId
+		checker.MethodId = &val
+	}
+	checker.ClassName = stringmatcher.Full(event.ClassName)
+	checker.MethodName = stringmatcher.Full(event.MethodName)
+	checker.Descriptor_ = stringmatcher.Full(event.Descriptor_)
 	return checker
 }
 
