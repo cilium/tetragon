@@ -4,6 +4,7 @@
 package tracing
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/api/javaapi"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/constants"
@@ -483,6 +485,109 @@ func userStack(event *MsgGenericKprobeUnix) []*tetragon.StackTraceEntry {
 	}
 
 	return stackTrace
+}
+
+// MsgJavaEvent is the observer-to-gRPC representation of a Java record.
+type MsgJavaEvent struct {
+	Msg *javaapi.MsgJava
+}
+
+func (msg *MsgJavaEvent) Notify() bool { return true }
+
+func (msg *MsgJavaEvent) Cast(o any) notify.Message {
+	return &MsgJavaEvent{Msg: new(o.(javaapi.MsgJava))}
+}
+
+func (msg *MsgJavaEvent) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	internal, parent := process.GetParentProcessInternalByPID(msg.Msg.ProcessKey.Pid, timestamp)
+	if internal == nil {
+		return nil, eventcache.ErrFailedToGetProcessInfo
+	}
+	if parent == nil {
+		return nil, eventcache.ErrFailedToGetParentInfo
+	}
+	return internal, nil
+}
+
+func (msg *MsgJavaEvent) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.TID)
+}
+
+func wireString(v []byte) string {
+	if i := bytes.IndexByte(v, 0); i >= 0 {
+		v = v[:i]
+	}
+	return string(v)
+}
+
+func (msg *MsgJavaEvent) HandleMessage() *tetragon.GetEventsResponse {
+	var ancestors []*process.ProcessInternal
+	var tetragonAncestors []*tetragon.Process
+
+	proc, parent := process.GetParentProcessInternalByPID(msg.Msg.ProcessKey.Pid, msg.Msg.Common.Ktime)
+	flags := msg.Msg.Common.Flags
+	if proc == nil {
+		flags |= processapi.MSG_COMMON_FLAG_PROCESS_NOT_FOUND
+	}
+	var tetragonProcess, tetragonParent *tetragon.Process
+	if proc == nil {
+		tetragonProcess = &tetragon.Process{
+			Pid:       &wrapperspb.UInt32Value{Value: msg.Msg.ProcessKey.Pid},
+			StartTime: ktime.ToProto(msg.Msg.Common.Ktime),
+		}
+		if flags&processapi.MSG_COMMON_FLAG_PROCESS_NOT_FOUND != 0 {
+			tetragonProcess.Flags = "unknown"
+		}
+	} else {
+		tetragonProcess = proc.UnsafeGetProcess()
+		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
+			logger.GetLogger().Debug("Failed to annotate Java process with capabilities and namespaces info",
+				"processId", tetragonProcess.Pid, logfields.Error, err)
+		}
+		tetragonParent = parentProcess(parent)
+	}
+	if option.Config.EnableProcessJavaAncestors && proc != nil && proc.NeededAncestors() {
+		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
+		for _, ancestor := range ancestors {
+			tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+		}
+	}
+
+	ev := &tetragon.ProcessJava{
+		Process:     tetragonProcess,
+		Parent:      tetragonParent,
+		Ancestors:   tetragonAncestors,
+		MethodId:    msg.Msg.MethodID,
+		ClassName:   wireString(msg.Msg.ClassName[:]),
+		MethodName:  wireString(msg.Msg.MethodName[:]),
+		Descriptor_: wireString(msg.Msg.Descriptor[:]),
+	}
+	if ev.Process.Pid == nil {
+		eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(ev)).Inc()
+		return nil
+	}
+	if cache := eventcache.Get(); cache != nil && !isUnknown(ev.Process) &&
+		(cache.Needed(ev.Process) ||
+			(ev.Process.Pid.Value > 1 && cache.Needed(ev.Parent)) ||
+			(option.Config.EnableProcessJavaAncestors && cache.NeededAncestors(parent, ancestors))) {
+		cache.Add(nil, ev, msg.Msg.Common.Ktime, msg.Msg.ProcessKey.Ktime, msg)
+		return nil
+	}
+	if proc != nil {
+		ev.Process = proc.GetProcessCopy()
+		process.UpdateEventProcessTid(ev.Process, &msg.Msg.TID)
+	}
+	return &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessJava{ProcessJava: ev},
+		Time:  ktime.ToProto(msg.Msg.Common.Ktime),
+	}
+}
+
+func parentProcess(parent *process.ProcessInternal) *tetragon.Process {
+	if parent == nil {
+		return nil
+	}
+	return parent.UnsafeGetProcess()
 }
 
 type MsgGenericTracepointUnix struct {
