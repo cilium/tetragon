@@ -1,0 +1,44 @@
+# Two workloads from the same image, each running one binary in a loop, so
+# each produces one kind of event. The test overrides the image at load time
+# with the -tetragon.tester-progs-image flag.
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: uprobe-ric-pizza
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      workload: pizza
+  template:
+    metadata:
+      labels:
+        app: uprobe-ric
+        workload: pizza
+    spec:
+      containers:
+      - name: uprobe-ric
+        image: cilium/tetragon-tester-progs:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c", "while true; do /usr/bin/uprobe-simple >/dev/null 2>&1; sleep 0.5; done"]
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: uprobe-ric-burger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      workload: burger
+  template:
+    metadata:
+      labels:
+        app: uprobe-ric
+        workload: burger
+    spec:
+      containers:
+      - name: uprobe-ric
+        image: cilium/tetragon-tester-progs:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c", "while true; do /usr/bin/uprobe-burger >/dev/null 2>&1; sleep 0.5; done"]
