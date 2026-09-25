@@ -58,7 +58,7 @@ We use the {{< policy-ref "process-credentials/process-creds-installed.yaml">}} 
 So let's apply the {{< policy-ref "process-credentials/process-creds-installed.yaml">}} Tracing Policy.
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml
+kubectl apply -f {{< policy-raw-url "process-credentials/process-creds-installed.yaml">}}
 ```
 
 Then we start monitoring for events with `tetra` cli:
@@ -220,5 +220,5 @@ Here we can clearly see that the suid binary is being executed by a user ID `11`
 To disable the {{< policy-ref "process-credentials/process-creds-installed.yaml">}} Tracing Policy run:
 
 ```shell
-kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml
+kubectl delete -f {{< policy-raw-url "process-credentials/process-creds-installed.yaml">}}
 ```

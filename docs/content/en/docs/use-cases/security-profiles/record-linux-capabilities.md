@@ -51,7 +51,7 @@ To reduce events, the {{< policy-ref "process-credentials/creds-capability-usage
 
 Apply the {{< policy-ref "process-credentials/creds-capability-usage.yaml">}} policy:
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml
+kubectl apply -f {{< policy-raw-url "process-credentials/creds-capability-usage.yaml">}}
 ```
 
 Start monitoring for events with `tetra` cli, but match only events of `xwing` pod:
@@ -232,5 +232,5 @@ In addition to the Kubernetes Identity and process metadata from exec events, [P
 To disable the {{< policy-ref "process-credentials/creds-capability-usage.yaml">}} run:
 
 ```shell
-kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml
+kubectl delete -f {{< policy-raw-url "process-credentials/creds-capability-usage.yaml">}}
 ```

@@ -25,7 +25,7 @@ to trace kernel module operations.
 
 Apply the {{< policy-ref "system-integrity/monitor-kernel-modules.yaml" >}} tracing policy:
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/host-changes/monitor-kernel-modules.yaml
+kubectl apply -f {{< policy-raw-url "system-integrity/monitor-kernel-modules.yaml" >}} 
 ```
 
 Then start monitoring for events with `tetra` CLI:
@@ -181,7 +181,7 @@ to identify if kernel modules are signed or not.
 
 Apply the {{< policy-ref "system-integrity/monitor-signed-kernel-modules.yaml" >}} tracing policy:
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/host-changes/monitor-signed-kernel-modules.yaml
+kubectl apply -f {{< policy-raw-url "system-integrity/monitor-signed-kernel-modules.yaml" >}}
 ```
 
 Before going forward, deploy the [`test-pod`](https://raw.githubusercontent.com/cilium/tetragon/main/testdata/specs/testpod.yaml) into the demo-app namespace, which has its security context set to privileged.
@@ -558,5 +558,5 @@ Monitoring module load operations allows to detect such cases
 To disable the {{< policy-ref "system-integrity/monitor-kernel-modules.yaml" >}} run:
 
 ```shell
-kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/host-changes/monitor-kernel-modules.yaml
+kubectl delete -f {{< policy-raw-url "system-integrity/monitor-kernel-modules.yaml" >}}
 ```
