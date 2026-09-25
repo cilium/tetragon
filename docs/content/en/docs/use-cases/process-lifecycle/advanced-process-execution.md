@@ -45,7 +45,7 @@ kube-system          tetragon-sdwv6                               2/2     Runnin
 Let's apply the {{< policy-ref "process-monitoring/process-exec-elf-begin.yaml" >}} Tracing Policy.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-exec/process-exec-elf-begin.yaml
+kubectl apply -f {{< policy-raw-url "process-monitoring/process-exec-elf-begin.yaml" >}}
 ```
 
 Then start monitoring events with the `tetra` CLI:
@@ -163,5 +163,5 @@ events contain the binary being executed. In the above case they are:
 To disable the {{< policy-ref "process-monitoring/process-exec-elf-begin.yaml" >}} Tracing Policy run:
 
 ```bash
-kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-exec/process-exec-elf-begin.yaml
+kubectl delete -f {{< policy-raw-url "process-monitoring/process-exec-elf-begin.yaml" >}}
 ```

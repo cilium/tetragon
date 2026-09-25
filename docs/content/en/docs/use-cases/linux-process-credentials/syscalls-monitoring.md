@@ -54,7 +54,7 @@ family:
 Let's apply the {{< policy-ref "process-credentials/process.credentials.changes.at.syscalls.yaml" >}} Tracing Policy.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process.credentials.changes.at.syscalls.yaml
+kubectl apply -f {{< policy-raw-url "process-credentials/process.credentials.changes.at.syscalls.yaml" >}}
 ```
 
 Then start monitoring events with the `tetra` CLI:
@@ -254,5 +254,5 @@ they are:
 To disable the {{< policy-ref "process-credentials/process.credentials.changes.at.syscalls.yaml" >}} Tracing Policy run:
 
 ```bash
-kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process.credentials.changes.at.syscalls.yaml
+kubectl delete -f {{< policy-raw-url "process-credentials/process.credentials.changes.at.syscalls.yaml" >}}
 ```
