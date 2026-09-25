@@ -195,6 +195,9 @@
         "pin",
         "pinDigest"
       ],
+      "postUpdateOptions": [
+        "gomodSkipVendor",
+      ],
     },
     {
       // postUpgradeTasks and postUpdateOptions for all Go updates
