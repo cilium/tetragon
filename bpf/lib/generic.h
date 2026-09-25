@@ -100,7 +100,6 @@ struct msg_generic_kprobe {
 		} lsm;
 	};
 	struct execve_map_value curr;
-	struct heap_exe exe;
 #ifndef __V61_BPF_PROG
 	struct generic_path path;
 #endif

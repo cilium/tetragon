@@ -414,37 +414,6 @@ set_in_init_tree(struct execve_map_value *curr, struct execve_map_value *parent)
 }
 
 #ifdef __LARGE_BPF_PROG
-/* copy_exe_to_bin copies the executable path from a heap_exe into a binary
- * struct. bin must have been zeroed by binary_reset() beforehand. Sets
- * bin->path_length to the path length on success, or a negative value to
- * signal that matchBinaries should treat the binary as unknown (basic.h's
- * match_binaries() rejects such events).
- */
-FUNC_INLINE void
-copy_exe_to_bin(struct heap_exe *exe, struct binary *bin)
-{
-	__u32 len = exe->len;
-	__u32 revlen;
-
-	if (len == 0 || len > BINARY_PATH_MAX_LEN) {
-		bin->path_length = -1;
-		return;
-	}
-
-	asm volatile("%[len] &= %1;\n"
-		     : [len] "+r"(len)
-		     : "i"(BINARY_PATH_MAX_LEN - 1));
-	bin->path_length = with_errmetrics(probe_read, bin->path, len, exe->buf);
-	if (bin->path_length == 0)
-		bin->path_length = len;
-
-	revlen = len > STRING_POSTFIX_MAX_LENGTH - 1 ? STRING_POSTFIX_MAX_LENGTH - 1 : len;
-	asm volatile("%[revlen] &= %1;\n"
-		     : [revlen] "+r"(revlen)
-		     : "i"(STRING_POSTFIX_MAX_LENGTH - 1));
-	with_errmetrics(probe_read, bin->end, revlen, exe->end);
-}
-
 FUNC_INLINE struct execve_map_value *
 event_find_curr_probe(struct msg_generic_kprobe *msg)
 {
@@ -477,8 +446,7 @@ event_find_curr_probe(struct msg_generic_kprobe *msg)
 	 * is empty and NotIn selectors incorrectly pass.
 	 */
 	binary_reset(&curr->bin);
-	read_exe(task, &msg->exe);
-	copy_exe_to_bin(&msg->exe, &curr->bin);
+	read_exe(task, &curr->bin);
 	read_task_args_source(task, &source);
 	copy_args(&source, &curr->args);
 	return curr;

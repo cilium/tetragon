@@ -306,14 +306,6 @@ execve_send_event(struct bpf_raw_tracepoint_args *ctx,
 	bool init_curr = 0;
 #endif
 
-#ifdef __LARGE_BPF_PROG
-	// Reading the absolute path of the process exe for matchBinaries.
-	// Historically we used the filename, a potentially relative path (maybe to
-	// a symlink) coming from the execve tracepoint. For kernels not supporting
-	// large BPF prog, we still use the filename.
-	read_exe((struct task_struct *)get_current_task(), &event->exe);
-#endif
-
 	p = &event->process;
 
 	pid = (get_current_pid_tgid() >> 32);
@@ -357,8 +349,11 @@ execve_send_event(struct bpf_raw_tracepoint_args *ctx,
 		/* zero out previous paths in ->bin */
 		binary_reset(&curr->bin);
 #ifdef __LARGE_BPF_PROG
-		// read from proc exe stored at execve time
-		copy_exe_to_bin(&event->exe, &curr->bin);
+		// Reading the absolute path of the process exe for matchBinaries.
+		// Historically we used the filename, a potentially relative path (maybe to
+		// a symlink) coming from the execve tracepoint. For kernels not supporting
+		// large BPF prog, we still use the filename.
+		read_exe((struct task_struct *)get_current_task(), &curr->bin);
 		copy_args(&event->args_source, &curr->args);
 #else
 		struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
