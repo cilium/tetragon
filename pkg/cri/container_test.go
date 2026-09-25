@@ -102,3 +102,30 @@ func TestCgroupPath(t *testing.T) {
 		})
 	}
 }
+
+func TestContainerPid(t *testing.T) {
+	tests := []struct {
+		name    string
+		info    map[string]string
+		want    uint32
+		wantErr bool
+	}{
+		{name: "running", info: map[string]string{"info": `{"pid":4242}`}, want: 4242},
+		{name: "not running", info: map[string]string{"info": `{"pid":0}`}, wantErr: true},
+		{name: "no info key", info: map[string]string{"other": "{}"}, wantErr: true},
+		{name: "malformed json", info: map[string]string{"info": `{"pid":`}, wantErr: true},
+		{name: "unknown container", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ContainerPid(t.Context(), &fakeRuntimeClient{containerInfo: tt.info}, "abc")
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
