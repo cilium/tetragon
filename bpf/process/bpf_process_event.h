@@ -23,7 +23,8 @@
 FUNC_INLINE int
 read_task_args_source(struct task_struct *task, struct args_source *source)
 {
-	unsigned long arg_start, arg_end;
+	unsigned long arg_start, arg_end, start_stack = 0;
+	unsigned long stack[3]; /* argc, argv[0], argv[1] */
 	struct execve_heap *heap;
 	struct mm_struct *mm;
 	__u32 zero = 0;
@@ -41,6 +42,32 @@ read_task_args_source(struct task_struct *task, struct args_source *source)
 
 	if (!arg_start || !arg_end)
 		return 0;
+
+	/* The ELF loader sets up the user stack as:
+	 *
+	 *   mm->start_stack -> argc, argv[0] (== mm->arg_start), argv[1], ...
+	 *
+	 * so the args start at argv[1] and we don't need to measure argv[0].
+	 * Use it only if the layout checks out (it doesn't for 32-bit compat
+	 * tasks, or if the process rewrote its argv pointers), otherwise fall
+	 * back to measuring argv[0].
+	 */
+	with_errmetrics(probe_read, &start_stack, sizeof(start_stack), _(&mm->start_stack));
+	if (start_stack &&
+	    !probe_read(stack, sizeof(stack), (void *)start_stack) &&
+	    stack[1] == arg_start) {
+		if (stack[0] < 2) {
+			/* just argv[0], no args */
+			source->start = arg_end;
+			source->len = 0;
+			return 1;
+		}
+		if (stack[2] > arg_start && stack[2] <= arg_end) {
+			source->start = stack[2];
+			source->len = arg_end - stack[2];
+			return 1;
+		}
+	}
 
 	/* Use the existing execve heap as scratch space to find argv[0]'s end. */
 	heap = map_lookup_elem(&execve_heap, &zero);
