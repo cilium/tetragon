@@ -827,16 +827,9 @@ func verifyFileDigest(file *os.File, digestConfig string, fileHashCache map[stri
 		return nil
 	}
 
-	digestConfig = strings.TrimSpace(digestConfig)
-	algo, expectedHash, found := strings.Cut(digestConfig, ":")
-	if !found {
-		return fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digestConfig)
-	}
-
-	algo = strings.ToLower(strings.TrimSpace(algo))
-	expectedHash = strings.ToLower(strings.TrimSpace(expectedHash))
-	if algo == "" || expectedHash == "" {
-		return fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digestConfig)
+	algo, expectedHash, err := parseDigest(digestConfig)
+	if err != nil {
+		return err
 	}
 
 	if hash, ok := fileHashCache[algo]; ok {
@@ -922,10 +915,95 @@ var digestAlgos = map[string]crypto.Hash{
 	"sha512": crypto.SHA512,
 }
 
+func parseDigest(digest string) (algo, value string, err error) {
+	algo, value, _ = strings.Cut(strings.TrimSpace(digest), ":")
+	algo = strings.ToLower(strings.TrimSpace(algo))
+	value = strings.ToLower(strings.TrimSpace(value))
+	if algo == "" || value == "" {
+		return "", "", fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digest)
+	}
+	return algo, value, nil
+}
+
+func validateBinaryDigests(digests []string) error {
+	for _, d := range digests {
+		algo, value, err := parseDigest(d)
+		if err != nil {
+			return err
+		}
+		hash, sized := digestAlgos[algo]
+		if !sized && algo != "build-id" {
+			return fmt.Errorf("unsupported digest algorithm %q", algo)
+		}
+		if _, err := hex.DecodeString(value); err != nil {
+			return fmt.Errorf("digest %q value is not hex-encoded", d)
+		}
+		if sized && len(value) != hash.Size()*2 {
+			return fmt.Errorf("digest %q value must be %d hex characters", d, hash.Size()*2)
+		}
+	}
+	return nil
+}
+
 func hasResolvePathInContainer(spec *v1alpha1.TracingPolicySpec) bool {
 	return slices.ContainsFunc(spec.UProbes, func(u v1alpha1.UProbeSpec) bool {
 		return u.ResolvePathInContainer
 	})
+}
+
+// validateResolvePathInContainer also covers the CEL rules on the CRD, for
+// policies that skip API-server validation. Uprobes on host paths are
+// validated as usual when their sensor is built.
+func validateResolvePathInContainer(spec *v1alpha1.TracingPolicySpec) error {
+	if spec.PodSelector == nil {
+		return errors.New("resolvePathInContainer requires a podSelector")
+	}
+	// Host processes run no container to resolve the path in.
+	if spec.HostSelector != nil {
+		return errors.New("resolvePathInContainer does not support hostSelector")
+	}
+	// Without containment, a symlink planted in the container could redirect
+	// the attach to a host binary.
+	if !hasOpenat2InRoot() {
+		return errNoContainment
+	}
+	for i := range spec.UProbes {
+		if !spec.UProbes[i].ResolvePathInContainer {
+			continue
+		}
+		if err := validateContainerUprobe(spec, &spec.UProbes[i]); err != nil {
+			return fmt.Errorf("spec.uprobes[%d]: %w", i, err)
+		}
+	}
+	return nil
+}
+
+func validateContainerUprobe(spec *v1alpha1.TracingPolicySpec, uprobe *v1alpha1.UProbeSpec) error {
+	// There is no working directory to resolve a relative path from.
+	if !filepath.IsAbs(uprobe.Path) {
+		return errors.New("resolvePathInContainer requires an absolute path")
+	}
+	// Digests are verified per container at attach, so a malformed one would
+	// load fine and then never attach.
+	if err := validateBinaryDigests(uprobe.BinaryDigests); err != nil {
+		return err
+	}
+	// A mismatching container is skipped; ignoring the failure would turn that
+	// into an attach with no uprobes.
+	if ignoreDigestVerificationFailure(uprobe) {
+		return errors.New("resolvePathInContainer does not support ignore.digestVerificationFailure")
+	}
+	u, err := expandedUprobe(spec, uprobe)
+	if err != nil {
+		return err
+	}
+	// Caller binaries are read from the agent's filesystem, like btfPath.
+	for i := range u.Selectors {
+		if len(u.Selectors[i].MatchUserCallers) > 0 {
+			return errors.New("resolvePathInContainer does not support matchUserCallers")
+		}
+	}
+	return validateUprobeConfig(u, &addUprobeIn{}, &uprobeHas{})
 }
 
 // containerUprobe picks the resolvePathInContainer uprobe a per-container

@@ -16,7 +16,27 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 )
+
+func TestResolvePathInContainerSensor(t *testing.T) {
+	spec := ricSpec()
+	polInfo, err := newPolicyInfoFromSpec("ns", "policy", policyfilter.PolicyID(7), spec, nil)
+	require.NoError(t, err)
+
+	sensor, err := createResolvePathInContainerSensor(spec, polInfo)
+	require.NoError(t, err)
+
+	require.Empty(t, sensor.Progs)
+	for _, m := range sensor.Maps {
+		require.True(t, m.IsOwner() || m.IsShared(), "map %s", m.Name)
+	}
+	require.NoError(t, sensor.PreUnloadHook())
+
+	childProg := program.Builder("child.o", "child", "uprobe/generic_uprobe", "child", "generic_uprobe")
+	require.False(t, polInfo.policyConfMap(childProg).IsOwner())
+	require.False(t, polInfo.selectorStatsMap(childProg).IsOwner())
+}
 
 func openTestBinary(t *testing.T) (string, *os.File) {
 	t.Helper()
