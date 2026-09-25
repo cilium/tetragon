@@ -13,8 +13,15 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/sys/unix"
+
+	"github.com/cilium/tetragon/pkg/cri"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 )
 
 var (
@@ -23,6 +30,26 @@ var (
 	errNoParent            = errors.New("process has no parent")
 	errParentChanged       = errors.New("process was reparented")
 )
+
+const criTimeout = 5 * time.Second
+
+// containerRootFor takes the root a runtime hook reported, and asks CRI when
+// there is none or it is unusable.
+func containerRootFor(ctx context.Context, c policyfilter.ContainerChange) (*containerRoot, error) {
+	procFS := option.Config.ProcFS
+	if c.RootDir != "" {
+		root, err := containerRootFromHook(procFS, c.RootDir)
+		if err == nil {
+			return root, nil
+		}
+		// The runtime's root may not be procFS's, as in a kind node.
+		logger.GetLogger().Debug("uprobe resolvePathInContainer: runtime hook root unusable, asking CRI",
+			logfields.Error, err, "container", c.ContainerID)
+	}
+	ctx, cancel := context.WithTimeout(ctx, criTimeout)
+	defer cancel()
+	return containerRootFromCRI(ctx, procFS, c.ContainerID)
+}
 
 // containerRoot is where a container's files resolve, and the mount table
 // that lists its root filesystem.
@@ -66,6 +93,40 @@ func containerRootFromHook(procFS, rootDir string) (*containerRoot, error) {
 		layerRoot:  filepath.Join(procFS, "1", "root"),
 		release:    func() { unix.Close(fd) },
 	}, nil
+}
+
+// containerRootFromCRI reaches the root through the container's init process.
+// The open /proc/<pid> pins that process, so a reused PID fails the lookups
+// rather than redirecting them.
+func containerRootFromCRI(ctx context.Context, procFS, containerID string) (*containerRoot, error) {
+	cli, err := cri.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pid, err := cri.ContainerPid(ctx, cli, containerID)
+	if err != nil {
+		return nil, fmt.Errorf("CRI pid of container %s: %w", containerID, err)
+	}
+	fd, err := openContainerProcess(ctx, procFS, strconv.FormatUint(uint64(pid), 10), containerID)
+	if err != nil {
+		return nil, fmt.Errorf("pid %d: %w", pid, err)
+	}
+	root := pinnedContainerRoot(fd)
+	root.layerRoot = filepath.Join(procFS, "1", "root")
+	// The init's parent is normally the runtime's shim, whose root is the
+	// runtime's even when procFS's is not, as in a kind node.
+	if rootFD, err := openParentRoot(procFS, procSelfFDPath(fd)); err == nil {
+		root.layerRoot = procSelfFDPath(rootFD)
+		release := root.release
+		root.release = func() {
+			unix.Close(rootFD)
+			release()
+		}
+	} else {
+		logger.GetLogger().Debug("uprobe resolvePathInContainer: resolving image layers under the host root",
+			logfields.Error, err, "container", containerID)
+	}
+	return root, nil
 }
 
 // openContainerProcess pins the container process the runtime knows as pid.

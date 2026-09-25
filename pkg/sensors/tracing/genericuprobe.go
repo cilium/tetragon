@@ -18,6 +18,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -497,6 +498,10 @@ func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
 	pathStates := make(map[string]pathState)
 
 	for i, curr := range uprobes {
+		// Each resolvePathInContainer uprobe loads in a sensor of its own.
+		if curr.ResolvePathInContainer {
+			continue
+		}
 		method := ""
 		if len(curr.Symbols) != 0 {
 			method = "symbols"
@@ -914,14 +919,37 @@ var digestAlgos = map[string]crypto.Hash{
 	"sha512": crypto.SHA512,
 }
 
-// createGenericUprobeSensor builds the uprobe sensor for spec. A non-nil
+func hasResolvePathInContainer(spec *v1alpha1.TracingPolicySpec) bool {
+	return slices.ContainsFunc(spec.UProbes, func(u v1alpha1.UProbeSpec) bool {
+		return u.ResolvePathInContainer
+	})
+}
+
+// containerUprobe picks the resolvePathInContainer uprobe a per-container
+// sensor attaches, and the binary resolved for it in the container.
+type containerUprobe struct {
+	index  int
+	binary *os.File
+}
+
+// buildsUprobe reports whether a sensor built for ric, or for the host paths
+// when ric is nil, holds the uprobe at index.
+func buildsUprobe(ric *containerUprobe, index int, uprobe *v1alpha1.UProbeSpec) bool {
+	if ric != nil {
+		return index == ric.index
+	}
+	return !uprobe.ResolvePathInContainer
+}
+
+// createGenericUprobeSensor builds the uprobe sensor for spec's uprobes on
+// host paths or, with ric, for that one resolvePathInContainer uprobe. Its
 // binary replaces the spec's Path as the file to parse and attach to, while
 // events keep reporting Path.
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
 	polInfo *policyInfo,
-	binary *os.File,
+	ric *containerUprobe,
 ) (retSensor *sensors.Sensor, retErr error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -959,7 +987,7 @@ func createGenericUprobeSensor(
 		selMaps:    selMaps,
 	}
 
-	if useMulti {
+	if useMulti && ric == nil {
 		if err = validateMultiUprobeConsistency(spec.UProbes); err != nil {
 			return nil, err
 		}
@@ -979,6 +1007,14 @@ func createGenericUprobeSensor(
 
 	var selectorStatsBase uint32
 	for cfgIdx, uprobe := range spec.UProbes {
+		in.selectorStatsBase = selectorStatsBase
+		selectorStatsBase += uint32(len(uprobe.Selectors))
+		// Skipped before macro expansion, which mutates the selectors that
+		// per-container sensors copy.
+		if !buildsUprobe(ric, cfgIdx, &uprobe) {
+			continue
+		}
+
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
@@ -986,16 +1022,16 @@ func createGenericUprobeSensor(
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
 
-		in.selectorStatsBase = selectorStatsBase
-		selectorStatsBase += uint32(len(uprobe.Selectors))
-
 		absPath, err := filepath.Abs(uprobe.Path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve absolute path for %q: %w", uprobe.Path, err)
 		}
 		uprobe.Path = absPath
 
-		entryFile := binary
+		var entryFile *os.File
+		if ric != nil {
+			entryFile = ric.binary
+		}
 
 		if len(uprobe.BinaryDigests) != 0 {
 			// When the binary digest configuration is specified, we link the target
