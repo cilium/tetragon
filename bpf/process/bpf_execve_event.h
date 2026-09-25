@@ -290,7 +290,8 @@ execve_rate_check(void *ctx, struct msg_execve_event *msg)
 
 FUNC_LOCAL uint64_t
 execve_finalize_event(struct bpf_raw_tracepoint_args *ctx,
-		      struct msg_execve_event *event)
+		      struct msg_execve_event *event,
+		      struct args_source *args_source __maybe_unused)
 {
 	struct linux_binprm *bprm __maybe_unused = (struct linux_binprm *)ctx->args[2];
 	struct execve_map_value *curr;
@@ -348,7 +349,7 @@ execve_finalize_event(struct bpf_raw_tracepoint_args *ctx,
 		// a symlink) coming from the execve tracepoint. For kernels not supporting
 		// large BPF prog, we still use the filename.
 		read_exe((struct task_struct *)get_current_task(), &curr->bin);
-		copy_args(&event->args_source, &curr->args);
+		copy_args(args_source, &curr->args);
 #else
 		struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
 		char *filename;
