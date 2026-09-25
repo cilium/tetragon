@@ -77,7 +77,7 @@ execve_send(struct bpf_raw_tracepoint_args *ctx __arg_ctx)
 	if (!event)
 		return 0;
 
-	size = execve_finalize_event(ctx, event);
+	size = execve_finalize_event(ctx, event, NULL);
 	event_output_metric(ctx, MSG_OP_EXECVE, event, size);
 	return 0;
 }

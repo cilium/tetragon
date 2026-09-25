@@ -32,7 +32,7 @@ event_execve(struct bpf_raw_tracepoint_args *ctx)
 	execve_event_init(ctx, event, true);
 
 	if (execve_rate_check(ctx, event)) {
-		size = execve_finalize_event(ctx, event);
+		size = execve_finalize_event(ctx, event, &event->args_source);
 		event_output_metric(ctx, MSG_OP_EXECVE, event, size);
 	}
 	return 0;
