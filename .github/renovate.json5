@@ -97,6 +97,9 @@
       "matchManagers": [
         "github-actions"
       ],
+      "matchDepTypes": [
+        "action"
+      ],
       "matchUpdateTypes": [
         "major",
         "minor",
