@@ -6,10 +6,12 @@
 package policytest
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"os/exec"
+	"strings"
 	"syscall"
 )
 
@@ -44,6 +46,13 @@ func (c *CmdTrigger) ExpectSignal(sig syscall.Signal) *ExecTester {
 	}
 }
 
+func (c *CmdTrigger) ExpectStdout(s string) *ExecTester {
+	return &ExecTester{
+		triggers:       []CmdTrigger{*c},
+		ExpectedStdout: []string{s},
+	}
+}
+
 // MultiCmdTrigger simply wraps multiple exec.CommandContext().Run() into a Trigger
 type MultiCmdTrigger struct {
 	triggers []CmdTrigger
@@ -57,7 +66,7 @@ func NewMultiCmdTrigger(triggers []CmdTrigger) *MultiCmdTrigger {
 
 func (c *MultiCmdTrigger) Trigger(ctx context.Context) error {
 	for _, trigger := range c.triggers {
-		if err := exec.CommandContext(ctx, trigger.Bin, trigger.Args...).Run(); err != nil {
+		if err := trigger.Trigger(ctx); err != nil {
 			return err
 		}
 	}
@@ -78,26 +87,66 @@ func (c *MultiCmdTrigger) ExpectSignals(sigs []syscall.Signal) *ExecTester {
 	}
 }
 
+func (c *MultiCmdTrigger) ExpectStdout(s []string) *ExecTester {
+	return &ExecTester{
+		MultiCmdTrigger: *c,
+		ExpectedStdout:  s,
+	}
+}
+
 type ExecTester struct {
 	MultiCmdTrigger
 	// Execution should either terminate normally (with an exit code) or by a signal
 	// only one of those should be not nill
 	ExpectedExitCode []int
 	ExpectedSignal   []syscall.Signal
+	// If set, the command's stdout should match this string
+	ExpectedStdout []string
 }
 
 func (et *ExecTester) Trigger(ctx context.Context) error {
 	for idx, trigger := range et.triggers {
+		var bufStdio *bufio.Reader
 		cmd := exec.CommandContext(ctx, trigger.Bin, trigger.Args...)
-		err := cmd.Start()
-		if err != nil {
+		if len(et.ExpectedStdout) > idx && et.ExpectedStdout[idx] != "" {
+			stdout, err := cmd.StdoutPipe()
+			if err != nil {
+				return fmt.Errorf("failed to get stdout pipe: %w", err)
+			}
+			bufStdio = bufio.NewReader(stdout)
+		}
+		if err := cmd.Start(); err != nil {
 			return fmt.Errorf("failed to execute cmd: %w", err)
 		}
+		if bufStdio != nil {
+			if err := et.checkStdout(bufStdio, et.ExpectedStdout[idx]); err != nil {
+				return err
+			}
+		}
 		cmd.Wait()
-		err = et.check(cmd, idx)
-		if err != nil {
+		if err := et.check(cmd, idx); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (et *ExecTester) checkStdout(bufStdio *bufio.Reader, expectedOutput string) error {
+	var matched bool
+	var fullOutput strings.Builder
+	for !matched {
+		str, err := bufStdio.ReadString('\n')
+		if err != nil {
+			break
+		}
+		fullOutput.WriteString(str)
+		str = strings.TrimSuffix(str, "\n")
+		if str == expectedOutput {
+			matched = true
+		}
+	}
+	if !matched {
+		return fmt.Errorf("expected output not found: %q; full output: %q", expectedOutput, fullOutput.String())
 	}
 	return nil
 }
