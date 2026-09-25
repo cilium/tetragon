@@ -268,15 +268,15 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 	proc.Nlink = exec.Nlink
 	proc.Ino = exec.Ino
 
+	// The ring buffer execve path stores all data inline, each field up to
+	// 0xffff bytes, so the size is not bounded by MSG_SIZEOF_BUFFER. The
+	// data sizes are u16 and need to be summed as u32 to avoid wrapping.
+	// Also catches exec.Size < MSG_SIZEOF_EXECVE, the subtraction wraps.
 	size := exec.Size - processapi.MSG_SIZEOF_EXECVE
-	if size > processapi.MSG_SIZEOF_BUFFER-processapi.MSG_SIZEOF_EXECVE {
-		err := errors.New("msg exec size larger than argsbuffer")
-		return proc, err
-	}
-
-	if size != uint32(exec.SizePath+exec.SizeArgs+exec.SizeCwd+exec.SizeEnvs) {
-		err := fmt.Errorf("msg exec size larger than argsbuffer, size %d != %d, SizePath %d, SizeArgs %d, SizeCwd %d, SizeEnvs %d",
-			size, exec.SizePath+exec.SizeArgs+exec.SizeCwd, exec.SizePath, exec.SizeArgs, exec.SizeCwd, exec.SizeEnvs)
+	dataSize := uint32(exec.SizePath) + uint32(exec.SizeArgs) + uint32(exec.SizeCwd) + uint32(exec.SizeEnvs)
+	if size != dataSize {
+		err := fmt.Errorf("msg exec size mismatch, size %d != %d, SizePath %d, SizeArgs %d, SizeCwd %d, SizeEnvs %d",
+			size, dataSize, exec.SizePath, exec.SizeArgs, exec.SizeCwd, exec.SizeEnvs)
 		return proc, err
 	}
 
