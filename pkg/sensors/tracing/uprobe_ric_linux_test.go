@@ -13,7 +13,32 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 )
+
+func TestResolvePathInContainerSensor(t *testing.T) {
+	spec := ricSpec()
+	polInfo, err := newPolicyInfoFromSpec("ns", "policy", policyfilter.PolicyID(7), spec, nil)
+	require.NoError(t, err)
+
+	sensor, err := createResolvePathInContainerSensor(spec, &spec.UProbes[0], polInfo)
+	require.NoError(t, err)
+
+	require.Empty(t, sensor.Progs)
+	require.Len(t, sensor.Maps, 2)
+	for _, m := range sensor.Maps {
+		require.True(t, m.IsOwner())
+		require.Equal(t, program.MapTypePolicy, m.Type)
+	}
+	require.NotNil(t, sensor.PostLoadHook)
+	require.Nil(t, sensor.PostUnloadHook)
+	require.NoError(t, sensor.PreUnloadHook())
+
+	childProg := program.Builder("child.o", "child", "uprobe/generic_uprobe", "child", "generic_uprobe")
+	require.False(t, polInfo.policyConfMap(childProg).IsOwner())
+	require.False(t, polInfo.selectorStatsMap(childProg).IsOwner())
+	require.Empty(t, childProg.MapLoad)
+}
 
 func TestContainerUprobeDigestVerifiedAgainstResolvedBinary(t *testing.T) {
 	realELF, err := os.Executable()

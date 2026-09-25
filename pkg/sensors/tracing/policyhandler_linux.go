@@ -245,6 +245,9 @@ func (h policyHandler) PolicyHandler(
 	}
 	if len(spec.UProbes) > 0 {
 		if uprobe := resolvePathInContainerSpec(spec); uprobe != nil {
+			if err := validateResolvePathInContainer(spec, uprobe); err != nil {
+				return nil, fmt.Errorf("uprobe validation failed: %w", err)
+			}
 			return createResolvePathInContainerSensor(spec, uprobe, polInfo)
 		}
 		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo, nil)

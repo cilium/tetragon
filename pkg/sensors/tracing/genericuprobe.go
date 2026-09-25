@@ -818,16 +818,9 @@ func verifyFileDigest(file *os.File, digestConfig string, fileHashCache map[stri
 		return nil
 	}
 
-	digestConfig = strings.TrimSpace(digestConfig)
-	algo, expectedHash, found := strings.Cut(digestConfig, ":")
-	if !found {
-		return fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digestConfig)
-	}
-
-	algo = strings.ToLower(strings.TrimSpace(algo))
-	expectedHash = strings.ToLower(strings.TrimSpace(expectedHash))
-	if algo == "" || expectedHash == "" {
-		return fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digestConfig)
+	algo, expectedHash, err := parseDigest(digestConfig)
+	if err != nil {
+		return err
 	}
 
 	if hash, ok := fileHashCache[algo]; ok {
@@ -913,6 +906,36 @@ var digestAlgos = map[string]crypto.Hash{
 	"sha512": crypto.SHA512,
 }
 
+func parseDigest(digest string) (algo, value string, err error) {
+	algo, value, _ = strings.Cut(strings.TrimSpace(digest), ":")
+	algo = strings.ToLower(strings.TrimSpace(algo))
+	value = strings.ToLower(strings.TrimSpace(value))
+	if algo == "" || value == "" {
+		return "", "", fmt.Errorf("invalid digest format, expected '<algo>:<hash>' but got '%s'", digest)
+	}
+	return algo, value, nil
+}
+
+func validateBinaryDigests(digests []string) error {
+	for _, d := range digests {
+		algo, value, err := parseDigest(d)
+		if err != nil {
+			return err
+		}
+		hash, sized := digestAlgos[algo]
+		if !sized && algo != "build-id" {
+			return fmt.Errorf("unsupported digest algorithm %q", algo)
+		}
+		if _, err := hex.DecodeString(value); err != nil {
+			return fmt.Errorf("digest %q value is not hex-encoded", d)
+		}
+		if sized && len(value) != hash.Size()*2 {
+			return fmt.Errorf("digest %q value must be %d hex characters", d, hash.Size()*2)
+		}
+	}
+	return nil
+}
+
 func resolvePathInContainerSpec(spec *v1alpha1.TracingPolicySpec) *v1alpha1.UProbeSpec {
 	for i := range spec.UProbes {
 		if spec.UProbes[i].ResolvePathInContainer {
@@ -920,6 +943,47 @@ func resolvePathInContainerSpec(spec *v1alpha1.TracingPolicySpec) *v1alpha1.UPro
 		}
 	}
 	return nil
+}
+
+// validateResolvePathInContainer also covers the CEL rules on the CRD, for
+// policies that skip API-server validation.
+func validateResolvePathInContainer(spec *v1alpha1.TracingPolicySpec, uprobe *v1alpha1.UProbeSpec) error {
+	if len(spec.UProbes) > 1 {
+		return errors.New("a policy may hold one resolvePathInContainer uprobe " +
+			"and nothing else: the per-container sensor rebuilds the policy's maps from it alone")
+	}
+	if spec.PodSelector == nil {
+		return errors.New("resolvePathInContainer requires a podSelector")
+	}
+	// There is no working directory to resolve a relative path from.
+	if !filepath.IsAbs(uprobe.Path) {
+		return errors.New("resolvePathInContainer requires an absolute path")
+	}
+	// Host processes run no container to resolve the path in.
+	if spec.HostSelector != nil {
+		return errors.New("resolvePathInContainer does not support hostSelector")
+	}
+	// Digests are verified per container at attach, so a malformed one would
+	// load fine and then never attach.
+	if err := validateBinaryDigests(uprobe.BinaryDigests); err != nil {
+		return err
+	}
+	// A mismatching container is skipped; ignoring the failure would turn that
+	// into an attach with no uprobes.
+	if ignoreDigestVerificationFailure(uprobe) {
+		return errors.New("resolvePathInContainer does not support ignore.digestVerificationFailure")
+	}
+	// Without containment, a symlink planted in the container could redirect
+	// the attach to a host binary.
+	if !hasOpenat2InRoot() {
+		return errNoContainment
+	}
+	// Macro expansion mutates selectors, so validate a copy.
+	u := uprobe.DeepCopy()
+	if err := appendMacrosSelectors(u.Selectors, spec.SelectorsMacros); err != nil {
+		return fmt.Errorf("append macros selectors: %w", err)
+	}
+	return validateUprobeConfig(u, &addUprobeIn{}, &uprobeHas{})
 }
 
 // createGenericUprobeSensor builds the uprobe sensor for spec. A non-nil
