@@ -232,9 +232,7 @@ To delete the `file-access` Pod from the interactive bash session, type:
 exit
 ```
 
-Another example of a [similar
-policy](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/filename_monitoring_filtered.yaml)
-can be found in our examples folder.
+Another example of a similar policy is the {{< policy-ref "file-monitoring/filename-monitoring-filtered.yaml">}}.
 
 ## Kernel compatibility
 
@@ -247,9 +245,8 @@ a hook that does not exist in the running kernel, the entire policy fails to
 load, which means that no events (including reads and writes from the other
 hooks) will be generated.
 
-If you use the example policy
-[`filename_monitoring.yaml`](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/filename_monitoring.yaml)
-as-is on a newer kernel, it will likely fail to load because it only contains 
+If you use the example policy {{< policy-ref "file-monitoring/filename-monitoring.yaml">}}
+as-is on a newer kernel, it will likely fail to load because it only contains
 the old hook. To fix this, you should download the example policy and update it
 to either replace `security_path_truncate` with `security_file_truncate`, or
 add both hooks using the `ignore.callNotFound` option for maximum compatibility:
@@ -288,7 +285,7 @@ Note that `security_file_truncate` takes a `struct file *` argument (type
 `"file"`) instead of `struct path *` (type `"path"`) used by
 `security_path_truncate`.
 
-##  Limitations
+## Limitations
 
 Note that this policy has certain limitations because it matches on the filename that the
 application uses to access. If an application accesses the same file via a hard link or a

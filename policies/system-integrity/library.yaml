@@ -1,0 +1,9 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "loader"
+spec:
+  options:
+  - name: "disable-kprobe-multi"
+    value: "1"
+  loader: true
