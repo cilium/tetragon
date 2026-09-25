@@ -12,6 +12,8 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
 )
 
+var errPolicyNotFound = errors.New("policy not found")
+
 // podNamespaceConflictError: even if a pod changes, we expect the namespace to remain the same
 type podNamespaceConflictError struct {
 	podID        PodID

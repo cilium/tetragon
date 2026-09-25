@@ -27,6 +27,17 @@ func TestingEnableAndReset(t *testing.T) {
 
 }
 
+// ContainerChange reports a container joining or leaving the set a policy
+// selects.
+type ContainerChange struct {
+	Removed     bool
+	PodID       PodID
+	ContainerID string
+	// RootDir is the host path of the container's root filesystem, set when
+	// a runtime hook reported the container.
+	RootDir string
+}
+
 // State is the policyfilter state interface
 // It handles two things:
 //   - policies being added and removed
@@ -67,6 +78,12 @@ type State interface {
 	// date with pod lifecycle changes. It returns an error if any handler
 	// registration fails during startup.
 	RegisterPodHandlers(src events.PodEventSource) error
+
+	// WatchPolicyContainers calls fn with each container the policy selects,
+	// then with every container added to or removed from that set, until the
+	// returned stop is called. fn runs under the state lock, so it must not
+	// block or call back into the state.
+	WatchPolicyContainers(polID PolicyID, fn func(ContainerChange)) (stop func(), err error)
 
 	// Close releases resources allocated by the Manager. Specifically, we close and unpin the
 	// policy filter map.
