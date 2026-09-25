@@ -8,11 +8,11 @@ package celbpf
 import (
 	"fmt"
 
+	cgChecker "cel.dev/cel-go/checker"
+	cgCommon "cel.dev/cel-go/common"
+	cgParser "cel.dev/cel-go/parser"
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/btf"
-	cgChecker "github.com/google/cel-go/checker"
-	cgCommon "github.com/google/cel-go/common"
-	cgParser "github.com/google/cel-go/parser"
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"

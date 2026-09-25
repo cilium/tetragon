@@ -12,7 +12,7 @@ import (
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 
-	cgTypes "github.com/google/cel-go/common/types"
+	cgTypes "cel.dev/cel-go/common/types"
 )
 
 var (

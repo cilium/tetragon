@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"strconv"
 
-	cgChecker "github.com/google/cel-go/checker"
-	cgContainers "github.com/google/cel-go/common/containers"
-	cgDecls "github.com/google/cel-go/common/decls"
-	cgOperators "github.com/google/cel-go/common/operators"
-	cgOverloads "github.com/google/cel-go/common/overloads"
-	cgTypes "github.com/google/cel-go/common/types"
+	cgChecker "cel.dev/cel-go/checker"
+	cgContainers "cel.dev/cel-go/common/containers"
+	cgDecls "cel.dev/cel-go/common/decls"
+	cgOperators "cel.dev/cel-go/common/operators"
+	cgOverloads "cel.dev/cel-go/common/overloads"
+	cgTypes "cel.dev/cel-go/common/types"
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"

@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/google/cel-go/cel"
-	celk8s "k8s.io/apiserver/pkg/cel/library"
+	"cel.dev/cel-go/cel"
+	"cel.dev/cel-go/ext"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
@@ -135,9 +135,7 @@ func NewCELExpressionFilter(log logger.FieldLogger) *CELExpressionFilter {
 	evToProto := map[string]string{}
 	options := []cel.EnvOption{
 		cel.Container("tetragon"),
-		// Import IP and CIDR related helpers from k8s CEL library
-		celk8s.IP(),
-		celk8s.CIDR(),
+		ext.Network(),
 	}
 	for key, val := range responseTypeMap {
 		name := string(val.ProtoReflect().Descriptor().FullName())
