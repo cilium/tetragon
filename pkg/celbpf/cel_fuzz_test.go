@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	cgTypes "github.com/google/cel-go/common/types"
+	cgTypes "cel.dev/cel-go/common/types"
 )
 
 type exprArgs []any

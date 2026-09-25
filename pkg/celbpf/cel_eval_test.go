@@ -15,9 +15,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/cel-go/cel"
-	celTypes "github.com/google/cel-go/common/types"
-	"github.com/google/cel-go/common/types/ref"
+	"cel.dev/cel-go/cel"
+	celTypes "cel.dev/cel-go/common/types"
+	"cel.dev/cel-go/common/types/ref"
 	"github.com/stretchr/testify/require"
 )
 

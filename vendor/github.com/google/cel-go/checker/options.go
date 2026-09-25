@@ -33,8 +33,8 @@ func CrossTypeNumericComparisons(enabled bool) Option {
 	}
 }
 
-// ValidatedDeclarations provides a reference to validated declarations which will be inherited
-// as a parent scope without copying.
+// ValidatedDeclarations provides a references to validated declarations which will be copied
+// into new checker instances.
 func ValidatedDeclarations(env *Env) Option {
 	return func(opts *options) error {
 		opts.validatedDeclarations = env.validatedDeclarations()
@@ -49,4 +49,3 @@ func JSONFieldNames(enabled bool) Option {
 		return nil
 	}
 }
-

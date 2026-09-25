@@ -6,8 +6,8 @@
 package celbpf
 
 import (
-	cgTypes "github.com/google/cel-go/common/types"
-	cgRef "github.com/google/cel-go/common/types/ref"
+	cgTypes "cel.dev/cel-go/common/types"
+	cgRef "cel.dev/cel-go/common/types/ref"
 )
 
 type Provider struct{}

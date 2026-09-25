@@ -44,10 +44,7 @@ func (b Bytes) Add(other ref.Val) ref.Val {
 	if !ok {
 		return ValOrErr(other, "no such overload")
 	}
-	sum := make([]byte, 0, len(b)+len(otherBytes))
-	sum = append(sum, b...)
-	sum = append(sum, otherBytes...)
-	return Bytes(sum)
+	return append(b, otherBytes...)
 }
 
 // Compare implements traits.Comparer interface method by lexicographic ordering.

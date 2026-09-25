@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"math"
 
+	cgOperators "cel.dev/cel-go/common/operators"
+	cgTypes "cel.dev/cel-go/common/types"
 	"github.com/cilium/ebpf/asm"
-	cgOperators "github.com/google/cel-go/common/operators"
-	cgTypes "github.com/google/cel-go/common/types"
 )
 
 var scratchRegs = []asm.Register{asm.R3, asm.R4, asm.R5}

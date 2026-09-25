@@ -97,7 +97,7 @@ func NewEnv(container *containers.Container, provider types.Provider, opts ...Op
 		filteredOverloadIDs = make(map[string]struct{})
 	}
 	if envOptions.validatedDeclarations != nil {
-		declarations = envOptions.validatedDeclarations.PushInherited()
+		declarations = envOptions.validatedDeclarations.Copy()
 	}
 	return &Env{
 		container:           container,

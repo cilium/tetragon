@@ -12,12 +12,12 @@ import (
 	"strconv"
 	"strings"
 
+	cgCommon "cel.dev/cel-go/common"
+	cgAst "cel.dev/cel-go/common/ast"
+	cgOperators "cel.dev/cel-go/common/operators"
+	cgTypes "cel.dev/cel-go/common/types"
+	cgRef "cel.dev/cel-go/common/types/ref"
 	"github.com/cilium/ebpf/asm"
-	cgCommon "github.com/google/cel-go/common"
-	cgAst "github.com/google/cel-go/common/ast"
-	cgOperators "github.com/google/cel-go/common/operators"
-	cgTypes "github.com/google/cel-go/common/types"
-	cgRef "github.com/google/cel-go/common/types/ref"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )

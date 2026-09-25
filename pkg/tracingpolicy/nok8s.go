@@ -11,8 +11,8 @@ import (
 	"encoding/json/v2"
 	"fmt"
 
-	"github.com/google/cel-go/cel"
-	"github.com/google/cel-go/common/types"
+	"cel.dev/cel-go/cel"
+	"cel.dev/cel-go/common/types"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"golang.org/x/text/message"
 
