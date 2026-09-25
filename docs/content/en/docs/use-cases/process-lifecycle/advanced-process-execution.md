@@ -10,10 +10,10 @@ Advanced process execution can be performed by using [Tracing Policies](/docs/co
 the [execve system call](https://man7.org/linux/man-pages/man2/execve.2.html) path.
 
 If we want to monitor execution of Executable and Linkable Format (ELF) or flat binaries
-before they are actually executed. Then the [process-exec-elf-begin](https://github.com/cilium/tetragon/blob/main/examples/tracingpolicy/process-exec/process-exec-elf-begin.yaml) tracing policy is a good first choice.
+before they are actually executed. Then the {{< policy-ref "process-monitoring/process-exec-elf-begin.yaml" >}} tracing policy is a good first choice.
 
 {{< note >}}
-The [process-exec-elf-begin](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-exec/process-exec-elf-begin.yaml) tracing policy, will not report the
+The {{< policy-ref "process-monitoring/process-exec-elf-begin.yaml" >}} tracing policy, will not report the
 different binary format handlers or scripts being executed, but will report
 the final ELF or flat binary, like the shebang handler.
 
@@ -42,10 +42,10 @@ default              xwing                                        1/1     Runnin
 kube-system          tetragon-sdwv6                               2/2     Running   0          27m
 ```
 
-Let's apply the [process-exec-elf-begin](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-exec/process-exec-elf-begin.yaml) Tracing Policy.
+Let's apply the {{< policy-ref "process-monitoring/process-exec-elf-begin.yaml" >}} Tracing Policy.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-exec/process-exec-elf-begin.yaml
+kubectl apply -f {{< policy-raw-url "process-monitoring/process-exec-elf-begin.yaml" >}}
 ```
 
 Then start monitoring events with the `tetra` CLI:
@@ -160,8 +160,8 @@ events contain the binary being executed. In the above case they are:
    The binary `/usr/bin/id -> /bin/busybox` points to busybox.
 
 
-To disable the [process-exec-elf-being](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-exec/process-exec-elf-begin.yaml) Tracing Policy run:
+To disable the {{< policy-ref "process-monitoring/process-exec-elf-begin.yaml" >}} Tracing Policy run:
 
 ```bash
-kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-exec/process-exec-elf-begin.yaml
+kubectl delete -f {{< policy-raw-url "process-monitoring/process-exec-elf-begin.yaml" >}}
 ```

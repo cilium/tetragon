@@ -1,0 +1,17 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  kprobes:
+  - call: "security_inode_copy_up"
+    syscall: false
+    args:
+    - index: 0 # struct dentry *src
+      type: "int64"
+    - index: 1 # struct cred **new
+      type: "int"
+      resolve: "user.uid.val"
+    selectors:
+    - matchActions:
+      - action: Post

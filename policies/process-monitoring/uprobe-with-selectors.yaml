@@ -1,0 +1,24 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-with-selectors"
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbols:
+    - "readline"
+    return: true
+    returnArg:
+      index: 0
+      type: "string"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/bin/bash"
+        - "/usr/bin/bash"
+      matchReturnArgs:
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "sudo"

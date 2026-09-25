@@ -41,17 +41,17 @@ kube-system          tetragon-sdwv6                               2/2     Runnin
 
 ### Monitor Capability Checks
 
-We use the [creds-capability-usage](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml) tracing policy which generates [ProcessKprobe]({{< ref "/docs/reference/grpc-api#processkprobe" >}}) events.
+We use the {{< policy-ref "process-credentials/creds-capability-usage.yaml">}} tracing policy which generates [ProcessKprobe]({{< ref "/docs/reference/grpc-api#processkprobe" >}}) events.
 
 {{< note >}}
 Tracing policies as the one used here, may emit a high number of events.
 
-To reduce events, the [creds-capability-usage](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml) rate limits events to 1 minute. More details about rate-limiting can be found in the [tracing policy documentation]({{< ref "docs/concepts/tracing-policy#actions-filter" >}}).
+To reduce events, the {{< policy-ref "process-credentials/creds-capability-usage.yaml">}} rate limits events to 1 minute. More details about rate-limiting can be found in the [tracing policy documentation]({{< ref "docs/concepts/tracing-policy#actions-filter" >}}).
 {{< /note >}}
 
-Apply the [creds-capability-usage](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml) policy:
+Apply the {{< policy-ref "process-credentials/creds-capability-usage.yaml">}} policy:
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml
+kubectl apply -f {{< policy-raw-url "process-credentials/creds-capability-usage.yaml">}}
 ```
 
 Start monitoring for events with `tetra` cli, but match only events of `xwing` pod:
@@ -229,8 +229,8 @@ In addition to the Kubernetes Identity and process metadata from exec events, [P
 
 * `return`: indicates via the `int_arg` if the capability check succeeded or failed. `0` means it succeeded and the access was granted while `-1` means it failed and the operation was denied.
 
-To disable the [creds-capability-usage](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml) run:
+To disable the {{< policy-ref "process-credentials/creds-capability-usage.yaml">}} run:
 
 ```shell
-kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/creds-capability-usage.yaml
+kubectl delete -f {{< policy-raw-url "process-credentials/creds-capability-usage.yaml">}}
 ```

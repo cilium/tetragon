@@ -182,7 +182,7 @@ best-practice to identify when privileges are raised.
 
 ### Policy
 
-The [privileges-raise.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/privileges/privileges-raise.yaml) monitors the various interfaces of `setuid()` and `setgid()` to root.
+The The {{< policy-ref "process-credentials/privileges-raise.yaml" >}} monitors the various interfaces of `setuid()` and `setgid()` to root.
 
 ### Example jq Filter
 
@@ -232,7 +232,7 @@ namespaces by unprivileged is a common best-practice to identify such cases.
 
 ### Policy
 
-The [privileges-raise.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/privileges/privileges-raise.yaml)
+The {{< policy-ref "process-credentials/privileges-raise.yaml" >}}
 monitors the creation of user namespaces by unprivileged.
 
 ### Example jq Filter
@@ -266,8 +266,7 @@ privileges.
 
 ### Policy
 
-The [privileges-raise.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/privileges/privileges-raise.yaml)
-monitors `capset()` calls that do not drop capabilities.
+The The {{< policy-ref "process-credentials/privileges-raise.yaml" >}} monitors `capset()` calls that do not drop capabilities.
 
 ### Example jq Filter
 
@@ -389,7 +388,7 @@ and programs can identify bugs and malicious or unexpected BPF activity.
 
 ### Policy
 
-[bpf.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/bpf.yaml)
+The {{< policy-ref "system-integrity/bpf.yaml" >}}
 
 ### Example jq Filter
 
@@ -421,7 +420,7 @@ Understanding exactly what kernel modules are running in the cluster is crucial 
 
 ### Policy
 
-[modules.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/modules.yaml)
+The {{< policy-ref "system-integrity/modules.yaml" >}}
 
 ### Example jq Filter
 
@@ -447,7 +446,7 @@ Understanding the exact versions of shared libraries that binaries load and use 
 
 ### Policy
 
-[library.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/library.yaml)
+The {{< policy-ref "system-integrity/library.yaml" >}}
 
 ### Example jq Filter
 
@@ -473,7 +472,7 @@ It is best practice to audit remote connections into a shell server.
 
 ### Policy
 
-[sshd.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/sshd.yaml)
+The {{< policy-ref "network-monitoring/sshd.yaml" >}}
 
 ### Example jq Filter
 
@@ -518,7 +517,7 @@ SERVICECIDR=$(kubectl describe pod -n kube-system kube-apiserver-kind-control-pl
 
 ### Policy
 
-[egress.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/egress.yaml)
+The {{< policy-ref "network-monitoring/egress.yaml" >}}
 
 ### Example jq Filter
 

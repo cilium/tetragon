@@ -1,0 +1,42 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "example-ns-1"
+spec:
+  kprobes:
+    - call: "fd_install"
+      syscall: false
+      args:
+        - index: 0
+          type: int
+        - index: 1
+          type: "file"
+      selectors:
+        - matchBinaries:
+          - operator: "In"
+            values:
+            - "/bin/cat"
+          matchArgs:
+          - index: 1
+            operator: "Equal"
+            values:
+            - "/etc/shadow"
+          matchNamespaces:
+          - namespace: Mnt
+            operator: In
+            values:
+            - "host_ns"
+        - matchBinaries:
+          - operator: "In"
+            values:
+            - "/bin/cat"
+          matchArgs:
+          - index: 1
+            operator: "Equal"
+            values:
+            - "/etc/shadow"
+          matchNamespaces:
+          - namespace: Net
+            operator: In
+            values:
+            - "host_ns"
