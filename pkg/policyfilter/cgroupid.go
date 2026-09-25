@@ -28,7 +28,7 @@ func (s *cgfsFinder) findCgroupID(podID PodID, containerID string) (CgroupID, er
 	} else if err != nil {
 		return CgroupID(0), err
 	}
-	cgid, err := cgroups.GetCgroupIDFromSubCgroup(path)
+	cgid, err := cgroups.GetContainerCgroupID(path)
 	return CgroupID(cgid), err
 }
 
