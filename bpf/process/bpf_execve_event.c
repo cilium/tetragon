@@ -45,7 +45,7 @@ event_execve(struct bpf_raw_tracepoint_args *ctx)
 	if (!event)
 		return 0;
 
-	execve_event_init(ctx, event);
+	execve_event_init(ctx, event, true);
 
 	tail_call(ctx, &execve_calls, 0);
 	return 0;
