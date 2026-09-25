@@ -71,10 +71,13 @@ execve_send(struct bpf_raw_tracepoint_args *ctx __arg_ctx)
 {
 	struct msg_execve_event *event;
 	__u32 zero = 0;
+	uint64_t size;
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
 		return 0;
 
-	return execve_send_event(ctx, event);
+	size = execve_finalize_event(ctx, event);
+	event_output_metric(ctx, MSG_OP_EXECVE, event, size);
+	return 0;
 }
