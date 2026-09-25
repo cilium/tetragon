@@ -913,6 +913,15 @@ var digestAlgos = map[string]crypto.Hash{
 	"sha512": crypto.SHA512,
 }
 
+func resolvePathInContainerSpec(spec *v1alpha1.TracingPolicySpec) *v1alpha1.UProbeSpec {
+	for i := range spec.UProbes {
+		if spec.UProbes[i].ResolvePathInContainer {
+			return &spec.UProbes[i]
+		}
+	}
+	return nil
+}
+
 // createGenericUprobeSensor builds the uprobe sensor for spec. A non-nil
 // binary replaces the spec's Path as the file to parse and attach to, while
 // events keep reporting Path.
