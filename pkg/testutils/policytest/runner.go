@@ -461,7 +461,11 @@ func (ph *PolicyHandler) Configure(
 		Mode:      mode,
 	})
 	if err == nil {
-		l.Debug("policy configured", "enable", enable, "mode", mode)
+		sMode := "nil"
+		if mode != nil {
+			sMode = mode.String()
+		}
+		l.Debug("policy configured", "enable", enable, "mode", sMode)
 		return nil
 	}
 
