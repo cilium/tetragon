@@ -265,12 +265,9 @@ func createMultiUsdtSensor(
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	workloadsMap := program.MapBuilderProgram("workloads_map", load)
 
-	maps = append(maps, getUprobeHeapMap("process_call_heap", has.uprobeHeapSize, load))
-	maps = append(maps, getUprobeHeapMap("buffer_heap_map", has.uprobeHeapSize, load))
-	maps = append(maps, getUprobeHeapMap("string_maps_heap", has.uprobeHeapSize, load))
-	maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", has.uprobeHeapSize, load))
-	maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", has.uprobeHeapSize, load))
-	maps = append(maps, getUprobeHeapMap("ratelimit_heap", has.uprobeHeapSize, load))
+	for _, name := range uprobeHeapMaps {
+		maps = append(maps, getUprobeHeapMap(name, has.uprobeHeapSize, false, load))
+	}
 	maps = append(maps, configMap, tailCalls, filterMap, workloadsMap)
 
 	filterMap.SetMaxEntries(len(multiIDs))

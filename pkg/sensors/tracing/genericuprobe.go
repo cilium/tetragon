@@ -18,6 +18,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -482,6 +483,9 @@ type uprobeHas struct {
 	sleepableOffloadSize int
 	userStackTrace       bool
 	uprobeHeapSize       int
+	// heldShared is set when the policy sensor holds the maps shared by all
+	// uprobe sensors, so this sensor only uses them.
+	heldShared bool
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -497,6 +501,10 @@ func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
 	pathStates := make(map[string]pathState)
 
 	for i, curr := range uprobes {
+		// Each resolvePathInContainer uprobe loads in a sensor of its own.
+		if curr.ResolvePathInContainer {
+			continue
+		}
 		method := ""
 		if len(curr.Symbols) != 0 {
 			method = "symbols"
@@ -914,14 +922,47 @@ var digestAlgos = map[string]crypto.Hash{
 	"sha512": crypto.SHA512,
 }
 
-// createGenericUprobeSensor builds the uprobe sensor for spec. A non-nil
+func hasResolvePathInContainer(spec *v1alpha1.TracingPolicySpec) bool {
+	return slices.ContainsFunc(spec.UProbes, func(u v1alpha1.UProbeSpec) bool {
+		return u.ResolvePathInContainer
+	})
+}
+
+// containerUprobe picks the resolvePathInContainer uprobe a per-container
+// sensor attaches, and the binary resolved for it in the container.
+type containerUprobe struct {
+	index  int
+	binary *os.File
+}
+
+// buildsUprobe reports whether a sensor built for ric, or for the host paths
+// when ric is nil, holds the uprobe at index.
+func buildsUprobe(ric *containerUprobe, index int, uprobe *v1alpha1.UProbeSpec) bool {
+	if ric != nil {
+		return index == ric.index
+	}
+	return !uprobe.ResolvePathInContainer
+}
+
+// expandedUprobe returns a copy of uprobe with the policy's selector macros
+// expanded, as expansion mutates the selectors.
+func expandedUprobe(spec *v1alpha1.TracingPolicySpec, uprobe *v1alpha1.UProbeSpec) (*v1alpha1.UProbeSpec, error) {
+	u := uprobe.DeepCopy()
+	if err := appendMacrosSelectors(u.Selectors, spec.SelectorsMacros); err != nil {
+		return nil, fmt.Errorf("append macros selectors: %w", err)
+	}
+	return u, nil
+}
+
+// createGenericUprobeSensor builds the uprobe sensor for spec's uprobes on
+// host paths or, with ric, for that one resolvePathInContainer uprobe. Its
 // binary replaces the spec's Path as the file to parse and attach to, while
 // events keep reporting Path.
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
 	polInfo *policyInfo,
-	binary *os.File,
+	ric *containerUprobe,
 ) (retSensor *sensors.Sensor, retErr error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -946,6 +987,10 @@ func createGenericUprobeSensor(
 	// user process_call_heap override
 	has.uprobeHeapSize = polInfo.specOpts.UprobeHeapSize
 
+	// A per-container sensor loads outside the sensor manager, so the
+	// policy sensor holds the shared maps for it.
+	has.heldShared = ric != nil
+
 	if useMulti {
 		// if we are using multi-uprobe, CEL expressions are shared across all uprobes
 		celExprs = &selectors.CelExprFunctions{}
@@ -959,7 +1004,7 @@ func createGenericUprobeSensor(
 		selMaps:    selMaps,
 	}
 
-	if useMulti {
+	if useMulti && ric == nil {
 		if err = validateMultiUprobeConsistency(spec.UProbes); err != nil {
 			return nil, err
 		}
@@ -979,6 +1024,14 @@ func createGenericUprobeSensor(
 
 	var selectorStatsBase uint32
 	for cfgIdx, uprobe := range spec.UProbes {
+		in.selectorStatsBase = selectorStatsBase
+		selectorStatsBase += uint32(len(uprobe.Selectors))
+		// Skipped before macro expansion, which mutates the selectors that
+		// per-container sensors copy.
+		if !buildsUprobe(ric, cfgIdx, &uprobe) {
+			continue
+		}
+
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
@@ -986,16 +1039,16 @@ func createGenericUprobeSensor(
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
 
-		in.selectorStatsBase = selectorStatsBase
-		selectorStatsBase += uint32(len(uprobe.Selectors))
-
 		absPath, err := filepath.Abs(uprobe.Path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve absolute path for %q: %w", uprobe.Path, err)
 		}
 		uprobe.Path = absPath
 
-		entryFile := binary
+		var entryFile *os.File
+		if ric != nil {
+			entryFile = ric.binary
+		}
 
 		if len(uprobe.BinaryDigests) != 0 {
 			// When the binary digest configuration is specified, we link the target
@@ -1492,43 +1545,52 @@ func multiUprobePinPath(sensorPath string) string {
 	return sensors.PathJoin(sensorPath, "multi_uprobe")
 }
 
-func getSleepablePreloadMap(userSize int, load *program.Program) *program.Map {
-	var m *program.Map
-
+func getSleepablePreloadMap(userSize int, held bool, load *program.Program) *program.Map {
 	if userSize != 0 {
-		m = program.MapBuilderProgram("sleepable_preload", load)
+		m := program.MapBuilderProgram("sleepable_preload", load)
 		m.SetMaxEntries(userSize)
-	} else {
-		m = program.MapShared("sleepable_preload", load)
-		m.SetMaxEntries(option.Config.SleepablePreloadSize)
+		return m
 	}
+	return sharedMap("sleepable_preload", option.Config.SleepablePreloadSize, held, load)
+}
+
+func getSleepableOffloadMap(userSize int, held bool, load *program.Program) *program.Map {
+	if userSize != 0 {
+		m := program.MapBuilderProgram("sleepable_offload", load)
+		m.SetMaxEntries(userSize)
+		return m
+	}
+	return sharedMap("sleepable_offload", option.Config.SleepableOffloadSize, held, load)
+}
+
+func getUprobeHeapMap(name string, userSize int, held bool, load *program.Program) *program.Map {
+	if userSize != 0 {
+		m := program.MapBuilderProgram(name, load)
+		m.SetMaxEntries(userSize)
+		return m
+	}
+	return sharedMap(name, option.Config.UprobeHeapSize, held, load)
+}
+
+// sharedMap returns a map shared by all uprobe sensors or, when another
+// sensor holds it, a user of it, which neither pins it nor counts it.
+func sharedMap(name string, maxEntries int, held bool, load *program.Program) *program.Map {
+	if held {
+		return program.MapUser(name, load)
+	}
+	m := program.MapShared(name, load)
+	m.SetMaxEntries(maxEntries)
 	return m
 }
 
-func getSleepableOffloadMap(userSize int, load *program.Program) *program.Map {
-	var m *program.Map
-
-	if userSize != 0 {
-		m = program.MapBuilderProgram("sleepable_offload", load)
-		m.SetMaxEntries(userSize)
-	} else {
-		m = program.MapShared("sleepable_offload", load)
-		m.SetMaxEntries(option.Config.SleepableOffloadSize)
-	}
-	return m
-}
-
-func getUprobeHeapMap(name string, userSize int, load *program.Program) *program.Map {
-	var m *program.Map
-
-	if userSize != 0 {
-		m = program.MapBuilderProgram(name, load)
-		m.SetMaxEntries(userSize)
-	} else {
-		m = program.MapShared(name, load)
-		m.SetMaxEntries(option.Config.UprobeHeapSize)
-	}
-	return m
+// uprobeHeapMaps lists the heap maps of the multi uprobe programs.
+var uprobeHeapMaps = []string{
+	"process_call_heap",
+	"buffer_heap_map",
+	"string_maps_heap",
+	"string_prefix_maps_heap",
+	"string_postfix_maps_heap",
+	"ratelimit_heap",
 }
 
 func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []idtable.EntryID, has uprobeHas) ([]*program.Program, []*program.Map, error) {
@@ -1585,24 +1647,21 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 
-	maps = append(maps, getUprobeHeapMap("process_call_heap", has.uprobeHeapSize, load))
-	maps = append(maps, getUprobeHeapMap("buffer_heap_map", has.uprobeHeapSize, load))
-	maps = append(maps, getUprobeHeapMap("string_maps_heap", has.uprobeHeapSize, load))
-	maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", has.uprobeHeapSize, load))
-	maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", has.uprobeHeapSize, load))
-	maps = append(maps, getUprobeHeapMap("ratelimit_heap", has.uprobeHeapSize, load))
+	for _, name := range uprobeHeapMaps {
+		maps = append(maps, getUprobeHeapMap(name, has.uprobeHeapSize, has.heldShared, load))
+	}
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil), substringMapEntries)...)
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
 		regsMap.SetMaxEntries(max(regsMapEntries, 1))
-		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, load)
+		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, has.heldShared, load)
 		maps = append(maps, regsMap, sleepableOffloadMap)
 	}
 
 	if has.sleepablePreload {
-		sleepablePreloadMap := getSleepablePreloadMap(has.sleepablePreloadSize, load)
+		sleepablePreloadMap := getSleepablePreloadMap(has.sleepablePreloadSize, has.heldShared, load)
 		maps = append(maps, sleepablePreloadMap)
 	}
 
@@ -1648,12 +1707,9 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
 
-		maps = append(maps, getUprobeHeapMap("process_call_heap", has.uprobeHeapSize, loadret))
-		maps = append(maps, getUprobeHeapMap("buffer_heap_map", has.uprobeHeapSize, loadret))
-		maps = append(maps, getUprobeHeapMap("string_maps_heap", has.uprobeHeapSize, loadret))
-		maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", has.uprobeHeapSize, loadret))
-		maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", has.uprobeHeapSize, loadret))
-		maps = append(maps, getUprobeHeapMap("ratelimit_heap", has.uprobeHeapSize, loadret))
+		for _, name := range uprobeHeapMaps {
+			maps = append(maps, getUprobeHeapMap(name, has.uprobeHeapSize, has.heldShared, loadret))
+		}
 	}
 
 	return progs, maps, nil
@@ -1718,12 +1774,12 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		// in the same policy needs the override action)
 		regsMapEntries := max(len(uprobeEntry.loadArgs.selectors.entry.Regs()), 1)
 		regsMap.SetMaxEntries(regsMapEntries)
-		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, load)
+		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, has.heldShared, load)
 		maps = append(maps, regsMap, sleepableOffloadMap)
 	}
 
 	if has.sleepablePreload {
-		sleepablePreloadMap := getSleepablePreloadMap(has.sleepablePreloadSize, load)
+		sleepablePreloadMap := getSleepablePreloadMap(has.sleepablePreloadSize, has.heldShared, load)
 		maps = append(maps, sleepablePreloadMap)
 	}
 
