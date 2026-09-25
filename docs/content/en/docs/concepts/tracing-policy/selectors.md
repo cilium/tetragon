@@ -39,28 +39,7 @@ default action (`Post`) is applied.
 For example, the following policy will generate events when the `sys_mount` system call is executed
 by binaries other than `/usr/bin/mount`.
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "mount-example"
-spec:
-  kprobes:
-  - call: "sys_mount"
-    syscall: true
-    selectors:
-      # first selector
-      - matchBinaries:
-        - operator: In
-          values:
-          - "/usr/bin/mount"
-        matchActions:
-        - action: NoPost
-      # second selector
-      - matchActions:
-        - action: Post
-
-```
+{{< policy-example "system-integrity/mount-example.yaml" >}}
 
 ## Arguments filter
 
@@ -625,50 +604,7 @@ is `4026531834`])
 > Generate a kprobe event if `/etc/shadow` was opened by `/bin/cat` which
 > either had host `Net` or `Mnt` namespace access
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "example_ns_1"
-spec:
-  kprobes:
-    - call: "fd_install"
-      syscall: false
-      args:
-        - index: 0
-          type: int
-        - index: 1
-          type: "file"
-      selectors:
-        - matchBinaries:
-          - operator: "In"
-            values:
-            - "/bin/cat"
-          matchArgs:
-          - index: 1
-            operator: "Equal"
-            values:
-            - "/etc/shadow"
-          matchNamespaces:
-          - namespace: Mnt
-            operator: In
-            values:
-            - "host_ns"
-        - matchBinaries:
-          - operator: "In"
-            values:
-            - "/bin/cat"
-          matchArgs:
-          - index: 1
-            operator: "Equal"
-            values:
-            - "/etc/shadow"
-          matchNamespaces:
-          - namespace: Net
-            operator: In
-            values:
-            - "host_ns"
-```
+{{< policy-example "file-monitoring/monitor-shadow-access-1.yaml" >}}
 
 This example has 2 `selectors`. Note that each selector starts with `-`.
 
@@ -722,40 +658,7 @@ We can modify the previous example as follows:
 > Generate a kprobe event if `/etc/shadow` was opened by `/bin/cat` which has
 > host `Net` and `Mnt` namespace access
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "example_ns_2"
-spec:
-  kprobes:
-    - call: "fd_install"
-      syscall: false
-      args:
-        - index: 0
-          type: int
-        - index: 1
-          type: "file"
-      selectors:
-        - matchBinaries:
-          - operator: "In"
-            values:
-            - "/bin/cat"
-          matchArgs:
-          - index: 1
-            operator: "Equal"
-            values:
-            - "/etc/shadow"
-          matchNamespaces:
-          - namespace: Mnt
-            operator: In
-            values:
-            - "host_ns"
-          - namespace: Net
-            operator: In
-            values:
-            - "host_ns"
-```
+{{< policy-example "file-monitoring/monitor-shadow-access-2.yaml" >}}
 
 Here we have a single selector. This CRD will match if:
 
@@ -872,33 +775,7 @@ The `matchCEL` selector allows specifying filtering expressions in
 
 Here's a policy example:
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "sys-lseek"
-spec:
-  kprobes:
-  - call: "sys_lseek"
-    syscall: true
-    data:
-    - source: current_task
-      index: 0
-      type: int
-      resolve: pid
-    args:
-    - index: 2
-      type: "int"
-      label: "whence"
-    - index: 0
-      type: "int"
-      label: "fd"
-    selectors:
-    - matchActions:
-      - action: Post
-      MatchCel:
-        expr: "arg1 == int32(-1) && data0 == arg0 + int32(42)"
-```
+{{< policy-example "others/sys_lseek.yaml" >}}
 
 Arguments, as specified in the `args:` array, are made available in the CEL expression as `argX`
 where `X` is the zero-based index in the array. Similary for data items, as specified in the `data:`
@@ -932,21 +809,7 @@ minus 1) thus `9 & 7 = 1` or reduced modulo the bit width, thus `9 % 8 = 1`.
 The `matchUserCallers` selector allows filtering based on the user space
 callstack of the hooked function.
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "uprobe-caller"
-spec:
-  uprobes:
-  - path: test
-    symbols:
-    - "func2"
-    selectors:
-    - matchUserCallers:
-      - depth: "2"
-        symbol: "main"
-```
+{{< policy-example "process-monitoring/uprobe-caller.yaml" >}}
 
 For this example policy, the `uprobe` will only trigger if the user space
 callstack of the `func2` function contains the symbol `main` at depth 2. The
@@ -1504,25 +1367,7 @@ But hashes will be recalculated no matter if file is not changed. See implementa
 The provided example of `TracingPolicy` collects hashes of executed binaries from
 `zsh` and `bash` interpreters:
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-spec:
-  lsmhooks:
-  - hook: "bprm_check_security"
-    args:
-      - index: 0
-        type: "linux_binprm"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "/usr/bin/zsh"
-        - "/usr/bin/bash"
-      matchActions:
-        - action: Post
-          imaHash: true
-```
+{{< policy-example "system-integrity/binary-ima-hash.yaml" >}}
 
 LSM event with file hash can look like this:
 
