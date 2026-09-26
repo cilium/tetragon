@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/e2e-framework/support/kind"
 
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/tests/e2e/flags"
 	"github.com/cilium/tetragon/tests/e2e/state"
 )
 
@@ -184,6 +185,28 @@ func GetTempKindClusterName(ctx context.Context) string {
 		return name
 	}
 	return ""
+}
+
+// ImageLoadCluster returns the cluster to load locally built images into, or
+// "" when testing against an existing cluster.
+func ImageLoadCluster(ctx context.Context) string {
+	if flags.Opts.Minikube {
+		return "minikube"
+	}
+	return GetTempKindClusterName(ctx)
+}
+
+// LoadTesterProgsImage loads the tester-progs workload image into the test
+// cluster. Against an existing cluster the image must be pullable instead.
+func LoadTesterProgsImage() env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		clusterName := ImageLoadCluster(ctx)
+		if clusterName == "" {
+			return ctx, nil
+		}
+		// runners.Init swaps this loader for the minikube one.
+		return envfuncs.LoadDockerImageToCluster(clusterName, flags.Opts.TesterProgsImage)(ctx, cfg)
+	}
 }
 
 // LoadImageToMinikubeEnvFunc loads a container image into the minikube cluster via

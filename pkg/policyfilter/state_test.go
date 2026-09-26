@@ -459,3 +459,95 @@ func TestRegressionOnPodLabelsMutation(t *testing.T) {
 	close(start)
 	wg.Wait()
 }
+
+// Containers added without a cgroup id need one found, and the watch
+// ignores cgroup ids, so any will do.
+type anyCgidFinder struct{}
+
+func (anyCgidFinder) findCgroupID(PodID, string) (CgroupID, error) {
+	return CgroupID(5000), nil
+}
+
+func TestWatchPolicyContainers(t *testing.T) {
+	s, err := newState(logger.GetLogger(), anyCgidFinder{}, true)
+	if err != nil {
+		t.Skipf("failed to inialize policy filter state: %s", err)
+	}
+	defer s.Close()
+
+	var got []ContainerChange
+	record := func(c ContainerChange) { got = append(got, c) }
+	requireChanges := func(want ...ContainerChange) {
+		t.Helper()
+		require.ElementsMatch(t, want, got)
+		got = nil
+	}
+
+	polID := PolicyID(2)
+	appSel := &slimv1.LabelSelector{MatchLabels: map[string]slimv1.MatchLabelsValue{"app": "a"}}
+	mainSel := &slimv1.LabelSelector{MatchLabels: map[string]slimv1.MatchLabelsValue{"name": "main"}}
+	require.NoError(t, s.AddPolicy(polID, "ns", appSel, mainSel, nil))
+
+	_, err = s.WatchPolicyContainers(PolicyID(99), record)
+	require.ErrorIs(t, err, errPolicyNotFound)
+
+	// A container known before the watch starts is reported first.
+	pod := PodID(uuid.New())
+	appLabels := labels.Labels{"app": "a"}
+	require.NoError(t, s.AddPodContainer(pod, "ns", appLabels, "c1", 1001,
+		podhelpers.ContainerInfo{Name: "main", RootDir: "/rootfs/c1"}))
+	stop, err := s.WatchPolicyContainers(polID, record)
+	require.NoError(t, err)
+	requireChanges(ContainerChange{PodID: pod, ContainerID: "c1", RootDir: "/rootfs/c1"})
+
+	// The containerSelector narrows what is reported.
+	require.NoError(t, s.AddPodContainer(pod, "ns", appLabels, "sidecar", 1002,
+		podhelpers.ContainerInfo{Name: "sidecar"}))
+	requireChanges()
+
+	// A restart swaps the container id.
+	require.NoError(t, s.UpdatePod(pod, "ns", appLabels, []string{"c2", "sidecar"},
+		[]podhelpers.ContainerInfo{{Name: "main"}, {Name: "sidecar"}}))
+	requireChanges(
+		ContainerChange{Removed: true, PodID: pod, ContainerID: "c1", RootDir: "/rootfs/c1"},
+		ContainerChange{PodID: pod, ContainerID: "c2"},
+	)
+
+	// Relabeling the pod moves it out of and back into the policy.
+	require.NoError(t, s.UpdatePod(pod, "ns", labels.Labels{"app": "b"}, []string{"c2", "sidecar"},
+		[]podhelpers.ContainerInfo{{Name: "main"}, {Name: "sidecar"}}))
+	requireChanges(ContainerChange{Removed: true, PodID: pod, ContainerID: "c2"})
+	require.NoError(t, s.UpdatePod(pod, "ns", appLabels, []string{"c2", "sidecar"},
+		[]podhelpers.ContainerInfo{{Name: "main"}, {Name: "sidecar"}}))
+	requireChanges(ContainerChange{PodID: pod, ContainerID: "c2"})
+
+	require.NoError(t, s.DelPod(pod))
+	requireChanges(ContainerChange{Removed: true, PodID: pod, ContainerID: "c2"})
+
+	stop()
+	require.NoError(t, s.AddPodContainer(PodID(uuid.New()), "ns", appLabels, "c3", 1003,
+		podhelpers.ContainerInfo{Name: "main"}))
+	requireChanges()
+}
+
+func TestWatchPolicyContainersDelPolicy(t *testing.T) {
+	s, err := New(true)
+	if err != nil {
+		t.Skipf("failed to inialize policy filter state: %s", err)
+	}
+	defer s.Close()
+
+	var got []ContainerChange
+	polID := PolicyID(2)
+	require.NoError(t, s.AddPolicy(polID, "ns", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil))
+	pod := PodID(uuid.New())
+	require.NoError(t, s.AddPodContainer(pod, "ns", nil, "c1", 1001, podhelpers.ContainerInfo{}))
+	_, err = s.WatchPolicyContainers(polID, func(c ContainerChange) { got = append(got, c) })
+	require.NoError(t, err)
+
+	require.NoError(t, s.DelPolicy(polID))
+	require.Equal(t, []ContainerChange{
+		{PodID: pod, ContainerID: "c1"},
+		{Removed: true, PodID: pod, ContainerID: "c1"},
+	}, got)
+}

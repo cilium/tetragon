@@ -1,0 +1,15 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-pod"
+spec:
+  # resolvePathInContainer requires a podSelector: the uprobe attaches per matching container.
+  podSelector:
+    matchLabels:
+      app: sshd
+  uprobes:
+  - path: "/usr/lib64/libpam.so.0.85.1"
+    symbols:
+    - "pam_authenticate"
+    # Resolve path inside each container's root filesystem, not the agent's.
+    resolvePathInContainer: true
