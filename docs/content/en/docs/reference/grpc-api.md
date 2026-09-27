@@ -925,6 +925,7 @@ User records
 | HEALTH_STATUS_RUNNING | 1 |  |
 | HEALTH_STATUS_STOPPED | 2 |  |
 | HEALTH_STATUS_ERROR | 3 |  |
+| HEALTH_STATUS_INITIALIZING | 4 |  |
 
 <a name="tetragon-HealthStatusType"></a>
 
