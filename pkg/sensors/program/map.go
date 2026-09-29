@@ -168,8 +168,13 @@ func DeleteGlobMap(name string) {
 	delete(globalMaps.maps, name)
 }
 
-// sharedMapRefs tracks the number of sensors currently using each shared map,
-// without locking because sensor load/unload is serialized by the sensor manager.
+// pinMu serializes pinning and unpinning maps and counting their users. The
+// sensor manager loads one sensor at a time, but sensors loaded outside it
+// run concurrently with it and each other.
+var pinMu sync.Mutex
+
+// sharedMapRefs tracks the number of sensors currently using each shared map.
+// Guarded by pinMu.
 var sharedMapRefs = map[string]int{}
 
 func sharedMapIncRef(pinPath string) int {
@@ -281,6 +286,8 @@ func (m *Map) IsShared() bool {
 }
 
 func (m *Map) Unload(unpin bool) error {
+	pinMu.Lock()
+	defer pinMu.Unlock()
 	log := logger.GetLogger().With("map", m.Name, "pin", m.PinPath)
 	if !m.PinState.IsLoaded() {
 		log.Debug("Refusing to unload map as it is not loaded", "count", m.PinState.count)
@@ -352,6 +359,8 @@ func (m *Map) LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) error
 		m.MapHandle.Close()
 	}
 
+	pinMu.Lock()
+	defer pinMu.Unlock()
 	mh, err := loadOrCreatePinnedMap(pinPath, mapSpec, m.IsOwner() || m.IsShared(), m.Validate)
 	if err != nil {
 		return err
