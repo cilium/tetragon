@@ -656,6 +656,27 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data,
 }
 
 #ifdef __V511_BPF_PROG
+#ifdef __NO_PERF_RINGBUFFER
+FUNC_INLINE long
+event_output(void *ctx, void *data, u64 size)
+{
+	return ringbuf_output(&tg_rb_events, data, size, 0);
+}
+
+FUNC_INLINE bool
+event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
+{
+	long err;
+
+	err = ringbuf_output(&tg_rb_events, data, size, 0);
+	if (err < 0) {
+		event_output_update_error_metric(msg_op, err);
+		return false;
+	}
+
+	return true;
+}
+#else
 FUNC_INLINE long
 event_output(void *ctx, void *data, u64 size)
 {
@@ -691,6 +712,7 @@ event_ringbuf_reserve(u8 msg_op, u64 size)
 		event_output_update_error_metric(msg_op, -EAGAIN);
 	return event;
 }
+#endif /* __NO_PERF_RINGBUFFER */
 #else
 FUNC_INLINE long
 event_output(void *ctx, void *data, u64 size)
