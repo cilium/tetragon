@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"regexp"
 
 	"github.com/cilium/ebpf"
 
@@ -389,15 +390,32 @@ type tpValidateInfo struct {
 	tp tracepoint.Tracepoint
 }
 
+// Keep spec.Subsystem/spec.Event from injecting path separators or ".." into the
+// tracefs format path and the "<subsys>:<event>" pin path. Raw tracepoints attach
+// via bpf_raw_tracepoint_open() and never reach validIdentifier() in cilium/ebpf
+// internal/tracefs, so for them this is the only such guard.
+// A leading digit is allowed because raw tracepoints such as 9p/9p_client_req are
+// attachable; non-raw ones are rejected by validIdentifier() at attach time.
+var tracepointNameRe = regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9_-]*$`)
+
 // preValidateTracepoint pre-validates a single tracepoint spec by checking
 // that the tracepoint subsystem/event exists and that the arguments are valid.
 // It returns a tpValidateInfo that can be passed to createGenericTracepoint
 // to avoid re-loading the tracepoint format.
 func preValidateTracepoint(spec *v1alpha1.TracepointSpec) (*tpValidateInfo, error) {
-	// Subsystem and Event are interpolated into the tracefs format path and the
-	// "<subsys>:<event>" pin path below. Neither is re-checked here: the CRD
-	// pattern on both fields rejects empty names, path separators and ".." on
-	// every path a policy can arrive on.
+	if spec.Subsystem == "" {
+		return nil, errors.New("tracepoint subsystem is empty")
+	}
+	if spec.Event == "" {
+		return nil, errors.New("tracepoint event is empty")
+	}
+	if !tracepointNameRe.MatchString(spec.Subsystem) {
+		return nil, fmt.Errorf("tracepoint subsystem %q is invalid: must match %s", spec.Subsystem, tracepointNameRe)
+	}
+	if !tracepointNameRe.MatchString(spec.Event) {
+		return nil, fmt.Errorf("tracepoint event %q is invalid: must match %s", spec.Event, tracepointNameRe)
+	}
+
 	tpInfo := tracepoint.Tracepoint{
 		Subsys: spec.Subsystem,
 		Event:  spec.Event,
