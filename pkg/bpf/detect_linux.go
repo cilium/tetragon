@@ -747,10 +747,6 @@ func HasGetFuncRetHelper() bool {
 }
 
 func LogFeatures() string {
-	// once we have detected all features, flush the BTF spec
-	// we cache all values so calling again a Has* function will
-	// not load the BTF again
-	defer ebtf.FlushKernelSpec()
 	probeStr := func(p *FeatureProbe) string {
 		return p.Name + ": " + strconv.FormatBool(p.Fn())
 	}
