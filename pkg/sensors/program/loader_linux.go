@@ -1049,6 +1049,10 @@ func doLoadProgram(
 		return ebpf.LoadPinnedMap(mapPath, nil)
 	}
 
+	isSharedMapPinned := func(pinPath string) bool {
+		return sharedMapRefs[pinPath] > 0
+	}
+
 	pinnedMaps := make(map[string]*ebpf.Map)
 	for name := range refMaps {
 		m, err := resolveRefMap(name)
@@ -1060,6 +1064,14 @@ func doLoadProgram(
 			continue
 		}
 		defer m.Close()
+
+		// Shared map referenced but not declared by this sensor, take
+		// max entries from the pin. Declared ones are checked in loadMap.
+		if isSharedMapPinned(name) {
+			if ms, ok := spec.Maps[name]; ok {
+				ms.MaxEntries = m.MaxEntries()
+			}
+		}
 		pinnedMaps[name] = m
 	}
 
