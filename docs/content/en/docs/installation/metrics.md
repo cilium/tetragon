@@ -136,7 +136,7 @@ helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
 
 Refer to the official [Kube-Prometheus-Stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) documentation for more details.
 
-Tetragon comes with default `ServiceMonitor` resources containing the scrape confguration for the Agent and Operator.
+Tetragon comes with default `ServiceMonitor` resources containing the scrape configuration for the Agent and Operator.
 You can enable it via Helm values:
 
 ```yaml
