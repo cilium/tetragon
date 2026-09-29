@@ -134,7 +134,13 @@ func tracepointLoadFormat(subsys string, event string) (*Format, error) {
 			if len(result) > regexp.NumSubexp() {
 				return result, nil
 			}
-			return nil, fmt.Errorf("%s: failed to match regular expression (->%s<- vs ->%s<-)", errMsg, regexp.String(), text)
+			// This error can propagate to API clients, so bound how much of the
+			// text is disclosed and quote it so control characters stay escaped
+			// for clients that print it directly.
+			if len(text) > 32 {
+				text = text[:32] + "..."
+			}
+			return nil, fmt.Errorf("%s: failed to match regular expression (->%s<- vs ->%q<-)", errMsg, regexp.String(), text)
 		}
 
 		err := scanner.Err()
