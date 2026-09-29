@@ -791,12 +791,19 @@ func TestMapShared(t *testing.T) {
 
 	// Each sensor has its own MapShared object, both naming the same map.
 	m1a := program.MapShared("m1", p1)
+	m1a.SetMaxEntries(4096) // shared with other instance
+
+	m2a := program.MapShared("m2", p1)
+	// Only used by sensor1, but still referenced within sensor2 object code
+	m2a.SetMaxEntries(1024)
+
+	// m1 is shared among both sensors
 	m1b := program.MapShared("m1", p2)
 
 	s1 := &sensors.Sensor{
 		Name:   "sensor1",
 		Progs:  []*program.Program{p1},
-		Maps:   []*program.Map{m1a},
+		Maps:   []*program.Map{m1a, m2a},
 		Policy: "policy",
 	}
 	s2 := &sensors.Sensor{
@@ -810,16 +817,20 @@ func TestMapShared(t *testing.T) {
 	err := s1.Load(bpf.MapPrefixPath())
 	require.NoError(t, err)
 	verifyExists("m1")
+	verifyExists("m2")
 
 	// s2 loads — map is opened (not recreated), global ref = 2.
 	err = s2.Load(bpf.MapPrefixPath())
 	require.NoError(t, err)
 	verifyExists("m1")
+	verifyExists("m2")
 
-	// s1 unloads — global ref drops to 1, pin must survive.
+	// s1 unloads — global ref for "m1" drops to 1, pin must survive.
+	// global ref for "m2" drops to 0, pin is removed.
 	err = s1.Unload(true)
 	require.NoError(t, err)
 	verifyExists("m1")
+	verifyRemoved("m2")
 
 	// s2 unloads — global ref drops to 0, pin is removed.
 	err = s2.Unload(true)
