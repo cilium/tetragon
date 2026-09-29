@@ -148,3 +148,21 @@ func TestTracepointFieldParsing(t *testing.T) {
 		}
 	}
 }
+
+// Field definitions that leave no token where the parser expects one. These used
+// to index past the end of the type fields and panic.
+func TestTracepointFieldParsingTruncated(t *testing.T) {
+	tests := []string{
+		"const buf",
+		`int __attribute__((btf_type_tag("user"))) addr`,
+		`unsigned int __attribute__((btf_type_tag("user"))) addr`,
+	}
+
+	for _, s := range tests {
+		resTy, err := parseField(s)
+		if err == nil {
+			t.Logf("Expected error parsing %s, got: %+v", s, resTy)
+			t.Fail()
+		}
+	}
+}
