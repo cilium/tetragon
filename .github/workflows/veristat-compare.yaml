@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: branch
 
       - name: Checkout base ref
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: base
           ref: ${{ github.base_ref }}
@@ -25,7 +25,7 @@ jobs:
           make -C base tetragon-bpf
 
       - name: Run veristat comparison
-        uses: mtardy/veristat-action@f8aaf0aff94a274fea229c37e1165b3083d43611 # v1.0.1
+        uses: mtardy/veristat-action@a405c518108546e1c374fc79b5dcfd3bf5daacef # v1.0.2
         with:
           compare: true
           baseline-programs: "base/bpf/objs/*.o"

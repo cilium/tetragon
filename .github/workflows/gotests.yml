@@ -18,7 +18,7 @@ jobs:
         os: [ ubuntu-24.04, ubuntu-24.04-arm64, ubuntu-26.04 ]
     steps:
     - name: Checkout code
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         path: go/src/github.com/cilium/tetragon/
 
@@ -52,7 +52,7 @@ jobs:
       if: ${{ endsWith(matrix.os, 'arm64') }}
 
     - name: Install bpftool
-      uses: mtardy/setup-bpftool@9bc044304197616a6321d452e04cc059e006d8e2 # v1.0.4
+      uses: mtardy/setup-bpftool@2a6c9e55060f45c3f40464b33e0e930f52f3349b # v1.0.5
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -121,7 +121,7 @@ jobs:
         os: [ ubuntu-24.04, ubuntu-24.04-arm64 ]
     steps:
     - name: Checkout code
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         path: go/src/github.com/cilium/tetragon/
 
@@ -168,7 +168,7 @@ jobs:
     timeout-minutes: 40
     steps:
     - name: Checkout code
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         path: go/src/github.com/cilium/tetragon/
 
@@ -188,7 +188,7 @@ jobs:
     timeout-minutes: 20
     steps:
     - name: Checkout code
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         path: go/src/github.com/cilium/tetragon/
 
@@ -216,7 +216,7 @@ jobs:
     continue-on-error: true
     steps:
     - name: Checkout code
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         path: go/src/github.com/cilium/tetragon/
 
@@ -235,7 +235,7 @@ jobs:
         sudo sed -i '/env_reset/d' /etc/sudoers
 
     - name: Install bpftool
-      uses: mtardy/setup-bpftool@9bc044304197616a6321d452e04cc059e006d8e2 # v1.0.4
+      uses: mtardy/setup-bpftool@2a6c9e55060f45c3f40464b33e0e930f52f3349b # v1.0.5
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 

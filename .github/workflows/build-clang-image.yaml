@@ -19,13 +19,13 @@ jobs:
     steps:
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: amd64,arm64
 
       # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Getting image tag
         id: tag
@@ -37,13 +37,13 @@ jobs:
           fi
 
       - name: Checkout source code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
 
       - name: Preview build Clang image
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           provenance: false
           context: .
@@ -70,13 +70,13 @@ jobs:
     steps:
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: amd64,arm64
 
       # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       # Quay's registry endpoint only accepts credentials or a JWT signed by
       # Quay itself, so the GitHub OIDC token cannot be used as the registry
@@ -109,7 +109,7 @@ jobs:
           echo "token=${robot_token}" >> "$GITHUB_OUTPUT"
 
       - name: Login to quay.io
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: quay.io
           username: ${{ vars.QUAY_ROBOT_CLANG_RELEASE }}
@@ -125,13 +125,13 @@ jobs:
           fi
 
       - name: Checkout Source Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
 
       - name: Release Build clang
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         id: docker_build_release
         with:
           provenance: false
