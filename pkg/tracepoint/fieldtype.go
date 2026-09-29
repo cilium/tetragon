@@ -71,12 +71,23 @@ func parseTy(tyFields []string) (interface{}, error) {
 	fidx := 0
 	nfields := len(tyFields)
 	isConst := false
+	// nextField and peekField return an empty string (which no type or
+	// qualifier matches, so parsing fails with a ParseError) instead of
+	// indexing past the end of tyFields on truncated or malformed field
+	// definitions such as "field:const x;" or
+	// "field:int __attribute__((user)) x;".
 	nextField := func() string {
+		if fidx >= nfields {
+			return ""
+		}
 		ret := tyFields[fidx]
 		fidx++
 		return ret
 	}
 	peekField := func() string {
+		if fidx >= nfields {
+			return ""
+		}
 		return tyFields[fidx]
 	}
 	lastField := func() bool {
