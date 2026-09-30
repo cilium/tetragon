@@ -183,7 +183,7 @@ func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server te
 		defer s.ctxCleanupWG.Done()
 		defer s.removeNotifierAndDrain(l)
 		if agg != nil {
-			go agg.Start()
+			go agg.Run(server.Context())
 		}
 		for {
 			select {
