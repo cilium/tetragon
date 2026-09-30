@@ -4,6 +4,7 @@
 package aggregator
 
 import (
+	"context"
 	"sort"
 	"strings"
 	"time"
@@ -39,16 +40,21 @@ func NewAggregator(
 	}, nil
 }
 
-func (a *Aggregator) Start() {
-	// nolint Since Aggregator.Start is an endless function,
-	// this qualifies as an acceptable use of time.Tick
-	tick := time.Tick(a.window)
+func (a *Aggregator) Run(ctx context.Context) {
+	ticker := time.NewTicker(a.window)
+	defer ticker.Stop()
 	for {
 		select {
 		case event := <-a.events:
 			a.handleEvent(event)
-		case <-tick:
+		case <-ticker.C:
 			a.flush()
+		case <-ctx.Done():
+			// Deliver pending aggregated events instead of dropping
+			// them, then exit so abandoned streams stop leaking the
+			// goroutine and the ticker.
+			a.flush()
+			return
 		}
 	}
 }
