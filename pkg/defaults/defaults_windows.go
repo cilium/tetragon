@@ -69,6 +69,10 @@ const (
 	// process call heap map used by uprobe/usdt sensors.
 	DefaultUprobeHeapSize = 32768
 
+	// DefaultFentryHeapSize is the default maximum number of entries in the
+	// process call heap map used by fentry/fexit sensors.
+	DefaultFentryHeapSize = 32768
+
 	// DefaultMaxGRPCRecvMsgSize is the default maximum gRPC receive message
 	// size for the tetra CLI (10MB).
 	DefaultMaxGRPCRecvMsgSize = 10 * 1024 * 1024
