@@ -33,8 +33,7 @@ func (s *stubServer) Send(*tetragon.GetEventsResponse) error {
 	return nil
 }
 
-func newTestAggregator(t *testing.T) (*Aggregator, error) {
-	t.Helper()
+func newTestAggregator() (*Aggregator, error) {
 	return NewAggregator(&stubServer{}, &tetragon.AggregationOptions{
 		WindowSize:        durationpb.New(time.Hour),
 		ChannelBufferSize: 10,
@@ -49,7 +48,7 @@ func TestAggregatorStopsOnCancel(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		for range 3 {
-			agg, err := newTestAggregator(t)
+			agg, err := newTestAggregator()
 			require.NoError(t, err)
 			go agg.Run(ctx)
 		}
@@ -58,9 +57,9 @@ func TestAggregatorStopsOnCancel(t *testing.T) {
 	})
 }
 
-// Events flowing through an aggregator must still be delivered, and
-// stopping must not lose them.
-func TestAggregatorSendsEventsBeforeStop(t *testing.T) {
+// Events flowing through an aggregator are forwarded as they arrive
+// (pass-through); stopping behaviour is covered by the tests below.
+func TestAggregatorForwardsEventsPassThrough(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		stub := &stubServer{}
 		ctx, cancel := context.WithCancel(t.Context())
@@ -89,7 +88,9 @@ func TestAggregatorFlushesPendingCacheOnStop(t *testing.T) {
 			ChannelBufferSize: 10,
 		})
 		require.NoError(t, err)
-		// Prime the cache the same way a tick flush would find it.
+		// Prime the cache by hand: handleEvent only Sends (default-only
+		// switch), so production traffic never fills the cache — seeding
+		// is the only way to reach the flush path.
 		agg.cache["pending-key"] = &tetragon.GetEventsResponse{}
 		go agg.Run(ctx)
 		cancel()
