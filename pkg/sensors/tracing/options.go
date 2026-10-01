@@ -49,6 +49,7 @@ type specOptions struct {
 	SleepableOffloadSize int
 	UprobeHeapSize       int
 	FentryHeapSize       int
+	LsmHeapSize          int
 	OverrideMethod       OverrideMethod
 	policyMode           policyconf.Mode
 }
@@ -147,6 +148,19 @@ var opts = map[string]opt{
 				return fmt.Errorf("fentry-heap-size must be positive, got %d", size)
 			}
 			options.FentryHeapSize = size
+			return nil
+		},
+	},
+	option.KeyLsmHeapSize: {
+		set: func(str string, options *specOptions) (err error) {
+			size, err := strconv.Atoi(str)
+			if err != nil {
+				return err
+			}
+			if size <= 0 {
+				return fmt.Errorf("lsm-heap-size must be positive, got %d", size)
+			}
+			options.LsmHeapSize = size
 			return nil
 		},
 	},

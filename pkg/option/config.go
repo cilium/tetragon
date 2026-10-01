@@ -151,6 +151,8 @@ type config struct {
 
 	FentryHeapSize int
 
+	LsmHeapSize int
+
 	EnableGRPCDeprecatedTP bool
 
 	KeepCollection bool
@@ -209,6 +211,9 @@ var (
 
 		// Set default value for the fentry/fexit process call heap map.
 		FentryHeapSize: defaults.DefaultFentryHeapSize,
+
+		// Set default value for the lsm process call heap map.
+		LsmHeapSize: defaults.DefaultLsmHeapSize,
 
 		// Set default value for deleted pod lru cache
 		DeletedPodCacheSize: constants.WatcherDeletedPodCacheSize,

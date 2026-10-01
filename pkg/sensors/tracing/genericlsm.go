@@ -28,7 +28,6 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
-	"github.com/cilium/tetragon/pkg/defaults"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -611,8 +610,8 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 
 	maps = append(maps, createSelectorMaps(load, lsmEntry.selectors, len(lsmEntry.selectors.SubStrings()))...)
 
-	maps = append(maps, getHeapMaps("lsm_", defaults.DefaultLsmHeapSize, 0, load)...)
-	maps = append(maps, getHeapMaps("lsm_", defaults.DefaultLsmHeapSize, 0, loadOutput)...)
+	maps = append(maps, getHeapMaps("lsm_", option.Config.LsmHeapSize, polInfo.specOpts.LsmHeapSize, load)...)
+	maps = append(maps, getHeapMaps("lsm_", option.Config.LsmHeapSize, polInfo.specOpts.LsmHeapSize, loadOutput)...)
 
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, selMatchBinariesMap)

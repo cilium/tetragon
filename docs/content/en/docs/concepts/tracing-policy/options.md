@@ -16,11 +16,12 @@ spec:
 ```
 
 Options array is passed and processed by each hook used in the spec file that
-supports options. At the moment it's availabe for kprobe, uprobe and fentry hooks.
+supports options. At the moment it's availabe for kprobe, uprobe, fentry and lsm hooks.
 
 - [`Kprobe Options`](#kprobe-options): options for kprobe hooks.
 - [`Uprobe Options`](#uprobe-options): options for uprobe hooks.
 - [`Fentry Options`](#fentry-options): options for fentry hooks.
+- [`Lsm Options`](#lsm-options): options for lsm hooks.
 
 ## Kprobe options
 
@@ -120,5 +121,36 @@ Example:
 ```yaml
   options:
     - name: "fentry-heap-size"
+      value: "65536"
+```
+
+## Lsm options
+
+- [`lsm-heap-size`](#lsm-heap-size): set the process call heap map size
+
+### lsm-heap-size
+
+This option sets the maximum number of entries for following heap maps:
+
+- `process_call_heap`
+- `ratelimit_heap`
+- `string_postfix_maps_heap`
+- `string_prefix_maps_heap`
+- `string_maps_heap`
+- `buffer_heap_map`
+
+used by the lsm sensor. It applies to all `lsmhooks` defined in the spec file.
+
+When not set, all maps above are shared globally across all policies and sized
+by the `--lsm-heap-size` daemon flag (default `32768`). Setting this option
+makes the spec file use its own dedicated maps of the given size instead.
+
+It takes a positive integer as value.
+
+Example:
+
+```yaml
+  options:
+    - name: "lsm-heap-size"
       value: "65536"
 ```
