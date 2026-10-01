@@ -61,7 +61,7 @@ func LoadConfig(bpfDir string, sens []*Sensor) error {
 }
 
 func (s *Sensor) policyDir() string {
-	return tracingpolicy.PolicyDir(s.Namespace, s.Policy)
+	return tracingpolicy.PolicyDir(s.Domain, s.Namespace, s.Policy)
 }
 
 func (s *Sensor) createDirs(bpfDir string) {

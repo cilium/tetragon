@@ -23,10 +23,10 @@ type EnforcerMap struct {
 	*ebpf.Map
 }
 
-func openEnforcerMap(polName, polNamespace string, opts *ebpf.LoadPinOptions) (EnforcerMap, error) {
+func openEnforcerMap(polName, polNamespace, polDomain string, opts *ebpf.LoadPinOptions) (EnforcerMap, error) {
 	fname := filepath.Join(
 		bpf.MapPrefixPath(),
-		tracingpolicy.PolicyDir(polNamespace, polName),
+		tracingpolicy.PolicyDir(polDomain, polNamespace, polName),
 		EnforcerDataMapName)
 	m, err := ebpf.LoadPinnedMap(fname, opts)
 	if err != nil {
@@ -37,8 +37,8 @@ func openEnforcerMap(polName, polNamespace string, opts *ebpf.LoadPinOptions) (E
 }
 
 // open policy enforecer map for reading
-func OpenEnforcerMap(polName, polNamespace string) (EnforcerMap, error) {
-	return openEnforcerMap(polName, polNamespace, &ebpf.LoadPinOptions{ReadOnly: true})
+func OpenEnforcerMap(polName, polNamespace, polDomain string) (EnforcerMap, error) {
+	return openEnforcerMap(polName, polNamespace, polDomain, &ebpf.LoadPinOptions{ReadOnly: true})
 }
 
 type EnforcerMapKey struct {
@@ -66,8 +66,8 @@ func (m EnforcerMap) Dump() (map[EnforcerMapKey]EnforcerMapVal, error) {
 	return ret, iter.Err()
 }
 
-func DumpEnforcerMap(polName, polNamespace string) (map[EnforcerMapKey]EnforcerMapVal, error) {
-	m, err := OpenEnforcerMap(polName, polNamespace)
+func DumpEnforcerMap(polName, polNamespace, polDomain string) (map[EnforcerMapKey]EnforcerMapVal, error) {
+	m, err := OpenEnforcerMap(polName, polNamespace, polDomain)
 	if err != nil {
 		return nil, err
 	}
@@ -76,8 +76,8 @@ func DumpEnforcerMap(polName, polNamespace string) (map[EnforcerMapKey]EnforcerM
 }
 
 // NB: only meant for testing
-func ResetEnforcerMap(_ *testing.T, polName, polNamespace string) error {
-	m, err := openEnforcerMap(polName, polNamespace, &ebpf.LoadPinOptions{ReadOnly: false})
+func ResetEnforcerMap(_ *testing.T, polName, polNamespace, polDomain string) error {
+	m, err := openEnforcerMap(polName, polNamespace, polDomain, &ebpf.LoadPinOptions{ReadOnly: false})
 	if err != nil {
 		return err
 	}

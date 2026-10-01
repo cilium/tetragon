@@ -224,6 +224,7 @@ func createGenericUsdtSensor(
 		Maps:      maps,
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
+		Domain:    polInfo.domain,
 		DestroyHook: func() error {
 			return cleanupUsdtEntries(ids)
 		},

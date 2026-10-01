@@ -47,6 +47,8 @@ type Sensor struct {
 	Namespace string
 	// Policy name the sensor is part of.
 	Policy string
+	// Domain of the policy the sensor is part of.
+	Domain string
 	// When loaded this contains bpffs root directory
 	BpfDir string
 	// Progs are all the BPF programs that exist on the filesystem.
@@ -213,6 +215,7 @@ func SensorBuilder(tp tracingpolicy.TracingPolicy, name string, p []*program.Pro
 		Maps:      m,
 		Policy:    tp.TpName(),
 		Namespace: tp.TpNamespace(),
+		Domain:    tp.TpDomain(),
 	}
 }
 

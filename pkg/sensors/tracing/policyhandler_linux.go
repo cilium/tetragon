@@ -24,6 +24,7 @@ import (
 type policyInfo struct {
 	name          string
 	namespace     string
+	domain        string
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
 	policyConf    *program.Map
@@ -38,6 +39,7 @@ func newPolicyInfo(
 	policyID policyfilter.PolicyID,
 ) (*policyInfo, error) {
 	return newPolicyInfoFromSpec(
+		policy.TpDomain(),
 		policy.TpNamespace(),
 		policy.TpName(),
 		policyID,
@@ -106,7 +108,7 @@ func countSelectors(spec *v1alpha1.TracingPolicySpec) int {
 }
 
 func newPolicyInfoFromSpec(
-	namespace, name string,
+	domain, namespace, name string,
 	policyID policyfilter.PolicyID,
 	spec *v1alpha1.TracingPolicySpec,
 	customHandler eventhandler.Handler,
@@ -125,6 +127,7 @@ func newPolicyInfoFromSpec(
 	return &policyInfo{
 		name:          name,
 		namespace:     namespace,
+		domain:        domain,
 		policyID:      policyID,
 		customHandler: customHandler,
 		policyConf:    nil,

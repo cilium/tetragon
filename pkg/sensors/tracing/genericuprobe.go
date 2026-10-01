@@ -1060,6 +1060,7 @@ func createGenericUprobeSensor(
 		Maps:                    maps,
 		Policy:                  polInfo.name,
 		Namespace:               polInfo.namespace,
+		Domain:                  polInfo.domain,
 		DisableNotAllowedReason: disableNotAllowedReason,
 		Statuses:                statuses,
 		DestroyHook: func() error {

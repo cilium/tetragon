@@ -214,7 +214,7 @@ func TestModeEnforcer(t *testing.T) {
 		statsChecker.Check()
 		require.NoError(t, cmdErr)
 		require.Equal(t, 1, cnt[1], "count=%v", cnt)
-		enfDump, enfDumpErr := stracing.DumpEnforcerMap(polName, polNamespace)
+		enfDump, enfDumpErr := stracing.DumpEnforcerMap(polName, polNamespace, tp.TpDomain())
 		require.NoError(t, enfDumpErr)
 		require.Len(t, enfDump, 1)
 		require.Contains(t, cmdOut, "operation not permitted")
@@ -226,7 +226,7 @@ func TestModeEnforcer(t *testing.T) {
 	}
 
 	resetEnforcerMap := func() {
-		err := stracing.ResetEnforcerMap(t, polName, polNamespace)
+		err := stracing.ResetEnforcerMap(t, polName, polNamespace, tp.TpDomain())
 		require.NoError(t, err)
 	}
 
@@ -251,7 +251,7 @@ func TestModeEnforcer(t *testing.T) {
 		require.NoError(t, cmdErr)
 		require.Equal(t, 1, cnt[1], "count=%v", cnt)
 		require.NotContains(t, cmdOut, "operation not permitted")
-		enfDump, enfDumpErr := stracing.DumpEnforcerMap(polName, polNamespace)
+		enfDump, enfDumpErr := stracing.DumpEnforcerMap(polName, polNamespace, tp.TpDomain())
 		require.NoError(t, enfDumpErr)
 		require.Empty(t, enfDump)
 	}

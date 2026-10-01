@@ -473,9 +473,12 @@ func createGenericLsmSensor(
 	}
 
 	return &sensors.Sensor{
-		Name:  name,
-		Progs: progs,
-		Maps:  maps,
+		Name:      name,
+		Progs:     progs,
+		Maps:      maps,
+		Policy:    polInfo.name,
+		Namespace: polInfo.namespace,
+		Domain:    polInfo.domain,
 		DestroyHook: func() error {
 			var errs error
 			for _, id := range ids {
@@ -496,8 +499,6 @@ func createGenericLsmSensor(
 			}
 			return errs
 		},
-		Policy:    polInfo.name,
-		Namespace: polInfo.namespace,
 	}, nil
 }
 
