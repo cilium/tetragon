@@ -149,6 +149,8 @@ type config struct {
 
 	UprobeHeapSize int
 
+	FentryHeapSize int
+
 	EnableGRPCDeprecatedTP bool
 
 	KeepCollection bool
@@ -216,6 +218,9 @@ var (
 
 		// Set default value for the uprobe/usdt process call heap map.
 		UprobeHeapSize: defaults.DefaultUprobeHeapSize,
+
+		// Set default value for the fentry/fexit process call heap map.
+		FentryHeapSize: defaults.DefaultFentryHeapSize,
 
 		// Set default value for deleted pod lru cache
 		DeletedPodCacheSize: constants.WatcherDeletedPodCacheSize,
