@@ -6,6 +6,7 @@ package sensors
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -63,6 +64,17 @@ func (ck *collectionKey) String() string {
 }
 
 func newCollectionKey(name, namespace string) (collectionKey, error) {
+	// ":" and "/" are the separators used to render a collection key as a
+	// bpffs pin directory, so allowing them inside a component would make
+	// distinct keys collide on a single directory.
+	for _, part := range []struct{ kind, val string }{
+		{"name", name},
+		{"namespace", namespace},
+	} {
+		if strings.ContainsAny(part.val, ":/") {
+			return collectionKey{}, fmt.Errorf("policy %s %q must not contain ':' or '/'", part.kind, part.val)
+		}
+	}
 	return collectionKey{name, namespace}, nil
 }
 
