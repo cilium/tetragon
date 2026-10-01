@@ -116,9 +116,10 @@ generic_lsm_actions(void *ctx)
 	bool postit = generic_actions(ctx, (struct bpf_map_def *)&lsm_calls);
 
 	struct msg_generic_kprobe *e;
-	int zero = 0;
+	heap_key_t key = heap_key();
+	int ret;
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = map_lookup_elem(&process_call_heap, &key);
 	if (!e)
 		return 0;
 
@@ -137,8 +138,13 @@ generic_lsm_actions(void *ctx)
 #endif
 
 	// If NoPost action is set, check for Override action here
-	if (!e->lsm.post)
-		return try_override(ctx, (struct bpf_map_def *)&override_tasks);
+	if (!e->lsm.post) {
+		ret = try_override(ctx, (struct bpf_map_def *)&override_tasks);
+		// Non zero return skips the output program, release heaps here.
+		if (ret)
+			heap_dtor(ret);
+		return ret;
+	}
 
 	return 0;
 }
