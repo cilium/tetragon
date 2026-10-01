@@ -42,10 +42,10 @@ struct {
  * preemption, unlike kprobes/tracepoints, so their per-process heap maps
  * need to be hashes (keyed by pid_tgid) instead of per-cpu arrays.
  *
- * Same for fentry/fexit, the bpf trampoline only disables migration.
+ * Same for fentry/fexit and lsm, the bpf trampoline only disables migration.
  */
 #if defined(GENERIC_UPROBE) || defined(GENERIC_URETPROBE) || defined(GENERIC_USDT) || \
-	defined(GENERIC_FENTRY) || defined(GENERIC_FEXIT)
+	defined(GENERIC_FENTRY) || defined(GENERIC_FEXIT) || defined(GENERIC_LSM)
 #define USE_HASH_HEAP
 #endif
 

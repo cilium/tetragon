@@ -15,19 +15,16 @@
 #include "retprobe_map.h"
 #include "types/basic.h"
 #include "generic_maps.h"
-
-#include "generic_maps.h"
 #include "generic_calls.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
-__attribute__((section("lsm/generic_lsm_output"), used)) int
-generic_lsm_output(void *ctx)
+FUNC_INLINE int lsm_output(void *ctx)
 {
 	struct msg_generic_kprobe *e;
-	int zero = 0;
+	heap_key_t key = heap_key();
 
-	e = map_lookup_elem(&process_call_heap, &zero);
+	e = map_lookup_elem(&process_call_heap, &key);
 	if (!e)
 		return 0;
 #ifdef __V511_BPF_PROG
@@ -48,4 +45,13 @@ generic_lsm_output(void *ctx)
 	if (e->lsm.post)
 		generic_output(ctx, MSG_OP_GENERIC_LSM);
 	return try_override(ctx, (struct bpf_map_def *)&override_tasks);
+}
+
+/* The output program is the last one on the hook, release the heaps
+ * filled by the core program.
+ */
+__attribute__((section("lsm/generic_lsm_output"), used)) int
+generic_lsm_output(void *ctx)
+{
+	return heap_dtor(lsm_output(ctx));
 }
