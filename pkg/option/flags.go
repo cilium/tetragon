@@ -98,6 +98,8 @@ const (
 
 	KeyUprobeHeapSize = "uprobe-heap-size"
 
+	KeyFentryHeapSize = "fentry-heap-size"
+
 	KeyUsePerfRingBuffer = "use-perf-ring-buffer"
 	KeyRBSize            = "rb-size"
 	KeyRBSizeTotal       = "rb-size-total"
@@ -368,6 +370,8 @@ func ReadAndSetFlags() error {
 	Config.SleepableOffloadSize = viper.GetInt(KeySleepableOffloadSize)
 
 	Config.UprobeHeapSize = viper.GetInt(KeyUprobeHeapSize)
+
+	Config.FentryHeapSize = viper.GetInt(KeyFentryHeapSize)
 
 	Config.EnableGRPCDeprecatedTP = viper.GetBool(KeyEnableDeprecatedTPGRPC)
 
@@ -660,6 +664,8 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Int(KeySleepableOffloadSize, defaults.DefaultSleepableOffloadSize, "Set the maximum number of entries in the sleepable offload map")
 
 	flags.Int(KeyUprobeHeapSize, defaults.DefaultUprobeHeapSize, "Set the maximum number of entries in the process call heap map used by uprobe/usdt sensors")
+
+	flags.Int(KeyFentryHeapSize, defaults.DefaultFentryHeapSize, "Set the maximum number of entries in the process call heap map used by fentry/fexit sensors")
 
 	flags.Bool(KeyEnableDeprecatedTPGRPC, false, "Enable deprecated gRPC TracingPolicy APIs")
 
