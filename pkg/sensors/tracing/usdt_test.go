@@ -692,7 +692,7 @@ spec:` + opts + `
 	}
 
 	// all the per-process heap maps resized by the uprobe-heap-size option
-	// (see getUprobeHeapMap in genericusdt.go)
+	// (see getHeapMaps in generic.go)
 	heapMapNames := []string{
 		"process_call_heap",
 		"buffer_heap_map",
@@ -723,7 +723,7 @@ spec:` + opts + `
 		return val
 	}
 
-	// heap maps as MapShared at global scope (/sys/fs/bpf/tetragon/<name>)
+	// heap maps as MapShared at global scope (/sys/fs/bpf/tetragon/uprobe_<name>)
 	t.Run("shared", func(t *testing.T) {
 		sens := loadSensors(t, policy(""))
 		defer unloadSensors(sens)
@@ -732,7 +732,7 @@ spec:` + opts + `
 		for _, name := range heapMapNames {
 			m := mapsByName[name]
 			require.NotNil(t, m, "%s map not found in sensor", name)
-			assert.Equal(t, name, m.PinPath)
+			assert.Equal(t, "uprobe_"+name, m.PinPath)
 			assert.Equal(t, uint32(defaults.DefaultUprobeHeapSize), getMaxEntries(m))
 		}
 	})
