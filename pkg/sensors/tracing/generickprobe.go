@@ -35,6 +35,7 @@ import (
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -1043,8 +1044,12 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		maps = append(maps, retProbe)
 	}
 
-	callHeap := program.MapBuilderSensor("process_call_heap", load)
-	maps = append(maps, callHeap)
+	if has.fentry {
+		maps = append(maps, getHeapMaps("fentry_", defaults.DefaultFentryHeapSize, 0, load)...)
+	} else {
+		callHeap := program.MapBuilderSensor("process_call_heap", load)
+		maps = append(maps, callHeap)
+	}
 
 	// loading the stack trace map in any case so that it does not end up as an
 	// anonymous map (as it's always used by the BPF prog) and is clearly linked
@@ -1140,8 +1145,12 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		}
 
 		// add maps with non-default paths (pins) to the retprobe
-		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
-		maps = append(maps, callHeap)
+		if has.fentry {
+			maps = append(maps, getHeapMaps("fentry_", defaults.DefaultFentryHeapSize, 0, loadret)...)
+		} else {
+			callHeap := program.MapBuilderSensor("process_call_heap", loadret)
+			maps = append(maps, callHeap)
+		}
 
 		if config.EnableLargeProgs() {
 			socktrack := program.MapBuilderSensor("socktrack_map", loadret)
