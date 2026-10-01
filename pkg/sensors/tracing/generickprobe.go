@@ -664,6 +664,7 @@ func createGenericKprobeSensor(
 		Maps:      maps,
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
+		Domain:    polInfo.domain,
 		DestroyHook: func() error {
 			var errs error
 
