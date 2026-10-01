@@ -54,62 +54,63 @@ struct {
 __attribute__((section((SECTION_ENTRY)), used)) int
 generic_fentry_event(void *ctx)
 {
-	return generic_start_process_filter(ctx, (struct bpf_map_def *)&fentry_calls);
+	return heap_dtor(generic_start_process_filter(ctx, (struct bpf_map_def *)&fentry_calls));
 }
 
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fentry_setup_event(void *ctx)
 {
-	return generic_process_event_and_setup(ctx, (struct bpf_map_def *)&fentry_calls);
+	return heap_dtor(generic_process_event_and_setup(ctx, (struct bpf_map_def *)&fentry_calls));
 }
 
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fentry_process_event(void *ctx)
 {
-	return generic_process_event(ctx, (struct bpf_map_def *)&fentry_calls, __READ_ARG_ALL);
+	return heap_dtor(generic_process_event(ctx, (struct bpf_map_def *)&fentry_calls, __READ_ARG_ALL));
 }
 
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fentry_process_filter(void *ctx)
 {
-	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_1,
-					    TAIL_CALL_FILTER, /* fail */
-					    TAIL_CALL_FILTER_2, /* pass */
-					    (struct bpf_map_def *)&fentry_calls);
+	return heap_dtor(generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_1,
+						      TAIL_CALL_FILTER, /* fail */
+						      TAIL_CALL_FILTER_2, /* pass */
+						      (struct bpf_map_def *)&fentry_calls));
 }
 
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fentry_process_filter_2(void *ctx)
 {
-	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_2,
-					    TAIL_CALL_FILTER, /* fail */
-					    TAIL_CALL_SETUP, /* pass */
-					    (struct bpf_map_def *)&fentry_calls);
+	return heap_dtor(generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_2,
+						      TAIL_CALL_FILTER, /* fail */
+						      TAIL_CALL_SETUP, /* pass */
+						      (struct bpf_map_def *)&fentry_calls));
 }
 
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fentry_filter_arg(void *ctx)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&fentry_calls, true, __FILTER_ARG_ALL);
+	return heap_dtor(generic_filter_arg(ctx, (struct bpf_map_def *)&fentry_calls, true,
+					    __FILTER_ARG_ALL));
 }
 
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fentry_actions(void *ctx)
 {
-	generic_actions(ctx, (struct bpf_map_def *)&fentry_calls);
+	heap_dtor(generic_actions(ctx, (struct bpf_map_def *)&fentry_calls));
 	return 0;
 }
 
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fentry_output(void *ctx)
 {
-	return generic_output(ctx, MSG_OP_GENERIC_KPROBE);
+	return heap_dtor(generic_output(ctx, MSG_OP_GENERIC_KPROBE));
 }
 
 #ifndef __V61_BPF_PROG
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fentry_path(void *ctx)
 {
-	return generic_path(ctx, (struct bpf_map_def *)&fentry_calls);
+	return heap_dtor(generic_path(ctx, (struct bpf_map_def *)&fentry_calls));
 }
 #endif

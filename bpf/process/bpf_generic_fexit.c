@@ -46,27 +46,27 @@ generic_fexit_event(void *ctx)
 	__u64 ret;
 
 	get_func_ret(ctx, &ret);
-	generic_retprobe(ctx, (struct bpf_map_def *)&fexit_calls, ret);
+	heap_dtor(generic_retprobe(ctx, (struct bpf_map_def *)&fexit_calls, ret));
 	return 0;
 }
 
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fexit_filter_arg(void *ctx)
 {
-	generic_filter_arg(ctx, (struct bpf_map_def *)&fexit_calls, false, __FILTER_ARG_ALL);
+	heap_dtor(generic_filter_arg(ctx, (struct bpf_map_def *)&fexit_calls, false, __FILTER_ARG_ALL));
 	return 0;
 }
 
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fexit_actions(void *ctx)
 {
-	generic_actions(ctx, (struct bpf_map_def *)&fexit_calls);
+	heap_dtor(generic_actions(ctx, (struct bpf_map_def *)&fexit_calls));
 	return 0;
 }
 
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fexit_output(void *ctx)
 {
-	generic_output(ctx, MSG_OP_GENERIC_KPROBE);
+	heap_dtor(generic_output(ctx, MSG_OP_GENERIC_KPROBE));
 	return 0;
 }
