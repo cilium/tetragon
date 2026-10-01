@@ -584,6 +584,7 @@ func createGenericTracepointSensor(
 		Name:      name,
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
+		Domain:    polInfo.domain,
 	}
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))

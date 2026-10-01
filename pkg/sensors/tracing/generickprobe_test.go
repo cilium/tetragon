@@ -104,7 +104,7 @@ func Test_SensorDestroyHook(t *testing.T) {
 	// insertion in the table in AddKprobe, but this is done by the caller to
 	// have just DestroyHook that regroups all the potential multiple kprobes
 	// contained in one sensor.
-	policyInfo, err := newPolicyInfoFromSpec("", "test_policy", policyfilter.NoFilterID, spec, nil)
+	policyInfo, err := newPolicyInfoFromSpec("", "", "test_policy", policyfilter.NoFilterID, spec, nil)
 	require.NoError(t, err)
 	sensor, err := createGenericKprobeSensor(spec, "test_sensor", policyInfo, simpleValidateInfo(spec.KProbes), kprobe)
 	if err != nil {
