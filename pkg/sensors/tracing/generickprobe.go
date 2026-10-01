@@ -35,7 +35,6 @@ import (
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
-	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -501,6 +500,9 @@ type hasMaps struct {
 	sockTrack  bool
 	selector   bool
 	fentry     bool
+
+	// fentry process_call_heap (and friends) size override
+	fentryHeapSize int
 }
 
 // hasMapsSetup setups the has maps for the per policy maps. The per kprobe maps
@@ -557,6 +559,10 @@ func createGenericKprobeSensor(
 	}
 
 	has := hasMapsSetup(spec, kprobes, fentry)
+
+	if fentry {
+		has.fentryHeapSize = polInfo.specOpts.FentryHeapSize
+	}
 
 	// use multi kprobe only if:
 	// - it's not disabled by spec option
@@ -1045,7 +1051,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 
 	if has.fentry {
-		maps = append(maps, getHeapMaps("fentry_", defaults.DefaultFentryHeapSize, 0, load)...)
+		maps = append(maps, getHeapMaps("fentry_", option.Config.FentryHeapSize, has.fentryHeapSize, load)...)
 	} else {
 		callHeap := program.MapBuilderSensor("process_call_heap", load)
 		maps = append(maps, callHeap)
@@ -1146,7 +1152,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 
 		// add maps with non-default paths (pins) to the retprobe
 		if has.fentry {
-			maps = append(maps, getHeapMaps("fentry_", defaults.DefaultFentryHeapSize, 0, loadret)...)
+			maps = append(maps, getHeapMaps("fentry_", option.Config.FentryHeapSize, has.fentryHeapSize, loadret)...)
 		} else {
 			callHeap := program.MapBuilderSensor("process_call_heap", loadret)
 			maps = append(maps, callHeap)
