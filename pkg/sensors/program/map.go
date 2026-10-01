@@ -244,6 +244,11 @@ func MapShared(name string, lds ...*Program) *Map {
 	return mapBuilder(name, name, MapTypeGlobal, false, true, lds...)
 }
 
+// MapSharedPin creates a shared global map with distinct ELF and bpffs names.
+func MapSharedPin(name, pinName string, lds ...*Program) *Map {
+	return mapBuilder(name, pinName, MapTypeGlobal, false, true, lds...)
+}
+
 func mapUser(name, pinName string, ty MapType, prog *Program) *Map {
 	return &Map{name, pinName, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false, false, nil, nil}
 }
