@@ -17,8 +17,12 @@ func Namespace(tp TracingPolicy) string {
 	return ""
 }
 
+// sanitize removes the characters that policyDir() and
+// collectionKey.String() use as separators, so that a policy component
+// cannot inject structure into the string it is embedded in.
 func sanitize(name string) string {
-	return strings.ReplaceAll(name, "/", "_")
+	name = strings.ReplaceAll(name, "/", "_")
+	return strings.ReplaceAll(name, ":", "_")
 }
 
 func policyDir(namespace, policyName string) string {
