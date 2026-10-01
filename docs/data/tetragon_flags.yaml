@@ -214,6 +214,10 @@ options:
     - name: log-level
       default_value: info
       usage: Set log level
+    - name: lsm-heap-size
+      default_value: "32768"
+      usage: |
+        Set the maximum number of entries in the process call heap map used by lsm sensors
     - name: memprofile
       usage: Store MEM profile into provided file
     - name: metrics-label-filter
