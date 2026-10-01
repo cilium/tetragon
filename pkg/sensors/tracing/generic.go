@@ -83,6 +83,38 @@ func createStackTraceMap(enabled bool, load *program.Program) *program.Map {
 // Takes arg.Resolve as input and return the path in []string
 // Input   : my.super.field[123].my.sub.field
 // Output  : []string{"my", "super", "field", "[123]", "my", "sub", "field"}
+// getHeapMaps returns the hash heap maps (see USE_HASH_HEAP in
+// bpf/process/heap.h) for the load program. With userSize set (policy
+// option) the maps are program specific, otherwise they are shared by all
+// sensors of the same group and pinned under the group's prefix (like
+// "uprobe_" or "fentry_"). The prefix keeps them away from the per-cpu
+// heap maps of other sensors and from other groups' hash heaps, which
+// could clobber each other's pid_tgid entries.
+func getHeapMaps(prefix string, size, userSize int, load *program.Program) []*program.Map {
+	var maps []*program.Map
+
+	for _, name := range []string{
+		"process_call_heap",
+		"buffer_heap_map",
+		"string_maps_heap",
+		"string_prefix_maps_heap",
+		"string_postfix_maps_heap",
+		"ratelimit_heap",
+	} {
+		var m *program.Map
+
+		if userSize != 0 {
+			m = program.MapBuilderProgram(name, load)
+			m.SetMaxEntries(userSize)
+		} else {
+			m = program.MapSharedPin(name, prefix+name, load)
+			m.SetMaxEntries(size)
+		}
+		maps = append(maps, m)
+	}
+	return maps
+}
+
 func formatBTFPath(resolvePath string) ([]string, error) {
 	var path []string
 	var buffer strings.Builder
