@@ -166,6 +166,7 @@ static void BPF_FUNC(tail_call, void *ctx, void *map, uint32_t index);
 
 /* System helpers */
 static uint32_t BPF_FUNC(get_smp_processor_id);
+static void *BPF_FUNC(this_cpu_ptr, const void *percpu_ptr);
 
 /* Packet misc meta data */
 static uint32_t BPF_FUNC(get_cgroup_classid, struct __sk_buff *skb);
