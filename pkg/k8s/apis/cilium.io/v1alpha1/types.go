@@ -320,8 +320,10 @@ type ActionSelector struct {
 
 type TracepointSpec struct {
 	// Tracepoint subsystem
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9_][a-zA-Z0-9_-]*$`
 	Subsystem string `json:"subsystem"`
 	// Tracepoint event
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9_][a-zA-Z0-9_-]*$`
 	Event string `json:"event"`
 	// +kubebuilder:validation:Optional
 	// A short message of 256 characters max that will be included
