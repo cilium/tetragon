@@ -15,7 +15,7 @@ on:
 jobs:
   build-preview:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
@@ -55,7 +55,7 @@ jobs:
 
   build-and-push:
     if: github.event_name == 'push'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # Pins the OIDC token subject to
     # repo:cilium/tetragon:environment:release-clang, which is the identity
     # federated with the Quay robot account.
@@ -213,7 +213,7 @@ jobs:
     if: github.event_name == 'push' && github.repository == 'cilium/tetragon'
     needs: build-and-push
     name: Display Digests
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Downloading Image Digests
         shell: bash
