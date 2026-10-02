@@ -122,6 +122,14 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) (err error) {
 		return
 	}
 	col.policyfilterID = uint64(filterID)
+	defer func() {
+		if err != nil {
+			// if addTracingPolicy fails, remove the policyfilter ID reset the value in
+			// the collection.
+			h.pfState.DelPolicy(filterID)
+			col.policyfilterID = uint64(policyfilter.NoFilterID)
+		}
+	}()
 
 	sensors, err := sensorsFromPolicyHandlers(op.tp, filterID)
 	if err != nil {
