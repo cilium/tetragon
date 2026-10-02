@@ -184,7 +184,7 @@ jobs:
         go test --failfast .\pkg\... .\cmd\...
 
   modules:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
     - name: Checkout code
@@ -208,7 +208,7 @@ jobs:
 
   race:
     name: Race detector
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 50
     # Advisory for now: a detected race should surface in the job logs without
     # blocking the PR while we shake out the initial package list. Flip to

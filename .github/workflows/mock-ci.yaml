@@ -27,7 +27,7 @@ concurrency:
 jobs:
   commit-status-start:
     name: Commit Status Start
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       statuses: write
@@ -40,7 +40,7 @@ jobs:
   mock-ci:
     name: Mock CI
     needs: commit-status-start
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Run mock CI
         run: echo "Mock CI completed successfully"

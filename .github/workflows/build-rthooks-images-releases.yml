@@ -18,7 +18,7 @@ jobs:
     environment:
       name: release
       deployment: false
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
@@ -182,7 +182,7 @@ jobs:
   image-digests:
     if: ${{ github.repository == 'cilium/tetragon' }}
     name: Display Digests
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: build-and-push
     steps:
       - name: Downloading Image Digests

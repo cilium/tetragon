@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       # Required by the Quay OIDC token exchange.
@@ -198,7 +198,7 @@ jobs:
   helm-chart:
     if: ${{ success() }}
     name: Push OCI Helm Chart
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: build-and-push
     permissions:
       contents: read
