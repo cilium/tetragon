@@ -283,4 +283,10 @@ func TestParseCgroupRate(t *testing.T) {
 
 	opt = option.ParseCgroupRate("1,nope")
 	assert.Equal(t, empty, opt)
+
+	opt = option.ParseCgroupRate("-1,1s")
+	assert.Equal(t, empty, opt)
+
+	opt = option.ParseCgroupRate("1,-1s")
+	assert.Equal(t, empty, opt)
 }
