@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
 func TestTracepointValidationWrongSubsystem(t *testing.T) {
@@ -55,7 +57,7 @@ spec:
     event: "sys_enter_openat"
 `
 
-	err := checkCrd(t, crd)
+	_, err := tracingpolicy.FromYAML(crd)
 	require.Error(t, err)
 }
 
@@ -71,7 +73,7 @@ spec:
     event: ""
 `
 
-	err := checkCrd(t, crd)
+	_, err := tracingpolicy.FromYAML(crd)
 	require.Error(t, err)
 }
 
