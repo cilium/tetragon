@@ -24,8 +24,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -37,7 +39,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/internal/consistencyhandler"
 	"sigs.k8s.io/controller-runtime/pkg/client/internal/writebarrier"
+	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
+
+var (
+	consistencyClientWaitDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:                            "controller_runtime_client_consistency_wait_duration_seconds",
+			Help:                            "Length of time waiting for the cache to observe writes before serving reads.",
+			Buckets:                         []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 4, 6, 8, 10},
+			NativeHistogramBucketFactor:     1.1,
+			NativeHistogramMaxBucketNumber:  100,
+			NativeHistogramMinResetDuration: 1 * time.Hour,
+		},
+		[]string{"operation", "result"},
+	)
+)
+
+func init() {
+	crmetrics.Registry.MustRegister(
+		consistencyClientWaitDuration,
+	)
+}
 
 type consistentClientUpstream interface {
 	Client
@@ -119,10 +142,38 @@ func (c *consistentClient) getConsistencyHandler(
 	return h, nil
 }
 
-func (c *consistentClient) Get(ctx context.Context, key ObjectKey, obj Object, opts ...GetOption) error {
+const consistencyClientWaitDurationResultSuccess = "success"
+
+func consistencyClientWaitDurationResult(err error) string {
+	switch {
+	case errors.Is(err, context.DeadlineExceeded):
+		return "timeout"
+	case err != nil:
+		return "error"
+	default:
+		return consistencyClientWaitDurationResultSuccess
+	}
+}
+
+func (c *consistentClient) Get(ctx context.Context, key ObjectKey, obj Object, opts ...GetOption) (err error) {
 	if (&GetOptions{}).ApplyOptions(opts).DisableReadYourWritesConsistency {
 		return c.upstream.Get(ctx, key, obj, opts...)
 	}
+
+	start := time.Now()
+	var waitDuration time.Duration
+	var result string
+	defer func() {
+		if waitDuration == 0 {
+			waitDuration = time.Since(start)
+		}
+		if result == "" {
+			result = consistencyClientWaitDurationResult(err)
+		}
+		consistencyClientWaitDuration.
+			WithLabelValues("get", result).
+			Observe(waitDuration.Seconds())
+	}()
 
 	gvk, err := apiutil.GVKForObject(obj, c.upstream.Scheme())
 	if err != nil {
@@ -144,13 +195,30 @@ func (c *consistentClient) Get(ctx context.Context, key ObjectKey, obj Object, o
 		return fmt.Errorf("failed to wait for cache to catch up: %w", err)
 	}
 
+	waitDuration = time.Since(start)
+	result = consistencyClientWaitDurationResultSuccess
 	return c.upstream.Get(ctx, key, obj, opts...)
 }
 
-func (c *consistentClient) List(ctx context.Context, list ObjectList, opts ...ListOption) error {
+func (c *consistentClient) List(ctx context.Context, list ObjectList, opts ...ListOption) (err error) {
 	if (&ListOptions{}).ApplyOptions(opts).DisableReadYourWritesConsistency {
 		return c.upstream.List(ctx, list, opts...)
 	}
+
+	start := time.Now()
+	var waitDuration time.Duration
+	var result string
+	defer func() {
+		if waitDuration == 0 {
+			waitDuration = time.Since(start)
+		}
+		if result == "" {
+			result = consistencyClientWaitDurationResult(err)
+		}
+		consistencyClientWaitDuration.
+			WithLabelValues("list", result).
+			Observe(waitDuration.Seconds())
+	}()
 
 	gvk, err := apiutil.GVKForObject(list, c.upstream.Scheme())
 	if err != nil {
@@ -197,6 +265,8 @@ func (c *consistentClient) List(ctx context.Context, list ObjectList, opts ...Li
 		return fmt.Errorf("failed to wait for cache to catch up: %w", err)
 	}
 
+	waitDuration = time.Since(start)
+	result = consistencyClientWaitDurationResultSuccess
 	return c.upstream.List(ctx, list, opts...)
 }
 
