@@ -94,16 +94,16 @@ func (h *handler) registerNewCollection(op *tracingPolicyAdd) (*collection, erro
 	return col, nil
 }
 
-func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
+func (h *handler) addTracingPolicy(op *tracingPolicyAdd) (err error) {
 	h.collections.mu.Lock()
 	defer h.collections.mu.Unlock()
 	col, err := h.registerNewCollection(op)
 	if err != nil {
-		return err
+		return
 	}
 	if op.state == SkippedState {
 		col.state = SkippedState
-		return nil
+		return
 	}
 
 	// update policy filter state before loading the sensors of the policy.
@@ -119,7 +119,7 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		return err
+		return
 	}
 	col.policyfilterID = uint64(filterID)
 
@@ -127,13 +127,13 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		return err
+		return
 	}
 	col.sensors = make([]SensorIface, 0, len(sensors))
 	col.sensors = append(col.sensors, sensors...)
 	if op.state == DisabledState {
 		col.state = DisabledState
-		return nil
+		return
 	}
 	col.state = LoadingState
 
@@ -155,10 +155,10 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		col.err = err
 		col.state = LoadErrorState
 		col.destroy(true)
-		return err
+		return
 	}
 	col.state = col.getEnabledStateType()
-	return nil
+	return
 }
 
 func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
