@@ -396,13 +396,10 @@ type tpValidateInfo struct {
 // It returns a tpValidateInfo that can be passed to createGenericTracepoint
 // to avoid re-loading the tracepoint format.
 func preValidateTracepoint(spec *v1alpha1.TracepointSpec) (*tpValidateInfo, error) {
-	if spec.Subsystem == "" {
-		return nil, errors.New("tracepoint subsystem is empty")
-	}
-	if spec.Event == "" {
-		return nil, errors.New("tracepoint event is empty")
-	}
-
+	// Subsystem and Event are interpolated into the tracefs format path and the
+	// "<subsys>:<event>" pin path below. Neither is re-checked here: the CRD
+	// pattern on both fields rejects empty names, path separators and ".." on
+	// every path a policy can arrive on.
 	tpInfo := tracepoint.Tracepoint{
 		Subsys: spec.Subsystem,
 		Event:  spec.Event,

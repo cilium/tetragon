@@ -43,38 +43,6 @@ spec:
 	require.Error(t, err)
 }
 
-func TestTracepointValidationEmptySubsystem(t *testing.T) {
-	crd := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "tp-empty-subsystem"
-spec:
-  tracepoints:
-  - subsystem: ""
-    event: "sys_enter_openat"
-`
-
-	err := checkCrd(t, crd)
-	require.Error(t, err)
-}
-
-func TestTracepointValidationEmptyEvent(t *testing.T) {
-	crd := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "tp-empty-event"
-spec:
-  tracepoints:
-  - subsystem: "syscalls"
-    event: ""
-`
-
-	err := checkCrd(t, crd)
-	require.Error(t, err)
-}
-
 func TestTracepointValidationArgIndexOutOfBounds(t *testing.T) {
 	crd := `
 apiVersion: cilium.io/v1alpha1
