@@ -17,6 +17,21 @@
 
 typedef __u64 heap_key_t;
 
+/* The context helpers use BPF APIs available in the v5.11+ object variants. */
+#if (defined(GENERIC_FENTRY) || defined(GENERIC_FEXIT) || defined(GENERIC_LSM)) && \
+	defined(__V511_BPF_PROG)
+#include "bpf_context.h"
+
+static inline __attribute__((always_inline)) heap_key_t get_context_key(void)
+{
+	__u64 tid = (__u32)get_current_pid_tgid();
+	__u64 cpu = get_smp_processor_id();
+	__u64 ctx = interrupt_context_level();
+
+	return tid << 32 | (cpu & 0xffffff) << 8 | ctx;
+}
+#endif
+
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(map_flags, BPF_F_NO_PREALLOC);
@@ -27,7 +42,12 @@ struct {
 
 FUNC_INLINE heap_key_t heap_key(void)
 {
+#if (defined(GENERIC_FENTRY) || defined(GENERIC_FEXIT) || defined(GENERIC_LSM)) && \
+	defined(__V511_BPF_PROG)
+	return get_context_key();
+#else
 	return get_current_pid_tgid();
+#endif
 }
 
 FUNC_INLINE bool heap_update(heap_key_t key)
