@@ -84,6 +84,6 @@ func GetPolicyStats(tp tracingpolicy.TracingPolicy) (*PolicyStats, error) {
 }
 
 func GetPolicySelectorStats(tp tracingpolicy.TracingPolicy) ([]*PolicyStats, error) {
-	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tp.TpNamespace(), tp.TpName()), PolicySelectorStatsMapName)
+	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tp.TpDomain(), tp.TpNamespace(), tp.TpName()), PolicySelectorStatsMapName)
 	return StatsFromBPFMapRange(fname)
 }

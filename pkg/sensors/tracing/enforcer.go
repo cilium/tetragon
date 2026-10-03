@@ -99,7 +99,7 @@ func (kp *enforcerPolicy) PolicyHandler(
 	}
 
 	if len(spec.Enforcers) > 0 {
-		return kp.createEnforcerSensor(spec.Enforcers, spec.Lists, spec.Options, policy.TpName(), policy.TpNamespace())
+		return kp.createEnforcerSensor(spec.Enforcers, spec.Lists, spec.Options, policy.TpName(), policy.TpNamespace(), policy.TpDomain())
 	}
 
 	return nil, nil
@@ -190,6 +190,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	opts []v1alpha1.OptionSpec,
 	policyName string,
 	policyNamespace string,
+	policyDomain string,
 ) (*sensors.Sensor, error) {
 	if len(enforcers) > 1 {
 		return nil, errors.New("failed: we support only single enforcer sensor")
@@ -332,6 +333,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		Maps:      maps,
 		Policy:    policyName,
 		Namespace: policyNamespace,
+		Domain:    policyDomain,
 		DestroyHook: func() error {
 			if ok := kp.enforcerDel(policyName); !ok {
 				logger.GetLogger().Info(fmt.Sprintf("Failed to clean up enforcer sensor '%s'", policyName))
