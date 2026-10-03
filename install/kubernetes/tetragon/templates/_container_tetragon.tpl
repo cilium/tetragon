@@ -2,7 +2,7 @@
 - name: {{ include "container.tetragon.name" . }}
   securityContext:
     {{- toYaml .Values.tetragon.securityContext | nindent 4 }}
-  image: "{{ if .Values.tetragon.image.override }}{{ .Values.tetragon.image.override }}{{ else }}{{ .Values.tetragon.image.repository }}:{{ .Values.tetragon.image.tag | default .Chart.AppVersion }}{{ end }}"
+  image: {{ include "tetragon.image" . }}
   imagePullPolicy: {{ .Values.imagePullPolicy }}
   terminationMessagePolicy: FallbackToLogsOnError
 {{- with .Values.tetragon.commandOverride }}
@@ -30,7 +30,13 @@
       name: tetragon-config
       readOnly: true
     - mountPath: /sys/fs/bpf
+      {{- /* Bidirectional propagation is only allowed for privileged containers,
+      otherwise the mount-bpf-fs init container mounts bpffs on the host. */}}
+      {{- if .Values.tetragon.securityContext.privileged }}
       mountPropagation: Bidirectional
+      {{- else }}
+      mountPropagation: HostToContainer
+      {{- end }}
       name: bpf-maps
     - mountPath: "/var/run/cilium"
       name: cilium-run

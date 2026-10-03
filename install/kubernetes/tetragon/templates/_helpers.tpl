@@ -120,6 +120,10 @@ ServiceAccounts
 {{- print "/hostHooks" -}}
 {{- end }}
 
+{{- define "tetragon.image" -}}
+"{{ if .Values.tetragon.image.override }}{{ .Values.tetragon.image.override }}{{ else }}{{ .Values.tetragon.image.repository }}:{{ .Values.tetragon.image.tag | default .Chart.AppVersion }}{{ end }}"
+{{- end -}}
+
 {{/*
 Runtime-hooks
 */}}
