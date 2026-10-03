@@ -129,7 +129,7 @@ golang.org/x/sync/errgroup
 ## explicit; go 1.26.0
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/telemetry v0.0.0-20260908163034-4bcc4b2ee518
+# golang.org/x/telemetry v0.0.0-20260924152758-ed294f943157
 ## explicit; go 1.26.0
 golang.org/x/telemetry/counter
 golang.org/x/telemetry/internal/counter
@@ -147,7 +147,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.50.0
+# golang.org/x/tools v0.51.0
 ## explicit; go 1.26.0
 golang.org/x/tools/cmd/goimports
 golang.org/x/tools/go/ast/astutil
@@ -157,7 +157,6 @@ golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/packages
 golang.org/x/tools/go/types/objectpath
 golang.org/x/tools/imports
-golang.org/x/tools/internal/aliases
 golang.org/x/tools/internal/event
 golang.org/x/tools/internal/event/core
 golang.org/x/tools/internal/event/keys
