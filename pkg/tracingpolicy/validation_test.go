@@ -4,6 +4,8 @@
 package tracingpolicy
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -90,6 +92,59 @@ spec:
 	_, err := FromYAML(crd)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "ReturnArg not specified with Return=true.")
+}
+
+func testUprobeValidationSOPathLen(t *testing.T, sopath string, errContains string) {
+	// missing returnArg while having return: true
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "/usr/bin/test"
+    symbols:
+    - "test_1"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: "test_3"
+        sopath: ` + sopath + `
+`
+
+	_, err := FromYAML(crd)
+	if errContains != "" {
+		require.Error(t, err)
+		require.Contains(t, err.Error(), errContains)
+	} else {
+		require.NoError(t, err)
+	}
+}
+
+func TestUprobeValidationSOPathLen(t *testing.T) {
+	soPathFmt := "/%s/lib.so"
+	constLen := len("lib.so") + 2 // "/" + "/"
+	t.Run("sopath len 127", func(t *testing.T) {
+		testUprobeValidationSOPathLen(t, fmt.Sprintf(soPathFmt, strings.Repeat("t", 127-constLen)), "")
+	})
+
+	t.Run("sopath len 128", func(t *testing.T) {
+		// error will be:
+		// "should be at most 127 chars long" for k8s builds
+		// "maxLength: got 128, want 127" for nok8s builds
+		testUprobeValidationSOPathLen(t, fmt.Sprintf(soPathFmt, strings.Repeat("t", 128-constLen)), "127")
+	})
+
+	soPathFmt = "/usr/lib/%s.so"
+	constLen = len(".so")
+	t.Run("basename(sopath) len 31", func(t *testing.T) {
+		testUprobeValidationSOPathLen(t, fmt.Sprintf(soPathFmt, strings.Repeat("t", 31-constLen)), "")
+	})
+
+	t.Run("basename(sopath) len 32", func(t *testing.T) {
+		testUprobeValidationSOPathLen(t, fmt.Sprintf(soPathFmt, strings.Repeat("t", 32-constLen)), "sopath basename should be at most 31 chars long")
+	})
 }
 
 func testUprobeValidationOverrideArgNewSymbolAddrOffset(t *testing.T, withSymbol, withAdrr, withOff bool) {

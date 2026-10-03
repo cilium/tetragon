@@ -1132,6 +1132,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -1821,6 +1833,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3131,6 +3155,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -3820,6 +3856,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4799,6 +4847,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -5488,6 +5548,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6446,6 +6518,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -7135,6 +7219,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8072,6 +8168,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -8761,6 +8869,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10015,6 +10135,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -10704,6 +10836,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11648,6 +11792,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -12337,6 +12493,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13860,6 +14028,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -14549,6 +14729,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15859,6 +16051,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -16548,6 +16752,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17527,6 +17743,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -18216,6 +18444,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -19174,6 +19414,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -19863,6 +20115,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -20800,6 +21064,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -21489,6 +21765,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -22743,6 +23031,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -23432,6 +23732,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -24376,6 +24688,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -25065,6 +25389,18 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sopath</b></td>
+        <td>string</td>
+        <td>
+          For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+the new symbol from a shared object located at sopath.
+Full `sopath` cannot exceed 127 characters.
+Its basename (ie: the library name) cannot exceed 31 characters.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.size() - (self.lastIndexOf('/') + 1) < 32: sopath basename should be at most 31 chars long</li>
         </td>
         <td>false</td>
       </tr><tr>

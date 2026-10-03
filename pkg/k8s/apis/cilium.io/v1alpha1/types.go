@@ -391,6 +391,14 @@ type ActionSelector struct {
 	// Beware that the symbol MUST be binary compatible with the traced uprobe symbol.
 	ArgNewOffset int64 `json:"argNewOffset,omitempty"`
 	// +kubebuilder:validation:Optional
+	// For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+	// the new symbol from a shared object located at sopath.
+	// Full `sopath` cannot exceed 127 characters.
+	// Its basename (ie: the library name) cannot exceed 31 characters.
+	// +kubebuilder:validation:MaxLength=127
+	// +kubebuilder:validation:XValidation:rule="self.size() - (self.lastIndexOf('/') + 1) < 32",message="sopath basename should be at most 31 chars long"
+	SoPath string `json:"sopath,omitempty"`
+	// +kubebuilder:validation:Optional
 	// A time period within which repeated messages will not be posted. Can be
 	// specified in seconds (default or with 's' suffix), minutes ('m' suffix)
 	// or hours ('h' suffix). Only valid with the post action.

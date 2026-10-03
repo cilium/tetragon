@@ -624,6 +624,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -1156,6 +1169,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -2057,6 +2083,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -2589,6 +2628,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -3212,6 +3264,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -3744,6 +3809,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -4328,6 +4406,18 @@ spec:
                               limiting applies regardless of which process or thread caused the action.
                               Only valid with the post action and with a rateLimit specified.
                             type: string
+                          sopath:
+                            description: |-
+                              For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                              the new symbol from a shared object located at sopath.
+                              Full `sopath` cannot exceed 127 characters.
+                              Its basename (ie: the library name) cannot exceed 31 characters.
+                            maxLength: 127
+                            type: string
+                            x-kubernetes-validations:
+                            - message: sopath basename should be at most 31 chars
+                                long
+                              rule: self.size() - (self.lastIndexOf('/') + 1) < 32
                           userStackTrace:
                             description: Enable user stack trace export. Only valid
                               with the post action.
@@ -4853,6 +4943,18 @@ spec:
                               limiting applies regardless of which process or thread caused the action.
                               Only valid with the post action and with a rateLimit specified.
                             type: string
+                          sopath:
+                            description: |-
+                              For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                              the new symbol from a shared object located at sopath.
+                              Full `sopath` cannot exceed 127 characters.
+                              Its basename (ie: the library name) cannot exceed 31 characters.
+                            maxLength: 127
+                            type: string
+                            x-kubernetes-validations:
+                            - message: sopath basename should be at most 31 chars
+                                long
+                              rule: self.size() - (self.lastIndexOf('/') + 1) < 32
                           userStackTrace:
                             description: Enable user stack trace export. Only valid
                               with the post action.
@@ -5427,6 +5529,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -5959,6 +6074,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -6822,6 +6950,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -7354,6 +7495,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -7959,6 +8113,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -8491,6 +8658,19 @@ spec:
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
                                   type: string
+                                sopath:
+                                  description: |-
+                                    For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load
+                                    the new symbol from a shared object located at sopath.
+                                    Full `sopath` cannot exceed 127 characters.
+                                    Its basename (ie: the library name) cannot exceed 31 characters.
+                                  maxLength: 127
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: sopath basename should be at most 31
+                                      chars long
+                                    rule: self.size() - (self.lastIndexOf('/') + 1)
+                                      < 32
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.

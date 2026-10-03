@@ -13,6 +13,7 @@ import (
 
 	"cel.dev/cel-go/cel"
 	"cel.dev/cel-go/common/types"
+	"cel.dev/cel-go/ext"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"golang.org/x/text/message"
 
@@ -43,11 +44,11 @@ func (m *memLoader) Load(url string) (any, error) {
 func init() {
 	celEnv, err := cel.NewEnv(
 		cel.Variable("self", cel.DynType),
+		ext.Strings(),
 	)
 	if err != nil {
 		panic(fmt.Errorf("failed to create CEL env: %w", err))
 	}
-
 	c := jsonschema.NewCompiler()
 	c.AssertVocabs() // Allow custom keywords
 	c.RegisterVocabulary(celVocabulary(celEnv))
