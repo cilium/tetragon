@@ -1289,14 +1289,28 @@ func testUprobeSleepableMapsConfig(t *testing.T, mapName string, withMax bool) {
 `
 	}
 
-	// uprobe policy with a preload data argument; opts is the options block (may be empty)
+	// sleepable uprobes read strings directly and don't need preload,
+	// disable sleepable to force the preload path
+	disableSleepable := ""
+	if mapName == "sleepable_preload" {
+		disableSleepable = `
+  - name: "disable-sleepable"
+    value: "true"`
+	}
+
+	// uprobe policy with a preload data argument; opts are extra options (may be empty)
 	policy := func(opts string) string {
+		options := opts + disableSleepable
+		if options != "" {
+			options = `
+  options:` + options
+		}
 		return `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "sleepable"
-spec:` + opts + `
+spec:` + options + `
   uprobes:
   - path: "` + testBinary + `"
     symbols:
@@ -1380,12 +1394,10 @@ spec:` + opts + `
 		var sens []*sensors.Sensor
 		if mapName == "sleepable_preload" {
 			sens = loadSensors(t, policy(`
-  options:
   - name: "sleepable-preload-size"
     value: "1024"`))
 		} else {
 			sens = loadSensors(t, policy(`
-  options:
   - name: "sleepable-offload-size"
     value: "1024"`))
 		}

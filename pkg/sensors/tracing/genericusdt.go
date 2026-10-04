@@ -518,7 +518,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 
 				preloadArgsCounter++
 				preload = true
-				argMValue, err := getUserMetaValue(&arg, true)
+				argMValue, err := getUserMetaValue(&arg, true, false)
 				if err != nil {
 					return ids, err
 				}
