@@ -31,6 +31,7 @@ package program
 import (
 	"fmt"
 	"maps"
+	"strings"
 	"sync"
 
 	"github.com/cilium/ebpf"
@@ -45,6 +46,8 @@ func Builder(
 	objFile, attach, label, pinName string,
 	ty string,
 ) *Program {
+	// avoid pin dir escape; also '.' is a reserved character in bpffs.
+	pinName = strings.ReplaceAll(pinName, ".", "_")
 	return &Program{
 		Name:             objFile,
 		Attach:           attach,
