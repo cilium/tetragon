@@ -86,7 +86,8 @@ func (s *Sensor) removeDirs() {
 	}
 	// Remove sensor dir
 	if !s.IsEmpty() {
-		if err := os.Remove(filepath.Join(s.BpfDir, s.policyDir(), s.Name)); err != nil {
+		// A sensor without programs never created it.
+		if err := os.Remove(filepath.Join(s.BpfDir, s.policyDir(), s.Name)); err != nil && !errors.Is(err, os.ErrNotExist) {
 			logger.GetLogger().Warn("Failed to remove sensor dir",
 				logfields.Error, err, "sensor", s.Name, "dir", filepath.Join(s.policyDir(), s.Name))
 		}

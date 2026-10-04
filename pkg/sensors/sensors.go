@@ -289,10 +289,14 @@ func cleanupProgsAndMaps() {
 }
 
 func AllPrograms() []*program.Program {
+	allProgramsAndMapsMutex.Lock()
+	defer allProgramsAndMapsMutex.Unlock()
 	return append([]*program.Program{}, allPrograms...)
 }
 
 func AllMaps() []*program.Map {
+	allProgramsAndMapsMutex.Lock()
+	defer allProgramsAndMapsMutex.Unlock()
 	return append([]*program.Map{}, allMaps...)
 }
 
