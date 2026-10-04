@@ -163,7 +163,7 @@ func TestMatchBinariesFollowChildrenIDs(t *testing.T) {
 			MatchBinaries: []v1alpha1.BinarySelector{
 				{
 					Operator:       "In",
-					Values:         []string{"/usr/bin/tail"},
+					Values:         []string{"/usr/bin/tail", "/usr/bin/tail"},
 					FollowChildren: true,
 				},
 			},
