@@ -265,13 +265,6 @@ struct msg_k8s {
 
 #define BINARY_PATH_MAX_LEN 256
 
-struct heap_exe {
-	char buf[BINARY_PATH_MAX_LEN];
-	char end[STRING_POSTFIX_MAX_LENGTH];
-	__u32 len;
-	__u32 error;
-}; // All fields aligned so no 'packed' attribute.
-
 /* Internal state carried between execve initialization and send. */
 struct args_source {
 	__u64 start;
@@ -304,7 +297,6 @@ struct msg_execve_event {
 	 * heap for execve programs between execve and send.
 	 */
 #ifdef __LARGE_BPF_PROG
-	struct heap_exe exe;
 	struct args_source args_source;
 #endif
 }; // All fields aligned so no 'packed' attribute.
@@ -715,41 +707,51 @@ event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
  * one remaining thread at its exit path.
  */
 #ifdef __LARGE_BPF_PROG
-FUNC_INLINE __u32
-read_exe(struct task_struct *task, struct heap_exe *exe)
+FUNC_INLINE void
+read_exe(struct task_struct *task, struct binary *bin)
 {
 	struct file *file = BPF_CORE_READ(task, mm, exe_file);
 	struct path *path = __builtin_preserve_access_index(&file->f_path);
+	__u32 revlen = STRING_POSTFIX_MAX_LENGTH - 1;
+	int len = 0, error = 0;
 	__u64 offset = 0;
-	__u64 revlen = STRING_POSTFIX_MAX_LENGTH - 1;
+	char *buffer;
+	__u32 plen;
 
 	// we need to walk the complete 4096 len dentry in order to have an accurate
 	// matching on the prefix operators, even if we only keep a subset of that
-	char *buffer;
+	buffer = d_path_local(path, &len, &error);
+	if (!buffer || len <= 0) {
+		bin->path_length = -1;
+		return;
+	}
 
-	buffer = d_path_local(path, (int *)&exe->len, (int *)&exe->error);
-	if (!buffer)
-		return 0;
-
-	if (exe->len > STRING_POSTFIX_MAX_LENGTH - 1)
-		offset = exe->len - (STRING_POSTFIX_MAX_LENGTH - 1);
+	if (len > STRING_POSTFIX_MAX_LENGTH - 1)
+		offset = len - (STRING_POSTFIX_MAX_LENGTH - 1);
 	else
-		revlen = exe->len;
+		revlen = len;
+
 	// buffer used by d_path_local can contain up to MAX_BUF_LEN i.e. 4096 we
 	// only keep the first 255 chars for our needs (we sacrifice one char to the
 	// verifier for the > 0 check)
-	if (exe->len > BINARY_PATH_MAX_LEN - 1)
-		exe->len = BINARY_PATH_MAX_LEN - 1;
-	asm volatile("%[len] &= 0xff;\n"
-		     : [len] "+r"(exe->len));
-	with_errmetrics(probe_read, exe->buf, exe->len, buffer);
-	if (revlen < STRING_POSTFIX_MAX_LENGTH) {
-		if (offset > MAX_BUF_LEN)
-			offset = MAX_BUF_LEN;
+	plen = len > BINARY_PATH_MAX_LEN - 1 ? BINARY_PATH_MAX_LEN - 1 : len;
+	asm volatile("%[plen] &= 0xff;\n"
+		     : [plen] "+r"(plen));
+	bin->path_length = with_errmetrics(probe_read, bin->path, plen, buffer);
+	if (bin->path_length == 0)
+		bin->path_length = plen;
 
-		with_errmetrics(probe_read, exe->end, revlen, (char *)(buffer + offset));
-	}
-	return exe->len;
+	// offset may get spilled over the probe_read above and older verifiers
+	// (< 5.10) do not keep bounds of spilled scalars, so bound it right
+	// before use. len <= MAX_BUF_LEN, so offset < MAX_BUF_LEN and the mask
+	// does not change its value.
+	asm volatile("%[offset] &= %1;\n"
+		     : [offset] "+r"(offset)
+		     : "i"(MAX_BUF_LEN - 1));
+	asm volatile("%[revlen] &= %1;\n"
+		     : [revlen] "+r"(revlen)
+		     : "i"(STRING_POSTFIX_MAX_LENGTH - 1));
+	with_errmetrics(probe_read, bin->end, revlen, buffer + offset);
 }
 #endif
 #endif //_PROCESS__
