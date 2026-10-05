@@ -14,6 +14,9 @@ var (
 	tetragonPolicyTesterService = "tetragon-policytester.service"
 )
 
+// The ExecStartPre gate waits for the agent to report "running": policytest adds
+// a policy and immediately triggers it, and the agent drops the resulting events
+// until it starts draining the ring buffers.
 var tetragonPolicyTesterServiceTemplate = `
 [Unit]
 Description=Tetragon policytester
@@ -25,7 +28,7 @@ FailureAction=poweroff
 {{ if .environment -}}
 Environment={{ .environment }}
 {{ end -}}
-ExecStartPre=/bin/sh -c 'until {{ .tetraBinary }} info >/dev/null; do sleep 2; done'
+ExecStartPre=/bin/sh -c 'until {{ .tetraBinary }} status | grep -q "Health Status: running"; do sleep 2; done'
 ExecStart={{ .tetraBinary }} policytest run --bindir {{ .testerProgsDir }} --all-tests --all-params --output json --output-file {{ .resultsDir }}/results.json {{ .policytestArgs }}
 Type=oneshot
 StandardOutput=tty

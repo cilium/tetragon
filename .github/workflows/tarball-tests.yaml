@@ -154,6 +154,17 @@ jobs:
           tar zxvf ./download/tester-progs.tar.gz
           mv ./tester-progs/* contrib/tester-progs/
 
+      # policytest adds a policy and immediately triggers it; the agent drops
+      # the resulting events until it starts draining the ring buffers, which
+      # is also when it starts reporting "running".
+      - name: Wait for Tetragon to finish initializing
+        run: |
+          timeout 120 bash -c '
+            until sudo tetra status | grep -m1 "Health Status: running"; do
+              sleep 2
+            done
+          '
+
       # Run policytest
       # Since we don't support vmtests yet for arm64,
       # and we are slowly moving existing tests to use policytest framework
