@@ -287,6 +287,7 @@ type addLsmIn struct {
 	sensorPath        string
 	policyName        string
 	policyID          policyfilter.PolicyID
+	stateIDs          map[string]uint32
 	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32
 }
@@ -398,6 +399,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, instance InstanceID, in *addLsmIn) (id idta
 		Args:      f.Args,
 		Data:      []v1alpha1.KProbeArg{},
 		Maps:      in.selMaps,
+		StateIDs:  in.stateIDs,
 	})
 	if err != nil {
 		return errFn(err)
@@ -432,6 +434,7 @@ func createGenericLsmSensor(
 		sensorPath: name,
 		policyID:   polInfo.policyID,
 		policyName: polInfo.name,
+		stateIDs:   polInfo.stateIDs,
 		selMaps:    selMaps,
 	}
 

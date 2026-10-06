@@ -489,6 +489,7 @@ type addKprobeIn struct {
 	customHandler eventhandler.Handler
 	selMaps       *selectors.KernelSelectorMaps
 	celExprs      *selectors.CelExprFunctions
+	stateIDs      map[string]uint32
 	selStatsBase  uint32
 }
 
@@ -588,6 +589,7 @@ func createGenericKprobeSensor(
 		customHandler: polInfo.customHandler,
 		selMaps:       selMaps,
 		celExprs:      celExprs,
+		stateIDs:      polInfo.stateIDs,
 	}
 
 	var selectorStatsBase uint32
@@ -946,6 +948,7 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 		ActionArgTable: &kprobeEntry.actionArgs,
 		Maps:           in.selMaps,
 		CelExprs:       in.celExprs,
+		StateIDs:       in.stateIDs,
 	})
 	if err != nil {
 		return errFn(err)
@@ -953,7 +956,7 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 
 	if f.Return {
 		kprobeEntry.loadArgs.selectors.retrn, err = selectors.InitKernelReturnSelectorState(f.Selectors, f.ReturnArg,
-			&kprobeEntry.actionArgs, nil, in.selMaps)
+			&kprobeEntry.actionArgs, nil, in.selMaps, in.stateIDs)
 		if err != nil {
 			return errFn(err)
 		}

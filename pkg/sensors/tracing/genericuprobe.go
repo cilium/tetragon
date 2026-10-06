@@ -470,6 +470,7 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 type addUprobeIn struct {
 	policyName        string
 	policyID          policyfilter.PolicyID
+	stateIDs          map[string]uint32
 	celExprs          *selectors.CelExprFunctions
 	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32
@@ -719,6 +720,7 @@ func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *upro
 		BinaryPath:            spec.Path,
 		CelExprs:              in.celExprs,
 		Maps:                  in.selMaps,
+		StateIDs:              in.stateIDs,
 	})
 	if err != nil {
 		return err
@@ -731,7 +733,7 @@ func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *upro
 	var retrn *selectors.KernelSelectorState
 	if spec.Return {
 		retrn, err = selectors.InitKernelReturnSelectorState(spec.Selectors, spec.ReturnArg,
-			nil, nil, in.selMaps)
+			nil, nil, in.selMaps, in.stateIDs)
 		if err != nil {
 			// we rely on addUprobe cleanup for entry selector
 			return err
@@ -950,6 +952,7 @@ func createGenericUprobeSensor(
 	in := addUprobeIn{
 		policyName: polInfo.name,
 		policyID:   polInfo.policyID,
+		stateIDs:   polInfo.stateIDs,
 		celExprs:   celExprs,
 		selMaps:    selMaps,
 	}
