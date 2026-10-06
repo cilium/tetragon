@@ -276,6 +276,29 @@ func Test_findMemoryCgroupPath(t *testing.T) {
 	}
 }
 
+func TestFindMemoryCgroupPath(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("reads /proc")
+	}
+
+	self, err := os.Open("/proc/self/cgroup")
+	require.NoError(t, err)
+	defer self.Close()
+	wantUnified, wantPath, err := findMemoryCgroupPath(self)
+	require.NoError(t, err)
+
+	// The cgroup is read for the given pid, here our own.
+	unified, path, err := FindMemoryCgroupPath(os.Getpid())
+	require.NoError(t, err)
+	assert.Equal(t, wantUnified, unified)
+	assert.Equal(t, wantPath, path)
+
+	// A pid that does not exist is an error, not a silent fallback to
+	// bugtool's own cgroup.
+	_, _, err = FindMemoryCgroupPath(-1)
+	require.Error(t, err)
+}
+
 func Test_listProcFds(t *testing.T) {
 	dir := t.TempDir()
 	// no path targets: windows rewrites them with backslashes on readlink
