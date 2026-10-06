@@ -852,23 +852,26 @@ func findMemoryCgroupPath(r io.Reader) (bool, string, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return false, "", fmt.Errorf("failed reading /proc/self/cgroup: %w", err)
+		return false, "", fmt.Errorf("failed reading cgroup file: %w", err)
 	}
 
 	return unified, memoryCgroupPath, nil
 }
 
-func FindMemoryCgroupPath() (unified bool, memoryCgroupPath string, err error) {
-	file, err := os.Open("/proc/self/cgroup")
+// FindMemoryCgroupPath returns the memory cgroup of the process with the given
+// pid, read from /proc/<pid>/cgroup.
+func FindMemoryCgroupPath(pid int) (unified bool, memoryCgroupPath string, err error) {
+	path := filepath.Join("/proc", strconv.Itoa(pid), "cgroup")
+	file, err := os.Open(path)
 	if err != nil {
-		return false, "", fmt.Errorf("failed to open /proc/self/cgroup: %w", err)
+		return false, "", fmt.Errorf("failed to open %s: %w", path, err)
 	}
 	defer file.Close()
 	return findMemoryCgroupPath(file)
 }
 
 func (s bugtoolInfo) addMemCgroupStats() error {
-	unifiedCgroup, memoryCgroupPath, err := FindMemoryCgroupPath()
+	unifiedCgroup, memoryCgroupPath, err := FindMemoryCgroupPath(s.info.PID)
 	if err != nil {
 		s.multiLog.WithError(err).Warn("failed finding the memory cgroup path")
 		return fmt.Errorf("failed to find memory cgroup path: %w", err)
