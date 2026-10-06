@@ -27,6 +27,12 @@ var (
 	cache *Cache
 )
 
+// Expirer is implemented by messages that hold process references which
+// must be released when the cache stops retrying them.
+type Expirer interface {
+	Expire(startTime uint64)
+}
+
 type CacheObj struct {
 	internal  *process.ProcessInternal
 	event     notify.Event
@@ -171,6 +177,9 @@ func (ec *Cache) handleEvents() {
 				failedFetches.WithLabelValues(eventType, AncestorsInfo.String()).Inc()
 			} else if errors.Is(err, ErrFailedToGetPodInfo) {
 				failedFetches.WithLabelValues(eventType, PodInfo.String()).Inc()
+			}
+			if h, ok := event.msg.(Expirer); ok {
+				h.Expire(event.startTime)
 			}
 		}
 
