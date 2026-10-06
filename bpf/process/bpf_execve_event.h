@@ -57,12 +57,11 @@ read_args(void *ctx, struct msg_execve_event *event)
 	 */
 	free_size = (char *)&event->process + BUFFER - args;
 
-	if (args_size < 2) {
-		/* args contains at most a '\0', nothing to read */
+	if (args_size < 1) {
+		/* args empty */
 		size = 0;
 	} else if (args_size < BUFFER && args_size < free_size) {
 		/* args fit in the inline buffer, read them in */
-		args_size -= 1; // strip trailing '\0'
 		size = args_size & 0x3ff /* BUFFER - 1 */;
 		err = with_errmetrics(probe_read, args, size, (char *)start_stack);
 		if (err < 0) {

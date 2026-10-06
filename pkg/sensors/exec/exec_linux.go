@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"iter"
 	"strings"
 	"unsafe"
 
@@ -115,6 +116,23 @@ func readRawBytes(reader *bytes.Reader, exec *processapi.MsgExec, size uint16, f
 	return data, nil
 }
 
+func nullStrings(data []byte) iter.Seq[[]byte] {
+	return func(yield func([]byte) bool) {
+		for len(data) != 0 {
+			i := bytes.IndexByte(data, 0)
+			if i < 0 {
+				return // malformed / truncated
+			}
+
+			if !yield(data[:i]) {
+				return
+			}
+
+			data = data[i+1:]
+		}
+	}
+}
+
 func resolveArgs(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) {
 	if exec.SizeArgs == 0 {
 		return "", nil
@@ -124,16 +142,11 @@ func resolveArgs(reader *bytes.Reader, exec *processapi.MsgExec) (string, error)
 	if err != nil {
 		return "", err
 	}
-	if exec.Flags&api.EventDataArgs != 0 && len(data) > 0 && data[len(data)-1] == '\x00' {
-		data = data[:len(data)-1]
-	}
-	if len(data) == 0 {
-		return "", nil
-	}
 
 	size := 0
 	numArgs := 0
-	for arg := range bytes.SplitSeq(data, []byte{'\x00'}) {
+
+	for arg := range nullStrings(data) {
 		numArgs++
 
 		if len(arg) == 0 {
@@ -154,7 +167,7 @@ func resolveArgs(reader *bytes.Reader, exec *processapi.MsgExec) (string, error)
 
 	var args strings.Builder
 	args.Grow(size)
-	for arg := range bytes.SplitSeq(data, []byte{'\x00'}) {
+	for arg := range nullStrings(data) {
 		if args.Len() > 0 {
 			args.WriteByte(' ')
 		}
