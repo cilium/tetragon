@@ -646,3 +646,83 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(lseekChecker),
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("kprobe-state").
+	WithLabels("kprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+			return "matchStates requires large BPF program support"
+		}
+		return ""
+	}).
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobe-state"
+spec:
+  state:
+  - name: "test_state"
+  kprobes:
+  - call: "sys_lseek"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchBinaries:
+      - operator: In
+        values:
+        - {{ testBinary "test-helper" }}
+      matchArgs: # ignore lseeks not triggered by us
+      - index: 0
+        operator: Equal
+        values:
+        - "-1"
+      matchActions:
+      - action: UpdateState
+        state:
+          name: "test_state"
+          operator: Set
+          value: "1"
+      - action: NoPost
+  - call: "sys_getcpu"
+    syscall: true
+    selectors:
+    - matchBinaries:
+      - operator: In
+        values:
+        - {{ testBinary "test-helper" }}
+      matchStates:
+      - name: "test_state"
+        operator: Equal
+        value: "1"
+      matchActions:
+      - action: UpdateState
+        state:
+          name: "test_state"
+          operator: Delete
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	helper := c.TestBinary("test-helper")
+	getcpuChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Suffix("sys_getcpu")).
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(helper)))
+	postCnt := uint64(1)
+	return &policytest.Scenario{
+		Name: "share state between probes",
+		Trigger: policytest.NewMultiCmdTrigger([]policytest.CmdTrigger{
+			// The state does not exist until it is explicitly set.
+			{Bin: helper, Args: []string{"getcpu"}},
+			// The lseek probe creates the state with value 1, but doesn't post.
+			{Bin: helper, Args: []string{"lseek", "-1", "0", "4444"}},
+			// The getcpu probe matches state 1, posts an event, and deletes the state.
+			{Bin: helper, Args: []string{"getcpu"}},
+			// The deleted state no longer matches, so no event is posted.
+			{Bin: helper, Args: []string{"getcpu"}},
+		}).ExpectExitCodes([]int{0, 0, 0, 0}),
+		EventChecker: ec.NewUnorderedEventChecker(getcpuChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Post: &postCnt,
+		},
+	}
+}).RegisterAtInit()
