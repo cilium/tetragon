@@ -8,6 +8,7 @@ package selectors
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
@@ -104,6 +105,26 @@ func removeCelFunction(prog *ebpf.ProgramSpec) {
 		newInstructions = append(newInstructions, ins)
 	}
 	prog.Instructions = newInstructions
+}
+
+func cutCelAssignment(str string) (reg, expr string, ok bool, err error) {
+	dst, src, found := strings.Cut(str, "=")
+
+	if !found {
+		return "", "", false, nil
+	}
+
+	src = strings.TrimSpace(src)
+
+	celPart, isCel := strings.CutPrefix(src, "cel(")
+
+	if !isCel || !strings.HasSuffix(celPart, ")") {
+		return "", "", false, nil
+	}
+
+	celPart = celPart[:len(celPart)-1]
+
+	return strings.TrimSpace(dst), celPart, true, nil
 }
 
 func (cefs CelExprFunctions) RewriteProg(prog *ebpf.ProgramSpec) error {
