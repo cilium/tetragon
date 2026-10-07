@@ -73,4 +73,4 @@ jobs:
           token: '${{ steps.get_token.outputs.app_token }}'
           mount-docker-socket: true
           # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
-          renovate-version: 44.143.0
+          renovate-version: 44.145.1
