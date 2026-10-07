@@ -86,12 +86,19 @@ jobs:
 
       # Warning: this must run before checking out the untrusted code
       - name: Get version
-        run: echo "TETRAGON_VERSION=$(make version)" >> $GITHUB_ENV
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          version="$(make version)"
+          if [ -n "$HEAD_SHA" ]; then
+            version="${version%-g*}-${HEAD_SHA:0:12}"
+          fi
+          echo "TETRAGON_VERSION=${version}" >> $GITHUB_ENV
 
       - name: Get chart version
         id: chart-version
         run: |
-          echo "chart_version=$(make chart-version)" >> $GITHUB_OUTPUT
+          echo "chart_version=$(make chart-version VERSION="$TETRAGON_VERSION")" >> $GITHUB_OUTPUT
 
       # Warning: since this is a privileged workflow, subsequent workflow job
       # steps must take care not to execute untrusted code.
