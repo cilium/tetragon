@@ -204,6 +204,7 @@ func isValidLsmSelectors(selectors []v1alpha1.KProbeSelector) error {
 				case "signal":
 				case "nopost":
 				case "override":
+				case "updatestate":
 					continue
 				case "post":
 					if a.KernelStackTrace || a.UserStackTrace {
