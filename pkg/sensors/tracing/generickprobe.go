@@ -265,6 +265,10 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
+	if len(polInfo.stateIDs) != 0 {
+		maps = append(maps, polInfo.policyStateMap(load))
+	}
+
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
@@ -304,6 +308,10 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
+
+		if len(polInfo.stateIDs) != 0 {
+			maps = append(maps, polInfo.policyStateMap(loadret))
+		}
 	}
 
 	return progs, maps, nil
@@ -1090,6 +1098,9 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
+	if len(polInfo.stateIDs) != 0 {
+		maps = append(maps, polInfo.policyStateMap(load))
+	}
 
 	if kprobeEntry.loadArgs.retprobe {
 		pinRetProg := kprobeEntry.instance.PinProg(sensors.PathJoin(kprobeEntry.funcName + "_return"))
@@ -1152,6 +1163,10 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 				socktrack.SetMaxEntries(socktrackMapMaxEntries)
 			}
 			maps = append(maps, socktrack)
+		}
+
+		if len(polInfo.stateIDs) != 0 {
+			maps = append(maps, polInfo.policyStateMap(loadret))
 		}
 	}
 

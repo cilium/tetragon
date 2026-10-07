@@ -1586,6 +1586,9 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	}
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
+	if len(polInfo.stateIDs) != 0 {
+		maps = append(maps, polInfo.policyStateMap(load))
+	}
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
@@ -1624,6 +1627,9 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", has.uprobeHeapSize, loadret))
 		maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", has.uprobeHeapSize, loadret))
 		maps = append(maps, getUprobeHeapMap("ratelimit_heap", has.uprobeHeapSize, loadret))
+		if len(polInfo.stateIDs) != 0 {
+			maps = append(maps, polInfo.policyStateMap(loadret))
+		}
 	}
 
 	return progs, maps, nil
@@ -1700,6 +1706,9 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	if option.Config.EnableCgTrackerID {
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
+	if len(polInfo.stateIDs) != 0 {
+		maps = append(maps, polInfo.policyStateMap(load))
+	}
 
 	if uprobeEntry.loadArgs.retprobe {
 		pinRetProg := fmt.Sprintf("%d-%s_return", uprobeEntry.tableId.ID, pinSymbol)
@@ -1725,6 +1734,9 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
+		if len(polInfo.stateIDs) != 0 {
+			maps = append(maps, polInfo.policyStateMap(loadret))
+		}
 	}
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
