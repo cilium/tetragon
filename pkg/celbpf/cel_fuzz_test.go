@@ -276,3 +276,31 @@ func FuzzCelExpr(f *testing.F) {
 		evalCELBPF(t, s, args, oracleRes)
 	})
 }
+
+func randCelValueExpr(s1, s2 uint64) (string, exprArgs) {
+	rg := rand.NewPCG(s1, s2)
+	st := newRandExprSt(rand.New(rg), 4, 3)
+	ty := s64Ty
+
+	// 50% of the time use unsigned 64-bit ints
+	if st.r.UintN(2) == 1 {
+		ty = u64Ty
+	}
+	return st.celExpr(ty), st.args
+}
+
+func FuzzCelExprValue(f *testing.F) {
+	f.Skip("value-mode harness not implemented yet")
+	if !Supported() {
+		f.Skip()
+	}
+	f.Add(uint64(0), uint64(0))
+	f.Add(uint64(1), uint64(2))
+	f.Add(uint64(math.MaxUint64), uint64(math.MaxUint64))
+
+	f.Fuzz(func(t *testing.T, s1, s2 uint64) {
+		s, args := randCelValueExpr(s1, s2)
+		oracleRes := evalCEL(t, s, args)
+		evalCELBPF(t, s, args, oracleRes)
+	})
+}
