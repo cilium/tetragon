@@ -1038,7 +1038,7 @@ func TestParseMatchAction(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // UserStackTrace = 0
 		0x00, 0x00, 0x00, 0x00, // ImaHash = 0
 	}
-	if err := ParseMatchAction(k, act1, &actionArgTable, 0); err != nil || bytes.Equal(expected1, d.e) == false {
+	if err := ParseMatchAction(k, act1, &actionArgTable, 0, nil, nil); err != nil || bytes.Equal(expected1, d.e) == false {
 		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e, act1)
 	}
 	// This is a bit contrived because we only have single action so far
@@ -1059,7 +1059,7 @@ func TestParseMatchAction(t *testing.T) {
 	act := []v1alpha1.ActionSelector{*act1, *act2}
 	ks := &KernelSelectorState{data: KernelSelectorData{}}
 	d = &ks.data
-	if err := ParseMatchActions(ks, act, &actionArgTable, 0); err != nil || bytes.Equal(expected, d.e) == false {
+	if err := ParseMatchActions(ks, act, &actionArgTable, 0, nil, nil); err != nil || bytes.Equal(expected, d.e) == false {
 		t.Errorf("parseMatchActions: error %v expected %v bytes %v parsing %v\n", err, expected, d.e, act)
 	}
 }
@@ -1076,7 +1076,7 @@ func TestParseMatchActionMax(t *testing.T) {
 
 	k := &KernelSelectorState{data: KernelSelectorData{}}
 
-	err := ParseMatchActions(k, actions, &actionArgTable, 0)
+	err := ParseMatchActions(k, actions, &actionArgTable, 0, nil, nil)
 	if err == nil {
 		t.Errorf("ParseMatchActions expected to fail")
 	}
