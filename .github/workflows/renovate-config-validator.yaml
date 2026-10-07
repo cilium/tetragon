@@ -16,7 +16,7 @@ jobs:
       - name: Validate configuration
         env:
           # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
-          version: "44.141.0"
+          version: "44.143.0"
         run: >
           docker run --rm --entrypoint "renovate-config-validator"
           -v "${{ github.workspace }}/.github/renovate.json5":"/renovate.json5"
