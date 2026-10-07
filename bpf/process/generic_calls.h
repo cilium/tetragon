@@ -1037,7 +1037,26 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		error = actions->act[++i];
 		if (enforce_mode) {
 #if defined(GENERIC_UPROBE)
-			do_uprobe_override(ctx, error);
+			struct offload_data d = { .idx = error };
+
+			// In pre6.18 kernels this function is inlined into do_actions and
+			// the loop here exceeds the verifier's complexity limit
+#ifdef __V61_BPF_PROG
+			struct uprobe_regs *regs;
+			__u32 key = error;
+
+			regs = map_lookup_elem(&regs_map, &key);
+			if (regs) {
+				for (int j = 0; j < REGS_MAX && j < regs->cnt; j++) {
+					if (regs->ass[j].type != ASM_ASSIGNMENT_TYPE_CEL)
+						continue;
+					d.vals[regs->ass[j].off & CEL_VALS_MASK] =
+						cel_expr(regs->ass[j].off, e->argsoff, e->args);
+				}
+			}
+
+#endif /* __V61_BPF_PROG */
+			do_uprobe_override(ctx, &d);
 #else
 			do_override_action(error);
 #endif
@@ -1075,8 +1094,9 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		value = actions->act[++i];
 		if (enforce_mode) {
 #if defined(GENERIC_UPROBE)
+			struct offload_data d = { .idx = index };
 			// value is discarded here
-			do_uprobe_override(ctx, index);
+			do_uprobe_override(ctx, &d);
 #else
 			do_set_action(ctx, e, index, value);
 #endif
