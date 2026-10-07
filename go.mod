@@ -17,7 +17,7 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
 	github.com/google/gops v0.3.29
-	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
+	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/isovalent/metricstool v0.1.4
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
