@@ -11,11 +11,12 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/asm"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 const ArgsInRegisters = 8 // Number of arguments passed by register per AArch64 ABI
 
-func parseOverrideRegs(k *KernelSelectorState, selIdx int, values []string, errValue uint64, newOffset int64) error {
+func parseOverrideRegs(k *KernelSelectorState, selIdx int, values []string, errValue uint64, newOffset int64, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg) error {
 	if _, exists := k.regs[selIdx]; exists {
 		return errors.New("only single instance of regs action is allowed")
 	}
@@ -36,6 +37,20 @@ func parseOverrideRegs(k *KernelSelectorState, selIdx int, values []string, errV
 	}
 
 	for _, val := range values {
+		reg, expr, found, err := asm.CutCelAssignment(val)
+		if err != nil {
+			return err
+		}
+
+		if found {
+			ass, err := parseCelAssignment(k, reg, expr, args, data)
+			if err != nil {
+				return err
+			}
+			regs = append(regs, ass)
+			continue
+		}
+
 		ass, err := asm.ParseAssignment(val)
 		if err != nil {
 			return err

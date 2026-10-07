@@ -12,6 +12,8 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
 
+	"github.com/cilium/tetragon/pkg/api/processapi"
+	tasm "github.com/cilium/tetragon/pkg/asm"
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
@@ -54,6 +56,26 @@ func addMatchCelExpr(
 	return arg_indexes, nil
 }
 
+func addRegCelExpr(
+	exprs *CelExprFunctions,
+	expr string,
+	sig, data []v1alpha1.KProbeArg,
+) (int, error) {
+	if !celbpf.Supported() {
+		return 0, errors.New("celbpf not supported in this kernel")
+	}
+	idx := len(*exprs)
+	if idx >= MaxCelExprFunctions {
+		return 0, fmt.Errorf("no more than %d CelExpr allowed per policy", MaxCelExprFunctions)
+	}
+	insts, _, err := celbpf.CompileValueFn(CelExprFuncName(idx), expr, sig, data)
+	if err != nil {
+		return 0, err
+	}
+	*exprs = append(*exprs, insts)
+	return idx, nil
+}
+
 func parseMatchCelExpr(
 	k *KernelSelectorState,
 	arg *v1alpha1.ArgSelector,
@@ -78,6 +100,35 @@ func parseMatchCelExpr(
 	}
 	WriteSelectorLength(&k.data, moff)
 	return nil
+}
+
+func parseCelAssignment(
+	k *KernelSelectorState,
+	reg, expr string,
+	args, data []v1alpha1.KProbeArg,
+) (processapi.RegAssignment, error) {
+	if reg == "" {
+		return processapi.RegAssignment{},
+			fmt.Errorf("cel assignment has no destination register: 'cel(%s)'", expr)
+	}
+
+	dst, dstSize, ok := tasm.RegOffsetSize(reg)
+	if !ok {
+		return processapi.RegAssignment{},
+			fmt.Errorf("failed to parse register '%s'", reg)
+	}
+
+	idx, err := addRegCelExpr(k.CelExprFunctions(), expr, args, data)
+	if err != nil {
+		return processapi.RegAssignment{}, err
+	}
+
+	return processapi.RegAssignment{
+		Type:    tasm.ASM_ASSIGNMENT_TYPE_CEL,
+		Dst:     dst,
+		DstSize: dstSize,
+		Off:     uint64(idx),
+	}, nil
 }
 
 func removeCelFunction(prog *ebpf.ProgramSpec) {
