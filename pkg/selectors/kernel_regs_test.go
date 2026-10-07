@@ -30,9 +30,9 @@ func TestUprobeOverridePerSelectorIPDelta(t *testing.T) {
 	// Each selector gets its own delta, and a selector without a new target
 	// keeps the default return value override.
 	expected := NewKernelSelectorState(nil, nil, true, 0, nil, nil)
-	require.NoError(t, parseOverrideRegs(expected, 0, nil, 0, 0x100))
-	require.NoError(t, parseOverrideRegs(expected, 1, nil, 0, 0x200))
-	require.NoError(t, parseOverrideRegs(expected, 2, nil, 5, 0))
+	require.NoError(t, parseOverrideRegs(expected, 0, nil, 0, 0x100, nil, nil))
+	require.NoError(t, parseOverrideRegs(expected, 1, nil, 0, 0x200, nil, nil))
+	require.NoError(t, parseOverrideRegs(expected, 2, nil, 5, 0, nil, nil))
 	require.Equal(t, expected.Regs(), state.Regs())
 }
 
