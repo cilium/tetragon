@@ -46,7 +46,7 @@ func addMatchCelExpr(
 	idx := nExprs
 	celExpr := arg.Values[0]
 
-	insts, arg_indexes, err := celbpf.CompileFn(CelExprFuncName(idx), celExpr, sig, data)
+	insts, arg_indexes, err := celbpf.CompileFn(CelExprFuncName(idx), celExpr, sig, data, false)
 	if err != nil {
 		return nil, err
 	}

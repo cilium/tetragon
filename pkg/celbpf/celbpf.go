@@ -10,6 +10,7 @@ import (
 
 	cgChecker "cel.dev/cel-go/checker"
 	cgCommon "cel.dev/cel-go/common"
+	cgTypes "cel.dev/cel-go/common/types"
 	cgParser "cel.dev/cel-go/parser"
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/btf"
@@ -39,26 +40,26 @@ func Supported() bool {
 	return bpf.DetectMixBpfAndTailCalls()
 }
 
-func Compile(celExpr string, sig, data []v1alpha1.KProbeArg, labelPrefix string) (asm.Instructions, []uint16, error) {
+func compileCel(celExpr string, sig, data []v1alpha1.KProbeArg, labelPrefix string) (asm.Instructions, []uint16, *cgTypes.Type, error) {
 	source := cgCommon.NewTextSource(celExpr)
 	parser, err := cgParser.NewParser()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed initialize CEL parser: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed initialize CEL parser: %w", err)
 	}
 
 	ast, errs := parser.Parse(source)
 	if len(errs.GetErrors()) > 0 {
-		return nil, nil, fmt.Errorf("failed to parse CEL expresion %q: %s", celExpr, errs.ToDisplayString())
+		return nil, nil, nil, fmt.Errorf("failed to parse CEL expresion %q: %s", celExpr, errs.ToDisplayString())
 	}
 
 	checkerEnv, err := newCheckerEnv(sig, data)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	ast, errs = cgChecker.Check(ast, source, checkerEnv)
 	if len(errs.GetErrors()) > 0 {
-		return nil, nil, fmt.Errorf("check failed on CEL expresion %q: %s", celExpr, errs.ToDisplayString())
+		return nil, nil, nil, fmt.Errorf("check failed on CEL expresion %q: %s", celExpr, errs.ToDisplayString())
 	}
 
 	compiler := newCompiler(ast, source, sig, data, labelPrefix)
@@ -88,6 +89,21 @@ func btfCelExprTy(fnName string) *btf.Func {
 	}
 }
 
+func btfCelExprValueTy(fnName string) *btf.Func {
+	return &btf.Func{
+		Name: fnName,
+		Type: &btf.FuncProto{
+			Return: &btf.Int{
+				Name:     "s64",
+				Size:     8,
+				Encoding: btf.Signed,
+			},
+			Params: []btf.FuncParam{},
+		},
+		Linkage: btf.StaticFunc,
+	}
+}
+
 func CompileEmptyFunction(fnName string) asm.Instructions {
 	insns := asm.Instructions{
 		asm.Mov.Imm(asm.R0, 0),
@@ -98,12 +114,24 @@ func CompileEmptyFunction(fnName string) asm.Instructions {
 	return insns
 }
 
-func CompileFn(fnName, celExpr string, sig, data []v1alpha1.KProbeArg) (asm.Instructions, []uint16, error) {
-	insns, arg_indexes, err := Compile(celExpr, sig, data, fnName)
+func CompileFn(fnName, celExpr string, sig, data []v1alpha1.KProbeArg, valueRet bool) (asm.Instructions, []uint16, error) {
+	insns, arg_indexes, ty, err := compileCel(celExpr, sig, data, fnName)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to compile CEL expression %q: %w", celExpr, err)
 	}
-	fnTy := btfCelExprTy(fnName)
+
+	var fnTy *btf.Func
+	if valueRet {
+		if k := ty.Kind(); k != cgTypes.IntKind && k != cgTypes.UintKind {
+			return nil, nil, fmt.Errorf("expecting CEL expression %q to return int64 or uint64, got %s", celExpr, ty)
+		}
+		fnTy = btfCelExprValueTy(fnName)
+	} else {
+		if ty.Kind() != cgTypes.BoolKind {
+			return nil, nil, fmt.Errorf("expecting CEL expression %q to return bool, got %s", celExpr, ty)
+		}
+		fnTy = btfCelExprTy(fnName)
+	}
 	insns[0] = btf.WithFuncMetadata(insns[0].WithSymbol(fnTy.Name), fnTy).WithSource(s{celExpr})
 	return insns, arg_indexes, nil
 }
