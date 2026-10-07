@@ -8,6 +8,7 @@ package selectors
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
@@ -103,6 +104,31 @@ func removeCelFunction(prog *ebpf.ProgramSpec) {
 		newInstructions = append(newInstructions, ins)
 	}
 	prog.Instructions = newInstructions
+}
+
+func CutCelAssignment(str string) (reg, expr string, ok bool, err error) {
+	dst, src, found := strings.Cut(str, "=")
+
+	if !found {
+		return "", "", false, nil
+	}
+
+	src = strings.TrimSpace(src)
+	celPart, isCel := strings.CutPrefix(src, "cel")
+
+	if !isCel {
+		return "", "", false, nil
+	}
+
+	celPart = strings.TrimSpace(celPart)
+
+	// Strip the outer parentheses so only the CEL expression is returned
+	if !strings.HasPrefix(celPart, "(") || !strings.HasSuffix(celPart, ")") {
+		return "", "", false, fmt.Errorf("missing cel enclosure parentheses '%s'", celPart)
+	}
+	celPart = strings.TrimSpace(celPart[1 : len(celPart)-1])
+
+	return strings.TrimSpace(dst), celPart, true, nil
 }
 
 func (cefs CelExprFunctions) RewriteProg(prog *ebpf.ProgramSpec) error {
