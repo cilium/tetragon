@@ -69,8 +69,13 @@ questions and share your experiences.
 ## How to Contribute
 
 For getting started with local development, you can refer to the
-[Contribution Guide](https://tetragon.io/docs/contribution-guide/). If
-you plan to submit a PR, please ["sign-off"](https://tetragon.io/docs/contribution-guide/developer-certificate-of-origin/)
+[Contribution Guide](https://tetragon.io/docs/contribution-guide/).
+The repository includes a [devcontainer](.devcontainer/) for a
+ready-to-use development environment — open the project in VS Code and
+select **"Reopen in Container"** to get started instantly.
+
+If you plan to submit a PR, please
+["sign-off"](https://tetragon.io/docs/contribution-guide/developer-certificate-of-origin/)
 your commits.
 
 ## Adopters
