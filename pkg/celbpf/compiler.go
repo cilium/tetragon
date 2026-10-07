@@ -361,16 +361,15 @@ func (c *compiler) compileExpr(expr cgAst.Expr) error {
 	return fmt.Errorf("unsupported CEL expr: %d (%+v)", expr.Kind(), expr)
 }
 
-func (c *compiler) compile() (asm.Instructions, []uint16, error) {
+func (c *compiler) compile() (asm.Instructions, []uint16, *cgTypes.Type, error) {
 	expr := c.ast.Expr()
-	if cgAst.NavigateExpr(c.ast, expr).Type().Kind() != cgTypes.BoolKind {
-		return nil, nil, errors.New("expecting CEL expression to return bool")
-	}
+	ty := cgAst.NavigateExpr(c.ast, expr).Type()
+
 	if err := c.compileExpr(expr); err != nil {
-		return nil, nil, fmt.Errorf("failed to compile CEL expression: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to compile CEL expression: %w", err)
 	}
 	c.cg.emitPopInt64(asm.R0)
 	c.cg.emitRaw(asm.Return())
 
-	return c.cg.instructions(), c.arg_indexes, nil
+	return c.cg.instructions(), c.arg_indexes, ty, nil
 }
