@@ -27,9 +27,13 @@ type policyInfo struct {
 	domain        string
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
+
+	// These maps are used to store policy-scoped information and are shared
+	// between all hook types.
 	policyConf    *program.Map
 	policyStats   *program.Map
 	selectorStats *program.Map
+	stateMap      *program.Map
 
 	// stateIDs maps state names from the yaml to their corresponding IDs as
 	// used in eBPF.
@@ -144,6 +148,7 @@ func newPolicyInfoFromSpec(
 		policyConf:    nil,
 		policyStats:   nil,
 		selectorStats: nil,
+		stateMap:      nil,
 		stateIDs:      indexPolicyStates(spec.States),
 		selectorCount: countSelectors(spec),
 		specOpts:      opts,
@@ -156,6 +161,15 @@ func indexPolicyStates(states []v1alpha1.State) map[string]uint32 {
 		stateIDs[state.Name] = uint32(stateID)
 	}
 	return stateIDs
+}
+
+func (pi *policyInfo) policyStateMap(prog *program.Program) *program.Map {
+	if pi.stateMap != nil {
+		return program.MapUserFrom(pi.stateMap)
+	}
+	pi.stateMap = program.MapBuilderPolicy("tg_state_map", prog)
+	pi.stateMap.SetMaxEntries(len(pi.stateIDs))
+	return pi.stateMap
 }
 
 func (pi *policyInfo) selectorStatsMap(prog *program.Program) *program.Map {
