@@ -171,3 +171,11 @@ func BenchmarkRefcntOpsUpdate(b *testing.B) {
 		})
 	}
 }
+
+func TestRefcntOpsDumpViaProcess(t *testing.T) {
+	pi := &ProcessInternal{}
+	pi.refcntOps.inc(RefProcess)
+	pi.refcntOps.inc(testReasonA)
+	pi.refcntOps.dec(testReasonA)
+	assert.Equal(t, map[string]int32{"process++": 1, "test-a++": 1, "test-a--": 1}, pi.refcntOps.toMap())
+}
