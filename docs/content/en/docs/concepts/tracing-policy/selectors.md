@@ -25,6 +25,7 @@ Each selector comprises a set of filters:
 - [`matchWorkloads`](#workloads-filter): filter on Kubernetes workloads.
 - [`matchCEL`](#matchcel): filter on the value of CEL expressions
 - [`matchUserCallers`](#matchusercallers): filter on the user space callstack of the hooked function.
+- [`matchStates`](#matchStates): filter on the value of state entries.
 
 And a set of actions that will be performed if the specified filters match:
 - [`matchActions`](#actions-filter): apply an action on selector matching.
@@ -984,6 +985,41 @@ of the entries match.
 5. Kernel version >=5.9 is needed to support binaries which don't have their
    buildID in their first note section.
 
+## matchStates
+
+Use the `matchStates` field with the `UpdateState` action to define stateful
+policies. Before you reference a state in `matchStates`, declare it in the
+TracingPolicy object's `spec.state` field. Tetragon initializes each declared
+state to `0` when it loads the policy.
+
+A selector does not match when it references a state that does not exist. For
+example, a state does not exist after an `UpdateState` action deletes it.
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobe-state"
+spec:
+  state:
+  - name: "deny-open"
+  kprobes:
+  - call: "sys_pwrite64"
+    syscall: true
+    selectors:
+    - matchStates:
+      - name: "deny-open"
+        operator: Equal
+        value: "1"
+```
+
+
+Currently, `matchStates` supports the following operators:
+`Equal`, `NotEqual`.
+
+`value` supports `u64` integers.
+
+
 ## Actions filter
 
 Actions filters are a list of actions that execute when an appropriate selector
@@ -1000,10 +1036,10 @@ matches. They are defined under `matchActions` and currently, the following
 - [UntrackSock action](#untracksock-action)
 - [Notify Enforcer action](#notify-enforcer-action)
 - [Set action](#set-action)
+- [UpdateState action](#updatestate-action)
 
 {{< note >}}
-`Sigkill`, `Override`, `Post`,
-`TrackSock` and `UntrackSock` are
+`Sigkill`, `Override`, `Post`, `TrackSock`, `UntrackSock`, and `UpdateState` are
 executed directly in the kernel BPF code while `GetUrl` and `DnsLookup` are
 happening in userspace after the reception of events.
 {{< /note >}}
@@ -1866,6 +1902,38 @@ spec:
           argIndex: 0
           argValue: 1
 ```
+
+### UpdateState action
+
+Use the `UpdateState` action to set or delete a state declared in the
+TracingPolicy object's `spec.state` field.
+
+The `Set` operator assigns an unsigned 64-bit integer to the state:
+
+```yaml
+matchActions:
+- action: UpdateState
+  stateName: "deny-open"
+  stateUpdateOperator: Set
+  stateNewValue: "1"
+```
+
+The `Delete` operator removes the state:
+
+```yaml
+matchActions:
+- action: UpdateState
+  stateName: "deny-open"
+  stateUpdateOperator: Delete
+```
+
+{{< caution >}}
+Tetragon updates each state atomically. However, when probes update the same
+state concurrently, the order of the updates is not guaranteed.
+
+Moreover, after a probe has evaluated `matchStates` and before it tries to update the state,
+the state might have been modified by another probe.
+{{< /caution >}}
 
 ## Selector Semantics
 
