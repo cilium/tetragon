@@ -47,15 +47,20 @@ func TestProcessCacheInterval(t *testing.T) {
 	readyWG.Wait()
 	cmd := exec.Command(sleepBin, "0.001")
 	require.NoError(t, cmd.Start())
-	pid := cmd.Process.Pid
-	time.Sleep(50 * time.Millisecond)
+	pid := uint32(cmd.Process.Pid)
+	require.NoError(t, cmd.Wait())
 
-	processes := process.DumpProcessCache(&tetragon.DumpProcessCacheReqArgs{SkipZeroRefcnt: false, ExcludeExecveMapProcesses: false})
-	// Should find our sleep process in the list, even though the process should have finished.
-	require.True(t, processInList(uint32(pid), processes))
+	inCache := func() bool {
+		processes := process.DumpProcessCache(&tetragon.DumpProcessCacheReqArgs{SkipZeroRefcnt: false, ExcludeExecveMapProcesses: false})
+		return processInList(pid, processes)
+	}
 
-	time.Sleep(500 * time.Millisecond)
-	processes = process.DumpProcessCache(&tetragon.DumpProcessCacheReqArgs{SkipZeroRefcnt: false, ExcludeExecveMapProcesses: false})
-	// Should not find our sleep process in the list, as it should have been evicted by now.
-	require.False(t, processInList(uint32(pid), processes))
+	require.Eventually(t, inCache, 5*time.Second, 10*time.Millisecond)
+
+	// The process should be evicted shortly after. Normally this takes 100-200ms,
+	// but on kernels without the BPF ring buffer (< 5.11) the exit event may be
+	// read before the exec event, in which case it is only reprocessed after the
+	// event cache retry delay (2s). The bound is well below the default GC
+	// interval (30s), so this still verifies that the configured interval is used.
+	require.Eventually(t, func() bool { return !inCache() }, 10*time.Second, 50*time.Millisecond)
 }
