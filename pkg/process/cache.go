@@ -5,7 +5,6 @@ package process
 
 import (
 	"fmt"
-	"maps"
 	"path/filepath"
 	"time"
 
@@ -119,22 +118,18 @@ func (pc *Cache) deletePending(process *ProcessInternal) {
 	pc.deleteChan <- process
 }
 
-func (pc *Cache) refDec(p *ProcessInternal, reason string) {
-	p.refcntOpsLock.Lock()
+func (pc *Cache) refDec(p *ProcessInternal, reason RefReason) {
 	// count number of times refcnt is decremented for a specific reason (i.e. process, parent, etc.)
-	p.refcntOps[reason]++
-	p.refcntOpsLock.Unlock()
+	p.refcntOps.dec(reason)
 	ref := p.refcnt.Add(^uint32(0))
 	if ref == 0 {
 		pc.deletePending(p)
 	}
 }
 
-func (pc *Cache) refInc(p *ProcessInternal, reason string) {
-	p.refcntOpsLock.Lock()
-	// count number of times refcnt is increamented for a specific reason (i.e. process, parent, etc.)
-	p.refcntOps[reason]++
-	p.refcntOpsLock.Unlock()
+func (pc *Cache) refInc(p *ProcessInternal, reason RefReason) {
+	// count number of times refcnt is incremented for a specific reason (i.e. process, parent, etc.)
+	p.refcntOps.inc(reason)
 	p.refcnt.Add(1)
 }
 
@@ -179,7 +174,7 @@ func NewCache(
 				return
 			}
 
-			pm.refDec(parent, "parent--")
+			pm.refDec(parent, RefParent)
 			evicted.SetParentRefcntDecreased(true)
 		},
 	)
@@ -257,7 +252,7 @@ func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.Proces
 		processes = append(processes, &tetragon.ProcessInternal{
 			Process:   proto.Clone(v.process).(*tetragon.Process),
 			Refcnt:    &wrapperspb.UInt32Value{Value: ref},
-			RefcntOps: maps.Clone(v.refcntOps),
+			RefcntOps: v.refcntOps.toMap(),
 			Color:     colorStr[v.getColor()],
 		})
 	}
@@ -270,7 +265,7 @@ func (pc *Cache) getEntries() []*tetragon.ProcessInternal {
 		processes = append(processes, &tetragon.ProcessInternal{
 			Process:   v.process,
 			Refcnt:    &wrapperspb.UInt32Value{Value: v.refcnt.Load()},
-			RefcntOps: v.refcntOps,
+			RefcntOps: v.refcntOps.toMap(),
 			Color:     colorStr[v.getColor()],
 		})
 	}

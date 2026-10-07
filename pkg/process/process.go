@@ -58,15 +58,9 @@ type ProcessInternal struct {
 	// decreased for this process. This is used to avoid double parent-- when
 	// a process is evicted by the LRU and then handled by the exit handler.
 	parentRefcntDecreased bool
-	// refcntOps is a map of operations to refcnt change
-	// keys can be:
-	// - "process++": process increased refcnt (i.e. this process starts)
-	// - "process--": process decreased refcnt (i.e. this process exits)
-	// - "parent++": parent increased refcnt (i.e. a process starts that has this process as a parent)
-	// - "parent--": parent decreased refcnt (i.e. a process exits that has this process as a parent)
-	refcntOps map[string]int32
-	// protects the refcntOps map
-	refcntOpsLock sync.Mutex
+	// refcntOps counts, per reason, how many times the refcnt was increased
+	// and decreased. It is exposed through DumpProcessCache().
+	refcntOps refcntOps
 }
 
 var (
@@ -128,9 +122,9 @@ func (pi *ProcessInternal) cloneInternalProcessCopy() *ProcessInternal {
 		apiCreds:      pi.apiCreds,
 		apiBinaryProp: pi.apiBinaryProp,
 		namespaces:    pi.namespaces,
-		refcntOps:     map[string]int32{"process++": 1},
 	}
 	npi.refcnt.Store(1) // Explicitly initialize refcnt to 1
+	npi.refcntOps.inc(RefProcess)
 	return npi
 }
 
@@ -234,12 +228,12 @@ func (pi *ProcessInternal) AnnotateProcess(cred, ns bool) error {
 	return nil
 }
 
-func (pi *ProcessInternal) RefDec(reason string) {
-	procCache.refDec(pi, reason+"--")
+func (pi *ProcessInternal) RefDec(reason RefReason) {
+	procCache.refDec(pi, reason)
 }
 
-func (pi *ProcessInternal) RefInc(reason string) {
-	procCache.refInc(pi, reason+"++")
+func (pi *ProcessInternal) RefInc(reason RefReason) {
+	procCache.refInc(pi, reason)
 }
 
 func (pi *ProcessInternal) RefGet() uint32 {
@@ -458,9 +452,9 @@ func initProcessInternalExec(
 		apiCreds:      apiCreds,
 		apiBinaryProp: apiBinaryProp,
 		namespaces:    apiNs,
-		refcntOps:     map[string]int32{"process++": 1},
 	}
 	pi.refcnt.Store(1)
+	pi.refcntOps.inc(RefProcess)
 
 	// Set in_init_tree flag
 	if event.Process.Flags&api.EventInInitTree == api.EventInInitTree {
@@ -623,7 +617,7 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
 		return nil, err
 	}
 
-	parent.RefInc("parent")
+	parent.RefInc(RefParent)
 	procCache.add(proc)
 	return proc, nil
 }
@@ -642,6 +636,7 @@ func DumpProcessCache(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.Proces
 // This function returns the process cache entries (and not the copies
 // of them as opposed to dump function). Thus any changes to the return
 // value results in affecting the process cache entries.
+// The exception is RefcntOps, which is a snapshot of the counters.
 // This is mainly for tests where we want to check the values of the
 // process cache.
 func GetCacheEntries() []*tetragon.ProcessInternal {
