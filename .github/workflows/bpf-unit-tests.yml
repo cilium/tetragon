@@ -26,6 +26,9 @@ jobs:
         # renovate: datasource=golang-version depName=go
         go-version: '1.27.1'
 
+    - name: Remove slow Azure apt mirrors
+      uses: cilium/actions/remove-azure-apt-mirrors@687b48a0547e534dd7270d5069a5ab7967c0e907 # main
+
     - name: Install LLVM 22
       run: |
         wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
