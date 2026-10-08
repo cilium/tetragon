@@ -6,6 +6,7 @@ package eventcache
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -39,7 +40,8 @@ type CacheObj struct {
 
 type Cache struct {
 	objsChan chan CacheObj
-	done     chan bool
+	done     chan struct{}
+	stopOnce sync.Once
 	cache    []CacheObj
 	notifier server.Notifier
 	dur      time.Duration
@@ -198,7 +200,14 @@ func (ec *Cache) handleEvents() {
 	}
 }
 
+func (ec *Cache) stop() {
+	ec.stopOnce.Do(func() {
+		close(ec.done)
+	})
+}
+
 func (ec *Cache) loop(ctx context.Context) {
+	defer ec.stop()
 	ticker := time.NewTicker(ec.dur)
 	defer ticker.Stop()
 
@@ -271,19 +280,22 @@ func (ec *Cache) Add(internal *process.ProcessInternal,
 	t uint64,
 	s uint64,
 	msg notify.Message) {
-	ec.objsChan <- CacheObj{internal: internal, event: e, timestamp: t, startTime: s, msg: msg}
+	select {
+	case ec.objsChan <- CacheObj{internal: internal, event: e, timestamp: t, startTime: s, msg: msg}:
+	case <-ec.done:
+	}
 }
 
 func NewWithTimer(ctx context.Context, n server.Notifier, dur time.Duration) *Cache {
 	if cache != nil {
-		cache.done <- true
+		cache.stop()
 	}
 
 	logger.GetLogger().Info("Creating new EventCache", "retries", option.Config.EventCacheNumRetries, "delay", dur)
 
 	cache = &Cache{
 		objsChan: make(chan CacheObj),
-		done:     make(chan bool),
+		done:     make(chan struct{}),
 		cache:    make([]CacheObj, 0),
 		notifier: n,
 		dur:      dur,
