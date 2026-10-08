@@ -59,7 +59,7 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 	}
 
 	pods := []any{&podA}
-	err := process.InitCache(watcher.NewFakeK8sWatcher(pods), 10, defaults.DefaultProcessCacheGCInterval)
+	err := process.InitCache(t.Context(), watcher.NewFakeK8sWatcher(pods), 10, defaults.DefaultProcessCacheGCInterval)
 	require.NoError(t, err)
 	defer process.FreeCache()
 	pod := process.GetPodInfo("container-id-not-found", "", "", 0)
@@ -121,7 +121,7 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 		},
 	}
 	pods := []any{&podA}
-	err := process.InitCache(watcher.NewFakeK8sWatcher(pods), 10, defaults.DefaultProcessCacheGCInterval)
+	err := process.InitCache(t.Context(), watcher.NewFakeK8sWatcher(pods), 10, defaults.DefaultProcessCacheGCInterval)
 	require.NoError(t, err)
 	defer process.FreeCache()
 	pod := process.GetPodInfo("aaaaaaa", "/bin/command", "arg-a arg-b", 1234)
@@ -142,7 +142,7 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 }
 
 func TestProcessManager_GetProcessExec(t *testing.T) {
-	err := process.InitCache(watcher.NewFakeK8sWatcher(nil), 10, defaults.DefaultProcessCacheGCInterval)
+	err := process.InitCache(t.Context(), watcher.NewFakeK8sWatcher(nil), 10, defaults.DefaultProcessCacheGCInterval)
 	require.NoError(t, err)
 	defer process.FreeCache()
 	var wg sync.WaitGroup
