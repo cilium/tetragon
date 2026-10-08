@@ -13,8 +13,6 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -75,27 +73,6 @@ func SensorsFromPolicy(tp tracingpolicy.TracingPolicy, filterID policyfilter.Pol
 
 // revive:enable:exported
 
-// releasePolicyFilter removes the policyfilter entry registered for col, if
-// any, and marks the collection as having no filter associated with it. It
-// keeps the BPF policyfilter map in sync when a policy add fails after its
-// filter was registered, or when a failed collection is being replaced.
-//
-// Should be called with h.collections.mu locked (for writing).
-func (h *handler) releasePolicyFilter(col *collection) {
-	filterID := policyfilter.PolicyID(col.policyfilterID)
-	if filterID == policyfilter.NoFilterID {
-		return
-	}
-	col.policyfilterID = uint64(policyfilter.NoFilterID)
-	if err := h.pfState.DelPolicy(filterID); err != nil {
-		logger.GetLogger().Warn("failed to release policyfilter ID of failed policy",
-			"policy", col.name, "policyfilter-id", uint64(filterID), logfields.Error, err)
-		return
-	}
-	logger.GetLogger().Debug("released policyfilter ID of failed policy",
-		"policy", col.name, "policyfilter-id", uint64(filterID))
-}
-
 // registerNewCollection allocates a policy ID for op and adds the resulting
 // collection to the map.
 // Should be called with h.collections.mu locked (for writing).
@@ -104,20 +81,8 @@ func (h *handler) registerNewCollection(op *tracingPolicyAdd) (*collection, erro
 	// allow overriding an existing policy collection that holds no BPF state:
 	// one that resulted in an error during the loading state, or one that was
 	// skipped on this node
-	if old, exists := collections[op.ck]; exists {
-		if old.state != LoadErrorState && old.state != SkippedState {
-			return nil, fmt.Errorf("failed to add tracing policy %s, a sensor collection with the key already exists", op.ck)
-		}
-		// The old collection never reached a loaded state, so release its
-		// resources before replacing it. Its sensors were either never
-		// created or already destroyed, but its policyfilter ID may still
-		// be registered if a previous add failed after the filter was set
-		// up; not releasing it would permanently leak one of the 128
-		// policyfilter map slots per failed add (see #5707).
-		logger.GetLogger().Debug("replacing failed policy collection",
-			"policy", old.name)
-		old.destroy(true)
-		h.releasePolicyFilter(old)
+	if col, exists := collections[op.ck]; exists && col.state != LoadErrorState && col.state != SkippedState {
+		return nil, fmt.Errorf("failed to add tracing policy %s, a sensor collection with the key already exists", op.ck)
 	}
 
 	col := &collection{
@@ -129,16 +94,16 @@ func (h *handler) registerNewCollection(op *tracingPolicyAdd) (*collection, erro
 	return col, nil
 }
 
-func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
+func (h *handler) addTracingPolicy(op *tracingPolicyAdd) (err error) {
 	h.collections.mu.Lock()
 	defer h.collections.mu.Unlock()
 	col, err := h.registerNewCollection(op)
 	if err != nil {
-		return err
+		return
 	}
 	if op.state == SkippedState {
 		col.state = SkippedState
-		return nil
+		return
 	}
 
 	// update policy filter state before loading the sensors of the policy.
@@ -154,24 +119,29 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		return err
+		return
 	}
 	col.policyfilterID = uint64(filterID)
+	defer func() {
+		if err != nil {
+			// if addTracingPolicy fails, remove the policyfilter ID reset the value in
+			// the collection.
+			h.pfState.DelPolicy(filterID)
+			col.policyfilterID = uint64(policyfilter.NoFilterID)
+		}
+	}()
 
 	sensors, err := sensorsFromPolicyHandlers(op.tp, filterID)
 	if err != nil {
 		col.err = err
 		col.state = LoadErrorState
-		// the policyfilter entry was already registered above: roll it
-		// back so that a failed add does not leak a policyfilter ID (#5707)
-		h.releasePolicyFilter(col)
-		return err
+		return
 	}
 	col.sensors = make([]SensorIface, 0, len(sensors))
 	col.sensors = append(col.sensors, sensors...)
 	if op.state == DisabledState {
 		col.state = DisabledState
-		return nil
+		return
 	}
 	col.state = LoadingState
 
@@ -193,12 +163,10 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		col.err = err
 		col.state = LoadErrorState
 		col.destroy(true)
-		// same rollback as above: the filter was registered before loading
-		h.releasePolicyFilter(col)
-		return err
+		return
 	}
 	col.state = col.getEnabledStateType()
-	return nil
+	return
 }
 
 func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
