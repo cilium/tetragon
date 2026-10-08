@@ -127,6 +127,7 @@ func runCmd() *cobra.Command {
 	allParams := false
 	allTests := false
 	var params map[string]string
+	var podSelector map[string]string
 	var outputFile = ""
 	outputFmt, _ := option.NewEnum([]string{"text", "json"}, "text")
 	cmd := cobra.Command{
@@ -189,6 +190,7 @@ func runCmd() *cobra.Command {
 				DumpPolicyPath:  dumpPolicyPath,
 				Timeout:         time.Minute * time.Duration(len(tests)),
 				ScenarioTimeout: time.Minute,
+				PodSelector:     podSelector,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to start local runner: %w", err)
@@ -241,6 +243,7 @@ func runCmd() *cobra.Command {
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policy in the provided path")
 	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
 	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
+	flags.StringToStringVar(&podSelector, "pod-selector", map[string]string{}, "scope every policy to pods with these labels (sets spec.podSelector; needs the agent's policy filter)")
 	flags.BoolVar(&allParams, "all-params", allParams, "Run policy tests using all available parameters")
 	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
 	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")

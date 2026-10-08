@@ -57,6 +57,9 @@ type Conf struct {
 	Timeout time.Duration
 	// Timeout for each Scenario
 	ScenarioTimeout time.Duration
+
+	// Injected into every policy as spec.podSelector (Kubernetes only)
+	PodSelector map[string]string
 }
 
 func (c *Conf) TestBinary(s string) string {
