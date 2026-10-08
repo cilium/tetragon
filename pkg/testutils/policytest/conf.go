@@ -62,8 +62,14 @@ type Conf struct {
 	PodSelector map[string]string
 }
 
+// TestBinary resolves symlinks: matchBinaries sees the kernel's path, e.g.
+// /run rather than /var/run.
 func (c *Conf) TestBinary(s string) string {
-	return filepath.Join(c.BinsDir, s)
+	path := filepath.Join(c.BinsDir, s)
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		return resolved
+	}
+	return path
 }
 
 func (c *Conf) TempFile(key string) (string, error) {
