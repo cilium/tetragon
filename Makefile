@@ -379,7 +379,7 @@ ls-e2e-test:
 ## e2e-test E2E_TESTS=./tests/e2e/tests/skeleton: ## run a specific e2e test
 .PHONY: e2e-test
 ifneq ($(E2E_BUILD_IMAGES), 0)
-e2e-test: image image-operator
+e2e-test: image image-operator image-policytest
 else
 e2e-test:
 endif
