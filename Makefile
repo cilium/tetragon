@@ -190,6 +190,10 @@ image-operator: ## Build the Tetragon operator container image.
 	@echo "Push like this when ready:"
 	@echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 
+.PHONY: image-policytest
+image-policytest: ## Build the Tetragon policytest container image (tetra + tester-progs).
+	$(CONTAINER_ENGINE) build -f Dockerfile.policytest -t "cilium/tetragon-policytest:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
+
 .PHONY: image-rthooks
 image-rthooks:
 	$(CONTAINER_ENGINE) build -f Dockerfile.rthooks -t "cilium/tetragon-rthooks:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
