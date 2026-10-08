@@ -101,9 +101,8 @@ func TestHelperMain() {
 
 		case cmd == "lseek_42":
 			// We want to test a policy that checks for the following expression:
-			// fd == -1 && pid == 42 + whence
-			pid := os.Getpid()
-			whence := pid - 42
+			// fd == -1 && uid == 42 + whence
+			whence := os.Getuid() - 42
 			o, err := unix.Seek(int(-1), 0, int(whence))
 			fmt.Fprintf(os.Stdout, "cmd=%q returned o=%d err=%v\n", cmd, o, err)
 
