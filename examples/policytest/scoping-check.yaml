@@ -1,0 +1,75 @@
+# Two pods identical except for their app label, both running lseek-pipe in a
+# loop. A policy scoped to app=tetragon-policytest must see the probe pod and
+# not the control pod. Used by verify-scoping.sh.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: policytest-probe
+  namespace: tetragon-policytest
+  labels:
+    app: tetragon-policytest        # matches the selector: expect events
+spec:
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 1
+  containers:
+  - name: probe
+    image: cilium/tetragon-policytest:latest
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c"]
+    args:
+    - |
+      progs=/run/tetragon/policytest-progs
+      mkdir -p "$progs"
+      cp -a /usr/local/lib/tetragon/tester-progs/. "$progs"/
+      # 2/s: visible if the policy leaks, but will not rotate the 10MB export log
+      while true; do "$progs/lseek-pipe" -1 0 4444 >/dev/null 2>&1 || true; sleep 0.5; done
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: tetragon-run
+      mountPath: /run/tetragon
+  volumes:
+  - name: tetragon-run
+    hostPath:
+      path: /var/run/tetragon
+      type: Directory
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: policytest-control
+  namespace: tetragon-policytest
+  labels:
+    app: policytest-control         # does NOT match: expect no events
+spec:
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 1
+  # same node as the probe: it runs the binaries the probe staged, and the
+  # check reads that node's agent log
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app: tetragon-policytest
+        topologyKey: kubernetes.io/hostname
+  containers:
+  - name: control
+    image: cilium/tetragon-policytest:latest
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c"]
+    args:
+    - |
+      progs=/run/tetragon/policytest-progs
+      until [ -x "$progs/lseek-pipe" ]; do sleep 1; done
+      while true; do "$progs/lseek-pipe" -1 0 4444 >/dev/null 2>&1 || true; sleep 0.5; done
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: tetragon-run
+      mountPath: /run/tetragon
+  volumes:
+  - name: tetragon-run
+    hostPath:
+      path: /var/run/tetragon
+      type: Directory
