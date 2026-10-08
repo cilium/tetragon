@@ -12,6 +12,7 @@ import (
 	"iter"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -74,6 +75,16 @@ func NewLocalRunner(
 			cnf.GrpcAddr = "localhost:54321"
 		}
 	}
+
+	// matchBinaries needs the path the kernel reports
+	binsDir, err := filepath.Abs(cnf.BinsDir)
+	if err == nil {
+		binsDir, err = filepath.EvalSymlinks(binsDir)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve binaries directory: %w", err)
+	}
+	cnf.BinsDir = binsDir
 
 	cli, err := cli.NewClient(ctx, cnf.GrpcAddr, cnf.Timeout)
 	if err != nil {
