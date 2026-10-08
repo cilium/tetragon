@@ -4,6 +4,7 @@
 package eventcache
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -197,12 +198,15 @@ func (ec *Cache) handleEvents() {
 	}
 }
 
-func (ec *Cache) loop() {
+func (ec *Cache) loop(ctx context.Context) {
 	ticker := time.NewTicker(ec.dur)
 	defer ticker.Stop()
 
 	for {
 		select {
+		case <-ctx.Done():
+			return
+
 		case <-ticker.C:
 			/* Every 'option.Config.EventCacheRetryDelay' seconds walk the slice of events
 			 * pending pod info. If an event hasn't completed its podInfo after two iterations
@@ -270,7 +274,7 @@ func (ec *Cache) Add(internal *process.ProcessInternal,
 	ec.objsChan <- CacheObj{internal: internal, event: e, timestamp: t, startTime: s, msg: msg}
 }
 
-func NewWithTimer(n server.Notifier, dur time.Duration) *Cache {
+func NewWithTimer(ctx context.Context, n server.Notifier, dur time.Duration) *Cache {
 	if cache != nil {
 		cache.done <- true
 	}
@@ -284,12 +288,12 @@ func NewWithTimer(n server.Notifier, dur time.Duration) *Cache {
 		notifier: n,
 		dur:      dur,
 	}
-	go cache.loop()
+	go cache.loop(ctx)
 	return cache
 }
 
-func New(n server.Notifier) *Cache {
-	return NewWithTimer(n, time.Second*time.Duration(option.Config.EventCacheRetryDelay))
+func New(ctx context.Context, n server.Notifier) *Cache {
+	return NewWithTimer(ctx, n, time.Second*time.Duration(option.Config.EventCacheRetryDelay))
 }
 
 func Get() *Cache {

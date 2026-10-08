@@ -394,7 +394,7 @@ func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, watcher wat
 	dn := NewDummyNotifier[EXEC, EXIT](t)
 
 	// Exec cache is always needed to ensure events have an associated Process{}
-	eventcache.NewWithTimer(dn, time.Millisecond*CacheTimerMs)
+	eventcache.NewWithTimer(t.Context(), dn, time.Millisecond*CacheTimerMs)
 
 	return dn
 }
