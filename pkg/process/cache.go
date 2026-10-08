@@ -4,6 +4,7 @@
 package process
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"path/filepath"
@@ -47,7 +48,7 @@ var colorStr = map[processColor]string{
 	deleted:       "deleted",
 }
 
-func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
+func (pc *Cache) cacheGarbageCollector(ctx context.Context, intervalGC time.Duration) {
 	ticker := time.NewTicker(intervalGC)
 	pc.deleteChan = make(chan *ProcessInternal)
 	pc.stopChan = make(chan bool)
@@ -56,6 +57,10 @@ func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 		var deleteQueue []*ProcessInternal
 		for {
 			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				pc.cache.Purge()
+				return
 			case <-pc.stopChan:
 				ticker.Stop()
 				pc.cache.Purge()
@@ -144,6 +149,7 @@ func (pc *Cache) purge() {
 }
 
 func NewCache(
+	ctx context.Context,
 	processCacheSize int,
 	GCInterval time.Duration,
 ) (*Cache, error) {
@@ -188,7 +194,7 @@ func NewCache(
 	}
 
 	pm.cache = lruCache
-	pm.cacheGarbageCollector(GCInterval)
+	pm.cacheGarbageCollector(ctx, GCInterval)
 	return pm, nil
 }
 

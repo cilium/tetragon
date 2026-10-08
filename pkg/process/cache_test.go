@@ -23,7 +23,7 @@ import (
 
 func TestProcessCache(t *testing.T) {
 	// add a process to the cache.
-	cache, err := NewCache(10, defaults.DefaultProcessCacheGCInterval)
+	cache, err := NewCache(t.Context(), 10, defaults.DefaultProcessCacheGCInterval)
 	require.NoError(t, err)
 	defer cache.purge()
 	pid := wrapperspb.UInt32Value{Value: 1234}
@@ -57,7 +57,7 @@ func TestProcessCache(t *testing.T) {
 
 func TestProcessCacheGCEarlyDeletion(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		cache, err := NewCache(10, 10*time.Millisecond)
+		cache, err := NewCache(t.Context(), 10, 10*time.Millisecond)
 		require.NoError(t, err)
 		defer cache.purge()
 
@@ -88,7 +88,7 @@ tetragon_process_cache_early_deletions_total 1
 func TestProcessCacheGCLeak(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		interval := 10 * time.Millisecond
-		cache, err := NewCache(10, interval)
+		cache, err := NewCache(t.Context(), 10, interval)
 		require.NoError(t, err)
 		defer cache.purge()
 
@@ -135,7 +135,7 @@ func TestProcessCacheGCLeak(t *testing.T) {
 // race under -race. It must stay clean now that color uses atomic access.
 func TestProcessCacheColorDataRace(t *testing.T) {
 	interval := 1 * time.Millisecond
-	cache, err := NewCache(100, interval)
+	cache, err := NewCache(t.Context(), 100, interval)
 	require.NoError(t, err)
 	defer cache.purge()
 
@@ -192,7 +192,7 @@ func TestProcessCacheColorDataRace(t *testing.T) {
 func TestProcessCacheDoubleParentDecrease(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		interval := 10 * time.Millisecond
-		cache, err := NewCache(2, interval)
+		cache, err := NewCache(t.Context(), 2, interval)
 		require.NoError(t, err)
 		defer cache.purge()
 

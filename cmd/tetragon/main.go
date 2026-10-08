@@ -538,7 +538,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		// attached to events.
 		process.SetK8sWatcher(podAccessor)
 	} else {
-		if err := process.InitCache(podAccessor, option.Config.ProcessCacheSize, pcGCInterval); err != nil {
+		if err := process.InitCache(ctx, podAccessor, option.Config.ProcessCacheSize, pcGCInterval); err != nil {
 			return err
 		}
 	}
