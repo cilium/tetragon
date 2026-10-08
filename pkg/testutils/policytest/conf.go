@@ -57,6 +57,9 @@ type Conf struct {
 	Timeout time.Duration
 	// Timeout for each Scenario
 	ScenarioTimeout time.Duration
+
+	// Set as spec.podSelector of every policy
+	PodSelector map[string]string
 }
 
 func (c *Conf) TestBinary(s string) string {
