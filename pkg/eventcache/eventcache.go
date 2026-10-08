@@ -39,7 +39,7 @@ type CacheObj struct {
 
 type Cache struct {
 	objsChan chan CacheObj
-	done     chan bool
+	done     chan struct{}
 	cache    []CacheObj
 	notifier server.Notifier
 	dur      time.Duration
@@ -276,14 +276,14 @@ func (ec *Cache) Add(internal *process.ProcessInternal,
 
 func NewWithTimer(ctx context.Context, n server.Notifier, dur time.Duration) *Cache {
 	if cache != nil {
-		cache.done <- true
+		close(cache.done)
 	}
 
 	logger.GetLogger().Info("Creating new EventCache", "retries", option.Config.EventCacheNumRetries, "delay", dur)
 
 	cache = &Cache{
 		objsChan: make(chan CacheObj),
-		done:     make(chan bool),
+		done:     make(chan struct{}),
 		cache:    make([]CacheObj, 0),
 		notifier: n,
 		dur:      dur,
