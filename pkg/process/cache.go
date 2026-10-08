@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/cilium/ebpf"
@@ -26,7 +27,8 @@ type Cache struct {
 	cache      *lru.Cache[string, *ProcessInternal]
 	size       int
 	deleteChan chan *ProcessInternal
-	stopChan   chan bool
+	stopChan   chan struct{}
+	stopOnce   sync.Once
 }
 
 // processColor tracks the garbage collection state of a process. It is stored
@@ -51,9 +53,10 @@ var colorStr = map[processColor]string{
 func (pc *Cache) cacheGarbageCollector(ctx context.Context, intervalGC time.Duration) {
 	ticker := time.NewTicker(intervalGC)
 	pc.deleteChan = make(chan *ProcessInternal)
-	pc.stopChan = make(chan bool)
+	pc.stopChan = make(chan struct{})
 
 	go func() {
+		defer pc.stop()
 		var deleteQueue []*ProcessInternal
 		for {
 			select {
@@ -120,8 +123,17 @@ func (pc *Cache) cacheGarbageCollector(ctx context.Context, intervalGC time.Dura
 	}()
 }
 
+func (pc *Cache) stop() {
+	pc.stopOnce.Do(func() {
+		close(pc.stopChan)
+	})
+}
+
 func (pc *Cache) deletePending(process *ProcessInternal) {
-	pc.deleteChan <- process
+	select {
+	case pc.deleteChan <- process:
+	case <-pc.stopChan:
+	}
 }
 
 func (pc *Cache) refDec(p *ProcessInternal, reason string) {
@@ -144,7 +156,7 @@ func (pc *Cache) refInc(p *ProcessInternal, reason string) {
 }
 
 func (pc *Cache) purge() {
-	pc.stopChan <- true
+	pc.stop()
 	processCacheTotal.Set(0)
 }
 
