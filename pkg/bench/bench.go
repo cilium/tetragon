@@ -216,7 +216,7 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 	dataCacheSize := 1024
 
 	watcher := watcher.NewFakeK8sWatcher(nil)
-	if err := process.InitCache(watcher, processCacheSize, defaults.DefaultProcessCacheGCInterval); err != nil {
+	if err := process.InitCache(ctx, watcher, processCacheSize, defaults.DefaultProcessCacheGCInterval); err != nil {
 		return err
 	}
 
