@@ -19,6 +19,12 @@ Depending on your setup, changes listed here might require a manual intervention
   interface, set `--set tetragon.gops.enabled=true` at install or upgrade time.
 * `exportDirectory` default value has been updated to `/var/log/tetragon` from 
   `/var/run/cilium/tetragon/` to avoid writing to tmpfs.
+* The agent container now runs unprivileged by default, with an explicit set of
+  capabilities in `tetragon.securityContext`. A new privileged `mount-bpf-fs`
+  init container mounts bpffs on the host, so admission policies that deny
+  privileged containers need to allow it. To run the agent privileged as
+  before, set `tetragon.securityContext.privileged=true` and
+  `tetragon.securityContext.allowPrivilegeEscalation=true`.
 
 ### TracingPolicy (k8s CRD)
 
