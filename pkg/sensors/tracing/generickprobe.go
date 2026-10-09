@@ -265,6 +265,10 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
+	if len(polInfo.stateIDs) != 0 {
+		maps = append(maps, polInfo.policyStateMap(load))
+	}
+
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
@@ -304,6 +308,10 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
+
+		if len(polInfo.stateIDs) != 0 {
+			maps = append(maps, polInfo.policyStateMap(loadret))
+		}
 	}
 
 	return progs, maps, nil
@@ -489,6 +497,7 @@ type addKprobeIn struct {
 	customHandler eventhandler.Handler
 	selMaps       *selectors.KernelSelectorMaps
 	celExprs      *selectors.CelExprFunctions
+	stateIDs      map[string]uint32
 	selStatsBase  uint32
 }
 
@@ -588,6 +597,7 @@ func createGenericKprobeSensor(
 		customHandler: polInfo.customHandler,
 		selMaps:       selMaps,
 		celExprs:      celExprs,
+		stateIDs:      polInfo.stateIDs,
 	}
 
 	var selectorStatsBase uint32
@@ -946,6 +956,7 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 		ActionArgTable: &kprobeEntry.actionArgs,
 		Maps:           in.selMaps,
 		CelExprs:       in.celExprs,
+		StateIDs:       in.stateIDs,
 	})
 	if err != nil {
 		return errFn(err)
@@ -953,7 +964,7 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 
 	if f.Return {
 		kprobeEntry.loadArgs.selectors.retrn, err = selectors.InitKernelReturnSelectorState(f.Selectors, f.ReturnArg,
-			&kprobeEntry.actionArgs, nil, in.selMaps)
+			&kprobeEntry.actionArgs, nil, in.selMaps, in.stateIDs)
 		if err != nil {
 			return errFn(err)
 		}
@@ -1087,6 +1098,9 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
+	if len(polInfo.stateIDs) != 0 {
+		maps = append(maps, polInfo.policyStateMap(load))
+	}
 
 	if kprobeEntry.loadArgs.retprobe {
 		pinRetProg := kprobeEntry.instance.PinProg(sensors.PathJoin(kprobeEntry.funcName + "_return"))
@@ -1149,6 +1163,10 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 				socktrack.SetMaxEntries(socktrackMapMaxEntries)
 			}
 			maps = append(maps, socktrack)
+		}
+
+		if len(polInfo.stateIDs) != 0 {
+			maps = append(maps, polInfo.policyStateMap(loadret))
 		}
 	}
 

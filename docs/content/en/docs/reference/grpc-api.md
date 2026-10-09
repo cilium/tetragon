@@ -957,6 +957,7 @@ User records
 | KPROBE_ACTION_NOTIFYENFORCER | 13 | NotifyEnforcer action notifies enforcer sensor. |
 | KPROBE_ACTION_CLEANUPENFORCERNOTIFICATION | 14 | CleanupEnforcerNotification action cleanups any state left by NotifyEnforcer |
 | KPROBE_ACTION_SET | 15 | Set action sets first USDT argument |
+| KPROBE_ACTION_UPDATE_STATE | 16 | UpdateState action updates a policy state variable. |
 
 <a name="tetragon-TaintedBitsType"></a>
 

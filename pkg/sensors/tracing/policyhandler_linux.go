@@ -26,9 +26,18 @@ type policyInfo struct {
 	namespace     string
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
+
+	// These maps are used to store policy-scoped information and are shared
+	// between all hook types.
 	policyConf    *program.Map
 	policyStats   *program.Map
 	selectorStats *program.Map
+	stateMap      *program.Map
+
+	// stateIDs maps state names from the yaml to their corresponding IDs as
+	// used in eBPF.
+	stateIDs map[string]uint32
+
 	selectorCount int
 	specOpts      *specOptions
 }
@@ -130,9 +139,48 @@ func newPolicyInfoFromSpec(
 		policyConf:    nil,
 		policyStats:   nil,
 		selectorStats: nil,
+		stateMap:      nil,
+		stateIDs:      indexPolicyStates(spec.States),
 		selectorCount: countSelectors(spec),
 		specOpts:      opts,
 	}, nil
+}
+
+func indexPolicyStates(states []v1alpha1.State) map[string]uint32 {
+	stateIDs := make(map[string]uint32, len(states))
+	for stateID, state := range states {
+		stateIDs[state.Name] = uint32(stateID)
+	}
+	return stateIDs
+}
+
+type policyStateValue struct {
+	Data uint64
+}
+
+func newPolicyStateValue() policyStateValue {
+	return policyStateValue{}
+}
+
+func (pi *policyInfo) policyStateMap(prog *program.Program) *program.Map {
+	if pi.stateMap != nil {
+		return program.MapUserFrom(pi.stateMap)
+	}
+	pi.stateMap = program.MapBuilderPolicy("state_map", prog)
+	pi.stateMap.SetMaxEntries(len(pi.stateIDs))
+	prog.MapLoad = append(prog.MapLoad, &program.MapLoad{
+		Name: "state_map",
+		Load: func(m *ebpf.Map, _ string) error {
+			for stateID := range len(pi.stateIDs) {
+				value := newPolicyStateValue()
+				if err := m.Update(uint32(stateID), &value, ebpf.UpdateAny); err != nil {
+					return fmt.Errorf("initializing state map entry %d: %w", stateID, err)
+				}
+			}
+			return nil
+		},
+	})
+	return pi.stateMap
 }
 
 func (pi *policyInfo) selectorStatsMap(prog *program.Program) *program.Map {
