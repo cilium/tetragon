@@ -102,11 +102,11 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 
 	if option.Config.EnableProcessAncestors {
 		for _, ancestor := range ancestors {
-			ancestor.RefInc("ancestor")
+			ancestor.RefInc(process.RefAncestor)
 		}
 	}
 	if parent != nil {
-		parent.RefInc("parent")
+		parent.RefInc(process.RefParent)
 	}
 
 	// Finalize the process event with extra fields
@@ -230,7 +230,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 			eventcache.CacheRetries(eventcache.ParentInfo).Inc()
 			return err
 		}
-		parent.RefInc("parent")
+		parent.RefInc(process.RefParent)
 		ev.SetParent(parent.UnsafeGetProcess())
 		msg.RefCntDone[ParentRefCnt] = true
 	}
@@ -246,7 +246,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 			var tetragonAncestors []*tetragon.Process
 			for _, ancestor := range ancestors {
 				tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
-				ancestor.RefInc("ancestor")
+				ancestor.RefInc(process.RefAncestor)
 			}
 			ev.SetAncestors(tetragonAncestors)
 			msg.RefCntDone[AncestorsRefCnt] = true
@@ -357,7 +357,7 @@ func (msg *MsgCloneEventUnix) Retry(internal *process.ProcessInternal, _ notify.
 	if option.Config.EnableProcessAncestors && internal.NeededAncestors() {
 		if ancestors, err := process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId); err == nil {
 			for _, ancestor := range ancestors {
-				ancestor.RefInc("ancestor")
+				ancestor.RefInc(process.RefAncestor)
 			}
 		} else {
 			eventcache.CacheRetries(eventcache.AncestorsInfo).Inc()
@@ -399,7 +399,7 @@ func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 
 	if option.Config.EnableProcessAncestors {
 		for _, ancestor := range ancestors {
-			ancestor.RefInc("ancestor")
+			ancestor.RefInc(process.RefAncestor)
 		}
 	}
 	return nil
@@ -502,14 +502,14 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 
 	if option.Config.EnableProcessAncestors {
 		for _, ancestor := range ancestors {
-			ancestor.RefDec("ancestor")
+			ancestor.RefDec(process.RefAncestor)
 		}
 	}
 	if parent != nil {
-		parent.RefDec("parent")
+		parent.RefDec(process.RefParent)
 	}
 	if proc != nil {
-		proc.RefDec("process")
+		proc.RefDec(process.RefProcess)
 	}
 	return tetragonEvent
 }
@@ -571,7 +571,7 @@ func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.
 	if option.Config.EnableProcessAncestors && !msg.RefCntDone[AncestorsRefCnt] {
 		if ancestors, err := process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId); err == nil {
 			for _, ancestor := range ancestors {
-				ancestor.RefDec("ancestor")
+				ancestor.RefDec(process.RefAncestor)
 			}
 			msg.RefCntDone[AncestorsRefCnt] = true
 		}
@@ -580,7 +580,7 @@ func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.
 	if tetragonProcess.Pid.Value > 1 && !msg.RefCntDone[ParentRefCnt] {
 		if parent, _ := process.Get(tetragonProcess.ParentExecId); parent != nil {
 			if !internal.GetParentRefcntDecreased() {
-				parent.RefDec("parent")
+				parent.RefDec(process.RefParent)
 				internal.SetParentRefcntDecreased(true)
 			}
 			msg.RefCntDone[ParentRefCnt] = true
@@ -588,7 +588,7 @@ func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.
 	}
 
 	if !msg.RefCntDone[ProcessRefCnt] {
-		internal.RefDec("process")
+		internal.RefDec(process.RefProcess)
 		msg.RefCntDone[ProcessRefCnt] = true
 	}
 
@@ -631,7 +631,7 @@ func (msg *MsgProcessCleanupEventUnix) RetryInternal(_ notify.Event, timestamp u
 	if option.Config.EnableProcessAncestors && proc.NeededAncestors() && !msg.RefCntDone[AncestorsRefCnt] {
 		if ancestors, perr := process.GetAncestorProcessesInternal(proc.UnsafeGetProcess().ParentExecId); perr == nil {
 			for _, ancestor := range ancestors {
-				ancestor.RefDec("ancestor")
+				ancestor.RefDec(process.RefAncestor)
 			}
 			msg.RefCntDone[AncestorsRefCnt] = true
 		} else {
@@ -642,7 +642,7 @@ func (msg *MsgProcessCleanupEventUnix) RetryInternal(_ notify.Event, timestamp u
 
 	if parent != nil {
 		if !msg.RefCntDone[ParentRefCnt] {
-			parent.RefDec("parent")
+			parent.RefDec(process.RefParent)
 			msg.RefCntDone[ParentRefCnt] = true
 		}
 	} else {
@@ -652,7 +652,7 @@ func (msg *MsgProcessCleanupEventUnix) RetryInternal(_ notify.Event, timestamp u
 
 	if proc != nil {
 		if !msg.RefCntDone[ProcessRefCnt] {
-			proc.RefDec("process")
+			proc.RefDec(process.RefProcess)
 			msg.RefCntDone[ProcessRefCnt] = true
 		}
 	} else {
@@ -693,14 +693,14 @@ func (msg *MsgProcessCleanupEventUnix) HandleMessage() *tetragon.GetEventsRespon
 
 	if option.Config.EnableProcessAncestors {
 		for _, ancestor := range ancestors {
-			ancestor.RefDec("ancestor")
+			ancestor.RefDec(process.RefAncestor)
 		}
 	}
 	if parent != nil {
-		parent.RefDec("parent")
+		parent.RefDec(process.RefParent)
 	}
 	if proc != nil {
-		proc.RefDec("process")
+		proc.RefDec(process.RefProcess)
 	}
 	return nil
 }

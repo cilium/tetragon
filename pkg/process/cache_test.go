@@ -98,18 +98,17 @@ func TestProcessCacheGCLeak(t *testing.T) {
 				ExecId: "process1",
 				Pid:    &pid,
 			},
-			refcntOps: make(map[string]int32),
 		}
 		proc.refcnt.Store(1)
 		cache.add(&proc)
 
 		// Trigger GC to see it, then increment refcnt while it's in the deleteQueue.
 		// The GC should drop it from the queue and reset its color to inUse.
-		cache.refDec(&proc, "test")
+		cache.refDec(&proc, RefProcess)
 		synctest.Wait()
 		assert.Equal(t, deletePending, proc.getColor())
 
-		cache.refInc(&proc, "test")
+		cache.refInc(&proc, RefProcess)
 		synctest.Sleep(interval + 1*time.Millisecond)
 		assert.Equal(t, inUse, proc.getColor())
 
@@ -117,7 +116,7 @@ func TestProcessCacheGCLeak(t *testing.T) {
 		// Two GC cycles are needed because the GC moves processes from:
 		// deletePending -> deleteReady in the first tick, and
 		// deleteReady -> deleted in the second tick.
-		cache.refDec(&proc, "test")
+		cache.refDec(&proc, RefProcess)
 		synctest.Wait()
 
 		synctest.Sleep(interval + 1*time.Millisecond)
@@ -146,7 +145,6 @@ func TestProcessCacheColorDataRace(t *testing.T) {
 				ExecId: "proc" + strconv.Itoa(i),
 				Pid:    &wrapperspb.UInt32Value{Value: uint32(1000 + i)},
 			},
-			refcntOps: make(map[string]int32),
 		}
 		p.refcnt.Store(1)
 		cache.add(p)
@@ -177,8 +175,8 @@ func TestProcessCacheColorDataRace(t *testing.T) {
 				return
 			default:
 				for _, p := range procs {
-					cache.refDec(p, "race")
-					cache.refInc(p, "race")
+					cache.refDec(p, RefProcess)
+					cache.refInc(p, RefProcess)
 				}
 			}
 		}
@@ -197,43 +195,40 @@ func TestProcessCacheDoubleParentDecrease(t *testing.T) {
 		defer cache.purge()
 
 		parent := &ProcessInternal{
-			process:   &tetragon.Process{ExecId: "parent", Pid: &wrapperspb.UInt32Value{Value: 100}},
-			refcntOps: make(map[string]int32),
+			process: &tetragon.Process{ExecId: "parent", Pid: &wrapperspb.UInt32Value{Value: 100}},
 		}
 		parent.refcnt.Store(1)
 		cache.add(parent)
 
 		child := &ProcessInternal{
-			process:   &tetragon.Process{ExecId: "child", Pid: &wrapperspb.UInt32Value{Value: 101}, ParentExecId: "parent"},
-			refcntOps: make(map[string]int32),
+			process: &tetragon.Process{ExecId: "child", Pid: &wrapperspb.UInt32Value{Value: 101}, ParentExecId: "parent"},
 		}
 		child.refcnt.Store(1)
 		cache.add(child)
 
-		cache.refInc(parent, "parent++")
+		cache.refInc(parent, RefParent)
 		assert.Equal(t, uint32(2), parent.refcnt.Load())
 
 		// simulate exit handler path
 		if !child.GetParentRefcntDecreased() {
-			parent.RefDec("parent")
+			parent.RefDec(RefParent)
 			child.SetParentRefcntDecreased(true)
 		}
 		assert.Equal(t, uint32(1), parent.refcnt.Load())
 
-		cache.refDec(child, "process--")
+		cache.refDec(child, RefProcess)
 		synctest.Wait()
 		assert.Equal(t, deletePending, child.getColor())
 
 		// simulate resurrection: refInc after deletePending
-		cache.refInc(child, "late-event")
+		cache.refInc(child, RefProcess)
 		synctest.Sleep(interval + 1*time.Millisecond)
 		assert.Equal(t, inUse, child.getColor())
 
 		// trigger LRU eviction of child
 		cache.get("parent")
 		other := &ProcessInternal{
-			process:   &tetragon.Process{ExecId: "other", Pid: &wrapperspb.UInt32Value{Value: 102}},
-			refcntOps: make(map[string]int32),
+			process: &tetragon.Process{ExecId: "other", Pid: &wrapperspb.UInt32Value{Value: 102}},
 		}
 		other.refcnt.Store(1)
 		cache.add(other)
