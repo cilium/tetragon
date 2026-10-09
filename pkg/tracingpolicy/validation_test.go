@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/pkg/build"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
@@ -292,4 +293,109 @@ spec:
 		require.Error(t, err, "name %q should be rejected", name)
 		require.Contains(t, err.Error(), "metadata.name")
 	}
+}
+
+func TestStateActionValidation(t *testing.T) {
+	for _, kind := range []string{"TracingPolicy", "TracingPolicyNamespaced"} {
+		t.Run(kind, func(t *testing.T) {
+			namespace := ""
+			if kind == "TracingPolicyNamespaced" {
+				build.SkipIfK8sDisabled(t)
+				namespace = "  namespace: default\n"
+			}
+			for _, tt := range []struct {
+				name   string
+				action string
+				valid  bool
+			}{
+				{"set", `{action: UpdateState, state: {name: test_state, operator: Set, value: "1"}}`, true},
+				{"set zero", `{action: UpdateState, state: {name: test_state, operator: Set, value: "0"}}`, true},
+				{"set max", `{action: UpdateState, state: {name: test_state, operator: Set, value: "18446744073709551615"}}`, true},
+				{"delete", `{action: UpdateState, state: {name: test_state, operator: Delete}}`, true},
+				{"post", `{action: Post}`, true},
+				{"missing state", `{action: UpdateState}`, false},
+				{"missing name", `{action: UpdateState, state: {operator: Set, value: "1"}}`, false},
+				{"missing operator", `{action: UpdateState, state: {name: test_state, value: "1"}}`, false},
+				{"missing value", `{action: UpdateState, state: {name: test_state, operator: Set}}`, false},
+				{"empty value", `{action: UpdateState, state: {name: test_state, operator: Set, value: ""}}`, false},
+				{"negative value", `{action: UpdateState, state: {name: test_state, operator: Set, value: "-1"}}`, false},
+				{"hex value", `{action: UpdateState, state: {name: test_state, operator: Set, value: "0x1"}}`, false},
+				{"lowercase operator", `{action: UpdateState, state: {name: test_state, operator: set, value: "1"}}`, false},
+				{"unknown operator", `{action: UpdateState, state: {name: test_state, operator: Remove}}`, false},
+				{"delete with value", `{action: UpdateState, state: {name: test_state, operator: Delete, value: "0"}}`, false},
+				{"state on post", `{action: Post, state: {name: test_state, operator: Delete}}`, false},
+				{"legacy fields", `{action: UpdateState, stateName: test_state, stateUpdateOperator: Set, stateNewValue: "1"}`, false},
+				{"mixed legacy fields", `{action: UpdateState, state: {name: test_state, operator: Set, value: "1"}, stateNewValue: "1"}`, false},
+				{"unsupported value source", `{action: UpdateState, state: {name: test_state, operator: Set, value: "1", valueFromArg: 0}}`, false},
+			} {
+				t.Run(tt.name, func(t *testing.T) {
+					policy, err := FromYAML(fmt.Sprintf(`
+apiVersion: cilium.io/v1alpha1
+kind: %s
+metadata:
+  name: state-action
+%sspec:
+  state:
+  - name: test_state
+  kprobes:
+  - call: sys_getcpu
+    syscall: true
+    selectors:
+    - matchActions:
+      - %s
+`, kind, namespace, tt.action))
+					if !tt.valid {
+						require.Error(t, err)
+						return
+					}
+					require.NoError(t, err)
+					action := policy.TpSpec().KProbes[0].Selectors[0].MatchActions[0]
+					if action.Action == "UpdateState" {
+						require.NotNil(t, action.State)
+						require.Equal(t, "test_state", action.State.Name)
+						if action.State.Operator == "Set" {
+							require.NotNil(t, action.State.Value)
+						} else {
+							require.Nil(t, action.State.Value)
+						}
+						copied := action.DeepCopy()
+						require.Equal(t, &action, copied)
+						copied.State.Name = "other_state"
+						require.Equal(t, "test_state", action.State.Name)
+						if copied.State.Value != nil {
+							*copied.State.Value = "2"
+							require.NotEqual(t, *action.State.Value, *copied.State.Value)
+						}
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestStateNamesUnique(t *testing.T) {
+	base := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: state-names
+spec:
+  state:
+`
+
+	t.Run("unique", func(t *testing.T) {
+		_, err := FromYAML(base + `
+  - name: first
+  - name: second
+`)
+		require.NoError(t, err)
+	})
+
+	t.Run("duplicate", func(t *testing.T) {
+		_, err := FromYAML(base + `
+  - name: duplicate
+  - name: duplicate
+`)
+		require.ErrorContains(t, err, "state names must be unique")
+	})
 }
