@@ -201,6 +201,16 @@ in probes/hooks selectors by their names.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecstateindex">state</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of state objects shared by all probes in the policy. The entries
+must be unique and there can be at most 10 entries.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.all(x, self.exists_one(y, x.name == y.name)): state names must be unique</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspectracepointsindex">tracepoints</a></b></td>
         <td>[]object</td>
         <td>
@@ -944,6 +954,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -995,7 +1012,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1129,6 +1146,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1687,7 +1728,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1824,6 +1865,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -1884,6 +1949,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -2943,6 +3050,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -2994,7 +3108,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3128,6 +3242,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3686,7 +3824,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3823,6 +3961,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -3883,6 +4045,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -4611,6 +4815,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -4662,7 +4873,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4796,6 +5007,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5354,7 +5589,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5491,6 +5726,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -5551,6 +5810,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -6258,6 +6559,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -6309,7 +6617,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6443,6 +6751,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7001,7 +7333,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7138,6 +7470,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -7198,6 +7554,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -7566,6 +7964,33 @@ merge patch.<br/>
 </table>
 
 
+### TracingPolicy.spec.state[index]
+<sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object. Use this name to reference the state in other
+parts of the configuration.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.tracepoints[index]
 <sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
 
@@ -7884,6 +8309,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -7935,7 +8367,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8069,6 +8501,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8627,7 +9083,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8764,6 +9220,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -8824,6 +9304,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -9827,6 +10349,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -9878,7 +10407,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10012,6 +10541,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10570,7 +11123,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10707,6 +11260,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -10767,6 +11344,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -11460,6 +12079,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -11511,7 +12137,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -11645,6 +12271,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12203,7 +12853,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12340,6 +12990,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -12400,6 +13074,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -12926,6 +13642,16 @@ matchExpressions.<br/>
         <td>
           SelectorsMacros is used to define selectors macros, which can be used
 in probes/hooks selectors by their names.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecstateindex">state</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of state objects shared by all probes in the policy. The entries
+must be unique and there can be at most 10 entries.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.all(x, self.exists_one(y, x.name == y.name)): state names must be unique</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13672,6 +14398,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -13723,7 +14456,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13857,6 +14590,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14415,7 +15172,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14552,6 +15309,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -14612,6 +15393,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -15671,6 +16494,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -15722,7 +16552,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -15856,6 +16686,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16414,7 +17268,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -16551,6 +17405,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -16611,6 +17489,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -17339,6 +18259,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -17390,7 +18317,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -17524,6 +18451,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -18082,7 +19033,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -18219,6 +19170,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -18279,6 +19254,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -18986,6 +20003,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -19037,7 +20061,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -19171,6 +20195,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -19729,7 +20777,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -19866,6 +20914,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -19926,6 +20998,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -20294,6 +21408,33 @@ merge patch.<br/>
 </table>
 
 
+### TracingPolicyNamespaced.spec.state[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object. Use this name to reference the state in other
+parts of the configuration.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.tracepoints[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
 
@@ -20612,6 +21753,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -20663,7 +21811,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -20797,6 +21945,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -21355,7 +22527,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -21492,6 +22664,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -21552,6 +22748,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -22555,6 +23793,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -22606,7 +23851,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -22740,6 +23985,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -23298,7 +24567,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -23435,6 +24704,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -23495,6 +24788,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -24188,6 +25523,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -24239,7 +25581,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -24373,6 +25715,30 @@ selected then rate limiting applies per thread; if "process" is selected
 then rate limiting applies per process; if "global" is selected then rate
 limiting applies regardless of which process or thread caused the action.
 Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -24931,7 +26297,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -25068,6 +26434,30 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>stateName</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the UpdateState action.
+The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateNewValue</b></td>
+        <td>string</td>
+        <td>
+          Only valid with the Set operator of the UpdateState action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>stateUpdateOperator</b></td>
+        <td>enum</td>
+        <td>
+          Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
@@ -25128,6 +26518,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
