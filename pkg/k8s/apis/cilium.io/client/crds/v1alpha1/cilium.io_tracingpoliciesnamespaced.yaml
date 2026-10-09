@@ -1547,6 +1547,46 @@ spec:
                 x-kubernetes-validations:
                 - message: The hostSelector should be either null or {}.
                   rule: '!has(self.matchLabels) && !has(self.matchExpressions)'
+              java:
+                description: Hot-patch already loaded JVM classes through the local HotSpot Attach interface.
+                properties:
+                  executables:
+                    description: Exact executable paths of Java processes eligible for attachment.
+                    items:
+                      type: string
+                    minItems: 1
+                    type: array
+                  processArgsContains:
+                    description: Every token must occur in the process argument vector.
+                    items:
+                      type: string
+                    type: array
+                  patches:
+                    items:
+                      properties:
+                        replacement:
+                          description: Replacement class file bytes.
+                          format: byte
+                          type: string
+                        rollback:
+                          description: Original class file bytes used when the policy is removed.
+                          format: byte
+                          type: string
+                        signature:
+                          description: JVM reference type signature.
+                          type: string
+                      required:
+                      - replacement
+                      - rollback
+                      - signature
+                      type: object
+                    maxItems: 32
+                    minItems: 1
+                    type: array
+                required:
+                - executables
+                - patches
+                type: object
               kprobes:
                 description: A list of kprobe specs.
                 items:
