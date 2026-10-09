@@ -26,7 +26,7 @@ jobs:
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         # renovate: datasource=golang-version depName=go
-        go-version: '1.27.1'
+        go-version: '1.27.2'
 
     - name: Install dependencies
       run: |
@@ -129,7 +129,7 @@ jobs:
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         # renovate: datasource=golang-version depName=go
-        go-version: '1.27.1'
+        go-version: '1.27.2'
 
     - name: Run go fuzz tests
       env:
@@ -176,7 +176,7 @@ jobs:
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         # renovate: datasource=golang-version depName=go
-        go-version: '1.27.1'
+        go-version: '1.27.2'
 
     - name: Run go tests
       working-directory: ${{ github.workspace }}\go\src\github.com\cilium\tetragon
@@ -196,7 +196,7 @@ jobs:
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         # renovate: datasource=golang-version depName=go
-        go-version: '1.27.1'
+        go-version: '1.27.2'
 
     - name: Run go tests of the api module
       working-directory: go/src/github.com/cilium/tetragon/api
@@ -224,7 +224,7 @@ jobs:
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         # renovate: datasource=golang-version depName=go
-        go-version: '1.27.1'
+        go-version: '1.27.2'
 
     - name: Install dependencies
       run: |
