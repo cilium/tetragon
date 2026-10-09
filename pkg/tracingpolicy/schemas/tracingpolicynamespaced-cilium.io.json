@@ -501,7 +501,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -573,6 +574,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -1103,7 +1120,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -1175,6 +1193,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -1271,6 +1305,37 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {
@@ -1997,7 +2062,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -2069,6 +2135,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -2599,7 +2681,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -2671,6 +2754,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -2767,6 +2866,37 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {
@@ -3227,7 +3357,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -3299,6 +3430,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -3829,7 +3976,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -3901,6 +4049,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -3997,6 +4161,37 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {
@@ -4405,7 +4600,8 @@
                         "UntrackSock",
                         "NotifyEnforcer",
                         "CleanupEnforcerNotification",
-                        "Set"
+                        "Set",
+                        "UpdateState"
                       ],
                       "type": "string"
                     },
@@ -4477,6 +4673,22 @@
                     },
                     "rateLimitScope": {
                       "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                      "type": "string"
+                    },
+                    "stateName": {
+                      "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                      "type": "string"
+                    },
+                    "stateNewValue": {
+                      "description": "Only valid with the Set operator of the UpdateState action.",
+                      "type": "string"
+                    },
+                    "stateUpdateOperator": {
+                      "description": "Only valid with the UpdateState action.",
+                      "enum": [
+                        "Set",
+                        "Delete"
+                      ],
                       "type": "string"
                     },
                     "userStackTrace": {
@@ -5007,7 +5219,8 @@
                         "UntrackSock",
                         "NotifyEnforcer",
                         "CleanupEnforcerNotification",
-                        "Set"
+                        "Set",
+                        "UpdateState"
                       ],
                       "type": "string"
                     },
@@ -5079,6 +5292,22 @@
                     },
                     "rateLimitScope": {
                       "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                      "type": "string"
+                    },
+                    "stateName": {
+                      "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                      "type": "string"
+                    },
+                    "stateNewValue": {
+                      "description": "Only valid with the Set operator of the UpdateState action.",
+                      "type": "string"
+                    },
+                    "stateUpdateOperator": {
+                      "description": "Only valid with the UpdateState action.",
+                      "enum": [
+                        "Set",
+                        "Delete"
+                      ],
                       "type": "string"
                     },
                     "userStackTrace": {
@@ -5175,6 +5404,37 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "type": "array"
+              },
+              "matchStates": {
+                "description": "State predicates to match. MatchStates are ANDed.",
+                "items": {
+                  "properties": {
+                    "name": {
+                      "description": "Name of the state object to match. Must reference a previously defined state object.",
+                      "type": "string"
+                    },
+                    "operator": {
+                      "enum": [
+                        "Equal",
+                        "NotEqual"
+                      ],
+                      "type": "string"
+                    },
+                    "value": {
+                      "description": "Value to compare against the state value.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "operator",
+                    "value"
+                  ],
+                  "type": "object",
+                  "additionalProperties": false
+                },
+                "maxItems": 4,
                 "type": "array"
               },
               "matchUserCallers": {
@@ -5401,6 +5661,32 @@
           "description": "SelectorsMacros is used to define selectors macros, which can be used\nin probes/hooks selectors by their names.",
           "type": "object"
         },
+        "state": {
+          "description": "A list of state objects shared by all probes in the policy. The entries\nmust be unique and there can be at most 10 entries.",
+          "items": {
+            "properties": {
+              "name": {
+                "description": "Name of the state object. Use this name to reference the state in other\nparts of the configuration.",
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object",
+            "additionalProperties": false
+          },
+          "maxItems": 10,
+          "type": "array",
+          "x-kubernetes-validations": [
+            {
+              "message": "state names must be unique",
+              "rule": "self.all(x, self.exists_one(y, x.name == y.name))"
+            }
+          ]
+        },
         "tracepoints": {
           "description": "A list of tracepoint specs.",
           "items": {
@@ -5567,7 +5853,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -5639,6 +5926,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -6169,7 +6472,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -6241,6 +6545,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -6337,6 +6657,37 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {
@@ -7026,7 +7377,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -7098,6 +7450,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -7628,7 +7996,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -7700,6 +8069,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -7796,6 +8181,37 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {
@@ -8229,7 +8645,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -8301,6 +8718,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -8831,7 +9264,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -8903,6 +9337,22 @@
                           },
                           "rateLimitScope": {
                             "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
+                            "type": "string"
+                          },
+                          "stateName": {
+                            "description": "Only valid with the UpdateState action.\nThe state object to update. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "stateNewValue": {
+                            "description": "Only valid with the Set operator of the UpdateState action.",
+                            "type": "string"
+                          },
+                          "stateUpdateOperator": {
+                            "description": "Only valid with the UpdateState action.",
+                            "enum": [
+                              "Set",
+                              "Delete"
+                            ],
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -8999,6 +9449,37 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {

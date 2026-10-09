@@ -121,6 +121,14 @@ type KProbeArg struct {
 	BTFTypeModule string `json:"btfTypeModule,omitempty"`
 }
 
+type State struct {
+	// Name of the state object. Use this name to reference the state in other
+	// parts of the configuration.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=255
+	Name string `json:"name"`
+}
+
 type BinarySelector struct {
 	// +kubebuilder:validation:Enum=In;NotIn;Prefix;NotPrefix;Postfix;NotPostfix
 	// Filter operation.
@@ -187,6 +195,10 @@ type KProbeSelector struct {
 	// +kubebuilder:validation:Optional
 	// A list of caller filters. MatchUserCallers are ANDed. Only supported for uprobes.
 	MatchUserCallers []UserCallerSelector `json:"matchUserCallers,omitempty"`
+	// +kubebuilder:validation:Optional
+	// State predicates to match. MatchStates are ANDed.
+	// +kubebuilder:validation:MaxItems=4
+	MatchStates []StateSelector `json:"matchStates,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A list of macros names, defined in spec.selectorsMacros.
 	// Filters specified in macros will be appended to corresponding filters of the selector.
@@ -285,6 +297,15 @@ type UserCallerSelector struct {
 	EndRange uint64 `json:"endRange,omitempty"`
 }
 
+type StateSelector struct {
+	// Name of the state object to match. Must reference a previously defined state object.
+	Name string `json:"name"`
+	// +kubebuilder:validation:Enum=Equal;NotEqual
+	Operator string `json:"operator"`
+	// Value to compare against the state value.
+	Value string `json:"value"`
+}
+
 type PIDSelector struct {
 	// +kubebuilder:validation:Enum=In;NotIn
 	// PID selector operator.
@@ -335,7 +356,7 @@ type CmdArgSelector struct {
 
 // +kubebuilder:validation:XValidation:rule="!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))",message="override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined"
 type ActionSelector struct {
-	// +kubebuilder:validation:Enum=Post;Sigkill;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification;Set
+	// +kubebuilder:validation:Enum=Post;Sigkill;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification;Set;UpdateState
 	// Action to execute.
 	// The Override action has three variants, depending on what arguments are set
 	//   1. Override the return value of function
@@ -413,6 +434,18 @@ type ActionSelector struct {
 	// Enable collection of file hashes from integrity subsystem.
 	// Only valid with the post action.
 	ImaHash bool `json:"imaHash"`
+
+	// +kubebuilder:validation:Optional
+	// Only valid with the UpdateState action.
+	// +kubebuilder:validation:Enum=Set;Delete
+	StateUpdateOperator string `json:"stateUpdateOperator,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Only valid with the UpdateState action.
+	// The state object to update. Must reference a previously defined state object.
+	StateName string `json:"stateName,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Only valid with the Set operator of the UpdateState action.
+	StateNewValue string `json:"stateNewValue,omitempty"`
 
 	// NB: Describing the use of this is complicated. It is only used when a missed enforcer
 	// notification (via the NotifyEnforcer action) is detected. In this case, we increase a

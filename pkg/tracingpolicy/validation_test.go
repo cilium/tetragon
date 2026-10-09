@@ -195,3 +195,30 @@ spec:
 `)
 	require.Error(t, err)
 }
+
+func TestStateNamesUnique(t *testing.T) {
+	base := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: state-names
+spec:
+  state:
+`
+
+	t.Run("unique", func(t *testing.T) {
+		_, err := FromYAML(base + `
+  - name: first
+  - name: second
+`)
+		require.NoError(t, err)
+	})
+
+	t.Run("duplicate", func(t *testing.T) {
+		_, err := FromYAML(base + `
+  - name: duplicate
+  - name: duplicate
+`)
+		require.ErrorContains(t, err, "state names must be unique")
+	})
+}
