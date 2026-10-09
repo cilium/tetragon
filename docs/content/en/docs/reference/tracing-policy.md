@@ -201,6 +201,16 @@ in probes/hooks selectors by their names.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecstateindex">state</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of state objects shared by all probes in the policy. The entries
+must be unique and there can be at most 10 entries.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.all(x, self.exists_one(y, x.name == y.name)): state names must be unique</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspectracepointsindex">tracepoints</a></b></td>
         <td>[]object</td>
         <td>
@@ -983,6 +993,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -1034,7 +1051,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1181,10 +1198,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1736,7 +1804,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1883,10 +1951,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1943,6 +2062,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -3041,6 +3202,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -3092,7 +3260,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3239,10 +3407,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3794,7 +4013,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3941,10 +4160,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4001,6 +4271,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.kprobes[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -4742,6 +5054,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -4793,7 +5112,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4940,10 +5259,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5495,7 +5865,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5642,10 +6012,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5702,6 +6123,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -6409,6 +6872,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -6460,7 +6930,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6607,10 +7077,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskeymatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7162,7 +7683,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7309,10 +7830,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskeymatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7369,6 +7941,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -7737,6 +8351,33 @@ merge patch.<br/>
 </table>
 
 
+### TracingPolicy.spec.state[index]
+<sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object. Use this name to reference the state in other
+parts of the policy. The state value can hold u64 values.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.tracepoints[index]
 <sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
 
@@ -8068,6 +8709,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -8119,7 +8767,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8266,10 +8914,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8821,7 +9520,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8968,10 +9667,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -9028,6 +9778,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -10070,6 +10862,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -10121,7 +10920,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10268,10 +11067,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -10823,7 +11673,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10970,10 +11820,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -11030,6 +11931,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -11736,6 +12679,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -11787,7 +12737,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -11934,10 +12884,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12489,7 +13490,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12636,10 +13637,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -12696,6 +13748,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -13222,6 +14316,16 @@ matchExpressions.<br/>
         <td>
           SelectorsMacros is used to define selectors macros, which can be used
 in probes/hooks selectors by their names.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecstateindex">state</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of state objects shared by all probes in the policy. The entries
+must be unique and there can be at most 10 entries.<br/>
+          <br/>
+            <i>Validations</i>:<li>self.all(x, self.exists_one(y, x.name == y.name)): state names must be unique</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14007,6 +15111,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -14058,7 +15169,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14205,10 +15316,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -14760,7 +15922,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14907,10 +16069,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -14967,6 +16180,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -16065,6 +17320,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -16116,7 +17378,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -16263,10 +17525,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -16818,7 +18131,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -16965,10 +18278,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -17025,6 +18389,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -17766,6 +19172,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -17817,7 +19230,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -17964,10 +19377,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -18519,7 +19983,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -18666,10 +20130,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -18726,6 +20241,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -19433,6 +20990,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -19484,7 +21048,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -19631,10 +21195,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskeymatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -20186,7 +21801,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -20333,10 +21948,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskeymatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -20393,6 +22059,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -20761,6 +22469,33 @@ merge patch.<br/>
 </table>
 
 
+### TracingPolicyNamespaced.spec.state[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object. Use this name to reference the state in other
+parts of the policy. The state value can hold u64 values.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.tracepoints[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
 
@@ -21092,6 +22827,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -21143,7 +22885,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -21290,10 +23032,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -21845,7 +23638,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -21992,10 +23785,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -22052,6 +23896,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -23094,6 +24980,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -23145,7 +25038,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -23292,10 +25185,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -23847,7 +25791,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -23994,10 +25938,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -24054,6 +26049,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -24760,6 +26797,13 @@ Indexes are zero-based and exclude argv[0].<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchstatesindex">matchStates</a></b></td>
+        <td>[]object</td>
+        <td>
+          State predicates to match. MatchStates are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchusercallersindex">matchUserCallers</a></b></td>
         <td>[]object</td>
         <td>
@@ -24811,7 +26855,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -24958,10 +27002,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindexmatchactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -25513,7 +27608,7 @@ The Override action has three variants, depending on what arguments are set
 	      - ArgNewAddr: override call to a new address (in the binary)
 	      - ArgNewOffset: override call to an offset (in the binary)<br/>
           <br/>
-            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, UpdateState<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -25660,10 +27755,61 @@ Its basename (ie: the library name) cannot exceed 31 characters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchreturnactionsindexstate">state</a></b></td>
+        <td>object</td>
+        <td>
+          State operation to perform. Only valid with the UpdateState action.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value)): Set requires a value and Delete does not accept a value</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>userStackTrace</b></td>
         <td>boolean</td>
         <td>
           Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchReturnActions[index].state
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindexmatchreturnactionsindex)</sup></sup>
+
+
+State operation to perform. Only valid with the UpdateState action.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          The state object to update. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Operation to perform on the state.<br/>
+          <br/>
+            <i>Enum</i>: Set, Delete<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Unsigned 64-bit integer to assign. Only valid with the Set operator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -25720,6 +27866,48 @@ Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.
           Value to compare the argument against.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchStates[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the state object to match. Must reference a previously defined state object.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value to compare against the state value.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 

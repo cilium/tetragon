@@ -91,6 +91,8 @@ func kprobeAction(act uint64) tetragon.KprobeAction {
 		return tetragon.KprobeAction_KPROBE_ACTION_CLEANUPENFORCERNOTIFICATION
 	case tracingapi.ActionSet:
 		return tetragon.KprobeAction_KPROBE_ACTION_SET
+	case tracingapi.ActionUpdateState:
+		return tetragon.KprobeAction_KPROBE_ACTION_UPDATE_STATE
 	default:
 		return tetragon.KprobeAction_KPROBE_ACTION_UNKNOWN
 	}

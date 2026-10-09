@@ -572,6 +572,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -658,6 +659,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -671,6 +700,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -1111,6 +1144,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1197,6 +1231,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -1210,6 +1272,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -1281,6 +1347,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers
@@ -2046,6 +2138,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2132,6 +2225,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -2145,6 +2266,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -2585,6 +2710,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2671,6 +2797,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -2684,6 +2838,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -2755,6 +2913,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers
@@ -3224,6 +3408,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -3310,6 +3495,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -3323,6 +3536,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -3763,6 +3980,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -3849,6 +4067,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -3862,6 +4108,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -3933,6 +4183,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers
@@ -4355,6 +4631,7 @@ spec:
                             - NotifyEnforcer
                             - CleanupEnforcerNotification
                             - Set
+                            - UpdateState
                             type: string
                           argError:
                             description: error value for override action
@@ -4440,6 +4717,34 @@ spec:
                               Full `sopath` cannot exceed 127 characters.
                               Its basename (ie: the library name) cannot exceed 31 characters.
                             type: string
+                          state:
+                            description: State operation to perform. Only valid with
+                              the UpdateState action.
+                            properties:
+                              name:
+                                description: The state object to update. Must reference
+                                  a previously defined state object.
+                                type: string
+                              operator:
+                                description: Operation to perform on the state.
+                                enum:
+                                - Set
+                                - Delete
+                                type: string
+                              value:
+                                description: Unsigned 64-bit integer to assign. Only
+                                  valid with the Set operator.
+                                pattern: ^[0-9]+$
+                                type: string
+                            required:
+                            - name
+                            - operator
+                            type: object
+                            x-kubernetes-validations:
+                            - message: Set requires a value and Delete does not accept
+                                a value
+                              rule: 'has(self.operator) && (self.operator == ''Set''
+                                ? has(self.value) : !has(self.value))'
                           userStackTrace:
                             description: Enable user stack trace export. Only valid
                               with the post action.
@@ -4453,6 +4758,10 @@ spec:
                           rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                             && !(has(self.argNewSymbol) && has(self.argNewOffset))
                             && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                        - message: state is required for UpdateState and only valid
+                            with that action
+                          rule: 'self.action == ''UpdateState'' ? has(self.state)
+                            : !has(self.state)'
                       type: array
                     matchArgs:
                       description: A list of argument filters. MatchArgs are ANDed.
@@ -4887,6 +5196,7 @@ spec:
                             - NotifyEnforcer
                             - CleanupEnforcerNotification
                             - Set
+                            - UpdateState
                             type: string
                           argError:
                             description: error value for override action
@@ -4972,6 +5282,34 @@ spec:
                               Full `sopath` cannot exceed 127 characters.
                               Its basename (ie: the library name) cannot exceed 31 characters.
                             type: string
+                          state:
+                            description: State operation to perform. Only valid with
+                              the UpdateState action.
+                            properties:
+                              name:
+                                description: The state object to update. Must reference
+                                  a previously defined state object.
+                                type: string
+                              operator:
+                                description: Operation to perform on the state.
+                                enum:
+                                - Set
+                                - Delete
+                                type: string
+                              value:
+                                description: Unsigned 64-bit integer to assign. Only
+                                  valid with the Set operator.
+                                pattern: ^[0-9]+$
+                                type: string
+                            required:
+                            - name
+                            - operator
+                            type: object
+                            x-kubernetes-validations:
+                            - message: Set requires a value and Delete does not accept
+                                a value
+                              rule: 'has(self.operator) && (self.operator == ''Set''
+                                ? has(self.value) : !has(self.value))'
                           userStackTrace:
                             description: Enable user stack trace export. Only valid
                               with the post action.
@@ -4985,6 +5323,10 @@ spec:
                           rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                             && !(has(self.argNewSymbol) && has(self.argNewOffset))
                             && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                        - message: state is required for UpdateState and only valid
+                            with that action
+                          rule: 'self.action == ''UpdateState'' ? has(self.state)
+                            : !has(self.state)'
                       type: array
                     matchReturnArgs:
                       description: A list of argument filters. MatchReturnArgs are
@@ -5056,6 +5398,30 @@ spec:
                         required:
                         - operator
                         type: object
+                      type: array
+                    matchStates:
+                      description: State predicates to match. MatchStates are ANDed.
+                      items:
+                        properties:
+                          name:
+                            description: Name of the state object to match. Must reference
+                              a previously defined state object.
+                            type: string
+                          operator:
+                            enum:
+                            - Equal
+                            - NotEqual
+                            type: string
+                          value:
+                            description: Value to compare against the state value.
+                            pattern: ^[0-9]+$
+                            type: string
+                        required:
+                        - name
+                        - operator
+                        - value
+                        type: object
+                      maxItems: 4
                       type: array
                     matchUserCallers:
                       description: A list of caller filters. MatchUserCallers are
@@ -5283,6 +5649,28 @@ spec:
                   SelectorsMacros is used to define selectors macros, which can be used
                   in probes/hooks selectors by their names.
                 type: object
+              state:
+                description: |-
+                  A list of state objects shared by all probes in the policy. The entries
+                  must be unique and there can be at most 10 entries.
+                items:
+                  properties:
+                    name:
+                      description: |-
+                        Name of the state object. Use this name to reference the state in other
+                        parts of the policy. The state value can hold u64 values.
+                      maxLength: 255
+                      minLength: 1
+                      pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+                      type: string
+                  required:
+                  - name
+                  type: object
+                maxItems: 10
+                type: array
+                x-kubernetes-validations:
+                - message: state names must be unique
+                  rule: self.all(x, self.exists_one(y, x.name == y.name))
               tracepoints:
                 description: A list of tracepoint specs.
                 items:
@@ -5477,6 +5865,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -5563,6 +5952,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -5576,6 +5993,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -6016,6 +6437,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -6102,6 +6524,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -6115,6 +6565,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -6186,6 +6640,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers
@@ -6914,6 +7394,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -7000,6 +7481,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -7013,6 +7522,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -7453,6 +7966,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -7539,6 +8053,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -7552,6 +8094,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -7623,6 +8169,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers
@@ -8074,6 +8646,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -8160,6 +8733,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -8173,6 +8774,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -8613,6 +9218,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -8699,6 +9305,34 @@ spec:
                                     Full `sopath` cannot exceed 127 characters.
                                     Its basename (ie: the library name) cannot exceed 31 characters.
                                   type: string
+                                state:
+                                  description: State operation to perform. Only valid
+                                    with the UpdateState action.
+                                  properties:
+                                    name:
+                                      description: The state object to update. Must
+                                        reference a previously defined state object.
+                                      type: string
+                                    operator:
+                                      description: Operation to perform on the state.
+                                      enum:
+                                      - Set
+                                      - Delete
+                                      type: string
+                                    value:
+                                      description: Unsigned 64-bit integer to assign.
+                                        Only valid with the Set operator.
+                                      pattern: ^[0-9]+$
+                                      type: string
+                                  required:
+                                  - name
+                                  - operator
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: Set requires a value and Delete does
+                                      not accept a value
+                                    rule: 'has(self.operator) && (self.operator ==
+                                      ''Set'' ? has(self.value) : !has(self.value))'
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
                                     valid with the post action.
@@ -8712,6 +9346,10 @@ spec:
                                 rule: '!(has(self.argNewSymbol) && has(self.argNewAddr))
                                   && !(has(self.argNewSymbol) && has(self.argNewOffset))
                                   && !(has(self.argNewAddr) && has(self.argNewOffset))'
+                              - message: state is required for UpdateState and only
+                                  valid with that action
+                                rule: 'self.action == ''UpdateState'' ? has(self.state)
+                                  : !has(self.state)'
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -8783,6 +9421,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers
