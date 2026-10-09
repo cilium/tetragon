@@ -368,6 +368,9 @@ func ReadAndSetFlags() error {
 	Config.SleepableOffloadSize = viper.GetInt(KeySleepableOffloadSize)
 
 	Config.UprobeHeapSize = viper.GetInt(KeyUprobeHeapSize)
+	if Config.UprobeHeapSize <= 0 {
+		return fmt.Errorf("%s must be positive, got %d", KeyUprobeHeapSize, Config.UprobeHeapSize)
+	}
 
 	Config.EnableGRPCDeprecatedTP = viper.GetBool(KeyEnableDeprecatedTPGRPC)
 
