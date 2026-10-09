@@ -1985,6 +1985,7 @@ spec:
                       type: array
                     event:
                       description: Tracepoint event
+                      pattern: ^[a-zA-Z0-9_][a-zA-Z0-9_-]*$
                       type: string
                     message:
                       description: |-
@@ -2583,6 +2584,7 @@ spec:
                       type: array
                     subsystem:
                       description: Tracepoint subsystem
+                      pattern: ^[a-zA-Z0-9_][a-zA-Z0-9_-]*$
                       type: string
                     tags:
                       description: |-
