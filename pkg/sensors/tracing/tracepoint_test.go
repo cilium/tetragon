@@ -81,7 +81,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 
 	sm := tuo.GetTestSensorManager(t)
 	// create and add sensor
-	policyInfo, err := newPolicyInfoFromSpec("", "policyName", policyfilter.NoFilterID, &spec, nil)
+	policyInfo, err := newPolicyInfoFromSpec("", "", "policyName", policyfilter.NoFilterID, &spec, nil)
 	require.NoError(t, err)
 	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyInfo, nil)
 	if err != nil {
@@ -147,7 +147,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 
 	sm := tuo.GetTestSensorManager(t)
 	// create and add sensor
-	policyInfo, err := newPolicyInfoFromSpec("", "policyName", policyfilter.NoFilterID, &spec, nil)
+	policyInfo, err := newPolicyInfoFromSpec("", "", "policyName", policyfilter.NoFilterID, &spec, nil)
 	require.NoError(t, err)
 	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyInfo, nil)
 	if err != nil {
@@ -530,7 +530,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	sm := tuo.GetTestSensorManager(t)
 	// create and add sensor
-	policyInfo, err := newPolicyInfoFromSpec("", "policyName", policyfilter.NoFilterID, &spec, nil)
+	policyInfo, err := newPolicyInfoFromSpec("", "", "policyName", policyfilter.NoFilterID, &spec, nil)
 	require.NoError(t, err)
 	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyInfo, nil)
 	if err != nil {
