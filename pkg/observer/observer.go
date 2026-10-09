@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -47,6 +48,29 @@ func (k *Observer) observerListeners(msg notify.Message) {
 			k.log.Debug("Write failure removing Listener")
 			k.RemoveListener(listener)
 		}
+	}
+}
+
+// submitQueue holds events submitted from outside of the observer (like
+// events read by sensors from their own ring buffers), it's set while the
+// observer processes events.
+var submitQueue atomic.Pointer[chan Event]
+
+// SubmitEvent queues an already decoded event to be processed by the observer
+// listeners, together with the events read from the bpf ring buffers. It does
+// not block, returns false if the event was dropped because the queue is full
+// or the observer is not running.
+func SubmitEvent(ev Event) bool {
+	q := submitQueue.Load()
+	if q == nil {
+		return false
+	}
+	select {
+	case *q <- ev:
+		return true
+	default:
+		queueLost.Inc()
+		return false
 	}
 }
 

@@ -106,6 +106,11 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	// connected with main app through eventsQueue channel.
 	eventsQueue := make(chan *[]byte, k.getRBQueueSize())
 
+	// Queue for already decoded events submitted with SubmitEvent.
+	eventsSubmitted := make(chan Event, k.getRBQueueSize())
+	submitQueue.Store(&eventsSubmitted)
+	defer submitQueue.Store(nil)
+
 	// Listeners are ready and about to start reading from perf reader, tell
 	// user everything is ready.
 	k.log.Info("Listening for events...")
@@ -191,6 +196,9 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 			case eventRawSample := <-eventsQueue:
 				k.receiveEvent(*eventRawSample)
 				rawSampleBufPool.Put(eventRawSample)
+				queueReceived.Inc()
+			case ev := <-eventsSubmitted:
+				k.observerListeners(ev)
 				queueReceived.Inc()
 			case <-stopCtx.Done():
 				k.log.Info("Listening for events completed.", logfields.Error, stopCtx.Err())
