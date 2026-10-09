@@ -57,7 +57,7 @@ struct {
 
 FUNC_INLINE void *ratelimit_heap_get(void)
 {
-	__u64 key = get_current_pid_tgid();
+	heap_key_t key = heap_key();
 	void *val = map_lookup_elem(&ratelimit_heap, &key);
 	struct heap_ro_value *ro;
 	__u32 zidx = 0;
