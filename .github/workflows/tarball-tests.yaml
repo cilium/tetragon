@@ -88,6 +88,16 @@ jobs:
           sudo ./tetragon-${{ needs.standalone-tarball-builds.outputs.tag }}-${{ matrix.arch }}/install.sh
         working-directory: ./build/${{ matrix.arch }}/linux-tarball/
 
+      - name: Customize Tetragon config and restart tetragon service
+        run: |
+          ldd --version
+          # enable all bpf debug areas and log to tetragon log
+          sudo sh -c "echo all > /etc/tetragon/tetragon.conf.d/bpf-debug-area"
+          sudo sh -c "echo true > /etc/tetragon/tetragon.conf.d/bpf-debug-log"
+          # enable tetragon log file
+          sudo sh -c "echo /tmp/tetragon.log.txt > /etc/tetragon/tetragon.conf.d/log-file"
+          sudo systemctl restart tetragon
+
       - name: Wait for Tetragon service
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
@@ -175,12 +185,12 @@ jobs:
           sudo tetra policytest run --all-tests --output-file /tmp/tetragon.policytest.txt
           cat /tmp/tetragon.policytest.txt
 
-      - name: Upload policytest results
+      - name: Upload debug infos
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: tetragon-policytest-${{ matrix.arch }}
-          path: /tmp/tetragon.policytest.txt
+          path: /tmp/tetragon.*.txt
           retention-days: 5
 
       - name: Uninstall Tetragon Tarball
