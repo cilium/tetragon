@@ -129,8 +129,8 @@ var opts = map[string]opt{
 			if err != nil {
 				return err
 			}
-			if size <= 0 {
-				return fmt.Errorf("uprobe-heap-size must be positive, got %d", size)
+			if err := option.ValidateHeapSize(option.KeyUprobeHeapSize, size); err != nil {
+				return err
 			}
 			options.UprobeHeapSize = size
 			return nil

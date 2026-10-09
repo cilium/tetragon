@@ -172,6 +172,18 @@ type config struct {
 	BPFDebugLog   bool
 }
 
+// ValidateHeapSize checks that a heap size is positive and fits in the
+// uint32 map capacity field.
+func ValidateHeapSize(name string, size int) error {
+	if size <= 0 {
+		return fmt.Errorf("%s must be positive, got %d", name, size)
+	}
+	if uint64(size) > uint64(^uint32(0)) {
+		return fmt.Errorf("%s must not exceed %d, got %d", name, ^uint32(0), size)
+	}
+	return nil
+}
+
 var (
 	log = logger.GetLogger()
 
