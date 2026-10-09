@@ -1236,6 +1236,11 @@ uprobes:
 - path: "test"
   symbols:
   - "func"
+  data:
+  - index: 0
+    type: "int64"
+    source: "pt_regs"
+    resolve: "rdi"
   selectors:
   - matchActions:
     - action: Override
@@ -1244,6 +1249,7 @@ uprobes:
       - "rbp=(%rsp)"
       - "rip=8(%rsp)"
       - "rsp=8%rsp"
+      - "rdi=cel(data0 + 1)"
 ```
 
 The `argRegs` argument is an array of strings where each string start with destination
@@ -1255,9 +1261,26 @@ following types:
 - register plus offset `rip=8%rsp`
 - dereference of register `rbp=(%rsp)`
 - dereference of register plus offset `rsp=8(%rsp)`
+- CEL expression `rdi=cel(data0 + 1)`
 
 {{< note >}}
 This interface is likely to be changed in the future.
+{{< /note >}}
+
+##### CEL expression
+
+A CEL expression can be used to construct a register assignment involving
+multiple register values and/or arithmetic operations. See the
+[matchCEL](#matchcel) section for the syntax supported and the [Data
+filter](#data-filter) section for loading register values into `dataN`. One
+difference from `matchCEL` is the CEL operation here must return a
+signed/unsigned 64-bit integer.
+
+`cel()` assignments share a pool of eight compiled expressions with `matchCEL`
+selectors across the whole policy.
+
+{{< note >}}
+This is only supported in kernel versions 6.18 and up
 {{< /note >}}
 
 ### GetUrl action
