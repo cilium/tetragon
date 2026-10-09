@@ -46,4 +46,25 @@ struct {
 #define USE_HASH_HEAP
 #endif
 
+#ifdef USE_HASH_HEAP
+
+typedef __u64 heap_key_t;
+
+/* All hash heaps must use the same key, heap_dtor releases them together. */
+static inline __attribute__((always_inline)) heap_key_t heap_key(void)
+{
+	return get_current_pid_tgid();
+}
+
+#else
+
+typedef __u32 heap_key_t;
+
+static inline __attribute__((always_inline)) heap_key_t heap_key(void)
+{
+	return 0;
+}
+
+#endif /* USE_HASH_HEAP */
+
 #endif // __HEAP_H__

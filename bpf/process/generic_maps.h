@@ -15,8 +15,6 @@
  */
 #ifdef USE_HASH_HEAP
 
-typedef __u64 heap_key_t;
-
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(map_flags, BPF_F_NO_PREALLOC);
@@ -24,11 +22,6 @@ struct {
 	__type(key, heap_key_t);
 	__type(value, struct msg_generic_kprobe);
 } process_call_heap SEC(".maps");
-
-FUNC_INLINE heap_key_t heap_key(void)
-{
-	return get_current_pid_tgid();
-}
 
 FUNC_INLINE bool heap_update(heap_key_t key)
 {
@@ -50,19 +43,12 @@ FUNC_INLINE bool heap_update(heap_key_t key)
 
 #else
 
-typedef __u32 heap_key_t;
-
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
 	__type(value, struct msg_generic_kprobe);
 } process_call_heap SEC(".maps");
-
-FUNC_INLINE heap_key_t heap_key(void)
-{
-	return 0;
-}
 
 FUNC_INLINE bool heap_update(heap_key_t key)
 {
@@ -131,7 +117,7 @@ struct {
 
 FUNC_INLINE long heap_dtor(long ret)
 {
-	__u64 key = get_current_pid_tgid();
+	heap_key_t key = heap_key();
 
 	map_delete_elem(&process_call_heap, &key);
 	map_delete_elem(&buffer_heap_map, &key);
