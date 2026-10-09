@@ -172,7 +172,7 @@ const (
 )
 
 // Allow disabling via empty string
-var enableAncestors, _ = NewSliceEnum([]string{"base", "kprobe", "tracepoint", "loader", "uprobe", "lsm", "usdt"}, nil)
+var enableAncestors, _ = NewSliceEnum([]string{"base", "kprobe", "tracepoint", "loader", "uprobe", "lsm", "usdt", "java"}, nil)
 
 type UsernameMetadaCode int
 
@@ -241,6 +241,7 @@ func ReadAndSetFlags() error {
 		Config.EnableProcessUprobeAncestors = slices.Contains(enableAncestors.Values, "uprobe")
 		Config.EnableProcessLsmAncestors = slices.Contains(enableAncestors.Values, "lsm")
 		Config.EnableProcessUsdtAncestors = slices.Contains(enableAncestors.Values, "usdt")
+		Config.EnableProcessJavaAncestors = slices.Contains(enableAncestors.Values, "java")
 	}
 
 	Config.EnableProcessEnvironmentVariables = viper.GetBool(KeyEnableProcessEnvironmentVariables)
