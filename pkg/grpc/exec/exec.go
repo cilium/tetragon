@@ -566,8 +566,22 @@ func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.
 		return err
 	}
 
-	tetragonProcess := ev.GetProcess()
+	msg.releaseRefs(internal)
+	return nil
+}
 
+// Expire releases the exit's references once the event cache stops retrying
+// it, so a process whose parent never showed up is still freed.
+func (msg *MsgExitEventUnix) Expire(timestamp uint64) {
+	if internal, _ := process.GetParentProcessInternal(msg.ProcessKey.Pid, timestamp); internal != nil {
+		msg.releaseRefs(internal)
+	}
+}
+
+// releaseRefs drops the ancestor, parent and process references held by the
+// exiting process.
+func (msg *MsgExitEventUnix) releaseRefs(internal *process.ProcessInternal) {
+	tetragonProcess := internal.UnsafeGetProcess()
 	if option.Config.EnableProcessAncestors && !msg.RefCntDone[AncestorsRefCnt] {
 		if ancestors, err := process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId); err == nil {
 			for _, ancestor := range ancestors {
@@ -591,8 +605,6 @@ func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.
 		internal.RefDec("process")
 		msg.RefCntDone[ProcessRefCnt] = true
 	}
-
-	return nil
 }
 
 func (msg *MsgExitEventUnix) HandleMessage() *tetragon.GetEventsResponse {

@@ -555,7 +555,7 @@ func GrpcExecMisingParent[EXEC notify.Message, EXIT notify.Message](t *testing.T
 	parentPid := BasePid.Add(1)
 	currentPid := BasePid.Add(1)
 
-	_, _, execMsg, _ := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "")
+	_, _, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "")
 
 	if e := (*execMsg).HandleMessage(); e != nil {
 		AllEvents = append(AllEvents, e)
@@ -570,6 +570,22 @@ func GrpcExecMisingParent[EXEC notify.Message, EXIT notify.Message](t *testing.T
 	assert.NotNil(t, execEv)
 	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, currentPid, 21034975089403))
 	assert.Nil(t, execEv.Parent)
+
+	// The exit is retried until the event cache gives up on the missing
+	// parent; the process reference must be released anyway.
+	if e := (*exitMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(2)
+
+	if !assert.Len(t, AllEvents, 2) {
+		t.FailNow()
+	}
+	exitEv := AllEvents[1].GetProcessExit()
+	assert.NotNil(t, exitEv)
+	assert.Nil(t, exitEv.Parent)
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, currentPid, 21034975089403))
 }
 
 func GrpcMissingExec[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
