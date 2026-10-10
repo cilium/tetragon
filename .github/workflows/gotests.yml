@@ -89,7 +89,7 @@ jobs:
 
     - name: Upload Tetragon logs
       if: failure()
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: tetragon-json-${{ matrix.os }}
         path: /tmp/tetragon.gotest*
@@ -97,7 +97,7 @@ jobs:
 
     - name: Upload bugtool dumps
       if: failure()
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: tetragon-bugtool-${{ matrix.os }}
         path: /tmp/tetragon-bugtool*
@@ -105,7 +105,7 @@ jobs:
 
     - name: Upload vmlinux file
       if: failure()
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: btf-vmlinux-${{ matrix.os }}
         path: /sys/kernel/btf/vmlinux
@@ -157,7 +157,7 @@ jobs:
 
     - name: Upload fuzz failures
       if: ${{ failure() && steps.collect-fuzz-failures.outputs.found == 'true' }}
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: go-fuzz-failures-${{ matrix.os }}
         path: ${{ runner.temp }}/go-fuzz-failures
@@ -253,7 +253,7 @@ jobs:
 
     - name: Upload Tetragon logs
       if: failure()
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: tetragon-race-logs
         path: /tmp/tetragon.gotest*
