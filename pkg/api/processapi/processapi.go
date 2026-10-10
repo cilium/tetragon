@@ -295,10 +295,19 @@ type RegAssignment struct {
 
 const (
 	UPROBE_REGS_MAX = 18
+	SOPATH_MAX      = 128
+	SONAME_MAX      = 32
 )
 
 type UprobeRegs struct {
 	Ass [UPROBE_REGS_MAX]RegAssignment
 	Cnt uint32
-	Pad uint32
+
+	// Related to uprobe dynamic SO support
+	Sopath     [SOPATH_MAX]byte
+	SopathLen  uint32
+	SoName     [SONAME_MAX]byte
+	SymAddr    uint64
+	MmapAddr   uint64
+	DlopenAddr uint64
 }
