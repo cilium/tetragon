@@ -71,6 +71,7 @@ type config struct {
 	DisableProcessCache    bool
 	DataCacheSize          int
 	DeletedPodCacheSize    int
+	MetricsBinaryCacheSize int
 	ProcessCacheGCInterval time.Duration
 
 	MetricsServer      string
@@ -207,6 +208,9 @@ var (
 
 		// Set default value for deleted pod lru cache
 		DeletedPodCacheSize: constants.WatcherDeletedPodCacheSize,
+
+		// Set default value for the metrics binary label lru cache
+		MetricsBinaryCacheSize: constants.MetricsBinaryCacheSize,
 
 		// Set default value for bpf debug areas
 		// to be kept in sync with bpf/libs/debug.h
