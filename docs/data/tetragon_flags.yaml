@@ -161,6 +161,10 @@ options:
     - name: expose-stack-addresses
       default_value: "false"
       usage: Expose real linear addresses in events stack traces
+    - name: fentry-heap-size
+      default_value: "32768"
+      usage: |
+        Set the maximum number of entries in the process call heap map used by fentry/fexit sensors
     - name: field-filters
       usage: Field filters for event exports
     - name: filter-environment-variables
@@ -210,6 +214,10 @@ options:
     - name: log-level
       default_value: info
       usage: Set log level
+    - name: lsm-heap-size
+      default_value: "32768"
+      usage: |
+        Set the maximum number of entries in the process call heap map used by lsm sensors
     - name: memprofile
       usage: Store MEM profile into provided file
     - name: metrics-label-filter

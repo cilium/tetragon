@@ -46,6 +46,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -1456,7 +1457,7 @@ spec:` + opts + `
 	}
 
 	// all the per-process heap maps resized by the uprobe-heap-size option
-	// (see getUprobeHeapMap in genericuprobe.go)
+	// (see getHeapMaps in generic.go)
 	heapMapNames := []string{
 		"process_call_heap",
 		"buffer_heap_map",
@@ -1493,7 +1494,7 @@ spec:` + opts + `
 		t.Cleanup(func() { option.Config.UprobeHeapSize = originalSize })
 	}
 
-	// heap maps as MapShared at global scope (/sys/fs/bpf/tetragon/<name>),
+	// heap maps as MapShared at global scope (/sys/fs/bpf/tetragon/uprobe_<name>),
 	// covering both the entry and retprobe programs
 	t.Run("shared", func(t *testing.T) {
 		sens := loadSensors(t, policy(""))
@@ -1505,7 +1506,7 @@ spec:` + opts + `
 			require.NotEmpty(t, maps, "%s map not found in sensor", name)
 
 			for _, m := range maps {
-				assert.Equal(t, name, m.PinPath)
+				assert.Equal(t, "uprobe_"+name, m.PinPath)
 				if withMax {
 					assert.Equal(t, uint32(2048), getMaxEntries(m))
 				} else {
@@ -1536,6 +1537,66 @@ spec:` + opts + `
 			}
 		}
 	})
+}
+
+// The uprobe hash heap maps must not be picked up by other sensors that
+// use per-cpu heap maps of the same name (resolved by name under bpfDir).
+func TestUprobeHeapKprobeCoexist(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping, x86_64 only test")
+	}
+	if !bpf.HasUprobeMulti() {
+		t.Skip("skipping, no uprobe multi support in kernel; process_call_heap is only wired up for the multi-attach path")
+	}
+
+	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+
+	createCrdFile(t, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-heap"
+spec:
+  uprobes:
+  - path: "`+libUprobe+`"
+    symbols:
+    - "uprobe_test_lib_arg1"
+`)
+	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile,
+		tus.Conf().TetragonLib, observertesthelper.WithKeepCollection())
+	require.NoError(t, err)
+	defer func() {
+		sensi := make([]sensors.SensorIface, 0, len(sens))
+		for _, s := range sens {
+			sensi = append(sensi, s)
+		}
+		sensors.UnloadSensors(sensi)
+	}()
+
+	// shared uprobe heap maps are pinned with prefix, not under bare name
+	_, err = os.Stat(filepath.Join(bpf.MapPrefixPath(), "uprobe_buffer_heap_map"))
+	require.NoError(t, err)
+	_, err = os.Stat(filepath.Join(bpf.MapPrefixPath(), "buffer_heap_map"))
+	require.Error(t, err)
+
+	tp, err := tracingpolicy.FromYAML(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobe-heap"
+spec:
+  kprobes:
+  - call: "sys_write"
+    syscall: true
+`)
+	require.NoError(t, err)
+
+	kprobe, err := sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
+	require.NoError(t, err)
+	for _, s := range kprobe {
+		tus.LoadSensor(t, s)
+	}
+	sensors.UnloadSensors(kprobe)
 }
 
 // Some uprobes configurations (ie digest verification) disallow disable/re-enable of a policy.

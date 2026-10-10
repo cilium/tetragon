@@ -107,7 +107,7 @@ struct {
 
 FUNC_INLINE void *string_maps_heap_get(void)
 {
-	__u64 key = get_current_pid_tgid();
+	heap_key_t key = heap_key();
 	void *val = map_lookup_elem(&string_maps_heap, &key);
 	struct heap_ro_value *ro;
 	__u32 zidx = 0;
@@ -174,7 +174,7 @@ struct {
 
 FUNC_INLINE void *string_prefix_maps_heap_get(void)
 {
-	__u64 key = get_current_pid_tgid();
+	heap_key_t key = heap_key();
 	void *val = map_lookup_elem(&string_prefix_maps_heap, &key);
 	struct heap_ro_value *ro;
 	__u32 zidx = 0;
@@ -247,7 +247,7 @@ struct {
 
 FUNC_INLINE void *string_postfix_maps_heap_get(void)
 {
-	__u64 key = get_current_pid_tgid();
+	heap_key_t key = heap_key();
 	void *val = map_lookup_elem(&string_postfix_maps_heap, &key);
 	struct heap_ro_value *ro;
 	__u32 zidx = 0;

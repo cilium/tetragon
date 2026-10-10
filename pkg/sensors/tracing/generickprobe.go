@@ -500,6 +500,9 @@ type hasMaps struct {
 	sockTrack  bool
 	selector   bool
 	fentry     bool
+
+	// fentry process_call_heap (and friends) size override
+	fentryHeapSize int
 }
 
 // hasMapsSetup setups the has maps for the per policy maps. The per kprobe maps
@@ -556,6 +559,10 @@ func createGenericKprobeSensor(
 	}
 
 	has := hasMapsSetup(spec, kprobes, fentry)
+
+	if fentry {
+		has.fentryHeapSize = polInfo.specOpts.FentryHeapSize
+	}
 
 	// use multi kprobe only if:
 	// - it's not disabled by spec option
@@ -1043,8 +1050,12 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		maps = append(maps, retProbe)
 	}
 
-	callHeap := program.MapBuilderSensor("process_call_heap", load)
-	maps = append(maps, callHeap)
+	if has.fentry {
+		maps = append(maps, getHeapMaps("fentry_", option.Config.FentryHeapSize, has.fentryHeapSize, load)...)
+	} else {
+		callHeap := program.MapBuilderSensor("process_call_heap", load)
+		maps = append(maps, callHeap)
+	}
 
 	// loading the stack trace map in any case so that it does not end up as an
 	// anonymous map (as it's always used by the BPF prog) and is clearly linked
@@ -1140,8 +1151,12 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		}
 
 		// add maps with non-default paths (pins) to the retprobe
-		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
-		maps = append(maps, callHeap)
+		if has.fentry {
+			maps = append(maps, getHeapMaps("fentry_", option.Config.FentryHeapSize, has.fentryHeapSize, loadret)...)
+		} else {
+			callHeap := program.MapBuilderSensor("process_call_heap", loadret)
+			maps = append(maps, callHeap)
+		}
 
 		if config.EnableLargeProgs() {
 			socktrack := program.MapBuilderSensor("socktrack_map", loadret)

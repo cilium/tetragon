@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"testing"
@@ -23,6 +24,7 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
@@ -30,6 +32,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -337,4 +340,114 @@ spec:
 
 func TestLSMDuplicateHooks(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "lsm-dup-hooks", nil)
+}
+
+func TestLSMHeapMapConfig(t *testing.T) {
+	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
+		t.Skip()
+	}
+
+	// opts is the options block (may be empty)
+	policy := func(opts string) string {
+		return `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm-heap"
+spec:` + opts + `
+  lsmhooks:
+  - hook: "file_open"
+    args:
+      - index: 0
+        type: "file"
+`
+	}
+
+	loadSensors := func(t *testing.T, config string) []*sensors.Sensor {
+		createCrdFile(t, config)
+		sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile,
+			tus.Conf().TetragonLib, observertesthelper.WithKeepCollection())
+		require.NoError(t, err)
+		return sens
+	}
+
+	unloadSensors := func(sens []*sensors.Sensor) {
+		sensi := make([]sensors.SensorIface, 0, len(sens))
+		for _, s := range sens {
+			sensi = append(sensi, s)
+		}
+		sensors.UnloadSensors(sensi)
+	}
+
+	// all the per-process heap maps (see getHeapMaps in generic.go)
+	heapMapNames := []string{
+		"process_call_heap",
+		"buffer_heap_map",
+		"string_maps_heap",
+		"string_prefix_maps_heap",
+		"string_postfix_maps_heap",
+		"ratelimit_heap",
+	}
+
+	findHeapMaps := func(sens []*sensors.Sensor) map[string][]*program.Map {
+		maps := make(map[string][]*program.Map)
+		for _, s := range sens {
+			for _, m := range s.Maps {
+				for _, name := range heapMapNames {
+					if m.Name == name {
+						maps[name] = append(maps[name], m)
+					}
+				}
+			}
+		}
+		return maps
+	}
+
+	getMaxEntries := func(m *program.Map) uint32 {
+		path := filepath.Join(bpf.MapPrefixPath(), m.PinPath)
+		val, err := program.GetMaxEntriesPinnedMap(path)
+		require.NoError(t, err)
+		return val
+	}
+
+	// heap maps as MapShared at global scope (/sys/fs/bpf/tetragon/lsm_<name>),
+	// for both core and output programs
+	t.Run("shared", func(t *testing.T) {
+		sens := loadSensors(t, policy(""))
+		defer unloadSensors(sens)
+
+		mapsByName := findHeapMaps(sens)
+		for _, name := range heapMapNames {
+			maps := mapsByName[name]
+			require.Len(t, maps, 2, "%s map not found in core and output programs", name)
+
+			for _, m := range maps {
+				assert.Equal(t, "lsm_"+name, m.PinPath)
+				assert.Equal(t, uint32(defaults.DefaultLsmHeapSize), getMaxEntries(m))
+			}
+		}
+	})
+
+	// heap maps as MapBuilderProgram at program scope
+	// (.../policy/sensor/prog/<name>), shared by core and output programs
+	t.Run("program", func(t *testing.T) {
+		sens := loadSensors(t, policy(`
+  options:
+  - name: "lsm-heap-size"
+    value: "1024"`))
+		defer unloadSensors(sens)
+
+		mapsByName := findHeapMaps(sens)
+		for _, name := range heapMapNames {
+			maps := mapsByName[name]
+			require.Len(t, maps, 2, "%s map not found in core and output programs", name)
+			assert.Equal(t, maps[0].PinPath, maps[1].PinPath)
+
+			for _, m := range maps {
+				assert.NotEqual(t, name, m.PinPath)
+				assert.Equal(t, name, filepath.Base(m.PinPath))
+				assert.Equal(t, uint32(1024), getMaxEntries(m))
+			}
+		}
+	})
 }
