@@ -64,10 +64,11 @@ func (i PodID) String() string {
 }
 
 type containerInfo struct {
-	id   string   // container id
-	cgID CgroupID // cgroup id
-	name string   // container name
-	repo string   // container repo
+	id      string   // container id
+	cgID    CgroupID // cgroup id
+	name    string   // container name
+	repo    string   // container repo
+	rootDir string   // host path of the container root, if known
 }
 
 // podInfo contains the necessary information for each pod
@@ -168,6 +169,30 @@ type policy struct {
 
 	// polMap is the (inner) policy map for this policy
 	polMap polMap
+
+	watch *containerWatch
+}
+
+type containerWatch struct {
+	fn func(ContainerChange)
+}
+
+// notify reports the containers of pod the policy selects to its watcher.
+func (pol *policy) notify(pod *podInfo, containers []containerInfo, removed bool) {
+	if pol.watch == nil {
+		return
+	}
+	for i := range containers {
+		c := &containers[i]
+		if pol.containerMatches(c) {
+			pol.watch.fn(ContainerChange{
+				Removed:     removed,
+				PodID:       pod.id,
+				ContainerID: c.id,
+				RootDir:     c.rootDir,
+			})
+		}
+	}
 }
 
 func (pol *policy) podMatches(podNs string, podLabels labels.Labels) bool {
@@ -460,6 +485,11 @@ func (m *state) DelPolicy(polID PolicyID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if policy := m.delPolicy(polID); policy != nil {
+		for i := range m.pods {
+			if pod := &m.pods[i]; pod.hasPolicy(polID) {
+				policy.notify(pod, pod.containers, true)
+			}
+		}
 		policy.polMap.Inner.Close()
 	} else {
 		m.log.Warn("DelPolicy: policy internal map not found", "policy-id", polID)
@@ -478,6 +508,34 @@ func (m *state) DelPolicy(polID PolicyID) error {
 	}
 
 	return nil
+}
+
+// WatchPolicyContainers reports the containers the policy selects to fn,
+// then every change to that set until stop is called.
+func (m *state) WatchPolicyContainers(polID PolicyID, fn func(ContainerChange)) (func(), error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	pol := m.findPolicy(polID)
+	if pol == nil {
+		return nil, fmt.Errorf("%w: %d", errPolicyNotFound, polID)
+	}
+	w := &containerWatch{fn: fn}
+	pol.watch = w
+	for i := range m.pods {
+		if pod := &m.pods[i]; pod.hasPolicy(polID) {
+			pol.notify(pod, pod.containers, false)
+		}
+	}
+
+	stop := func() {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		if pol := m.findPolicy(polID); pol != nil && pol.watch == w {
+			pol.watch = nil
+		}
+	}
+	return stop, nil
 }
 
 func cgIDPointerStr(p *CgroupID) string {
@@ -526,7 +584,7 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 			cgIDptr = &cgid
 		}
 
-		cinfo = append(cinfo, containerInfo{contID, *cgIDptr, containerData.Name, containerData.Repo})
+		cinfo = append(cinfo, containerInfo{contID, *cgIDptr, containerData.Name, containerData.Repo, containerData.RootDir})
 	}
 
 	if len(cinfo) == 0 {
@@ -566,6 +624,7 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 				"cgroup-ids", cgroupIDs)
 			continue
 		}
+		pol.notify(pod, cinfo, false)
 
 		// cgroup IDs of containers that match the policy
 		matchingCgIDs := pol.matchingContainersCgroupIDs(pod.containers)
@@ -660,6 +719,7 @@ func (m *state) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []contain
 				"pod-id", pod.id)
 			continue
 		}
+		pol.notify(pod, containers, true)
 
 		// try to find containers in the pod matching this policy
 		// this way, we only remove containers that are actually present in the policy
@@ -759,6 +819,7 @@ func (m *state) applyPodPolicyDiff(pod *podInfo, polDiff *policiesDiffRes) {
 
 	var cgroupIDs []CgroupID
 	for _, addPol := range polDiff.addedPolicies {
+		addPol.notify(pod, pod.containers, false)
 		cgroupIDs = addPol.matchingContainersCgroupIDs(pod.containers)
 		if err := addPol.polMap.addCgroupIDs(cgroupIDs); err != nil {
 			m.log.Warn("failed to update policy map",
@@ -781,6 +842,7 @@ func (m *state) applyPodPolicyDiff(pod *podInfo, polDiff *policiesDiffRes) {
 	}
 
 	for _, delPol := range polDiff.deletedPolicies {
+		delPol.notify(pod, pod.containers, true)
 		cgroupIDs = delPol.matchingContainersCgroupIDs(pod.containers)
 		if err := delPol.polMap.delCgroupIDs(delPol.id, cgroupIDs); err != nil {
 			m.log.Warn("failed to update policy map",
