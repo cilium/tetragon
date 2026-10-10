@@ -1,0 +1,64 @@
+# Run the policy tests from a pod next to the agent, over its unix socket:
+#
+#   kubectl create namespace tetragon-policytest
+#   kubectl apply -f examples/policytest/job.yaml
+#   kubectl logs -f -n tetragon-policytest job/tetragon-policytest
+#
+# The Job fails if any test fails. List tests with `tetra policytest list`.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tetragon-policytest
+  namespace: tetragon-policytest
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: tetragon-policytest
+    spec:
+      restartPolicy: Never
+      # TODO(#5190): the agent opens uprobe/USDT targets on its own filesystem,
+      # so stage the tester programs on the shared hostPath and pass it as --bindir.
+      initContainers:
+      - name: stage-tester-progs
+        image: cilium/tetragon-policytest:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - rm -rf /run/tetragon/policytest-progs &&
+          cp -a /usr/local/lib/tetragon/tester-progs /run/tetragon/policytest-progs
+        volumeMounts:
+        - name: tetragon-run
+          mountPath: /run/tetragon
+      containers:
+      - name: policytest
+        image: cilium/tetragon-policytest:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - policytest
+        - run
+        - --all-tests
+        - --bindir=/run/tetragon/policytest-progs
+        # scope every policy (and its enforcement) to this Job's pod: the
+        # label is unique to the Job, unlike an app label another pod may share
+        - --pod-selector=batch.kubernetes.io/controller-uid=$(JOB_UID)
+        env:
+        - name: JOB_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['batch.kubernetes.io/controller-uid']
+        # The tester programs mount, send signals and change credentials.
+        securityContext:
+          privileged: true
+        volumeMounts:
+        # agent socket and tetragon-info.json; tetra reads the latter to find the socket
+        - name: tetragon-run
+          mountPath: /run/tetragon
+      volumes:
+      - name: tetragon-run
+        hostPath:
+          path: /var/run/tetragon
+          type: Directory

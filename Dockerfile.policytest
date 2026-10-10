@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# tetra + contrib/tester-progs, for running `tetra policytest run` from a pod.
+
+ARG GOLANG_IMAGE=docker.io/library/golang:1.27.1@sha256:512690a5660563b57d37ecc31129e7f136e831db2aed24a1dbeb8ad7380dc0fa
+# Same Debian release as the builder: tester-progs link against its glibc.
+ARG BASE_IMAGE=docker.io/library/debian:trixie-slim@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a
+
+FROM ${GOLANG_IMAGE} AS builder
+WORKDIR /go/src/github.com/cilium/tetragon
+# tester-progs: libcap-dev (-lcap), dwarves (pahole), llvm (llvm-objcopy) and
+# a 32-bit toolchain for enforcer-tester-32 (libc6-dev-armhf-cross is only a
+# Recommends of the arm cross compiler)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libcap-dev \
+        dwarves \
+        llvm \
+        $(case "$(dpkg --print-architecture)" in \
+            amd64) echo gcc-multilib ;; \
+            arm64) echo gcc-arm-linux-gnueabihf libc6-dev-armhf-cross ;; \
+          esac) \
+    && rm -rf /var/lib/apt/lists/*
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    make tetra tester-progs-tarball && tar -xzf tester-progs.tar.gz -C /
+
+FROM ${BASE_IMAGE}
+COPY --from=builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/tetra
+COPY --from=builder /tester-progs/ /usr/local/lib/tetragon/tester-progs/
+# fails the build if the runtime glibc is older than the builder's
+RUN /usr/local/lib/tetragon/tester-progs/nop
+ENTRYPOINT ["tetra"]

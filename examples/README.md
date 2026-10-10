@@ -11,6 +11,8 @@ This folder contains examples of resources YAML and configuration files.
   this policy and make any modifications necessary to achieve their desired security posture.
 - See [`configuration`](configuration) directory for an example of
   configuration file for Tetragon and and directory structure.
+- See [`policytest`](policytest) for running the policy tests from inside a
+  Kubernetes cluster.
 
 ## How to deploy a TracingPolicy example
 

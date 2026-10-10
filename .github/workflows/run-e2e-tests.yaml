@@ -119,6 +119,12 @@ jobs:
           docker pull ${{ needs.prepare.outputs.agentImage }}
           docker pull ${{ needs.prepare.outputs.operatorImage }}
 
+    - name: Build policytest Image
+      if: matrix.package.s == 'policytest'
+      run: |
+        cd go/src/github.com/cilium/tetragon
+        make image-policytest
+
     - name: Run e2e Tests
       run: |
         cd go/src/github.com/cilium/tetragon

@@ -190,6 +190,10 @@ image-operator: ## Build the Tetragon operator container image.
 	@echo "Push like this when ready:"
 	@echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 
+.PHONY: image-policytest
+image-policytest: ## Build the Tetragon policytest container image (tetra + tester-progs).
+	$(CONTAINER_ENGINE) build -f Dockerfile.policytest -t "cilium/tetragon-policytest:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
+
 .PHONY: image-rthooks
 image-rthooks:
 	$(CONTAINER_ENGINE) build -f Dockerfile.rthooks -t "cilium/tetragon-rthooks:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
@@ -375,7 +379,7 @@ ls-e2e-test:
 ## e2e-test E2E_TESTS=./tests/e2e/tests/skeleton: ## run a specific e2e test
 .PHONY: e2e-test
 ifneq ($(E2E_BUILD_IMAGES), 0)
-e2e-test: image image-operator
+e2e-test: image image-operator image-policytest
 else
 e2e-test:
 endif

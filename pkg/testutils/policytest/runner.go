@@ -135,14 +135,20 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 		return nil, nil
 	}
 
-	// TODO: no need to parse the full policy here. We just need to verify its kind and get the
-	// policy name so that we can delete it when done.
 	tp, err := tracingpolicy.FromYAML(string(pol))
 	if err != nil {
 		err = fmt.Errorf("failed to parse policy for test %q: %w", test.Name, err)
 		return nil, err
 	}
 	tpName := tp.TpName()
+
+	if len(r.conf.PodSelector) > 0 {
+		pol, err = injectPodSelector(tp, r.conf.PodSelector)
+		if err != nil {
+			err = fmt.Errorf("failed to inject podSelector for test %q: %w", test.Name, err)
+			return nil, err
+		}
+	}
 
 	if r.conf.DumpPolicyPath != "" {
 		err := os.WriteFile(r.conf.DumpPolicyPath, []byte(pol), 0644)
