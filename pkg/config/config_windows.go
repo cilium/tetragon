@@ -25,7 +25,7 @@ func GenericKprobeObjs(_ bool) (string, string) {
 	return "", ""
 }
 
-func GenericUprobeObjs(_ bool) (string, string) {
+func GenericUprobeObjs(_, _ bool) (string, string) {
 	return "", ""
 }
 
