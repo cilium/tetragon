@@ -4,6 +4,7 @@
 package process
 
 import (
+	"context"
 	"errors"
 	"slices"
 	"strings"
@@ -77,7 +78,7 @@ var (
 	ErrProcessInfoMissing = errors.New("failed process info missing")
 )
 
-func InitCache(w watcher.PodAccessor, size int, GCInterval time.Duration) error {
+func InitCache(ctx context.Context, w watcher.PodAccessor, size int, GCInterval time.Duration) error {
 	var err error
 
 	if procCache != nil {
@@ -85,7 +86,7 @@ func InitCache(w watcher.PodAccessor, size int, GCInterval time.Duration) error 
 	}
 
 	SetK8sWatcher(w)
-	procCache, err = NewCache(size, GCInterval)
+	procCache, err = NewCache(ctx, size, GCInterval)
 	if err != nil {
 		SetK8sWatcher(nil)
 	}

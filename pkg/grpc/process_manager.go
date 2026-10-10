@@ -44,7 +44,7 @@ func NewProcessManager(
 
 	if !option.Config.DisableProcessCache {
 		// Exec cache is always needed to ensure events have an associated Process{}
-		eventcache.New(pm)
+		eventcache.New(ctx, pm)
 	}
 
 	logger.GetLogger().Info("Starting process manager",
