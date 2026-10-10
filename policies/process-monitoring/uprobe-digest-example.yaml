@@ -1,0 +1,14 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+    name: "uprobe-digest-example"
+spec:
+    uprobes:
+    - path: "/bin/example-target-binary"
+      symbols:
+      - "main"
+      ignore:
+        digestVerificationFailure: true
+      binaryDigests:
+        - "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        - "sha256:2222222222222222222222222222222222222222222222222222222222222222"

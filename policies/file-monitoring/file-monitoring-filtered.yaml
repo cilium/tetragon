@@ -1,0 +1,38 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "file-monitoring-filtered"
+spec:
+  kprobes:
+  - call: "security_file_permission"
+    message: "Sensitive file system write operation"
+    syscall: false
+    args:
+    - index: 0
+      type: "file" # (struct file *) used for getting the path
+    - index: 1
+      type: "int" # 0x04 is MAY_READ, 0x02 is MAY_WRITE
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "/etc"              # Writes to sensitive directories
+        - "/boot"
+        - "/lib"
+        - "/lib64"
+        - "/bin"
+        - "/usr/lib"
+        - "/usr/local/lib"
+        - "/usr/local/sbin"
+        - "/usr/local/bin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/var/log"          # Writes to logs
+        - "/dev/log"
+        - "/root/.ssh"        # Writes to sensitive files add here.
+      - index: 1
+        operator: "Equal"
+        values:
+        - "2" # MAY_WRITE
+    tags: [ "observability.filesystem", "observability.process" ]

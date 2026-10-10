@@ -49,8 +49,10 @@ variables. Use `envsubst` to do this, and then apply the policy to your
 Kubernetes cluster with `kubectl apply`:
 
 ```shell
-wget https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/network_egress_cluster.yaml
-envsubst < network_egress_cluster.yaml | kubectl apply -f -
+
+
+wget {{< policy-raw-url "network-monitoring/network-egress-cluster.yaml" >}}
+envsubst < network-egress-cluster.yaml | kubectl apply -f -
 ```
 
 Once the tracing policy is applied, you can attach `tetra` to observe events
@@ -109,7 +111,7 @@ due to active execution monitoring.
 Finally, delete the applied TracingPolicy with:
 
 ```shell
-envsubst < network_egress_cluster.yaml | kubectl delete -f -
+envsubst < network-egress-cluster.yaml | kubectl delete -f -
 ```
 
 ## Monitoring Docker or bare metal network access
@@ -128,8 +130,8 @@ export SERVICECIDR="127.0.0.1/32"
 Next, customize the policy using `envsubst`.
 
 ```shell
-wget https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/network_egress_cluster.yaml
-envsubst < network_egress_cluster.yaml > network_egress_cluster_subst.yaml
+wget {{< policy-raw-url "network-monitoring/network-egress-cluster.yaml" >}}
+envsubst < network-egress-cluster.yaml > network-egress-cluster-subst.yaml
 ```
 
 Finally, start Tetragon with the new policy.
@@ -138,7 +140,7 @@ Finally, start Tetragon with the new policy.
 docker stop tetragon
 docker run -d --name tetragon --rm --pull always \
   --pid=host --cgroupns=host --privileged               \
-  -v ${PWD}/network_egress_cluster_subst.yaml:/etc/tetragon/tetragon.tp.d/network_egress_cluster_subst.yaml \
+  -v ${PWD}/network_egress_cluster_subst.yaml:/etc/tetragon/tetragon.tp.d/network-egress-cluster-subst.yaml \
   -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf      \
   quay.io/cilium/tetragon:{{< latest-version >}}
 ```

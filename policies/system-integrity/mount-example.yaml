@@ -1,0 +1,19 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "mount-example"
+spec:
+  kprobes:
+  - call: "sys_mount"
+    syscall: true
+    selectors:
+      # first selector
+      - matchBinaries:
+        - operator: In
+          values:
+          - "/usr/bin/mount"
+        matchActions:
+        - action: NoPost
+      # second selector
+      - matchActions:
+        - action: Post
