@@ -23,14 +23,22 @@ event_execve(struct bpf_raw_tracepoint_args *ctx)
 {
 	struct msg_execve_event *event;
 	__u32 zero = 0;
+	__u64 size;
+
+#ifdef __V61_BPF_PROG
+	if (!CONFIG(USE_PERF_RING_BUF) && execve_reserve_supported())
+		return event_execve_reserve(ctx);
+#endif
 
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
 		return 0;
 
-	execve_event_init(ctx, event);
+	execve_event_init(ctx, event, true);
 
-	if (execve_rate_check(ctx, event))
-		return execve_send_event(ctx, event);
+	if (execve_rate_check(ctx, event)) {
+		size = execve_finalize_event(ctx, event, &event->args_source);
+		event_output_metric(ctx, MSG_OP_EXECVE, event, size);
+	}
 	return 0;
 }
