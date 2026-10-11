@@ -227,7 +227,7 @@ func (k *Ksyms) getFnOffset(addr uint64) (*FnOffset, error) {
 
 func (k *Ksyms) IsAvailable(name string) bool {
 	for _, sym := range k.table {
-		if sym.name == name {
+		if sym.name == name || cleanupSymbolName(sym.name) == name {
 			return true
 		}
 	}
@@ -237,10 +237,32 @@ func (k *Ksyms) IsAvailable(name string) bool {
 func (k *Ksyms) GetKmod(name string) (string, error) {
 	// This linear search is slow. But this only happens during the validation
 	// of kprobe-based tracing polies. TODO: optimise if needed
+	//
+	// As in kallsyms_lookup_name(), an exact match wins over one that only
+	// matches after the LLVM LTO suffix is stripped.
+	var lto string
 	for _, s := range k.table {
-		if s.name == name && s.kmod != "" {
+		if s.kmod == "" {
+			continue
+		}
+		if s.name == name {
 			return s.kmod, nil
 		}
+		if lto == "" && cleanupSymbolName(s.name) == name {
+			lto = s.kmod
+		}
+	}
+	if lto != "" {
+		return lto, nil
 	}
 	return "", fmt.Errorf("symbol %s not found in kallsyms or is not part of a module", name)
+}
+
+// cleanupSymbolName strips the ".llvm.<hash>" suffix LLVM appends to local symbols
+// on CONFIG_LTO_CLANG builds, as cleanup_symbol_name() does in kernel/kallsyms.c.
+func cleanupSymbolName(s string) string {
+	if idx := strings.Index(s, ".llvm."); idx != -1 {
+		return s[:idx]
+	}
+	return s
 }
