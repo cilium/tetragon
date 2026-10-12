@@ -58,6 +58,7 @@ var inetProtocol = map[uint16]string{
 	47:  "IPPROTO_GRE",      /* Cisco GRE tunnels (rfc 1701,1702)    */
 	50:  "IPPROTO_ESP",      /* Encapsulation Security Payload protocol */
 	51:  "IPPROTO_AH",       /* Authentication Header protocol       */
+	58:  "IPPROTO_ICMPV6",   /* ICMPv6                               */
 	92:  "IPPROTO_MTP",      /* Multicast Transport Protocol         */
 	94:  "IPPROTO_BEETPH",   /* IP option pseudo header for BEET     */
 	98:  "IPPROTO_ENCAP",    /* Encapsulation Header                 */

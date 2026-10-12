@@ -33,7 +33,7 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Events (protobuf API)
 
-* TBD
+* The `protocol` field reports ICMPv6 as `IPPROTO_ICMPV6` instead of `58`.
 
 ### Metrics
 
