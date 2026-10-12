@@ -20,6 +20,7 @@ on:
         type: string
         description: "SHA of the base branch (target branch of the pull request)."
 
+# Cancel any in-progress runs for the same PR number.
 concurrency:
   group: ${{ github.workflow }}-${{ inputs.PR-number }}
   cancel-in-progress: true
@@ -29,7 +30,6 @@ jobs:
     name: Commit Status Start
     runs-on: ubuntu-26.04
     permissions:
-      contents: read
       statuses: write
     steps:
       - name: Set initial commit status
@@ -45,14 +45,12 @@ jobs:
       - name: Run mock CI
         run: echo "Mock CI completed successfully"
 
-  merge-upload-and-status:
+  post-job-results:
+    name: Post Job Results
     if: ${{ always() }}
-    name: Merge Upload and Status
     needs: mock-ci
     permissions:
-      contents: read
       statuses: write
-      actions: read
     uses: ./.github/workflows/common-post-jobs.yml
     with:
       sha: ${{ inputs.SHA || github.sha }}
