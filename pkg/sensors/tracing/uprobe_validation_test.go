@@ -29,6 +29,9 @@ kind: TracingPolicy
 metadata:
   name: "uprobe-notify-enforcer"
 spec:
+  options:
+  - name: "disable-sleepable"
+    value: "true"
   uprobes:
   - path: "/proc/self/exe"
     symbols: ["main"]

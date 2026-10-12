@@ -482,6 +482,7 @@ type uprobeHas struct {
 	sleepableOffloadSize int
 	userStackTrace       bool
 	uprobeHeapSize       int
+	sleepable            bool
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -913,6 +914,18 @@ func ignoreDigestVerificationFailure(uprobe *v1alpha1.UProbeSpec) bool {
 	return uprobe.Ignore.DigestVerificationFailure
 }
 
+func uprobeHasSetup(uprobes []v1alpha1.UProbeSpec, opts *specOptions) uprobeHas {
+	hasStackTrace := false
+	has := uprobeHas{}
+
+	for _, uprobe := range uprobes {
+		hasStackTrace = hasStackTrace || selectors.HasStackTrace(uprobe.Selectors)
+	}
+	has.sleepable = bpf.DetectSleepableTailCalls() && !hasStackTrace && !opts.DisableSleepable
+
+	return has
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -922,7 +935,6 @@ func createGenericUprobeSensor(
 	var maps []*program.Map
 	var ids []idtable.EntryID
 	var err error
-	var has uprobeHas
 	var celExprs *selectors.CelExprFunctions
 	var selMaps *selectors.KernelSelectorMaps
 	var statuses []*tetragon.HookStatus
@@ -931,6 +943,14 @@ func createGenericUprobeSensor(
 	// - it's not disabled by spec option
 	// - there's support detected
 	useMulti := !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti()
+
+	for _, uprobe := range spec.UProbes {
+		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
+			return nil, fmt.Errorf("append macros selectors: %w", err)
+		}
+	}
+
+	has := uprobeHasSetup(spec.UProbes, polInfo.specOpts)
 
 	// user sleepable_preload override
 	has.sleepablePreloadSize = polInfo.specOpts.SleepablePreloadSize
@@ -974,9 +994,6 @@ func createGenericUprobeSensor(
 
 	var selectorStatsBase uint32
 	for cfgIdx, uprobe := range spec.UProbes {
-		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
-			return nil, fmt.Errorf("append macros selectors: %w", err)
-		}
 		if err = validateSubStringSelectorFeatures(uprobe.Selectors); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
@@ -1125,7 +1142,21 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 	var preloadArgsCounter int
 
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
-		var preloadArg bool
+		var preloadArg, user bool
+
+		setStringRead := func() error {
+			if !bpf.HasKfunc("bpf_copy_from_user_str") {
+				return fmt.Errorf("can't read string for argument %d: missing bpf_copy_from_user_str", i)
+			}
+			if !has.sleepable {
+				preloadArg = true
+				preloadArgsCounter++
+				return nil
+			}
+			user = true
+			return nil
+		}
+
 		argType := gt.GenericTypeFromString(a.Type)
 
 		if data {
@@ -1139,13 +1170,12 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 				}
 
 				// If we are getting string type from pt_regs register we can safely assume
-				// it's from user address, so we need to read it through preload.
+				// it's from user address; in sleepable context we read it directly,
+				// otherwise we need to read it through preload.
 				if argType == gt.GenericStringType {
-					if !bpf.HasKfunc("bpf_copy_from_user_str") {
-						return fmt.Errorf("can't preload string for argument %d", i)
+					if err := setStringRead(); err != nil {
+						return err
 					}
-					preloadArg = true
-					preloadArgsCounter++
 				}
 			} else if hasCurrentTaskSource(a) {
 				if !bpf.HasProgramLargeSize() {
@@ -1171,11 +1201,9 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 			}
 
 			if argType == gt.GenericStringType {
-				if !bpf.HasKfunc("bpf_copy_from_user_str") {
-					return fmt.Errorf("can't preload string for argument %d", i)
+				if err := setStringRead(); err != nil {
+					return err
 				}
-				preloadArg = true
-				preloadArgsCounter++
 			}
 		}
 
@@ -1186,7 +1214,7 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 		if argType == gt.GenericInvalidType {
 			return fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
-		argMValue, err := getUserMetaValue(a, preloadArg)
+		argMValue, err := getUserMetaValue(a, preloadArg, user)
 		if err != nil {
 			return err
 		}
@@ -1498,6 +1526,19 @@ func getUprobeHeapMap(name string, userSize int, load *program.Program) *program
 	return m
 }
 
+func uprobeLabel(multi, sleepable bool) (string, string) {
+	if multi {
+		if sleepable {
+			return "uprobe.multi.s/generic_uprobe", "uprobe.multi.s/generic_retuprobe"
+		}
+		return "uprobe.multi/generic_uprobe", "uprobe.multi/generic_retuprobe"
+	}
+	if sleepable {
+		return "uprobe.s/generic_uprobe", "uprobe.s/generic_retuprobe"
+	}
+	return "uprobe/generic_uprobe", "uprobe/generic_retuprobe"
+}
+
 func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []idtable.EntryID, has uprobeHas) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
@@ -1529,14 +1570,16 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		}
 	}
 
-	loadProgName, loadProgRetName := config.GenericUprobeObjs(true)
+	loadProgName, loadProgRetName := config.GenericUprobeObjs(true, has.sleepable)
+
+	label, labelRet := uprobeLabel(true, has.sleepable)
 
 	pinPath := multiUprobePinPath(sensorPath)
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("uprobe_multi (%d functions)", len(multiIDs)),
-		"uprobe.multi/generic_uprobe",
+		label,
 		pinPath,
 		"generic_uprobe").
 		SetLoaderData(multiIDs).
@@ -1591,7 +1634,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
 			fmt.Sprintf("%d retuprobes", len(multiIDs)),
-			"uprobe.multi/generic_retuprobe",
+			labelRet,
 			"multi_retuprobe",
 			"generic_uprobe").
 			SetRetProbe(true).
@@ -1645,13 +1688,15 @@ func createSingleUprobeSensor(polInfo *policyInfo, ids []idtable.EntryID, has up
 
 func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe,
 	progs []*program.Program, maps []*program.Map, has uprobeHas) ([]*program.Program, []*program.Map) {
-	loadProgName, loadProgRetName := config.GenericUprobeObjs(false)
+	loadProgName, loadProgRetName := config.GenericUprobeObjs(false, has.sleepable)
+
+	label, labelRet := uprobeLabel(false, has.sleepable)
 
 	pinSymbol := strings.ReplaceAll(uprobeEntry.symbol, ".", "_")
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("%s %s", uprobeEntry.targetPath, uprobeEntry.symbol),
-		"uprobe/generic_uprobe",
+		label,
 		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, pinSymbol),
 		"generic_uprobe").
 		SetLoaderData(uprobeEntry).
@@ -1703,7 +1748,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
 			fmt.Sprintf("%s %s", uprobeEntry.targetPath, uprobeEntry.symbol),
-			"uprobe/generic_retuprobe",
+			labelRet,
 			pinRetProg,
 			"generic_uprobe").
 			SetRetProbe(true).
