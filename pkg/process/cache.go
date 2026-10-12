@@ -160,11 +160,6 @@ func NewCache(
 			// Perform parent-- for LRU-evicted entries that will never
 			// reach the exit handler.
 
-			// Skip entries whose exit path already performed parent--
-			if evicted.GetParentRefcntDecreased() {
-				return
-			}
-
 			// Skip non-inUse entries whose exit path already performed parent--
 			if evicted.getColor() != inUse {
 				return
@@ -179,8 +174,11 @@ func NewCache(
 				return
 			}
 
+			// Skip entries whose exit path already performed parent--
+			if !evicted.ClaimParentRefcntDecrease() {
+				return
+			}
 			pm.refDec(parent, "parent--")
-			evicted.SetParentRefcntDecreased(true)
 		},
 	)
 	if err != nil {

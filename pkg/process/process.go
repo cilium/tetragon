@@ -57,7 +57,8 @@ type ProcessInternal struct {
 	// parentRefcntDecreased tracks whether the parent reference count has been
 	// decreased for this process. This is used to avoid double parent-- when
 	// a process is evicted by the LRU and then handled by the exit handler.
-	parentRefcntDecreased bool
+	// It must only be set via ClaimParentRefcntDecrease.
+	parentRefcntDecreased atomic.Bool
 	// refcntOps is a map of operations to refcnt change
 	// keys can be:
 	// - "process++": process increased refcnt (i.e. this process starts)
@@ -246,16 +247,11 @@ func (pi *ProcessInternal) RefGet() uint32 {
 	return pi.refcnt.Load()
 }
 
-func (pi *ProcessInternal) SetParentRefcntDecreased(val bool) {
-	pi.mu.Lock()
-	defer pi.mu.Unlock()
-	pi.parentRefcntDecreased = val
-}
-
-func (pi *ProcessInternal) GetParentRefcntDecreased() bool {
-	pi.mu.Lock()
-	defer pi.mu.Unlock()
-	return pi.parentRefcntDecreased
+// ClaimParentRefcntDecrease marks the parent reference of pi as released and
+// reports whether this call is the one that released it. Callers must only
+// decrease the parent reference count when it returns true.
+func (pi *ProcessInternal) ClaimParentRefcntDecrease() bool {
+	return pi.parentRefcntDecreased.CompareAndSwap(false, true)
 }
 
 func (pi *ProcessInternal) getColor() processColor {

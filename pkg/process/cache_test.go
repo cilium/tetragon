@@ -214,9 +214,8 @@ func TestProcessCacheDoubleParentDecrease(t *testing.T) {
 		assert.Equal(t, uint32(2), parent.refcnt.Load())
 
 		// simulate exit handler path
-		if !child.GetParentRefcntDecreased() {
+		if child.ClaimParentRefcntDecrease() {
 			parent.RefDec("parent")
-			child.SetParentRefcntDecreased(true)
 		}
 		assert.Equal(t, uint32(1), parent.refcnt.Load())
 
@@ -240,4 +239,38 @@ func TestProcessCacheDoubleParentDecrease(t *testing.T) {
 
 		assert.Equal(t, uint32(1), parent.refcnt.Load())
 	})
+}
+
+func TestProcessClaimParentRefcntDecreaseConcurrent(t *testing.T) {
+	cache, err := NewCache(10, defaults.DefaultProcessCacheGCInterval)
+	require.NoError(t, err)
+	defer cache.purge()
+
+	parent := &ProcessInternal{
+		process:   &tetragon.Process{ExecId: "parent", Pid: &wrapperspb.UInt32Value{Value: 100}},
+		refcntOps: make(map[string]int32),
+	}
+	parent.refcnt.Store(1)
+	cache.add(parent)
+	cache.refInc(parent, "parent++")
+
+	child := &ProcessInternal{
+		process:   &tetragon.Process{ExecId: "child", Pid: &wrapperspb.UInt32Value{Value: 101}, ParentExecId: "parent"},
+		refcntOps: make(map[string]int32),
+	}
+
+	// Several paths (exit handler, LRU eviction, event cache retries) may try
+	// to release the child's reference on its parent at the same time.
+	var wg sync.WaitGroup
+	for range 64 {
+		wg.Go(func() {
+			if child.ClaimParentRefcntDecrease() {
+				cache.refDec(parent, "parent--")
+			}
+		})
+	}
+	wg.Wait()
+
+	assert.Equal(t, uint32(1), parent.refcnt.Load())
+	assert.False(t, child.ClaimParentRefcntDecrease())
 }

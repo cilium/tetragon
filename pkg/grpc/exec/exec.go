@@ -579,9 +579,8 @@ func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.
 
 	if tetragonProcess.Pid.Value > 1 && !msg.RefCntDone[ParentRefCnt] {
 		if parent, _ := process.Get(tetragonProcess.ParentExecId); parent != nil {
-			if !internal.GetParentRefcntDecreased() {
+			if internal.ClaimParentRefcntDecrease() {
 				parent.RefDec("parent")
-				internal.SetParentRefcntDecreased(true)
 			}
 			msg.RefCntDone[ParentRefCnt] = true
 		}
