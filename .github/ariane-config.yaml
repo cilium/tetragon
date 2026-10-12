@@ -5,8 +5,13 @@ triggers:
   /default\s*:
     workflows: &test-workflows
       - mock-ci.yaml
+      - build-images-ci.yml
   /test\s*:
     workflows: *test-workflows
 
 feedback:
   reactions: false
+
+workflows:
+  build-images-ci.yml:
+    paths-ignore-regex: ^docs/
