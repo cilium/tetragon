@@ -29,6 +29,8 @@ cel.dev/expr
 # dario.cat/mergo v1.0.2
 ## explicit; go 1.13
 dario.cat/mergo
+# github.com/BurntSushi/toml v1.5.0
+## explicit; go 1.18
 # github.com/alecthomas/kong v1.16.1
 ## explicit; go 1.20
 github.com/alecthomas/kong
@@ -65,12 +67,6 @@ github.com/containerd/plugin
 # github.com/containerd/ttrpc v1.2.9
 ## explicit; go 1.25.0
 github.com/containerd/ttrpc
-# github.com/containers/common v0.64.2
-## explicit; go 1.23.3
-github.com/containers/common/pkg/hooks/1.0.0
-# github.com/containers/storage v1.59.1
-## explicit; go 1.23.0
-github.com/containers/storage/pkg/fileutils
 # github.com/coreos/go-systemd/v22 v22.7.0
 ## explicit; go 1.23
 github.com/coreos/go-systemd/v22/dbus
