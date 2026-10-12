@@ -19,7 +19,7 @@ func TestGetHealthInitializing(t *testing.T) {
 	resp, err := GetHealth()
 	require.NoError(t, err)
 	assert.Len(t, resp.GetHealthStatus(), 1)
-	assert.Equal(t, tetragon.HealthStatusResult_HEALTH_STATUS_UNDEF, resp.GetHealthStatus()[0].Status)
+	assert.Equal(t, tetragon.HealthStatusResult_HEALTH_STATUS_INITIALIZING, resp.GetHealthStatus()[0].Status)
 	assert.Equal(t, "initializing", resp.GetHealthStatus()[0].Details)
 }
 
