@@ -1,13 +1,6 @@
 name: Image CI Build
 
 on:
-  pull_request_target:
-    types:
-      - opened
-      - synchronize
-      - reopened
-    paths-ignore:
-      - 'docs/**'
   push:
     branches:
       - main
@@ -15,14 +8,50 @@ on:
     paths-ignore:
       - 'docs/**'
 
-# Since this workflow can execute on pull_request_target, drop all the
-# permissions of the GITHUB_TOKEN except `contents: read` for access to the repo
-# with the actions/checkout action.
+  workflow_dispatch:
+    inputs:
+      PR-number:
+        required: true
+        type: string
+        description: "Pull request number."
+      context-ref:
+        required: true
+        type: string
+        description: "Context in which the workflow runs. If the pull request is from a fork, this is the pull request target branch. Otherwise, this is the pull request branch so committers can test workflow changes directly."
+      SHA:
+        required: true
+        type: string
+        description: "SHA under test (head of the pull request branch)."
+      base-SHA:
+        required: true
+        type: string
+        description: "SHA of the base branch (target branch of the pull request)."
+
+# Cancel any in-progress runs for the same PR number.
+# If not triggered by ariane, use the SHA as the concurrency group.
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.PR-number || github.sha }}
+  cancel-in-progress: true
+
+# Drop all default GITHUB_TOKEN permissions except repository read access for
+# actions/checkout.
 permissions:
   contents: read
 
 jobs:
+  commit-status-start:
+    name: Commit Status Start
+    runs-on: ubuntu-26.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Set initial commit status
+        uses: cilium/actions/set-commit-status@687b48a0547e534dd7270d5069a5ab7967c0e907 # main
+        with:
+          sha: ${{ inputs.SHA || github.sha }}
+
   build-and-push:
+    needs: commit-status-start
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -59,7 +88,7 @@ jobs:
       - name: Getting image tag
         id: tag
         env:
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_SHA: ${{ inputs.SHA }}
           SHA: ${{ github.sha }}
           EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
@@ -85,7 +114,19 @@ jobs:
 
       # Warning: this must run before checking out the untrusted code
       - name: Get version
-        run: echo "TETRAGON_VERSION=$(make version)" >> $GITHUB_ENV
+        env:
+          HEAD_SHA: ${{ inputs.SHA }}
+        run: |
+          version="$(make version)"
+          if [ -n "$HEAD_SHA" ]; then
+            version="${version%-g*}-${HEAD_SHA:0:12}"
+          fi
+          echo "TETRAGON_VERSION=${version}" >> $GITHUB_ENV
+
+      - name: Get chart version
+        id: chart-version
+        run: |
+          echo "chart_version=$(make chart-version VERSION="$TETRAGON_VERSION")" >> $GITHUB_OUTPUT
 
       # Warning: since this is a privileged workflow, subsequent workflow job
       # steps must take care not to execute untrusted code.
@@ -163,7 +204,7 @@ jobs:
 
       # PR updates
       - name: CI Build (PR)
-        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         id: docker_build_ci_pr
         with:
@@ -178,7 +219,7 @@ jobs:
             ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
 
       - name: CI Image Releases digests (PR)
-        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         run: |
           echo "| Info | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
@@ -210,11 +251,6 @@ jobs:
           submodules: true
           persist-credentials: false
           fetch-depth: 0
-
-      - name: Get chart version
-        id: version
-        run: |
-          echo "chart_version=$(make chart-version)" >> $GITHUB_OUTPUT
 
       # The chart goes to the cilium-charts-dev organisation, so this job needs
       # a token for a second robot account. The exchange is the same as in
@@ -251,7 +287,7 @@ jobs:
         with:
           name: tetragon
           path: install/kubernetes/tetragon
-          version: ${{ steps.version.outputs.chart_version }}
+          version: ${{ needs.build-and-push.outputs.chart-version }}
           values_file_changes: |
             {
               "tetragon.image.repository": "quay.io/cilium/tetragon-ci",
@@ -267,5 +303,18 @@ jobs:
       - name: Print helm command
         run: |
           echo "Example commands:"
-          echo helm template -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version ${{ steps.version.outputs.chart_version }}
-          echo helm upgrade --install tetragon -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version ${{ steps.version.outputs.chart_version }}
+          echo helm template -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version ${{ needs.build-and-push.outputs.chart-version }}
+          echo helm upgrade --install tetragon -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version ${{ needs.build-and-push.outputs.chart-version }}
+
+  post-job-results:
+    name: Post Job Results
+    if: ${{ always() }}
+    needs:
+      - build-and-push
+      - helm-chart
+    permissions:
+      statuses: write
+    uses: ./.github/workflows/common-post-jobs.yml
+    with:
+      sha: ${{ inputs.SHA || github.sha }}
+      success: ${{ needs.build-and-push.result == 'success' && needs.helm-chart.result == 'success' }}
