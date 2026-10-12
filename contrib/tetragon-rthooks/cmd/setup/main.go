@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
-	ociHooks "github.com/containers/common/pkg/hooks/1.0.0"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -44,11 +43,27 @@ type Install struct {
 	} `cmd:"" passthrough:"" help:"Arguments to pass to tetragon-oci-hook."`
 }
 
-func ociHooksConfig(binFname string, binArgs ...string) *ociHooks.Hook {
+// ociHook is the version 1.0.0 hook configuration described in oci-hooks(5).
+// https://github.com/containers/common/blob/main/pkg/hooks/docs/oci-hooks.5.md
+type ociHook struct {
+	Version string      `json:"version"`
+	Hook    rspec.Hook  `json:"hook"`
+	When    ociHookWhen `json:"when"`
+	Stages  []string    `json:"stages"`
+}
+
+type ociHookWhen struct {
+	Always        *bool             `json:"always,omitempty"`
+	Annotations   map[string]string `json:"annotations,omitempty"`
+	Commands      []string          `json:"commands,omitempty"`
+	HasBindMounts *bool             `json:"hasBindMounts,omitempty"`
+}
+
+func ociHooksConfig(binFname string, binArgs ...string) *ociHook {
 	yes := true
 	args := []string{binFname, "createRuntime"}
 	args = append(args, binArgs...)
-	return &ociHooks.Hook{
+	return &ociHook{
 		Version: "1.0.0",
 		Hook: rspec.Hook{
 			Path:    binFname,
@@ -56,7 +71,7 @@ func ociHooksConfig(binFname string, binArgs ...string) *ociHooks.Hook {
 			Env:     []string{},
 			Timeout: nil,
 		},
-		When: ociHooks.When{
+		When: ociHookWhen{
 			Always:        &yes,
 			Annotations:   map[string]string{},
 			Commands:      []string{},
