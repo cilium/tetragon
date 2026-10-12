@@ -27,7 +27,7 @@ func GetHealth() (*tetragon.GetHealthStatusResponse, error) {
 	resp := &tetragon.GetHealthStatusResponse{}
 	hs := &tetragon.HealthStatus{
 		Event:   tetragon.HealthStatusType_HEALTH_STATUS_TYPE_STATUS,
-		Status:  tetragon.HealthStatusResult_HEALTH_STATUS_UNDEF,
+		Status:  tetragon.HealthStatusResult_HEALTH_STATUS_INITIALIZING,
 		Details: "initializing",
 	}
 	if ready.Load() {
