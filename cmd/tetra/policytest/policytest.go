@@ -234,8 +234,9 @@ func runCmd() *cobra.Command {
 				return fmt.Errorf("failed to start local runner: %w", err)
 			}
 
+			defer runner.Close()
+
 			summary := policytest.NewResultsSummary()
-			var results []*policytest.NamedResult
 			for _, t := range tests {
 				for paramValues := range getParamValues(t) {
 					res := &policytest.NamedResult{
@@ -246,22 +247,18 @@ func runCmd() *cobra.Command {
 						ParamValues: paramValues,
 					})
 					summary.Update(res.Result)
-					results = append(results, res)
-				}
-			}
-			runner.Close()
 
-			switch outputFmt.Value {
-			case "json":
-				for _, res := range results {
-					b, err := json.Marshal(res)
-					if err != nil {
-						return fmt.Errorf("failed to generate json: %w", err)
+					switch outputFmt.Value {
+					case "json":
+						b, err := json.Marshal(res)
+						if err != nil {
+							return fmt.Errorf("failed to generate json: %w", err)
+						}
+						fmt.Fprintln(out, string(b))
+					case "text":
+						policytest.DumpResults(out, []*policytest.NamedResult{res})
 					}
-					fmt.Fprintln(out, string(b))
 				}
-			case "text":
-				policytest.DumpResults(out, results)
 			}
 			return summary.Err()
 		},
