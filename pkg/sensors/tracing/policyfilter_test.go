@@ -7,6 +7,7 @@ package tracing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,10 +18,6 @@ import (
 	"time"
 	"uuid"
 
-	"github.com/containerd/cgroups/v3"
-	cgroupsv1 "github.com/containerd/cgroups/v3/cgroup1"
-	cgroupsv2 "github.com/containerd/cgroups/v3/cgroup2"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -47,52 +44,43 @@ import (
 )
 
 func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupID {
-	cgMode := cgroups.Mode()
-	var path string
+	cgMode, err := tgcgroups.DetectCgroupMode()
+	require.NoError(t, err)
+	cgroupFs := tgcgroups.GetCgroupFSPath()
+	var parent, path string
 	switch cgMode {
-	case cgroups.Unified:
-		cgroupFs := "/sys/fs/cgroup"
-		res := cgroupsv2.Resources{}
-		m, err := cgroupsv2.NewSystemd("/", dir, -1, &res)
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			m.DeleteSystemd()
-		})
-		for _, pid := range pids {
-			err = m.AddProc(pid)
-			require.NoError(t, err)
-		}
+	case tgcgroups.CGROUP_UNIFIED:
 		// Example: sys/fs/cgroup/TestNamespacedPolicies.cgroup1.20230302145438.slice
-		path = filepath.Join(cgroupFs, dir)
-		require.NoError(t, err)
+		parent = cgroupFs
+		path = filepath.Join(parent, dir)
 
-	case cgroups.Hybrid:
-		cgroupFs := "/sys/fs/cgroup"
-		slice := "system.slice"
+	case tgcgroups.CGROUP_HYBRID:
 		// NB(kkourt): this is just for our vmtests VM
 		cmd := exec.Command("sudo", "mount", "-o", "remount,rw", cgroupFs)
 		cmd.Run()
-		control, err := cgroupsv1.New(cgroupsv1.Slice(slice, dir), &specs.LinuxResources{
-			Devices: []specs.LinuxDeviceCgroup{},
-			Memory:  &specs.LinuxMemory{},
-			CPU:     &specs.LinuxCPU{},
-			Pids:    &specs.LinuxPids{},
-		})
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			control.Delete()
-		})
-		for _, pid := range pids {
-			err = control.Add(cgroupsv1.Process{Pid: int(pid)})
-			require.NoError(t, err)
-		}
-		require.NoError(t, err)
 		// Example: "/sys/fs/cgroup/memory/system.slice/TestNamespacedPolicies.cgroup1.20230302140421.slice"
-		path = filepath.Join(cgroupFs, tgcgroups.GetCgrpControllerName(), slice, dir)
-		require.NoError(t, err)
+		parent = filepath.Join(cgroupFs, tgcgroups.GetCgrpControllerName())
+		path = filepath.Join(parent, "system.slice", dir)
 	default:
-		t.Skipf("Unsupported cgroup mode: %d", cgMode)
+		t.Skipf("Unsupported cgroup mode: %s", cgMode)
 	}
+
+	movePids := func(cgroup string) error {
+		var errs []error
+		for _, pid := range pids {
+			errs = append(errs, os.WriteFile(filepath.Join(cgroup, "cgroup.procs"), []byte(strconv.FormatUint(pid, 10)), 0644))
+		}
+		return errors.Join(errs...)
+	}
+
+	require.NoError(t, os.MkdirAll(path, 0755))
+	t.Cleanup(func() {
+		// The processes may still be running: move them back to the parent so the
+		// cgroup can be removed.
+		movePids(parent)
+		os.Remove(path)
+	})
+	require.NoError(t, movePids(path))
 
 	if path == "" {
 		t.Fatal("createCgroup: unexpected error")
