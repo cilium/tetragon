@@ -31,6 +31,7 @@ import (
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -1766,4 +1767,55 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
 	require.NoError(t, jsonchecker.JsonTestCheck(t, checker))
+}
+
+// Symbols that only differ by '.' vs '_' must not collide on bpffs: '.' is
+// replaced with '_' in the pin name, so the uprobe table ID prefix is what
+// keeps them apart.
+func TestUprobePinNameSanitizedSymbols(t *testing.T) {
+	tp, err := tracingpolicy.FromYAML(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-pin-name"
+spec:
+  options:
+  - name: "disable-uprobe-multi"
+    value: "true"
+  uprobes:
+  - path: "/proc/self/exe"
+    symbols:
+    - "foo_lala"
+    - "foo.lala"
+`)
+	require.NoError(t, err)
+
+	sens, err := sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		for _, s := range sens {
+			// the sensor was never loaded, so Unload errors are expected
+			_ = s.Destroy(true)
+		}
+	})
+
+	var pinNames []string
+	var ids []int
+	for _, si := range sens {
+		s, ok := si.(*sensors.Sensor)
+		require.True(t, ok)
+		for _, p := range s.Progs {
+			entry, ok := p.LoaderData.(*genericUprobe)
+			require.True(t, ok)
+			pinNames = append(pinNames, p.PinName)
+			ids = append(ids, entry.tableId.ID)
+		}
+	}
+
+	require.Len(t, ids, 2)
+	require.NotEqual(t, ids[0], ids[1])
+	require.Len(t, pinNames, 2)
+	require.Equal(t, fmt.Sprintf("%d-foo_lala", ids[0]), pinNames[0])
+	require.Equal(t, fmt.Sprintf("%d-foo_lala", ids[1]), pinNames[1])
+	require.NotEqual(t, pinNames[0], pinNames[1])
 }
