@@ -9,11 +9,14 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/config"
@@ -1283,6 +1286,86 @@ spec:
 				ec.NewKprobeArgumentChecker().WithSockArg(ec.NewKprobeSockChecker().
 					WithDaddr(sm.Full("::1")).
 					WithDport(9940),
+				),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	suite.Require().NoError(err)
+}
+
+// security_socket_connect still sees the AF_INET6 sockaddr, so an IPv4 CIDR
+// must match the IPv4-mapped address through the IPv4 LPM fallback.
+func (suite *KprobeNet) TestKprobeSockaddrIPv4MappedIPv6() {
+	if !config.EnableLargeProgs() {
+		suite.T().Skip("IPv4-mapped IPv6 fallback requires large BPF programs")
+	}
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "security-socket-connect"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "socket"
+    - index: 1
+      type: "sockaddr"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Protocol"
+        values:
+        - "IPPROTO_TCP"
+      - index: 1
+        operator: "SAddr"
+        values:
+        - "127.0.0.0/8"
+      - index: 1
+        operator: "SPort"
+        values:
+        - "9941"
+      - index: 1
+        operator: "Family"
+        values:
+        - "AF_INET6"
+`
+
+	suite.readyWG.Wait()
+
+	tp := suite.addTracingPolicy(hook)
+	defer suite.deleteTracingPolicy(tp)
+
+	tcpReady := make(chan bool)
+	go miniTcpNopServerWithPort(tcpReady, 9941, false)
+	<-tcpReady
+	// Raw syscalls: net.DialTCP("tcp6") rejects IPv4-mapped addresses.
+	fd, err := unix.Socket(unix.AF_INET6, unix.SOCK_STREAM, 0)
+	suite.Require().NoError(err)
+	defer unix.Close(fd)
+	err = unix.SetsockoptInt(fd, unix.IPPROTO_IPV6, unix.IPV6_V6ONLY, 0)
+	suite.Require().NoError(err)
+	sa := &unix.SockaddrInet6{
+		Port: 9941,
+		Addr: netip.MustParseAddr("::ffff:127.0.0.1").As16(),
+	}
+	err = unix.Connect(fd, sa)
+	suite.Require().NoError(err)
+
+	kpChecker := ec.NewProcessKprobeChecker("security-socket-connect-checker").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockaddrArg(ec.NewKprobeSockaddrChecker().
+					WithAddr(sm.Full("::ffff:127.0.0.1")).
+					WithPort(9941).
+					WithFamily(sm.Full("AF_INET6"))),
+				ec.NewKprobeArgumentChecker().WithSockArg(ec.NewKprobeSockChecker().
+					WithProtocol(sm.Full("IPPROTO_TCP")),
 				),
 			))
 
