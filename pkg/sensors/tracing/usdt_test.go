@@ -7,6 +7,7 @@ package tracing
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -16,6 +17,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/elf"
+	"github.com/cilium/tetragon/pkg/idtable"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/selectors"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
@@ -751,4 +759,42 @@ spec:` + opts + `
 			assert.Equal(t, uint32(1024), getMaxEntries(m))
 		}
 	})
+}
+
+// USDT provider/name come from the target ELF note and may contain '.',
+// which is replaced with '_' in the pin name; the usdt table ID suffix is
+// what keeps otherwise colliding probes apart.
+func TestUsdtPinNameSanitizedSymbols(t *testing.T) {
+	polInfo, err := newPolicyInfoFromSpec("", "", "usdt-pin-name", policyfilter.NoFilterID,
+		&v1alpha1.TracingPolicySpec{}, nil)
+	require.NoError(t, err)
+
+	var ids []idtable.EntryID
+	t.Cleanup(func() {
+		require.NoError(t, cleanupUsdtEntries(ids))
+	})
+
+	for _, name := range []string{"foo_lala", "foo.lala"} {
+		state, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{})
+		require.NoError(t, err)
+		entry := &genericUsdt{
+			tableId:    idtable.UninitializedEntryID,
+			config:     &api.EventConfig{},
+			path:       "/proc/self/exe",
+			target:     &elf.UsdtTarget{Spec: &elf.UsdtSpec{Provider: "test", Name: name}},
+			policyName: polInfo.name,
+			selectors:  state,
+		}
+		usdtTable.AddEntry(entry)
+		ids = append(ids, entry.tableId)
+	}
+
+	progs, _, err := createSingleUsdtSensor(polInfo, ids, usdtHas{})
+	require.NoError(t, err)
+	require.Len(t, progs, 2)
+
+	require.NotEqual(t, ids[0].ID, ids[1].ID)
+	require.Equal(t, fmt.Sprintf("test_foo_lala_%d", ids[0].ID), progs[0].PinName)
+	require.Equal(t, fmt.Sprintf("test_foo_lala_%d", ids[1].ID), progs[1].PinName)
+	require.NotEqual(t, progs[0].PinName, progs[1].PinName)
 }
