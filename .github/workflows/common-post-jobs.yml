@@ -12,10 +12,7 @@ on:
         required: true
         type: boolean
 
-permissions:
-  contents: read
-  actions: read
-  statuses: write
+permissions: {}
 
 jobs:
   commit-status-final:
