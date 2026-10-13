@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -214,6 +215,31 @@ spec:
         matchActions:
         - action: Post
           rateLimit: "1m"
+`)
+	})
+
+	t.Run("ratelimit_map_lsm", func(t *testing.T) {
+		if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
+			t.Skip("skipping, BPF LSM or large programs unavailable")
+		}
+
+		run(t, []testMap{
+			{"ratelimit_map", ratelimitMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm-ratelimit-map"
+spec:
+  lsmhooks:
+  - hook: "file_open"
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchActions:
+      - action: Post
+        rateLimit: "1m"
 `)
 	})
 

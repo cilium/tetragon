@@ -75,6 +75,8 @@ type genericLsm struct {
 	tags []string
 	// is IMA hash collector program needed to load
 	imaProgLoad bool
+	// is the ratelimit map needed
+	hasRateLimit bool
 	// instance identifier to mitigate duplicate hooks at same location
 	instance InstanceID
 }
@@ -382,6 +384,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, instance InstanceID, in *addLsmIn) (id idta
 		imaProgLoad: false,
 		instance:    instance,
 	}
+	lsmEntry.hasRateLimit = selectors.HasRateLimit(f.Selectors)
 
 	for _, sel := range f.Selectors {
 		for _, action := range sel.MatchActions {
@@ -610,6 +613,12 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	maps = append(maps, workloadsMap)
 
 	maps = append(maps, createSelectorMaps(load, lsmEntry.selectors, len(lsmEntry.selectors.SubStrings()))...)
+
+	ratelimitMap := program.MapBuilderProgram("ratelimit_map", load)
+	if lsmEntry.hasRateLimit {
+		ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
+	}
+	maps = append(maps, ratelimitMap)
 
 	callHeap := program.MapBuilderProgram("process_call_heap", load)
 	maps = append(maps, callHeap)
