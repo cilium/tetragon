@@ -6,9 +6,18 @@ triggers:
     workflows: &test-workflows
       - mock-ci.yaml
       - build-images-ci.yml
+      - run-e2e-tests.yaml
+      - integration-test.yaml
+      - tetragon-rthook-pr.yaml
   /test\s*:
     workflows: *test-workflows
 
 workflows:
   build-images-ci.yml:
+    paths-ignore-regex: ^docs/
+  run-e2e-tests.yaml:
+    paths-ignore-regex: ^docs/
+  integration-test.yaml:
+    paths-ignore-regex: ^docs/
+  tetragon-rthook-pr.yaml:
     paths-ignore-regex: ^docs/
