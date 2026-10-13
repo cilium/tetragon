@@ -1,23 +1,54 @@
 name: Tetragon e2e Test
 on:
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
   push:
     branches:
       - main
     paths-ignore:
       - 'docs/**'
 
+  workflow_dispatch:
+    inputs:
+      PR-number:
+        required: true
+        type: string
+        description: "Pull request number."
+      context-ref:
+        required: true
+        type: string
+        description: "Context in which the workflow runs. If the pull request is from a fork, this is the pull request target branch. Otherwise, this is the pull request branch so committers can test workflow changes directly."
+      SHA:
+        required: true
+        type: string
+        description: "SHA under test (head of the pull request branch)."
+      base-SHA:
+        required: true
+        type: string
+        description: "SHA of the base branch (target branch of the pull request)."
+
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.PR-number || github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 env:
   clusterName: tetragon-ci
 
 jobs:
+  commit-status-start:
+    name: Commit Status Start
+    runs-on: ubuntu-26.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Set initial commit status
+        uses: cilium/actions/set-commit-status@687b48a0547e534dd7270d5069a5ab7967c0e907 # main
+        with:
+          sha: ${{ inputs.SHA || github.sha }}
+
   prepare:
+    needs: commit-status-start
     runs-on: ubuntu-26.04
     outputs:
       packages: ${{ steps.set-packages.outputs.packages }}
@@ -26,6 +57,9 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+        ref: ${{ inputs.SHA || github.sha }}
 
     - name: Install Go
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -41,15 +75,7 @@ jobs:
     - name: Set Up Job Variables
       id: vars
       run: |
-        if [ ${{ github.event.issue.pull_request || github.event.pull_request }} ]; then
-          PR_API_JSON=$(curl \
-            -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            ${{ github.event.issue.pull_request.url || github.event.pull_request.url }})
-          SHA=$(echo "$PR_API_JSON" | jq -r ".head.sha")
-        else
-          SHA=${{ github.sha }}
-        fi
+        SHA=${{ inputs.SHA || github.sha }}
         echo "agentImage=quay.io/cilium/tetragon-ci:${SHA}" >> $GITHUB_OUTPUT
         echo "operatorImage=quay.io/cilium/tetragon-operator-ci:${SHA}" >> $GITHUB_OUTPUT
 
@@ -81,6 +107,8 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         path: go/src/github.com/cilium/tetragon/
+        persist-credentials: false
+        ref: ${{ inputs.SHA || github.sha }}
 
     - name: Install Go
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -131,3 +159,16 @@ jobs:
         name: tetragon-logs-${{ matrix.os }}-${{ matrix.package.s }}
         path: /tmp/tetragon.e2e.*
         retention-days: 5
+
+  post-job-results:
+    name: Post Job Results
+    if: ${{ always() }}
+    needs:
+      - prepare
+      - run-e2e-test
+    permissions:
+      statuses: write
+    uses: ./.github/workflows/common-post-jobs.yml
+    with:
+      sha: ${{ inputs.SHA || github.sha }}
+      success: ${{ needs.prepare.result == 'success' && needs.run-e2e-test.result == 'success' }}
