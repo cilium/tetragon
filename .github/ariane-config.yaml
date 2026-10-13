@@ -7,3 +7,6 @@ triggers:
       - mock-ci.yaml
   /test\s*:
     workflows: *test-workflows
+
+feedback:
+  reactions: false
