@@ -1671,6 +1671,12 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	workloadsMap := program.MapBuilderProgram("workloads_map", load)
 
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe, workloadsMap)
+	maps = append(maps, getUprobeHeapMap("process_call_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("buffer_heap_map", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("string_maps_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("ratelimit_heap", has.uprobeHeapSize, load))
 	state := getUprobeProgramSelector(load, uprobeEntry)
 	maps = append(maps, createSelectorMaps(load, state, len(state.SubStrings()))...)
 
@@ -1723,6 +1729,12 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
+		maps = append(maps, getUprobeHeapMap("process_call_heap", has.uprobeHeapSize, loadret))
+		maps = append(maps, getUprobeHeapMap("buffer_heap_map", has.uprobeHeapSize, loadret))
+		maps = append(maps, getUprobeHeapMap("string_maps_heap", has.uprobeHeapSize, loadret))
+		maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", has.uprobeHeapSize, loadret))
+		maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", has.uprobeHeapSize, loadret))
+		maps = append(maps, getUprobeHeapMap("ratelimit_heap", has.uprobeHeapSize, loadret))
 	}
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
