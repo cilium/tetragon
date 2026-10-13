@@ -1,27 +1,61 @@
 name: tetragon-rthooks test
 on:
-  pull_request:
-    paths:
-      - 'contrib/tetragon-rthooks/**'
   push:
     branches:
       - main
     paths:
       - 'contrib/tetragon-rthooks/**'
 
+  workflow_dispatch:
+    inputs:
+      PR-number:
+        required: true
+        type: string
+        description: "Pull request number."
+      context-ref:
+        required: true
+        type: string
+        description: "Context in which the workflow runs. If the pull request is from a fork, this is the pull request target branch. Otherwise, this is the pull request branch so committers can test workflow changes directly."
+      SHA:
+        required: true
+        type: string
+        description: "SHA under test (head of the pull request branch)."
+      base-SHA:
+        required: true
+        type: string
+        description: "SHA of the base branch (target branch of the pull request)."
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.PR-number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
+  commit-status-start:
+    name: Commit Status Start
+    runs-on: ubuntu-26.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Set initial commit status
+        uses: cilium/actions/set-commit-status@687b48a0547e534dd7270d5069a5ab7967c0e907 # main
+        with:
+          sha: ${{ inputs.SHA || github.sha }}
+
   build:
+    needs: commit-status-start
     name: Build tetragon-rthooks
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    concurrency:
-      group: ${{ github.ref }}-rthooks-build
-      cancel-in-progress: true
     steps:
     - name: Checkout code
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         path: go/src/github.com/cilium/tetragon/
+        persist-credentials: false
+        ref: ${{ inputs.SHA || github.sha }}
 
     - name: Install Go
       uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
@@ -57,9 +91,6 @@ jobs:
            cri:
             - "containerd"
             - "crio"
-    concurrency:
-      group: ${{ github.ref }}-rthooks-test-${{ matrix.cri }}
-      cancel-in-progress: true
     steps:
     - name: start minikube
       uses: medyagh/setup-minikube@e3c7f79eb1e997eabccc536a6cf318a2b0fe19d9 # v0.0.20
@@ -81,3 +112,16 @@ jobs:
         cd tetragon-rthooks
         ./scripts/minikube-install-hook.sh -l
         ./scripts/minikube-test-hook.sh
+
+  post-job-results:
+    name: Post Job Results
+    if: ${{ always() }}
+    needs:
+      - build
+      - test
+    permissions:
+      statuses: write
+    uses: ./.github/workflows/common-post-jobs.yml
+    with:
+      sha: ${{ inputs.SHA || github.sha }}
+      success: ${{ needs.build.result == 'success' && needs.test.result == 'success' }}
