@@ -346,6 +346,12 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
+	maps = append(maps, getUprobeHeapMap("process_call_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("buffer_heap_map", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("string_maps_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("string_prefix_maps_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("string_postfix_maps_heap", has.uprobeHeapSize, load))
+	maps = append(maps, getUprobeHeapMap("ratelimit_heap", has.uprobeHeapSize, load))
 
 	maps = append(maps, createSelectorMaps(load, usdtEntry.selectors, len(usdtEntry.selectors.SubStrings()))...)
 

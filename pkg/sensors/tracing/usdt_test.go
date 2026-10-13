@@ -658,10 +658,6 @@ func TestUsdtHeapMapConfig(t *testing.T) {
 	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
 		t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
 	}
-	if !bpf.HasUprobeMulti() {
-		t.Skip("skipping, no uprobe multi support in kernel; process_call_heap is only wired up for the multi-attach path")
-	}
-
 	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt")
 
 	// usdt policy; opts is the options block (may be empty)

@@ -1413,10 +1413,6 @@ func testUprobeHeapMapConfig(t *testing.T, withMax bool) {
 	if runtime.GOARCH == "arm64" {
 		t.Skip("skipping, x86_64 only test")
 	}
-	if !bpf.HasUprobeMulti() {
-		t.Skip("skipping, no uprobe multi support in kernel; process_call_heap is only wired up for the multi-attach path")
-	}
-
 	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
 
 	// uprobe policy with a return probe, so both the entry and retprobe
