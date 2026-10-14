@@ -2796,16 +2796,21 @@ FUNC_INLINE const struct path *get_path(long type, unsigned long arg, struct pat
 FUNC_INLINE int try_override(void *ctx, struct bpf_map_def *override_tasks)
 {
 	__u64 id = get_current_pid_tgid();
-	__s32 *error, ret;
+	__s32 *error;
+	__s64 ret;
 
 	error = map_lookup_elem(override_tasks, &id);
 	if (!error)
 		return 0;
 
 	map_delete_elem(override_tasks, &id);
+
+	/* The following inline asm uses 64-bit bpf instructions since we compile
+	 * with -mcpu=v2. Therefore, we need to extend the s32 value to s64.
+	 */
 	ret = *error;
-	/* Let's make verifier happy and 'force' proper bounds. */
 	set_if_not_errno_or_zero(ret, -1);
+	// Implicitly cast the s64 back to s32
 	return ret;
 }
 
