@@ -50,6 +50,7 @@ type usdtHas struct {
 	sleepableOffload bool
 	sleepablePreload bool
 	uprobeHeapSize   int
+	rateLimit        bool
 }
 
 var (
@@ -195,6 +196,7 @@ func createGenericUsdtSensor(
 			return nil, err
 		}
 		hasSetAction = hasSetAction || selectors.HasSet(usdt.Selectors)
+		has.rateLimit = has.rateLimit || selectors.HasRateLimit(usdt.Selectors)
 	}
 
 	has.sleepableOffload = hasSetAction && config.EnableV61Progs()
@@ -274,6 +276,12 @@ func createMultiUsdtSensor(
 
 	maps = append(maps, createSelectorMaps(load, nil, substringMapEntries)...)
 
+	ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
+	if has.rateLimit {
+		ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
+	}
+	maps = append(maps, ratelimitMap)
+
 	if has.sleepableOffload {
 		sleepableOffloadMap := program.MapShared("write_offload", load)
 		sleepableOffloadMap.SetMaxEntries(option.Config.SleepableOffloadSize)
@@ -344,6 +352,12 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	maps = append(maps, getHeapMaps("uprobe_", option.Config.UprobeHeapSize, has.uprobeHeapSize, load)...)
 
 	maps = append(maps, createSelectorMaps(load, usdtEntry.selectors, len(usdtEntry.selectors.SubStrings()))...)
+
+	ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
+	if has.rateLimit {
+		ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
+	}
+	maps = append(maps, ratelimitMap)
 
 	if has.sleepableOffload {
 		sleepableOffloadMap := program.MapShared("write_offload", load)

@@ -309,6 +309,31 @@ spec:
 `)
 	})
 
+	t.Run("ratelimit_map_usdt", func(t *testing.T) {
+		if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+			t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
+		}
+
+		usdt := testutils.RepoRootPath("contrib/tester-progs/usdt")
+		run(t, []testMap{
+			{"ratelimit_map", ratelimitMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdt-ratelimit-map"
+spec:
+  usdts:
+  - path: "`+usdt+`"
+    provider: "test"
+    name: "usdt0"
+    selectors:
+    - matchActions:
+      - action: Post
+        rateLimit: "1m"
+`)
+	})
+
 	t.Run("enforcer_data", func(t *testing.T) {
 		if !bpf.HasSignalHelper() {
 			t.Skip("skipping enforcer test, bpf_send_signal helper not available")
