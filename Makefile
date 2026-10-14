@@ -102,6 +102,7 @@ all: tetragon-bpf tetragon tetra test-compile tester-progs protoc-gen-go-tetrago
 .PHONY: clean
 clean: cli-clean tarball-clean
 	$(MAKE) -C ./bpf clean
+	$(MAKE) -C ./pkg/javaattach/agent clean
 	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./alignchecker ./tetragon.exe
 	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
 	$(MAKE) -C $(TESTER_PROGS_DIR) clean
@@ -111,6 +112,10 @@ clean: cli-clean tarball-clean
 .PHONY: tetragon
 tetragon: ## Compile the Tetragon agent.
 	$(GO_BUILD) ./cmd/tetragon/
+
+.PHONY: tetragon-jvmti-agent
+tetragon-jvmti-agent: ## Compile the native JVMTI Java monitoring agent.
+	$(MAKE) -C ./pkg/javaattach/agent
 
 .PHONY: tetragon-nok8s
 tetragon-nok8s: ## Compile the Tetragon agent without k8s support.
@@ -171,10 +176,12 @@ compile-commands: ## Generate a compile_commands.json with bear for bpf programs
 	bear -- $(MAKE) -C ./
 
 .PHONY: install
-install: ## Install tetragon agent and tetra as standalone binaries.
+install: tetragon-jvmti-agent ## Install tetragon agent and tetra as standalone binaries.
 	groupadd -f hubble
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -m 0755 ./tetragon $(DESTDIR)$(BINDIR)
+	$(INSTALL) -m 0755 -d $(DESTDIR)/usr/lib/tetragon
+	$(INSTALL) -m 0755 ./pkg/javaattach/agent/tetragon-jvmti.so $(DESTDIR)/usr/lib/tetragon/
 
 ##@ Container images
 

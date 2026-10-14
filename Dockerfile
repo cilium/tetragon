@@ -29,6 +29,19 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     make VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH tetragon tetra
 
+# Build the native JVMTI agent with the target architecture's C toolchain.
+FROM --platform=$BUILDPLATFORM ubuntu:24.04 AS java-agent-builder
+WORKDIR /src/tetragon
+ARG TARGETARCH
+RUN apt-get update && apt-get install -y openjdk-21-jdk-headless gcc make libc6-dev gcc-aarch64-linux-gnu
+COPY jvmti ./jvmti
+COPY pkg/javaattach/agent ./pkg/javaattach/agent
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      make -C pkg/javaattach/agent CC=aarch64-linux-gnu-gcc; \
+    else \
+      make -C pkg/javaattach/agent CC=gcc; \
+    fi
+
 # Third builder (cross-)compile a stripped gops
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf AS gops
 ARG TARGETARCH
@@ -95,12 +108,13 @@ RUN apk add --no-cache bash-completion && \
 # retrieves (cross-)compiled binaries from builders
 FROM docker.io/library/alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS base-build
 RUN apk add --no-cache iproute2
-RUN mkdir /var/lib/tetragon/ && \
+RUN mkdir /var/lib/tetragon/ && mkdir -p /usr/lib/tetragon && \
     mkdir -p /etc/tetragon/tetragon.conf.d/ && \
     mkdir -p /etc/tetragon/tetragon.tp.d/ && \
     apk add --no-cache --update bash
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetragon /usr/bin/
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/
+COPY --from=java-agent-builder /src/tetragon/pkg/javaattach/agent/tetragon-jvmti.so /usr/lib/tetragon/
 COPY --from=gops /gops/gops /usr/bin/
 COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/* /var/lib/tetragon/
 COPY --from=cli-autocomplete /etc/bash/bash_completion.sh /etc/bash/bash_completion.sh
