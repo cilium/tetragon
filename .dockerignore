@@ -18,6 +18,7 @@
 !pkg
 !tests
 !contrib/tetragon-rthooks
+!jvmti
 !contrib/tester-progs/*.c
 !contrib/tester-progs/*.h
 !contrib/tester-progs/*.ld
