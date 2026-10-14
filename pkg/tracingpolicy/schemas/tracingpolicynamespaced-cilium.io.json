@@ -618,7 +618,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -655,7 +655,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -877,7 +879,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -914,7 +916,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -1224,7 +1228,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -1261,7 +1265,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -2122,7 +2128,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -2159,7 +2165,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -2381,7 +2389,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -2418,7 +2426,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -2728,7 +2738,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -2765,7 +2775,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -3360,7 +3372,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -3397,7 +3409,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -3619,7 +3633,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -3656,7 +3670,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -3966,7 +3982,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -4003,7 +4019,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -4546,7 +4564,7 @@
                       "type": "integer"
                     },
                     "operator": {
-                      "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                      "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                       "enum": [
                         "Equal",
                         "NotEqual",
@@ -4583,7 +4601,9 @@
                         "SubStringIgnCase",
                         "CelExpr",
                         "FileType",
-                        "NotFileType"
+                        "NotFileType",
+                        "InPattern",
+                        "NotInPattern"
                       ],
                       "type": "string"
                     },
@@ -4805,7 +4825,7 @@
                       "type": "integer"
                     },
                     "operator": {
-                      "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                      "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                       "enum": [
                         "Equal",
                         "NotEqual",
@@ -4842,7 +4862,9 @@
                         "SubStringIgnCase",
                         "CelExpr",
                         "FileType",
-                        "NotFileType"
+                        "NotFileType",
+                        "InPattern",
+                        "NotInPattern"
                       ],
                       "type": "string"
                     },
@@ -5152,7 +5174,7 @@
                       "type": "integer"
                     },
                     "operator": {
-                      "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                      "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                       "enum": [
                         "Equal",
                         "NotEqual",
@@ -5189,7 +5211,9 @@
                         "SubStringIgnCase",
                         "CelExpr",
                         "FileType",
-                        "NotFileType"
+                        "NotFileType",
+                        "InPattern",
+                        "NotInPattern"
                       ],
                       "type": "string"
                     },
@@ -5717,7 +5741,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -5754,7 +5778,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -5976,7 +6002,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -6013,7 +6039,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -6323,7 +6351,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -6360,7 +6388,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -7185,7 +7215,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -7222,7 +7252,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -7444,7 +7476,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -7481,7 +7513,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -7791,7 +7825,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -7828,7 +7862,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -8396,7 +8432,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -8433,7 +8469,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -8655,7 +8693,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -8692,7 +8730,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -9002,7 +9042,7 @@
                             "type": "integer"
                           },
                           "operator": {
-                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.",
+                            "description": "Filter operation.\n\nNote: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.\n\nWe can match arguments based on glob patterns. InPattern match any provided\nglob pattern and NotInPattern match none of the provided glob patterns.",
                             "enum": [
                               "Equal",
                               "NotEqual",
@@ -9039,7 +9079,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
