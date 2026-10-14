@@ -130,7 +130,10 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 	h.collections.mu.Lock()
 	collections := h.collections.c
 	col, exists := collections[op.ck]
-	if !exists {
+	// Internal sensors (e.g. the base sensor) share the collection map with
+	// tracing policies but have no tracingpolicy; the policy API must not
+	// reach them.
+	if !exists || col.tracingpolicy == nil {
 		h.collections.mu.Unlock()
 		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
@@ -205,7 +208,7 @@ func (h *handler) configureTracingPolicy(
 	defer h.collections.mu.Unlock()
 	collections := h.collections.c
 	col, exists := collections[ck]
-	if !exists {
+	if !exists || col.tracingpolicy == nil {
 		return fmt.Errorf("tracing policy %s does not exist", ck)
 	}
 
