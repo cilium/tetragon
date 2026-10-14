@@ -57,6 +57,12 @@ type config struct {
 
 	GopsAddr string
 
+	JavaAgentPath       string
+	JavaAgentSocketPath string
+	// Data size of the ring that each JVM reports the events through,
+	// power of two and at least JavaRingSizeMin.
+	JavaRingSize int
+
 	// On start used to store bpf prefix for --bpf-dir option,
 	// then it's updated to cary the whole path
 	BpfDir string

@@ -188,6 +188,15 @@ options:
       shorthand: h
       default_value: "false"
       usage: help for tetragon
+    - name: java-agent-path
+      usage: Path to the JVMTI Java monitoring agent shared library
+    - name: java-agent-socket-path
+      default_value: /var/run/tetragon/java.sock
+      usage: Unix socket used by the JVMTI Java monitoring agent
+    - name: java-ring-size
+      default_value: 4M
+      usage: |
+        Set size of the ring buffer each monitored JVM reports its events through (power of two, at least 1M, allows K/M/G suffix)
     - name: k8s-controlplane-retry
       default_value: "1"
       usage: |

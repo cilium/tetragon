@@ -50,11 +50,14 @@ const (
 
 	KeyEnablePodAnnotations = "enable-pod-annotations"
 
-	KeyMetricsServer      = "metrics-server"
-	KeyEnableEventMetrics = "enable-event-metrics"
-	KeyMetricsLabelFilter = "metrics-label-filter"
-	KeyServerAddress      = "server-address"
-	KeyGopsAddr           = "gops-address"
+	KeyMetricsServer       = "metrics-server"
+	KeyEnableEventMetrics  = "enable-event-metrics"
+	KeyMetricsLabelFilter  = "metrics-label-filter"
+	KeyServerAddress       = "server-address"
+	KeyGopsAddr            = "gops-address"
+	KeyJavaAgentPath       = "java-agent-path"
+	KeyJavaAgentSocketPath = "java-agent-socket-path"
+	KeyJavaRingSize        = "java-ring-size"
 
 	KeyEnableProcessEnvironmentVariables = "enable-process-environment-variables"
 
@@ -172,6 +175,9 @@ const (
 )
 
 // Allow disabling via empty string
+// JavaRingSizeMin is the smallest java-ring-size value.
+const JavaRingSizeMin = 1 << 20
+
 var enableAncestors, _ = NewSliceEnum([]string{"base", "kprobe", "tracepoint", "loader", "uprobe", "lsm", "usdt", "java"}, nil)
 
 type UsernameMetadaCode int
@@ -256,6 +262,16 @@ func ReadAndSetFlags() error {
 	}
 
 	Config.GopsAddr = viper.GetString(KeyGopsAddr)
+	Config.JavaAgentPath = viper.GetString(KeyJavaAgentPath)
+	Config.JavaAgentSocketPath = viper.GetString(KeyJavaAgentSocketPath)
+	if Config.JavaRingSize, err = strutils.ParseSize(viper.GetString(KeyJavaRingSize)); err != nil {
+		return fmt.Errorf("failed to parse java-ring-size value: %w", err)
+	}
+	// Zero keeps the default size.
+	if size := Config.JavaRingSize; size != 0 && (size < JavaRingSizeMin || size&(size-1) != 0) {
+		return fmt.Errorf("java-ring-size value %q must be a power of two, at least 1M",
+			viper.GetString(KeyJavaRingSize))
+	}
 
 	logLevel := viper.GetString(KeyLogLevel)
 	logFormat := viper.GetString(KeyLogFormat)
@@ -557,6 +573,9 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyMetricsLabelFilter, "namespace,workload,pod,binary", "Comma-separated list of enabled metrics labels. Unknown labels will be ignored.")
 	flags.String(KeyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'). An empty address disables the gRPC server. WARNING: Exposing gRPC on a TCP socket without TLS client verification exposes Tetragon to unprivileged users on the host or with network access.")
 	flags.String(KeyGopsAddr, "", "gops server address (e.g. 'localhost:8118'). Disabled by default")
+	flags.String(KeyJavaAgentPath, "", "Path to the JVMTI Java monitoring agent shared library")
+	flags.String(KeyJavaAgentSocketPath, "/var/run/tetragon/java.sock", "Unix socket used by the JVMTI Java monitoring agent")
+	flags.String(KeyJavaRingSize, "4M", "Set size of the ring buffer each monitored JVM reports its events through (power of two, at least 1M, allows K/M/G suffix)")
 	flags.Bool(KeyEnableProcessCred, false, "Enable process_cred events")
 	flags.Bool(KeyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
 	flags.Uint(KeyEventQueueSize, 10000, "Set the size of the internal event queue.")
