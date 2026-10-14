@@ -433,3 +433,31 @@ func TestPolicyKernelMemoryBytes(t *testing.T) {
 	require.Len(t, l.Policies, 1)
 	assert.Equal(t, uint64(500), l.Policies[0].KernelMemoryBytes)
 }
+
+// TestPolicyAPIIgnoresInternalSensors checks that the tracing policy API cannot
+// reach internal sensors, such as the base sensor, which share the collection
+// map with cluster-wide tracing policies.
+func TestPolicyAPIIgnoresInternalSensors(t *testing.T) {
+	// matches base.basePolicy, which this package cannot import
+	const baseSensorName = "__base__"
+
+	ctx := t.Context()
+
+	mgr, err := StartSensorManager("")
+	require.NoError(t, err)
+	require.NoError(t, mgr.AddSensor(ctx, baseSensorName, &Sensor{Name: baseSensorName}))
+
+	err = mgr.DeleteTracingPolicy(ctx, baseSensorName, "")
+	require.ErrorContains(t, err, "does not exist")
+
+	err = mgr.ConfigureTracingPolicy(ctx, &tetragon.ConfigureTracingPolicyRequest{
+		Name:   baseSensorName,
+		Enable: new(false),
+	})
+	require.ErrorContains(t, err, "does not exist")
+
+	l, err := mgr.ListSensors(ctx)
+	require.NoError(t, err)
+	require.Len(t, *l, 1)
+	require.Equal(t, baseSensorName, (*l)[0].Name)
+}
