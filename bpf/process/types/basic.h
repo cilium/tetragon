@@ -2804,9 +2804,15 @@ FUNC_INLINE int try_override(void *ctx, struct bpf_map_def *override_tasks)
 
 	map_delete_elem(override_tasks, &id);
 	ret = *error;
-	/* Let's make verifier happy and 'force' proper bounds. */
-	set_if_not_errno_or_zero(ret, -1);
-	return ret;
+	/* The map value is __s32; a 32-bit load zero-extends into the 64-bit
+	 * register that the signed guards in set_if_not_errno_or_zero operate
+	 * on.  Sign-extend to long first so that negative errnos (e.g. -13 for
+	 * EACCES) are seen as negative by the BPF verifier and pass through
+	 * the guards correctly instead of collapsing to -1 (EPERM).
+	 */
+	long __ret = (long)ret;
+	set_if_not_errno_or_zero(__ret, -1);
+	return (__s32)__ret;
 }
 
 #endif /* __BASIC_H__ */

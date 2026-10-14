@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -250,6 +251,88 @@ spec:
 	testCmd.Run()
 
 	assert.Equal(t, -1, testCmd.ProcessState.ExitCode(), "Exit code should be -1")
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
+	require.NoError(t, err)
+}
+
+// TestLSMOverrideActionErrno verifies that a non-(-1) argError is delivered
+// verbatim to userspace.  Prior to the fix in try_override(), a 32-bit map
+// load zero-extended the __s32 errno into a 64-bit BPF register, causing the
+// signed guards in set_if_not_errno_or_zero() to treat e.g. -13 (EACCES) as
+// a large positive number and collapse it to -1 (EPERM).
+func TestLSMOverrideActionErrno(t *testing.T) {
+	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
+		t.Skip()
+	}
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+
+	// argError: -13 is EACCES; before the fix this was silently delivered as
+	// EPERM (-1) due to zero-extension in try_override().
+	configHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm-errno"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "linux_binprm"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr + `
+      matchArgs:
+        - index: 0
+          operator: "Postfix"
+          values:
+          - "` + testBin + `"
+      matchActions:
+      - action: Override
+        argError: -13
+`
+
+	createCrdFile(t, configHook)
+
+	lsmChecker := ec.NewProcessLsmChecker("lsm-errno-checker").
+		WithFunctionName(sm.Suffix("bprm_check_security")).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithLinuxBinprmArg(ec.NewKprobeLinuxBinprmChecker().WithPath(sm.Full(testBin))))).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testCmd := exec.Command(testBin)
+	err = testCmd.Run()
+
+	// The override must deliver EACCES (-13), not EPERM (-1).
+	var exitErr *exec.ExitError
+	require.ErrorAs(t, err, &exitErr)
+	status, ok := exitErr.Sys().(syscall.WaitStatus)
+	require.True(t, ok)
+	assert.Equal(t, int(syscall.EACCES), status.ExitStatus(),
+		"argError -13 must be delivered as EACCES, not EPERM")
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
 	require.NoError(t, err)
