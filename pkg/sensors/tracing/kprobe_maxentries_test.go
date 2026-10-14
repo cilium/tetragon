@@ -288,6 +288,27 @@ spec:
 `)
 	})
 
+	t.Run("ratelimit_map_uprobe", func(t *testing.T) {
+		uprobeBinary := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+		run(t, []testMap{
+			{"ratelimit_map", ratelimitMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-ratelimit-map"
+spec:
+  uprobes:
+  - path: "`+uprobeBinary+`"
+    symbols:
+    - "main"
+    selectors:
+    - matchActions:
+      - action: Post
+        rateLimit: "1m"
+`)
+	})
+
 	t.Run("enforcer_data", func(t *testing.T) {
 		if !bpf.HasSignalHelper() {
 			t.Skip("skipping enforcer test, bpf_send_signal helper not available")
