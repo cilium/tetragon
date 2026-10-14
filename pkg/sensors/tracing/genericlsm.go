@@ -109,7 +109,9 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		if err != nil {
 			return err
 		}
-		args.Load.MapLoad = append(args.Load.MapLoad, selectorsMaploads(gl.selectors, 0)...)
+		if args.Load.Label == "lsm/generic_lsm_core" {
+			args.Load.MapLoad = append(args.Load.MapLoad, selectorsMaploads(gl.selectors, 0)...)
+		}
 		var configData bytes.Buffer
 		binary.Write(&configData, binary.LittleEndian, gl.config)
 		config := &program.MapLoad{

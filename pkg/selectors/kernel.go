@@ -28,6 +28,7 @@ import (
 	"github.com/cilium/tetragon/pkg/config"
 	telf "github.com/cilium/tetragon/pkg/elf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
+	"github.com/cilium/tetragon/pkg/glob"
 	"github.com/cilium/tetragon/pkg/idtable"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -219,8 +220,10 @@ const (
 	// CEL expressions translated to BPF
 	SelectorOpCelExpr = 35
 	// file type
-	SelectorOpFileType    = 36
-	SelectorOpNotFileType = 37
+	SelectorOpFileType     = 36
+	SelectorOpNotFileType  = 37
+	SelectorOpInPattern    = 38
+	SelectorOpNotInPattern = 39
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -260,6 +263,8 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorOpCelExpr:            "CelExpr",
 	SelectorOpFileType:           "FileType",
 	SelectorOpNotFileType:        "NotFileType",
+	SelectorOpInPattern:          "InPattern",
+	SelectorOpNotInPattern:       "NotInPattern",
 }
 
 func SelectorOp(op string) (uint32, error) {
@@ -336,6 +341,10 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpFileType, nil
 	case "NotFileType":
 		return SelectorOpNotFileType, nil
+	case "InPattern":
+		return SelectorOpInPattern, nil
+	case "NotInPattern":
+		return SelectorOpNotInPattern, nil
 	}
 
 	return 0, fmt.Errorf("unknown op '%s'", op)
@@ -1058,6 +1067,10 @@ func writeMatchFileType(k *KernelSelectorState, values []string, op uint32) erro
 
 func checkOp(op uint32) error {
 	switch op {
+	case SelectorOpInPattern, SelectorOpNotInPattern:
+		if !config.EnableV61Progs() {
+			return fmt.Errorf("operator %s requires v6.1 BPF programs (kernel >= 6.1)", selectorOpStringTable[op])
+		}
 	case SelectorOpGT, SelectorOpLT, SelectorOpCapabilitiesGained:
 		if !config.EnableLargeProgs() {
 			opName := selectorOpStringTable[op]
@@ -1242,6 +1255,28 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	WriteSelectorUint32(&k.data, ty)
 
 	switch op {
+	case SelectorOpInPattern, SelectorOpNotInPattern:
+		switch ty {
+		case gt.GenericFdType, gt.GenericFileType, gt.GenericPathType, gt.GenericDentryType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc, gt.GenericNetDev, gt.GenericSockaddrUnType:
+		default:
+			return errors.New("InPattern operators require a string, buffer, or path argument")
+		}
+		if len(arg.Values) == 0 {
+			return errors.New("InPattern operators require at least one pattern")
+		}
+		if k.maps.globFilters >= glob.GlobPossibleMaxValues {
+			return fmt.Errorf("only %d glob filters are supported per program", glob.GlobPossibleMaxValues)
+		}
+		if k.maps.globPatterns == nil {
+			k.maps.globPatterns = make(map[string][]int32)
+		}
+		id := int32(k.maps.globFilters)
+		for _, pattern := range arg.Values {
+			k.maps.globPatterns[pattern] = append(k.maps.globPatterns[pattern], id)
+		}
+		k.maps.globFilters++
+		k.maps.globData = nil
+		WriteSelectorUint32(&k.data, uint32(id))
 	case SelectorOpInRange, SelectorOpNotInRange:
 		err := writeMatchValuesRange(k, arg.Values, ty)
 		if err != nil {

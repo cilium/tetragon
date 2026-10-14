@@ -13,6 +13,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/mbset"
@@ -134,6 +135,19 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*progr
 			},
 		})
 	}
+	if data := ks.GlobData(); data != nil {
+		maps = append(maps, &program.MapLoad{
+			Name: "tg_glob_dfa",
+			Load: func(m *ebpf.Map, _ string) error {
+				return data.GenerateStateTransitionsMap(m)
+			},
+		}, &program.MapLoad{
+			Name: "tg_glob_final",
+			Load: func(m *ebpf.Map, _ string) error {
+				return data.GenerateFinalStatesMap(m)
+			},
+		})
+	}
 	if kernels.MinKernelVersion("5.11") {
 		maps = append(maps, []*program.MapLoad{
 			{
@@ -171,6 +185,17 @@ func populateSubStringMap(m *ebpf.Map, k *selectors.KernelSelectorState) error {
 
 func createSelectorMaps(load *program.Program, state *selectors.KernelSelectorState, substringMapEntries int) []*program.Map {
 	var maps []*program.Map
+	if config.EnableV61Progs() {
+		dfa := program.MapBuilderProgram("tg_glob_dfa", load)
+		final := program.MapBuilderProgram("tg_glob_final", load)
+		if state != nil {
+			if data := state.GlobData(); data != nil {
+				dfa.SetMaxEntries(data.GetStateTransitionsMapSize())
+				final.SetMaxEntries(data.GetFinalStatesMapSize())
+			}
+		}
+		maps = append(maps, dfa, final)
+	}
 	if substringMapEntries > 0 {
 		substringMap := program.MapBuilderProgram("substring_map", load)
 		substringMap.SetMaxEntries(substringMapEntries)

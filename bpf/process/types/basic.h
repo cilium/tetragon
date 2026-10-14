@@ -36,6 +36,11 @@
 #include "../cel_expr.h"
 #include "process/event_config.h"
 
+#ifdef __V61_BPF_PROG
+#define MAX_GLOB_INPUT_SIZE 1024
+#include "bpf_glob_multi.h"
+#endif
+
 /* Type IDs form API with user space generickprobe.go */
 enum {
 	invalid_ty = -2,
@@ -991,8 +996,24 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 
 FUNC_INLINE bool is_not_operator(__u32 op)
 {
-	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix || op == op_filter_notin || op == op_filter_not_file_type);
+	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix || op == op_filter_notin || op == op_filter_not_file_type || op == op_filter_not_in_pattern);
 }
+
+#ifdef __V61_BPF_PROG
+FUNC_LOCAL long
+filter_char_buf_pattern(struct selector_arg_filter *filter, char *arg_str, uint len)
+{
+	__s32 id = *(__s32 *)&filter->value;
+	__s32 state_id;
+
+	if (len > MAX_GLOB_INPUT_SIZE)
+		return 0;
+	state_id = check_pattern(&tg_glob_dfa, arg_str, len);
+	long match = match_value(&tg_glob_final, state_id, id);
+
+	return is_not_operator(filter->op) ? !match : match;
+}
+#endif
 
 FUNC_LOCAL long
 filter_char_buf_value(struct selector_arg_filter *filter, char *arg_str, uint len)
@@ -1000,6 +1021,11 @@ filter_char_buf_value(struct selector_arg_filter *filter, char *arg_str, uint le
 	long match = 0;
 
 	switch (filter->op) {
+#ifdef __V61_BPF_PROG
+	case op_filter_in_pattern:
+	case op_filter_not_in_pattern:
+		return filter_char_buf_pattern(filter, arg_str, len);
+#endif
 #ifdef __LARGE_BPF_PROG
 	case op_substring_igncase:
 		if (bpf_ksym_exists(bpf_strncasestr))
@@ -1115,6 +1141,11 @@ filter_file_buf(struct selector_arg_filter *filter, struct string_buf *args)
 		return 0;
 
 	switch (filter->op) {
+#ifdef __V61_BPF_PROG
+	case op_filter_in_pattern:
+	case op_filter_not_in_pattern:
+		return filter_char_buf_pattern(filter, args->buf, args->len);
+#endif
 #ifdef __LARGE_BPF_PROG
 	case op_substring_igncase:
 		if (bpf_ksym_exists(bpf_strncasestr))
@@ -1314,6 +1345,11 @@ filter_sockaddr_un(struct selector_arg_filter *filter, char *args)
 	__u8 path_len = address->path_len;
 
 	switch (filter->op) {
+#ifdef __V61_BPF_PROG
+	case op_filter_in_pattern:
+	case op_filter_not_in_pattern:
+		return filter_char_buf_pattern(filter, path, path_len);
+#endif
 #ifdef __LARGE_BPF_PROG
 	case op_substring_igncase:
 		if (bpf_ksym_exists(bpf_strncasestr))
