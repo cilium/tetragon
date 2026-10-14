@@ -482,6 +482,7 @@ type uprobeHas struct {
 	sleepableOffloadSize int
 	userStackTrace       bool
 	uprobeHeapSize       int
+	rateLimit            bool
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -1031,6 +1032,7 @@ func createGenericUprobeSensor(
 		if ids, err = addUprobe(&uprobe, entryFile, ids, &in, &has); err != nil {
 			return nil, err
 		}
+		has.rateLimit = has.rateLimit || selectors.HasRateLimit(uprobe.Selectors)
 	}
 
 	if len(ids) != 0 {
@@ -1562,6 +1564,12 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil), substringMapEntries)...)
 
+	ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
+	if has.rateLimit {
+		ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
+	}
+	maps = append(maps, ratelimitMap)
+
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
 		regsMap.SetMaxEntries(max(regsMapEntries, 1))
@@ -1672,6 +1680,12 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe, workloadsMap)
 	state := getUprobeProgramSelector(load, uprobeEntry)
 	maps = append(maps, createSelectorMaps(load, state, len(state.SubStrings()))...)
+
+	ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
+	if has.rateLimit {
+		ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
+	}
+	maps = append(maps, ratelimitMap)
 
 	if stackTraceMap := createStackTraceMap(has.userStackTrace, load); stackTraceMap != nil {
 		maps = append(maps, stackTraceMap)
