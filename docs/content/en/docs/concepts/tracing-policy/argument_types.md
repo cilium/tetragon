@@ -104,7 +104,7 @@ The data type extracts 64-bit unsigned value.
 The data type extracts string terminated with zero byte.
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
-or `SubStringIgnoreCase` (v6.19+) operators.
+`SubStringIgnoreCase` (v6.19+), `InPattern` (v6.1+), or `NotInPattern` (v6.1+) operators.
 
 ## `skb`
 
@@ -132,7 +132,7 @@ specify the buffer size using `sizeArgIndex` (referencing another argument)
 or `returnCopy` (using the return value).
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
-or `SubStringIgnoreCase` (v6.19+) operators.
+`SubStringIgnoreCase` (v6.19+), `InPattern` (v6.1+), or `NotInPattern` (v6.1+) operators.
 
 ## `char_iovec`
 
@@ -155,7 +155,8 @@ The `fd` data type represents a file descriptor. Tetragon resolves the
 file descriptor to retrieve the associated file path.
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
-or `SubStringIgnoreCase` (v6.19+) operators with path strings.
+`SubStringIgnoreCase` (v6.19+), `InPattern` (v6.1+), or `NotInPattern` (v6.1+)
+operators with path strings.
 
 ## `cred`
 
@@ -261,7 +262,8 @@ The `linux_binprm` data type represents kernel `struct linux_binprm` object
 and retrieves the `struct linux_binprm::file` full path.
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
-or `SubStringIgnoreCase` (v6.19+) operators with path strings.
+`SubStringIgnoreCase` (v6.19+), `InPattern` (v6.1+), or `NotInPattern` (v6.1+)
+operators with path strings.
 
 See general path limitations in [path retrieval limits](#pathlimits).
 
@@ -271,7 +273,7 @@ The `data_loc` data type is used with tracepoints to extract dynamically
 located string data using the kernel's `__data_loc` mechanism.
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
-or `SubStringIgnoreCase` (v6.19+) operators.
+`SubStringIgnoreCase` (v6.19+), `InPattern` (v6.1+), or `NotInPattern` (v6.1+) operators.
 
 ## `net_device`
 
@@ -279,7 +281,8 @@ The `net_device` data type represents kernel `struct net_device` object.
 It extracts the network device name (e.g., `eth0`, `lo`).
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
-or `SubStringIgnoreCase` (v6.19+) operators with device name strings.
+`SubStringIgnoreCase` (v6.19+), `InPattern` (v6.1+), or `NotInPattern` (v6.1+)
+operators with device name strings.
 
 ## `sockaddr`
 
@@ -297,7 +300,8 @@ for Unix domain sockets. It extracts the socket family and path. Filesystem
 paths are reported as-is; abstract socket names are reported with a leading `@` character.
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `NotPrefix`,
-or `Family` operators. Port, protocol, and state operators are not supported.
+`InPattern` (v6.1+), `NotInPattern` (v6.1+), or `Family` operators. Port, protocol,
+and state operators are not supported.
 
 ## `socket`
 
@@ -313,7 +317,8 @@ The `file` data type represents kernel `struct file` object and retrieves
 the file's full path.
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
-or `SubStringIgnoreCase` (v6.19+) operators with path strings.
+`SubStringIgnoreCase` (v6.19+), `InPattern` (v6.1+), or `NotInPattern` (v6.1+)
+operators with path strings.
 
 See general path limitations in [path retrieval limits](#pathlimits).
 Support for [file type filtering]({{< ref "selectors.md#file-type-filtering" >}}) is also available for this type.
@@ -328,7 +333,8 @@ mount information and does not have enough data to pass through main point withi
 the path.
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
-or `SubStringIgnoreCase` (v6.19+) operators with path strings.
+`SubStringIgnoreCase` (v6.19+), `InPattern` (v6.1+), or `NotInPattern` (v6.1+)
+operators with path strings.
 
 See general path limitations in [path retrieval limits](#pathlimits).
 
@@ -339,7 +345,8 @@ the related path.
 Support for [file type filtering]({{< ref "selectors.md#file-type-filtering" >}}) is also available for this type.
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
-or `SubStringIgnoreCase` (v6.19+) operators with path strings.
+`SubStringIgnoreCase` (v6.19+), `InPattern` (v6.1+), or `NotInPattern` (v6.1+)
+operators with path strings.
 
 <a name="pathlimits"></a>
 
