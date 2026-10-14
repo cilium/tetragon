@@ -651,7 +651,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -910,7 +912,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -1253,7 +1257,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -2147,7 +2153,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -2406,7 +2414,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -2749,7 +2759,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -3377,7 +3389,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -3636,7 +3650,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -3979,7 +3995,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -4555,7 +4573,9 @@
                         "SubStringIgnCase",
                         "CelExpr",
                         "FileType",
-                        "NotFileType"
+                        "NotFileType",
+                        "InPattern",
+                        "NotInPattern"
                       ],
                       "type": "string"
                     },
@@ -4814,7 +4834,9 @@
                         "SubStringIgnCase",
                         "CelExpr",
                         "FileType",
-                        "NotFileType"
+                        "NotFileType",
+                        "InPattern",
+                        "NotInPattern"
                       ],
                       "type": "string"
                     },
@@ -5157,7 +5179,9 @@
                         "SubStringIgnCase",
                         "CelExpr",
                         "FileType",
-                        "NotFileType"
+                        "NotFileType",
+                        "InPattern",
+                        "NotInPattern"
                       ],
                       "type": "string"
                     },
@@ -5718,7 +5742,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -5977,7 +6003,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -6320,7 +6348,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -7178,7 +7208,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -7437,7 +7469,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -7780,7 +7814,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -8381,7 +8417,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -8640,7 +8678,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },
@@ -8983,7 +9023,9 @@
                               "SubStringIgnCase",
                               "CelExpr",
                               "FileType",
-                              "NotFileType"
+                              "NotFileType",
+                              "InPattern",
+                              "NotInPattern"
                             ],
                             "type": "string"
                           },

@@ -314,7 +314,7 @@ type ArgSelector struct {
 	// Filter operation.
 	//
 	// Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
-	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;NotPrefix;Postfix;NotPostfix;GreaterThan;LessThan;GT;LT;Mask;SPort;NotSPort;SPortPriv;NotSportPriv;DPort;NotDPort;DPortPriv;NotDPortPriv;SAddr;NotSAddr;DAddr;NotDAddr;Protocol;Family;State;InMap;NotInMap;CapabilitiesGained;InRange;NotInRange;SubString;SubStringIgnCase;CelExpr;FileType;NotFileType
+	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;NotPrefix;Postfix;NotPostfix;GreaterThan;LessThan;GT;LT;Mask;SPort;NotSPort;SPortPriv;NotSportPriv;DPort;NotDPort;DPortPriv;NotDPortPriv;SAddr;NotSAddr;DAddr;NotDAddr;Protocol;Family;State;InMap;NotInMap;CapabilitiesGained;InRange;NotInRange;SubString;SubStringIgnCase;CelExpr;FileType;NotFileType;InPattern;NotInPattern
 	Operator string `json:"operator"`
 	// Value to compare the argument against.
 	Values []string `json:"values,omitempty"`

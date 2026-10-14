@@ -699,6 +699,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -914,6 +916,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1231,6 +1235,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2132,6 +2138,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2347,6 +2355,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2664,6 +2674,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3287,6 +3299,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3502,6 +3516,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3819,6 +3835,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4402,6 +4420,8 @@ spec:
                             - CelExpr
                             - FileType
                             - NotFileType
+                            - InPattern
+                            - NotInPattern
                             type: string
                           values:
                             description: Value to compare the argument against.
@@ -4616,6 +4636,8 @@ spec:
                             - CelExpr
                             - FileType
                             - NotFileType
+                            - InPattern
+                            - NotInPattern
                             type: string
                           values:
                             description: Value to compare the argument against.
@@ -4928,6 +4950,8 @@ spec:
                             - CelExpr
                             - FileType
                             - NotFileType
+                            - InPattern
+                            - NotInPattern
                             type: string
                           values:
                             description: Value to compare the argument against.
@@ -5503,6 +5527,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -5718,6 +5744,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -6035,6 +6063,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -6899,6 +6929,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -7114,6 +7146,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -7431,6 +7465,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -8036,6 +8072,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -8251,6 +8289,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -8568,6 +8608,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
