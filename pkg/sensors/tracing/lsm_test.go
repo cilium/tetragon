@@ -14,9 +14,9 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"syscall"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -190,16 +190,37 @@ func TestLSMOverrideAction(t *testing.T) {
 	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
 		t.Skip()
 	}
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
 
 	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
-	configHook := `
+	tests := []struct {
+		name     string
+		argError int
+		wantErr  error
+	}{
+		{
+			name:     "EPERM",
+			argError: -int(syscall.EPERM),
+			wantErr:  syscall.EPERM,
+		},
+		{
+			// This is a regression test for https://github.com/cilium/tetragon/issues/5781
+			name:     "EACCES",
+			argError: -int(syscall.EACCES),
+			wantErr:  syscall.EACCES,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var doneWG, readyWG sync.WaitGroup
+			defer doneWG.Wait()
+
+			ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+			defer cancel()
+
+			configHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -224,35 +245,33 @@ spec:
           - "` + testBin + `"
       matchActions:
       - action: Override
-        argError: -1
+        argError: ` + strconv.Itoa(test.argError) + `
 `
 
-	createCrdFile(t, configHook)
+			createCrdFile(t, configHook)
 
-	lsmChecker := ec.NewProcessLsmChecker("lsm-file-checker").
-		WithFunctionName(sm.Suffix("bprm_check_security")).
-		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Suffix(tus.Conf().SelfBinary))).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithOperator(lc.Ordered).
-			WithValues(
-				ec.NewKprobeArgumentChecker().WithLinuxBinprmArg(ec.NewKprobeLinuxBinprmChecker().WithPath(sm.Full(testBin))))).
-		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+			lsmChecker := ec.NewProcessLsmChecker("lsm-file-checker").
+				WithFunctionName(sm.Suffix("bprm_check_security")).
+				WithProcess(ec.NewProcessChecker().
+					WithBinary(sm.Suffix(tus.Conf().SelfBinary))).
+				WithArgs(ec.NewKprobeArgumentListMatcher().
+					WithOperator(lc.Ordered).
+					WithValues(
+						ec.NewKprobeArgumentChecker().WithLinuxBinprmArg(ec.NewKprobeLinuxBinprmChecker().WithPath(sm.Full(testBin))))).
+				WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
+
+			obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+			require.NoError(t, err, "GetDefaultObserverWithFile")
+			observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+			readyWG.Wait()
+
+			err = exec.Command(testBin).Run()
+			require.ErrorIs(t, err, test.wantErr)
+
+			err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
+			require.NoError(t, err)
+		})
 	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	testCmd := exec.Command(testBin)
-
-	testCmd.Run()
-
-	assert.Equal(t, -1, testCmd.ProcessState.ExitCode(), "Exit code should be -1")
-
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
-	require.NoError(t, err)
 }
 
 func TestLSMIMAHash(t *testing.T) {
