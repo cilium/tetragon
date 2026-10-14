@@ -243,6 +243,51 @@ spec:
 `)
 	})
 
+	t.Run("ratelimit_map_tracepoint", func(t *testing.T) {
+		run(t, []testMap{
+			{"ratelimit_map", ratelimitMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tracepoint-ratelimit-map"
+spec:
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+    args:
+    - index: 5
+      type: "int32"
+    selectors:
+    - matchActions:
+      - action: Post
+        rateLimit: "1m"
+`)
+	})
+
+	t.Run("ratelimit_map_rawtp", func(t *testing.T) {
+		run(t, []testMap{
+			{"ratelimit_map", ratelimitMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "rawtp-ratelimit-map"
+spec:
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    raw: true
+    args:
+    - index: 1
+      type: "int64"
+    selectors:
+    - matchActions:
+      - action: Post
+        rateLimit: "1m"
+`)
+	})
+
 	t.Run("enforcer_data", func(t *testing.T) {
 		if !bpf.HasSignalHelper() {
 			t.Skip("skipping enforcer test, bpf_send_signal helper not available")

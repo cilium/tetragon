@@ -651,6 +651,12 @@ func createGenericTracepointSensor(
 
 		maps = append(maps, createSelectorMaps(prog0, tp.selectors, len(tp.selectors.SubStrings()))...)
 
+		ratelimitMap := program.MapBuilderProgram("ratelimit_map", prog0)
+		if selectors.HasRateLimit(tp.Spec.Selectors) {
+			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
+		}
+		maps = append(maps, ratelimitMap)
+
 		if has.enforcer {
 			maps = append(maps, enforcerMapsUser(prog0)...)
 		}
