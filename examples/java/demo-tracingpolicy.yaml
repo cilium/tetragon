@@ -1,0 +1,16 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: java-demo
+spec:
+  java:
+    targets:
+      processArgsContains:
+        - tetragon-java-demo
+    hooks:
+      - class: TetragonJavaDemo
+        methods:
+          - name: work
+        message: Java demo method called
+        tags:
+          - java-demo
