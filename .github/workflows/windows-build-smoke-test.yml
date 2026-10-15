@@ -140,7 +140,7 @@ jobs:
             -DestinationPath ./build-${{ env.BUILD_PLATFORM }}.${{ env.BUILD_CONFIGURATION }}.zip
 
       - name: Upload Build Output
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ntosebpfext-build-output
           path: ${{ github.workspace }}/ntosebpfext/build-${{ env.BUILD_PLATFORM }}.${{ env.BUILD_CONFIGURATION }}.zip
@@ -183,7 +183,7 @@ jobs:
           Get-ChildItem -Recurse ${{ runner.temp }}/Tetragon-Windows/
 
       - name: Upload Tetragon Windows binaries
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tetragon-windows-build-output
           path: ${{ runner.temp }}/Tetragon-Windows.zip
@@ -259,7 +259,7 @@ jobs:
 
       - name: Upload Tetragon logs on failure
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tetragon-smoke-test-logs
           path: |
