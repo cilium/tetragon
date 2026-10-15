@@ -6,6 +6,8 @@ package procevents
 import (
 	"bytes"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -27,6 +29,13 @@ import (
 const (
 	kernelPid = uint32(0)
 )
+
+type procReader interface {
+	scan(string) ([]procs, map[uint32]struct{}, error)
+	enabled() bool
+}
+
+var procReaders = make(map[string]procReader)
 
 func stringToUTF8(s []byte) []byte {
 	var utf8Cursor int
@@ -260,21 +269,27 @@ func pushEvents(ps []procs, inInitTreeMap map[uint32]struct{}) {
 }
 
 func GetRunningProcs() error {
+	var processes []procs
+	var inInitTreeMap map[uint32]struct{}
+	var err error
+
 	// Prefer the BPF scan, which also fills execve_map, fall back to
 	// procfs if it is not available.
-	procs, inInitTreeMap, ok, err := scanRunningProcs(option.Config.ProcFS)
-	if err != nil {
-		logger.GetLogger().Warn("BPF process scan failed, falling back to procfs", logfields.Error, err)
-	}
-	if !ok {
-		procs, err = listRunningProcs(option.Config.ProcFS)
-		if err != nil {
-			logger.GetLogger().Error(fmt.Sprintf("Failed to list running processes from '%s'", option.Config.ProcFS), logfields.Error, err)
-			return err
+	sortedKeys := slices.Sorted(maps.Keys(procReaders))
+	for _, key := range sortedKeys {
+		reader := procReaders[key]
+		if !reader.enabled() {
+			continue
 		}
-		inInitTreeMap = writeExecveMap(procs)
+		processes, inInitTreeMap, err = reader.scan(option.Config.ProcFS)
+		if err == nil {
+			break
+		}
+		logger.GetLogger().Error(fmt.Sprintf("Failed to list running processes via %s from %q", key, option.Config.ProcFS), logfields.Error, err)
 	}
 
-	pushEvents(procs, inInitTreeMap)
-	return nil
+	if err == nil {
+		pushEvents(processes, inInitTreeMap)
+	}
+	return err
 }

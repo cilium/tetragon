@@ -68,14 +68,12 @@ func TestBPFProcScan(t *testing.T) {
 	// Run the scan directly rather than through GetRunningProcs, to check
 	// the recorded entries as well.
 	tus.LoadSensor(t, base.GetInitialSensorTest(t))
-	entries, ok, err := procevents.RunProcScan()
+	entries, err := procevents.RunProcScan()
 	require.NoError(t, err)
-	require.True(t, ok)
 
 	// The program and its map are unloaded after the first run.
-	_, ok, err = procevents.RunProcScan()
-	require.NoError(t, err)
-	require.False(t, ok)
+	_, err = procevents.RunProcScan()
+	require.ErrorIs(t, err, procevents.ErrProcScanUnloaded)
 
 	m, err := ebpf.LoadPinnedMap(filepath.Join(bpf.MapPrefixPath(), base.GetExecveMap().Name), nil)
 	require.NoError(t, err)
