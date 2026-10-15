@@ -46,7 +46,7 @@ var (
 	).SetPolicy(sensors.BaseSensorName)
 
 	ExecveBprmCommit = program.Builder(
-		"bpf_execve_bprm_commit_creds.o",
+		config.ExecveBprmCommitObj(),
 		"security_bprm_committing_creds",
 		"kprobe/security_bprm_committing_creds",
 		"tg_kp_bprm_committing_creds",
@@ -167,7 +167,9 @@ func setupSensor() {
 		Execve.RewriteConstants["BPF_DEBUG_ENABLED"] = option.Config.BPFDebugAreas.ToBPFConfig()
 	}
 
-	if option.Config.ParentsMapEnabled {
+	// v5.11 and v6.1 bpf objects use task storage for the parents map,
+	// which has no max entries.
+	if option.Config.ParentsMapEnabled && !config.EnableV61Progs() && !config.EnableV511Progs() {
 		entries = GetExecveEntries(option.Config.ParentsMapEntries, option.Config.ParentsMapSize)
 		ParentBinariesMap.SetMaxEntries(entries)
 		logger.GetLogger().Info(fmt.Sprintf("Set parents_map entries %d", entries),
