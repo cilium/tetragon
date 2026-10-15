@@ -288,7 +288,7 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 		selector = uprobeEntry.loadArgs.selectors.entry
 	}
 	if selector != nil {
-		mapLoad = append(mapLoad, selectorsMaploads(selector, 0)...)
+		mapLoad = append(mapLoad, selectorsMaploads(load, selector, 0)...)
 
 		if load.SleepableOffload {
 			mapLoad = append(mapLoad,
@@ -405,7 +405,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 			selector = uprobeEntry.loadArgs.selectors.entry
 		}
 		if selector != nil {
-			mapLoad = append(mapLoad, selectorsMaploads(selector, uint32(index))...)
+			mapLoad = append(mapLoad, selectorsMaploads(load, selector, uint32(index))...)
 
 			if load.SleepableOffload {
 				mapLoad = append(mapLoad,
