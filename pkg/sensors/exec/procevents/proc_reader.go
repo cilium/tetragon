@@ -6,6 +6,8 @@ package procevents
 import (
 	"bytes"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -27,6 +29,13 @@ import (
 const (
 	kernelPid = uint32(0)
 )
+
+type procReader interface {
+	scan(string) ([]procs, map[uint32]struct{}, error)
+	enabled() bool
+}
+
+var procReaders = make(map[string]procReader)
 
 func stringToUTF8(s []byte) []byte {
 	var utf8Cursor int
@@ -234,9 +243,7 @@ func pushExecveEvents(procPath string, p procs, inInitTreeMap map[uint32]struct{
 	}
 }
 
-func pushEvents(procPath string, ps []procs) {
-	inInitTreeMap := writeExecveMap(ps)
-
+func pushEvents(procPath string, ps []procs, inInitTreeMap map[uint32]struct{}) {
 	sort.Slice(ps, func(i, j int) bool {
 		return ps[i].ppid < ps[j].ppid
 	})
@@ -247,12 +254,27 @@ func pushEvents(procPath string, ps []procs) {
 }
 
 func GetRunningProcs() error {
-	procs, err := listRunningProcs(option.Config.ProcFS)
-	if err != nil {
-		logger.GetLogger().Error(fmt.Sprintf("Failed to list running processes from '%s'", option.Config.ProcFS), logfields.Error, err)
-		return err
+	var processes []procs
+	var inInitTreeMap map[uint32]struct{}
+	var err error
+
+	// Try the enabled readers in sorted key order, stopping at the
+	// first one that succeeds.
+	sortedKeys := slices.Sorted(maps.Keys(procReaders))
+	for _, key := range sortedKeys {
+		reader := procReaders[key]
+		if !reader.enabled() {
+			continue
+		}
+		processes, inInitTreeMap, err = reader.scan(option.Config.ProcFS)
+		if err == nil {
+			break
+		}
+		logger.GetLogger().Error(fmt.Sprintf("Failed to list running processes via %s from %q", key, option.Config.ProcFS), logfields.Error, err)
 	}
 
-	pushEvents(option.Config.ProcFS, procs)
-	return nil
+	if err == nil {
+		pushEvents(option.Config.ProcFS, processes, inInitTreeMap)
+	}
+	return err
 }
