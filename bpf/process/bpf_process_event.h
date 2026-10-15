@@ -503,12 +503,12 @@ FUNC_INLINE void update_parents_map(struct msg_execve_event *event, struct execv
 			// by clone, i.e. exec call was invoked in the same process.
 			if (!(event->process.flags & EVENT_CLONE)) {
 				__bpf_memcpy_builtin(bin, &curr->bin, sizeof(curr->bin));
-				with_errmetrics(map_update_elem, &tg_parents_bin, &curr->key.pid, bin, BPF_ANY);
+				parents_bin_update(curr->key.pid, bin);
 			} else {
 				struct execve_map_value *parent = event_find_parent();
 
 				if (parent)
-					with_errmetrics(map_update_elem, &tg_parents_bin, &curr->key.pid, &parent->bin, BPF_ANY);
+					parents_bin_update(curr->key.pid, &parent->bin);
 			}
 		}
 	}
