@@ -631,3 +631,23 @@ func listRunningProcs(_ string) ([]procs, error) {
 	logger.GetLogger().Info(fmt.Sprintf("Read process list appended %d entries", len(processes)))
 	return processes, nil
 }
+
+type FSProcReader struct{}
+
+func init() {
+	procReaders["fs"] = &FSProcReader{}
+}
+
+func (r *FSProcReader) enabled() bool {
+	return true
+}
+
+func (r *FSProcReader) scan(procPath string) ([]procs, map[uint32]struct{}, error) {
+	processes, err := listRunningProcs(procPath)
+	if err != nil {
+		logger.GetLogger().Error(fmt.Sprintf("Failed to list running processes from '%s'", procPath), logfields.Error, err)
+		return nil, nil, err
+	}
+	inInitTreeMap := writeExecveMap(processes)
+	return processes, inInitTreeMap, nil
+}
