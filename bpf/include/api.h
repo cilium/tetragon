@@ -244,6 +244,9 @@ static uint64_t BPF_FUNC(get_current_ancestor_cgroup_id, int ancestor_level);
 static uint64_t BPF_FUNC(get_current_uid_gid);
 static uint64_t BPF_FUNC(get_current_pid_tgid);
 
+static void *BPF_FUNC(task_storage_get, void *map, struct task_struct *task, void *value, __u64 flags);
+static long BPF_FUNC(task_storage_delete, void *map, struct task_struct *task);
+
 static int BPF_FUNC(get_current_comm, char *buf, uint32_t size);
 
 static int BPF_FUNC(send_signal, uint32_t sig);
