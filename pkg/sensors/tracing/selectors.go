@@ -31,7 +31,8 @@ func validateSubStringSelectorFeatures(selectorSpecs []v1alpha1.KProbeSelector) 
 	return nil
 }
 
-func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*program.MapLoad {
+func selectorsMaploads(load *program.Program, ks *selectors.KernelSelectorState, index uint32) []*program.MapLoad {
+	rewriteSelectorConstants(load, ks.Usage())
 	selBuff := ks.CopyToFixedBuffer()
 	maps := []*program.MapLoad{
 		{

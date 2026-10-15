@@ -70,3 +70,28 @@ volatile const __u8 BPF_DEBUG_ENABLED;
 #endif /* __LARGE_BPF_PROG */
 
 #endif /* __V511_BPF_PROG */
+
+/*
+ * FEATURE_MASK is rewritten by the agent on __LARGE_BPF_PROG based on the
+ * defined selectors. This allows us to do dead code elimination in unused
+ * eBPF code related to specific selectors.
+ * In non-__LARGE_BPF_PROG programs, we always have all selectors enabled.
+ */
+#ifdef __LARGE_BPF_PROG
+volatile const __u32 FEATURE_MASK = 0xFFFFFFFF;
+#else
+#define FEATURE_MASK 0xFFFFFFFF
+#endif /* __LARGE_BPF_PROG */
+
+#define HAS_MATCH_PIDS		     (FEATURE_MASK & (1 << 1))
+#define HAS_MATCH_NAMESPACES	     (FEATURE_MASK & (1 << 2))
+#define HAS_MATCH_CAPABILITIES	     (FEATURE_MASK & (1 << 3))
+#define HAS_MATCH_NAMESPACE_CHANGES  (FEATURE_MASK & (1 << 4))
+#define HAS_MATCH_CAPABILITY_CHANGES (FEATURE_MASK & (1 << 5))
+#define HAS_MATCH_BINARIES	     (FEATURE_MASK & (1 << 6))
+#define HAS_MATCH_PARENT_BINARIES    (FEATURE_MASK & (1 << 7))
+#define HAS_MATCH_CMD_ARGS	     (FEATURE_MASK & (1 << 8))
+#define HAS_MATCH_WORKLOADS	     (FEATURE_MASK & (1 << 9))
+#define HAS_MATCH_USER_CALLERS	     (FEATURE_MASK & (1 << 10))
+#define HAS_MATCH_CEL		     (FEATURE_MASK & (1 << 11))
+#define HAS_MATCH_ARG_FILTERS	     (FEATURE_MASK & (1 << 12))

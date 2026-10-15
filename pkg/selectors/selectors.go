@@ -122,8 +122,24 @@ type KernelSelectorData struct {
 	e []byte
 }
 
+type SelectorUsage struct {
+	MatchPIDs              bool
+	MatchNamespaces        bool
+	MatchCapabilities      bool
+	MatchNamespaceChanges  bool
+	MatchCapabilityChanges bool
+	MatchBinaries          bool
+	MatchParentBinaries    bool
+	MatchCmdArgs           bool
+	MatchWorkloads         bool
+	MatchCEL               bool
+	MatchArgFilters        bool
+	MatchUserCallers       bool
+}
+
 type KernelSelectorState struct {
-	data KernelSelectorData
+	data  KernelSelectorData
+	usage SelectorUsage
 
 	// valueMaps are used to populate value maps for InMap and NotInMap operators
 	valueMaps []ValueMap
@@ -152,6 +168,10 @@ type KernelSelectorState struct {
 	matchWorkloadIDs map[int]policyfilter.PolicyID
 
 	destroyed bool
+}
+
+func (k *KernelSelectorState) Usage() SelectorUsage {
+	return k.usage
 }
 
 func NewKernelSelectorState(

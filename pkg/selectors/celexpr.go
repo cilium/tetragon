@@ -77,6 +77,7 @@ func parseMatchCelExpr(
 		WriteSelectorUint32(&k.data, uint32(idx))
 	}
 	WriteSelectorLength(&k.data, moff)
+	k.usage.MatchCEL = true
 	return nil
 }
 
