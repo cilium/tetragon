@@ -647,7 +647,7 @@ selector_process_filter_1(__u32 *f, __u32 index, struct execve_map_value *enter)
 
 #ifdef __LARGE_BPF_PROG
 	if (CONFIG(PARENTS_MAP_ENABLED)) {
-		struct binary *parent_bin = map_lookup_elem(&tg_parents_bin, &enter->key.pid);
+		struct binary *parent_bin = parents_bin_get(enter->key.pid);
 
 		if (parent_bin)
 			/* matchParentBinaries key is in range [MAX_SELECTORS; MAX_SELECTORS * 2) */
