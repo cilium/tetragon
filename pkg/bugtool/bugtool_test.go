@@ -4,12 +4,17 @@
 package bugtool
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -244,4 +249,44 @@ func Test_findMemoryCgroupPath(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_listProcFds(t *testing.T) {
+	dir := t.TempDir()
+	// no path targets: windows rewrites them with backslashes on readlink
+	require.NoError(t, os.Symlink("pipe:[42]", filepath.Join(dir, "0")))
+	require.NoError(t, os.Symlink("socket:[12345]", filepath.Join(dir, "10")))
+	require.NoError(t, os.Symlink("anon_inode:bpf-map", filepath.Join(dir, "3")))
+	// /proc only has symlinks here, but a readlink failure (e.g. the fd was
+	// closed meanwhile) must not abort the listing.
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "7"), nil, 0644))
+
+	var buf bytes.Buffer
+	require.NoError(t, listProcFds(dir, &buf))
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	require.Len(t, lines, 4)
+	// sorted numerically, not lexically: 10 comes after 3 and 7
+	assert.Equal(t, "0 -> pipe:[42]", lines[0])
+	assert.Equal(t, "3 -> anon_inode:bpf-map", lines[1])
+	assert.True(t, strings.HasPrefix(lines[2], "7 -> ("), lines[2])
+	assert.Equal(t, "10 -> socket:[12345]", lines[3])
+
+	require.Error(t, listProcFds(filepath.Join(dir, "missing"), &buf))
+}
+
+func TestListProcFdsSelf(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("reads /proc")
+	}
+
+	f, err := os.CreateTemp(t.TempDir(), "fd-")
+	require.NoError(t, err)
+	defer f.Close()
+	path, err := filepath.EvalSymlinks(f.Name())
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	require.NoError(t, listProcFds("/proc/self/fd", &buf))
+	assert.Contains(t, buf.String(), fmt.Sprintf("%d -> %s\n", f.Fd(), path))
 }
