@@ -5,6 +5,7 @@ package procevents
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,6 +34,8 @@ const (
 	procScanCwdMax = 4096
 )
 
+var ErrProcScanUnloaded = errors.New("bpf proc scan related resources are unloaded")
+
 // ProcScanEntry mirrors struct proc_scan_entry in bpf/process/bpf_proc_scan.c
 type ProcScanEntry struct {
 	Pid    uint32
@@ -47,16 +50,17 @@ type ProcScanEntry struct {
 }
 
 // RunProcScan returns the processes found by the proc_scan program, which
-// also adds them to execve_map. It returns false if the program is not
-// enabled, not loaded or failed. The program and its map are unloaded once
+// also adds them to execve_map.
+// The program and its map are unloaded once
 // done to free resources, so later calls return false and the caller can fall back to procfs if needed.
 // Note however that we only need a single call during startup.
-func RunProcScan() ([]ProcScanEntry, bool, error) {
-	if !base.BPFProcScanEnabled() || base.BpfProcScanMap.MapHandle == nil {
-		return nil, false, nil
+// The symbol is exported to be used by tests.
+func RunProcScan() ([]ProcScanEntry, error) {
+	if base.BpfProcScanMap.MapHandle == nil {
+		return nil, ErrProcScanUnloaded
 	}
 	entries, err := procScan()
-	return entries, err == nil, err
+	return entries, err
 }
 
 func procScan() ([]ProcScanEntry, error) {
@@ -99,6 +103,16 @@ func unloadProcScan() {
 	}
 }
 
+type BPFProcReader struct{}
+
+func init() {
+	procReaders["bpf"] = &BPFProcReader{}
+}
+
+func (r *BPFProcReader) enabled() bool {
+	return base.BPFProcScanEnabled()
+}
+
 // scanRunningProcs lists the running processes found by the proc_scan BPF
 // program, which also adds them to execve_map. It returns false if the
 // program is not available or failed, in which case the caller should fall
@@ -107,10 +121,10 @@ func unloadProcScan() {
 // Unlike the procfs scan, existing execve_map entries are not overwritten:
 // those were added by the exec and fork hooks since they were loaded, which
 // also reported the processes.
-func scanRunningProcs(procPath string) ([]procs, map[uint32]struct{}, bool, error) {
-	entries, ok, err := RunProcScan()
-	if !ok {
-		return nil, nil, false, err
+func (r *BPFProcReader) scan(procPath string) ([]procs, map[uint32]struct{}, error) {
+	entries, err := RunProcScan()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	m := openExecveMap()
@@ -149,9 +163,9 @@ func scanRunningProcs(procPath string) ([]procs, map[uint32]struct{}, bool, erro
 	}
 	writeExecveMapKernel(m)
 
-	logger.GetLogger().Info(fmt.Sprintf("BPF process scan appended %d/%d entries", len(processes), len(entries)))
+	logger.GetLogger().Info(fmt.Sprintf("BPF proc scan appended %d/%d entries", len(processes), len(entries)))
 
-	return processes, inInitTree, true, nil
+	return processes, inInitTree, nil
 }
 
 // procFromScan builds the procs entry of a process found by the BPF scan so
