@@ -1165,7 +1165,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1446,7 +1446,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1857,7 +1857,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3164,7 +3164,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3445,7 +3445,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3856,7 +3856,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4832,7 +4832,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5113,7 +5113,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5524,7 +5524,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6479,7 +6479,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6760,7 +6760,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7171,7 +7171,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8105,7 +8105,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8386,7 +8386,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8797,7 +8797,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10048,7 +10048,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10329,7 +10329,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10740,7 +10740,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -11681,7 +11681,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -11962,7 +11962,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12373,7 +12373,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13893,7 +13893,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14174,7 +14174,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14585,7 +14585,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -15892,7 +15892,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -16173,7 +16173,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -16584,7 +16584,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -17560,7 +17560,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -17841,7 +17841,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -18252,7 +18252,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -19207,7 +19207,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -19488,7 +19488,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -19899,7 +19899,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -20833,7 +20833,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -21114,7 +21114,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -21525,7 +21525,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -22776,7 +22776,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -23057,7 +23057,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -23468,7 +23468,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -24409,7 +24409,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -24690,7 +24690,7 @@ are zero-based and exclude argv[0], which is represented by the binary.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -25101,7 +25101,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 
 Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.<br/>
           <br/>
-            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType, InPattern, NotInPattern<br/>
         </td>
         <td>true</td>
       </tr><tr>

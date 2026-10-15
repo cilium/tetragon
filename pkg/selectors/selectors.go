@@ -10,6 +10,7 @@ import (
 	"errors"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/glob"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 )
@@ -105,6 +106,10 @@ type KernelSelectorMaps struct {
 	stringPostfixMaps []map[KernelLPMTrieStringPostfix]struct{}
 	// subStrs are shared by selectors loaded into the same substring map
 	subStrs []string
+	// Glob-related things.
+	globPatterns map[string][]int32
+	globFilters  int
+	globData     *glob.Data
 }
 
 type MatchBinariesSelectorOptions struct {
@@ -112,6 +117,17 @@ type MatchBinariesSelectorOptions struct {
 	MapID uint32
 	// matchBinaries set for the selector
 	MBSetID uint32
+}
+
+func (k *KernelSelectorState) GlobData() *glob.Data {
+	if k.maps.globFilters == 0 {
+		return nil
+	}
+	if k.maps.globData == nil {
+		data := glob.GenerateAndPopulateData(k.maps.globPatterns)
+		k.maps.globData = &data
+	}
+	return k.maps.globData
 }
 
 const KernelBufferSize = 4096

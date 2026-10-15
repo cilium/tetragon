@@ -3,7 +3,7 @@
 
 //go:build linux
 
-package glob
+package glob_test
 
 import (
 	"errors"
@@ -21,6 +21,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/glob"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -56,7 +57,7 @@ func initGlob(objFile string, patterns map[string][]int32) (*ebpf.Collection, er
 		return nil, fmt.Errorf("runEbpfGlob: ebpf.LoadCollectionSpec: %w", err)
 	}
 
-	gd := GenerateAndPopulateData(patterns)
+	gd := glob.GenerateAndPopulateData(patterns)
 
 	isFinalsMap, ok := spec.Maps["tg_glob_final"]
 	if !ok {
@@ -216,7 +217,7 @@ func TestGlobeBPF(t *testing.T) {
 	minDur := uint64(math.MaxUint64)
 	maxDur := uint64(0)
 
-	for _, c := range GlobTestCases {
+	for _, c := range glob.GlobTestCases {
 		res, dur, err := runEbpfGlob(t, c.Pattern, c.Path)
 		require.NoError(t, err)
 		if err == nil {
@@ -243,7 +244,7 @@ func TestGlobeBPFMulti(t *testing.T) {
 	minDur := uint64(math.MaxUint64)
 	maxDur := uint64(0)
 
-	for _, c := range GlobTestCasesMulti {
+	for _, c := range glob.GlobTestCasesMulti {
 		for _, ts := range c.Tests {
 			vals := []int32{}
 			if len(ts.Values) == 0 {

@@ -126,6 +126,8 @@ The available operators for `matchArgs` are:
 - `Mask`
 - `FileType`
 - `NotFileType`
+- `InPattern`
+- `NotInPattern`
 
 {{< warning >}}
 The `CelExpr` `MatchArgs` operator has been deprecated. Please use the `MatchCEL` selector instead.
@@ -189,6 +191,41 @@ selectors:
     - "reg"
 ```
 
+### Glob pattern filtering
+
+The `InPattern` and `NotInPattern` operators filter string, buffer, and path
+arguments using glob patterns. `InPattern` matches when any pattern in
+`values` matches the argument. `NotInPattern` matches when none of the
+patterns match.
+
+Supported argument types are `string`, `char_buf`, `file`, `path`, `dentry`,
+`fd`, `linux_binprm`, `data_loc`, `net_device`, and `sockaddr_un`.
+
+These operators require Linux kernel version 6.1 or later.
+
+The following table shows the syntax of the patterns:
+
+| Syntax | Meaning | Example |
+| --- | --- | --- |
+| `*` | Zero or more characters, including `/` | `/var/log/*.log` |
+| `?` | Exactly one character | `/tmp/file?.txt` |
+| `[abc]` | One character from a set | `/tmp/file[abc].txt` |
+| `[0-9]` | One character from a range | `/tmp/file[0-9].txt` |
+| `[!abc]` | One character not in the a set | `/tmp/file[!abc].txt` |
+| `{foo,bar}` | One of those alternatives | `/etc/{passwd,shadow}` |
+
+The following selectors match log files and their gzipped versions
+under `/var/log`:
+
+```yaml
+selectors:
+- matchArgs:
+  - index: 0
+    operator: "InPattern"
+    values:
+    - "/var/log/*.log"
+    - "/var/log/*.log.gz"
+```
 
 ## Command-line arguments filter
 
@@ -2029,6 +2066,8 @@ There are different types supported for each operator. In case of `matchArgs`:
 * NotInRange - Not in interval range
 * SubString - Substring match (v6.17+, requires the `bpf_strnstr` kfunc)
 * SubStringIgnoreCase - Substring match case-insensitive (v6.19+, requires the `bpf_strncasestr` kfunc)
+* InPattern - Match any provided glob pattern (v6.1+)
+* NotInPattern - Match none of the provided glob patterns (v6.1+)
 
 The operator types `Equal` and `NotEqual` are used to test whether the certain
 argument of a system call is equal to the defined value in the CR.

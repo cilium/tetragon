@@ -172,6 +172,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	var progs []*program.Program
 	var maps []*program.Map
 	var substringMapEntries int
+	var selectorState *selectors.KernelSelectorState
 
 	data := &genericStackTraceData{}
 
@@ -187,6 +188,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 		has.stackTrace = has.stackTrace || gk.hasStackTrace
 		substringMapEntries = len(gk.loadArgs.selectors.entry.SubStrings())
+		selectorState = gk.loadArgs.selectors.entry
 	}
 
 	loadProgName, loadProgRetName := config.GenericKprobeObjs(true)
@@ -211,7 +213,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	maps = append(maps, filterMap)
 
 	if has.selector {
-		maps = append(maps, createSelectorMaps(load, nil, substringMapEntries)...)
+		maps = append(maps, createSelectorMaps(load, selectorState, substringMapEntries)...)
 
 		selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 		maps = append(maps, selMatchBinariesMap)
@@ -287,7 +289,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		maps = append(maps, retFilterMap)
 
 		if has.selector {
-			maps = append(maps, createSelectorMaps(loadret, nil, substringMapEntries)...)
+			maps = append(maps, createSelectorMaps(loadret, selectorState, substringMapEntries)...)
 		}
 
 		callHeap := program.MapBuilderSensor("process_call_heap", loadret)

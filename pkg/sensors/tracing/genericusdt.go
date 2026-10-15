@@ -237,12 +237,14 @@ func createMultiUsdtSensor(
 	var progs []*program.Program
 	var maps []*program.Map
 	var substringMapEntries int
+	var selectorState *selectors.KernelSelectorState
 	if len(multiIDs) > 0 {
 		entry, err := genericUsdtTableGet(multiIDs[0])
 		if err != nil {
 			return nil, nil, err
 		}
 		substringMapEntries = len(entry.selectors.SubStrings())
+		selectorState = entry.selectors
 	}
 
 	loadProgName := config.GenericUsdtObjs(true)
@@ -277,7 +279,7 @@ func createMultiUsdtSensor(
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
-	maps = append(maps, createSelectorMaps(load, nil, substringMapEntries)...)
+	maps = append(maps, createSelectorMaps(load, selectorState, substringMapEntries)...)
 
 	if has.sleepableOffload {
 		sleepableOffloadMap := program.MapShared("write_offload", load)
