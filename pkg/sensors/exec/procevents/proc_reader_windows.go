@@ -604,11 +604,6 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 
 }
 
-// scanRunningProcs is only supported on Linux.
-func scanRunningProcs(_ string) ([]procs, map[uint32]struct{}, bool, error) {
-	return nil, nil, false, nil
-}
-
 func listRunningProcs(_ string) ([]procs, error) {
 	var processes []procs
 	snapshotHandle, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, uint32(0))
@@ -636,4 +631,24 @@ func listRunningProcs(_ string) ([]procs, error) {
 
 	logger.GetLogger().Info(fmt.Sprintf("Read process list appended %d entries", len(processes)))
 	return processes, nil
+}
+
+type FSProcReader struct{}
+
+func init() {
+	procReaders["fs"] = &FSProcReader{}
+}
+
+func (r *FSProcReader) enabled() bool {
+	return true
+}
+
+func (r *FSProcReader) scan(procPath string) ([]procs, map[uint32]struct{}, error) {
+	processes, err := listRunningProcs(procPath)
+	if err != nil {
+		logger.GetLogger().Error(fmt.Sprintf("Failed to list running processes from '%s'", procPath), logfields.Error, err)
+		return nil, nil, err
+	}
+	inInitTreeMap := writeExecveMap(processes)
+	return processes, inInitTreeMap, nil
 }
