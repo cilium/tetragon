@@ -145,10 +145,17 @@ func procArgs(p *procs) string {
 
 func pushExecveEvents(procPath string, p procs, inInitTreeMap map[uint32]struct{}) {
 	var err error
+	var cwd string
+	var flags uint32
 
 	filename := procFilename(&p)
 	args := procArgs(&p)
-	cwd, flags := getCWD(procPath, p.pid)
+
+	if p.bpfProcs == nil {
+		cwd, flags = getCWD(procPath, p.pid)
+	} else {
+		cwd, flags = p.cwd, p.cwdFlags
+	}
 
 	if p.kernelThread {
 		m := exec.MsgKThreadInitUnix{}
@@ -181,7 +188,11 @@ func pushExecveEvents(procPath string, p procs, inInitTreeMap map[uint32]struct{
 		m.Unix.Msg.Common.Op = ops.MSG_OP_EXECVE
 
 		m.Unix.Msg.Kube.Cgrpid = 0
-		if p.pid > 0 {
+		if p.bpfProcs != nil {
+			m.Unix.Kube.Docker = p.dockerId
+			m.Unix.Msg.Kube.Cgrpid = p.cgrpid
+			m.Unix.Kube.Cgrpid = p.cgrpid
+		} else if p.pid > 0 {
 			m.Unix.Kube.Docker, err = procsDockerId(p.pid)
 			if err != nil {
 				logger.GetLogger().Warn("Procfs execve event pods/ identifier error", logfields.Error, err)
@@ -268,8 +279,8 @@ func GetRunningProcs() error {
 	var inInitTreeMap map[uint32]struct{}
 	var err error
 
-	// Try the enabled readers in sorted key order, stopping at the
-	// first one that succeeds.
+	// Prefer the BPF scan, which also fills execve_map, fall back to
+	// procfs if it is not available.
 	sortedKeys := slices.Sorted(maps.Keys(procReaders))
 	for _, key := range sortedKeys {
 		reader := procReaders[key]

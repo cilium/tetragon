@@ -108,6 +108,10 @@ func unloadProcScan() {
 
 type BPFProcReader struct{}
 
+func init() {
+	procReaders["bpf"] = &BPFProcReader{}
+}
+
 func (r *BPFProcReader) enabled() bool {
 	return base.BPFProcScanEnabled()
 }
