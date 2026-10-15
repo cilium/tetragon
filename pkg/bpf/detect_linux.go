@@ -60,6 +60,7 @@ var (
 	mixBpfAndTailCalls                Feature
 	getFuncRetHelper                  Feature
 	fentry                            Feature
+	globalFuncArgTrusted              Feature
 )
 
 func HasOverrideHelper() bool {
@@ -732,6 +733,75 @@ func HasCopyFromUserStr() bool {
 	return HasKfunc("bpf_copy_from_user_str")
 }
 
+// detectGlobalFuncArgTrusted checks for the 'arg:trusted' BTF decl tag on
+// global function arguments (v6.9), by passing a trusted task pointer to a
+// global function. Without the tag support the argument is treated as plain
+// memory, and the call is rejected.
+func detectGlobalFuncArgTrusted() bool {
+	mainFn := &ebtf.Func{
+		Name:    "probe_main",
+		Type:    &ebtf.FuncProto{Return: &ebtf.Int{Name: "int", Size: 4, Encoding: ebtf.Signed}},
+		Linkage: ebtf.GlobalFunc,
+	}
+	subFn := &ebtf.Func{
+		Name: "probe_arg_trusted",
+		Type: &ebtf.FuncProto{
+			Return: &ebtf.Int{Name: "int", Size: 4, Encoding: ebtf.Signed},
+			Params: []ebtf.FuncParam{
+				{Name: "task", Type: &ebtf.Pointer{Target: &ebtf.Struct{Name: "task_struct"}}},
+			},
+		},
+		Linkage:   ebtf.GlobalFunc,
+		ParamTags: [][]string{{"arg:trusted"}},
+	}
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name: "probe_main",
+		Type: ebpf.Kprobe,
+		Instructions: asm.Instructions{
+			ebtf.WithFuncMetadata(asm.FnGetCurrentTaskBtf.Call(), mainFn),
+			asm.Mov.Reg(asm.R1, asm.R0),
+			asm.Call.Label("probe_arg_trusted"),
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+			ebtf.WithFuncMetadata(asm.Mov.Imm(asm.R0, 0), subFn).WithSymbol("probe_arg_trusted"),
+			asm.Return(),
+		},
+		License: "GPL",
+	})
+	if err != nil {
+		return false
+	}
+	prog.Close()
+	return true
+}
+
+func detectGlobalFuncArgTrustedOnce() {
+	globalFuncArgTrusted.init.Do(func() {
+		globalFuncArgTrusted.detected = detectGlobalFuncArgTrusted()
+	})
+}
+
+// HasGlobalFuncArgTrusted returns true if the kernel supports the
+// 'arg:trusted' tag (v6.9) on global function arguments. Kernels supporting it
+// also support 'arg:nonnull' (v6.8).
+func HasGlobalFuncArgTrusted() bool {
+	detectGlobalFuncArgTrustedOnce()
+	return globalFuncArgTrusted.detected
+}
+
+// HasTaskIterAllProcs returns true if the kernel supports walking all the
+// processes in the system with the open-coded task iterator, i.e.
+// bpf_iter_task_new() with BPF_TASK_ITER_ALL_PROCS. Unlike the task iterator
+// program type, it is not bound to the caller's pid namespace. The other
+// kfuncs are the ones the startup process scan uses along with it, and the
+// scan passes the iterated tasks to a global function with an 'arg:trusted'
+// argument.
+func HasTaskIterAllProcs() bool {
+	return HasKfunc("bpf_iter_task_new") && HasKfunc("bpf_iter_num_new") &&
+		HasKfunc("bpf_rcu_read_lock") && HasKfunc("bpf_task_from_pid") &&
+		HasGlobalFuncArgTrusted()
+}
+
 func detectMixBpfAndTailCalls() bool {
 	// create a tail call map
 	tcMap, err := ebpf.NewMap(&ebpf.MapSpec{
@@ -861,4 +931,5 @@ var FeatureProbes = []FeatureProbe{
 	{GetFuncRet, HasGetFuncRetHelper},
 	{SubStringKfuncProbe, HasSubStringKfunc},
 	{CopyFromUserStr, HasCopyFromUserStr},
+	{TaskIterAllProcs, HasTaskIterAllProcs},
 }
