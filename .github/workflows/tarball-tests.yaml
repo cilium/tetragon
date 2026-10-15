@@ -172,8 +172,10 @@ jobs:
       # at least on github runners.
       - name: Run policytest
         run: |
-          sudo tetra policytest run --all-tests --output-file /tmp/tetragon.policytest.txt
+          status=0
+          sudo tetra policytest run --all-tests --output-file /tmp/tetragon.policytest.txt || status=$?
           cat /tmp/tetragon.policytest.txt
+          exit $status
 
       - name: Upload policytest results
         if: failure()
