@@ -4,12 +4,19 @@
 package base
 
 import (
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/strutils"
 )
+
+// BPFProcScanEnabled returns true if the startup process scan is done by the
+// proc_scan BPF program instead of reading procfs.
+func BPFProcScanEnabled() bool {
+	return config.EnableV61Progs() && bpf.HasTaskIterAllProcs()
+}
 
 func GetDefaultPrograms() []*program.Program {
 	progs := []*program.Program{
@@ -18,6 +25,9 @@ func GetDefaultPrograms() []*program.Program {
 		Execve,
 		ExecveBprmCommit,
 		ExecveMapUpdate,
+	}
+	if BPFProcScanEnabled() {
+		progs = append(progs, BpfProcScan)
 	}
 	return progs
 }
@@ -43,6 +53,9 @@ func GetDefaultMaps() []*program.Map {
 
 	if option.Config.ParentsMapEnabled {
 		maps = append(maps, ParentBinariesMap)
+	}
+	if BPFProcScanEnabled() {
+		maps = append(maps, BpfProcScanMap)
 	}
 	if config.EnableV511Progs() {
 		maps = append(maps, RodataConfigMap)
