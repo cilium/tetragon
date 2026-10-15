@@ -6,6 +6,27 @@
 #include "types/basic.h"
 #include "caller_filter.h"
 
+#ifdef __LARGE_BPF_PROG
+volatile const __u32 HAS_MATCH_PIDS = 1;
+volatile const __u32 HAS_MATCH_NAMESPACES = 1;
+volatile const __u32 HAS_MATCH_CAPABILITIES = 1;
+volatile const __u32 HAS_MATCH_NAMESPACE_CHANGES = 1;
+volatile const __u32 HAS_MATCH_CAPABILITY_CHANGES = 1;
+volatile const __u32 HAS_MATCH_BINARIES = 1;
+volatile const __u32 HAS_MATCH_PARENT_BINARIES = 1;
+volatile const __u32 HAS_MATCH_CMD_ARGS = 1;
+volatile const __u32 HAS_MATCH_WORKLOADS = 1;
+volatile const __u32 HAS_MATCH_USER_CALLERS = 1;
+#else
+#define HAS_MATCH_PIDS		     1
+#define HAS_MATCH_NAMESPACES	     1
+#define HAS_MATCH_CAPABILITIES	     1
+#define HAS_MATCH_NAMESPACE_CHANGES  1
+#define HAS_MATCH_CAPABILITY_CHANGES 1
+#define HAS_MATCH_BINARIES	     1
+#define HAS_MATCH_WORKLOADS	     1
+#endif
+
 /**
  * Process filters (see generic_process_filter)
  */
@@ -639,14 +660,18 @@ FUNC_INLINE int
 selector_process_filter_1(__u32 *f, __u32 index, struct execve_map_value *enter)
 {
 	/* Do workload filter first for selector index */
-	if (!match_workloads(index))
-		return PFILTER_REJECT;
+	if (HAS_MATCH_WORKLOADS) {
+		if (!match_workloads(index))
+			return PFILTER_REJECT;
+	}
 
-	if (!match_binaries(index, enter, &enter->bin))
-		return PFILTER_REJECT;
+	if (HAS_MATCH_BINARIES) {
+		if (!match_binaries(index, enter, &enter->bin))
+			return PFILTER_REJECT;
+	}
 
 #ifdef __LARGE_BPF_PROG
-	if (CONFIG(PARENTS_MAP_ENABLED)) {
+	if (HAS_MATCH_PARENT_BINARIES && CONFIG(PARENTS_MAP_ENABLED)) {
 		struct binary *parent_bin = map_lookup_elem(&tg_parents_bin, &enter->key.pid);
 
 		if (parent_bin)
@@ -655,8 +680,10 @@ selector_process_filter_1(__u32 *f, __u32 index, struct execve_map_value *enter)
 				return PFILTER_REJECT;
 	}
 
-	if (!match_cmd_args((__u8 *)f, index, &enter->args))
-		return PFILTER_REJECT;
+	if (HAS_MATCH_CMD_ARGS) {
+		if (!match_cmd_args((__u8 *)f, index, &enter->args))
+			return PFILTER_REJECT;
+	}
 #endif
 
 	return PFILTER_ACCEPT;
@@ -705,7 +732,8 @@ selector_process_filter_2(void *ctx, __u32 *f, __u32 index, struct execve_map_va
 			.flags = pid->flags,
 			.len = pid->len,
 		};
-		res = selector_match(f, &sel, enter, msg, &process_filter_pid);
+		if (HAS_MATCH_PIDS)
+			res = selector_match(f, &sel, enter, msg, &process_filter_pid);
 		/* now index points at the end of PID filter */
 		index += ((pid->len * sizeof(pid->val[0])) & VALUES_MASK);
 	}
@@ -735,8 +763,10 @@ selector_process_filter_2(void *ctx, __u32 *f, __u32 index, struct execve_map_va
 				.flags = ns->ty,
 				.len = ns->len,
 			};
-			res = selector_match(f, &sel, enter, msg,
-					     &process_filter_namespace);
+			if (HAS_MATCH_NAMESPACES) {
+				res = selector_match(f, &sel, enter, msg,
+						     &process_filter_namespace);
+			}
 			/* now index points at the end of namespace filter */
 			index += ((ns->len * sizeof(ns->val[0])) & VALUES_MASK);
 			len -= (sizeof(struct ns_filter) + (ns->len * sizeof(ns->val[0])));
@@ -755,11 +785,13 @@ selector_process_filter_2(void *ctx, __u32 *f, __u32 index, struct execve_map_va
 	if (len > 0) {
 		caps = (struct caps_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct caps_filter); /* 20: ty, op, ns, val */
-		res = process_filter_capabilities(caps->ty, caps->op, caps->ns,
-						  caps->val, &msg->ns, &msg->caps);
+		if (HAS_MATCH_CAPABILITIES) {
+			res = process_filter_capabilities(caps->ty, caps->op, caps->ns,
+							  caps->val, &msg->ns, &msg->caps);
+			if (res == PFILTER_REJECT)
+				return res;
+		}
 	}
-	if (res == PFILTER_REJECT)
-		return res;
 	index &= INDEX_MASK; /* reduce the number of states the verifier must track */
 
 #ifdef __NS_CHANGES_FILTER
@@ -772,8 +804,10 @@ selector_process_filter_2(void *ctx, __u32 *f, __u32 index, struct execve_map_va
 	if (len > 0) {
 		nc = (struct nc_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct nc_filter); /* 8: op, val */
-		res = process_filter_namespace_change(nc->op, nc->value, enter,
-						      &msg->ns, &msg->caps, &msg->sel);
+		if (HAS_MATCH_NAMESPACE_CHANGES) {
+			res = process_filter_namespace_change(nc->op, nc->value, enter,
+							      &msg->ns, &msg->caps, &msg->sel);
+		}
 		/* now index points at the end of namespace change filter */
 	}
 	if (res == PFILTER_REJECT)
@@ -792,17 +826,21 @@ selector_process_filter_2(void *ctx, __u32 *f, __u32 index, struct execve_map_va
 	if (len > 0) {
 		caps = (struct caps_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct caps_filter); /* 20: ty, op, ns, val */
-		res = process_filter_capability_change(
-			caps->ty, caps->op, caps->ns, caps->val, &msg->ns, &msg->caps, &msg->sel);
+		if (HAS_MATCH_CAPABILITY_CHANGES) {
+			res = process_filter_capability_change(
+				caps->ty, caps->op, caps->ns, caps->val, &msg->ns, &msg->caps, &msg->sel);
+			if (res == PFILTER_REJECT)
+				return res;
+		}
 	}
-	if (res == PFILTER_REJECT)
-		return res;
 	index &= INDEX_MASK; /* reduce the number of states the verifier must track */
 #endif
 
 #ifdef __LARGE_BPF_PROG
-	if (generic_filter_caller(ctx, msg, f, index) == CALLER_FILTER_REJECT)
-		return PFILTER_REJECT;
+	if (HAS_MATCH_USER_CALLERS) {
+		if (generic_filter_caller(ctx, msg, f, index) == CALLER_FILTER_REJECT)
+			return PFILTER_REJECT;
+	}
 #endif
 
 	return res;
