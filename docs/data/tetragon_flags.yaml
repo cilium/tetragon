@@ -226,9 +226,11 @@ options:
       usage: Enable parents_map for matchParentBinaries selector
     - name: parents-map-entries
       default_value: "0"
-      usage: Set entries for parents_map table (default 32768)
+      usage: |
+        Set entries for parents_map table (default 32768). Unused on v5.11 and v6.1 bpf objects
     - name: parents-map-size
-      usage: Set size for parents_map table (allows K/M/G suffix)
+      usage: |
+        Set size for parents_map table (allows K/M/G suffix). Unused on v5.11 and v6.1 bpf objects
     - name: persist-grpc-policies
       default_value: "false"
       usage: |
