@@ -35,6 +35,7 @@ const (
 	KeyDisableProcessCache    = "disable-process-cache"
 	KeyDataCacheSize          = "data-cache-size"
 	KeyDeletedPodCacheSize    = "deleted-pod-cache-size"
+	KeyMetricsBinaryCacheSize = "metrics-binary-cache-size"
 	KeyProcessCacheGCInterval = "process-cache-gc-interval"
 	KeyForceSmallProgs        = "force-small-progs"
 	KeyForceLargeProgs        = "force-large-progs"
@@ -264,6 +265,7 @@ func ReadAndSetFlags() error {
 	Config.DisableProcessCache = viper.GetBool(KeyDisableProcessCache)
 	Config.DataCacheSize = viper.GetInt(KeyDataCacheSize)
 	Config.DeletedPodCacheSize = viper.GetInt(KeyDeletedPodCacheSize)
+	Config.MetricsBinaryCacheSize = viper.GetInt(KeyMetricsBinaryCacheSize)
 	Config.ProcessCacheGCInterval = viper.GetDuration(KeyProcessCacheGCInterval)
 
 	if Config.ProcessCacheGCInterval <= 0 {
@@ -526,6 +528,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyDisableProcessCache, false, "Disable process cache")
 	flags.Int(KeyDataCacheSize, 1024, "Size of the data events cache")
 	flags.Int(KeyDeletedPodCacheSize, constants.WatcherDeletedPodCacheSize, "Size of the deleted pod cache")
+	flags.Int(KeyMetricsBinaryCacheSize, constants.MetricsBinaryCacheSize, "Maximum distinct binary label values kept in process metrics (0 = unbounded)")
 	flags.Duration(KeyProcessCacheGCInterval, defaults.DefaultProcessCacheGCInterval, "Time between checking the process cache for old entries")
 	flags.Bool(KeyForceSmallProgs, false, "Force loading small programs, even in kernels with >= 5.3 versions")
 	flags.Bool(KeyForceLargeProgs, false, "Force loading large programs, even in kernels with < 5.3 versions")

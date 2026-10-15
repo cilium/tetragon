@@ -5,4 +5,5 @@ package constants
 
 const (
 	WatcherDeletedPodCacheSize = 1024
+	MetricsBinaryCacheSize     = 1024
 )
