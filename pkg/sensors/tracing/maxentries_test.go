@@ -187,153 +187,6 @@ spec:
 `)
 	})
 
-	t.Run("ratelimit_map", func(t *testing.T) {
-		run(t, []testMap{
-			{"fdinstall_map", 1},
-			{"enforcer_data", 1},
-			{"stack_trace_map", 1},
-			{"ratelimit_map", ratelimitMapMaxEntries},
-			{"override_tasks", 1},
-		}, `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "process-creds-changed"
-spec:
-  kprobes:
-  - call: "commit_creds"
-    syscall: false
-    args:
-    - index: 0  # The new credentials to apply
-      type: "cred"
-    selectors:
-      - matchNamespaces:
-        - namespace: Pid
-          operator: NotIn
-          values:
-          - "host_ns"
-        matchActions:
-        - action: Post
-          rateLimit: "1m"
-`)
-	})
-
-	t.Run("ratelimit_map_lsm", func(t *testing.T) {
-		if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
-			t.Skip("skipping, BPF LSM or large programs unavailable")
-		}
-
-		run(t, []testMap{
-			{"ratelimit_map", ratelimitMapMaxEntries},
-		}, `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "lsm-ratelimit-map"
-spec:
-  lsmhooks:
-  - hook: "file_open"
-    args:
-    - index: 0
-      type: "file"
-    selectors:
-    - matchActions:
-      - action: Post
-        rateLimit: "1m"
-`)
-	})
-
-	t.Run("ratelimit_map_tracepoint", func(t *testing.T) {
-		run(t, []testMap{
-			{"ratelimit_map", ratelimitMapMaxEntries},
-		}, `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "tracepoint-ratelimit-map"
-spec:
-  tracepoints:
-  - subsystem: "syscalls"
-    event: "sys_enter_lseek"
-    args:
-    - index: 5
-      type: "int32"
-    selectors:
-    - matchActions:
-      - action: Post
-        rateLimit: "1m"
-`)
-	})
-
-	t.Run("ratelimit_map_rawtp", func(t *testing.T) {
-		run(t, []testMap{
-			{"ratelimit_map", ratelimitMapMaxEntries},
-		}, `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "rawtp-ratelimit-map"
-spec:
-  tracepoints:
-  - subsystem: "raw_syscalls"
-    event: "sys_enter"
-    raw: true
-    args:
-    - index: 1
-      type: "int64"
-    selectors:
-    - matchActions:
-      - action: Post
-        rateLimit: "1m"
-`)
-	})
-
-	t.Run("ratelimit_map_uprobe", func(t *testing.T) {
-		uprobeBinary := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
-		run(t, []testMap{
-			{"ratelimit_map", ratelimitMapMaxEntries},
-		}, `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "uprobe-ratelimit-map"
-spec:
-  uprobes:
-  - path: "`+uprobeBinary+`"
-    symbols:
-    - "main"
-    selectors:
-    - matchActions:
-      - action: Post
-        rateLimit: "1m"
-`)
-	})
-
-	t.Run("ratelimit_map_usdt", func(t *testing.T) {
-		if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
-			t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
-		}
-
-		usdt := testutils.RepoRootPath("contrib/tester-progs/usdt")
-		run(t, []testMap{
-			{"ratelimit_map", ratelimitMapMaxEntries},
-		}, `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "usdt-ratelimit-map"
-spec:
-  usdts:
-  - path: "`+usdt+`"
-    provider: "test"
-    name: "usdt0"
-    selectors:
-    - matchActions:
-      - action: Post
-        rateLimit: "1m"
-`)
-	})
-
 	t.Run("enforcer_data", func(t *testing.T) {
 		if !bpf.HasSignalHelper() {
 			t.Skip("skipping enforcer test, bpf_send_signal helper not available")
@@ -417,6 +270,155 @@ spec:
       matchActions:
       - action: Override
         argError: -1
+`)
+	})
+}
+
+func TestRateLimitMaxEntries(t *testing.T) {
+	t.Run("kprobe", func(t *testing.T) {
+		run(t, []testMap{
+			{"fdinstall_map", 1},
+			{"enforcer_data", 1},
+			{"stack_trace_map", 1},
+			{"ratelimit_map", ratelimitMapMaxEntries},
+			{"override_tasks", 1},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "process-creds-changed"
+spec:
+  kprobes:
+  - call: "commit_creds"
+    syscall: false
+    args:
+    - index: 0  # The new credentials to apply
+      type: "cred"
+    selectors:
+      - matchNamespaces:
+        - namespace: Pid
+          operator: NotIn
+          values:
+          - "host_ns"
+        matchActions:
+        - action: Post
+          rateLimit: "1m"
+`)
+	})
+
+	t.Run("lsm", func(t *testing.T) {
+		if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
+			t.Skip("skipping, BPF LSM or large programs unavailable")
+		}
+
+		run(t, []testMap{
+			{"ratelimit_map", ratelimitMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm-ratelimit-map"
+spec:
+  lsmhooks:
+  - hook: "file_open"
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchActions:
+      - action: Post
+        rateLimit: "1m"
+`)
+	})
+
+	t.Run("tracepoint", func(t *testing.T) {
+		run(t, []testMap{
+			{"ratelimit_map", ratelimitMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tracepoint-ratelimit-map"
+spec:
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+    args:
+    - index: 5
+      type: "int32"
+    selectors:
+    - matchActions:
+      - action: Post
+        rateLimit: "1m"
+`)
+	})
+
+	t.Run("rawtp", func(t *testing.T) {
+		run(t, []testMap{
+			{"ratelimit_map", ratelimitMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "rawtp-ratelimit-map"
+spec:
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    raw: true
+    args:
+    - index: 1
+      type: "int64"
+    selectors:
+    - matchActions:
+      - action: Post
+        rateLimit: "1m"
+`)
+	})
+
+	t.Run("uprobe", func(t *testing.T) {
+		uprobeBinary := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+		run(t, []testMap{
+			{"ratelimit_map", ratelimitMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-ratelimit-map"
+spec:
+  uprobes:
+  - path: "`+uprobeBinary+`"
+    symbols:
+    - "main"
+    selectors:
+    - matchActions:
+      - action: Post
+        rateLimit: "1m"
+`)
+	})
+
+	t.Run("usdt", func(t *testing.T) {
+		if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+			t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
+		}
+
+		usdt := testutils.RepoRootPath("contrib/tester-progs/usdt")
+		run(t, []testMap{
+			{"ratelimit_map", ratelimitMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdt-ratelimit-map"
+spec:
+  usdts:
+  - path: "`+usdt+`"
+    provider: "test"
+    name: "usdt0"
+    selectors:
+    - matchActions:
+      - action: Post
+        rateLimit: "1m"
 `)
 	})
 }
