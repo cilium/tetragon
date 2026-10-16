@@ -1501,12 +1501,12 @@ func getUprobeHeapMap(name string, userSize int, load *program.Program) *program
 
 func uprobeHeapMaps() []string {
 	return []string{
-		"process_call_heap",
-		"buffer_heap_map",
-		"string_maps_heap",
-		"string_prefix_maps_heap",
-		"string_postfix_maps_heap",
-		"ratelimit_heap",
+		"process_call_hash_heap",
+		"buffer_heap_hash_map",
+		"string_maps_hash_heap",
+		"string_prefix_maps_hash_heap",
+		"string_postfix_maps_hash_heap",
+		"ratelimit_hash_heap",
 	}
 }
 

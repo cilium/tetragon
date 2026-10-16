@@ -103,7 +103,9 @@ struct {
 	__uint(max_entries, 1); // will be resized by agent
 	__type(key, __u64);
 	__uint(value_size, STRING_MAPS_HEAP_SIZE);
-} string_maps_heap SEC(".maps");
+} string_maps_hash_heap SEC(".maps");
+
+#define string_maps_heap string_maps_hash_heap
 
 FUNC_INLINE void *string_maps_heap_get(void)
 {
@@ -170,7 +172,9 @@ struct {
 	__uint(max_entries, 1); // will be resized by agent
 	__type(key, __u64);
 	__type(value, struct string_prefix_lpm_trie);
-} string_prefix_maps_heap SEC(".maps");
+} string_prefix_maps_hash_heap SEC(".maps");
+
+#define string_prefix_maps_heap string_prefix_maps_hash_heap
 
 FUNC_INLINE void *string_prefix_maps_heap_get(void)
 {
@@ -243,7 +247,9 @@ struct {
 	__uint(max_entries, 1); // will be resized by agent
 	__type(key, __u64);
 	__type(value, struct string_postfix_lpm_trie);
-} string_postfix_maps_heap SEC(".maps");
+} string_postfix_maps_hash_heap SEC(".maps");
+
+#define string_postfix_maps_heap string_postfix_maps_hash_heap
 
 FUNC_INLINE void *string_postfix_maps_heap_get(void)
 {

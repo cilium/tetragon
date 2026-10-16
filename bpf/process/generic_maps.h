@@ -23,7 +23,9 @@ struct {
 	__uint(max_entries, 1); // will be resized by agent
 	__type(key, heap_key_t);
 	__type(value, struct msg_generic_kprobe);
-} process_call_heap SEC(".maps");
+} process_call_hash_heap SEC(".maps");
+
+#define process_call_heap process_call_hash_heap
 
 FUNC_INLINE heap_key_t heap_key(void)
 {

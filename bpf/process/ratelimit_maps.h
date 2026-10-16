@@ -53,7 +53,9 @@ struct {
 	__uint(max_entries, 1); // will be resized by agent
 	__type(key, __u64);
 	__type(value, __u8[sizeof(struct ratelimit_key) + 128]);
-} ratelimit_heap SEC(".maps");
+} ratelimit_hash_heap SEC(".maps");
+
+#define ratelimit_heap ratelimit_hash_heap
 
 FUNC_INLINE void *ratelimit_heap_get(void)
 {

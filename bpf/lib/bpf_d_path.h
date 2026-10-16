@@ -55,7 +55,9 @@ struct {
 	__uint(max_entries, 1); // will be resized by agent
 	__type(key, __u64);
 	__type(value, struct buffer_heap_map_value);
-} buffer_heap_map SEC(".maps");
+} buffer_heap_hash_map SEC(".maps");
+
+#define buffer_heap_map buffer_heap_hash_map
 
 FUNC_INLINE void *buffer_heap_map_get(void)
 {
