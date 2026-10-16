@@ -691,22 +691,11 @@ spec:` + opts + `
 		sensors.UnloadSensors(sensi)
 	}
 
-	// all the per-process heap maps resized by the uprobe-heap-size option
-	// (see getUprobeHeapMap in genericusdt.go)
-	heapMapNames := []string{
-		"process_call_heap",
-		"buffer_heap_map",
-		"string_maps_heap",
-		"string_prefix_maps_heap",
-		"string_postfix_maps_heap",
-		"ratelimit_heap",
-	}
-
 	findHeapMaps := func(sens []*sensors.Sensor) map[string]*program.Map {
 		maps := make(map[string]*program.Map)
 		for _, s := range sens {
 			for _, m := range s.Maps {
-				for _, name := range heapMapNames {
+				for _, name := range uprobeHeapMaps() {
 					if m.Name == name {
 						maps[name] = m
 					}
@@ -729,7 +718,7 @@ spec:` + opts + `
 		defer unloadSensors(sens)
 
 		mapsByName := findHeapMaps(sens)
-		for _, name := range heapMapNames {
+		for _, name := range uprobeHeapMaps() {
 			m := mapsByName[name]
 			require.NotNil(t, m, "%s map not found in sensor", name)
 			assert.Equal(t, name, m.PinPath)
@@ -747,7 +736,7 @@ spec:` + opts + `
 		defer unloadSensors(sens)
 
 		mapsByName := findHeapMaps(sens)
-		for _, name := range heapMapNames {
+		for _, name := range uprobeHeapMaps() {
 			m := mapsByName[name]
 			require.NotNil(t, m, "%s map not found in sensor", name)
 			assert.NotEqual(t, name, m.PinPath)
