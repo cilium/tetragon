@@ -11,7 +11,7 @@ require (
 	github.com/cilium/tetragon v1.7.1
 	google.golang.org/protobuf v1.36.12
 	k8s.io/code-generator v0.37.1
-	sigs.k8s.io/controller-tools v0.22.0
+	sigs.k8s.io/controller-tools v0.23.0
 )
 
 require (

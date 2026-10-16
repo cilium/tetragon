@@ -98,6 +98,13 @@ type Generator struct {
 	// See https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#field-pruning
 	// for more information about field pruning and v1beta1 resources compatibility.
 	DeprecatedV1beta1CompatibilityPreserveUnknownFields *bool `marker:",optional"`
+
+	// OmitToolVersion omits the controller-gen version annotation from the generated CRD.
+	//
+	// When set, the controller-gen.kubebuilder.io/version annotation is not written
+	// to the CRD's metadata. This only affects that annotation; the generated schema
+	// is unchanged. Left unspecified, the default is false.
+	OmitToolVersion *bool `marker:",optional"`
 }
 
 func (Generator) CheckFilter() loader.NodeFilter {
@@ -180,7 +187,9 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 	for _, groupKind := range kubeKinds {
 		parser.NeedCRDFor(groupKind, g.MaxDescLen)
 		crdRaw := parser.CustomResourceDefinitions[groupKind]
-		addAttribution(&crdRaw)
+		if g.OmitToolVersion == nil || !*g.OmitToolVersion {
+			addAttribution(&crdRaw)
+		}
 
 		// Prevent the top level metadata for the CRD to be generate regardless of the intention in the arguments
 		FixTopLevelMetadata(crdRaw)
