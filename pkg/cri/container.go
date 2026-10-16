@@ -133,3 +133,31 @@ func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerI
 
 	return ParseCgroupsPath(ret)
 }
+
+// ContainerPid returns the PID of the container's init process, as numbered
+// in the runtime's PID namespace.
+func ContainerPid(ctx context.Context, cli criapi.RuntimeServiceClient, containerID string) (uint32, error) {
+	res, err := cli.ContainerStatus(ctx, &criapi.ContainerStatusRequest{
+		ContainerId: containerID,
+		Verbose:     true,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	infoJSON, ok := res.GetInfo()["info"]
+	if !ok {
+		return 0, errors.New("could not find info")
+	}
+
+	var info struct {
+		Pid uint32 `json:"pid"`
+	}
+	if err := json.Unmarshal([]byte(infoJSON), &info); err != nil {
+		return 0, fmt.Errorf("failed to parse info: %w", err)
+	}
+	if info.Pid == 0 {
+		return 0, errors.New("container has no running process")
+	}
+	return info.Pid, nil
+}

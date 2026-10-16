@@ -57,6 +57,10 @@ func (s *disabled) RegisterPodHandlers(_ events.PodEventSource) error {
 	return nil
 }
 
+func (s *disabled) WatchPolicyContainers(polID PolicyID, fn func(ContainerChange)) (func(), error) {
+	return nil, errors.New("policyfilter is disabled")
+}
+
 func (s *disabled) Close() error {
 	return nil
 }

@@ -1,0 +1,8 @@
+# Helm values for the uprobe resolvePathInContainer e2e test. Without runtime
+# hooks, container roots are found through CRI.
+tetragon:
+  exportAllowList: "" # export all events for the checker
+  enablePolicyFilter: true
+  cri:
+    enabled: true
+    socketHostPath: /run/containerd/containerd.sock

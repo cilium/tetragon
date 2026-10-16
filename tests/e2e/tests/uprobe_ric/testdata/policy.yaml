@@ -1,0 +1,20 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-ric"
+spec:
+  podSelector:
+    matchLabels:
+      app: uprobe-ric
+  # These paths exist only inside the workloads' image, so the policy loads
+  # only because they are resolved per container rather than in the agent's
+  # namespace.
+  uprobes:
+  - path: "/usr/bin/uprobe-simple"
+    symbols:
+    - "pizza"
+    resolvePathInContainer: true
+  - path: "/usr/bin/uprobe-burger"
+    symbols:
+    - "burger"
+    resolvePathInContainer: true

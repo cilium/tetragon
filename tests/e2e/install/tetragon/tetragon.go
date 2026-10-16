@@ -157,11 +157,8 @@ func Install(opts ...Option) env.Func {
 				continue
 			}
 
-			clusterName := helpers.GetTempKindClusterName(ctx)
-			if flags.Opts.Minikube {
-				// If we are running against minkube, we don't care about the output of GetTempKindClusterName.
-				clusterName = "minikube"
-			} else if clusterName == "" {
+			clusterName := helpers.ImageLoadCluster(ctx)
+			if clusterName == "" {
 				continue
 			}
 
