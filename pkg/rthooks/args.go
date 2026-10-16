@@ -58,7 +58,7 @@ func (arg *CreateContainerArg) CgroupID() (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	cgID, err := cgroups.GetCgroupIDFromSubCgroup(path)
+	cgID, err := cgroups.GetContainerCgroupID(path)
 	if err != nil {
 		return 0, err
 	}

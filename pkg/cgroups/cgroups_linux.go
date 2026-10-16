@@ -827,3 +827,17 @@ func GetCgroupIDFromSubCgroup(p string) (uint64, error) {
 
 	return GetCgroupIdFromPath(p)
 }
+
+// GetContainerCgroupID returns the cgroup id to associate with a container whose (host) cgroup
+// path is p.
+//
+// If cgroup tracking is enabled, cgidmap registers p as a tracker cgroup and BPF maps every cgroup
+// under it (including the crun subgroup) to the cgroup id of p. In this case, we return the id of p
+// so that it matches the ids that BPF uses. Otherwise, we use GetCgroupIDFromSubCgroup.
+func GetContainerCgroupID(p string) (uint64, error) {
+	// NB: tracker cgroups are only registered by cgidmap
+	if option.Config.EnableCgIDmap && option.Config.EnableCgTrackerID {
+		return GetCgroupIdFromPath(p)
+	}
+	return GetCgroupIDFromSubCgroup(p)
+}
