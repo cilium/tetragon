@@ -113,6 +113,7 @@ CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o bpf_cgtracke
 CGROUP += bpf_cgroup_mkdir_v511.o bpf_cgroup_rmdir_v511.o bpf_cgroup_release_v511.o
 BPFTEST = bpf_lseek.o
 BPFTEST += bpf_lseek_v511.o
+GLOB = lsm_test_glob.o 
 
 OBJSDIR         := objs/
 DEPSDIR         := deps/
@@ -127,7 +128,8 @@ PROCESSOBJ    := $(addprefix $(OBJSDIR),$(PROCESS))
 CGROUPOBJ     := $(addprefix $(OBJSDIR),$(CGROUP))
 TESTOBJ       := $(addprefix $(OBJSDIR),$(BPFTEST))
 ALIGNCHECKEROBJ := $(addprefix $(OBJSDIR),$(ALIGNCHECKER))
-OBJS          := $(PROCESSOBJ) $(CGROUPOBJ) $(TESTOBJ) $(NOPOBJ) $(ALIGNCHECKEROBJ)
+GLOBOBJ       := $(addprefix $(OBJSDIR),$(GLOB))
+OBJS          := $(PROCESSOBJ) $(CGROUPOBJ) $(TESTOBJ) $(NOPOBJ) $(ALIGNCHECKEROBJ) $(GLOBOBJ)
 DEPS          := $(patsubst $(OBJSDIR)%.o,$(DEPSDIR)%.d,$(OBJS))
 
 all: $(OBJS) $(DEPS)
@@ -242,6 +244,8 @@ $(DEPSDIR)%.d: $(ALIGNCHECKERDIR)%.c
 $(DEPSDIR)%.d: $(PROCESSDIR)%.c
 	$(rule_d)
 $(DEPSDIR)%.d: $(BPFTESTDIR)%.c
+	$(rule_d)
+$(DEPSDIR)%.d: $(GLOBDIR)%.c
 	$(rule_d)
 $(DEPSDIR)%.d: $(CGROUPDIR)%.c
 	$(rule_d)
