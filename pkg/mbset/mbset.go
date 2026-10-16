@@ -103,7 +103,9 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 		var val bitSet
 
 		err := mbsetMap.Lookup(path, &val)
-		if err != nil {
+		if errors.Is(err, ebpf.ErrKeyNotExist) {
+			continue
+		} else if err != nil {
 			return fmt.Errorf("failed to lookup mbset map: %w", err)
 		}
 
