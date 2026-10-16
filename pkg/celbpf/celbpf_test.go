@@ -276,7 +276,7 @@ func evalCELBPF(t *testing.T, expr string, hookArgs []any, expectedVal uint32) {
 	require.NoError(t, err, "update map value")
 
 	fnName := "myfn"
-	insns, _, err := CompileFn(fnName, expr, args, nil)
+	insns, _, err := CompileFn(fnName, expr, args, nil, false)
 	require.NoError(t, err)
 	prelude := asm.Instructions{
 		// R1 map

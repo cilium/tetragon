@@ -8,10 +8,13 @@ package selectors
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
 
+	"github.com/cilium/tetragon/pkg/api/processapi"
+	tasm "github.com/cilium/tetragon/pkg/asm"
 	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
@@ -45,13 +48,33 @@ func addMatchCelExpr(
 	idx := nExprs
 	celExpr := arg.Values[0]
 
-	insts, arg_indexes, err := celbpf.CompileFn(CelExprFuncName(idx), celExpr, sig, data)
+	insts, arg_indexes, err := celbpf.CompileFn(CelExprFuncName(idx), celExpr, sig, data, false)
 	if err != nil {
 		return nil, err
 	}
 
 	*exprs = append(*exprs, insts)
 	return arg_indexes, nil
+}
+
+func addRegCelExpr(
+	exprs *CelExprFunctions,
+	expr string,
+	sig, data []v1alpha1.KProbeArg,
+) (int, error) {
+	if !celbpf.Supported() {
+		return 0, errors.New("celbpf not supported in this kernel")
+	}
+	idx := len(*exprs)
+	if idx >= MaxCelExprFunctions {
+		return 0, fmt.Errorf("no more than %d CelExpr allowed per policy", MaxCelExprFunctions)
+	}
+	insts, _, err := celbpf.CompileFn(CelExprFuncName(idx), expr, sig, data, true)
+	if err != nil {
+		return 0, err
+	}
+	*exprs = append(*exprs, insts)
+	return idx, nil
 }
 
 func parseMatchCelExpr(
@@ -80,6 +103,35 @@ func parseMatchCelExpr(
 	return nil
 }
 
+func parseCelAssignment(
+	k *KernelSelectorState,
+	reg, expr string,
+	args, data []v1alpha1.KProbeArg,
+) (processapi.RegAssignment, error) {
+	if reg == "" {
+		return processapi.RegAssignment{},
+			fmt.Errorf("cel assignment has no destination register: 'cel(%s)'", expr)
+	}
+
+	dst, dstSize, ok := tasm.RegOffsetSize(reg)
+	if !ok {
+		return processapi.RegAssignment{},
+			fmt.Errorf("failed to parse register '%s'", reg)
+	}
+
+	idx, err := addRegCelExpr(k.CelExprFunctions(), expr, args, data)
+	if err != nil {
+		return processapi.RegAssignment{}, err
+	}
+
+	return processapi.RegAssignment{
+		Type:    tasm.ASM_ASSIGNMENT_TYPE_CEL,
+		Dst:     dst,
+		DstSize: dstSize,
+		Off:     uint64(idx),
+	}, nil
+}
+
 func removeCelFunction(prog *ebpf.ProgramSpec) {
 	newInstructions := make(asm.Instructions, 0, len(prog.Instructions))
 	skip := false
@@ -103,6 +155,31 @@ func removeCelFunction(prog *ebpf.ProgramSpec) {
 		newInstructions = append(newInstructions, ins)
 	}
 	prog.Instructions = newInstructions
+}
+
+func CutCelAssignment(str string) (reg, expr string, ok bool, err error) {
+	dst, src, found := strings.Cut(str, "=")
+
+	if !found {
+		return "", "", false, nil
+	}
+
+	src = strings.TrimSpace(src)
+	celPart, isCel := strings.CutPrefix(src, "cel")
+
+	if !isCel {
+		return "", "", false, nil
+	}
+
+	celPart = strings.TrimSpace(celPart)
+
+	// Strip the outer parentheses so only the CEL expression is returned
+	if !strings.HasPrefix(celPart, "(") || !strings.HasSuffix(celPart, ")") {
+		return "", "", false, fmt.Errorf("missing cel enclosure parentheses '%s'", celPart)
+	}
+	celPart = strings.TrimSpace(celPart[1 : len(celPart)-1])
+
+	return strings.TrimSpace(dst), celPart, true, nil
 }
 
 func (cefs CelExprFunctions) RewriteProg(prog *ebpf.ProgramSpec) error {

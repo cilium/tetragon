@@ -9,16 +9,16 @@
  */
 
 #if defined(__LARGE_BPF_PROG) && (defined(GENERIC_KPROBE) || defined(GENERIC_UPROBE))
-int cel_expr_0(long *argsoff, char *args);
-int cel_expr_1(long *argsoff, char *args);
-int cel_expr_2(long *argsoff, char *args);
-int cel_expr_3(long *argsoff, char *args);
-int cel_expr_4(long *argsoff, char *args);
-int cel_expr_5(long *argsoff, char *args);
-int cel_expr_6(long *argsoff, char *args);
-int cel_expr_7(long *argsoff, char *args);
+__s64 cel_expr_0(long *argsoff, char *args);
+__s64 cel_expr_1(long *argsoff, char *args);
+__s64 cel_expr_2(long *argsoff, char *args);
+__s64 cel_expr_3(long *argsoff, char *args);
+__s64 cel_expr_4(long *argsoff, char *args);
+__s64 cel_expr_5(long *argsoff, char *args);
+__s64 cel_expr_6(long *argsoff, char *args);
+__s64 cel_expr_7(long *argsoff, char *args);
 
-static __attribute__((noinline)) __attribute__((__unused__)) int cel_expr(int id, long *argsoff, char *args)
+static __attribute__((noinline)) __attribute__((__unused__)) __s64 cel_expr(int id, long *argsoff, char *args)
 {
 	switch (id) {
 	case 0:
@@ -43,7 +43,7 @@ static __attribute__((noinline)) __attribute__((__unused__)) int cel_expr(int id
 	}
 }
 #else
-FUNC_INLINE int
+FUNC_INLINE __s64
 cel_expr(int id, long *argsoff, char *args)
 {
 	return 0;

@@ -263,6 +263,9 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 	if entry := uprobeEntry.loadArgs.selectors.entry; entry != nil {
 		if celbpf.EnabledInBPF() {
 			rewriteProg["generic_uprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
+			if config.EnableV61Progs() {
+				rewriteProg["generic_uprobe_actions"] = entry.CelExprFunctions().RewriteProg
+			}
 		}
 	}
 	load.RewriteProg = rewriteProg
@@ -379,6 +382,9 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 		if entry := uprobeEntry.loadArgs.selectors.entry; entry != nil {
 			if celbpf.EnabledInBPF() {
 				rewriteProg["generic_uprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
+				if config.EnableV61Progs() {
+					rewriteProg["generic_uprobe_actions"] = entry.CelExprFunctions().RewriteProg
+				}
 			}
 		}
 
