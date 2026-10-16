@@ -169,6 +169,8 @@ func policyTestCmd() *cobra.Command {
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&mountHostPath, "mount-host-path", "", "host path to mount inside VM")
 	cmd.Flags().StringVar(&cnf.btfFile, "btf-file", "", "BTF file to use.")
+	cmd.Flags().StringVar(&cnf.logFile, "log-file", "", "use a tetragon log file.")
+	cmd.Flags().BoolVar(&cnf.bpfDebug, "bpf-debug", false, "enable all bpf debug areas and forward to tetragon log.")
 	cmd.Flags().StringToStringVar(&cnf.policytestExtraArgs, "policytest-extra-args", nil, "`tetra policytest` extra arguments (--key=val)")
 	return cmd
 }
@@ -252,9 +254,16 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 	if ptConf.tetragonInstallDir != "" && ptConf.tetragonTarball != "" {
 		return nil, errors.New("you need to define exactly one of --tetragon-install-dir and --tetragon-tarball")
 	} else if ptConf.tetragonInstallDir != "" {
-		additionalArgs := ""
+		var additionalArgs []string
 		if ptConf.btfFile != "" {
-			additionalArgs = "--btf " + vmBTFFile
+			additionalArgs = append(additionalArgs, "--btf "+vmBTFFile)
+		}
+		if ptConf.bpfDebug {
+			additionalArgs = append(additionalArgs, "--bpf-debug-area")
+			additionalArgs = append(additionalArgs, "--bpf-debug-log")
+		}
+		if ptConf.logFile != "" {
+			additionalArgs = append(additionalArgs, "--log-file "+ptConf.logFile)
 		}
 		ret = append(ret,
 			// install.sh

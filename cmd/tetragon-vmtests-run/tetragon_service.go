@@ -7,6 +7,7 @@ package main
 
 import (
 	"os"
+	"strings"
 	"text/template"
 )
 
@@ -32,7 +33,7 @@ RestartSec=5
 WantedBy=multi-user.target
 `
 
-func makeTetragonServiceFile(fname, additionalArgs string) (string, error) {
+func makeTetragonServiceFile(fname string, additionalArgs []string) (string, error) {
 	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE, 0722)
 	if err != nil {
 		return "", err
@@ -42,7 +43,7 @@ func makeTetragonServiceFile(fname, additionalArgs string) (string, error) {
 	data := map[string]string{
 		"tetragonBinary": "/usr/local/bin/tetragon",
 		"tetragonBpfLib": "/usr/local/lib/tetragon/bpf",
-		"additionalArgs": additionalArgs,
+		"additionalArgs": strings.Join(additionalArgs, " "),
 	}
 
 	t := template.Must(template.New("tetragon-service").Parse(tetragonServiceTemplate))
@@ -52,7 +53,7 @@ func makeTetragonServiceFile(fname, additionalArgs string) (string, error) {
 	return fname, nil
 }
 
-func mustMakeTetragonServiceFile(fname, additionalArgs string) string {
+func mustMakeTetragonServiceFile(fname string, additionalArgs []string) string {
 	fname, err := makeTetragonServiceFile(fname, additionalArgs)
 	if err != nil {
 		panic(err)
