@@ -65,7 +65,7 @@ PROCESS += bpf_generic_kprobe_v53.o bpf_generic_retkprobe_v53.o \
 
 # v5.11
 # base sensor
-PROCESS += bpf_execve_event_v511.o bpf_exit_v511.o bpf_fork_v511.o
+PROCESS += bpf_execve_event_v511.o bpf_exit_v511.o bpf_fork_v511.o bpf_execve_bprm_commit_creds_v511.o
 #generic sensors
 PROCESS += bpf_loader_v511.o
 # generic probes
@@ -86,7 +86,7 @@ PROCESS += bpf_generic_lsm_core_v511.o bpf_generic_lsm_output_v511.o \
 
 # v6.1
 # base sensor
-PROCESS += bpf_execve_event_v61.o
+PROCESS += bpf_execve_event_v61.o bpf_exit_v61.o bpf_execve_bprm_commit_creds_v61.o
 # generic probes
 PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 	   bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \
@@ -145,8 +145,8 @@ $(DEPSDIR):
 # Define extra CFLAGS for each variant
 CFLAGS_v310 = -D__RHEL7_BPF_PROG
 CFLAGS_v53  = -D__LARGE_BPF_PROG
-CFLAGS_v511 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG
-CFLAGS_v61  = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG
+CFLAGS_v511 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__TASK_STORAGE
+CFLAGS_v61  = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG -D__TASK_STORAGE
 
 # Define extra CFLAGS for objects
 CFLAGS_bpf_enforcer.o           = -D__BPF_OVERRIDE_RETURN

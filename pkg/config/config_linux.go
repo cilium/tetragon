@@ -42,10 +42,21 @@ func ExecUpdateObj() string {
 func ExitObj() string {
 	if EnableRhel7Progs() {
 		return "bpf_exit_v310.o"
+	} else if EnableV61Progs() {
+		return "bpf_exit_v61.o"
 	} else if EnableV511Progs() {
 		return "bpf_exit_v511.o"
 	}
 	return "bpf_exit.o"
+}
+
+func ExecveBprmCommitObj() string {
+	if EnableV61Progs() {
+		return "bpf_execve_bprm_commit_creds_v61.o"
+	} else if EnableV511Progs() {
+		return "bpf_execve_bprm_commit_creds_v511.o"
+	}
+	return "bpf_execve_bprm_commit_creds.o"
 }
 
 func ForkObj() string {

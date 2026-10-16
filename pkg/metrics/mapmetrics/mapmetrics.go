@@ -10,7 +10,7 @@ import (
 
 var MapLabel = metrics.ConstrainedLabel{
 	Name: "map",
-	// These are maps which usage we monitor, not maps from which we read
+	// These are maps whose usage we monitor, not maps from which we read
 	// metrics. Metrics are read from separate maps suffixed with "_stats".
 	Values: []string{"execve_map", "tg_execve_joined_info_map"},
 }
@@ -21,6 +21,8 @@ var (
 		"The total number of in-use entries per map.",
 		nil, []metrics.ConstrainedLabel{MapLabel}, nil,
 	))
+	// On v5.11 and v6.1 bpf objects, this will always be 0 for tg_execve_joined_info_map
+	// since it is stored as task storage.
 	MapCapacity = metrics.MustNewCustomGauge(metrics.NewOpts(
 		consts.MetricsNamespace, "", "map_capacity",
 		"Capacity of a BPF map. Expected to be constant.",

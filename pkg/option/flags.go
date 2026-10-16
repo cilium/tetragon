@@ -651,8 +651,8 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyExecveMapSize, "", "Set size for execve_map table (allows K/M/G suffix)")
 
 	flags.Bool(KeyParentsMapEnabled, false, "Enable parents_map for matchParentBinaries selector")
-	flags.Int(KeyParentsMapEntries, 0, "Set entries for parents_map table (default 32768)")
-	flags.String(KeyParentsMapSize, "", "Set size for parents_map table (allows K/M/G suffix)")
+	flags.Int(KeyParentsMapEntries, 0, "Set entries for parents_map table (default 32768). Unused on v5.11 and v6.1 bpf objects")
+	flags.String(KeyParentsMapSize, "", "Set size for parents_map table (allows K/M/G suffix). Unused on v5.11 and v6.1 bpf objects")
 
 	flags.Int(KeyRetprobesCacheSize, defaults.DefaultRetprobesCacheSize, "Set {k,u}retprobes events cache maximum size")
 

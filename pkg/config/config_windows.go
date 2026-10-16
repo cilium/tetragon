@@ -16,6 +16,10 @@ func ExecUpdateObj() string {
 	return ""
 }
 
+func ExecveBprmCommitObj() string {
+	return ""
+}
+
 func ForkObj() string {
 	return ""
 }
