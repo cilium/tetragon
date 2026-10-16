@@ -149,6 +149,13 @@ type TracingPolicySpec struct {
 	// SelectorsMacros is used to define selectors macros, which can be used
 	// in probes/hooks selectors by their names.
 	SelectorsMacros map[string]KProbeSelector `json:"selectorsMacros,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// A list of state objects shared by all probes in the policy. The entries
+	// must be unique and there can be at most 10 entries.
+	// +kubebuilder:validation:MaxItems=10
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="state names must be unique"
+	States []State `json:"state,omitempty"`
 }
 
 func (tp *TracingPolicy) TpName() string {

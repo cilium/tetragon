@@ -109,6 +109,7 @@ type addUsdtIn struct {
 	sensorPath        string
 	policyName        string
 	policyID          policyfilter.PolicyID
+	stateIDs          map[string]uint32
 	useMulti          bool
 	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32
@@ -153,6 +154,7 @@ func createGenericUsdtSensor(
 		sensorPath: name,
 		policyName: polInfo.name,
 		policyID:   polInfo.policyID,
+		stateIDs:   polInfo.stateIDs,
 		useMulti:   !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
 	}
 	if in.useMulti {
@@ -296,6 +298,9 @@ func createMultiUsdtSensor(
 	}
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
+	if len(polInfo.stateIDs) != 0 {
+		maps = append(maps, polInfo.policyStateMap(load))
+	}
 
 	return progs, maps, nil
 }
@@ -372,6 +377,9 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	}
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
+	if len(polInfo.stateIDs) != 0 {
+		maps = append(maps, polInfo.policyStateMap(load))
+	}
 
 	return progs, maps
 }
@@ -425,6 +433,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		Data:       []v1alpha1.KProbeArg{},
 		BinaryPath: spec.Path,
 		Maps:       in.selMaps,
+		StateIDs:   in.stateIDs,
 	})
 	if err != nil {
 		return nil, err

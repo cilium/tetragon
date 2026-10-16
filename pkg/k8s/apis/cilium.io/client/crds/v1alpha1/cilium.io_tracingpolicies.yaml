@@ -545,6 +545,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -623,6 +624,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -1077,6 +1094,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1155,6 +1173,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -1240,6 +1274,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers
@@ -1978,6 +2038,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2056,6 +2117,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -2510,6 +2587,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2588,6 +2666,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -2673,6 +2767,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers
@@ -3133,6 +3253,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -3211,6 +3332,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -3665,6 +3802,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -3743,6 +3881,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -3828,6 +3982,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers
@@ -4250,6 +4430,7 @@ spec:
                             - NotifyEnforcer
                             - CleanupEnforcerNotification
                             - Set
+                            - UpdateState
                             type: string
                           argError:
                             description: error value for override action
@@ -4327,6 +4508,22 @@ spec:
                               then rate limiting applies per process; if "global" is selected then rate
                               limiting applies regardless of which process or thread caused the action.
                               Only valid with the post action and with a rateLimit specified.
+                            type: string
+                          stateName:
+                            description: |-
+                              Only valid with the UpdateState action.
+                              The state object to update. Must reference a previously defined state object.
+                            type: string
+                          stateNewValue:
+                            description: Only valid with the Set operator of the UpdateState
+                              action.
+                            pattern: ^[0-9]+$
+                            type: string
+                          stateUpdateOperator:
+                            description: Only valid with the UpdateState action.
+                            enum:
+                            - Set
+                            - Delete
                             type: string
                           userStackTrace:
                             description: Enable user stack trace export. Only valid
@@ -4775,6 +4972,7 @@ spec:
                             - NotifyEnforcer
                             - CleanupEnforcerNotification
                             - Set
+                            - UpdateState
                             type: string
                           argError:
                             description: error value for override action
@@ -4852,6 +5050,22 @@ spec:
                               then rate limiting applies per process; if "global" is selected then rate
                               limiting applies regardless of which process or thread caused the action.
                               Only valid with the post action and with a rateLimit specified.
+                            type: string
+                          stateName:
+                            description: |-
+                              Only valid with the UpdateState action.
+                              The state object to update. Must reference a previously defined state object.
+                            type: string
+                          stateNewValue:
+                            description: Only valid with the Set operator of the UpdateState
+                              action.
+                            pattern: ^[0-9]+$
+                            type: string
+                          stateUpdateOperator:
+                            description: Only valid with the UpdateState action.
+                            enum:
+                            - Set
+                            - Delete
                             type: string
                           userStackTrace:
                             description: Enable user stack trace export. Only valid
@@ -4937,6 +5151,30 @@ spec:
                         required:
                         - operator
                         type: object
+                      type: array
+                    matchStates:
+                      description: State predicates to match. MatchStates are ANDed.
+                      items:
+                        properties:
+                          name:
+                            description: Name of the state object to match. Must reference
+                              a previously defined state object.
+                            type: string
+                          operator:
+                            enum:
+                            - Equal
+                            - NotEqual
+                            type: string
+                          value:
+                            description: Value to compare against the state value.
+                            pattern: ^[0-9]+$
+                            type: string
+                        required:
+                        - name
+                        - operator
+                        - value
+                        type: object
+                      maxItems: 4
                       type: array
                     matchUserCallers:
                       description: A list of caller filters. MatchUserCallers are
@@ -5164,6 +5402,28 @@ spec:
                   SelectorsMacros is used to define selectors macros, which can be used
                   in probes/hooks selectors by their names.
                 type: object
+              state:
+                description: |-
+                  A list of state objects shared by all probes in the policy. The entries
+                  must be unique and there can be at most 10 entries.
+                items:
+                  properties:
+                    name:
+                      description: |-
+                        Name of the state object. Use this name to reference the state in other
+                        parts of the policy. The state value can hold u64 values.
+                      maxLength: 255
+                      minLength: 1
+                      pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+                      type: string
+                  required:
+                  - name
+                  type: object
+                maxItems: 10
+                type: array
+                x-kubernetes-validations:
+                - message: state names must be unique
+                  rule: self.all(x, self.exists_one(y, x.name == y.name))
               tracepoints:
                 description: A list of tracepoint specs.
                 items:
@@ -5349,6 +5609,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -5427,6 +5688,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -5881,6 +6158,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -5959,6 +6237,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -6044,6 +6338,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers
@@ -6745,6 +7065,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -6823,6 +7144,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -7277,6 +7614,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -7355,6 +7693,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -7440,6 +7794,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers
@@ -7882,6 +8262,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -7960,6 +8341,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -8414,6 +8811,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - UpdateState
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -8492,6 +8890,22 @@ spec:
                                     then rate limiting applies per process; if "global" is selected then rate
                                     limiting applies regardless of which process or thread caused the action.
                                     Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                stateName:
+                                  description: |-
+                                    Only valid with the UpdateState action.
+                                    The state object to update. Must reference a previously defined state object.
+                                  type: string
+                                stateNewValue:
+                                  description: Only valid with the Set operator of
+                                    the UpdateState action.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                                stateUpdateOperator:
+                                  description: Only valid with the UpdateState action.
+                                  enum:
+                                  - Set
+                                  - Delete
                                   type: string
                                 userStackTrace:
                                   description: Enable user stack trace export. Only
@@ -8577,6 +8991,32 @@ spec:
                               required:
                               - operator
                               type: object
+                            type: array
+                          matchStates:
+                            description: State predicates to match. MatchStates are
+                              ANDed.
+                            items:
+                              properties:
+                                name:
+                                  description: Name of the state object to match.
+                                    Must reference a previously defined state object.
+                                  type: string
+                                operator:
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  type: string
+                                value:
+                                  description: Value to compare against the state
+                                    value.
+                                  pattern: ^[0-9]+$
+                                  type: string
+                              required:
+                              - name
+                              - operator
+                              - value
+                              type: object
+                            maxItems: 4
                             type: array
                           matchUserCallers:
                             description: A list of caller filters. MatchUserCallers

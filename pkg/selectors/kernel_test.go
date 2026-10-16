@@ -342,6 +342,7 @@ func TestParseMatchCmdArgsRejects(t *testing.T) {
 // Test the placement of matchCmdArgs in a complete kernel selector:
 //
 //	[selector header and entry sections]
+//	[matchStates]
 //	[matchCmdArgs: length + filter offsets + filters]
 //	[matchCallers: length + filter offsets + filters]
 //	[matchArgs:    length + filter offsets]
@@ -380,8 +381,9 @@ func TestInitKernelSelectorsMatchCmdArgsLayout(t *testing.T) {
 	for offset := 12; offset < 32; offset += 4 {
 		require.Equal(t, uint32(4), readUint32(offset))
 	}
+	require.Equal(t, uint32(4), readUint32(32))
 
-	const matchCmdArgsOffset = 32
+	const matchCmdArgsOffset = 36
 	matchCmdArgsLength := readUint32(matchCmdArgsOffset)
 	require.Greater(t, matchCmdArgsLength, uint32(24))
 	require.Equal(t, uint32(24), readUint32(matchCmdArgsOffset+4))
@@ -1038,7 +1040,7 @@ func TestParseMatchAction(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // UserStackTrace = 0
 		0x00, 0x00, 0x00, 0x00, // ImaHash = 0
 	}
-	if err := ParseMatchAction(k, act1, &actionArgTable, 0); err != nil || bytes.Equal(expected1, d.e) == false {
+	if err := ParseMatchAction(k, act1, &actionArgTable, 0, nil); err != nil || bytes.Equal(expected1, d.e) == false {
 		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e, act1)
 	}
 	// This is a bit contrived because we only have single action so far
@@ -1059,9 +1061,102 @@ func TestParseMatchAction(t *testing.T) {
 	act := []v1alpha1.ActionSelector{*act1, *act2}
 	ks := &KernelSelectorState{data: KernelSelectorData{}}
 	d = &ks.data
-	if err := ParseMatchActions(ks, act, &actionArgTable, 0); err != nil || bytes.Equal(expected, d.e) == false {
+	if err := ParseMatchActions(ks, act, &actionArgTable, 0, nil); err != nil || bytes.Equal(expected, d.e) == false {
 		t.Errorf("parseMatchActions: error %v expected %v bytes %v parsing %v\n", err, expected, d.e, act)
 	}
+}
+
+func TestParseUpdateStateAction(t *testing.T) {
+	setAction := &v1alpha1.ActionSelector{
+		Action:              "UpdateState",
+		StateUpdateOperator: "Set",
+		StateName:           "state-exists",
+		StateNewValue:       "0x1020304050607080",
+	}
+	stateIDs := map[string]uint32{"state-exists": 3}
+	state := &KernelSelectorState{data: KernelSelectorData{}}
+	expectedSet := []byte{
+		0x0f, 0x00, 0x00, 0x00, // Action = "UpdateState"
+		0x00, 0x00, 0x00, 0x00, // StateUpdateOperator = "Set"
+		0x03, 0x00, 0x00, 0x00, // State ID = 3
+		0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10, // StateNewValue
+	}
+	if err := ParseMatchAction(state, setAction, nil, 0, stateIDs); err != nil || !bytes.Equal(expectedSet, state.data.e) {
+		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expectedSet, state.data.e, setAction)
+	}
+
+	deleteAction := &v1alpha1.ActionSelector{
+		Action:              "UpdateState",
+		StateUpdateOperator: "Delete",
+		StateName:           "state-exists",
+	}
+	state = &KernelSelectorState{data: KernelSelectorData{}}
+	expectedDelete := []byte{
+		0x0f, 0x00, 0x00, 0x00, // Action = "UpdateState"
+		0x01, 0x00, 0x00, 0x00, // StateUpdateOperator = "Delete"
+		0x03, 0x00, 0x00, 0x00, // State ID = 3
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // StateNewValue
+	}
+	if err := ParseMatchAction(state, deleteAction, nil, 0, stateIDs); err != nil || !bytes.Equal(expectedDelete, state.data.e) {
+		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expectedDelete, state.data.e, deleteAction)
+	}
+
+	deleteAction.StateName = "missing"
+	require.ErrorContains(t, ParseMatchAction(&KernelSelectorState{}, deleteAction, nil, 0, stateIDs), "undefined state")
+
+	deleteAction.StateName = "state-exists"
+	deleteAction.StateUpdateOperator = ""
+	require.ErrorContains(t, ParseMatchAction(&KernelSelectorState{}, deleteAction, nil, 0, stateIDs), "requires stateUpdateOperator Set or Delete")
+
+	setAction.StateNewValue = "not-a-number"
+	require.ErrorContains(t, ParseMatchAction(&KernelSelectorState{}, setAction, nil, 0, stateIDs), "not a valid u64")
+
+	deleteAction.StateUpdateOperator = "Delete"
+	deleteAction.StateNewValue = "1"
+	require.ErrorContains(t, ParseMatchAction(&KernelSelectorState{}, deleteAction, nil, 0, stateIDs), "does not accept stateNewValue")
+}
+
+func TestParseMatchStates(t *testing.T) {
+	origForceLargeProgs := option.Config.ForceLargeProgs
+	origForceSmallProgs := option.Config.ForceSmallProgs
+	option.Config.ForceLargeProgs = true
+	option.Config.ForceSmallProgs = false
+	t.Cleanup(func() {
+		option.Config.ForceLargeProgs = origForceLargeProgs
+		option.Config.ForceSmallProgs = origForceSmallProgs
+	})
+
+	states := []v1alpha1.StateSelector{
+		{Name: "authenticated", Operator: "Equal", Value: "42"},
+		{Name: "authorized", Operator: "NotEqual", Value: "0x100000002"},
+	}
+	stateIDs := map[string]uint32{"authenticated": 3, "authorized": 5}
+	state := &KernelSelectorState{data: KernelSelectorData{}}
+
+	expected := []byte{
+		0x24, 0x00, 0x00, 0x00, // MatchStates length
+		0x03, 0x00, 0x00, 0x00, // State ID = 3
+		0x03, 0x00, 0x00, 0x00, // Operator = "Equal"
+		0x2a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Value = 42
+		0x05, 0x00, 0x00, 0x00, // State ID = 5
+		0x04, 0x00, 0x00, 0x00, // Operator = "NotEqual"
+		0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, // Value = 0x100000002
+	}
+	if err := ParseMatchStates(state, states, stateIDs); err != nil || !bytes.Equal(expected, state.data.e) {
+		t.Errorf("parseMatchStates: error %v expected %v bytes %v parsing %v\n", err, expected, state.data.e, states)
+	}
+
+	require.ErrorContains(t, ParseMatchStates(&KernelSelectorState{}, states[:1], nil), "undefined state")
+	states[0].Operator = "GreaterThan"
+	require.ErrorContains(t, ParseMatchStates(&KernelSelectorState{}, states[:1], stateIDs), "operator")
+	states[0].Operator = "Equal"
+	states[0].Value = "invalid"
+	require.ErrorContains(t, ParseMatchStates(&KernelSelectorState{}, states[:1], stateIDs), "not a valid u64")
+
+	option.Config.ForceLargeProgs = false
+	option.Config.ForceSmallProgs = true
+	require.NoError(t, ParseMatchStates(&KernelSelectorState{}, nil, stateIDs))
+	require.ErrorContains(t, ParseMatchStates(&KernelSelectorState{}, states[:1], stateIDs), "large BPF programs")
 }
 
 func TestParseMatchActionMax(t *testing.T) {
@@ -1076,7 +1171,7 @@ func TestParseMatchActionMax(t *testing.T) {
 
 	k := &KernelSelectorState{data: KernelSelectorData{}}
 
-	err := ParseMatchActions(k, actions, &actionArgTable, 0)
+	err := ParseMatchActions(k, actions, &actionArgTable, 0, nil)
 	if err == nil {
 		t.Errorf("ParseMatchActions expected to fail")
 	}
@@ -1112,6 +1207,11 @@ func TestMultipleSelectorsExample(t *testing.T) {
 
 	selectorLen := 104
 	secondOff := 108
+
+	if config.EnableLargeProgs() {
+		selectorLen += 4 // matchStates length
+		secondOff += 4
+	}
 	if matchCmdArgsEnabled() {
 		selectorLen += 24
 		secondOff += 24
@@ -1132,6 +1232,9 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(4)               // off: 44      selector1: MatchCapabilities: len
 	expU32Push(4)               // off: 48      selector1: MatchNamespaceChanges: len
 	expU32Push(4)               // off: 52      selector1: MatchCapabilityChanges: len
+	if config.EnableLargeProgs() {
+		expU32Push(4) // selector1: matchStates: length
+	}
 	if matchCmdArgsEnabled() {
 		expU32Push(24) // selector1: matchCmdArgs: len
 		for range 5 {
@@ -1186,7 +1289,7 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expectedSelsizeLarge := []byte{
-		0x60, 0x01, 0x00, 0x00, // size = pids + args + cmdArgs + matchCallers + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		0x64, 0x01, 0x00, 0x00, // size = pids + args + cmdArgs + matchCallers + state + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
 	expectedFilters := []byte{
@@ -1267,6 +1370,11 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x05, 0x00, 0x00, 0x00, // op == In
 		0x00, 0x00, 0x00, 0x00, // IsNamespaceCapability = false
 		0x00, 0x20, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
+	}
+
+	expectedMatchStates := []byte{
+		// state header
+		4, 0x00, 0x00, 0x00,
 	}
 
 	expectedMatchCmdArgs := []byte{
@@ -1372,6 +1480,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		expected = append(expected, expectedSelsizeLarge...)
 		expected = append(expected, expectedFilters...)
 		expected = append(expected, expectedChanges...)
+		expected = append(expected, expectedMatchStates...)
 		expected = append(expected, expectedMatchCmdArgs...)
 		expected = append(expected, expectedLastLarge...)
 	} else {
@@ -1490,31 +1599,34 @@ func TestReturnSelectorArgInt(t *testing.T) {
 
 	selectorLength := 56
 	if matchCmdArgsEnabled() {
-		selectorLength += 24
+		selectorLength += 28
 	}
 
 	expU32Push(1)              // off: 0       number of selectors
 	expU32Push(4)              // off: 4       relative ofset of selector (4 + 4 = 8)
 	expU32Push(selectorLength) // off: 8       selector: length
+	if config.EnableLargeProgs() {
+		expU32Push(4) // off: 12      selector: matchStates length
+	}
 	if matchCmdArgsEnabled() {
-		expU32Push(24) // off: 12      selector: matchCmdArgs length
+		expU32Push(24) // off: 16      selector: matchCmdArgs length
 		for range 5 {
-			expU32Push(0) // off: 16-32   selector: matchCmdArgs offsets
+			expU32Push(0) // off: 20-36   selector: matchCmdArgs offsets
 		}
 	}
-	expU32Push(48)                // off: 36/12   selector: matchReturnArgs length
-	expU32Push(24)                // off: 40/16   selector: matchReturnArgs arg offset[0]
-	expU32Push(0)                 // off: 44/20   selector: matchReturnArgs arg offset[1]
-	expU32Push(0)                 // off: 48/24   selector: matchReturnArgs arg offset[2]
-	expU32Push(0)                 // off: 52/28   selector: matchReturnArgs arg offset[3]
-	expU32Push(0)                 // off: 56/32   selector: matchReturnArgs arg offset[4]
-	expU32Push(0)                 // off: 60/36   selector: matchReturnArgs[0].Index
-	expU32Push(SelectorOpEQ)      // off: 64/40   selector: matchReturnArgs[0].Operator
-	expU32Push(16)                // off: 68/44   selector: length (4 + 3*4) = 16
-	expU32Push(gt.GenericIntType) // off: 72/48   selector: matchReturnArgs[0].Type
-	expU32Push(10)                // off: 76/52   selector: matchReturnArgs[0].Values[0]
-	expU32Push(20)                // off: 80/56   selector: matchReturnArgs[0].Values[1]
-	expU32Push(4)                 // off: 84/60   selector: MatchActions length
+	expU32Push(48)                // off: 40/16   selector: matchReturnArgs length
+	expU32Push(24)                // off: 44/20   selector: matchReturnArgs arg offset[0]
+	expU32Push(0)                 // off: 48/24   selector: matchReturnArgs arg offset[1]
+	expU32Push(0)                 // off: 52/28   selector: matchReturnArgs arg offset[2]
+	expU32Push(0)                 // off: 56/32   selector: matchReturnArgs arg offset[3]
+	expU32Push(0)                 // off: 60/36   selector: matchReturnArgs arg offset[4]
+	expU32Push(0)                 // off: 64/40   selector: matchReturnArgs[0].Index
+	expU32Push(SelectorOpEQ)      // off: 68/44   selector: matchReturnArgs[0].Operator
+	expU32Push(16)                // off: 72/48   selector: length (4 + 3*4) = 16
+	expU32Push(gt.GenericIntType) // off: 76/52   selector: matchReturnArgs[0].Type
+	expU32Push(10)                // off: 80/56   selector: matchReturnArgs[0].Values[0]
+	expU32Push(20)                // off: 84/60   selector: matchReturnArgs[0].Values[1]
+	expU32Push(4)                 // off: 88/64   selector: MatchActions length
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
 		t.Errorf("\ngot: %v\nexp: %v\n", b[:expectedLen], expected[:expectedLen])
