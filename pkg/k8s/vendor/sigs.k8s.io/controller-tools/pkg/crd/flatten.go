@@ -112,7 +112,7 @@ func resolveFieldConflict(fieldName string, srcField, dstField reflect.Value, sr
 	case "XPreserveUnknownFields":
 		dstField.Set(srcField)
 		return false
-	case "XMapType":
+	case "XMapType", "XListType", "XListMapKeys":
 		dstField.Set(srcField)
 		return false
 	case "XValidations":

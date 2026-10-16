@@ -38,6 +38,9 @@ import (
 const (
 	// defPrefix is the prefix used to link to definitions in the OpenAPI schema.
 	defPrefix = "#/definitions/"
+
+	// arrayType is the JSON schema type for arrays.
+	arrayType = "array"
 )
 
 // byteType is the types.Type for byte (see the types documention
@@ -237,7 +240,7 @@ func applyMarkers(ctx *schemaContext, markerSet markers.MarkerValues, props *api
 	}
 
 	for _, schemaMarker := range itemsMarkers {
-		if props.Type != "array" || props.Items == nil || props.Items.Schema == nil {
+		if props.Type != arrayType || props.Items == nil || props.Items.Schema == nil {
 			err := fmt.Errorf("must apply %s to an array value, found %s", schemaMarker.Name, props.Type)
 			ctx.pkg.AddError(loader.ErrFromNode(err, node))
 		} else {
@@ -348,26 +351,30 @@ func localNamedToSchema(ctx *schemaContext, ident *ast.Ident) *apiextensionsv1.J
 		ctx.requestSchemaWithPkg(pkgPath, typeNameInfo.Name(), pkg)
 		link := TypeRefLink(pkgPath, typeNameInfo.Name())
 
-		// In cases where we have a named type, apply the type and format from the named schema
-		// to allow markers that need this information to apply correctly.
-		var typ, fmt string
-		if namedInfo, isNamed := typeInfo.(*types.Named); isNamed {
+		props := &apiextensionsv1.JSONSchemaProps{
+			Ref: &link,
+		}
+
+		// Set the type for slice and map aliases so field-level markers like +listType
+		// and +mapType can work. Structs are skipped — they use a $ref only.
+		// Go 1.23+ (gotypesalias=1) represents `type Foo = []T` as *types.Alias, so
+		// unalias first to reach the real underlying type.
+		switch types.Unalias(typeInfo.(types.Type)).Underlying().(type) {
+		case *types.Slice:
+			props.Type = arrayType
+		case *types.Map:
+			//nolint:goconst
+			props.Type = "object"
+		case *types.Basic:
 			// We don't want/need to do this for structs, maps, or arrays.
 			// These are already handled in infoToSchema if they have custom marshalling.
-			if _, isBasic := namedInfo.Underlying().(*types.Basic); isBasic {
-				namedTypeInfo := ctx.schemaRequester.LookupType(ctx.pkg, namedInfo.Obj().Name())
-
-				namedSchema := infoToSchema(ctx.ForInfo(namedTypeInfo))
-				typ = namedSchema.Type
-				fmt = namedSchema.Format
-			}
+			namedTypeInfo := ctx.schemaRequester.LookupType(ctx.pkg, typeNameInfo.Name())
+			namedSchema := infoToSchema(ctx.ForInfo(namedTypeInfo))
+			props.Type = namedSchema.Type
+			props.Format = namedSchema.Format
 		}
 
-		return &apiextensionsv1.JSONSchemaProps{
-			Type:   typ,
-			Format: fmt,
-			Ref:    &link,
-		}
+		return props
 	default:
 		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("unsupported type %T for identifier %s", typeInfo, ident.Name), ident))
 		return &apiextensionsv1.JSONSchemaProps{}
@@ -391,10 +398,19 @@ func namedToSchema(ctx *schemaContext, named *ast.SelectorExpr) *apiextensionsv1
 	nonVendorPath := loader.NonVendorPath(typesPkg.Path())
 	ctx.requestSchemaWithPkg(nonVendorPath, typeNameInfo.Name(), typesPkg)
 	link := TypeRefLink(nonVendorPath, typeNameInfo.Name())
-	return &apiextensionsv1.JSONSchemaProps{
+	// Set the type for slice and map aliases so field-level markers like +listType
+	// and +mapType can work. Structs are skipped — they use a $ref only.
+	props := &apiextensionsv1.JSONSchemaProps{
 		Ref: &link,
 	}
+	switch typeInfoRaw.Underlying().(type) {
+	case *types.Slice:
+		props.Type = arrayType
+	case *types.Map:
+		props.Type = "object"
+	}
 	// NB(directxman12): we special-case things like resource.Quantity during the "collapse" phase.
+	return props
 }
 
 // arrayToSchema creates a schema for the items of the given array, dealing appropriately
@@ -413,7 +429,7 @@ func arrayToSchema(ctx *schemaContext, array *ast.ArrayType) *apiextensionsv1.JS
 	items := typeToSchema(ctx.ForInfo(&markers.TypeInfo{}), array.Elt)
 
 	return &apiextensionsv1.JSONSchemaProps{
-		Type:  "array",
+		Type:  arrayType,
 		Items: &apiextensionsv1.JSONSchemaPropsOrArray{Schema: items},
 	}
 }
@@ -471,9 +487,7 @@ func mapToSchema(ctx *schemaContext, mapType *ast.MapType) *apiextensionsv1.JSON
 		return &apiextensionsv1.JSONSchemaProps{}
 	}
 
-	//nolint:goconst
 	return &apiextensionsv1.JSONSchemaProps{
-		//nolint:goconst // this is a constant, but it's more readable to have it here
 		Type: "object",
 		AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
 			Schema: valSchema,
