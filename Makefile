@@ -103,13 +103,18 @@ all: tetragon-bpf tetragon tetra test-compile tester-progs protoc-gen-go-tetrago
 clean: cli-clean tarball-clean
 	$(MAKE) -C ./bpf clean
 	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./alignchecker ./tetragon.exe
+	$(MAKE) -C pkg/javaattach/agent clean
 	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
 	$(MAKE) -C $(TESTER_PROGS_DIR) clean
 
 ##@ Build and install
 
+.PHONY: tetragon-jvmti-agent
+tetragon-jvmti-agent: ## Build the native helper used by Java Attach policies.
+	$(MAKE) -C pkg/javaattach/agent OUT=tetragon-jvmti.so
+
 .PHONY: tetragon
-tetragon: ## Compile the Tetragon agent.
+tetragon: tetragon-jvmti-agent ## Compile the Tetragon agent.
 	$(GO_BUILD) ./cmd/tetragon/
 
 .PHONY: tetragon-nok8s
@@ -175,6 +180,8 @@ install: ## Install tetragon agent and tetra as standalone binaries.
 	groupadd -f hubble
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -m 0755 ./tetragon $(DESTDIR)$(BINDIR)
+	$(INSTALL) -d $(DESTDIR)/usr/lib/tetragon
+	$(INSTALL) -m 0755 pkg/javaattach/agent/tetragon-jvmti.so $(DESTDIR)/usr/lib/tetragon/tetragon-jvmti.so
 
 ##@ Container images
 

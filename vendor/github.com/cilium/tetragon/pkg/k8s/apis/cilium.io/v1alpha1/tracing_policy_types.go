@@ -102,6 +102,9 @@ type TracingPolicySpec struct {
 	// +kubebuilder:validation:Optional
 	// A list of fentry specs.
 	Fentries []KProbeSpec `json:"fentries,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Hot-patch already loaded JVM classes through the local HotSpot Attach interface.
+	Java *JavaPolicySpec `json:"java,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// PodSelector selects pods that this policy applies to
@@ -149,6 +152,31 @@ type TracingPolicySpec struct {
 	// SelectorsMacros is used to define selectors macros, which can be used
 	// in probes/hooks selectors by their names.
 	SelectorsMacros map[string]KProbeSelector `json:"selectorsMacros,omitempty"`
+}
+
+// JavaPolicySpec defines class redefinitions sent through HotSpot Attach. The
+// replacement and rollback bytecode must retain the loaded class schema.
+type JavaPolicySpec struct {
+	// Exact executable paths of Java processes eligible for attachment.
+	// +kubebuilder:validation:MinItems=1
+	Executables []string `json:"executables"`
+	// Every token must occur in the NUL-separated process argument vector.
+	// Use this with Executables to scope patches to a specific Java service.
+	ProcessArgsContains []string `json:"processArgsContains,omitempty"`
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
+	Patches []JavaClassPatch `json:"patches"`
+}
+
+// JavaClassPatch contains complete JVM class files before and after the fix.
+// Both must declare the same binary class name and compatible schema.
+type JavaClassPatch struct {
+	// JVM reference type signature, for example Lcom/acme/Handler;.
+	Signature string `json:"signature"`
+	// Replacement class file bytes (YAML base64-encoded by the serializer).
+	Replacement []byte `json:"replacement"`
+	// Original class file bytes used to roll back when the policy is removed.
+	Rollback []byte `json:"rollback"`
 }
 
 func (tp *TracingPolicy) TpName() string {
