@@ -16,9 +16,7 @@ type skipRule struct {
 }
 
 // We should probably have this in a json file, but for now we keep it here
-var rules = []skipRule{
-	skipRule{TestNameRe: "pkg.sensors.exec.TestProcessCacheInterval", KernelRe: ""},
-}
+var rules []skipRule
 
 func init() {
 	for i := range rules {
