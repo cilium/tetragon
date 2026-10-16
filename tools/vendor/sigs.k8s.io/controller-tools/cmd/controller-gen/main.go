@@ -249,7 +249,7 @@ func helpForLevels(mainOut io.Writer, errOut io.Writer, whichLevel int, reg *mar
 				continue
 			}
 			contents := prettyhelp.MarkersDetails(fullDetail, cat.Category, cat.Markers)
-			if err := contents.WriteTo(errOut); err != nil {
+			if err := contents.Write(errOut); err != nil {
 				return err
 			}
 		}
@@ -259,7 +259,7 @@ func helpForLevels(mainOut io.Writer, errOut io.Writer, whichLevel int, reg *mar
 				continue
 			}
 			contents := prettyhelp.MarkersSummary(cat.Category, cat.Markers)
-			if err := contents.WriteTo(errOut); err != nil {
+			if err := contents.Write(errOut); err != nil {
 				return err
 			}
 		}

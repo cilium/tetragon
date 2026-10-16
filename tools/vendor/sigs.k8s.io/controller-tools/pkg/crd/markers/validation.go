@@ -114,7 +114,7 @@ var FieldOnlyMarkers = []*definitionWithHelp{
 		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is required.")),
 	must(markers.MakeDefinition("optional", markers.DescribesField, struct{}{})).
 		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is optional.")),
-	must(markers.MakeDefinition("k8s:required", markers.DescribesField, struct{}{})).
+	must(markers.MakeDefinition("k8s:required", markers.DescribesField, K8sRequired{})).
 		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is required.")),
 	must(markers.MakeDefinition("k8s:optional", markers.DescribesField, struct{}{})).
 		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is optional.")),
@@ -137,6 +137,15 @@ var FieldOnlyMarkers = []*definitionWithHelp{
 
 	must(markers.MakeDefinition("k8s:immutable", markers.DescribesField, Immutable{})).
 		WithHelp(Immutable{}.Help()),
+
+	// Kubernetes declarative validation aliases.  These bounds are especially
+	// important for keeping the estimated cost of CEL rules finite.
+	must(markers.MakeDefinition("k8s:maxItems", markers.DescribesField, MaxItems(0))).
+		WithHelp(declarativeValidationMarkerHelp(MaxItems(0).Help(), "kubebuilder:validation:MaxItems", "k8s:maxItems")),
+	must(markers.MakeDefinition("k8s:minimum", markers.DescribesField, Minimum(0))).
+		WithHelp(declarativeValidationMarkerHelp(Minimum(0).Help(), "kubebuilder:validation:Minimum", "k8s:minimum")),
+	must(markers.MakeDefinition("k8s:maximum", markers.DescribesField, Maximum(0))).
+		WithHelp(declarativeValidationMarkerHelp(Maximum(0).Help(), "kubebuilder:validation:Maximum", "k8s:maximum")),
 }
 
 // ValidationIshMarkers are field-and-type markers that don't fall under the
@@ -207,6 +216,43 @@ type Minimum float64
 
 func (m Minimum) Value() float64 {
 	return float64(m)
+}
+
+func declarativeValidationMarkerHelp(help *markers.DefinitionHelp, oldName, newName string) *markers.DefinitionHelp {
+	result := *help
+	result.Details = strings.ReplaceAll(result.Details, oldName, newName)
+	return &result
+}
+
+// stripCommentIfDeclarativeValidationMarker strips trailing '#' comments from
+// declarative validation markers, matching the gengo codetags parser used by
+// validation-gen. Whitespace before '#' is optional.
+// https://github.com/kubernetes/gengo/blob/25e2208e0dc371a827289e7faced19a2dbcd480b/v2/codetags/scanner.go#L69-L73
+func stripCommentIfDeclarativeValidationMarker(name, restFields string) string {
+	if strings.HasPrefix(name, "k8s:") {
+		if comment := strings.IndexByte(restFields, '#'); comment >= 0 {
+			restFields = restFields[:comment]
+		}
+	}
+	return strings.TrimSpace(restFields)
+}
+
+func (m *Maximum) ParseMarker(_, name, restFields string) error {
+	value, err := strconv.ParseFloat(stripCommentIfDeclarativeValidationMarker(name, restFields), 64)
+	if err != nil {
+		return fmt.Errorf("invalid maximum value: %w", err)
+	}
+	*m = Maximum(value)
+	return nil
+}
+
+func (m *Minimum) ParseMarker(_, name, restFields string) error {
+	value, err := strconv.ParseFloat(stripCommentIfDeclarativeValidationMarker(name, restFields), 64)
+	if err != nil {
+		return fmt.Errorf("invalid minimum value: %w", err)
+	}
+	*m = Minimum(value)
+	return nil
 }
 
 // ExclusiveMinimum indicates that the minimum is "up to" but not including that value.
@@ -284,6 +330,15 @@ type Pattern string
 //
 // +controllertools:marker:generateHelp:category="CRD validation"
 type MaxItems int
+
+func (m *MaxItems) ParseMarker(_, name, restFields string) error {
+	value, err := strconv.Atoi(stripCommentIfDeclarativeValidationMarker(name, restFields))
+	if err != nil {
+		return fmt.Errorf("invalid maxItems value: %w", err)
+	}
+	*m = MaxItems(value)
+	return nil
+}
 
 // MinItems specifies the minimum length for this list.
 //
@@ -1185,5 +1240,42 @@ func (K8sEnum) ApplyToSchema(ctx *SchemaContext, schema *apiextensionsv1.JSONSch
 
 	schema.Type = "string"
 	schema.Enum = enumValues
+	return nil
+}
+
+// K8sRequired specifies that this field is required.
+// When applied to a string, it also ensures that the string has a minimum length of 1.
+// When applied to a map, it also ensures that the map has at least 1 property.
+// When applied to a slice, it also ensures that the slice has at least 1 item.
+// When applied to a struct, it also ensures that the struct has at least 1 field set.
+// These minimum constraints are only applied if they are not explicitly set.
+//
+// +controllertools:marker:generateHelp:category="CRD validation"
+type K8sRequired struct{}
+
+func (m K8sRequired) ApplyToSchema(ctx *SchemaContext, schema *apiextensionsv1.JSONSchemaProps) error {
+	switch schema.Type {
+	case "string":
+		if schema.MinLength == nil {
+			val := int64(1)
+			schema.MinLength = &val
+		}
+	case "array":
+		if schema.MinItems == nil {
+			val := int64(1)
+			schema.MinItems = &val
+		}
+	case "object":
+		if schema.MinProperties == nil {
+			val := int64(1)
+			schema.MinProperties = &val
+		}
+	default:
+		// If the schema is a reference to a type.
+		if schema.Ref != nil && schema.MinProperties == nil {
+			val := int64(1)
+			schema.MinProperties = &val
+		}
+	}
 	return nil
 }
