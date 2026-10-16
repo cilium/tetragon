@@ -172,8 +172,21 @@ jobs:
       # at least on github runners.
       - name: Run policytest
         run: |
-          sudo tetra policytest run --all-tests --output-file /tmp/tetragon.policytest.txt
+          sudo tetra loglevel set debug
+          sudo tetra --debug policytest run --all-tests --output-file /tmp/tetragon.policytest.txt || {
+            cat /tmp/tetragon.policytest.txt
+            exit 1
+          }
           cat /tmp/tetragon.policytest.txt
+
+      - name: Dump Tetragon debug info
+        if: failure()
+        run: |
+          uname -a
+          sudo tetra status || true
+          sudo tetra debug errmetrics || true
+          sudo journalctl -u tetragon --no-pager || true
+          sudo tail -n 500 /var/log/tetragon/tetragon.log || true
 
       - name: Upload policytest results
         if: failure()
