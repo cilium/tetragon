@@ -9,7 +9,7 @@ aliases: ["/docs/faq"]
 
 Tetragon needs Linux kernel version 4.19 or greater.
 
-We currently run tests on stable long-term support kernels 4.19, 5.4, 5.10,
+We currently run tests on stable long-term support kernels 4.19, 5.10,
 5.15 and bpf-next, see [this test workflow](https://github.com/cilium/tetragon/actions/workflows/vmtests.yml)
 for up to date information. Not all Tetragon features work with older kernel
 versions. BPF evolves rapidly and we recommend you use the most recent stable
