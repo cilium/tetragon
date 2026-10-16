@@ -180,6 +180,17 @@ func (Immutable) Help() *markers.DefinitionHelp {
 	}
 }
 
+func (K8sRequired) Help() *markers.DefinitionHelp {
+	return &markers.DefinitionHelp{
+		Category: "CRD validation",
+		DetailedHelp: markers.DetailedHelp{
+			Summary: "specifies that this field is required.",
+			Details: "When applied to a string, it also ensures that the string has a minimum length of 1.\nWhen applied to a map, it also ensures that the map has at least 1 property.\nWhen applied to a slice, it also ensures that the slice has at least 1 item.\nWhen applied to a struct, it also ensures that the struct has at least 1 field set.\nThese minimum constraints are only applied if they are not explicitly set.",
+		},
+		FieldHelp: map[string]markers.DetailedHelp{},
+	}
+}
+
 func (KubernetesDefault) Help() *markers.DefinitionHelp {
 	return &markers.DefinitionHelp{
 		Category: "CRD validation",
