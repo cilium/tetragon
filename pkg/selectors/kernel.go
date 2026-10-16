@@ -1128,7 +1128,11 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		return err
 	}
 	WriteSelectorUint32(&k.data, index)
-	return parseMatchArg(k, arg, sig, ty)
+	if err := parseMatchArg(k, arg, sig, ty); err != nil {
+		return err
+	}
+	k.usage.MatchArgFilters = true
+	return nil
 }
 
 func ParseMatchData(k *KernelSelectorState, arg *v1alpha1.ArgSelector, data []v1alpha1.KProbeArg, base uint32) error {
@@ -1137,7 +1141,11 @@ func ParseMatchData(k *KernelSelectorState, arg *v1alpha1.ArgSelector, data []v1
 		return err
 	}
 	WriteSelectorUint32(&k.data, index+base)
-	return parseMatchArg(k, arg, data, ty)
+	if err := parseMatchArg(k, arg, data, ty); err != nil {
+		return err
+	}
+	k.usage.MatchArgFilters = true
+	return nil
 }
 
 // Keep in sync with CMD_ARGS_MAX - 1 in bpf/process/pfilter.h.
@@ -2062,6 +2070,16 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		if err := ParseMatchActions(k, selector.MatchActions, args.ActionArgTable, selIdx); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
 		}
+		k.usage.MatchPIDs = k.usage.MatchPIDs || len(selector.MatchPIDs) > 0
+		k.usage.MatchNamespaces = k.usage.MatchNamespaces || len(selector.MatchNamespaces) > 0
+		k.usage.MatchCapabilities = k.usage.MatchCapabilities || len(selector.MatchCapabilities) > 0
+		k.usage.MatchNamespaceChanges = k.usage.MatchNamespaceChanges || len(selector.MatchNamespaceChanges) > 0
+		k.usage.MatchCapabilityChanges = k.usage.MatchCapabilityChanges || len(selector.MatchCapabilityChanges) > 0
+		k.usage.MatchBinaries = k.usage.MatchBinaries || len(selector.MatchBinaries) > 0
+		k.usage.MatchParentBinaries = k.usage.MatchParentBinaries || len(selector.MatchParentBinaries) > 0
+		k.usage.MatchCmdArgs = k.usage.MatchCmdArgs || len(selector.MatchCmdArgs) > 0
+		k.usage.MatchWorkloads = k.usage.MatchWorkloads || selector.MatchWorkloads != nil
+		k.usage.MatchUserCallers = k.usage.MatchUserCallers || len(selector.MatchUserCallers) > 0
 		return nil
 	}
 

@@ -612,7 +612,7 @@ func loadSingleUsdtSensor(usdtEntry *genericUsdt, args sensors.LoadProbeArgs) er
 
 	load.MapLoad = append(load.MapLoad, mapLoad...)
 
-	load.MapLoad = append(load.MapLoad, selectorsMaploads(usdtEntry.selectors, 0)...)
+	load.MapLoad = append(load.MapLoad, selectorsMaploads(load, usdtEntry.selectors, 0)...)
 
 	if err := program.LoadUprobeProgram(args.BPFDir, args.Load, args.Maps, args.Verbose); err != nil {
 		return err
@@ -658,7 +658,7 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 		}
 		load.MapLoad = append(load.MapLoad, mapLoad...)
 
-		load.MapLoad = append(load.MapLoad, selectorsMaploads(usdtEntry.selectors, uint32(index))...)
+		load.MapLoad = append(load.MapLoad, selectorsMaploads(load, usdtEntry.selectors, uint32(index))...)
 
 		attach, ok := data.Attach[usdtEntry.path]
 		if !ok {
