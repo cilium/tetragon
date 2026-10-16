@@ -55,6 +55,7 @@ jobs:
     # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2604-Readme.md
     runs-on: ${{ (matrix.arch == 'arm64' && 'ubuntu-26.04-arm') || 'ubuntu-26.04' }}
     strategy:
+      fail-fast: false
       matrix:
         arch: [amd64, arm64]
         include:
