@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -63,6 +64,16 @@ func NewLocalRunner(
 			cnf.GrpcAddr = "localhost:54321"
 		}
 	}
+
+	// matchBinaries needs the path the kernel reports
+	binsDir, err := filepath.Abs(cnf.BinsDir)
+	if err == nil {
+		binsDir, err = filepath.EvalSymlinks(binsDir)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve binaries directory: %w", err)
+	}
+	cnf.BinsDir = binsDir
 
 	cli, err := cli.NewClient(ctx, cnf.GrpcAddr, cnf.Timeout)
 	if err != nil {
@@ -135,14 +146,20 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 		return nil, nil
 	}
 
-	// TODO: no need to parse the full policy here. We just need to verify its kind and get the
-	// policy name so that we can delete it when done.
 	tp, err := tracingpolicy.FromYAML(string(pol))
 	if err != nil {
 		err = fmt.Errorf("failed to parse policy for test %q: %w", test.Name, err)
 		return nil, err
 	}
 	tpName := tp.TpName()
+
+	if len(r.conf.PodSelector) > 0 {
+		pol, err = injectPodSelector(tp, r.conf.PodSelector)
+		if err != nil {
+			err = fmt.Errorf("failed to inject podSelector for test %q: %w", test.Name, err)
+			return nil, err
+		}
+	}
 
 	if r.conf.DumpPolicyPath != "" {
 		err := os.WriteFile(r.conf.DumpPolicyPath, []byte(pol), 0644)
@@ -154,17 +171,19 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 	_, err = r.cli.Client.AddTracingPolicy(r.cli.Ctx, &tetragon.AddTracingPolicyRequest{
 		Yaml: string(pol),
 	})
-	if err != nil {
-		err = fmt.Errorf("failed to load policy for test %q: %w", test.Name, err)
-		return nil, err
-	}
-	l.Debug("policy loaded", "name", tpName)
-
-	return &PolicyHandler{
+	ph := &PolicyHandler{
 		tpName:      tpName,
 		tpNamespace: "", // TODO: change this when we add support for namespaced policies
 		cleanup:     cleanup,
-	}, nil
+	}
+	if err != nil {
+		err = fmt.Errorf("failed to load policy for test %q: %w", test.Name, err)
+		// the agent keeps a policy that failed to load
+		return nil, errors.Join(err, ph.Cleanup(l, r.conf, r.cli))
+	}
+	l.Debug("policy loaded", "name", tpName)
+
+	return ph, nil
 }
 
 // RunTest runs a policy test
@@ -429,11 +448,11 @@ func (ph *PolicyHandler) Cleanup(l *slog.Logger, conf *Conf, client *cli.ClientW
 		l.Debug("policy unloaded", "name", ph.tpName)
 		return nil
 	}
-	if grpcStatus.Code(err) != grpcCodes.DeadlineExceeded {
+	if code := grpcStatus.Code(err); code != grpcCodes.DeadlineExceeded && code != grpcCodes.Canceled {
 		return fmt.Errorf("failed to unload policy: %w", err)
 	}
 
-	// deadline exceeded: let's try to reconnect to unload the policy
+	// deadline exceeded or interrupted: let's try to reconnect to unload the policy
 	client, err = cli.NewClient(context.Background(), conf.GrpcAddr, time.Second*20)
 	if err != nil {
 		return fmt.Errorf("failed to create a new client to unload policy: %w", err)
