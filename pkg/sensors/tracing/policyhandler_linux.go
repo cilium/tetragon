@@ -30,6 +30,11 @@ type policyInfo struct {
 	policyConf    *program.Map
 	policyStats   *program.Map
 	selectorStats *program.Map
+
+	// stateIDs maps state names from the yaml to their corresponding IDs as
+	// used in eBPF.
+	stateIDs map[string]uint32
+
 	selectorCount int
 	specOpts      *specOptions
 }
@@ -133,9 +138,18 @@ func newPolicyInfoFromSpec(
 		policyConf:    nil,
 		policyStats:   nil,
 		selectorStats: nil,
+		stateIDs:      indexPolicyStates(spec.States),
 		selectorCount: countSelectors(spec),
 		specOpts:      opts,
 	}, nil
+}
+
+func indexPolicyStates(states []v1alpha1.State) map[string]uint32 {
+	stateIDs := make(map[string]uint32, len(states))
+	for stateID, state := range states {
+		stateIDs[state.Name] = uint32(stateID)
+	}
+	return stateIDs
 }
 
 func (pi *policyInfo) selectorStatsMap(prog *program.Program) *program.Map {
