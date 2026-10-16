@@ -37,6 +37,8 @@ type testConf struct {
 	justBoot              bool
 	justBuildImage        bool
 	btfFile               string
+	bpfDebug              bool
+	logFile               string
 	disableUnifiedCgroups bool
 
 	filesystems []QemuFS

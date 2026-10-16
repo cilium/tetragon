@@ -137,7 +137,8 @@ jobs:
                   --tester-progs-tarball "$repo_root/tester-progs.tar.gz" \
                   --base tests/vmtests/test-data/images/base.qcow2 \
                   --cpu 4 \
-                  --mem 8G
+                  --mem 8G \
+                  --log-file /tmp/tetragon-vmtests-run.log
 
       - name: Test kernel ${{ matrix.kernel }} with btf file
         if: ${{ startsWith(matrix.kernel, '4.19') }}
@@ -156,7 +157,16 @@ jobs:
                   --tester-progs-tarball "$repo_root/tester-progs.tar.gz" \
                   --base tests/vmtests/test-data/images/base.qcow2 \
                   --cpu 4 \
-                  --mem 8G
+                  --mem 8G \
+                  --log-file /tmp/tetragon-vmtests-run.log
+
+      - name: Upload agent log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tetragon-policytest-${{ matrix.kernel }}
+          path: /tmp/tetragon-vmtests-run.log
+          retention-days: 5
 
   post-test:
     runs-on: ubuntu-latest
