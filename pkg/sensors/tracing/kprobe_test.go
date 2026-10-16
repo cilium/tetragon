@@ -8413,3 +8413,70 @@ func TestKprobeNotEqualMultipleValues(t *testing.T) {
 func TestKprobeNULLStringAndReturnArg(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-null-string", nil)
 }
+
+func TestKprobeAllSelectorsNoRewriteConstants(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("selector constants require large BPF programs")
+	}
+
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	require.NoError(t, observer.InitDataCache(1024))
+	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+
+	filePath := filepath.Join(t.TempDir(), "test-file")
+	require.NoError(t, os.WriteFile(filePath, nil, 0600))
+
+	tp := &tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{Name: "kprobe-all-selectors"},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{{
+				Call: "security_file_open",
+				Args: []v1alpha1.KProbeArg{{Index: 0, Type: "file"}},
+				Selectors: []v1alpha1.KProbeSelector{{
+					MatchPIDs: []v1alpha1.PIDSelector{{
+						Operator: "In",
+						Values:   []uint32{observertesthelper.GetMyPid()},
+					}},
+					MatchArgs: []v1alpha1.ArgSelector{{
+						Index:    0,
+						Operator: "Equal",
+						Values:   []string{filePath},
+					}},
+				}},
+			}},
+		},
+	}
+	sens, err := sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
+	require.NoError(t, err)
+	require.Len(t, sens, 1)
+	sensor := sens[0].(*sensors.Sensor)
+	require.Len(t, sensor.Progs, 1)
+	load := sensor.Progs[0]
+	require.Equal(t, "generic_kprobe", load.Type)
+	load.RewriteConstants = nil // Do not override selector constants.
+	tus.LoadSensor(t, sensor)
+	require.Nil(t, load.RewriteConstants)
+
+	var events int
+	ops := func() {
+		f, err := os.Open(filePath)
+		if assert.NoError(t, err) {
+			assert.NoError(t, f.Close())
+		}
+	}
+	handler := func(ev notify.Message) error {
+		if kp, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+			require.Equal(t, "security_file_open", kp.FuncName)
+			require.Len(t, kp.Args, 1)
+			require.Equal(t, filePath, kp.Args[0].(tracingapi.MsgGenericKprobeArgFile).Value)
+			events++
+		}
+		return nil
+	}
+	perfring.RunTest(t, ctx, ops, handler)
+	require.Equal(t, 1, events)
+}
