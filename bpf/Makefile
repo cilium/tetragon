@@ -177,12 +177,20 @@ define DEFINE_VARIANT
 VAR := $1
 
 # We need to define extra rules for multi probes because the object name
-# is different then the source file.
-$(DEPSDIR)bpf_multi_kprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_kprobe.c
-$(DEPSDIR)bpf_multi_retkprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retkprobe.c
-$(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
-$(DEPSDIR)bpf_multi_retuprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retuprobe.c
-$(DEPSDIR)bpf_multi_usdt_$$(VAR).d: $(PROCESSDIR)bpf_generic_usdt.c
+# is different then the source file. They need their own recipe, otherwise
+# the generic $(DEPSDIR)%.d rule would generate them without the variant
+# CFLAGS and miss headers included only for this variant. They also depend
+# on this Makefile so they are regenerated if the rules or flags change.
+$(DEPSDIR)bpf_multi_kprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_kprobe.c Makefile
+	$$(call rule_d,$(VARIANT_CFLAGS))
+$(DEPSDIR)bpf_multi_retkprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retkprobe.c Makefile
+	$$(call rule_d,$(VARIANT_CFLAGS))
+$(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c Makefile
+	$$(call rule_d,$(VARIANT_CFLAGS))
+$(DEPSDIR)bpf_multi_retuprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retuprobe.c Makefile
+	$$(call rule_d,$(VARIANT_CFLAGS))
+$(DEPSDIR)bpf_multi_usdt_$$(VAR).d: $(PROCESSDIR)bpf_generic_usdt.c Makefile
+	$$(call rule_d,$(VARIANT_CFLAGS))
 
 ifneq (,$(filter $1,v53 v511 v61))
 $(DEPSDIR)bpf_execve_event_$1.d: $(PROCESSDIR)bpf_execve_event_notc.c
