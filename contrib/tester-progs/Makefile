@@ -42,6 +42,7 @@ PROGS = sigkill-tester \
 	uprobe-null \
 	uprobe-caller \
 	uprobe-simple \
+	uprobe-fp-args \
 	pclntab-unstripped \
 	pclntab-stripped \
 	null-mount \

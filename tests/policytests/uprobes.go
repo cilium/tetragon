@@ -954,6 +954,43 @@ spec:
 	}
 }).RegisterAtInit()
 
+// Floating-point arguments are passed in xmm0-xmm7 (x86_64) or v0-v7 (arm64),
+// which cannot be saved by BPF across the mmap()/dlopen() detour done while
+// resolving the symbol from sopath. See uprobe-fp-args.c for the exit code.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-fp-args").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-fp-args"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-fp-args" }}
+    symbols:
+    - "fp_args"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_fp_args
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-fp-args")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-fp-args").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("fp_args"))
+
+	return &policytest.Scenario{
+		Name:         "check floating-point arguments are preserved while resolving symbol from SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
+
 // resolveFuncStart is a helper function to be used in the yaml.
 func resolveFuncStart(bin, funcName string) (uint64, error) {
 	se, err := telf.OpenSafeELFFile(bin)

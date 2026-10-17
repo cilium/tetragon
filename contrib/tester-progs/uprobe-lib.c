@@ -6,6 +6,25 @@ int uprobe_test_lib_pizza(int c)
     return c + 1;
 }
 
+// Override replacement for fp_args() in uprobe-fp-args.c.
+// Returns a bitmask of the arguments not matching the values passed by the caller.
+int uprobe_test_lib_fp_args(double a0, double a1, double a2, double a3,
+			    double a4, double a5, double a6, double a7)
+{
+	const double expected[8] = { 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5 };
+	const double got[8] = { a0, a1, a2, a3, a4, a5, a6, a7 };
+	int i, mask = 0;
+
+	for (i = 0; i < 8; i++) {
+		if (got[i] != expected[i]) {
+			printf("uprobe_test_lib_fp_args: arg %d is %g, expected %g\n", i, got[i], expected[i]);
+			mask |= 1 << i;
+		}
+	}
+	printf("uprobe_test_lib_fp_args called, mismatch mask: 0x%x\n", mask);
+	return mask;
+}
+
 int uprobe_test_lib()
 {
 	printf("uprobe_test_lib called\n");

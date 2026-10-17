@@ -45,6 +45,7 @@ uprobe-caller.btf
 uprobe-null
 uprobe-null.btf
 /uprobe-simple
+/uprobe-fp-args
 pclntab-stripped
 pclntab-unstripped
 null-mount
