@@ -69,10 +69,13 @@ struct pending_call {
 	// Only used during a symbol resolution from sopath
 	// Saved registers that may carry values to the traced symbol:
 	// * x86_64: rdi,rsi,rdx,rcx,r8,r9 (arguments), r10 (static chain)
-	// * arm64: x0-x7 (arguments), x18 (static chain)
+	// * arm64: x0-x7 (arguments), x8 (indirect result location),
+	//   x18 (static chain)
 	// The static chain is a hidden argument used by GCC nested functions,
 	// pointing to the enclosing function's frame.
-	__u64 orig_regs[9];
+	// The indirect result location is the address where a function returning
+	// a struct larger than 16 bytes writes it; on x86_64 it is passed in rdi.
+	__u64 orig_regs[10];
 	__u64 dispatch_addr; // my_sym's own address, used for mmap/dlopen pushes
 	__u64 orig_addr; // initial addr to be restored in case of errors
 	__u64 expected_sp; // used to avoid a signal handler called in the middle of our state machine
