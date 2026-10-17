@@ -9,6 +9,7 @@ import (
 	"archive/tar"
 	"bufio"
 	"bytes"
+	"cmp"
 	"compress/gzip"
 	"context"
 	"encoding/json"
@@ -22,6 +23,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -329,6 +331,7 @@ func doBugtool(info *InitInfo, outFname string, commandActions []CommandAction, 
 	si.addExecveMap()
 	si.addGrpcInfo()
 	si.addPmapOut()
+	si.addProcFds()
 	si.addMemCgroupStats()
 	si.addBPFMapsStats()
 	si.addTracefsTraceFile()
@@ -766,6 +769,53 @@ func (s bugtoolInfo) addPmapOut() error {
 	}
 
 	s.ExecCmd("pmap.out", pmap, "-x", strconv.Itoa(s.info.PID))
+	return nil
+}
+
+// listProcFds writes one "<fd> -> <target>" line per entry of the given
+// /proc/<pid>/fd directory, sorted by fd number.
+func listProcFds(fdDir string, w io.Writer) error {
+	entries, err := os.ReadDir(fdDir)
+	if err != nil {
+		return err
+	}
+
+	// os.ReadDir sorts by name, fd names are numeric so sort them as such
+	slices.SortFunc(entries, func(a, b os.DirEntry) int {
+		ai, _ := strconv.Atoi(a.Name())
+		bi, _ := strconv.Atoi(b.Name())
+		return cmp.Compare(ai, bi)
+	})
+
+	for _, entry := range entries {
+		target, err := os.Readlink(filepath.Join(fdDir, entry.Name()))
+		if err != nil {
+			// the fd may have been closed since the directory was read
+			fmt.Fprintf(w, "%s -> (%v)\n", entry.Name(), err)
+			continue
+		}
+		fmt.Fprintf(w, "%s -> %s\n", entry.Name(), target)
+	}
+
+	return nil
+}
+
+// addProcFds adds the list of the agent's open file descriptors, as shown by
+// /proc/<pid>/fd, to the archive.
+func (s *bugtoolInfo) addProcFds() error {
+	fdDir := filepath.Join("/proc", strconv.Itoa(s.info.PID), "fd")
+
+	buff := new(bytes.Buffer)
+	if err := listProcFds(fdDir, buff); err != nil {
+		s.multiLog.WithError(err).WithField("fdDir", fdDir).Warn("failed to list open file descriptors")
+		return err
+	}
+
+	const file = "fds.out"
+	if err := s.tarAddBuff(file, buff); err != nil {
+		return err
+	}
+	s.multiLog.WithField("file", file).Info("open file descriptors added")
 	return nil
 }
 
