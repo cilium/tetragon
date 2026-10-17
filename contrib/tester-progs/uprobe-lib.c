@@ -1,9 +1,19 @@
 #include <stdio.h>
+#include "uprobe-big-struct.h"
 
 int uprobe_test_lib_pizza(int c)
 {
     printf("uprobe_test_lib_pizza called\n");
     return c + 1;
+}
+
+// Override replacement for big_struct_ret() in uprobe-big-struct.c.
+struct uprobe_test_big_struct uprobe_test_lib_big_struct(long x)
+{
+	struct uprobe_test_big_struct r = { x, x + 1, x + 2, x + 3 };
+
+	printf("uprobe_test_lib_big_struct called\n");
+	return r;
 }
 
 // Override replacement for fp_args() in uprobe-fp-args.c.

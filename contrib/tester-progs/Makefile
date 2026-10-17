@@ -44,6 +44,7 @@ PROGS = sigkill-tester \
 	uprobe-simple \
 	uprobe-fp-args \
 	uprobe-static-chain \
+	uprobe-big-struct \
 	pclntab-unstripped \
 	pclntab-stripped \
 	null-mount \
@@ -91,13 +92,16 @@ exit-leader: exit-leader.c
 exit-code: exit-code.c
 	$(GCC) -Wall $< -o $@ -lpthread
 
-libuprobe.so: uprobe-lib.c
+libuprobe.so: uprobe-lib.c uprobe-big-struct.h
 	$(GCC) -Wall -fPIC $< -o $@ -shared
 
 libuprobe-static-chain.so: uprobe-static-chain.c
 	$(GCC) -Wall -fPIC -DSTATIC_CHAIN_REPLACEMENT $< -o $@ -shared
 
 uprobe-static-chain: uprobe-static-chain.c libuprobe-static-chain.so
+	$(GCC) -Wall $< -o $@
+
+uprobe-big-struct: uprobe-big-struct.c uprobe-big-struct.h libuprobe.so
 	$(GCC) -Wall $< -o $@
 
 libtester.so: tester-lib.c

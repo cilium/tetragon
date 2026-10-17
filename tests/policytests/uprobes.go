@@ -1030,6 +1030,44 @@ spec:
 	}
 }).RegisterAtInit()
 
+// Structs larger than 16 bytes are returned through memory: the caller passes
+// the result address in x8 on arm64 (in rdi on x86_64), which must be
+// preserved across the mmap()/dlopen() detour done while resolving the symbol
+// from sopath. See uprobe-big-struct.c for the exit code.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-big-struct").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-big-struct"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-big-struct" }}
+    symbols:
+    - "big_struct_ret"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_big_struct
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-big-struct")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-big-struct").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("big_struct_ret"))
+
+	return &policytest.Scenario{
+		Name:         "check struct return address is preserved while resolving symbol from SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
+
 // resolveFuncStart is a helper function to be used in the yaml.
 func resolveFuncStart(bin, funcName string) (uint64, error) {
 	se, err := telf.OpenSafeELFFile(bin)
