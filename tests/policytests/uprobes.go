@@ -991,6 +991,45 @@ spec:
 	}
 }).RegisterAtInit()
 
+// GCC nested functions receive a pointer to the enclosing function's frame in
+// the static chain register (r10 on x86_64, x18 on arm64), a hidden argument
+// that must be preserved across the mmap()/dlopen() detour done while
+// resolving the symbol from sopath. See uprobe-static-chain.c for the exit
+// code and how the replacement library is built.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-static-chain").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-static-chain"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-static-chain" }}
+    symbols:
+    - "static_chain_target.0"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: "static_chain_target.0"
+        sopath: {{ testBinary "libuprobe-static-chain.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-static-chain")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-static-chain").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("static_chain_target.0"))
+
+	return &policytest.Scenario{
+		Name:         "check static chain register is preserved while resolving symbol from SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
+
 // resolveFuncStart is a helper function to be used in the yaml.
 func resolveFuncStart(bin, funcName string) (uint64, error) {
 	se, err := telf.OpenSafeELFFile(bin)

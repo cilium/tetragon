@@ -43,12 +43,14 @@ PROGS = sigkill-tester \
 	uprobe-caller \
 	uprobe-simple \
 	uprobe-fp-args \
+	uprobe-static-chain \
 	pclntab-unstripped \
 	pclntab-stripped \
 	null-mount \
 	resolve-nested-anon-struct
 
 LIBS =	libuprobe.so \
+	libuprobe-static-chain.so \
 	libtester.so
 
 all: $(PROGS)
@@ -91,6 +93,12 @@ exit-code: exit-code.c
 
 libuprobe.so: uprobe-lib.c
 	$(GCC) -Wall -fPIC $< -o $@ -shared
+
+libuprobe-static-chain.so: uprobe-static-chain.c
+	$(GCC) -Wall -fPIC -DSTATIC_CHAIN_REPLACEMENT $< -o $@ -shared
+
+uprobe-static-chain: uprobe-static-chain.c libuprobe-static-chain.so
+	$(GCC) -Wall $< -o $@
 
 libtester.so: tester-lib.c
 	$(GCC) -Wall -fPIC $< -o $@ -shared

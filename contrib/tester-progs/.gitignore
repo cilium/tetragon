@@ -46,6 +46,8 @@ uprobe-null
 uprobe-null.btf
 /uprobe-simple
 /uprobe-fp-args
+/uprobe-static-chain
+libuprobe-static-chain.so
 pclntab-stripped
 pclntab-unstripped
 null-mount
