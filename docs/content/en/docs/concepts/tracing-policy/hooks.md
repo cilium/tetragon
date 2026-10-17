@@ -112,23 +112,7 @@ Compared to kprobes, fentry currently comes with the following limitations:
 Here is an example of a `TracingPolicy` using the `fentries` section to trace
 the `tcp_connect` kernel function:
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "fentry-example"
-spec:
-  fentries:
-  - call: "tcp_connect"
-    syscall: false
-    return: true
-    args:
-    - index: 0
-      type: "sock"
-    returnArg:
-      index: 0
-      type: "int"
-```
+{{< policy-example "network-monitoring/tcp-connect-fentry.yaml" >}}
 
 The `fentry` program attaches at function entry, while its `fexit` counterpart
 attaches at function exit, where the return value is available. Setting
@@ -221,19 +205,8 @@ details, see the `raw_syscalls` and `syscalls` subysystems.
 An example of tracepoints `TracingPolicy` could be the following, observing all
 syscalls and getting the syscall ID from the argument at index 4:
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "raw-syscalls"
-spec:
-  tracepoints:
-  - subsystem: "raw_syscalls"
-    event: "sys_enter"
-    args:
-    - index: 4
-      type: "int64"
-```
+{{< policy-example "others/raw-syscalls.yaml" >}}
+
 ## Raw Tracepoints
 
 Raw tracepoints allow same attachment as tracepoints, but allow access to raw
@@ -256,36 +229,15 @@ TRACE_EVENT(sched_process_exec,
 which defines `sched:sched_process_exec` tracepoint with arguments.
 
 Raw tracepoints are configured by setting with `raw` spec tag.
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "rawtp"
-spec:
-  tracepoints:
-    - subsystem: "sched"
-      event: "sched_process_exec"
-      raw: true
-```
+
+{{< policy-example "process-monitoring/rawtp.yaml" >}}
 
 We can use raw tracepoint to attach the tracepoint and access above arguments
 directly.
 
 Following example stores 3rd argument:
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "rawtp"
-spec:
-  tracepoints:
-    - subsystem: "sched"
-      event: "sched_process_exec"
-      raw: true
-      args:
-        - index: 2
-          type: "linux_binprm"
-```
+
+{{< policy-example "process-monitoring/rawtp-arg.yaml" >}}
 
 which is represented as path and permission data in the resulted event:
 ```json
@@ -301,25 +253,11 @@ which is represented as path and permission data in the resulted event:
 ```
 
 It's also possible to resolve data from arguments with `Resolve`, like:
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "rawtp"
-spec:
-  tracepoints:
-    - subsystem: "sched"
-      event: "sched_process_exec"
-      raw: true
-      args:
-        - index: 0
-          type: "int"
-          resolve: "pid"
-        - index: 2
-          type: "linux_binprm"
-```
+
+{{< policy-example "process-monitoring/rawtp-resolve.yaml" >}}
 
 which gives you `pid` field from first `task_struct` argument, resulting in following event data:
+
 ```json
     "subsys": "sched",
     "event": "sched_process_exec",
@@ -401,32 +339,7 @@ events based on function arguments, return values, or process context.
 Here is an example that only generates events when the `readline` function
 is called from a specific binary and returns a string starting with "sudo":
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "uprobe-with-selectors"
-spec:
-  uprobes:
-  - path: "/bin/bash"
-    symbols:
-    - "readline"
-    return: true
-    returnArg:
-      index: 0
-      type: "string"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "/bin/bash"
-        - "/usr/bin/bash"
-      matchReturnArgs:
-      - index: 0
-        operator: "Prefix"
-        values:
-        - "sudo"
-```
+{{< policy-example "process-monitoring/uprobe-with-selectors.yaml" >}}
 
 This policy will only generate events when `readline` is called from `/bin/bash`
 and returns a string starting with "sudo", which can be useful for monitoring potentially
@@ -445,22 +358,8 @@ For users that want to only apply the policy for a specific build, they
 can specify a digest type and value to validate the target binary. The
 following example policy demonstrates this functionality.
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-    name: "uprobe-digest-example"
-spec:
-    uprobes:
-    - path: "/bin/example-target-binary"
-      symbols:
-      - "main"
-      ignore:
-        digestVerificationFailure: true
-      binaryDigests:
-        - "sha256:1111111111111111111111111111111111111111111111111111111111111111"
-        - "sha256:2222222222222222222222222222222222222222222222222222222222222222"
-```
+{{< policy-example "process-monitoring/uprobe-digest-example.yaml" >}}
+
 When the above policy is added, Tetragon calculates the sha256 hash of
 `/bin/example-target-binary` and compares it against all configured binary
 digests. If none of the configured digests match the binary's calculated
@@ -625,29 +524,7 @@ Then, update the grub configuration and restart the system.
 The provided example of LSM BPF `TracingPolicy` monitors  access to files
 `/etc/passwd` and `/etc/shadow` with `/usr/bin/cat` executable.
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "lsm-file-open"
-spec:
-  lsmhooks:
-  - hook: "file_open"
-    args:
-      - index: 0
-        type: "file"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "/usr/bin/cat"
-      matchArgs:
-      - index: 0
-        operator: "Equal"
-        values:
-        - "/etc/passwd"
-        - "/etc/shadow"
-```
+{{< policy-example "file-monitoring/lsm-file-open.yaml" >}}
 
 ## Arguments
 
@@ -791,22 +668,8 @@ With the resolve flag, you can easily access fields such as
 The following tracing policy demonstrates how to use the resolve flag to extract the
 parent process's comm during the execution of a binary:
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "lsm"
-spec:
-  lsmhooks:
-  - hook: "bprm_check_security"
-    args:
-    - index: 0 # struct linux_binprm *bprm
-      type: "string"
-      resolve: "mm.owner.real_parent.comm"
-    selectors:
-    - matchActions:
-      - action: Post
-```
+{{< policy-example "process-monitoring/lsm-track-grandparent.yaml" >}}
+
 - `index` flag : The parameter at index 0 is a pointer to the
 `struct linux_binprm`.
 - `resolve` flag : Using the resolve flag, the policy extracts the
@@ -853,25 +716,7 @@ pointers. For exemple, the hook `security_inode_copy_up` (defined in
 takes two parameters: `struct dentry *src` and `struct cred **new`. The resolve
 flag allows you to access fields within these nested structures transparently.
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "lsm"
-spec:
-  kprobes:
-  - call: "security_inode_copy_up"
-    syscall: false
-    args:
-    - index: 0 # struct dentry *src
-      type: "int64"
-    - index: 1 # struct cred **new
-      type: "int"
-      resolve: "user.uid.val"
-    selectors:
-    - matchActions:
-      - action: Post
-```
+{{< policy-example "file-monitoring/lsm-inode-copy-up.yaml" >}}
 
 It is also possible to resolve arrays (`int arr[100]`) and dynamic arrays
 (`int **dyn_arr`) by using square bracket notations, similarly as follows:
@@ -896,27 +741,7 @@ cast the argument to a more specific structure before resolving fields. The
 The following example resolves fields from the `struct sockaddr_in` view of the
 second `security_socket_connect` argument:
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "socket-connect-address"
-spec:
-  kprobes:
-  - call: "security_socket_connect"
-    syscall: false
-    args:
-    - index: 1
-      type: "uint16"
-      label: "sockaddr_in.sin_port"
-      btfType: "sockaddr_in"
-      resolve: "sin_port"
-    - index: 1
-      type: "uint32"
-      label: "sockaddr_in.sin_addr.s_addr"
-      btfType: "sockaddr_in"
-      resolve: "sin_addr.s_addr"
-```
+{{< policy-example "network-monitoring/socket-connect-address.yaml" >}}
 
 #### Kernel module BTF types
 
@@ -924,29 +749,7 @@ For kprobe arguments, use `btfTypeModule` with `btfType` when the structure is
 defined by a kernel module instead of the main kernel BTF. The module name
 should be the kernel module name, without a `.ko` suffix.
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "af-alg-bind"
-spec:
-  kprobes:
-  - call: "security_socket_bind"
-    syscall: false
-    args:
-    - index: 1
-      type: "uint16"
-      label: "sockaddr_alg.salg_family"
-      btfType: "sockaddr_alg_new"
-      btfTypeModule: "af_alg"
-      resolve: "salg_family"
-    - index: 1
-      type: "string"
-      label: "sockaddr_alg.salg_name"
-      btfType: "sockaddr_alg_new"
-      btfTypeModule: "af_alg"
-      resolve: "salg_name"
-```
+{{< policy-example "network-monitoring/af-alg-bind.yaml" >}}
 
 {{< caution >}}
 When `btfTypeModule` is set, Tetragon first tries to read module BTF exposed by
@@ -1066,13 +869,11 @@ An adversary could overflow the map to evade attribution, or exploit socket
 sharing to obscure the true source of network activity.
 {{< /warning >}}
 
-
 ## Lists
 
 It's possible to define list of functions and use it in the kprobe's `call` field.
 
 Following example traces all `sys_dup[23]` syscalls.
-
 
 ```yaml
 spec:

@@ -1,0 +1,8 @@
+{{- $path := .Get 0 -}}
+{{- $file := resources.Get (printf "policies/%s" $path) -}}
+{{- if not $file -}}
+  {{- errorf "policy-example: policies/%s not found (%s)" $path .Position -}}
+{{- else -}}
+{{ highlight $file.Content "yaml" "" }}
+<p><a href="https://github.com/cilium/tetragon/blob/main/policies/{{ replace $path " " "%20" }}">View {{ path.Base $path }} on GitHub</a></p>
+{{- end -}}

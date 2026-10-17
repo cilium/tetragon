@@ -1,0 +1,19 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "socket-connect-address"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    syscall: false
+    args:
+    - index: 1
+      type: "uint16"
+      label: "sockaddr_in.sin_port"
+      btfType: "sockaddr_in"
+      resolve: "sin_port"
+    - index: 1
+      type: "uint32"
+      label: "sockaddr_in.sin_addr.s_addr"
+      btfType: "sockaddr_in"
+      resolve: "sin_addr.s_addr"

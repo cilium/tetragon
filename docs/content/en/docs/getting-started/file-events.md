@@ -11,8 +11,7 @@ to userspace from the BPF programs running in kernel. This ensures overhead
 remains low even on busy systems.
 
 The instructions below extend the example from [Execution Monitoring]({{< ref "/docs/getting-started/execution" >}})
-with a policy to monitor sensitive files in Linux. The policy used is
-[`file_monitoring.yaml`](https://github.com/cilium/tetragon/blob/main/examples/quickstart/file_monitoring.yaml),
+with a policy to monitor sensitive files in Linux. The policy used is {{< policy-ref "file-monitoring/file-monitoring.yaml">}}
 which you can review and extend as needed. Files monitored here serve as a good
 base set of files.
 
@@ -31,17 +30,17 @@ section.
 {{< tabpane lang=shell >}}
 
 {{< tab "Kubernetes (single node)" >}}
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring.yaml
+kubectl apply -f {{< policy-raw-url "file-monitoring/file-monitoring.yaml">}}
 {{< /tab >}}
 {{< tab "Kubernetes (multiple nodes)" >}}
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring.yaml
+kubectl apply -f {{< policy-raw-url "file-monitoring/file-monitoring.yaml">}}
 {{< /tab >}}
 {{< tab Docker >}}
-wget https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring.yaml
+wget {{< policy-raw-url "file-monitoring/file-monitoring.yaml">}}
 docker stop tetragon
 docker run -d --name tetragon --rm --pull always \
   --pid=host --cgroupns=host --privileged \
-  -v ${PWD}/file_monitoring.yaml:/etc/tetragon/tetragon.tp.d/file_monitoring.yaml \
+  -v ${PWD}/file-monitoring.yaml:/etc/tetragon/tetragon.tp.d/file-monitoring.yaml \
   -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf \
   quay.io/cilium/tetragon:{{< latest-version >}}
 {{< /tab >}}

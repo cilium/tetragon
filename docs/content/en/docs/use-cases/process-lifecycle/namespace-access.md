@@ -56,21 +56,7 @@ namespace.
 
 Create a file named `namespace-access.yaml`:
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "namespace-access"
-spec:
-  kprobes:
-  - call: "sys_setns"
-    syscall: true
-    args:
-    - index: 0
-      type: "int"
-    - index: 1
-      type: "int"
-```
+{{< policy-example "process-monitoring/namespace-access.yaml">}}
 
 {{< note >}}
 The first argument (index 0) is the file descriptor referring to a namespace,
@@ -218,31 +204,7 @@ To actively prevent namespace escape attempts, you can extend the policy with a
 `Sigkill` action. The following policy will terminate any process that attempts
 to call `setns` from within a container:
 
-```yaml
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "deny-namespace-access"
-spec:
-  kprobes:
-  - call: "sys_setns"
-    syscall: true
-    args:
-    - index: 0
-      type: "int"
-    - index: 1
-      type: "int"
-    selectors:
-    - matchPIDs:
-      - operator: NotIn
-        followForks: true
-        isNamespacePID: true
-        values:
-        - 0
-        - 1
-      matchActions:
-      - action: Sigkill
-```
+{{< policy-example "process-monitoring/deny-namespace-access.yaml">}}
 
 The `matchPIDs` selector ensures the policy only applies to container processes:
 - `isNamespacePID: true`: Uses the PID namespace ID rather than the host PID

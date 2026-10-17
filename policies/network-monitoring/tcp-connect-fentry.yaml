@@ -1,7 +1,7 @@
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "fentry"
+  name: "fentry-example"
 spec:
   fentries:
   - call: "tcp_connect"
@@ -13,8 +13,3 @@ spec:
     returnArg:
       index: 0
       type: "int"
-  - call: "tcp_close"
-    syscall: false
-    args:
-    - index: 0
-      type: "sock"

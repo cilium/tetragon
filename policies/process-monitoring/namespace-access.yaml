@@ -1,12 +1,13 @@
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "syscalls"
+  name: "namespace-access"
 spec:
   kprobes:
-  # int setuid(uid_t uid);
-  - call: "sys_setuid"
+  - call: "sys_setns"
     syscall: true
     args:
     - index: 0
+      type: "int"
+    - index: 1
       type: "int"
