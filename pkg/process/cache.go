@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
@@ -229,7 +229,7 @@ func (pc *Cache) len() int {
 }
 
 func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.ProcessInternal {
-	execveMapPath := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, "execve_map")
+	execveMapPath := filepath.Join(bpf.MapPrefixPath(), "execve_map")
 	var execveMap *ebpf.Map
 	var err error
 	if opts.ExcludeExecveMapProcesses {
