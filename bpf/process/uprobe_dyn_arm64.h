@@ -25,6 +25,7 @@ FUNC_INLINE void restore_orig_regs(struct pt_regs *ctx, struct pending_call *pc)
 	ctx->regs[5] = pc->orig_regs[5];
 	ctx->regs[6] = pc->orig_regs[6];
 	ctx->regs[7] = pc->orig_regs[7];
+	ctx->regs[18] = pc->orig_regs[8];
 	ctx->regs[30] = pc->true_return_addr; // restore LR before the final/revert jump
 }
 
@@ -58,6 +59,7 @@ FUNC_INLINE void store_orig_regs(struct pt_regs *ctx, struct pending_call *pc)
 	pc->orig_regs[5] = ctx->regs[5];
 	pc->orig_regs[6] = ctx->regs[6];
 	pc->orig_regs[7] = ctx->regs[7];
+	pc->orig_regs[8] = ctx->regs[18];
 	pc->orig_addr = ctx->pc;
 	pc->expected_sp = ctx->sp;
 	pc->true_return_addr = ctx->regs[30];

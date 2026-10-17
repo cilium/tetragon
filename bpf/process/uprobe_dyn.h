@@ -67,7 +67,12 @@ struct pending_call {
 	__u32 stage; // enum resolve_stage
 
 	// Only used during a symbol resolution from sopath
-	__u64 orig_regs[8]; // saved rdi,rsi,rdx,rcx,r8,r9 (or x0-x7 on arm)
+	// Saved registers that may carry values to the traced symbol:
+	// * x86_64: rdi,rsi,rdx,rcx,r8,r9 (arguments), r10 (static chain)
+	// * arm64: x0-x7 (arguments), x18 (static chain)
+	// The static chain is a hidden argument used by GCC nested functions,
+	// pointing to the enclosing function's frame.
+	__u64 orig_regs[9];
 	__u64 dispatch_addr; // my_sym's own address, used for mmap/dlopen pushes
 	__u64 orig_addr; // initial addr to be restored in case of errors
 	__u64 expected_sp; // used to avoid a signal handler called in the middle of our state machine

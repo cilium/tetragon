@@ -20,6 +20,7 @@ FUNC_INLINE void restore_orig_regs(struct pt_regs *ctx, struct pending_call *pc)
 	ctx->cx = pc->orig_regs[3];
 	ctx->r8 = pc->orig_regs[4];
 	ctx->r9 = pc->orig_regs[5];
+	ctx->r10 = pc->orig_regs[6];
 }
 
 FUNC_INLINE void jump_to(struct pt_regs *ctx, __u64 addr)
@@ -76,6 +77,7 @@ FUNC_INLINE void store_orig_regs(struct pt_regs *ctx, struct pending_call *pc)
 	pc->orig_regs[3] = ctx->cx;
 	pc->orig_regs[4] = ctx->r8;
 	pc->orig_regs[5] = ctx->r9;
+	pc->orig_regs[6] = ctx->r10;
 	pc->orig_addr = ctx->ip;
 	pc->expected_sp = ctx->sp;
 	// Unused on x86
