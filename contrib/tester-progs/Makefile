@@ -44,6 +44,8 @@ PROGS = sigkill-tester \
 	uprobe-simple \
 	uprobe-static-chain \
 	uprobe-big-struct \
+	uprobe-selector-targets-1 \
+	uprobe-selector-targets-2 \
 	pclntab-unstripped \
 	pclntab-stripped \
 	null-mount \
@@ -102,6 +104,9 @@ uprobe-static-chain: uprobe-static-chain.c libuprobe-static-chain.so
 
 uprobe-big-struct: uprobe-big-struct.c uprobe-big-struct.h libuprobe.so
 	$(GCC) -Wall $< -o $@
+
+uprobe-selector-targets-1 uprobe-selector-targets-2: uprobe-selector-targets.c libuprobe.so
+	$(GCC) -Wall $< -o $@ -L . -luprobe -Wl,-rpath,'$$ORIGIN'
 
 libtester.so: tester-lib.c
 	$(GCC) -Wall -fPIC $< -o $@ -shared

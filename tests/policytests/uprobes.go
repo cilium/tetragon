@@ -894,6 +894,63 @@ spec:
 	}
 }).RegisterAtInit()
 
+// One uprobes entry with two selectors, each redirecting the same symbol to a
+// different replacement loaded from sopath, depending on the calling binary.
+// Each trigger runs a separate process doing a single call, so only the
+// per-selector override configuration is tested. See uprobe-selector-targets.c.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-selector-targets").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-selector-targets"
+spec:
+  uprobes:
+  - path: {{ testBinary "libuprobe.so" }}
+    symbols:
+    - "uprobe_test_lib_selector_target"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - {{ testBinary "uprobe-selector-targets-1" }}
+      matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_first_target
+        sopath: {{ testBinary "libuprobe.so" }}
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - {{ testBinary "uprobe-selector-targets-2" }}
+      matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_second_target
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin1 := c.TestBinary("uprobe-selector-targets-1")
+	bin2 := c.TestBinary("uprobe-selector-targets-2")
+	binChecker := func(bin string) *ec.ProcessUprobeChecker {
+		return ec.NewProcessUprobeChecker("uprobe-selector-targets").
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Full(bin))).
+			WithSymbol(sm.Full("uprobe_test_lib_selector_target"))
+	}
+
+	return &policytest.Scenario{
+		Name: "check each selector redirects to its own replacement loaded by SO",
+		// The exit code is the value returned by the replacement.
+		Trigger: policytest.NewMultiCmdTrigger([]policytest.CmdTrigger{
+			{Bin: bin1},
+			{Bin: bin2},
+		}).ExpectExitCodes([]int{1, 2}),
+		EventChecker: ec.NewUnorderedEventChecker(binChecker(bin1), binChecker(bin2)),
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("uprobe-override-new-symbol-so").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy

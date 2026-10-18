@@ -16,6 +16,28 @@ struct uprobe_test_big_struct uprobe_test_lib_big_struct(long x)
 	return r;
 }
 
+// Override replacements for first_target() and second_target() in
+// for uprobe_test_lib_selector_target().
+int uprobe_test_lib_first_target(int c)
+{
+        printf("uprobe_test_lib_first_target called\n");
+        return 1;
+}
+
+int uprobe_test_lib_second_target(int c)
+{
+        printf("uprobe_test_lib_second_target called\n");
+        return 2;
+}
+
+// Traced symbol for uprobe-selector-targets.c, returns -1 so that a missing
+// override is detected.
+int uprobe_test_lib_selector_target(int c)
+{
+	printf("uprobe_test_lib_selector_target called\n");
+	return -1;
+}
+
 int uprobe_test_lib()
 {
 	printf("uprobe_test_lib called\n");
