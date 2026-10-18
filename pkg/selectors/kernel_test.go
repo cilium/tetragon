@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -1121,6 +1122,114 @@ func TestParseMatchAction(t *testing.T) {
 	if err := ParseMatchActions(ks, act, &actionArgTable, 0, nil, nil, nil); err != nil || bytes.Equal(expected, d.e) == false {
 		t.Errorf("parseMatchActions: error %v expected %v bytes %v parsing %v\n", err, expected, d.e, act)
 	}
+}
+
+func TestParseUpdateStateAction(t *testing.T) {
+	setValue := "1161981756646125696"
+	setAction := &v1alpha1.ActionSelector{
+		Action: "UpdateState",
+		State: &v1alpha1.StateAction{
+			Operator: "Set",
+			Name:     "state_exists",
+			Value:    &setValue,
+		},
+	}
+	stateIDs := map[string]uint32{"state_exists": 3}
+	state := &KernelSelectorState{data: KernelSelectorData{}}
+	expectedSet := []byte{
+		0x0f, 0x00, 0x00, 0x00, // Action = "UpdateState"
+		0x00, 0x00, 0x00, 0x00, // State operator = "Set"
+		0x03, 0x00, 0x00, 0x00, // State ID = 3
+		0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10, // State value
+	}
+	if err := ParseMatchAction(state, setAction, nil, 0, nil, nil, stateIDs); err != nil || !bytes.Equal(expectedSet, state.data.e) {
+		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expectedSet, state.data.e, setAction)
+	}
+
+	deleteAction := &v1alpha1.ActionSelector{
+		Action: "UpdateState",
+		State: &v1alpha1.StateAction{
+			Operator: "Delete",
+			Name:     "state_exists",
+		},
+	}
+	state = &KernelSelectorState{data: KernelSelectorData{}}
+	expectedDelete := []byte{
+		0x0f, 0x00, 0x00, 0x00, // Action = "UpdateState"
+		0x01, 0x00, 0x00, 0x00, // State operator = "Delete"
+		0x03, 0x00, 0x00, 0x00, // State ID = 3
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // State value
+	}
+	if err := ParseMatchAction(state, deleteAction, nil, 0, nil, nil, stateIDs); err != nil || !bytes.Equal(expectedDelete, state.data.e) {
+		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expectedDelete, state.data.e, deleteAction)
+	}
+
+	deleteAction.State.Name = "missing"
+	require.ErrorContains(t, ParseMatchAction(&KernelSelectorState{}, deleteAction, nil, 0, nil, nil, stateIDs), "undefined state")
+
+	deleteAction.State.Name = "state_exists"
+	deleteAction.State.Operator = ""
+	require.ErrorContains(t, ParseMatchAction(&KernelSelectorState{}, deleteAction, nil, 0, nil, nil, stateIDs), "requires state.operator Set or Delete")
+
+	setValue = "not-a-number"
+	require.ErrorContains(t, ParseMatchAction(&KernelSelectorState{}, setAction, nil, 0, nil, nil, stateIDs), "not a valid u64")
+
+	deleteAction.State.Operator = "Delete"
+	deleteAction.State.Value = &setValue
+	require.ErrorContains(t, ParseMatchAction(&KernelSelectorState{}, deleteAction, nil, 0, nil, nil, stateIDs), "does not accept state.value")
+
+	setAction.State.Value = nil
+	require.ErrorContains(t, ParseMatchAction(&KernelSelectorState{}, setAction, nil, 0, nil, nil, stateIDs), "requires state.value")
+
+	setAction.State = nil
+	require.ErrorContains(t, ParseMatchAction(&KernelSelectorState{}, setAction, nil, 0, nil, nil, stateIDs), "requires state")
+
+	setValue = "0"
+	setAction.State = &v1alpha1.StateAction{Name: "state_exists", Operator: "Set", Value: &setValue}
+	require.NoError(t, ParseMatchAction(&KernelSelectorState{}, setAction, nil, 0, nil, nil, stateIDs))
+}
+
+func TestParseMatchStates(t *testing.T) {
+	origForceLargeProgs := option.Config.ForceLargeProgs
+	origForceSmallProgs := option.Config.ForceSmallProgs
+	option.Config.ForceLargeProgs = true
+	option.Config.ForceSmallProgs = false
+	t.Cleanup(func() {
+		option.Config.ForceLargeProgs = origForceLargeProgs
+		option.Config.ForceSmallProgs = origForceSmallProgs
+	})
+
+	states := []v1alpha1.StateSelector{
+		{Name: "authenticated", Operator: "Equal", Value: "42"},
+		{Name: "authorized", Operator: "NotEqual", Value: strconv.FormatUint(math.MaxUint64, 10)},
+	}
+	stateIDs := map[string]uint32{"authenticated": 3, "authorized": 5}
+	state := &KernelSelectorState{data: KernelSelectorData{}}
+
+	expected := []byte{
+		0x24, 0x00, 0x00, 0x00, // MatchStates length
+		0x03, 0x00, 0x00, 0x00, // State ID = 3
+		0x03, 0x00, 0x00, 0x00, // Operator = "Equal"
+		0x2a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Value = 42
+		0x05, 0x00, 0x00, 0x00, // State ID = 5
+		0x04, 0x00, 0x00, 0x00, // Operator = "NotEqual"
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // Value = math.MaxUint64
+	}
+	if err := ParseMatchStates(state, states, stateIDs); err != nil || !bytes.Equal(expected, state.data.e) {
+		t.Errorf("parseMatchStates: error %v expected %v bytes %v parsing %v\n", err, expected, state.data.e, states)
+	}
+
+	require.ErrorContains(t, ParseMatchStates(&KernelSelectorState{}, states[:1], nil), "undefined state")
+	states[0].Operator = "GreaterThan"
+	require.ErrorContains(t, ParseMatchStates(&KernelSelectorState{}, states[:1], stateIDs), "operator")
+	states[0].Operator = "Equal"
+	states[0].Value = "invalid"
+	require.ErrorContains(t, ParseMatchStates(&KernelSelectorState{}, states[:1], stateIDs), "not a valid u64")
+
+	option.Config.ForceLargeProgs = false
+	option.Config.ForceSmallProgs = true
+	require.NoError(t, ParseMatchStates(&KernelSelectorState{}, nil, stateIDs))
+	require.ErrorContains(t, ParseMatchStates(&KernelSelectorState{}, states[:1], stateIDs), "large BPF programs")
 }
 
 func TestParseMatchActionMax(t *testing.T) {
