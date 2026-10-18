@@ -49,6 +49,8 @@ uprobe-null.btf
 /uprobe-static-chain
 /uprobe-big-struct
 /uprobe-two-targets
+/uprobe-selector-targets-1
+/uprobe-selector-targets-2
 libuprobe-static-chain.so
 pclntab-stripped
 pclntab-unstripped
