@@ -39,6 +39,12 @@ import (
 )
 
 const (
+	StateValueSize = 8
+
+	// Mirrored by STATE_OP_* in bpf/process/types/basic.h
+	StateOpSet    = 0
+	StateOpDelete = 1
+
 	ActionTypeInvalid = -1
 	ActionTypePost    = 0
 	// ActionTypeFollowFd                    = 1 deprecated
@@ -55,6 +61,7 @@ const (
 	ActionTypeNotifyEnforcer              = 12
 	ActionTypeCleanupEnforcerNotification = 13
 	ActionTypeSet                         = 14
+	ActionTypeUpdateState                 = 15
 )
 
 var actionTypeTable = map[string]uint32{
@@ -70,6 +77,7 @@ var actionTypeTable = map[string]uint32{
 	"notifyenforcer":              ActionTypeNotifyEnforcer,
 	"cleanupenforcernotification": ActionTypeCleanupEnforcerNotification,
 	"set":                         ActionTypeSet,
+	"updatestate":                 ActionTypeUpdateState,
 }
 
 var actionTypeStringTable = map[uint32]string{
@@ -84,6 +92,7 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeUntrackSock:                 "untracksock",
 	ActionTypeCleanupEnforcerNotification: "cleanupenforcernotification",
 	ActionTypeSet:                         "set",
+	ActionTypeUpdateState:                 "updatestate",
 }
 
 const (
@@ -1468,7 +1477,7 @@ func parseRateLimit(str string, scopeStr string) (uint32, uint32, error) {
 	return uint32(rateLimit), scope, nil
 }
 
-func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table, selIdx int, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg) error {
+func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table, selIdx int, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, stateIDs map[string]uint32) error {
 	act, ok := actionTypeTable[strings.ToLower(action.Action)]
 	if !ok {
 		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
@@ -1562,6 +1571,40 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 			WriteSelectorUint32(&k.data, action.ArgIndex)
 			WriteSelectorUint32(&k.data, uint32(action.ArgValue))
 		}
+	case ActionTypeUpdateState:
+		if action.State == nil {
+			return errors.New("UpdateState action requires state")
+		}
+		state := action.State
+		stateID, ok := stateIDs[state.Name]
+		if !ok {
+			return fmt.Errorf("UpdateState action references undefined state %q", state.Name)
+		}
+
+		var op uint32
+		var value uint64
+		switch state.Operator {
+		case "Set":
+			op = StateOpSet
+			if state.Value == nil {
+				return errors.New("UpdateState action with state.operator Set requires state.value")
+			}
+			var err error
+			value, err = strconv.ParseUint(*state.Value, 10, 64)
+			if err != nil {
+				return fmt.Errorf("UpdateState value %q is not a valid u64: %w", *state.Value, err)
+			}
+		case "Delete":
+			op = StateOpDelete
+			if state.Value != nil {
+				return errors.New("UpdateState action with state.operator Delete does not accept state.value")
+			}
+		default:
+			return errors.New("UpdateState action requires state.operator Set or Delete")
+		}
+		WriteSelectorUint32(&k.data, op)
+		WriteSelectorUint32(&k.data, stateID)
+		WriteSelectorUint64(&k.data, value)
 	default:
 		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
 	}
@@ -1618,13 +1661,55 @@ func ParseMatchWorkloads(k *KernelSelectorState, workload *v1alpha1.WorkloadsSel
 	return nil
 }
 
-func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table, selIdx int, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg) error {
+func ParseMatchStates(k *KernelSelectorState, states []v1alpha1.StateSelector, stateIDs map[string]uint32) error {
+	if !config.EnableLargeProgs() {
+		if len(states) > 0 {
+			return errors.New("matchStates requires kernels supporting large BPF programs (normally versions >= 5.3)")
+		}
+		return nil
+	}
+
+	if len(states) > 4 {
+		return fmt.Errorf("only %d state predicates are supported per selector", 4)
+	}
+
+	loff := AdvanceSelectorLength(&k.data)
+	for _, state := range states {
+		stateID, ok := stateIDs[state.Name]
+		if !ok {
+			return fmt.Errorf("matchStates references undefined state %q", state.Name)
+		}
+
+		op, err := SelectorOp(state.Operator)
+		if err != nil {
+			return fmt.Errorf("matchStates operator %q is not supported: %w", state.Operator, err)
+		}
+		switch op {
+		case SelectorOpEQ, SelectorOpNEQ:
+		default:
+			return fmt.Errorf("matchStates operator %q is not supported", state.Operator)
+		}
+
+		value, err := strconv.ParseUint(state.Value, 10, 64)
+		if err != nil {
+			return fmt.Errorf("matchStates value %q is not a valid u64: %w", state.Value, err)
+		}
+
+		WriteSelectorUint32(&k.data, stateID)
+		WriteSelectorUint32(&k.data, op)
+		WriteSelectorUint64(&k.data, value)
+	}
+	WriteSelectorLength(&k.data, loff)
+	return nil
+}
+
+func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table, selIdx int, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, stateIDs map[string]uint32) error {
 	if len(actions) > 3 {
 		return fmt.Errorf("only %d actions are support for selector (current number of values is %d)", 3, len(actions))
 	}
 	loff := AdvanceSelectorLength(&k.data)
 	for _, a := range actions {
-		if err := ParseMatchAction(k, &a, actionArgTable, selIdx, args, data); err != nil {
+		if err := ParseMatchAction(k, &a, actionArgTable, selIdx, args, data, stateIDs); err != nil {
 			return err
 		}
 	}
@@ -1943,6 +2028,7 @@ type KernelSelectorArgs struct {
 	CelExprs               *CelExprFunctions
 	// BinaryPath is used as default binary path for matchCaller selectors.
 	BinaryPath string
+	StateIDs   map[string]uint32
 }
 
 // The byte array storing the selector configuration has the following format
@@ -1962,6 +2048,7 @@ type KernelSelectorArgs struct {
 //	[matchCapabilities]
 //	[matchNamespaceChanges]
 //	[matchCapabilityChanges]
+//	[matchStates]
 //	[matchCmdArgs]
 //	[matchCallers]
 //	[matchArgs]
@@ -1972,6 +2059,7 @@ type KernelSelectorArgs struct {
 // matchCapabilities := [length][CAx][CAy]...[CAn]
 // matchNamespaceChanges := [length][NCx][NCy]...[NCn]
 // matchCapabilityChanges := [length][CAx][CAy]...[CAn]
+// matchStates := [length][STATEx]...[STATEn]
 // matchCmdArgs := [length][CMDARGx][CMDARGy]...[CMDARGn]
 // matchCallers := [length u32][BuildIDLength u32][BuildID1 [20]byte]...[BuildIDn][CAL1]...[CALn]
 // matchArgs := [length][ARGx][ARGy]...[ARGn]
@@ -1981,6 +2069,7 @@ type KernelSelectorArgs struct {
 // NCn := [op][valueInt]
 // CAn := [type][op][namespacecap][valueInt]
 // CALn := [depth uint32][BuildIDRef uint32][startRange uint64][endRange uint64]
+// STATEn := [stateID u32][op u32][valueInt u64]
 // valueGen := [type][len][v]
 // valueInt := [len][v]
 //
@@ -1999,7 +2088,7 @@ func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KP
 }
 
 func InitKernelReturnSelectors(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([KernelBufferSize]byte, error) {
-	state, err := InitKernelReturnSelectorState(selectors, returnArg, actionArgTable, nil, nil)
+	state, err := InitKernelReturnSelectorState(selectors, returnArg, actionArgTable, nil, nil, nil)
 	if err != nil {
 		return [KernelBufferSize]byte{}, err
 	}
@@ -2057,6 +2146,9 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		if err := ParseMatchCapabilityChanges(k, selector.MatchCapabilityChanges); err != nil {
 			return fmt.Errorf("parseMatchCapabilityChanges error: %w", err)
 		}
+		if err := ParseMatchStates(k, selector.MatchStates, args.StateIDs); err != nil {
+			return fmt.Errorf("parseMatchStates error: %w", err)
+		}
 		if err := ParseMatchBinaries(k, selector.MatchBinaries, selIdx, matchBinaries); err != nil {
 			return fmt.Errorf("parseMatchBinaries error: %w", err)
 		}
@@ -2075,7 +2167,7 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		if err := ParseMatchWorkloads(k, selector.MatchWorkloads, selIdx); err != nil {
 			return fmt.Errorf("parseMatchWorkloads  error: %w", err)
 		}
-		if err := ParseMatchActions(k, selector.MatchActions, args.ActionArgTable, selIdx, args.Args, args.Data); err != nil {
+		if err := ParseMatchActions(k, selector.MatchActions, args.ActionArgTable, selIdx, args.Args, args.Data, args.StateIDs); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
 		}
 		k.usage.MatchPIDs = k.usage.MatchPIDs || len(selector.MatchPIDs) > 0
@@ -2095,15 +2187,18 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 }
 
 func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
-	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
+	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps, stateIDs map[string]uint32) (*KernelSelectorState, error) {
 	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
+		if err := ParseMatchStates(k, selector.MatchStates, stateIDs); err != nil {
+			return fmt.Errorf("parseMatchStates error: %w", err)
+		}
 		if err := ParseMatchCmdArgs(k, nil); err != nil {
 			return fmt.Errorf("parseMatchCmdArgs error: %w", err)
 		}
 		if err := ParseMatchArgs(k, selector.MatchReturnArgs, []v1alpha1.ArgSelector{}, nil, []v1alpha1.KProbeArg{*returnArg}, []v1alpha1.KProbeArg{}); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
-		if err := ParseMatchActions(k, selector.MatchReturnActions, actionArgTable, selIdx, []v1alpha1.KProbeArg{*returnArg}, nil); err != nil {
+		if err := ParseMatchActions(k, selector.MatchReturnActions, actionArgTable, selIdx, []v1alpha1.KProbeArg{*returnArg}, nil, stateIDs); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
 		}
 		return nil
