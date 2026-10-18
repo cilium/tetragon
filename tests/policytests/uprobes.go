@@ -894,6 +894,59 @@ spec:
 	}
 }).RegisterAtInit()
 
+// Two uprobes entries in the same policy redirect two different symbols to two
+// different replacements loaded from sopath. With uprobe multi, both entries
+// share the attached program, so the per-thread resolution state must keep
+// the two targets apart. See uprobe-two-targets.c for the exit code.
+var _ = policytest.NewBuilder("uprobe-multi-override-new-symbol-so-two-targets").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-multi-override-new-symbol-so-two-targets"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-two-targets" }}
+    symbols:
+    - "first_target"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_first_target
+        sopath: {{ testBinary "libuprobe.so" }}
+  - path: {{ testBinary "uprobe-two-targets" }}
+    symbols:
+    - "second_target"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_second_target
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeMultiProbe] {
+		return "need uprobe multi support"
+	}
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-two-targets")
+	firstChecker := ec.NewProcessUprobeChecker("uprobe-two-targets-first").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("first_target"))
+	secondChecker := ec.NewProcessUprobeChecker("uprobe-two-targets-second").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("second_target"))
+
+	return &policytest.Scenario{
+		Name:         "check each symbol is redirected to its own replacement loaded by SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(firstChecker, secondChecker),
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("uprobe-override-new-symbol-so").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy

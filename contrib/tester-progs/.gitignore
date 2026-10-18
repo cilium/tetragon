@@ -48,6 +48,7 @@ uprobe-null.btf
 /uprobe-fp-args
 /uprobe-static-chain
 /uprobe-big-struct
+/uprobe-two-targets
 libuprobe-static-chain.so
 pclntab-stripped
 pclntab-unstripped

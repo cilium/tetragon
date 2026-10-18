@@ -16,6 +16,20 @@ struct uprobe_test_big_struct uprobe_test_lib_big_struct(long x)
 	return r;
 }
 
+// Override replacements for first_target() and second_target() in
+// uprobe-two-targets.c.
+int uprobe_test_lib_first_target(int c)
+{
+	printf("uprobe_test_lib_first_target called\n");
+	return 1;
+}
+
+int uprobe_test_lib_second_target(int c)
+{
+	printf("uprobe_test_lib_second_target called\n");
+	return 2;
+}
+
 // Override replacement for fp_args() in uprobe-fp-args.c.
 // Returns a bitmask of the arguments not matching the values passed by the caller.
 int uprobe_test_lib_fp_args(double a0, double a1, double a2, double a3,
