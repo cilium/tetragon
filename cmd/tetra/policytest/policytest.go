@@ -71,8 +71,12 @@ func dumpPolicyCmd() *cobra.Command {
 	var params map[string]string
 
 	cmd := cobra.Command{
-		Use:   "dump-policy",
+		Use:   "dump-policy <test-regexp>...",
 		Short: "Dump policies from Tetragon policy test(s)",
+		Long: "Dump policies from Tetragon policy test(s).\n\n" +
+			"Each argument is a regular expression that has to match the whole test name " +
+			"(e.g., 'uprobe-.*' runs all tests whose name starts with 'uprobe-')." +
+			"The passed regex gets automatically anchored to both start end end of string.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// NB: parameters are applied to all policies
 			paramValues := make(map[string]any)
@@ -80,14 +84,13 @@ func dumpPolicyCmd() *cobra.Command {
 				paramValues[k] = v
 			}
 
-			names := make(map[string]struct{})
-			for _, arg := range args {
-				names[arg] = struct{}{}
+			tests, err := policytest.AllPolicyTests.GetByRegexps(args)
+			if err != nil {
+				return err
 			}
-			tests := policytest.AllPolicyTests.GetByFunction(func(t *policytest.T) bool {
-				_, ok := names[t.Name]
-				return ok
-			})
+			if len(tests) == 0 {
+				return fmt.Errorf("no policy tests matching %q", args)
+			}
 
 			conf := policytest.Conf{
 				GrpcAddr:       common.ServerAddress,
@@ -130,9 +133,12 @@ func runCmd() *cobra.Command {
 	var outputFile = ""
 	outputFmt, _ := option.NewEnum([]string{"text", "json"}, "text")
 	cmd := cobra.Command{
-		Use:   "run",
+		Use:   "run [<test-regexp>...]",
 		Short: "Run Tetragon policy test(s)",
-		Long:  "Run Tetragon policy test(s)",
+		Long: "Run Tetragon policy test(s).\n\n" +
+			"Each argument is a regular expression that has to match the whole test name " +
+			"(e.g., 'uprobe-.*' runs all tests whose name starts with 'uprobe-')." +
+			"The passed regex gets automatically anchored to both start end end of string.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logLevel := slog.LevelInfo
 			if common.Debug {
@@ -166,23 +172,22 @@ func runCmd() *cobra.Command {
 			}
 
 			ctx := context.Background()
-			var ptFilterFn func(t *policytest.T) bool
+			var tests []*policytest.T
 			if allTests {
-				ptFilterFn = func(_ *policytest.T) bool {
+				tests = policytest.AllPolicyTests.GetByFunction(func(_ *policytest.T) bool {
 					return true
-				}
+				})
 			} else {
-				names := make(map[string]struct{})
-				for _, arg := range args {
-					names[arg] = struct{}{}
+				var err error
+				tests, err = policytest.AllPolicyTests.GetByRegexps(args)
+				if err != nil {
+					return err
 				}
-				ptFilterFn = func(t *policytest.T) bool {
-					_, ok := names[t.Name]
-					return ok
+				if len(tests) == 0 {
+					return fmt.Errorf("no policy tests matching %q", args)
 				}
 			}
 
-			tests := policytest.AllPolicyTests.GetByFunction(ptFilterFn)
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
 				GrpcAddr:        common.ServerAddress,
 				BinsDir:         testBinsPath,
