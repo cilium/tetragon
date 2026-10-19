@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+
+ARG GOLANG_IMAGE=docker.io/library/golang:1.27.2@sha256:5bc7f572bbaa98885a3a1fd9c0aa76b59e3e14e8628bfc316bbfd0c701e4818c
+# same Debian release as the builder, for the tester-progs glibc
+ARG BASE_IMAGE=docker.io/library/debian:trixie-slim@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a
+
+FROM ${GOLANG_IMAGE} AS builder
+WORKDIR /go/src/github.com/cilium/tetragon
+# no .git in the build context
+ARG TETRAGON_VERSION
+# libc6-dev-armhf-cross is only a Recommends of gcc-arm-linux-gnueabihf
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libcap-dev \
+        dwarves \
+        llvm \
+        $(case "$(dpkg --print-architecture)" in \
+            amd64) echo gcc-multilib ;; \
+            arm64) echo gcc-arm-linux-gnueabihf libc6-dev-armhf-cross ;; \
+          esac) \
+    && rm -rf /var/lib/apt/lists/*
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    make VERSION=$TETRAGON_VERSION tetra tester-progs-tarball && tar -xzf tester-progs.tar.gz -C /
+
+FROM ${BASE_IMAGE}
+COPY --from=builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/tetra
+COPY --from=builder /tester-progs/ /usr/local/lib/tetragon/tester-progs/
+RUN /usr/local/lib/tetragon/tester-progs/nop
+ENTRYPOINT ["tetra"]
