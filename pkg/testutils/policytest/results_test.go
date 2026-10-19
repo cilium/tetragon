@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"iter"
 	"strings"
 	"testing"
 	"time"
@@ -69,4 +70,40 @@ func TestDecodeResultsNoResult(t *testing.T) {
 		require.Nil(t, res)
 		require.ErrorIs(t, err, errNoResult)
 	}
+}
+
+func seqOf(results []*NamedResult, err error) iter.Seq2[*NamedResult, error] {
+	return func(yield func(*NamedResult, error) bool) {
+		for _, res := range results {
+			if !yield(res, nil) {
+				return
+			}
+		}
+		if err != nil {
+			yield(nil, err)
+		}
+	}
+}
+
+func TestWriteResults(t *testing.T) {
+	results := []*NamedResult{
+		{Name: "a ()", Result: &Result{ScenariosRes: []ScenarioRes{{Name: "s"}}}},
+		{Name: "b ()", Result: &Result{Err: JSONError{Err: errors.New("boom")}}},
+	}
+
+	var out bytes.Buffer
+	err := WriteResults(&out, OutputJSON, seqOf(results, nil))
+	require.Error(t, err)
+	var decoded []*NamedResult
+	for res, err := range DecodeResults(&out, nil) {
+		require.NoError(t, err)
+		decoded = append(decoded, res)
+	}
+	require.Len(t, decoded, 2)
+	require.Equal(t, "b ()", decoded[1].Name)
+
+	out.Reset()
+	seqErr := errors.New("pod gone")
+	require.ErrorIs(t, WriteResults(&out, OutputJSON, seqOf(results[:1], seqErr)), seqErr)
+	require.Equal(t, 1, strings.Count(out.String(), "\n"), "the result before the error is written")
 }

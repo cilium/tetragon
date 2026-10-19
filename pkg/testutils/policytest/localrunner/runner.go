@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"iter"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -116,7 +117,8 @@ func New(
 	return ret, nil
 }
 
-func (r *Runner) Close() {
+// Close ends the event stream and the connection to the agent.
+func (r *Runner) Close() error {
 	if r.cli != nil {
 		r.cli.Close()
 	}
@@ -125,6 +127,35 @@ func (r *Runner) Close() {
 		r.fwdCtlChan <- fwdCtl{cmd: fwdCmdExit}
 	}
 	r.wg.Wait()
+	return nil
+}
+
+// Run runs the selection against the agent, one test at a time. It checks
+// ctx between tests; a running test ends with its own scenario timeout.
+func (r *Runner) Run(ctx context.Context, log *slog.Logger, sel *policytest.Selection) iter.Seq2[*policytest.NamedResult, error] {
+	return func(yield func(*policytest.NamedResult, error) bool) {
+		tests, err := sel.Tests(policytest.AllPolicyTests)
+		if err != nil {
+			yield(nil, err)
+			return
+		}
+		for _, t := range tests {
+			for vals := range sel.ParamValues(t) {
+				if ctx.Err() != nil {
+					yield(nil, ctx.Err())
+					return
+				}
+				res := &policytest.NamedResult{Name: fmt.Sprintf("%s (%s)", t.Name, vals)}
+				res.Result = r.RunTest(log, t, &policytest.TestConf{
+					MonitorMode: sel.MonitorMode,
+					ParamValues: vals,
+				})
+				if !yield(res, nil) {
+					return
+				}
+			}
+		}
+	}
 }
 
 func (r *Runner) AddPolicy(l *slog.Logger, test *policytest.T) (*PolicyHandler, error) {
