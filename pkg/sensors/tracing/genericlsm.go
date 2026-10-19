@@ -70,6 +70,8 @@ type genericLsm struct {
 	tags []string
 	// is IMA hash collector program needed to load
 	imaProgLoad bool
+	// does any selector use the Override action
+	hasOverride bool
 }
 
 func (g *genericLsm) SetID(id idtable.EntryID) {
@@ -304,6 +306,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		tags:        tagsField,
 		imaProgLoad: false,
 	}
+	lsmEntry.hasOverride = selectors.HasOverride(f.Selectors)
 
 	for _, sel := range f.Selectors {
 		for _, action := range sel.MatchActions {
@@ -521,10 +524,14 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	}
 	maps = append(maps, matchBinariesPaths)
 
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+	// The core program stores the override error and the output program
+	// consumes it, so both use one map. It holds one entry per task with a
+	// pending override and must be sized like the kprobe one.
+	overrideTasksMap := program.MapBuilderProgram("override_tasks", load, loadOutput)
+	if lsmEntry.hasOverride {
+		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	}
 	maps = append(maps, overrideTasksMap)
-	overrideTasksMapOutput := program.MapBuilderProgram("override_tasks", loadOutput)
-	maps = append(maps, overrideTasksMapOutput)
 
 	maps = append(maps, polInfo.policyConfMap(load))
 
