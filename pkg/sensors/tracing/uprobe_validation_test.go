@@ -92,6 +92,27 @@ func TestUprobeValidationStackTraceRequiresPost(t *testing.T) {
 	}
 }
 
+func TestUprobeValidationOverrideMultipleSymbols(t *testing.T) {
+	err := checkCrd(t, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-multi-override-new-symbol-so-two-targets"
+spec:
+  uprobes:
+  - path: "/proc/self/exe"
+    symbols:
+    - "first_target"
+    - "second_target"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_first_target
+`)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "only a single uprobe symbol can be redirected")
+}
+
 func TestMultiUprobeValidationOverrideSopath(t *testing.T) {
 	if !bpf.HasUprobeMulti() {
 		t.Skip("skipping sopath validation test for uprobe multi, it is not supported in kernel")
