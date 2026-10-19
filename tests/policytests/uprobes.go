@@ -951,6 +951,59 @@ spec:
 	}
 }).RegisterAtInit()
 
+// Same as uprobe-override-new-symbol-so-selector-targets, but redirecting to
+// replacements in the traced binary, without sopath.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-selector-targets").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-selector-targets"
+spec:
+  uprobes:
+  - path: {{ testBinary "libuprobe.so" }}
+    symbols:
+    - "uprobe_test_lib_selector_target"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - {{ testBinary "uprobe-selector-targets-1" }}
+      matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_first_target
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - {{ testBinary "uprobe-selector-targets-2" }}
+      matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_second_target
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin1 := c.TestBinary("uprobe-selector-targets-1")
+	bin2 := c.TestBinary("uprobe-selector-targets-2")
+	binChecker := func(bin string) *ec.ProcessUprobeChecker {
+		return ec.NewProcessUprobeChecker("uprobe-selector-targets").
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Full(bin))).
+			WithSymbol(sm.Full("uprobe_test_lib_selector_target"))
+	}
+
+	return &policytest.Scenario{
+		Name: "check each selector redirects to its own replacement",
+		// The exit code is the value returned by the replacement.
+		Trigger: policytest.NewMultiCmdTrigger([]policytest.CmdTrigger{
+			{Bin: bin1},
+			{Bin: bin2},
+		}).ExpectExitCodes([]int{1, 2}),
+		EventChecker: ec.NewUnorderedEventChecker(binChecker(bin1), binChecker(bin2)),
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("uprobe-override-new-symbol-so").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
