@@ -23,6 +23,10 @@ const (
 // a result line carries the error strings of every scenario
 const maxResultLine = 1 << 20
 
+// ErrNoResults is what a runner returns when its run finished but produced
+// no result.
+var ErrNoResults = errors.New("no results")
+
 var (
 	errNoResult      = errors.New("result line without a result")
 	errUnknownFormat = errors.New("unknown output format")
