@@ -12,8 +12,10 @@ import (
 	"fmt"
 	"iter"
 	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -132,6 +134,7 @@ func runCmd() *cobra.Command {
 	var params map[string]string
 	var podSelector map[string]string
 	var outputFile = ""
+	var k8s k8sFlags
 	outputFmt, _ := option.NewEnum([]string{"text", "json"}, "text")
 	cmd := cobra.Command{
 		Use:   "run [<test-regexp>...]",
@@ -172,7 +175,16 @@ func runCmd() *cobra.Command {
 				}
 			}
 
-			ctx := context.Background()
+			if k8s.enabled {
+				for _, f := range []string{"bindir", "dump-policy-path", "pod-selector"} {
+					if cmd.Flags().Changed(f) {
+						return fmt.Errorf("--%s cannot be used with --k8s", f)
+					}
+				}
+			} else if cmd.Flags().Changed("k8s-context") {
+				return errors.New("--k8s-context requires --k8s")
+			}
+
 			var tests []*policytest.T
 			if allTests {
 				tests = policytest.AllPolicyTests.GetByFunction(func(_ *policytest.T) bool {
@@ -195,11 +207,28 @@ func runCmd() *cobra.Command {
 				}
 			}
 
+			timeout := time.Minute * time.Duration(len(tests))
+
+			out := cmd.OutOrStdout()
+			if outputFile != "" {
+				f, err := os.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+				if err != nil {
+					return fmt.Errorf("error opening output file: %w", err)
+				}
+				defer f.Close()
+				out = f
+			}
+
+			if k8s.enabled {
+				return k8s.run(out, timeout, podArgs(args, allTests, allParams, monitorMode, params, outputFmt.Value))
+			}
+
+			ctx := context.Background()
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
 				GrpcAddr:        common.ServerAddress,
 				BinsDir:         testBinsPath,
 				DumpPolicyPath:  dumpPolicyPath,
-				Timeout:         time.Minute * time.Duration(len(tests)),
+				Timeout:         timeout,
 				ScenarioTimeout: time.Minute,
 				PodSelector:     podSelector,
 			})
@@ -223,16 +252,6 @@ func runCmd() *cobra.Command {
 				}
 			}
 			runner.Close()
-
-			out := cmd.OutOrStdout()
-			if outputFile != "" {
-				f, err := os.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-				if err != nil {
-					return fmt.Errorf("error opening output file: %w", err)
-				}
-				defer f.Close()
-				out = f
-			}
 
 			switch outputFmt.Value {
 			case "json":
@@ -259,5 +278,23 @@ func runCmd() *cobra.Command {
 	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
 	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
 	flags.BoolVar(&allTests, "all-tests", allTests, "Run all available policy tests")
+	k8s.register(flags)
 	return &cmd
+}
+
+func podArgs(tests []string, allTests, allParams, monitorMode bool, params map[string]string, output string) []string {
+	ret := []string{"--output=" + output}
+	if allTests {
+		ret = append(ret, "--all-tests")
+	}
+	if allParams {
+		ret = append(ret, "--all-params")
+	}
+	if monitorMode {
+		ret = append(ret, "--monitor-mode")
+	}
+	for _, k := range slices.Sorted(maps.Keys(params)) {
+		ret = append(ret, "--set-param="+k+"="+params[k])
+	}
+	return append(append(ret, "--"), tests...)
 }
