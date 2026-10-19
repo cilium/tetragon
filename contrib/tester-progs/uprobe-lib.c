@@ -102,3 +102,24 @@ int uprobe_test_lib_callback(int (*callback)(int), int arg)
 	printf("uprobe_test_lib_callback called\n");
 	return callback(arg);
 }
+
+// Traced symbol for uprobe-selector-targets.c, returns -1 so that a missing
+// override is detected.
+int uprobe_test_lib_selector_target(int c)
+{
+	printf("uprobe_test_lib_selector_target called\n");
+	return -1;
+}
+
+// Override replacements for uprobe_test_lib_selector_target().
+int uprobe_test_lib_first_target(int c)
+{
+	printf("uprobe_test_lib_first_target called\n");
+	return 1;
+}
+
+int uprobe_test_lib_second_target(int c)
+{
+	printf("uprobe_test_lib_second_target called\n");
+	return 2;
+}

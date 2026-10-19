@@ -42,6 +42,8 @@ PROGS = sigkill-tester \
 	uprobe-null \
 	uprobe-caller \
 	uprobe-simple \
+	uprobe-selector-targets-1 \
+	uprobe-selector-targets-2 \
 	pclntab-unstripped \
 	pclntab-stripped \
 	null-mount \
@@ -90,6 +92,9 @@ exit-code: exit-code.c
 
 libuprobe.so: uprobe-lib.c
 	$(GCC) -Wall -fPIC $< -o $@ -shared
+
+uprobe-selector-targets-1 uprobe-selector-targets-2: uprobe-selector-targets.c libuprobe.so
+	$(GCC) -Wall $< -o $@ -L . -luprobe -Wl,-rpath,'$$ORIGIN'
 
 libtester.so: tester-lib.c
 	$(GCC) -Wall -fPIC $< -o $@ -shared
