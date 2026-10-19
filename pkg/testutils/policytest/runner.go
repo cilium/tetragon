@@ -27,6 +27,16 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
+// Runner runs a selection of policy tests.
+type Runner interface {
+	// Run returns one result per test and parameter set that completed, and
+	// an error when the run did not complete. A Runner can run again after
+	// Run returns.
+	Run(ctx context.Context, log *slog.Logger, sel *Selection) ([]*NamedResult, error)
+	// Close releases what the Runner holds on to.
+	Close() error
+}
+
 type LocalRunner struct {
 	conf *Conf
 	cli  *cli.ClientWithContext
@@ -116,7 +126,8 @@ func NewLocalRunner(
 	return ret, nil
 }
 
-func (r *LocalRunner) Close() {
+// Close ends the event stream and the connection to the agent.
+func (r *LocalRunner) Close() error {
 	if r.cli != nil {
 		r.cli.Close()
 	}
@@ -125,6 +136,43 @@ func (r *LocalRunner) Close() {
 		r.fwdCtlChan <- fwdCtl{cmd: fwdCmdExit}
 	}
 	r.wg.Wait()
+	return nil
+}
+
+// Run runs the selection against the agent, one test at a time. It checks
+// ctx between tests; a running test ends with its own scenario timeout.
+func (r *LocalRunner) Run(ctx context.Context, log *slog.Logger, sel *Selection) ([]*NamedResult, error) {
+	var results []*NamedResult
+	err := r.RunEach(ctx, log, sel, func(res *NamedResult) error {
+		results = append(results, res)
+		return nil
+	})
+	return results, err
+}
+
+// RunEach is Run that passes each result to fn as soon as the test completes.
+// An error from fn ends the run.
+func (r *LocalRunner) RunEach(ctx context.Context, log *slog.Logger, sel *Selection, fn func(*NamedResult) error) error {
+	tests, err := sel.Tests(AllPolicyTests)
+	if err != nil {
+		return err
+	}
+	for _, t := range tests {
+		for vals := range sel.ParamValues(t) {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			res := &NamedResult{Name: fmt.Sprintf("%s (%s)", t.Name, vals)}
+			res.Result = r.RunTest(log, t, &TestConf{
+				MonitorMode: sel.MonitorMode,
+				ParamValues: vals,
+			})
+			if err := fn(res); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error) {

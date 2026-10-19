@@ -7,7 +7,6 @@ package policytest
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -124,7 +123,7 @@ func runCmd() *cobra.Command {
 	var podSelector map[string]string
 	var outputFile = ""
 	var k8s k8sFlags
-	outputFmt, _ := option.NewEnum([]string{"text", "json"}, "text")
+	outputFmt, _ := option.NewEnum([]string{policytest.OutputText, policytest.OutputJSON}, policytest.OutputText)
 	cmd := cobra.Command{
 		Use:   "run [<test-regexp>...]",
 		Short: "Run Tetragon policy test(s)",
@@ -184,21 +183,12 @@ func runCmd() *cobra.Command {
 			defer runner.Close()
 
 			summary := policytest.NewResultsSummary()
-			for _, t := range tests {
-				for paramValues := range sel.ParamValues(t) {
-					res := &policytest.NamedResult{
-						Name: fmt.Sprintf("%s (%s)", t.Name, paramValues),
-					}
-					res.Result = runner.RunTest(log, t, &policytest.TestConf{
-						MonitorMode: sel.MonitorMode,
-						ParamValues: paramValues,
-					})
-					summary.Update(res.Result)
-
-					if err := writeResults(out, outputFmt.Value, []*policytest.NamedResult{res}); err != nil {
-						return err
-					}
-				}
+			err = runner.RunEach(ctx, log, &sel, func(res *policytest.NamedResult) error {
+				summary.Update(res.Result)
+				return policytest.WriteResults(out, outputFmt.Value, []*policytest.NamedResult{res})
+			})
+			if err != nil {
+				return err
 			}
 			return summary.Err()
 		},
@@ -304,7 +294,7 @@ finally the policies are unloaded.`,
 				return err
 			}
 			defer closeOut()
-			if err := writeResults(out, outputFmt.Value, results); err != nil {
+			if err := policytest.WriteResults(out, outputFmt.Value, results); err != nil {
 				return err
 			}
 			return summary.Err()
@@ -369,21 +359,4 @@ func openOutput(stdout io.Writer, outputFile string) (io.Writer, func(), error) 
 		return nil, nil, fmt.Errorf("error opening output file: %w", err)
 	}
 	return f, func() { f.Close() }, nil
-}
-
-// writeResults writes the results to out in the given format ("json" or "text")
-func writeResults(out io.Writer, format string, results []*policytest.NamedResult) error {
-	switch format {
-	case "json":
-		for _, res := range results {
-			b, err := json.Marshal(res)
-			if err != nil {
-				return fmt.Errorf("failed to generate json: %w", err)
-			}
-			fmt.Fprintln(out, string(b))
-		}
-	case "text":
-		policytest.DumpResults(out, results)
-	}
-	return nil
 }

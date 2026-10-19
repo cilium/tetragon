@@ -62,3 +62,19 @@ func TestDecodeResultsNoResult(t *testing.T) {
 	require.ErrorIs(t, err, errNoResult)
 	require.Empty(t, got)
 }
+
+func TestWriteResults(t *testing.T) {
+	results := []*NamedResult{
+		{Name: "a ()", Result: &Result{ScenariosRes: []ScenarioRes{{Name: "s"}}}},
+		{Name: "b ()", Result: &Result{Err: JSONError{Err: errors.New("boom")}}},
+	}
+
+	var out strings.Builder
+	require.NoError(t, WriteResults(&out, OutputJSON, results))
+	decoded, err := DecodeResults(strings.NewReader(out.String()))
+	require.NoError(t, err)
+	require.Len(t, decoded, 2)
+	require.Equal(t, "b ()", decoded[1].Name)
+
+	require.ErrorIs(t, WriteResults(&out, "yaml", results), errUnknownFormat)
+}
