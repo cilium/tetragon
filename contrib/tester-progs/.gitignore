@@ -45,6 +45,8 @@ uprobe-caller.btf
 uprobe-null
 uprobe-null.btf
 /uprobe-simple
+/uprobe-selector-targets-1
+/uprobe-selector-targets-2
 pclntab-stripped
 pclntab-unstripped
 null-mount
