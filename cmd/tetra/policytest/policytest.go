@@ -183,6 +183,12 @@ func runCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
+				for _, arg := range args {
+					matched, _ := policytest.AllPolicyTests.GetByRegexps([]string{arg})
+					if len(matched) == 0 {
+						return fmt.Errorf("no policy tests matching %q, see `tetra policytest list`", arg)
+					}
+				}
 				if len(tests) == 0 {
 					return fmt.Errorf("no policy tests matching %q", args)
 				}
