@@ -170,10 +170,15 @@ jobs:
       # and we are slowly moving existing tests to use policytest framework
       # we are losing arm64 coverage unless we run policytest
       # at least on github runners.
+      #
+      # tracepoint-exec is skipped until the runner kernel is fixed; the
+      # vmpolicy-tests still run it.
+      # https://github.com/cilium/tetragon/issues/5846
       - name: Run policytest
         run: |
           status=0
-          sudo tetra policytest run --all-tests --output-file /tmp/tetragon.policytest.txt || status=$?
+          tests=$(tetra policytest list | awk '$1 != "tracepoint-exec" {print $1}')
+          sudo tetra policytest run $tests --output-file /tmp/tetragon.policytest.txt || status=$?
           cat /tmp/tetragon.policytest.txt
           exit $status
 
