@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -121,6 +123,7 @@ func runCmd() *cobra.Command {
 	var selFlags selectionFlags
 	var podSelector map[string]string
 	var outputFile = ""
+	var k8s k8sFlags
 	outputFmt, _ := option.NewEnum([]string{policytest.OutputText, policytest.OutputJSON}, policytest.OutputText)
 	cmd := cobra.Command{
 		Use:   "run",
@@ -138,11 +141,16 @@ func runCmd() *cobra.Command {
 				},
 			))
 
+			if err := k8s.check(cmd.Flags()); err != nil {
+				return err
+			}
+
 			sel := selFlags.selection(args)
 			tests, err := sel.Tests(policytest.AllPolicyTests)
 			if err != nil {
 				return err
 			}
+			timeout := time.Minute * time.Duration(len(tests))
 
 			out := cmd.OutOrStdout()
 			if outputFile != "" {
@@ -154,17 +162,24 @@ func runCmd() *cobra.Command {
 				out = f
 			}
 
-			ctx := context.Background()
-			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
-				GrpcAddr:        common.ServerAddress,
-				BinsDir:         testBinsPath,
-				DumpPolicyPath:  dumpPolicyPath,
-				Timeout:         time.Minute * time.Duration(len(tests)),
-				ScenarioTimeout: time.Minute,
-				PodSelector:     podSelector,
-			})
+			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
+
+			var runner policytest.Runner
+			if k8s.enabled {
+				runner, err = k8s.runner(ctx, log, timeout, cmd.ErrOrStderr())
+			} else {
+				runner, err = policytest.NewLocalRunner(ctx, log, &policytest.Conf{
+					GrpcAddr:        common.ServerAddress,
+					BinsDir:         testBinsPath,
+					DumpPolicyPath:  dumpPolicyPath,
+					Timeout:         timeout,
+					ScenarioTimeout: time.Minute,
+					PodSelector:     podSelector,
+				})
+			}
 			if err != nil {
-				return fmt.Errorf("failed to start local runner: %w", err)
+				return fmt.Errorf("failed to start runner: %w", err)
 			}
 			defer runner.Close()
 
@@ -178,6 +193,7 @@ func runCmd() *cobra.Command {
 	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
 	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
 	selFlags.register(flags)
+	k8s.register(flags)
 	return &cmd
 }
 
