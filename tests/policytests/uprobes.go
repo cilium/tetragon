@@ -1064,6 +1064,58 @@ spec:
 	}
 }).RegisterAtInit()
 
+// Override with sopath in a selector with matchArgs. Resolving the symbol from
+// sopath re-triggers the uprobe after mmap() and after dlopen(), and the
+// selector is evaluated again on each hit, while the argument registers hold
+// the values left by mmap() and dlopen(). The override must still complete.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-matchargs").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-matchargs"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "lasagna"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "10"
+      matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_pizza
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-simple").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("lasagna")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(ec.NewKprobeArgumentChecker().WithIntArg(10)))
+
+	return &policytest.Scenario{
+		Name: "check call matching matchArgs is overridden with symbol loaded by SO",
+		// See uprobe-simple.c: main() calls lasagna(10) once, redirected to
+		// uprobe_test_lib_pizza(10) returning 11; pizza(0) and maccheroni(20)
+		// return 0.
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(11),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
+
 // GCC nested functions receive a pointer to the enclosing function's frame in
 // the static chain register (r10 on x86_64, x18 on arm64), a hidden argument
 // that must be preserved across the mmap()/dlopen() detour done while

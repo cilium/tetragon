@@ -537,6 +537,10 @@ func TestResolveNestedAnonStruct(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "resolve-nested-anon-struct", nil)
 }
 
+func TestUprobeOverrideNewSymbolSoMatchArgs(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-override-new-symbol-so-matchargs", nil)
+}
+
 func TestUprobeResolvePageFault(t *testing.T) {
 	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
 		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
