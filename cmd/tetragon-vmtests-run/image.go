@@ -14,47 +14,10 @@ import (
 
 	"github.com/cilium/little-vm-helper/pkg/images"
 	"github.com/cilium/little-vm-helper/pkg/slogger"
-	"github.com/cilium/little-vm-helper/pkg/step"
 
 	"github.com/cilium/tetragon/pkg/vmtests"
+	"github.com/cilium/tetragon/pkg/vmtests/lvh"
 )
-
-var (
-	TetragonTesterBin   = "./tests/vmtests/tetragon-tester"
-	TetragonTesterVmDir = "/sbin"
-	TetragonTesterVmBin = filepath.Join(TetragonTesterVmDir, filepath.Base(TetragonTesterBin))
-)
-
-func buildFilesystemActions(fs []QemuFS, tmpDir string) ([]images.Action, error) {
-	actions := make([]images.Action, 0, len(fs)+1)
-
-	var b bytes.Buffer
-	for _, fs := range fs {
-		b.WriteString(fs.fstabEntry())
-		act := images.Action{
-			Op: &images.MkdirCommand{Dir: fs.vmMountpoint()},
-		}
-		actions = append(actions, act)
-	}
-
-	// NB: this is so that init can remount / rw
-	b.WriteString("/dev/root\t/\text4\terrors=remount-ro\t0\t1\n")
-
-	tmpFile := filepath.Join(tmpDir, "fstab")
-	err := os.WriteFile(tmpFile, b.Bytes(), 0722)
-	if err != nil {
-		return nil, err
-	}
-
-	actions = append(actions, images.Action{
-		Op: &images.CopyInCommand{
-			LocalPath: tmpFile,
-			RemoteDir: "/etc",
-		},
-	})
-
-	return actions, nil
-}
 
 var tetragonTesterService = `
 [Unit]
@@ -73,7 +36,7 @@ WantedBy=multi-user.target
 `
 
 func buildTesterService(tmpDir string) ([]images.Action, error) {
-	execStart := TetragonTesterVmBin + " gotest"
+	execStart := lvh.TetragonTesterVMBin + " gotest"
 	service := fmt.Sprintf(tetragonTesterService, execStart)
 	var b bytes.Buffer
 	b.WriteString(service)
@@ -103,7 +66,7 @@ func buildTesterService(tmpDir string) ([]images.Action, error) {
 }
 
 func buildTesterActions(rcnf *GoTestConf, tmpDir string) ([]images.Action, error) {
-	absTesterBin, err := filepath.Abs(TetragonTesterBin)
+	absTesterBin, err := filepath.Abs(lvh.TetragonTesterBin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tetragon-tester full path: %w", err)
 	}
@@ -112,20 +75,13 @@ func buildTesterActions(rcnf *GoTestConf, tmpDir string) ([]images.Action, error
 	}
 
 	// NB: need to do this before we marshal the configuration
-	if rcnf.btfFile != "" {
-		absBTFFile, err := filepath.Abs(rcnf.btfFile)
+	if rcnf.BTFFile != "" {
+		act, vmBTFFile, err := lvh.BTFAction(rcnf.BTFFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get btf file full path: %w", err)
+			return nil, err
 		}
-		ret = append(ret, images.Action{
-			Op: &images.CopyInCommand{
-				LocalPath: absBTFFile,
-				RemoteDir: "/boot/",
-			},
-		})
-
-		baseName := filepath.Base(rcnf.btfFile)
-		rcnf.testerConf.BTFFile = filepath.Join("/boot", baseName)
+		ret = append(ret, act)
+		rcnf.testerConf.BTFFile = vmBTFFile
 	}
 
 	confB, err := json.MarshalIndent(&rcnf.testerConf, "", "    ")
@@ -143,7 +99,7 @@ func buildTesterActions(rcnf *GoTestConf, tmpDir string) ([]images.Action, error
 		Op: &images.CopyInCommand{LocalPath: tmpConfFile, RemoteDir: remoteConfDir},
 	})
 
-	if !rcnf.useTetragonTesterInit && !rcnf.justBoot {
+	if !rcnf.UseTetragonTesterInit && !rcnf.JustBoot {
 		acts, err := buildTesterService(tmpDir)
 		if err != nil {
 			return nil, err
@@ -154,76 +110,14 @@ func buildTesterActions(rcnf *GoTestConf, tmpDir string) ([]images.Action, error
 	return ret, nil
 }
 
-var networkConf = `
-[Match]
-Name=ens* enp* eth*
-[Network]
-DHCP=yes
-`
-
-func buildNetActions(tmpDir string) ([]images.Action, error) {
-	ret := []images.Action{
-		// Allow easy login for root user from ssh
-		{Op: &images.AppendLineCommand{
-			File: "/etc/ssh/sshd_config",
-			Line: "PermitRootLogin yes",
-		}},
-		{Op: &images.AppendLineCommand{
-			File: "/etc/ssh/sshd_config",
-			Line: "PermitEmptyPasswords yes",
-		}},
-	}
-
-	var b bytes.Buffer
-	b.WriteString(networkConf)
-	base := "20-interfaces.network"
-	tmpFile := filepath.Join(tmpDir, base)
-	err := os.WriteFile(tmpFile, b.Bytes(), 0644)
-	if err != nil {
-		return nil, err
-	}
-
-	dstDir := "/etc/systemd/network"
-	ret = append(ret,
-		images.Action{Op: &images.CopyInCommand{
-			LocalPath: tmpFile,
-			RemoteDir: dstDir,
-		}},
-		images.Action{Op: &images.ChmodCommand{
-			File:        filepath.Join(dstDir, base),
-			Permissions: "0644",
-		}},
-		images.Action{Op: &images.RunCommand{
-			Cmd: "systemctl enable systemd-networkd.service",
-		}},
-	)
-
-	return ret, nil
-}
-
-type NoNetworkCommand struct{}
-
-func (rc *NoNetworkCommand) ActionOpName() string {
-	return "no-network"
-}
-
-func (rc *NoNetworkCommand) ToSteps(s *images.StepConf) ([]step.Step, error) {
-	return []step.Step{&images.VirtCustomizeStep{
-		StepConf: s,
-		Args:     []string{"--no-network"},
-	}}, nil
-}
-
 func buildTestImage(log slogger.Logger, rcnf *GoTestConf) error {
-	imagesDir, baseImage := filepath.Split(rcnf.baseImageFilename)
-
 	tmpDir, err := os.MkdirTemp("", "tetragon-vmtests-")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(tmpDir)
 
-	fsActions, err := buildFilesystemActions(rcnf.filesystems, tmpDir)
+	fsActions, err := lvh.FilesystemActions(rcnf.Filesystems, tmpDir)
 	if err != nil {
 		return err
 	}
@@ -233,45 +127,15 @@ func buildTestImage(log slogger.Logger, rcnf *GoTestConf) error {
 		return err
 	}
 
-	netActions, err := buildNetActions(tmpDir)
+	netActions, err := lvh.NetActions(tmpDir)
 	if err != nil {
 		return err
 	}
 
-	actions := []images.Action{
-		{Op: &NoNetworkCommand{}},
-		{Op: &images.SetHostnameCommand{Hostname: rcnf.vmName}},
-		{Op: &images.AppendLineCommand{
-			File: "/etc/sysctl.d/local.conf",
-			Line: "kernel.panic_on_rcu_stall=1",
-		}},
-	}
+	actions := lvh.BaseActions(&rcnf.Conf)
 	actions = append(actions, fsActions...)
 	actions = append(actions, testerActions...)
 	actions = append(actions, netActions...)
 
-	cnf := images.ImagesConf{
-		Dir: imagesDir,
-		// TODO: might be useful to modify the images builder so that
-		// we can build this image using qemu-img -b
-		Images: []images.ImgConf{{
-			Name:    rcnf.testImageFilename(),
-			Parent:  baseImage,
-			Actions: actions,
-		}},
-	}
-
-	forest, err := images.NewImageForest(&cnf, false)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	res := forest.BuildAllImages(&images.BuildConf{
-		Log:          log,
-		DryRun:       false,
-		ForceRebuild: !rcnf.dontRebuildImage,
-		MergeSteps:   true,
-	})
-
-	return res.Err()
+	return lvh.BuildImage(log, &rcnf.Conf, actions, !rcnf.DontRebuildImage)
 }
