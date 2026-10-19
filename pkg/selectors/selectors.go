@@ -416,13 +416,15 @@ func stringPaddedLen(s int) int {
 }
 
 func ArgStringSelectorValue(v string, removeNul bool) ([MaxStringMapsSize]byte, int, error) {
+	ret := [MaxStringMapsSize]byte{}
 	if removeNul && len(v) > 0 {
-		// Remove any trailing nul characters ("\0" or 0x00)
-		for v[len(v)-1] == 0 {
+		// Remove any trailing nul characters ("\0" or 0x00). An all-NUL
+		// value trims down to "", which behaves exactly like an empty
+		// value — legitimate for operators matching empty strings.
+		for len(v) > 0 && v[len(v)-1] == 0 {
 			v = v[0 : len(v)-1]
 		}
 	}
-	ret := [MaxStringMapsSize]byte{}
 	b := []byte(v)
 	s := len(b)
 	if kernels.MinKernelVersion("5.11") {
@@ -459,7 +461,7 @@ func ArgStringSelectorValue(v string, removeNul bool) ([MaxStringMapsSize]byte, 
 func ArgPostfixSelectorValue(v string, removeNul bool) ([]byte, uint32) {
 	if removeNul {
 		// Remove any trailing nul characters ("\0" or 0x00)
-		for v[len(v)-1] == 0 {
+		for len(v) > 0 && v[len(v)-1] == 0 {
 			v = v[0 : len(v)-1]
 		}
 	}

@@ -499,6 +499,63 @@ func TestParseMatchArgs(t *testing.T) {
 	}
 }
 
+func TestParseMatchArgs_EmptyValuesRejected(t *testing.T) {
+	stringArgs := []v1alpha1.KProbeArg{
+		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
+	}
+
+	tests := []struct {
+		name      string
+		matchArgs []v1alpha1.ArgSelector
+	}{
+		{
+			name:      "postfix empty value rejected",
+			matchArgs: []v1alpha1.ArgSelector{{Index: 1, Operator: "Postfix", Values: []string{""}}},
+		},
+		{
+			name:      "postfix nul-only value rejected",
+			matchArgs: []v1alpha1.ArgSelector{{Index: 1, Operator: "Postfix", Values: []string{"\x00\x00"}}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Empty (or stripped-to-empty) postfix values must be rejected
+			// with an error. Without the fix these cases panic the parser
+			// with index out of range, crashing the agent on policy load.
+			ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+			err := ParseMatchArgs(ks, tt.matchArgs, nil, nil, stringArgs, nil)
+			require.ErrorContains(t, err, "empty value")
+		})
+	}
+
+	// Empty string values are legitimate for matching operators: the
+	// uprobe e2e policy test (tests/policytests/uprobes.go) matches an
+	// empty string argument with Equal [""]. These must keep working.
+	accepted := []struct {
+		name      string
+		matchArgs []v1alpha1.ArgSelector
+	}{
+		{
+			name:      "equal empty value accepted",
+			matchArgs: []v1alpha1.ArgSelector{{Index: 1, Operator: "Equal", Values: []string{""}}},
+		},
+		{
+			name:      "equal nul-only value accepted as empty",
+			matchArgs: []v1alpha1.ArgSelector{{Index: 1, Operator: "Equal", Values: []string{"\x00"}}},
+		},
+		{
+			name:      "healthy values accepted",
+			matchArgs: []v1alpha1.ArgSelector{{Index: 1, Operator: "Equal", Values: []string{"test-string"}}},
+		},
+	}
+	for _, tt := range accepted {
+		t.Run(tt.name, func(t *testing.T) {
+			ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+			require.NoError(t, ParseMatchArgs(ks, tt.matchArgs, nil, nil, stringArgs, nil))
+		})
+	}
+}
+
 func TestParseMatchData(t *testing.T) {
 	sig := []v1alpha1.KProbeArg{
 		v1alpha1.KProbeArg{ /* index 0 */ Type: "string"},
