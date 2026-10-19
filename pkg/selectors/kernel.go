@@ -2142,26 +2142,31 @@ func HasGetUrlOrDnsLookup(selectors []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+// CountOverrideArgNewSymbolAddrOffset returns the highest number of
+// argNewSymbol, argNewAddr and argNewOffset set on a single Override action,
+// across all selectors.
 func CountOverrideArgNewSymbolAddrOffset(selectors []v1alpha1.KProbeSelector) int {
+	maxArgNewArgs := 0
 	for _, s := range selectors {
 		for _, action := range s.MatchActions {
-			numArgNewArgs := 0
-			act := actionTypeTable[strings.ToLower(action.Action)]
-			if act == ActionTypeOverride {
-				if action.ArgNewSymbol != "" {
-					numArgNewArgs++
-				}
-				if action.ArgNewAddr != 0 {
-					numArgNewArgs++
-				}
-				if action.ArgNewOffset != 0 {
-					numArgNewArgs++
-				}
-				return numArgNewArgs
+			act, ok := actionTypeTable[strings.ToLower(action.Action)]
+			if !ok || act != ActionTypeOverride {
+				continue
 			}
+			numArgNewArgs := 0
+			if action.ArgNewSymbol != "" {
+				numArgNewArgs++
+			}
+			if action.ArgNewAddr != 0 {
+				numArgNewArgs++
+			}
+			if action.ArgNewOffset != 0 {
+				numArgNewArgs++
+			}
+			maxArgNewArgs = max(maxArgNewArgs, numArgNewArgs)
 		}
 	}
-	return 0
+	return maxArgNewArgs
 }
 
 func HasOperator(selectors []v1alpha1.KProbeSelector, op uint32) bool {
