@@ -6,57 +6,39 @@
 package main
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"context"
-	"errors"
 	"fmt"
-	"io"
-	"os"
+	"log/slog"
+	"maps"
 	"os/signal"
-	"path"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
+	"slices"
 
-	"github.com/cilium/little-vm-helper/pkg/images"
 	"github.com/cilium/little-vm-helper/pkg/runner"
 	"github.com/cilium/little-vm-helper/pkg/slogger"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
+	"github.com/cilium/tetragon/pkg/testutils/policytest/vmrunner"
 	"github.com/cilium/tetragon/pkg/vmtests/lvh"
 )
 
-var (
-	policytestsVmResultsDir = "/policytests-results"
-)
-
-type PolicyTestConf struct {
-	lvh.Conf
-	tetragonInstallDir  string
-	tetragonTarball     string
-	testerProgsDir      string
-	testerProgsTarball  string
-	resultsDir          string
-	policytestExtraArgs map[string]string
-	environment         map[string]string
-}
-
 func policyTestCmd() *cobra.Command {
-	var cnf PolicyTestConf
+	var cnf vmrunner.Conf
 	var ports []string
 	var mountHostPath string
+	var extraArgs map[string]string
+	// CI runs every parameter set
+	sel := policytest.Selection{AllParams: true}
 
 	cmd := &cobra.Command{
-		Use:          "policytest",
+		Use:          "policytest [test names]",
 		Short:        "policytest: helper to run tetragon policytests on VMs",
+		Long:         "policytest runs the policy tests in a VM. Without test names, it runs all of them.",
 		SilenceUsage: true,
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error
-			log := slogger.New()
+			log := slog.New(slogger.New().Handler())
 
 			cnf.ForwardedPorts, err = runner.ParsePortForward(ports)
 			if err != nil {
@@ -72,317 +54,60 @@ func policyTestCmd() *cobra.Command {
 					},
 				)
 			}
-
-			if !cnf.JustBuildImage && !cnf.DontRebuildImage {
-				cnf.resultsDir, err = os.MkdirTemp("", "policytests-results-")
-				if err != nil {
-					return fmt.Errorf("failed to make results dir: %w", err)
-				}
-				cnf.Filesystems = append(cnf.Filesystems,
-					&lvh.VirtIOFS{
-						ID:      "results",
-						HostDir: cnf.resultsDir,
-						VMDir:   policytestsVmResultsDir,
-					},
-				)
+			for _, k := range slices.Sorted(maps.Keys(extraArgs)) {
+				cnf.ExtraArgs = append(cnf.ExtraArgs, fmt.Sprintf("--%s=%s", k, extraArgs[k]))
 			}
+			cnf.Console = cmd.OutOrStdout()
 
-			tmpDir, err := os.MkdirTemp("", "tetragon-policytests-")
-			if err != nil {
-				return err
+			// the tetra in the VM resolves the names against its registry
+			sel.Names = args
+			if len(sel.Names) == 0 {
+				sel.Names = []string{".*"}
 			}
-			defer os.RemoveAll(tmpDir)
-
-			if err := cnf.MaybePullBaseImage(context.Background(), tmpDir); err != nil {
-				return err
-			}
-
-			err = buildPolicyTestImage(log, &cnf, tmpDir)
-			if err != nil || cnf.JustBuildImage {
-				return err
-			}
-
-			qemuBin, qemuArgs, err := lvh.QemuCommand(log, cnf.Conf)
-			if err != nil {
-				return err
-			}
-
-			if cnf.QemuPrint {
-				lvh.QemuPrintCmd(qemuBin, qemuArgs)
-				return nil
-			}
-
-			// if we don't need to run tests, just exec() so that user will be able to
-			// login to the VM.
+			tests := &sel
 			if cnf.JustBoot {
-				return lvh.QemuJustBoot(qemuBin, qemuArgs)
+				tests = nil
 			}
 
-			summary, err := runPolicyTests(&cnf, qemuBin, qemuArgs)
+			ctx, cancel := signal.NotifyContext(context.Background(), unix.SIGINT, unix.SIGTERM)
+			defer cancel()
+
+			vm, err := vmrunner.New(ctx, log, &cnf)
 			if err != nil {
 				return err
 			}
+			defer vm.Close()
 
-			if summary.Errs > 0 {
-				cmd.Printf("%d/%d tests failed 😞 (skipped:%d)\n", summary.Errs, summary.Total, summary.Skipped)
-				return errors.New("failed")
-			}
-
-			if summary.Total == 0 {
-				cmd.Printf("only 0 results? something is 🐟\n")
-				return errors.New("failed")
-			}
-
-			if summary.Skipped == summary.Total {
-				cmd.Printf("All %d tests were skipped 🤔\n", summary.Total)
+			switch {
+			case cnf.JustBuildImage:
+				return vm.Build(tests)
+			case cnf.QemuPrint:
+				if err := vm.Build(tests); err != nil {
+					return err
+				}
+				lvh.QemuPrintCmd(vm.Qemu())
 				return nil
+			case cnf.JustBoot:
+				if err := vm.Build(tests); err != nil {
+					return err
+				}
+				return lvh.QemuJustBoot(vm.Qemu())
 			}
 
-			cmd.Printf("No errors! 🎉🚢🍕 (total:%d skipped:%d)\n", summary.Total, summary.Skipped)
-			return nil
+			return policytest.WriteResults(cmd.OutOrStdout(), policytest.OutputText, vm.Run(ctx, log, tests))
 		},
 	}
 
 	lvh.AddFlags(cmd, &cnf.Conf)
-	cmd.Flags().StringVar(&cnf.tetragonInstallDir, "tetragon-dir", "", "tetragon install directory")
-	cmd.Flags().StringVar(&cnf.tetragonTarball, "tetragon-tarball", "", "tetragon install tarball")
-	cmd.Flags().StringVar(&cnf.testerProgsDir, "tester-progs-dir", "", "tetragon tester progs directory")
-	cmd.Flags().StringVar(&cnf.testerProgsTarball, "tester-progs-tarball", "", "tetragon tester progs tarball")
-	cmd.Flags().StringToStringVar(&cnf.environment, "env", nil, "Set an environment variable for policytests (NAME=VALUE)")
+	cmd.Flags().StringVar(&cnf.TetragonInstallDir, "tetragon-dir", "", "tetragon install directory")
+	cmd.Flags().StringVar(&cnf.TetragonTarball, "tetragon-tarball", "", "tetragon install tarball")
+	cmd.Flags().StringVar(&cnf.TesterProgsDir, "tester-progs-dir", "", "tetragon tester progs directory")
+	cmd.Flags().StringVar(&cnf.TesterProgsTarball, "tester-progs-tarball", "", "tetragon tester progs tarball")
+	cmd.Flags().StringToStringVar(&cnf.Environment, "env", nil, "Set an environment variable for policytests (NAME=VALUE)")
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&mountHostPath, "mount-host-path", "", "host path to mount inside VM")
 	cmd.Flags().StringVar(&cnf.BTFFile, "btf-file", "", "BTF file to use.")
-	cmd.Flags().StringToStringVar(&cnf.policytestExtraArgs, "policytest-extra-args", nil, "`tetra policytest` extra arguments (--key=val)")
+	cmd.Flags().StringToStringVar(&extraArgs, "policytest-extra-args", nil, "`tetra policytest` extra arguments (--key=val)")
+	sel.AddFlags(cmd.Flags())
 	return cmd
-}
-
-func tarballInstallPath(tarball string) (string, error) {
-	f, err := os.Open(tarball)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-	tr := tar.NewReader(f)
-	for {
-		hdr, err := tr.Next()
-		if err == io.EOF {
-			return "", errors.New("could not find install.sh")
-		}
-		if err != nil {
-			return "", err
-		}
-
-		if hdr.Typeflag != tar.TypeReg {
-			continue
-		}
-		if path.Base(hdr.Name) == "install.sh" {
-			return hdr.Name, nil
-		}
-	}
-}
-
-func decompressToTemp(fname, tmpDir string) (string, error) {
-	in, err := os.Open(fname)
-	if err != nil {
-		return "", err
-	}
-	defer in.Close()
-
-	gz, err := gzip.NewReader(in)
-	if err != nil {
-		return "", err
-	}
-	defer gz.Close()
-
-	tmp, err := os.CreateTemp(tmpDir, "tetragon-*.tar")
-	if err != nil {
-		return "", err
-	}
-
-	if _, err := io.Copy(tmp, gz); err != nil {
-		tmp.Close()
-		os.Remove(tmp.Name()) // clean up on failure
-		return "", err
-	}
-
-	if err := tmp.Close(); err != nil {
-		os.Remove(tmp.Name())
-		return "", err
-	}
-
-	return tmp.Name(), nil
-}
-
-func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Action, error) {
-	ret := make([]images.Action, 0)
-
-	// copy BTF file to the VM
-	vmBTFFile := ""
-	if btfFile := ptConf.BTFFile; btfFile != "" {
-		absBTFFile, err := filepath.Abs(btfFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get btf file full path: %w", err)
-		}
-		ret = append(ret, images.Action{
-			Op: &images.CopyInCommand{
-				LocalPath: absBTFFile,
-				RemoteDir: "/boot/",
-			},
-		})
-		vmBTFFile = "/boot/" + filepath.Base(btfFile)
-	}
-
-	if ptConf.tetragonInstallDir != "" && ptConf.tetragonTarball != "" {
-		return nil, errors.New("you need to define exactly one of --tetragon-install-dir and --tetragon-tarball")
-	} else if ptConf.tetragonInstallDir != "" {
-		additionalArgs := ""
-		if ptConf.BTFFile != "" {
-			additionalArgs = "--btf " + vmBTFFile
-		}
-		service, err := lvh.TetragonServiceFile(filepath.Join(tmpDir, lvh.TetragonService), additionalArgs)
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret,
-			// install.sh
-			images.Action{Op: &images.CopyInCommand{
-				LocalPath: filepath.Join(ptConf.tetragonInstallDir, "usr", "local"),
-				RemoteDir: "/usr",
-			}},
-			// tetragon systemd service
-			images.Action{Op: &images.CopyInCommand{
-				LocalPath: service,
-				RemoteDir: "/etc/systemd/system/",
-			}},
-			images.Action{Op: &images.RunCommand{Cmd: "systemctl enable " + lvh.TetragonService}},
-		)
-	} else if ptConf.tetragonTarball != "" {
-		tarball := ptConf.tetragonTarball
-		if strings.HasSuffix(tarball, ".gz") || strings.HasSuffix(tarball, ".tgz") {
-			var err error
-			tarball, err = decompressToTemp(tarball, tmpDir)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		tetragonInstallSh, err := tarballInstallPath(tarball)
-		if err != nil {
-			return nil, err
-		}
-		remoteDir := "/tmp"
-		ret = append(ret,
-			images.Action{Op: &images.TarInCommand{
-				TarFile:   tarball,
-				RemoteDir: remoteDir,
-			}},
-			images.Action{Op: &images.RunCommand{Cmd: filepath.Join(remoteDir, tetragonInstallSh)}},
-			images.Action{Op: &images.AppendLineCommand{
-				File: "/etc/tetragon/tetragon.conf.d/btf",
-				Line: vmBTFFile,
-			}},
-		)
-	} else {
-		return nil, errors.New("you need to define exactly one of --tetragon-install-dir and --tetragon-tarball")
-	}
-
-	// install tester progs
-	if ptConf.testerProgsDir != "" && ptConf.testerProgsTarball != "" {
-		return nil, errors.New("you need to define exactly one of --tester-progs-dir and --tetragon-progs-tarball")
-	} else if ptConf.testerProgsDir != "" {
-		ret = append(ret, mustCopyTesterProgsCmd(ptConf.testerProgsDir, tmpDir))
-	} else if ptConf.testerProgsTarball != "" {
-		tarball := ptConf.testerProgsTarball
-		if strings.HasSuffix(tarball, ".gz") || strings.HasSuffix(tarball, ".tgz") {
-			var err error
-			tarball, err = decompressToTemp(tarball, tmpDir)
-			if err != nil {
-				return nil, err
-			}
-		}
-		ret = append(ret,
-			images.Action{Op: &images.TarInCommand{
-				TarFile:   tarball,
-				RemoteDir: filepath.Dir(policytestsVmTestProgsDir),
-			}})
-	} else {
-		return nil, errors.New("you need to define exactly one of --tester-progs-dir and --tetragon-progs-tarball")
-	}
-
-	if !ptConf.JustBoot {
-		// tetragon policytester systemd service
-		ptArgs := make([]string, 0, len(ptConf.policytestExtraArgs))
-		for k, v := range ptConf.policytestExtraArgs {
-			ptArgs = append(ptArgs, fmt.Sprintf("--%s=%s", k, v))
-		}
-		environment := make([]string, 0, len(ptConf.environment))
-		for name, value := range ptConf.environment {
-			environment = append(environment, strconv.Quote(fmt.Sprintf("%s=%s", name, value)))
-		}
-		ret = append(ret,
-			images.Action{Op: &images.CopyInCommand{
-				LocalPath: mustMakeTetragonPolicyTesterServiceFile(filepath.Join(tmpDir, tetragonPolicyTesterService), strings.Join(ptArgs, " "), strings.Join(environment, " ")),
-				RemoteDir: "/etc/systemd/system/",
-			}},
-			images.Action{Op: &images.RunCommand{
-				Cmd: "systemctl enable " + tetragonPolicyTesterService,
-			}})
-	}
-
-	return ret, nil
-}
-
-func buildPolicyTestImage(log slogger.Logger, ptConf *PolicyTestConf, tmpDir string) error {
-	fsActions, err := lvh.FilesystemActions(ptConf.Filesystems, tmpDir)
-	if err != nil {
-		return err
-	}
-
-	netActions, err := lvh.NetActions(tmpDir)
-	if err != nil {
-		return err
-	}
-
-	tetragonActions, err := buildTetragonActions(ptConf, tmpDir)
-	if err != nil {
-		return err
-	}
-
-	actions := lvh.BaseActions(&ptConf.Conf)
-	actions = append(actions, tetragonActions...)
-	actions = append(actions, fsActions...)
-	actions = append(actions, netActions...)
-
-	return lvh.BuildImage(log, &ptConf.Conf, actions, true)
-}
-
-func runPolicyTests(
-	cnf *PolicyTestConf, qemuBin string, qemuArgs []string,
-) (*policytest.ResultsSummary, error) {
-	ctx := context.Background()
-	ctx, cancel := signal.NotifyContext(ctx, unix.SIGINT, unix.SIGTERM)
-	defer cancel()
-	t0 := time.Now()
-	if err := lvh.RunQemu(ctx, qemuBin, qemuArgs, os.Stdout, os.Stderr); err != nil {
-		return nil, err
-	}
-
-	fmt.Printf("results directory: %s (total time:%.2fs)\n", cnf.resultsDir, time.Since(t0).Seconds())
-	resFile := filepath.Join(cnf.resultsDir, "results.json")
-	f, err := os.Open(resFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open results file %s: %w", resFile, err)
-	}
-	defer f.Close()
-	var summary = policytest.NewResultsSummary()
-	var results []*policytest.NamedResult
-	for result, err := range policytest.DecodeResults(f, os.Stderr) {
-		if err != nil {
-			return nil, err
-		}
-		summary.Update(result.Result)
-		results = append(results, result)
-	}
-	policytest.DumpResults(os.Stdout, results)
-	return summary, nil
 }
