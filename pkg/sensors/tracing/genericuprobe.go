@@ -501,6 +501,7 @@ func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
 		idx    int
 		method string
 	}
+	soDynamic := 0
 
 	pathStates := make(map[string]pathState)
 
@@ -512,6 +513,10 @@ func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
 			method = "offsets"
 		} else if len(curr.Addrs) != 0 {
 			method = "addrs"
+		}
+
+		if IsSODynamic(curr.Selectors) {
+			soDynamic++
 		}
 
 		state, ok := pathStates[curr.Path]
@@ -533,6 +538,10 @@ func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
 				curr.Path,
 			)
 		}
+	}
+
+	if soDynamic > 1 {
+		return fmt.Errorf("multi-uprobes mandate at most a single override action with sopath to be specified in the whole policy; found: %d", soDynamic)
 	}
 
 	return nil
