@@ -650,41 +650,54 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 	return nil
 }
 
-func computeArgNewOffset(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAddr uint64) (int64, error) {
-	var err error
-	for _, sel := range spec.Selectors {
+// computeArgNewOffsets returns the instruction pointer delta of each Override
+// action redirecting to a new target, keyed by selector index.
+func computeArgNewOffsets(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAddr uint64) (map[int]int64, error) {
+	ipDeltas := map[int]int64{}
+	for selIdx, sel := range spec.Selectors {
 		for _, matchAct := range sel.MatchActions {
-			if matchAct.Action == "Override" {
-				// Load override-symbol VA
-				var overrideSymbAddr uint64
-				if matchAct.ArgNewSymbol != "" {
-					overrideSymbAddr, err = f.Address(matchAct.ArgNewSymbol)
-				} else if matchAct.ArgNewAddr != 0 {
-					overrideSymbAddr = matchAct.ArgNewAddr
-				} else {
-					overrideSymbAddr, err = f.AddrFromOffset(uint64(matchAct.ArgNewOffset))
-				}
-				if err != nil {
-					return 0, err
-				}
-
-				// Store the relative-to-traced-symbol delta.
-				// This is computed based on virtual address for both symbols.
-				// Since ASLR just changes the base address,
-				// the relative delta are stable.
-				// In bpf, we will compute the override symbol address as:
-				// * curr_ip = PT_REGS_IP(ctx);
-				// * next_ip = curr_ip + delta
-				return int64(overrideSymbAddr - symbolAddr), nil
+			if matchAct.Action != "Override" {
+				continue
 			}
+
+			// Load override-symbol VA
+			var (
+				overrideSymbAddr uint64
+				err              error
+			)
+			switch {
+			case matchAct.ArgNewSymbol != "":
+				overrideSymbAddr, err = f.Address(matchAct.ArgNewSymbol)
+			case matchAct.ArgNewAddr != 0:
+				overrideSymbAddr = matchAct.ArgNewAddr
+			case matchAct.ArgNewOffset != 0:
+				overrideSymbAddr, err = f.AddrFromOffset(uint64(matchAct.ArgNewOffset))
+			default:
+				continue
+			}
+			if err != nil {
+				return nil, err
+			}
+
+			// Store the relative-to-traced-symbol delta.
+			// This is computed based on virtual address for both symbols.
+			// Since ASLR just changes the base address,
+			// the relative delta are stable.
+			// In bpf, we will compute the override symbol address as:
+			// * curr_ip = PT_REGS_IP(ctx);
+			// * next_ip = curr_ip + delta
+			ipDeltas[selIdx] = int64(overrideSymbAddr - symbolAddr)
 		}
 	}
-	return 0, errors.New("state.overrideSymbol is true but no corresponding Override action found in spec.Selectors")
+	if len(ipDeltas) == 0 {
+		return nil, errors.New("state.overrideSymbol is true but no corresponding Override action found in spec.Selectors")
+	}
+	return ipDeltas, nil
 }
 
-func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigState, f *elf.SafeELFFile) (int64, error) {
+func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigState, f *elf.SafeELFFile) (map[int]int64, error) {
 	if !state.overrideSymbol {
-		return 0, nil
+		return nil, nil
 	}
 
 	// Load probed symbol offset
@@ -700,26 +713,26 @@ func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigStat
 		symbolAddr, err = f.AddrFromOffset(spec.Offsets[0])
 	}
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return computeArgNewOffset(spec, f, symbolAddr)
+	return computeArgNewOffsets(spec, f, symbolAddr)
 }
 
 func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState, f *elf.SafeELFFile, nextIdx int) error {
-	ipDelta, err := initOverrideSymbolOffset(spec, state, f)
+	ipDeltas, err := initOverrideSymbolOffset(spec, state, f)
 	if err != nil {
 		return err
 	}
 	entry, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
-		Selectors:             spec.Selectors,
-		Args:                  spec.Args,
-		Data:                  spec.Data,
-		IsUprobe:              true,
-		UprobeID:              nextIdx,
-		OverrideActionIPDelta: ipDelta,
-		BinaryPath:            spec.Path,
-		CelExprs:              in.celExprs,
-		Maps:                  in.selMaps,
+		Selectors:              spec.Selectors,
+		Args:                   spec.Args,
+		Data:                   spec.Data,
+		IsUprobe:               true,
+		UprobeID:               nextIdx,
+		OverrideActionIPDeltas: ipDeltas,
+		BinaryPath:             spec.Path,
+		CelExprs:               in.celExprs,
+		Maps:                   in.selMaps,
 	})
 	if err != nil {
 		return err
