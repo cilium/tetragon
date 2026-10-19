@@ -135,6 +135,15 @@ For now only ~ (none) and {} (all) is supported.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecjava">java</a></b></td>
+        <td>object</td>
+        <td>
+          Java runtime method monitoring and class patching for HotSpot JVMs.<br/>
+          <br/>
+            <i>Validations</i>:<li>(has(self.hooks) && size(self.hooks) > 0) || (has(self.targets) && has(self.targets.executables) && size(self.targets.executables) > 0): java needs at least one hook or executable target</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeckprobesindex">kprobes</a></b></td>
         <td>[]object</td>
         <td>
@@ -2551,6 +2560,167 @@ Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
 the values array must be non-empty. If the operator is Exists or DoesNotExist,
 the values array must be empty. This array is replaced during a strategic
 merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.java
+<sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
+
+
+Java runtime method monitoring and class patching for HotSpot JVMs.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicyspecjavahooksindex">hooks</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of hooks selecting Java methods to monitor.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecjavatargets">targets</a></b></td>
+        <td>object</td>
+        <td>
+          Targets selects the JVMs the policy applies to. If omitted, the policy
+applies to all HotSpot JVMs (within the policy pod/container selectors).<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.java.hooks[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecjava)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>class</b></td>
+        <td>string</td>
+        <td>
+          Exact class name in Java dotted form, for example com.example.Handler
+(nested classes use $, for example com.example.Outer$Inner).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>classPrefix</b></td>
+        <td>string</td>
+        <td>
+          Package prefix matching all classes under it, for example com.example.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>message</b></td>
+        <td>string</td>
+        <td>
+          A short message of 256 characters max that will be included
+in the event output to inform users what is going on.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecjavahooksindexmethodsindex">methods</a></b></td>
+        <td>[]object</td>
+        <td>
+          Methods to monitor. If omitted, all methods of the matching classes are monitored.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>tags</b></td>
+        <td>[]string</td>
+        <td>
+          Tags to categorize the event, will be include in the event output.
+Maximum of 16 Tags are supported.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.java.hooks[index].methods[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecjavahooksindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Method name. All overloads are matched unless a descriptor is set.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>descriptor</b></td>
+        <td>string</td>
+        <td>
+          JVM method descriptor selecting a single overload, for example (Ljava/lang/String;)Z.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.java.targets
+<sup><sup>[↩ Parent](#tracingpolicyspecjava)</sup></sup>
+
+
+Targets selects the JVMs the policy applies to. If omitted, the policy
+applies to all HotSpot JVMs (within the policy pod/container selectors).
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>executables</b></td>
+        <td>[]string</td>
+        <td>
+          Exact executable paths (as seen by the process in /proc/<pid>/exe)
+of JVMs the policy applies to. Tetragon enables the HotSpot attach
+interface before startup for these executables by setting
+JAVA_TOOL_OPTIONS to the required HotSpot flags (replacing its prior value).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>processArgsContains</b></td>
+        <td>[]string</td>
+        <td>
+          Every token must occur as a substring of one of the process arguments.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -14257,6 +14427,15 @@ For now only ~ (none) and {} (all) is supported.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecjava">java</a></b></td>
+        <td>object</td>
+        <td>
+          Java runtime method monitoring and class patching for HotSpot JVMs.<br/>
+          <br/>
+            <i>Validations</i>:<li>(has(self.hooks) && size(self.hooks) > 0) || (has(self.targets) && has(self.targets.executables) && size(self.targets.executables) > 0): java needs at least one hook or executable target</li>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeckprobesindex">kprobes</a></b></td>
         <td>[]object</td>
         <td>
@@ -16673,6 +16852,167 @@ Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
 the values array must be non-empty. If the operator is Exists or DoesNotExist,
 the values array must be empty. This array is replaced during a strategic
 merge patch.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.java
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
+
+
+Java runtime method monitoring and class patching for HotSpot JVMs.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#tracingpolicynamespacedspecjavahooksindex">hooks</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of hooks selecting Java methods to monitor.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecjavatargets">targets</a></b></td>
+        <td>object</td>
+        <td>
+          Targets selects the JVMs the policy applies to. If omitted, the policy
+applies to all HotSpot JVMs (within the policy pod/container selectors).<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.java.hooks[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecjava)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>class</b></td>
+        <td>string</td>
+        <td>
+          Exact class name in Java dotted form, for example com.example.Handler
+(nested classes use $, for example com.example.Outer$Inner).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>classPrefix</b></td>
+        <td>string</td>
+        <td>
+          Package prefix matching all classes under it, for example com.example.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>message</b></td>
+        <td>string</td>
+        <td>
+          A short message of 256 characters max that will be included
+in the event output to inform users what is going on.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecjavahooksindexmethodsindex">methods</a></b></td>
+        <td>[]object</td>
+        <td>
+          Methods to monitor. If omitted, all methods of the matching classes are monitored.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>tags</b></td>
+        <td>[]string</td>
+        <td>
+          Tags to categorize the event, will be include in the event output.
+Maximum of 16 Tags are supported.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.java.hooks[index].methods[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecjavahooksindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Method name. All overloads are matched unless a descriptor is set.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>descriptor</b></td>
+        <td>string</td>
+        <td>
+          JVM method descriptor selecting a single overload, for example (Ljava/lang/String;)Z.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.java.targets
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecjava)</sup></sup>
+
+
+Targets selects the JVMs the policy applies to. If omitted, the policy
+applies to all HotSpot JVMs (within the policy pod/container selectors).
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>executables</b></td>
+        <td>[]string</td>
+        <td>
+          Exact executable paths (as seen by the process in /proc/<pid>/exe)
+of JVMs the policy applies to. Tetragon enables the HotSpot attach
+interface before startup for these executables by setting
+JAVA_TOOL_OPTIONS to the required HotSpot flags (replacing its prior value).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>processArgsContains</b></td>
+        <td>[]string</td>
+        <td>
+          Every token must occur as a substring of one of the process arguments.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
