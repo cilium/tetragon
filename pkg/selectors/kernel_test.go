@@ -251,7 +251,7 @@ func TestParseMatchCmdArgs(t *testing.T) {
 		// An empty section still includes all filter offsets. The BPF side
 		// reads this section as struct selector_arg_filters and expects its
 		// full header.
-		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 		require.NoError(t, ParseMatchCmdArgs(ks, nil))
 		data := ks.data.e
 		require.Len(t, data, 24)
@@ -280,7 +280,7 @@ func TestParseMatchCmdArgs(t *testing.T) {
 				Values:   []string{"pizza"},
 			},
 		}
-		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 		require.NoError(t, ParseMatchCmdArgs(ks, cmdArgs))
 
 		data := ks.data.e
@@ -303,7 +303,7 @@ func TestParseMatchCmdArgs(t *testing.T) {
 	})
 
 	t.Run("maximum index", func(t *testing.T) {
-		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 		err := ParseMatchCmdArgs(ks, []v1alpha1.CmdArgSelector{
 			{Index: 31, Operator: "Equal", Values: []string{"pizza"}},
 		})
@@ -311,7 +311,7 @@ func TestParseMatchCmdArgs(t *testing.T) {
 	})
 
 	t.Run("index too large", func(t *testing.T) {
-		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 		err := ParseMatchCmdArgs(ks, []v1alpha1.CmdArgSelector{
 			{Index: 32, Operator: "Equal", Values: []string{"pizza"}},
 		})
@@ -325,7 +325,7 @@ func TestParseMatchCmdArgsRejects(t *testing.T) {
 	}
 
 	t.Run("unsupported operator", func(t *testing.T) {
-		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 		err := ParseMatchCmdArgs(ks, []v1alpha1.CmdArgSelector{
 			{Index: 0, Operator: "Mask", Values: []string{"1"}},
 		})
@@ -333,7 +333,7 @@ func TestParseMatchCmdArgsRejects(t *testing.T) {
 	})
 
 	t.Run("too many filters", func(t *testing.T) {
-		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 		err := ParseMatchCmdArgs(ks, make([]v1alpha1.CmdArgSelector, 6))
 		assert.ErrorContains(t, err, "matchCmdArgs supports up to 5 filters (6 provided)")
 	})
@@ -492,7 +492,7 @@ func TestParseMatchArgs(t *testing.T) {
 	expected = append(expected, data1Expected[:]...)
 	expected = append(expected, data2Expected[:]...)
 
-	ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+	ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 	d := &ks.data
 	if err := ParseMatchArgs(ks, argsSel, dataSel, nil, args, data); err != nil || bytes.Equal(expected, d.e) == false {
 		t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\n", err, expected, d.e)
@@ -519,7 +519,7 @@ func TestParseMatchData(t *testing.T) {
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 0, Operator: "Equal", Values: []string{"ex"}}
-	k := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+	k := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 	d := &k.data
 
 	expected1 := []byte{
@@ -690,7 +690,7 @@ func TestParseMatchArg(t *testing.T) {
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
-	k := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+	k := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 	d := &k.data
 
 	expected1 := []byte{
@@ -850,7 +850,7 @@ func TestParseMatchArg(t *testing.T) {
 		expected3 := append(length, expected1[:]...)
 		expected3 = append(expected3, expected2[:]...)
 		arg12 := []v1alpha1.ArgSelector{*arg1, *arg2}
-		ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 		d = &ks.data
 		if err := ParseMatchArgs(ks, arg12, []v1alpha1.ArgSelector{}, nil, sig, []v1alpha1.KProbeArg{}); err != nil || bytes.Equal(expected3, d.e) == false {
 			t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected3, d.e, arg3)
@@ -877,7 +877,7 @@ func TestParseMatchArg(t *testing.T) {
 			{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}: {},
 		}
 
-		ks = NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+		ks = NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 		d = &ks.data
 		if err := ParseMatchArg(ks, arg13, sig); err != nil ||
 			bytes.Equal(expected12, d.e) == false ||
@@ -1631,7 +1631,7 @@ func TestParseMatchArgSubString(t *testing.T) {
 			}
 
 			arg := &v1alpha1.ArgSelector{Index: 1, Operator: "SubString", Values: []string{"test"}}
-			k := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+			k := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 			d := &k.data
 
 			expected := []byte{
@@ -1723,7 +1723,7 @@ func TestWritePostfixMaxLength(t *testing.T) {
 			value := strings.Repeat("a", tc.length)
 
 			for _, ty := range []uint32{gt.GenericStringType, gt.GenericCharBuffer} {
-				ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+				ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 				err := writePostfixStrings(ks, []string{value}, ty)
 				if tc.wantErr {
 					require.Error(t, err, "matchArgs type %d", ty)
@@ -1736,7 +1736,7 @@ func TestWritePostfixMaxLength(t *testing.T) {
 			// ParseMatchBinary when large programs are unavailable, so
 			// writePostfixBinaries is only reachable with large programs.
 			if tc.largeProgs {
-				ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+				ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 				_, err := writePostfixBinaries(ks, []string{value})
 				if tc.wantErr {
 					require.Error(t, err, "matchBinaries")
