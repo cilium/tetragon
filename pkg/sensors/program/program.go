@@ -29,6 +29,7 @@ package program
 //  and is initialized when the sensor is loaded.
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"strings"
@@ -230,12 +231,15 @@ func (p *Program) Unload(unpin bool) error {
 	if p.unloader == nil {
 		return nil
 	}
+	// Always run the full cleanup, even when unloading reports errors (e.g.
+	// failed unpin), otherwise stale loaded maps info is left behind.
+	var ret error
 	if err := p.unloader.Unload(unpin); err != nil {
-		return fmt.Errorf("failed to unload: %w", err)
+		ret = errors.Join(ret, fmt.Errorf("failed to unload: %w", err))
 	}
 	if p.unloaderOverride != nil {
 		if err := p.unloaderOverride.Unload(unpin); err != nil {
-			return fmt.Errorf("failed to unload override: %w", err)
+			ret = errors.Join(ret, fmt.Errorf("failed to unload override: %w", err))
 		}
 	}
 	p.unloader = nil
@@ -245,7 +249,7 @@ func (p *Program) Unload(unpin bool) error {
 	if !p.Prog.IsPinned() {
 		p.SetLoadedMapsInfo(nil)
 	}
-	return nil
+	return ret
 }
 
 func (p *Program) Unlink() error {

@@ -4,6 +4,8 @@
 package unloader
 
 import (
+	"errors"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -15,6 +17,16 @@ import (
 // programs or maps.
 type Unloader interface {
 	Unload(unpin bool) error
+}
+
+// IgnoreUnpinNotSupported drops ErrNotSupported from an Unpin call. Older
+// kernels cannot pin some link types (perf events, raw tracepoints), so
+// there is nothing to unpin and it is not an error.
+func IgnoreUnpinNotSupported(err error) error {
+	if errors.Is(err, ebpf.ErrNotSupported) {
+		return nil
+	}
+	return err
 }
 
 // chainUnloader is an unloader for multiple resources.
@@ -56,10 +68,13 @@ type ProgUnloader struct {
 }
 
 func (pu ProgUnloader) Unload(unpin bool) error {
+	var ret error
 	if unpin {
-		pu.Prog.Unpin()
+		if err := IgnoreUnpinNotSupported(pu.Prog.Unpin()); err != nil {
+			ret = errors.Join(ret, fmt.Errorf("unpin program: %w", err))
+		}
 	}
-	return pu.Prog.Close()
+	return errors.Join(ret, pu.Prog.Close())
 }
 
 // ProgUnloader unpins and closes a BPF program.
@@ -68,8 +83,11 @@ type LinkUnloader struct {
 }
 
 func (lu LinkUnloader) Unload(unpin bool) error {
+	var ret error
 	if unpin {
-		lu.Link.Unpin()
+		if err := IgnoreUnpinNotSupported(lu.Link.Unpin()); err != nil {
+			ret = errors.Join(ret, fmt.Errorf("unpin link: %w", err))
+		}
 	}
-	return lu.Link.Close()
+	return errors.Join(ret, lu.Link.Close())
 }
