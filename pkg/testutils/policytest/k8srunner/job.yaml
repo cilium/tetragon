@@ -1,0 +1,76 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: tetragon-policytest-
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+      # TODO(#5190): the agent opens uprobe targets on its own filesystem
+      - name: stage-tester-progs
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - rm -rf /run/tetragon/policytest-progs &&
+          cp -a /usr/local/lib/tetragon/tester-progs /run/tetragon/policytest-progs
+        volumeMounts:
+        - name: tetragon-run
+          mountPath: /run/tetragon
+      # tetra writes the results to a file, apart from its logs. The container
+      # exits 0 so that the results container runs after failed tests too. sh
+      # is PID 1 and passes SIGTERM on, so that tetra unloads its policy when
+      # the pod goes.
+      - name: policytest
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - |
+          tetra "$@" &
+          pid=$!
+          trap 'kill -TERM "$pid"' TERM
+          # a trapped signal ends wait before tetra exits
+          while wait "$pid"; code=$?; kill -0 "$pid" 2>/dev/null; do :; done
+          echo "$code" > /results/exit-code
+        - sh
+        args:
+        - policytest
+        - run
+        - --bindir=/run/tetragon/policytest-progs
+        - --pod-selector=batch.kubernetes.io/controller-uid=$(JOB_UID)
+        - --output=json
+        - --output-file=/results/results.json
+        env:
+        - name: JOB_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['batch.kubernetes.io/controller-uid']
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: tetragon-run
+          mountPath: /run/tetragon
+        - name: results
+          mountPath: /results
+      # prints only the results and exits with the exit code of tetra
+      containers:
+      - name: results
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - read -r code < /results/exit-code; cat /results/results.json 2>/dev/null; exit "$code"
+        volumeMounts:
+        - name: results
+          mountPath: /results
+      volumes:
+      - name: tetragon-run
+        hostPath:
+          path: /var/run/tetragon
+          type: Directory
+      - name: results
+        emptyDir: {}

@@ -78,3 +78,12 @@ func TestWriteResults(t *testing.T) {
 
 	require.ErrorIs(t, WriteResults(&out, "yaml", results), errUnknownFormat)
 }
+
+func TestEndError(t *testing.T) {
+	failure := errors.New("died")
+	require.ErrorIs(t, (&ResultsSummary{}).EndError(0, nil), ErrNoResults)
+	require.NoError(t, (&ResultsSummary{Total: 2}).EndError(0, nil))
+	require.NoError(t, (&ResultsSummary{Total: 2, Errs: 1}).EndError(1, failure))
+	require.ErrorIs(t, (&ResultsSummary{Total: 2}).EndError(1, failure), failure)
+	require.ErrorIs(t, (&ResultsSummary{Total: 2, Errs: 1}).EndError(2, failure), failure)
+}
