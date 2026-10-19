@@ -154,7 +154,7 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
-			timeout := time.Minute * time.Duration(len(tests))
+			timeout := time.Minute * time.Duration(sel.Runs(tests))
 
 			out, closeOut, err := openOutput(cmd.OutOrStdout(), outputFile)
 			if err != nil {
