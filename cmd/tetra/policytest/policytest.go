@@ -123,7 +123,7 @@ func runCmd() *cobra.Command {
 	var podSelector map[string]string
 	var outputFile = ""
 	var k8s k8sFlags
-	outputFmt, _ := option.NewEnum([]string{"text", "json"}, "text")
+	outputFmt, _ := option.NewEnum([]string{policytest.OutputText, policytest.OutputJSON}, policytest.OutputText)
 	cmd := cobra.Command{
 		Use:   "run [<test-regexp>...]",
 		Short: "Run Tetragon policy test(s)",
@@ -177,24 +177,7 @@ func runCmd() *cobra.Command {
 			}
 			defer runner.Close()
 
-			summary := policytest.NewResultsSummary()
-			for _, t := range tests {
-				for paramValues := range sel.ParamValues(t) {
-					res := &policytest.NamedResult{
-						Name: fmt.Sprintf("%s (%s)", t.Name, paramValues),
-					}
-					res.Result = runner.RunTest(log, t, &policytest.TestConf{
-						MonitorMode: sel.MonitorMode,
-						ParamValues: paramValues,
-					})
-					summary.Update(res.Result)
-
-					if err := writeResults(out, outputFmt.Value, []*policytest.NamedResult{res}); err != nil {
-						return err
-					}
-				}
-			}
-			return summary.Err()
+			return policytest.WriteResults(out, outputFmt.Value, runner.Run(ctx, log, &sel))
 		},
 	}
 	flags := cmd.Flags()
