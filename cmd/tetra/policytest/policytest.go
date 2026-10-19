@@ -36,6 +36,7 @@ func New() *cobra.Command {
 		runMultiCmd(),
 		dumpPolicyCmd(),
 	)
+	addK8sRunCmd(tpCmd)
 	return tpCmd
 }
 
@@ -120,10 +121,10 @@ func runCmd() *cobra.Command {
 	testBinsPath := ""
 	dumpPolicyPath := ""
 	allTests := false
+	k8s := false
 	var sel policytest.Selection
 	var podSelector map[string]string
 	var outputFile = ""
-	var k8s k8sFlags
 	outputFmt, _ := option.NewEnum([]string{policytest.OutputText, policytest.OutputJSON}, policytest.OutputText)
 	cmd := cobra.Command{
 		Use:   "run [<test-regexp>...]",
@@ -139,19 +140,12 @@ func runCmd() *cobra.Command {
 				return errors.New("--all-tests is deprecated. Use .* regex pattern instead")
 			}
 
-			if k8s.enabled {
-				for _, f := range []string{"bindir", "dump-policy-path", "pod-selector"} {
-					if cmd.Flags().Changed(f) {
-						return fmt.Errorf("--%s cannot be used with --k8s", f)
-					}
-				}
-			} else {
-				if cmd.Flags().Changed("k8s-context") {
-					return errors.New("--k8s-context requires --k8s")
-				}
-				if testBinsPath == "" {
-					return errors.New("--bindir is required: set it to the tester-progs directory")
-				}
+			if k8s {
+				return errors.New("--k8s is deprecated. Use tetra policytest k8s-run instead")
+			}
+
+			if testBinsPath == "" {
+				return errors.New("--bindir is required: set it to the tester-progs directory")
 			}
 
 			sel.Names = args
@@ -167,14 +161,6 @@ func runCmd() *cobra.Command {
 				return err
 			}
 			defer closeOut()
-
-			if k8s.enabled {
-				remote, err := podArgs(&sel, outputFmt.Value)
-				if err != nil {
-					return err
-				}
-				return k8s.run(out, timeout, remote)
-			}
 
 			ctx := context.Background()
 			runner, err := newRunner(ctx, log, testBinsPath, dumpPolicyPath, podSelector, timeout)
@@ -203,19 +189,11 @@ func runCmd() *cobra.Command {
 	// --all-tests is deprecated. TODO: remove in 1.9
 	flags.BoolVar(&allTests, "all-tests", false, "Run all available policy tests.")
 	flags.MarkHidden("all-tests")
+	// --k8s is deprecated. TODO: remove in 1.10
+	flags.BoolVar(&k8s, "k8s", false, "Run the tests in a Job on a Kubernetes cluster.")
+	flags.MarkHidden("k8s")
 	sel.AddFlags(flags)
-	k8s.register(flags)
 	return &cmd
-}
-
-// podArgs are the arguments of the tetra in the pod: the output format and
-// the selection, which the pod's tetra resolves against its own registry.
-func podArgs(sel *policytest.Selection, output string) ([]string, error) {
-	args, err := sel.Args()
-	if err != nil {
-		return nil, err
-	}
-	return append([]string{"--output=" + output}, args...), nil
 }
 
 func runMultiCmd() *cobra.Command {

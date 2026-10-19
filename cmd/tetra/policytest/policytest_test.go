@@ -28,3 +28,11 @@ func TestBinDirRequired(t *testing.T) {
 		})
 	}
 }
+
+func TestRunK8sDeprecated(t *testing.T) {
+	cmd := New()
+	cmd.SetArgs([]string{"run", "--k8s", "--bindir=/nonexistent", ".*"})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	require.ErrorContains(t, cmd.Execute(), "tetra policytest k8s-run")
+}
