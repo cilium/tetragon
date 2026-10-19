@@ -23,6 +23,25 @@ const (
 // a result line carries the error strings of every scenario
 const maxResultLine = 1 << 20
 
+// ErrNoResults is what a runner returns when its run finished but produced
+// no result.
+var ErrNoResults = errors.New("no results")
+
+// EndError turns the exit of a remote tetra into an error: a clean exit
+// without any result, or any failure except exit code 1 with failed results,
+// which the results already say. An exit code below zero is unknown.
+func (s *ResultsSummary) EndError(exitCode int, failure error) error {
+	switch {
+	case exitCode == 0 && s.Total == 0:
+		return fmt.Errorf("%w: the run ended without any", ErrNoResults)
+	case exitCode == 0:
+		return nil
+	case exitCode == 1 && s.Errs > 0:
+		return nil
+	}
+	return failure
+}
+
 var (
 	errNoResult      = errors.New("result line without a result")
 	errUnknownFormat = errors.New("unknown output format")
