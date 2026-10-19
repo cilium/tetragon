@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"iter"
 	"log/slog"
 	"os"
 	"sync"
@@ -25,6 +26,16 @@ import (
 	"github.com/cilium/tetragon/pkg/tetragoninfo"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
+
+// Runner runs a selection of policy tests.
+type Runner interface {
+	// Run yields one result per test and parameter set. An error ends the
+	// sequence and comes with a nil result. sel must not be nil. A Runner
+	// can run again after Run returns.
+	Run(ctx context.Context, log *slog.Logger, sel *Selection) iter.Seq2[*NamedResult, error]
+	// Close releases what the Runner holds on to.
+	Close() error
+}
 
 type LocalRunner struct {
 	conf *Conf
@@ -102,7 +113,8 @@ func NewLocalRunner(
 	return ret, nil
 }
 
-func (r *LocalRunner) Close() {
+// Close ends the event stream and the connection to the agent.
+func (r *LocalRunner) Close() error {
 	if r.cli != nil {
 		r.cli.Close()
 	}
@@ -111,6 +123,35 @@ func (r *LocalRunner) Close() {
 		r.fwdCtlChan <- fwdCtl{cmd: fwdCmdExit}
 	}
 	r.wg.Wait()
+	return nil
+}
+
+// Run runs the selection against the agent, one test at a time. It checks
+// ctx between tests; a running test ends with its own scenario timeout.
+func (r *LocalRunner) Run(ctx context.Context, log *slog.Logger, sel *Selection) iter.Seq2[*NamedResult, error] {
+	return func(yield func(*NamedResult, error) bool) {
+		tests, err := sel.Tests(AllPolicyTests)
+		if err != nil {
+			yield(nil, err)
+			return
+		}
+		for _, t := range tests {
+			for vals := range sel.ParamValues(t) {
+				if ctx.Err() != nil {
+					yield(nil, ctx.Err())
+					return
+				}
+				res := &NamedResult{Name: fmt.Sprintf("%s (%s)", t.Name, vals)}
+				res.Result = r.RunTest(log, t, &TestConf{
+					MonitorMode: sel.MonitorMode,
+					ParamValues: vals,
+				})
+				if !yield(res, nil) {
+					return
+				}
+			}
+		}
+	}
 }
 
 func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error) {

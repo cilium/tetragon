@@ -14,10 +14,49 @@ import (
 	"iter"
 )
 
+// Output formats of WriteResults
+const (
+	OutputText = "text"
+	OutputJSON = "json"
+)
+
 // a result line carries the error strings of every scenario
 const maxResultLine = 1 << 20
 
-var errNoResult = errors.New("result line without a result")
+var (
+	errNoResult      = errors.New("result line without a result")
+	errUnknownFormat = errors.New("unknown output format")
+)
+
+// WriteResults writes each result to out as it arrives, as text or as JSON
+// lines, and returns an error when a result failed or the sequence did.
+func WriteResults(out io.Writer, format string, results iter.Seq2[*NamedResult, error]) error {
+	var write func(*NamedResult) error
+	switch format {
+	case OutputJSON:
+		enc := json.NewEncoder(out)
+		write = func(res *NamedResult) error { return enc.Encode(res) }
+	case OutputText:
+		write = func(res *NamedResult) error {
+			DumpResults(out, []*NamedResult{res})
+			return nil
+		}
+	default:
+		return fmt.Errorf("%w: %q", errUnknownFormat, format)
+	}
+
+	summary := NewResultsSummary()
+	for res, err := range results {
+		if err != nil {
+			return err
+		}
+		summary.Update(res.Result)
+		if err := write(res); err != nil {
+			return fmt.Errorf("failed to write result: %w", err)
+		}
+	}
+	return summary.Err()
+}
 
 // DecodeResults yields the results that `tetra policytest run --output json`
 // wrote to r, one JSON object per line. Other lines are log output and are

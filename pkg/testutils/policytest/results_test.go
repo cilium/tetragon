@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"iter"
 	"strings"
 	"testing"
 	"time"
@@ -89,6 +90,50 @@ func TestDecodeResultsErrors(t *testing.T) {
 			require.Empty(t, got)
 		})
 	}
+}
+
+func seqOf(results []*NamedResult, err error) iter.Seq2[*NamedResult, error] {
+	return func(yield func(*NamedResult, error) bool) {
+		for _, res := range results {
+			if !yield(res, nil) {
+				return
+			}
+		}
+		if err != nil {
+			yield(nil, err)
+		}
+	}
+}
+
+func TestWriteResults(t *testing.T) {
+	results := []*NamedResult{
+		{Name: "a ()", Result: &Result{ScenariosRes: []ScenarioRes{{Name: "s"}}}},
+		{Name: "b ()", Result: &Result{Err: JSONError{Err: errors.New("boom")}}},
+	}
+
+	var out bytes.Buffer
+	err := WriteResults(&out, OutputJSON, seqOf(results, nil))
+	require.EqualError(t, err, "result errors: 1/2")
+	var decoded []*NamedResult
+	for res, err := range DecodeResults(&out, nil) {
+		require.NoError(t, err)
+		decoded = append(decoded, res)
+	}
+	require.Len(t, decoded, 2)
+	require.Equal(t, "b ()", decoded[1].Name)
+	require.EqualError(t, decoded[1].Result.Err, "boom")
+
+	out.Reset()
+	require.NoError(t, WriteResults(&out, OutputText, seqOf(results[:1], nil)))
+	require.Contains(t, out.String(), "P: a ()")
+	require.Contains(t, out.String(), "1/1 scenario(s) succeeded")
+
+	out.Reset()
+	seqErr := errors.New("pod gone")
+	require.ErrorIs(t, WriteResults(&out, OutputJSON, seqOf(results[:1], seqErr)), seqErr)
+	require.Equal(t, 1, strings.Count(out.String(), "\n"), "the result before the error is written")
+
+	require.ErrorIs(t, WriteResults(&out, "yaml", seqOf(nil, nil)), errUnknownFormat)
 }
 
 func TestDecodeResultsStops(t *testing.T) {

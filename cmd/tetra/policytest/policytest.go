@@ -7,7 +7,6 @@ package policytest
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -121,7 +120,7 @@ func runCmd() *cobra.Command {
 	dumpPolicyPath := ""
 	var selFlags selectionFlags
 	var outputFile = ""
-	outputFmt, _ := option.NewEnum([]string{"text", "json"}, "text")
+	outputFmt, _ := option.NewEnum([]string{policytest.OutputText, policytest.OutputJSON}, policytest.OutputText)
 	cmd := cobra.Command{
 		Use:   "run",
 		Short: "Run Tetragon policy test(s)",
@@ -144,6 +143,16 @@ func runCmd() *cobra.Command {
 				return err
 			}
 
+			out := cmd.OutOrStdout()
+			if outputFile != "" {
+				f, err := os.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+				if err != nil {
+					return fmt.Errorf("error opening output file: %w", err)
+				}
+				defer f.Close()
+				out = f
+			}
+
 			ctx := context.Background()
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
 				GrpcAddr:        common.ServerAddress,
@@ -155,47 +164,9 @@ func runCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to start local runner: %w", err)
 			}
+			defer runner.Close()
 
-			summary := policytest.NewResultsSummary()
-			var results []*policytest.NamedResult
-			for _, t := range tests {
-				for paramValues := range sel.ParamValues(t) {
-					res := &policytest.NamedResult{
-						Name: fmt.Sprintf("%s (%s)", t.Name, paramValues),
-					}
-					res.Result = runner.RunTest(log, t, &policytest.TestConf{
-						MonitorMode: sel.MonitorMode,
-						ParamValues: paramValues,
-					})
-					summary.Update(res.Result)
-					results = append(results, res)
-				}
-			}
-			runner.Close()
-
-			out := cmd.OutOrStdout()
-			if outputFile != "" {
-				f, err := os.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-				if err != nil {
-					return fmt.Errorf("error opening output file: %w", err)
-				}
-				defer f.Close()
-				out = f
-			}
-
-			switch outputFmt.Value {
-			case "json":
-				for _, res := range results {
-					b, err := json.Marshal(res)
-					if err != nil {
-						return fmt.Errorf("failed to generate json: %w", err)
-					}
-					fmt.Fprintln(out, string(b))
-				}
-			case "text":
-				policytest.DumpResults(out, results)
-			}
-			return summary.Err()
+			return policytest.WriteResults(out, outputFmt.Value, runner.Run(ctx, log, sel))
 		},
 	}
 	flags := cmd.Flags()
