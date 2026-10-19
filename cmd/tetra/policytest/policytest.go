@@ -13,10 +13,13 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/cilium/tetragon/pkg/option"
 
@@ -124,6 +127,7 @@ func runCmd() *cobra.Command {
 	var podSelector map[string]string
 	var outputFile = ""
 	var k8s k8sFlags
+	local := pflag.NewFlagSet("local", pflag.ContinueOnError)
 	outputFmt, _ := option.NewEnum([]string{policytest.OutputText, policytest.OutputJSON}, policytest.OutputText)
 	cmd := cobra.Command{
 		Use:   "run [<test-regexp>...]",
@@ -139,14 +143,8 @@ func runCmd() *cobra.Command {
 				return errors.New("--all-tests is deprecated. Use .* regex pattern instead")
 			}
 
-			if k8s.enabled {
-				for _, f := range []string{"bindir", "dump-policy-path", "pod-selector"} {
-					if cmd.Flags().Changed(f) {
-						return fmt.Errorf("--%s cannot be used with --k8s", f)
-					}
-				}
-			} else if cmd.Flags().Changed("k8s-context") {
-				return errors.New("--k8s-context requires --k8s")
+			if err := k8s.check(local); err != nil {
+				return err
 			}
 
 			sel.Names = args
@@ -163,16 +161,15 @@ func runCmd() *cobra.Command {
 			}
 			defer closeOut()
 
-			if k8s.enabled {
-				remote, err := podArgs(&sel, outputFmt.Value)
-				if err != nil {
-					return err
-				}
-				return k8s.run(out, timeout, remote)
-			}
+			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
 
-			ctx := context.Background()
-			runner, err := newRunner(ctx, log, testBinsPath, dumpPolicyPath, podSelector, timeout)
+			var runner policytest.Runner
+			if k8s.enabled {
+				runner, err = k8s.runner(ctx, log, timeout, cmd.ErrOrStderr())
+			} else {
+				runner, err = newRunner(ctx, log, testBinsPath, dumpPolicyPath, podSelector, timeout)
+			}
 			if err != nil {
 				return err
 			}
@@ -181,28 +178,19 @@ func runCmd() *cobra.Command {
 			return policytest.WriteResults(out, outputFmt.Value, runner.Run(ctx, log, &sel))
 		},
 	}
+	local.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
+	local.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policies in the provided directory, one <policy-name>.yaml file per policy")
+	local.StringToStringVar(&podSelector, "pod-selector", map[string]string{}, "scope every policy to pods with these labels (sets spec.podSelector; needs the agent's policy filter)")
 	flags := cmd.Flags()
-	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
-	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policies in the provided directory, one <policy-name>.yaml file per policy")
-	flags.StringToStringVar(&podSelector, "pod-selector", map[string]string{}, "scope every policy to pods with these labels (sets spec.podSelector; needs the agent's policy filter)")
+	flags.AddFlagSet(local)
+	k8s.register(flags)
 	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
 	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
 	// --all-tests is deprecated. TODO: remove in 1.9
 	flags.BoolVar(&allTests, "all-tests", false, "Run all available policy tests.")
 	flags.MarkHidden("all-tests")
 	sel.AddFlags(flags)
-	k8s.register(flags)
 	return &cmd
-}
-
-// podArgs are the arguments of the tetra in the pod: the output format and
-// the selection, which the pod's tetra resolves against its own registry.
-func podArgs(sel *policytest.Selection, output string) ([]string, error) {
-	args, err := sel.Args()
-	if err != nil {
-		return nil, err
-	}
-	return append([]string{"--output=" + output}, args...), nil
 }
 
 func runMultiCmd() *cobra.Command {
