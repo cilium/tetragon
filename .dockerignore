@@ -18,6 +18,11 @@
 !pkg
 !tests
 !contrib/tetragon-rthooks
+!contrib/tester-progs/*.c
+!contrib/tester-progs/*.h
+!contrib/tester-progs/*.ld
+!contrib/tester-progs/Makefile
+!contrib/tester-progs/go
 
 # BPF programs
 !bpf
