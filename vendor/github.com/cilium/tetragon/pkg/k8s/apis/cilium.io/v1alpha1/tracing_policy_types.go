@@ -108,6 +108,9 @@ type TracingPolicySpec struct {
 	// +kubebuilder:validation:MaxItems=128
 	// A list of fentry specs.
 	Fentries []KProbeSpec `json:"fentries,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Java runtime method monitoring and class patching for HotSpot JVMs.
+	Java *JavaSpec `json:"java,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// PodSelector selects pods that this policy applies to
@@ -163,6 +166,63 @@ type TracingPolicySpec struct {
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="state names must be unique"
 	States []State `json:"state,omitempty"`
+}
+
+// +kubebuilder:validation:XValidation:rule="(has(self.hooks) && size(self.hooks) > 0) || (has(self.targets) && has(self.targets.executables) && size(self.targets.executables) > 0)",message="java needs at least one hook or executable target"
+type JavaSpec struct {
+	// +kubebuilder:validation:Optional
+	// Targets selects the JVMs the policy applies to. If omitted, the policy
+	// applies to all HotSpot JVMs (within the policy pod/container selectors).
+	Targets *JavaTargets `json:"targets,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=64
+	// A list of hooks selecting Java methods to monitor.
+	Hooks []JavaHook `json:"hooks,omitempty"`
+}
+
+type JavaTargets struct {
+	// +kubebuilder:validation:Optional
+	// Exact executable paths (as seen by the process in /proc/<pid>/exe)
+	// of JVMs the policy applies to. Tetragon enables the HotSpot attach
+	// interface before startup for these executables by setting
+	// JAVA_TOOL_OPTIONS to the required HotSpot flags (replacing its prior value).
+	Executables []string `json:"executables,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Every token must occur as a substring of one of the process arguments.
+	ProcessArgsContains []string `json:"processArgsContains,omitempty"`
+}
+
+// +kubebuilder:validation:XValidation:rule="has(self.class) != has(self.classPrefix)",message="hook needs exactly one of class or classPrefix"
+type JavaHook struct {
+	// +kubebuilder:validation:Optional
+	// Exact class name in Java dotted form, for example com.example.Handler
+	// (nested classes use $, for example com.example.Outer$Inner).
+	Class string `json:"class,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Package prefix matching all classes under it, for example com.example.
+	ClassPrefix string `json:"classPrefix,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=64
+	// Methods to monitor. If omitted, all methods of the matching classes are monitored.
+	Methods []JavaMethod `json:"methods,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxLength=256
+	// A short message of 256 characters max that will be included
+	// in the event output to inform users what is going on.
+	Message string `json:"message,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=16
+	// Tags to categorize the event, will be include in the event output.
+	// Maximum of 16 Tags are supported.
+	Tags []string `json:"tags,omitempty"`
+}
+
+type JavaMethod struct {
+	// Method name. All overloads are matched unless a descriptor is set.
+	Name string `json:"name"`
+	// +kubebuilder:validation:Optional
+	// JVM method descriptor selecting a single overload, for example (Ljava/lang/String;)Z.
+	Descriptor string `json:"descriptor,omitempty"`
 }
 
 func (tp *TracingPolicy) TpName() string {

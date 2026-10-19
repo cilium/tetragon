@@ -1727,6 +1727,100 @@
           ],
           "additionalProperties": false
         },
+        "java": {
+          "description": "Java runtime method monitoring and class patching for HotSpot JVMs.",
+          "properties": {
+            "hooks": {
+              "description": "A list of hooks selecting Java methods to monitor.",
+              "items": {
+                "properties": {
+                  "class": {
+                    "description": "Exact class name in Java dotted form, for example com.example.Handler\n(nested classes use $, for example com.example.Outer$Inner).",
+                    "type": "string"
+                  },
+                  "classPrefix": {
+                    "description": "Package prefix matching all classes under it, for example com.example.",
+                    "type": "string"
+                  },
+                  "message": {
+                    "description": "A short message of 256 characters max that will be included\nin the event output to inform users what is going on.",
+                    "maxLength": 256,
+                    "type": "string"
+                  },
+                  "methods": {
+                    "description": "Methods to monitor. If omitted, all methods of the matching classes are monitored.",
+                    "items": {
+                      "properties": {
+                        "descriptor": {
+                          "description": "JVM method descriptor selecting a single overload, for example (Ljava/lang/String;)Z.",
+                          "type": "string"
+                        },
+                        "name": {
+                          "description": "Method name. All overloads are matched unless a descriptor is set.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ],
+                      "type": "object",
+                      "additionalProperties": false
+                    },
+                    "maxItems": 64,
+                    "type": "array"
+                  },
+                  "tags": {
+                    "description": "Tags to categorize the event, will be include in the event output.\nMaximum of 16 Tags are supported.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 16,
+                    "type": "array"
+                  }
+                },
+                "type": "object",
+                "x-kubernetes-validations": [
+                  {
+                    "message": "hook needs exactly one of class or classPrefix",
+                    "rule": "has(self.class) != has(self.classPrefix)"
+                  }
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 64,
+              "type": "array"
+            },
+            "targets": {
+              "description": "Targets selects the JVMs the policy applies to. If omitted, the policy\napplies to all HotSpot JVMs (within the policy pod/container selectors).",
+              "properties": {
+                "executables": {
+                  "description": "Exact executable paths (as seen by the process in /proc/<pid>/exe)\nof JVMs the policy applies to. Tetragon enables the HotSpot attach\ninterface before startup for these executables by setting\nJAVA_TOOL_OPTIONS to the required HotSpot flags (replacing its prior value).",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "processArgsContains": {
+                  "description": "Every token must occur as a substring of one of the process arguments.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object",
+              "additionalProperties": false
+            }
+          },
+          "type": "object",
+          "x-kubernetes-validations": [
+            {
+              "message": "java needs at least one hook or executable target",
+              "rule": "(has(self.hooks) && size(self.hooks) > 0) || (has(self.targets) && has(self.targets.executables) && size(self.targets.executables) > 0)"
+            }
+          ],
+          "additionalProperties": false
+        },
         "kprobes": {
           "description": "A list of kprobe specs.",
           "items": {

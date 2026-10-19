@@ -132,7 +132,7 @@ The total of errors encountered while fetching process exec information from the
 | label | values |
 | ----- | ------ |
 | `error` | `nil_process_pid` |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
+| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_JAVA, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
 
 ### `tetragon_event_cache_fetch_failures_total`
 
@@ -141,7 +141,7 @@ Number of failed fetches from the event cache. These won't be retried as they al
 | label | values |
 | ----- | ------ |
 | `entry_type` | `ancestors_info, parent_info, pod_info, process_info` |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
+| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_JAVA, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
 
 ### `tetragon_event_cache_fetch_retries_total`
 
@@ -610,7 +610,7 @@ The total number of Tetragon events
 | label | values |
 | ----- | ------ |
 | `binary` | `example-binary` |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
+| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_JAVA, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
 | `namespace` | `example-namespace` |
 | `node_name` | `example-node-name` |
 | `pod  ` | `example-pod` |
