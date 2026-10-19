@@ -10,7 +10,6 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -431,19 +430,13 @@ func runPolicyTests(
 		return nil, fmt.Errorf("failed to open results file %s: %w", resFile, err)
 	}
 	defer f.Close()
+	results, err := policytest.DecodeResults(f)
+	if err != nil {
+		return nil, err
+	}
 	var summary = policytest.NewResultsSummary()
-	var results []*policytest.NamedResult
-	decoder := json.NewDecoder(f)
-	for {
-		var result policytest.NamedResult
-		if err := decoder.Decode(&result); err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, fmt.Errorf("JSON decoding failed: %w", err)
-		}
-
+	for _, result := range results {
 		summary.Update(result.Result)
-		results = append(results, &result)
 	}
 	policytest.DumpResults(os.Stdout, results)
 	return summary, nil
