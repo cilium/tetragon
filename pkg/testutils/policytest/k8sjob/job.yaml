@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: tetragon-policytest-
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      # TODO(#5190): the agent opens uprobe targets on its own filesystem
+      initContainers:
+      - name: stage-tester-progs
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - rm -rf /run/tetragon/policytest-progs &&
+          cp -a /usr/local/lib/tetragon/tester-progs /run/tetragon/policytest-progs
+        volumeMounts:
+        - name: tetragon-run
+          mountPath: /run/tetragon
+      containers:
+      - name: policytest
+        imagePullPolicy: IfNotPresent
+        args:
+        - policytest
+        - run
+        - --bindir=/run/tetragon/policytest-progs
+        - --pod-selector=batch.kubernetes.io/controller-uid=$(JOB_UID)
+        env:
+        - name: JOB_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['batch.kubernetes.io/controller-uid']
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: tetragon-run
+          mountPath: /run/tetragon
+      volumes:
+      - name: tetragon-run
+        hostPath:
+          path: /var/run/tetragon
+          type: Directory
