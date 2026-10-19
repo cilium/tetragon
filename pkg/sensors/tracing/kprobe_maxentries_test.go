@@ -11,6 +11,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/sensors"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -265,6 +266,63 @@ spec:
       matchActions:
       - action: Override
         argError: -1
+`)
+	})
+
+	t.Run("override_tasks_lsm", func(t *testing.T) {
+		if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
+			t.Skip("skipping test, BPF LSM or large programs not available")
+		}
+
+		run(t, []testMap{
+			{"override_tasks", overrideMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "override-lsm-example"
+spec:
+  lsmhooks:
+  - hook: "file_open"
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "/etc/passwd"
+      matchActions:
+      - action: Override
+        argError: -1
+`)
+	})
+
+	t.Run("override_tasks_lsm_noresize", func(t *testing.T) {
+		if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
+			t.Skip("skipping test, BPF LSM or large programs not available")
+		}
+
+		run(t, []testMap{
+			{"override_tasks", 1},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm-no-override"
+spec:
+  lsmhooks:
+  - hook: "file_open"
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "/etc/passwd"
 `)
 	})
 }
