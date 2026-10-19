@@ -11,12 +11,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"iter"
 	"log/slog"
-	"maps"
 	"os"
 	"path/filepath"
-	"slices"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -71,8 +68,7 @@ func dumpPolicyCmd() *cobra.Command {
 	cwd, _ := os.Getwd()
 	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
 	dumpPolicyPath := ""
-	monitorMode := false
-	var params map[string]string
+	var sel policytest.Selection
 
 	cmd := cobra.Command{
 		Use:   "dump-policy <test-regexp>...",
@@ -82,37 +78,30 @@ func dumpPolicyCmd() *cobra.Command {
 			"(e.g., 'uprobe-.*' runs all tests whose name starts with 'uprobe-')." +
 			"The passed regex gets automatically anchored to both start end end of string.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// NB: parameters are applied to all policies
-			paramValues := make(map[string]any)
-			for k, v := range params {
-				paramValues[k] = v
-			}
-
-			tests, err := policytest.AllPolicyTests.GetByRegexps(args)
+			sel.Names = args
+			tests, err := sel.Tests(policytest.AllPolicyTests)
 			if err != nil {
 				return err
 			}
-			if len(tests) == 0 {
-				return fmt.Errorf("no policy tests matching %q", args)
-			}
-
-			conf := policytest.Conf{
-				GrpcAddr:       common.ServerAddress,
-				BinsDir:        testBinsPath,
-				DumpPolicyPath: dumpPolicyPath,
-				TestConf: &policytest.TestConf{
-					MonitorMode: monitorMode,
-					ParamValues: paramValues,
-				},
-			}
 
 			for _, t := range tests {
-				pol, cleanup, err := t.Policy(&conf)
-				if err != nil {
-					return err
+				for paramValues := range sel.ParamValues(t) {
+					conf := policytest.Conf{
+						GrpcAddr:       common.ServerAddress,
+						BinsDir:        testBinsPath,
+						DumpPolicyPath: dumpPolicyPath,
+						TestConf: &policytest.TestConf{
+							MonitorMode: sel.MonitorMode,
+							ParamValues: paramValues,
+						},
+					}
+					pol, cleanup, err := t.Policy(&conf)
+					if err != nil {
+						return err
+					}
+					cmd.OutOrStdout().Write([]byte(pol))
+					cleanup()
 				}
-				cmd.OutOrStdout().Write([]byte(pol))
-				cleanup()
 			}
 			return nil
 		},
@@ -121,8 +110,7 @@ func dumpPolicyCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policies in the provided directory, one <policy-name>.yaml file per policy")
-	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
-	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
+	sel.AddFlags(flags)
 	return &cmd
 }
 
@@ -130,10 +118,8 @@ func runCmd() *cobra.Command {
 	cwd, _ := os.Getwd()
 	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
 	dumpPolicyPath := ""
-	monitorMode := false
-	allParams := false
 	allTests := false
-	var params map[string]string
+	var sel policytest.Selection
 	var podSelector map[string]string
 	var outputFile = ""
 	var k8s k8sFlags
@@ -152,26 +138,6 @@ func runCmd() *cobra.Command {
 				return errors.New("--all-tests is deprecated. Use .* regex pattern instead")
 			}
 
-			var getParamValues func(t *policytest.T) iter.Seq[policytest.ParamVals]
-			if len(params) > 0 && allParams {
-				return errors.New("setting --params conflicts with --all-params")
-			} else if allParams {
-				getParamValues = func(t *policytest.T) iter.Seq[policytest.ParamVals] {
-					return t.AllParamValues()
-				}
-			} else {
-				// NB: parameters are applied to all policies
-				paramValues := make(map[string]any)
-				for k, v := range params {
-					paramValues[k] = v
-				}
-				getParamValues = func(_ *policytest.T) iter.Seq[policytest.ParamVals] {
-					return func(yield func(policytest.ParamVals) bool) {
-						yield(paramValues)
-					}
-				}
-			}
-
 			if k8s.enabled {
 				for _, f := range []string{"bindir", "dump-policy-path", "pod-selector"} {
 					if cmd.Flags().Changed(f) {
@@ -182,7 +148,8 @@ func runCmd() *cobra.Command {
 				return errors.New("--k8s-context requires --k8s")
 			}
 
-			tests, err := selectTests(args)
+			sel.Names = args
+			tests, err := sel.Tests(policytest.AllPolicyTests)
 			if err != nil {
 				return err
 			}
@@ -196,7 +163,11 @@ func runCmd() *cobra.Command {
 			defer closeOut()
 
 			if k8s.enabled {
-				return k8s.run(out, timeout, podArgs(args, allParams, monitorMode, params, outputFmt.Value))
+				remote, err := podArgs(&sel, outputFmt.Value)
+				if err != nil {
+					return err
+				}
+				return k8s.run(out, timeout, remote)
 			}
 
 			ctx := context.Background()
@@ -208,12 +179,12 @@ func runCmd() *cobra.Command {
 
 			summary := policytest.NewResultsSummary()
 			for _, t := range tests {
-				for paramValues := range getParamValues(t) {
+				for paramValues := range sel.ParamValues(t) {
 					res := &policytest.NamedResult{
 						Name: fmt.Sprintf("%s (%s)", t.Name, paramValues),
 					}
 					res.Result = runner.RunTest(log, t, &policytest.TestConf{
-						MonitorMode: monitorMode,
+						MonitorMode: sel.MonitorMode,
 						ParamValues: paramValues,
 					})
 					summary.Update(res.Result)
@@ -229,31 +200,25 @@ func runCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policies in the provided directory, one <policy-name>.yaml file per policy")
-	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
-	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
 	flags.StringToStringVar(&podSelector, "pod-selector", map[string]string{}, "scope every policy to pods with these labels (sets spec.podSelector; needs the agent's policy filter)")
-	flags.BoolVar(&allParams, "all-params", allParams, "Run policy tests using all available parameters")
 	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
 	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
 	// --all-tests is deprecated. TODO: remove in 1.9
 	flags.BoolVar(&allTests, "all-tests", false, "Run all available policy tests.")
 	flags.MarkHidden("all-tests")
+	sel.AddFlags(flags)
 	k8s.register(flags)
 	return &cmd
 }
 
-func podArgs(tests []string, allParams, monitorMode bool, params map[string]string, output string) []string {
-	ret := []string{"--output=" + output}
-	if allParams {
-		ret = append(ret, "--all-params")
+// podArgs are the arguments of the tetra in the pod: the output format and
+// the selection, which the pod's tetra resolves against its own registry.
+func podArgs(sel *policytest.Selection, output string) ([]string, error) {
+	args, err := sel.Args()
+	if err != nil {
+		return nil, err
 	}
-	if monitorMode {
-		ret = append(ret, "--monitor-mode")
-	}
-	for _, k := range slices.Sorted(maps.Keys(params)) {
-		ret = append(ret, "--set-param="+k+"="+params[k])
-	}
-	return append(append(ret, "--"), tests...)
+	return append([]string{"--output=" + output}, args...), nil
 }
 
 func runMultiCmd() *cobra.Command {
@@ -290,7 +255,7 @@ finally the policies are unloaded.`,
 			}
 
 			ctx := context.Background()
-			tests, err := selectTests(args)
+			tests, err := (&policytest.Selection{Names: args}).Tests(policytest.AllPolicyTests)
 			if err != nil {
 				return err
 			}
@@ -360,24 +325,6 @@ func newLogger() *slog.Logger {
 			Level: logLevel,
 		},
 	))
-}
-
-// selectTests returns all the tests matching the regular expressions
-func selectTests(exprs []string) ([]*policytest.T, error) {
-	tests, err := policytest.AllPolicyTests.GetByRegexps(exprs)
-	if err != nil {
-		return nil, err
-	}
-	for _, expr := range exprs {
-		matched, _ := policytest.AllPolicyTests.GetByRegexps([]string{expr})
-		if len(matched) == 0 {
-			return nil, fmt.Errorf("no policy tests matching %q, see `tetra policytest list`", expr)
-		}
-	}
-	if len(tests) == 0 {
-		return nil, fmt.Errorf("no policy tests matching %q", exprs)
-	}
-	return tests, nil
 }
 
 // newRunner creates a local runner
