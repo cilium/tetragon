@@ -31,6 +31,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
+	"github.com/cilium/tetragon/pkg/vmtests/lvh"
 )
 
 var (
@@ -38,7 +39,7 @@ var (
 )
 
 type PolicyTestConf struct {
-	testConf
+	lvh.Conf
 	tetragonInstallDir  string
 	tetragonTarball     string
 	testerProgsDir      string
@@ -46,13 +47,6 @@ type PolicyTestConf struct {
 	resultsDir          string
 	policytestExtraArgs map[string]string
 	environment         map[string]string
-}
-
-func (rc PolicyTestConf) testImageFilename() string {
-	if ext := filepath.Ext(rc.vmName); ext == "" {
-		return rc.vmName + ".qcow2"
-	}
-	return rc.vmName
 }
 
 func policyTestCmd() *cobra.Command {
@@ -74,25 +68,25 @@ func policyTestCmd() *cobra.Command {
 			}
 
 			if mountHostPath != "" {
-				cnf.filesystems = append(cnf.filesystems,
-					&virtIOFilesystem{
-						id:      "host",
-						hostdir: mountHostPath,
-						vmdir:   "/host",
+				cnf.Filesystems = append(cnf.Filesystems,
+					&lvh.VirtIOFS{
+						ID:      "host",
+						HostDir: mountHostPath,
+						VMDir:   "/host",
 					},
 				)
 			}
 
-			if !cnf.justBuildImage && !cnf.dontRebuildImage {
+			if !cnf.JustBuildImage && !cnf.DontRebuildImage {
 				cnf.resultsDir, err = os.MkdirTemp("", "policytests-results-")
 				if err != nil {
 					return fmt.Errorf("failed to make results dir: %w", err)
 				}
-				cnf.filesystems = append(cnf.filesystems,
-					&virtIOFilesystem{
-						id:      "results",
-						hostdir: cnf.resultsDir,
-						vmdir:   policytestsVmResultsDir,
+				cnf.Filesystems = append(cnf.Filesystems,
+					&lvh.VirtIOFS{
+						ID:      "results",
+						HostDir: cnf.resultsDir,
+						VMDir:   policytestsVmResultsDir,
 					},
 				)
 			}
@@ -103,12 +97,12 @@ func policyTestCmd() *cobra.Command {
 			}
 			defer os.RemoveAll(tmpDir)
 
-			if err := cnf.maybePullBaseImage(tmpDir); err != nil {
+			if err := cnf.MaybePullBaseImage(context.Background(), tmpDir); err != nil {
 				return err
 			}
 
 			err = buildPolicyTestImage(log, &cnf, tmpDir)
-			if err != nil || cnf.justBuildImage {
+			if err != nil || cnf.JustBuildImage {
 				return err
 			}
 
@@ -118,20 +112,20 @@ func policyTestCmd() *cobra.Command {
 			}
 
 			qemuBin := runtimeArch.QemuBinary()
-			qemuArgs, err := buildQemuArgs(log, cnf.testConf)
+			qemuArgs, err := lvh.BuildQemuArgs(log, cnf.Conf)
 			if err != nil {
 				return fmt.Errorf("failed to build qemu args: %w", err)
 			}
 
-			if cnf.qemuPrint {
-				qemuPrintCmd(qemuBin, qemuArgs)
+			if cnf.QemuPrint {
+				lvh.QemuPrintCmd(qemuBin, qemuArgs)
 				return nil
 			}
 
 			// if we don't need to run tests, just exec() so that user will be able to
 			// login to the VM.
-			if cnf.justBoot {
-				return qemuJustBoot(qemuBin, qemuArgs)
+			if cnf.JustBoot {
+				return lvh.QemuJustBoot(qemuBin, qemuArgs)
 			}
 
 			summary, err := runPolicyTests(&cnf, qemuBin, qemuArgs)
@@ -159,7 +153,7 @@ func policyTestCmd() *cobra.Command {
 		},
 	}
 
-	cmdAddTestConfFlags(cmd, &cnf.testConf)
+	lvh.AddFlags(cmd, &cnf.Conf)
 	cmd.Flags().StringVar(&cnf.tetragonInstallDir, "tetragon-dir", "", "tetragon install directory")
 	cmd.Flags().StringVar(&cnf.tetragonTarball, "tetragon-tarball", "", "tetragon install tarball")
 	cmd.Flags().StringVar(&cnf.testerProgsDir, "tester-progs-dir", "", "tetragon tester progs directory")
@@ -167,7 +161,7 @@ func policyTestCmd() *cobra.Command {
 	cmd.Flags().StringToStringVar(&cnf.environment, "env", nil, "Set an environment variable for policytests (NAME=VALUE)")
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&mountHostPath, "mount-host-path", "", "host path to mount inside VM")
-	cmd.Flags().StringVar(&cnf.btfFile, "btf-file", "", "BTF file to use.")
+	cmd.Flags().StringVar(&cnf.BTFFile, "btf-file", "", "BTF file to use.")
 	cmd.Flags().StringToStringVar(&cnf.policytestExtraArgs, "policytest-extra-args", nil, "`tetra policytest` extra arguments (--key=val)")
 	return cmd
 }
@@ -234,7 +228,7 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 
 	// copy BTF file to the VM
 	vmBTFFile := ""
-	if btfFile := ptConf.btfFile; btfFile != "" {
+	if btfFile := ptConf.BTFFile; btfFile != "" {
 		absBTFFile, err := filepath.Abs(btfFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get btf file full path: %w", err)
@@ -252,8 +246,12 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 		return nil, errors.New("you need to define exactly one of --tetragon-install-dir and --tetragon-tarball")
 	} else if ptConf.tetragonInstallDir != "" {
 		additionalArgs := ""
-		if ptConf.btfFile != "" {
+		if ptConf.BTFFile != "" {
 			additionalArgs = "--btf " + vmBTFFile
+		}
+		service, err := lvh.TetragonServiceFile(filepath.Join(tmpDir, lvh.TetragonService), additionalArgs)
+		if err != nil {
+			return nil, err
 		}
 		ret = append(ret,
 			// install.sh
@@ -263,10 +261,10 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 			}},
 			// tetragon systemd service
 			images.Action{Op: &images.CopyInCommand{
-				LocalPath: mustMakeTetragonServiceFile(filepath.Join(tmpDir, tetragonService), additionalArgs),
+				LocalPath: service,
 				RemoteDir: "/etc/systemd/system/",
 			}},
-			images.Action{Op: &images.RunCommand{Cmd: "systemctl enable " + tetragonService}},
+			images.Action{Op: &images.RunCommand{Cmd: "systemctl enable " + lvh.TetragonService}},
 		)
 	} else if ptConf.tetragonTarball != "" {
 		tarball := ptConf.tetragonTarball
@@ -321,7 +319,7 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 		return nil, errors.New("you need to define exactly one of --tester-progs-dir and --tetragon-progs-tarball")
 	}
 
-	if !ptConf.justBoot {
+	if !ptConf.JustBoot {
 		// tetragon policytester systemd service
 		ptArgs := make([]string, 0, len(ptConf.policytestExtraArgs))
 		for k, v := range ptConf.policytestExtraArgs {
@@ -345,13 +343,12 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 }
 
 func buildPolicyTestImage(log slogger.Logger, ptConf *PolicyTestConf, tmpDir string) error {
-	imagesDir, baseImage := filepath.Split(ptConf.baseImageFilename)
-	fsActions, err := buildFilesystemActions(ptConf.filesystems, tmpDir)
+	fsActions, err := lvh.FilesystemActions(ptConf.Filesystems, tmpDir)
 	if err != nil {
 		return err
 	}
 
-	netActions, err := buildNetActions(tmpDir)
+	netActions, err := lvh.NetActions(tmpDir)
 	if err != nil {
 		return err
 	}
@@ -361,43 +358,12 @@ func buildPolicyTestImage(log slogger.Logger, ptConf *PolicyTestConf, tmpDir str
 		return err
 	}
 
-	actions := []images.Action{
-		{Op: &NoNetworkCommand{}},
-		{Op: &images.SetHostnameCommand{Hostname: ptConf.vmName}},
-		{Op: &images.AppendLineCommand{
-			File: "/etc/sysctl.d/local.conf",
-			Line: "kernel.panic_on_rcu_stall=1",
-		}},
-	}
-
+	actions := lvh.BaseActions(&ptConf.Conf)
 	actions = append(actions, tetragonActions...)
 	actions = append(actions, fsActions...)
 	actions = append(actions, netActions...)
 
-	cnf := images.ImagesConf{
-		Dir: imagesDir,
-		// TODO: might be useful to modify the images builder so that
-		// we can build this image using qemu-img -b
-		Images: []images.ImgConf{{
-			Name:    ptConf.testImageFilename(),
-			Parent:  baseImage,
-			Actions: actions,
-		}},
-	}
-
-	forest, err := images.NewImageForest(&cnf, false)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	res := forest.BuildAllImages(&images.BuildConf{
-		Log:          log,
-		DryRun:       false,
-		ForceRebuild: true,
-		MergeSteps:   true,
-	})
-
-	return res.Err()
+	return lvh.BuildImage(log, &ptConf.Conf, actions, true)
 }
 
 func runPolicyTests(
