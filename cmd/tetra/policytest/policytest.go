@@ -8,15 +8,14 @@ package policytest
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"iter"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/cilium/tetragon/pkg/option"
 
@@ -80,14 +79,11 @@ func dumpPolicyCmd() *cobra.Command {
 				paramValues[k] = v
 			}
 
-			names := make(map[string]struct{})
-			for _, arg := range args {
-				names[arg] = struct{}{}
+			sel := policytest.Selection{Names: args}
+			tests, err := sel.Tests(policytest.AllPolicyTests)
+			if err != nil {
+				return err
 			}
-			tests := policytest.AllPolicyTests.GetByFunction(func(t *policytest.T) bool {
-				_, ok := names[t.Name]
-				return ok
-			})
 
 			conf := policytest.Conf{
 				GrpcAddr:       common.ServerAddress,
@@ -123,10 +119,7 @@ func runCmd() *cobra.Command {
 	cwd, _ := os.Getwd()
 	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
 	dumpPolicyPath := ""
-	monitorMode := false
-	allParams := false
-	allTests := false
-	var params map[string]string
+	var selFlags selectionFlags
 	var outputFile = ""
 	outputFmt, _ := option.NewEnum([]string{"text", "json"}, "text")
 	cmd := cobra.Command{
@@ -145,44 +138,13 @@ func runCmd() *cobra.Command {
 				},
 			))
 
-			var getParamValues func(t *policytest.T) iter.Seq[policytest.ParamVals]
-			if len(params) > 0 && allParams {
-				return errors.New("setting --params conflicts with --all-params")
-			} else if allParams {
-				getParamValues = func(t *policytest.T) iter.Seq[policytest.ParamVals] {
-					return t.AllParamValues()
-				}
-			} else {
-				// NB: parameters are applied to all policies
-				paramValues := make(map[string]any)
-				for k, v := range params {
-					paramValues[k] = v
-				}
-				getParamValues = func(_ *policytest.T) iter.Seq[policytest.ParamVals] {
-					return func(yield func(policytest.ParamVals) bool) {
-						yield(paramValues)
-					}
-				}
+			sel := selFlags.selection(args)
+			tests, err := sel.Tests(policytest.AllPolicyTests)
+			if err != nil {
+				return err
 			}
 
 			ctx := context.Background()
-			var ptFilterFn func(t *policytest.T) bool
-			if allTests {
-				ptFilterFn = func(_ *policytest.T) bool {
-					return true
-				}
-			} else {
-				names := make(map[string]struct{})
-				for _, arg := range args {
-					names[arg] = struct{}{}
-				}
-				ptFilterFn = func(t *policytest.T) bool {
-					_, ok := names[t.Name]
-					return ok
-				}
-			}
-
-			tests := policytest.AllPolicyTests.GetByFunction(ptFilterFn)
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
 				GrpcAddr:        common.ServerAddress,
 				BinsDir:         testBinsPath,
@@ -197,12 +159,12 @@ func runCmd() *cobra.Command {
 			summary := policytest.NewResultsSummary()
 			var results []*policytest.NamedResult
 			for _, t := range tests {
-				for paramValues := range getParamValues(t) {
+				for paramValues := range sel.ParamValues(t) {
 					res := &policytest.NamedResult{
 						Name: fmt.Sprintf("%s (%s)", t.Name, paramValues),
 					}
 					res.Result = runner.RunTest(log, t, &policytest.TestConf{
-						MonitorMode: monitorMode,
+						MonitorMode: sel.MonitorMode,
 						ParamValues: paramValues,
 					})
 					summary.Update(res.Result)
@@ -239,11 +201,33 @@ func runCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policy in the provided path")
-	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
-	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
-	flags.BoolVar(&allParams, "all-params", allParams, "Run policy tests using all available parameters")
 	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
 	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
-	flags.BoolVar(&allTests, "all-tests", allTests, "Run all available policy tests")
+	selFlags.register(flags)
 	return &cmd
+}
+
+// selectionFlags are the run flags that pick the tests and how to run them.
+type selectionFlags struct {
+	allTests    bool
+	allParams   bool
+	monitorMode bool
+	params      map[string]string
+}
+
+func (f *selectionFlags) register(flags *pflag.FlagSet) {
+	flags.BoolVar(&f.allTests, "all-tests", false, "Run all available policy tests")
+	flags.BoolVar(&f.allParams, "all-params", false, "Run policy tests using all available parameters")
+	flags.BoolVar(&f.monitorMode, "monitor-mode", false, "set the policy(-ies) in monitor mode before running the test(s)")
+	flags.StringToStringVar(&f.params, "set-param", map[string]string{}, "Set a policy parameter")
+}
+
+func (f *selectionFlags) selection(names []string) *policytest.Selection {
+	return &policytest.Selection{
+		Names:       names,
+		AllTests:    f.allTests,
+		Params:      f.params,
+		AllParams:   f.allParams,
+		MonitorMode: f.monitorMode,
+	}
 }
