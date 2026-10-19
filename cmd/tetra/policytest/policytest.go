@@ -150,7 +150,8 @@ func runCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			timeout := time.Minute * time.Duration(len(tests))
+			// a minute per test and parameter set
+			timeout := time.Minute * time.Duration(sel.Runs(tests))
 
 			out := cmd.OutOrStdout()
 			if outputFile != "" {

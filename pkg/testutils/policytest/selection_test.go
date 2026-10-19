@@ -75,6 +75,12 @@ func TestSelectionParamValues(t *testing.T) {
 	require.ElementsMatch(t, []any{1, 2}, got)
 }
 
+func TestSelectionRuns(t *testing.T) {
+	tests := selectionRegistry().tests
+	require.Equal(t, 2, (&Selection{AllTests: true}).Runs(tests))
+	require.Equal(t, 3, (&Selection{AllTests: true, AllParams: true}).Runs(tests))
+}
+
 func TestSelectionArgs(t *testing.T) {
 	sel := &Selection{
 		Names:       []string{"a-test", "b-test"},

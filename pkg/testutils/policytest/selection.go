@@ -87,6 +87,17 @@ func (s *Selection) ParamValues(t *T) iter.Seq[ParamVals] {
 	}
 }
 
+// Runs returns how many times the tests run: once per parameter set.
+func (s *Selection) Runs(tests []*T) int {
+	n := 0
+	for _, t := range tests {
+		for range s.ParamValues(t) {
+			n++
+		}
+	}
+	return n
+}
+
 // Args returns the arguments of a `tetra policytest run` that runs the same
 // selection, for runners that start tetra somewhere else.
 func (s *Selection) Args() []string {
