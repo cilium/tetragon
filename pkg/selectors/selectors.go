@@ -141,9 +141,10 @@ type KernelSelectorState struct {
 
 	maps *KernelSelectorMaps
 
-	isUprobe              bool
-	uprobeID              int
-	overrideActionIPDelta int64
+	isUprobe bool
+	uprobeID int
+	// Override action instruction pointer delta, keyed by selector index
+	overrideActionIPDeltas map[int]int64
 
 	regs map[int][]processapi.RegAssignment
 
@@ -159,7 +160,7 @@ func NewKernelSelectorState(
 	maps *KernelSelectorMaps,
 	isUprobe bool,
 	uprobeID int,
-	overrideActionIPDelta int64,
+	overrideActionIPDeltas map[int]int64,
 	celExprs *CelExprFunctions,
 ) *KernelSelectorState {
 	if maps == nil {
@@ -171,17 +172,17 @@ func NewKernelSelectorState(
 	return &KernelSelectorState{
 		// Selectors are expected to fit into KernelBufferSize, so
 		// preallocate that much and avoid growing in the common case.
-		data:                  KernelSelectorData{e: make([]byte, 0, KernelBufferSize)},
-		matchBinaries:         make(map[int]MatchBinariesSelectorOptions),
-		matchBinariesPaths:    make(map[int][][processapi.BINARY_PATH_MAX_LEN]byte),
-		listReader:            listReader,
-		maps:                  maps,
-		isUprobe:              isUprobe,
-		uprobeID:              uprobeID,
-		overrideActionIPDelta: overrideActionIPDelta,
-		celExprFunctions:      celExprs,
-		matchWorkloadIDs:      make(map[int]policyfilter.PolicyID),
-		regs:                  make(map[int][]processapi.RegAssignment),
+		data:                   KernelSelectorData{e: make([]byte, 0, KernelBufferSize)},
+		matchBinaries:          make(map[int]MatchBinariesSelectorOptions),
+		matchBinariesPaths:     make(map[int][][processapi.BINARY_PATH_MAX_LEN]byte),
+		listReader:             listReader,
+		maps:                   maps,
+		isUprobe:               isUprobe,
+		uprobeID:               uprobeID,
+		overrideActionIPDeltas: overrideActionIPDeltas,
+		celExprFunctions:       celExprs,
+		matchWorkloadIDs:       make(map[int]policyfilter.PolicyID),
+		regs:                   make(map[int][]processapi.RegAssignment),
 	}
 }
 

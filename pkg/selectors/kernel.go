@@ -1475,7 +1475,7 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	switch act {
 	case ActionTypeOverride:
 		if k.isUprobe {
-			err := parseOverrideRegs(k, selIdx, action.ArgRegs, uint64(action.ArgError), k.overrideActionIPDelta)
+			err := parseOverrideRegs(k, selIdx, action.ArgRegs, uint64(action.ArgError), k.overrideActionIPDeltas[selIdx])
 			if err != nil {
 				return err
 			}
@@ -1921,10 +1921,10 @@ type KernelSelectorArgs struct {
 	IsUprobe       bool
 	UprobeID       int
 	// For Override argNew{Symbol,Addr,Offset} this will hold
-	// the instruction pointer delta that will be stored
-	// by ParseMatchAction().
-	OverrideActionIPDelta int64
-	CelExprs              *CelExprFunctions
+	// the instruction pointer delta of each selector, keyed by
+	// selector index, that will be stored by ParseMatchAction().
+	OverrideActionIPDeltas map[int]int64
+	CelExprs               *CelExprFunctions
 	// BinaryPath is used as default binary path for matchCaller selectors.
 	BinaryPath string
 }
@@ -1996,14 +1996,14 @@ func createKernelSelectorState(
 	maps *KernelSelectorMaps,
 	isUprobe bool,
 	uprobeID int,
-	overrideActionIPDelta int64,
+	overrideActionIPDeltas map[int]int64,
 	celExprs *CelExprFunctions,
 	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error,
 ) (*KernelSelectorState, error) {
 	if len(selectors) > MaxSelectors {
 		return nil, fmt.Errorf("no more than %d selectors supported (%d provided)", MaxSelectors, len(selectors))
 	}
-	state := NewKernelSelectorState(listReader, maps, isUprobe, uprobeID, overrideActionIPDelta, celExprs)
+	state := NewKernelSelectorState(listReader, maps, isUprobe, uprobeID, overrideActionIPDeltas, celExprs)
 
 	WriteSelectorUint32(&state.data, uint32(len(selectors)))
 	soff := make([]uint32, len(selectors))
@@ -2065,7 +2065,7 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		return nil
 	}
 
-	return createKernelSelectorState(args.Selectors, args.ListReader, args.Maps, args.IsUprobe, args.UprobeID, args.OverrideActionIPDelta, args.CelExprs, parse)
+	return createKernelSelectorState(args.Selectors, args.ListReader, args.Maps, args.IsUprobe, args.UprobeID, args.OverrideActionIPDeltas, args.CelExprs, parse)
 }
 
 func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
@@ -2083,7 +2083,7 @@ func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnAr
 		return nil
 	}
 
-	return createKernelSelectorState(selectors, listReader, maps, false, 0, 0, nil, parse)
+	return createKernelSelectorState(selectors, listReader, maps, false, 0, nil, nil, parse)
 }
 
 func CleanupKernelSelectorState(state *KernelSelectorState) error {
@@ -2142,26 +2142,31 @@ func HasGetUrlOrDnsLookup(selectors []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+// CountOverrideArgNewSymbolAddrOffset returns the highest number of
+// argNewSymbol, argNewAddr and argNewOffset set on a single Override action,
+// across all selectors.
 func CountOverrideArgNewSymbolAddrOffset(selectors []v1alpha1.KProbeSelector) int {
+	maxArgNewArgs := 0
 	for _, s := range selectors {
 		for _, action := range s.MatchActions {
-			numArgNewArgs := 0
-			act := actionTypeTable[strings.ToLower(action.Action)]
-			if act == ActionTypeOverride {
-				if action.ArgNewSymbol != "" {
-					numArgNewArgs++
-				}
-				if action.ArgNewAddr != 0 {
-					numArgNewArgs++
-				}
-				if action.ArgNewOffset != 0 {
-					numArgNewArgs++
-				}
-				return numArgNewArgs
+			act, ok := actionTypeTable[strings.ToLower(action.Action)]
+			if !ok || act != ActionTypeOverride {
+				continue
 			}
+			numArgNewArgs := 0
+			if action.ArgNewSymbol != "" {
+				numArgNewArgs++
+			}
+			if action.ArgNewAddr != 0 {
+				numArgNewArgs++
+			}
+			if action.ArgNewOffset != 0 {
+				numArgNewArgs++
+			}
+			maxArgNewArgs = max(maxArgNewArgs, numArgNewArgs)
 		}
 	}
-	return 0
+	return maxArgNewArgs
 }
 
 func HasOperator(selectors []v1alpha1.KProbeSelector, op uint32) bool {

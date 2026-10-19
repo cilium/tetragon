@@ -118,7 +118,8 @@ type genericUprobe struct {
 	pendingEvents *lru.Cache[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]]
 	data          *genericStackTraceData
 
-	dynOv *DynamicOverride
+	// sopath overrides, keyed by selector index
+	dynOvs map[int]*DynamicOverride
 }
 
 func populateUprobeRegs(m *ebpf.Map, id uint32, regs []processapi.RegAssignment, dynOv *DynamicOverride) error {
@@ -136,9 +137,9 @@ func populateUprobeRegs(m *ebpf.Map, id uint32, regs []processapi.RegAssignment,
 	return m.Update(id, uprobeRegs, ebpf.UpdateAny)
 }
 
-func populateSelectorRegsMap(m *ebpf.Map, selector *selectors.KernelSelectorState, dynOv *DynamicOverride) error {
+func populateSelectorRegsMap(m *ebpf.Map, selector *selectors.KernelSelectorState, dynOvs map[int]*DynamicOverride) error {
 	for selIdx, regs := range selector.Regs() {
-		err := populateUprobeRegs(m, selector.UprobeRegsMapID(selIdx), regs, dynOv)
+		err := populateUprobeRegs(m, selector.UprobeRegsMapID(selIdx), regs, dynOvs[selIdx])
 		if err != nil {
 			return err
 		}
@@ -301,7 +302,7 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 				&program.MapLoad{
 					Name: "regs_map",
 					Load: func(m *ebpf.Map, _ string) error {
-						return populateSelectorRegsMap(m, selector, uprobeEntry.dynOv)
+						return populateSelectorRegsMap(m, selector, uprobeEntry.dynOvs)
 					},
 				},
 			)
@@ -418,7 +419,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 					&program.MapLoad{
 						Name: "regs_map",
 						Load: func(m *ebpf.Map, _ string) error {
-							return populateSelectorRegsMap(m, selector, uprobeEntry.dynOv)
+							return populateSelectorRegsMap(m, selector, uprobeEntry.dynOvs)
 						},
 					},
 				)
@@ -488,7 +489,7 @@ type uprobeHas struct {
 	sleepableOffloadSize int
 	userStackTrace       bool
 	uprobeHeapSize       int
-	dynOv                *DynamicOverride
+	dynamicSO            bool
 }
 
 func validateMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
@@ -543,6 +544,8 @@ type uprobeConfigState struct {
 	addrs          int
 	refCtrOffsets  int
 	overrideSymbol bool
+	// sopath overrides, keyed by selector index
+	dynOvs map[int]*DynamicOverride
 
 	selectors kprobeSelectors
 
@@ -615,7 +618,7 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		return fmt.Errorf("uprobe Override action needs exactly one of either argNewSymbol, argNewOffset or argNewAddr defined; %d found", numArgNewArgs)
 	}
 	state.overrideSymbol = numArgNewArgs == 1
-	if state.overrideSymbol && !IsSODynamic(spec.Selectors) && len(spec.Symbols) > 1 {
+	if state.overrideSymbol && hasNonSODynamicNewTarget(spec.Selectors) && len(spec.Symbols) > 1 {
 		return errors.New("only a single uprobe symbol can be redirected")
 	}
 
@@ -647,6 +650,23 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 	return nil
 }
 
+// hasNonSODynamicNewTarget returns true if any Override action redirects to a
+// new target in the traced binary, whose instruction pointer delta is computed
+// relative to a single traced symbol.
+func hasNonSODynamicNewTarget(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
+		for _, action := range s.MatchActions {
+			if action.Action != "Override" || isSODynamicAction(&action) {
+				continue
+			}
+			if action.ArgNewSymbol != "" || action.ArgNewAddr != 0 || action.ArgNewOffset != 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 	if selectors.HasOverride(spec.Selectors) {
 		if !bpf.HasUprobeRegsChange() {
@@ -667,53 +687,67 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 	return nil
 }
 
-func computeArgNewOffset(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAddr uint64) (int64, *DynamicOverride, error) {
-	var (
-		err   error
-		dynOv DynamicOverride
-	)
-	for _, sel := range spec.Selectors {
+// computeOverrideTargets returns, keyed by selector index, the instruction
+// pointer delta for Override actions redirecting to a new target in the traced
+// binary, and the dynamic override for the ones loading it from sopath.
+func computeOverrideTargets(spec *v1alpha1.UProbeSpec, f *elf.SafeELFFile, symbolAddr uint64) (map[int]int64, map[int]*DynamicOverride, error) {
+	ipDeltas := map[int]int64{}
+	dynOvs := map[int]*DynamicOverride{}
+
+	for selIdx, sel := range spec.Selectors {
 		for _, matchAct := range sel.MatchActions {
-			if matchAct.Action == "Override" {
-				// Load override-symbol VA
-				var overrideSymbAddr uint64
-				if matchAct.SoPath != "" {
-					err = dynOv.Init(&matchAct, spec.Path)
-				} else {
-					switch {
-					case matchAct.ArgNewSymbol != "":
-						overrideSymbAddr, err = f.Address(matchAct.ArgNewSymbol)
-					case matchAct.ArgNewAddr != 0:
-						overrideSymbAddr = matchAct.ArgNewAddr
-					case matchAct.ArgNewOffset != 0:
-						overrideSymbAddr, err = f.AddrFromOffset(uint64(matchAct.ArgNewOffset))
-					}
-				}
+			if matchAct.Action != "Override" {
+				continue
+			}
 
-				if err != nil {
-					return 0, nil, err
+			if matchAct.SoPath != "" {
+				dynOv := &DynamicOverride{}
+				if err := dynOv.Init(&matchAct, spec.Path); err != nil {
+					return nil, nil, err
 				}
+				dynOvs[selIdx] = dynOv
+				continue
+			}
 
-				if overrideSymbAddr != 0 {
-					// Store the relative-to-traced-symbol delta.
-					// This is computed based on virtual address for both symbols.
-					// Since ASLR just changes the base address,
-					// the relative delta are stable.
-					// In bpf, we will compute the override symbol address as:
-					// * curr_ip = PT_REGS_IP(ctx);
-					// * next_ip = curr_ip + delta
-					return int64(overrideSymbAddr - symbolAddr), nil, nil
-				}
-				return 0, &dynOv, nil
+			// Load override-symbol VA
+			var (
+				overrideSymbAddr uint64
+				err              error
+			)
+			switch {
+			case matchAct.ArgNewSymbol != "":
+				overrideSymbAddr, err = f.Address(matchAct.ArgNewSymbol)
+			case matchAct.ArgNewAddr != 0:
+				overrideSymbAddr = matchAct.ArgNewAddr
+			case matchAct.ArgNewOffset != 0:
+				overrideSymbAddr, err = f.AddrFromOffset(uint64(matchAct.ArgNewOffset))
+			}
+			if err != nil {
+				return nil, nil, err
+			}
+
+			if overrideSymbAddr != 0 {
+				// Store the relative-to-traced-symbol delta.
+				// This is computed based on virtual address for both symbols.
+				// Since ASLR just changes the base address,
+				// the relative delta are stable.
+				// In bpf, we will compute the override symbol address as:
+				// * curr_ip = PT_REGS_IP(ctx);
+				// * next_ip = curr_ip + delta
+				ipDeltas[selIdx] = int64(overrideSymbAddr - symbolAddr)
 			}
 		}
 	}
-	return 0, nil, errors.New("state.overrideSymbol is true but no corresponding Override action found in spec.Selectors")
+
+	if len(ipDeltas) == 0 && len(dynOvs) == 0 {
+		return nil, nil, errors.New("state.overrideSymbol is true but no corresponding Override action found in spec.Selectors")
+	}
+	return ipDeltas, dynOvs, nil
 }
 
-func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigState, f *elf.SafeELFFile) (int64, *DynamicOverride, error) {
+func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigState, f *elf.SafeELFFile) (map[int]int64, map[int]*DynamicOverride, error) {
 	if !state.overrideSymbol {
-		return 0, nil, nil
+		return nil, nil, nil
 	}
 
 	// Load probed symbol offset
@@ -729,32 +763,33 @@ func initOverrideSymbolOffset(spec *v1alpha1.UProbeSpec, state *uprobeConfigStat
 		symbolAddr, err = f.AddrFromOffset(spec.Offsets[0])
 	}
 	if err != nil {
-		return 0, nil, err
+		return nil, nil, err
 	}
-	return computeArgNewOffset(spec, f, symbolAddr)
+	return computeOverrideTargets(spec, f, symbolAddr)
 }
 
 func initUprobeSelectors(spec *v1alpha1.UProbeSpec, in *addUprobeIn, state *uprobeConfigState, f *elf.SafeELFFile, nextIdx int, has *uprobeHas) error {
-	ipDelta, dynOv, err := initOverrideSymbolOffset(spec, state, f)
+	ipDeltas, dynOvs, err := initOverrideSymbolOffset(spec, state, f)
 	if err != nil {
 		return err
 	}
 	entry, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
-		Selectors:             spec.Selectors,
-		Args:                  spec.Args,
-		Data:                  spec.Data,
-		IsUprobe:              true,
-		UprobeID:              nextIdx,
-		OverrideActionIPDelta: ipDelta,
-		BinaryPath:            spec.Path,
-		CelExprs:              in.celExprs,
-		Maps:                  in.selMaps,
+		Selectors:              spec.Selectors,
+		Args:                   spec.Args,
+		Data:                   spec.Data,
+		IsUprobe:               true,
+		UprobeID:               nextIdx,
+		OverrideActionIPDeltas: ipDeltas,
+		BinaryPath:             spec.Path,
+		CelExprs:               in.celExprs,
+		Maps:                   in.selMaps,
 	})
 	if err != nil {
 		return err
 	}
 
-	has.dynOv = dynOv
+	state.dynOvs = dynOvs
+	has.dynamicSO = has.dynamicSO || len(dynOvs) != 0
 
 	state.selectors = kprobeSelectors{
 		entry: entry,
@@ -1361,7 +1396,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 			argReturnPrinters: state.argReturnPrinters,
 			tags:              state.tags,
 			pendingEvents:     nil,
-			dynOv:             has.dynOv,
+			dynOvs:            state.dynOvs,
 		}
 
 		if selectors.HasStackTrace(spec.Selectors) {
@@ -1601,8 +1636,8 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, load)
 		maps = append(maps, regsMap, sleepableOffloadMap)
 
-		if has.dynOv != nil {
-			maps = append(maps, has.dynOv.GetMaps(load)...)
+		if has.dynamicSO {
+			maps = append(maps, dynamicSOMaps(load)...)
 		}
 	}
 
@@ -1731,8 +1766,8 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		sleepableOffloadMap := getSleepableOffloadMap(has.sleepableOffloadSize, load)
 		maps = append(maps, regsMap, sleepableOffloadMap)
 
-		if has.dynOv != nil {
-			maps = append(maps, has.dynOv.GetMaps(load)...)
+		if len(uprobeEntry.dynOvs) != 0 {
+			maps = append(maps, dynamicSOMaps(load)...)
 		}
 	}
 

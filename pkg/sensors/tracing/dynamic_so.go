@@ -117,13 +117,15 @@ func ValidateSODynamic(uprobe *v1alpha1.UProbeSpec) error {
 	return nil
 }
 
+func isSODynamicAction(action *v1alpha1.ActionSelector) bool {
+	return action.Action == "Override" && action.ArgNewSymbol != "" && action.SoPath != ""
+}
+
 func IsSODynamic(selectors []v1alpha1.KProbeSelector) bool {
 	for _, s := range selectors {
 		for _, action := range s.MatchActions {
-			if action.Action == "Override" {
-				if action.ArgNewSymbol != "" && action.SoPath != "" {
-					return true
-				}
+			if isSODynamicAction(&action) {
+				return true
 			}
 		}
 	}
@@ -176,7 +178,7 @@ func (dynOv *DynamicOverride) PopulateUprobeRegs() processapi.UprobeRegs {
 	return uprobeRegs
 }
 
-func (dynOv *DynamicOverride) GetMaps(load *program.Program) []*program.Map {
+func dynamicSOMaps(load *program.Program) []*program.Map {
 	pendingCallsMap := program.MapBuilderProgram("tg_dyn_sm", load)
 	return []*program.Map{pendingCallsMap}
 }
