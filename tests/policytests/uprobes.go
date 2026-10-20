@@ -876,14 +876,14 @@ spec:
 
 	// Multi uprobe; symbols share the attached program.
 	//
-	// we trigger uprobed symbols 7 times: 3 times for real:
+	// Uprobed symbols are called 3 times:
 	// * 1 time pizza()
 	// * 1 time lasagna (cached call)
 	// * 1 time normally from a secondary thread (maccheroni())
-	// plus 2 times while resolving the symbol from sopath on each thread,
-	// since the sopath override implementation re-triggers the symbol itself
-	// instead of attaching uretprobes to mmap and dlopen.
-	overrideCount := uint64(3) + 4
+	// The sopath override implementation re-triggers the symbol itself after
+	// mmap() and dlopen() while resolving the symbol on each thread, but those
+	// hits don't match selectors, so they are not counted.
+	overrideCount := uint64(3)
 	return &policytest.Scenario{
 		Name:         "check calls were overridden with symbol loaded by SO",
 		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(33), // 1 + 11 + 21
@@ -1042,18 +1042,16 @@ spec:
 
 	// Single uprobe; each symbol has its own attached program.
 	//
-	// We trigger uprobed symbols 9 times.
-	// 3 times for real:
+	// Uprobed symbols are called 3 times:
 	// * 1 time pizza()
 	// * 1 time lasagna()
 	// * 1 time normally from a secondary thread (maccheroni())
-	// plus 2 times while resolving the symbol from sopath on each invocation,
-	// since the sopath override implementation re-triggers the symbol itself
-	// instead of attaching uretprobes to mmap and dlopen.
-	// thus ending up with 3 uprobe triggers for each symbol.
+	// The sopath override implementation re-triggers the symbol itself after
+	// mmap() and dlopen() while resolving the symbol on each invocation, but
+	// those hits don't match selectors, so they are not counted.
 	// NOTE: lasagna() call is non-cached in non-multi-uprobe mode
 	// because tg_dyn_sm is program specific, and each symbol has its own program.
-	overrideCount := uint64(3) * 3
+	overrideCount := uint64(3)
 	return &policytest.Scenario{
 		Name:         "check calls were overridden with symbol loaded by SO",
 		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(33), // 1 + 11 + 21
@@ -1065,9 +1063,9 @@ spec:
 }).RegisterAtInit()
 
 // Override with sopath in a selector with matchArgs. Resolving the symbol from
-// sopath re-triggers the uprobe after mmap() and after dlopen(), and the
-// selector is evaluated again on each hit, while the argument registers hold
-// the values left by mmap() and dlopen(). The override must still complete.
+// sopath re-triggers the uprobe after mmap() and after dlopen(), with the
+// argument registers holding the values left by those calls, which don't match
+// the selector. The override must still complete.
 var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-matchargs").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
