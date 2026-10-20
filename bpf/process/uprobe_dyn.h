@@ -65,6 +65,7 @@ enum resolve_stage {
 // Struct to keep track of our state machine + additional per-task data.
 struct pending_call {
 	__u32 stage; // enum resolve_stage
+	__u32 sym_id; // regs_map key of the selector that started the symbol resolution
 
 	// Only used during a symbol resolution from sopath
 	// Saved registers that may carry values to the traced symbol:
@@ -170,6 +171,7 @@ FUNC_INLINE int call_mmap(struct pt_regs *ctx, struct task_struct *task, __u64 p
 	store_orig_regs(ctx, pending_c);
 
 	pending_c->self_exec_id = self_exec_id;
+	pending_c->sym_id = sym_id;
 	pending_c->stage = STAGE_MMAP_PENDING;
 
 	store_ret_addr(ctx, pending_c);
@@ -308,6 +310,36 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, struct uprobe_regs *regs, __u32 sy
 		break;
 	}
 	return 0;
+}
+
+// Returns true if the current thread is resolving a symbol from sopath and
+// this uprobe hit is the return from the mmap() or dlopen() detour, storing in
+// sym_id the regs_map key of the selector that started the resolution.
+// Such hits are not calls to the traced symbol: the main program skips them,
+// and the offload program continues the resolution whatever the selectors
+// would match, as the registers hold the values left by mmap() and dlopen().
+FUNC_INLINE bool uprobe_dyn_pending(struct pt_regs *ctx, __u32 *sym_id)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task_btf();
+	struct pending_call *pending_c;
+
+	pending_c = task_storage_get(&tg_dyn_sm, task, NULL, 0);
+	if (!pending_c)
+		return false;
+	if (pending_c->stage != STAGE_MMAP_PENDING && pending_c->stage != STAGE_DLOPEN_PENDING)
+		return false;
+	// The stage only tells that a resolution is in progress on this thread.
+	// While it is, traced symbols can also be hit from within mmap() or dlopen()
+	// (eg: malloc, library constructors) or from a signal handler. Those calls
+	// run on deeper stack frames, so only the return from our detour is back at
+	// expected_sp. Any other hit keeps the selector driven handling, so that its
+	// own queued action is not replaced by the pending resolution.
+	// Don't use normalize_sp() here, as it modifies sp.
+	if (!is_expected_sp(ctx, pending_c))
+		return false;
+
+	*sym_id = pending_c->sym_id;
+	return true;
 }
 
 #endif /* __UPROBE_DYN_H__ */

@@ -68,6 +68,15 @@ struct {
 __attribute__((section((MAIN)), used)) int
 generic_uprobe_event(struct pt_regs *ctx)
 {
+	__u32 sym_id;
+
+	// Resolving a symbol from sopath re-triggers the uprobe on the return from
+	// the mmap() and dlopen() detour, with the registers left by those calls.
+	// Those hits are not calls to the traced symbol: don't evaluate selectors,
+	// post events or run actions for them. The offload program continues the
+	// resolution on its own.
+	if (uprobe_dyn_pending(ctx, &sym_id))
+		return 0;
 	return heap_dtor(generic_start_process_filter(ctx, (struct bpf_map_def *)&uprobe_calls));
 }
 

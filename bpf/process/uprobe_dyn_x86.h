@@ -61,6 +61,13 @@ FUNC_INLINE void normalize_sp(struct pt_regs *ctx, struct pending_call *pc)
 		ctx->sp += 8;
 }
 
+// Same check as normalize_sp() followed by comparing sp with expected_sp,
+// without modifying sp.
+FUNC_INLINE bool is_expected_sp(struct pt_regs *ctx, struct pending_call *pc)
+{
+	return ctx->sp == pc->expected_sp || ctx->sp == pc->expected_sp - 8;
+}
+
 FUNC_INLINE void revert_ctx(struct pt_regs *ctx, struct pending_call *pc, __u64 pid_tgid, __u32 sym_id)
 {
 	restore_orig_regs(ctx, pc);
