@@ -5636,6 +5636,7 @@ spec:
         operator: "Equal"
         values:
         - "2"  # READING_MODULE
+        - "7"  # READING_MODULE_COMPRESSED, kernel 6.19+ with MODULE_INIT_COMPRESSED_FILE
   - call: "find_module_sections"
     # On some kernels find_module_sections is inlined, if so this kprobe will fail.
     syscall: false
@@ -5718,16 +5719,21 @@ spec:
 	process := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("modprobe"))
 
-	kpChecker1 := ec.NewProcessKprobeChecker("").WithProcess(process).
-		WithFunctionName(sm.Full("security_kernel_read_file")).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithValues(
-				ec.NewKprobeArgumentChecker().WithFileArg(
-					ec.NewKprobeFileChecker().
-						WithPath(sm.Contains(module+".ko"))),
-				ec.NewKprobeArgumentChecker().WithIntArg(2),
-			),
-		)
+	// Kernels 6.19+ pass READING_MODULE_COMPRESSED (7) instead of
+	// READING_MODULE (2) when modprobe loads a compressed module.
+	readFileChecker := func(id int32) ec.EventChecker {
+		return ec.NewProcessKprobeChecker("").WithProcess(process).
+			WithFunctionName(sm.Full("security_kernel_read_file")).
+			WithArgs(ec.NewKprobeArgumentListMatcher().
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithFileArg(
+						ec.NewKprobeFileChecker().
+							WithPath(sm.Contains(module+".ko"))),
+					ec.NewKprobeArgumentChecker().WithIntArg(id),
+				),
+			)
+	}
+	kpChecker1 := ec.NewAnyEventChecker(readFileChecker(2), readFileChecker(7))
 
 	kpChecker2 := ec.NewProcessKprobeChecker("").WithProcess(process).
 		WithFunctionName(sm.Full("find_module_sections")).
