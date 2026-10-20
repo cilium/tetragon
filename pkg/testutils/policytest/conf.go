@@ -44,7 +44,8 @@ type Conf struct {
 	// configuration for the current test
 	TestConf *TestConf
 
-	// Path to save the generated policy
+	// Directory to save the generated policies in. Each policy is saved in a file named
+	// after the policy (<name>.yaml). The directory is created if it does not exist.
 	DumpPolicyPath string
 
 	// Map of temporary files generated for this generated policy. Key is

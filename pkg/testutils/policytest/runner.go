@@ -162,8 +162,7 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 	}
 
 	if r.conf.DumpPolicyPath != "" {
-		err := os.WriteFile(r.conf.DumpPolicyPath, []byte(pol), 0644)
-		if err != nil {
+		if err := dumpPolicy(r.conf.DumpPolicyPath, tpName, pol); err != nil {
 			l.Warn("failed to dump policy", "err", err)
 		}
 	}
@@ -184,6 +183,14 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 	l.Debug("policy loaded", "name", tpName)
 
 	return ph, nil
+}
+
+// dumpPolicy saves a policy in the directory dir, in a file named after the policy
+func dumpPolicy(dir, name string, pol Policy) error {
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, filepath.Base(name)+".yaml"), []byte(pol), 0644)
 }
 
 // RunTest runs a policy test
