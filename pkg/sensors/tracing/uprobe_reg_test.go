@@ -545,6 +545,10 @@ func TestUprobeOverrideNewSymbolSoNoFalseMatch(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-override-new-symbol-so-no-false-match", nil)
 }
 
+func TestUprobeOverrideNewSymbolSoExecve(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-override-new-symbol-so-execve", nil)
+}
+
 func TestUprobeResolvePageFault(t *testing.T) {
 	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
 		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")

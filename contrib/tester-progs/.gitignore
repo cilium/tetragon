@@ -45,6 +45,7 @@ uprobe-caller.btf
 uprobe-null
 uprobe-null.btf
 /uprobe-simple
+/uprobe-execve
 /uprobe-static-chain
 /uprobe-big-struct
 /uprobe-selector-targets-1

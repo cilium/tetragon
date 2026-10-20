@@ -1196,6 +1196,50 @@ spec:
 	}
 }).RegisterAtInit()
 
+// The symbol resolution state is kept per thread, and a thread survives
+// execve(), while the new image has a new address space. uprobe-execve calls
+// the traced symbol, then re-executes itself on the same thread and calls it
+// again: the call in the new image must not use the address resolved in the
+// previous image. See uprobe-execve.c for the exit code.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-execve").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-execve"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-execve" }}
+    symbols:
+    - "exec_target"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_pizza
+        sopath: {{ testBinary "libuprobe.so" }}
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-execve")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-execve").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("exec_target"))
+
+	// One override in each image.
+	overrideCount := uint64(2)
+	return &policytest.Scenario{
+		Name:         "check call is overridden with symbol loaded by SO after execve",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Override: &overrideCount,
+		},
+	}
+}).RegisterAtInit()
+
 // GCC nested functions receive a pointer to the enclosing function's frame in
 // the static chain register (r10 on x86_64, x18 on arm64), a hidden argument
 // that must be preserved across the mmap()/dlopen() detour done while

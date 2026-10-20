@@ -42,6 +42,7 @@ PROGS = sigkill-tester \
 	uprobe-null \
 	uprobe-caller \
 	uprobe-simple \
+	uprobe-execve \
 	uprobe-static-chain \
 	uprobe-big-struct \
 	uprobe-selector-targets-1 \
