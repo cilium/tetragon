@@ -6,6 +6,7 @@
 package policytest
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,9 +30,57 @@ func newParamVals() ParamVals {
 }
 
 // TestConf is the runtime configuration for a single policy test
+//
+// A TestConf should not be shared between tests, because it also owns the temporary files of the
+// test.
 type TestConf struct {
 	MonitorMode bool
 	ParamValues ParamVals
+
+	// Map of temporary files generated for this test. Key is unique identifier for the temp
+	// file, value is the generated temp filename
+	tempFiles   map[string]string
+	tempFilesMu sync.Mutex
+}
+
+func (tc *TestConf) tempFile(key string) (string, error) {
+	if tc == nil {
+		return "", errors.New("no test configuration to track temporary files")
+	}
+
+	tc.tempFilesMu.Lock()
+	defer tc.tempFilesMu.Unlock()
+
+	if tc.tempFiles == nil {
+		tc.tempFiles = make(map[string]string)
+	} else if path, ok := tc.tempFiles[key]; ok {
+		return path, nil // already created — return cached path
+	}
+	tempFile, err := os.CreateTemp("", "tetragon-testfile-*")
+	if err != nil {
+		return "", err
+	}
+	tempFile.Close()
+	path := tempFile.Name()
+	tc.tempFiles[key] = path
+	return path, nil
+}
+
+func (tc *TestConf) cleanupTempFiles() {
+	if tc == nil {
+		return
+	}
+
+	tc.tempFilesMu.Lock()
+	defer tc.tempFilesMu.Unlock()
+
+	if tc.tempFiles == nil {
+		return
+	}
+	for _, tempFile := range tc.tempFiles {
+		os.Remove(tempFile)
+	}
+	tc.tempFiles = nil
 }
 
 // Conf is the runtime configuration for a sequence of policy tests
@@ -48,12 +97,6 @@ type Conf struct {
 	// after the policy (<name>.yaml). The directory is created if it does not exist.
 	DumpPolicyPath string
 
-	// Map of temporary files generated for this generated policy. Key is
-	// unique identifier for the temp file, value is the generated temp
-	// filename
-	tempFiles   map[string]string
-	tempFilesMu sync.Mutex
-
 	// Timeout for the policy tests
 	Timeout time.Duration
 	// Timeout for each Scenario
@@ -67,23 +110,10 @@ func (c *Conf) TestBinary(s string) string {
 	return filepath.Join(c.BinsDir, s)
 }
 
+// TempFile returns the path of the temporary file identified by key for the current test, creating
+// it if needed. The files are owned by Conf.TestConf.
 func (c *Conf) TempFile(key string) (string, error) {
-	c.tempFilesMu.Lock()
-	defer c.tempFilesMu.Unlock()
-
-	if c.tempFiles == nil {
-		c.tempFiles = make(map[string]string)
-	} else if path, ok := c.tempFiles[key]; ok {
-		return path, nil // already created — return cached path
-	}
-	tempFile, err := os.CreateTemp("", "tetragon-testfile-*")
-	if err != nil {
-		return "", err
-	}
-	tempFile.Close()
-	path := tempFile.Name()
-	c.tempFiles[key] = path
-	return path, nil
+	return c.TestConf.tempFile(key)
 }
 
 func (c *Conf) TempFileMust(key string) string {
@@ -95,14 +125,5 @@ func (c *Conf) TempFileMust(key string) string {
 }
 
 func (c *Conf) CleanupTempFiles() {
-	c.tempFilesMu.Lock()
-	defer c.tempFilesMu.Unlock()
-
-	if c.tempFiles == nil {
-		return
-	}
-	for _, tempFile := range c.tempFiles {
-		os.Remove(tempFile)
-	}
-	c.tempFiles = nil
+	c.TestConf.cleanupTempFiles()
 }

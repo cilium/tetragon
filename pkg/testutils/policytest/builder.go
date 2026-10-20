@@ -55,7 +55,7 @@ func (b *Builder) WithPolicyTemplate(tmpl string) *Builder {
 				return c.TestBinary(s)
 			},
 			"tempFile": func(key string) (string, error) {
-				return c.TempFile(key)
+				return c.TestConf.tempFile(key)
 			},
 		}
 
@@ -65,7 +65,7 @@ func (b *Builder) WithPolicyTemplate(tmpl string) *Builder {
 		// error
 		defer func() {
 			if err != nil {
-				c.CleanupTempFiles()
+				c.TestConf.cleanupTempFiles()
 			}
 		}()
 
@@ -88,7 +88,9 @@ func (b *Builder) WithPolicyTemplate(tmpl string) *Builder {
 		if err != nil {
 			return Policy(""), nil, fmt.Errorf("failed to execute template: %w", err)
 		}
-		return Policy(buf.String()), c.CleanupTempFiles, nil
+		// the method value binds the current c.TestConf: the cleanup function can run after
+		// c.TestConf has changed
+		return Policy(buf.String()), c.TestConf.cleanupTempFiles, nil
 	}
 	return b
 }
