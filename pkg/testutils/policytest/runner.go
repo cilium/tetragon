@@ -226,6 +226,21 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 	}
 
 	var res Result
+	res.ScenariosRes = r.runScenarios(l, test, polHandler, testConf)
+
+	err = polHandler.Cleanup(l, r.conf, r.cli)
+	if err != nil {
+		res.Err.Err = errors.Join(res.Err.Err, fmt.Errorf("failed to cleanup policy: %w", err))
+	}
+	res.TotalTime = time.Since(t0)
+	return &res
+}
+
+// runScenarios runs all the scenarios of a test, and returns their results
+func (r *LocalRunner) runScenarios(
+	l *slog.Logger, test *T, polHandler *PolicyHandler, testConf *TestConf,
+) []ScenarioRes {
+	var ret []ScenarioRes
 	for _, sc := range test.Scenarios {
 		scenario := sc(r.conf)
 		scRes := r.RunScenario(l, scenario, polHandler, testConf)
@@ -236,15 +251,9 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 				scRes.CheckerErr.Err = nil
 			}
 		}
-		res.ScenariosRes = append(res.ScenariosRes, scRes)
+		ret = append(ret, scRes)
 	}
-
-	err = polHandler.Cleanup(l, r.conf, r.cli)
-	if err != nil {
-		res.Err.Err = errors.Join(res.Err.Err, fmt.Errorf("failed to cleanup policy: %w", err))
-	}
-	res.TotalTime = time.Since(t0)
-	return &res
+	return ret
 }
 
 func processCacheDisabled(info *tetragoninfo.Info) bool {
