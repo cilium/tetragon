@@ -42,6 +42,11 @@ FUNC_INLINE void push_fake_frame(struct pt_regs *ctx, struct pending_call *pc)
 
 FUNC_INLINE void normalize_sp(struct pt_regs *ctx, struct pending_call *pc) {}
 
+FUNC_INLINE bool is_expected_sp(struct pt_regs *ctx, struct pending_call *pc)
+{
+	return ctx->sp == pc->expected_sp;
+}
+
 FUNC_INLINE void revert_ctx(struct pt_regs *ctx, struct pending_call *pc, __u64 pid_tgid, __u32 sym_id)
 {
 	restore_orig_regs(ctx, pc);
