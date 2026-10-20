@@ -434,7 +434,12 @@ type PolicyHandler struct {
 	cleanup     PolicyCleanupFn
 }
 
+// Cleanup unloads the policy. It is a no-op if ph is nil (i.e., the test has no policy).
 func (ph *PolicyHandler) Cleanup(l *slog.Logger, conf *Conf, client *cli.ClientWithContext) error {
+	if ph == nil {
+		return nil
+	}
+
 	// call policy cleanup after we are done
 	if ph.cleanup != nil {
 		defer ph.cleanup()
@@ -470,9 +475,14 @@ func (ph *PolicyHandler) Cleanup(l *slog.Logger, conf *Conf, client *cli.ClientW
 	return nil
 }
 
+// Configure configures the policy. It is a no-op if ph is nil (i.e., the test has no policy).
 func (ph *PolicyHandler) Configure(
 	l *slog.Logger, client *cli.ClientWithContext,
 	enable *bool, mode *tetragon.TracingPolicyMode) error {
+	if ph == nil {
+		return nil
+	}
+
 	_, err := client.Client.ConfigureTracingPolicy(client.Ctx, &tetragon.ConfigureTracingPolicyRequest{
 		Name:      ph.tpName,
 		Namespace: ph.tpNamespace,
@@ -493,6 +503,10 @@ func (ph *PolicyHandler) Configure(
 
 func (ph *PolicyHandler) GetCounts(
 	_ *slog.Logger, client *cli.ClientWithContext) (*tetragon.TracingPolicyActionCounters, error) {
+	if ph == nil {
+		return nil, errors.New("failed to get action counts: no policy loaded")
+	}
+
 	res, err := client.Client.ListTracingPolicies(client.Ctx, &tetragon.ListTracingPoliciesRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get action counts: %w", err)
