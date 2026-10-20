@@ -46,7 +46,9 @@ typedef __u64 heap_key_t;
  */
 #if (defined(GENERIC_FENTRY) || defined(GENERIC_FEXIT) || defined(GENERIC_LSM)) && \
 	defined(__V511_BPF_PROG)
-#include "bpf_context.h"
+
+// temporarily disabled due to https://github.com/cilium/ebpf/pull/2130
+// #include "bpf_context.h"
 
 /* The context key separates nested invocations on different interrupt
  * context levels. Nesting of the same fentry/fexit program on the same
@@ -60,7 +62,7 @@ static inline __attribute__((always_inline)) heap_key_t get_context_key(void)
 {
 	__u64 tid = (__u32)get_current_pid_tgid();
 	__u64 cpu = get_smp_processor_id();
-	__u64 ctx = interrupt_context_level();
+	__u64 ctx = 0; // see above include comment (was interrupt_context_level())
 
 	return tid << 32 | (cpu & 0xffffff) << 8 | ctx;
 }
