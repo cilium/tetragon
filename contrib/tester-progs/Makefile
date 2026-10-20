@@ -43,6 +43,7 @@ PROGS = sigkill-tester \
 	uprobe-caller \
 	uprobe-simple \
 	uprobe-execve \
+	uprobe-arg-targets \
 	uprobe-static-chain \
 	uprobe-big-struct \
 	pclntab-unstripped \
@@ -52,6 +53,8 @@ PROGS = sigkill-tester \
 
 LIBS =	libuprobe.so \
 	libuprobe-static-chain.so \
+	libuprobe-arg-target-1.so \
+	libuprobe-arg-target-2.so \
 	libtester.so
 
 all: $(PROGS)
@@ -102,6 +105,12 @@ uprobe-static-chain: uprobe-static-chain.c libuprobe-static-chain.so
 	$(GCC) -Wall $< -o $@
 
 uprobe-big-struct: uprobe-big-struct.c uprobe-big-struct.h libuprobe.so
+	$(GCC) -Wall $< -o $@
+
+libuprobe-arg-target-1.so libuprobe-arg-target-2.so: uprobe-arg-target-lib.c
+	$(GCC) -Wall -fPIC -DTARGET_VALUE=$(patsubst libuprobe-arg-target-%.so,%,$@) $< -o $@ -shared
+
+uprobe-arg-targets: uprobe-arg-targets.c libuprobe-arg-target-1.so libuprobe-arg-target-2.so
 	$(GCC) -Wall $< -o $@
 
 libtester.so: tester-lib.c
