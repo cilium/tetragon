@@ -158,6 +158,35 @@ jobs:
                   --cpu 4 \
                   --mem 8G
 
+      - name: Collect tetragon logs
+        if: failure() || cancelled()
+        run: |
+          repo_root="$GITHUB_WORKSPACE/go/src/github.com/cilium/tetragon"
+          
+          outdir="$PWD/policytests-logs"
+          mkdir -p "$outdir"
+          
+          # the VM is powered off at this point, so pull its logs out of the image
+          img=$repo_root/tests/vmtests/test-data/images/tetragon.qcow2
+          if [ -f "$img" ]; then
+            sudo virt-copy-out -a "$img" /var/log "$outdir" || \
+              echo "failed to copy /var/log out of $img"
+          fi
+          if compgen -G "$outdir/log/journal/*/*.journal" > /dev/null; then
+            sudo journalctl --no-pager -o short-precise \
+              --file "$outdir/log/journal/*/*.journal" > "$outdir/journal.log" || true
+          fi
+
+          sudo chmod -R go+rX "$outdir"
+
+      - name: Upload tetragon logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: policytests-logs-${{ matrix.kernel }}
+          path: policytests-logs/
+          retention-days: 5
+
   post-test:
     runs-on: ubuntu-latest
     needs: [test]
