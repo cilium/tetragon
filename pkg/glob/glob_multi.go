@@ -4,7 +4,11 @@
 package glob
 
 import (
+	"fmt"
+	"io"
 	"slices"
+	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -485,4 +489,95 @@ func MatchString(dfa *DFAState, input string, knownLiterals map[int]bool) []int3
 		current = next
 	}
 	return current.Matches
+}
+
+func ExportToDOT(w io.Writer, start *DFAState) error {
+	// Helper function to handle writing and error checking
+	writeLine := func(s string) error {
+		_, err := fmt.Fprintln(w, s)
+		return err
+	}
+
+	if err := writeLine("digraph DFA {"); err != nil {
+		return err
+	}
+	if err := writeLine("  rankdir=LR;"); err != nil {
+		return err
+	}
+	if err := writeLine("  node [shape = circle];"); err != nil {
+		return err
+	}
+
+	visited := make(map[int]bool)
+	queue := []*DFAState{start}
+	visited[start.ID] = true
+
+	// Buffers to ensure we print nodes before edges
+	nodeDefs := []string{}
+	edges := []string{}
+
+	for len(queue) > 0 {
+		curr := queue[0]
+		queue = queue[1:]
+
+		// 1. Define Node Visuals
+		label := strconv.Itoa(curr.ID)
+		shape := "circle"
+
+		if len(curr.Matches) > 0 {
+			shape = "doublecircle" // Standard for accepting states
+			// Show which patterns matched
+			label += fmt.Sprintf("\nMatch: %v", curr.Matches)
+		}
+		nodeDefs = append(nodeDefs, fmt.Sprintf("  %d [label=\"%s\", shape=%s];", curr.ID, label, shape))
+
+		// 2. Process Transitions (Grouped for cleaner graphs)
+		// We group transitions: if 'a', 'b', and 'c' all go to State 5, we draw one arrow labeled "a,b,c"
+		grouped := make(map[int][]string)
+
+		for char, next := range curr.Transitions {
+			charLabel := ""
+			if char == Other {
+				charLabel = "OTHER"
+			} else {
+				charLabel = string(rune(char))
+			}
+			grouped[next.ID] = append(grouped[next.ID], charLabel)
+
+			if !visited[next.ID] {
+				visited[next.ID] = true
+				queue = append(queue, next)
+			}
+		}
+
+		for destID, labels := range grouped {
+			sort.Strings(labels)
+			edgeLabel := strings.Join(labels, ",")
+			// If too long, truncate for display
+			if len(edgeLabel) > 15 {
+				edgeLabel = edgeLabel[:12] + "..."
+			}
+			edges = append(edges, fmt.Sprintf("  %d -> %d [label=\"%s\"];", curr.ID, destID, edgeLabel))
+		}
+	}
+
+	// Print Node Definitions
+	for _, n := range nodeDefs {
+		if err := writeLine(n); err != nil {
+			return err
+		}
+	}
+
+	// Print Edges
+	for _, e := range edges {
+		if err := writeLine(e); err != nil {
+			return err
+		}
+	}
+
+	if err := writeLine("}"); err != nil {
+		return err
+	}
+
+	return nil
 }
