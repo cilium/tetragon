@@ -80,6 +80,12 @@ func getKptrRestrict(procfs string) int {
 	return kptrRestrictUnknown
 }
 
+// KptrRestricted returns true if kallsyms addresses are always hidden
+// (kptr_restrict set to 2).
+func KptrRestricted(procfs string) bool {
+	return getKptrRestrict(procfs) == kptrRestrictStrict
+}
+
 // NewKsyms creates a new Ksyms structure (by reading procfs/kallsyms)
 func NewKsyms(procfs string) (*Ksyms, error) {
 	kallsymsFname := procfs + "/kallsyms"

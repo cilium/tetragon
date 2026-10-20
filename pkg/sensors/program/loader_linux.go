@@ -936,6 +936,10 @@ func doLoadProgram(
 		return nil, fmt.Errorf("loading collection spec failed: %w", err)
 	}
 
+	if err := handleKsymsRestricted(spec); err != nil {
+		return nil, err
+	}
+
 	// add functions
 	for name, prog := range spec.Programs {
 		rewriteFn := load.RewriteProg[name]
