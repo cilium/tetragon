@@ -56,6 +56,10 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 		return err
 	}
 
+	if err := generateAnyEventChecker(g); err != nil {
+		return err
+	}
+
 	if err := generateEventCheckers(g, files); err != nil {
 		return err
 	}
@@ -171,6 +175,51 @@ func generateEventFromResponse(g *protogen.GeneratedFile, f []*protogen.File) er
         default:
             return nil, ` + common.FmtErrorf(g, "Unknown event type %T", "response.Event") + `
         }
+    }`)
+
+	return nil
+}
+
+func generateAnyEventChecker(g *protogen.GeneratedFile) error {
+	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	errorsJoin := common.GoIdent(g, "errors", "Join")
+
+	g.P(`// AnyEventChecker checks that an event matches at least one of its checks
+    type AnyEventChecker struct {
+        checks []EventChecker
+    }`)
+
+	g.P(`// NewAnyEventChecker creates a new AnyEventChecker
+    func NewAnyEventChecker(checks ...EventChecker) *AnyEventChecker {
+        return &AnyEventChecker{
+            checks: checks,
+        }
+    }`)
+
+	g.P(`// CheckEvent checks a single event and implements the EventChecker interface
+    func (checker *AnyEventChecker) CheckEvent(event Event) error {
+        if len(checker.checks) == 0 {
+            return ` + common.FmtErrorf(g, "AnyEventChecker: no checks") + `
+        }
+
+        var errs []error
+        for _, check := range checker.checks {
+            err := check.CheckEvent(event)
+            if err == nil {
+                return nil
+            }
+            errs = append(errs, err)
+        }
+        return ` + errorsJoin + `(errs...)
+    }`)
+
+	g.P(`// CheckResponse checks a single gRPC response and implements the EventChecker interface
+    func (checker *AnyEventChecker) CheckResponse(response *` + tetragonGER + `) error {
+        event, err := EventFromResponse(response)
+        if err != nil {
+            return err
+        }
+        return checker.CheckEvent(event)
     }`)
 
 	return nil

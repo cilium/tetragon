@@ -8,6 +8,7 @@ package eventchecker
 import (
 	list "container/list"
 	json "encoding/json"
+	errors "errors"
 	fmt "fmt"
 	tetragon "github.com/cilium/tetragon/api/v1/tetragon"
 	bytesmatcher "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
@@ -356,6 +357,44 @@ func EventFromResponse(response *tetragon.GetEventsResponse) (Event, error) {
 	default:
 		return nil, fmt.Errorf("Unknown event type %T", response.Event)
 	}
+}
+
+// AnyEventChecker checks that an event matches at least one of its checks
+type AnyEventChecker struct {
+	checks []EventChecker
+}
+
+// NewAnyEventChecker creates a new AnyEventChecker
+func NewAnyEventChecker(checks ...EventChecker) *AnyEventChecker {
+	return &AnyEventChecker{
+		checks: checks,
+	}
+}
+
+// CheckEvent checks a single event and implements the EventChecker interface
+func (checker *AnyEventChecker) CheckEvent(event Event) error {
+	if len(checker.checks) == 0 {
+		return fmt.Errorf("AnyEventChecker: no checks")
+	}
+
+	var errs []error
+	for _, check := range checker.checks {
+		err := check.CheckEvent(event)
+		if err == nil {
+			return nil
+		}
+		errs = append(errs, err)
+	}
+	return errors.Join(errs...)
+}
+
+// CheckResponse checks a single gRPC response and implements the EventChecker interface
+func (checker *AnyEventChecker) CheckResponse(response *tetragon.GetEventsResponse) error {
+	event, err := EventFromResponse(response)
+	if err != nil {
+		return err
+	}
+	return checker.CheckEvent(event)
 }
 
 // ProcessExecChecker implements a checker struct to check a ProcessExec event
