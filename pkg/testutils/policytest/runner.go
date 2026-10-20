@@ -256,6 +256,82 @@ func (r *LocalRunner) runScenarios(
 	return ret
 }
 
+// TestRun is a test together with the configuration to run it with
+type TestRun struct {
+	Test *T
+	// Conf is the configuration of the test. It should not be shared with other runs.
+	Conf *TestConf
+}
+
+// RunTests runs multiple policy tests by first loading the policies of all the tests, executing all
+// scenarios, and, finally, unloading the policies.
+//
+// The returned slice has one result for each element of runs, in the same order. A test whose
+// policy fails to load gets an error result, and does not prevent the other tests from running.
+func (r *LocalRunner) RunTests(l *slog.Logger, runs []TestRun) []*Result {
+	// clear the run configuration after we are done
+	defer func() {
+		r.conf.TestConf = nil
+	}()
+
+	// results and handlers indexed like runs
+	results := make([]*Result, len(runs))
+	handlers := make([]*PolicyHandler, len(runs))
+	// indices of loaded policies
+	var loaded []int
+
+	// load policies
+	for i, run := range runs {
+		results[i] = &Result{}
+		if reason := CheckCLIFlags(r.info, run.Test.CLIFlags); reason != "" {
+			results[i].Skipped = reason
+			continue
+		}
+		if run.Test.ShouldSkip != nil {
+			if reason := run.Test.ShouldSkip(&SkipInfo{r.info, run.Conf.ParamValues}); reason != "" {
+				results[i].Skipped = reason
+				continue
+			}
+		}
+
+		t0 := time.Now()
+		r.conf.TestConf = run.Conf
+		var err error
+		handlers[i], err = r.AddPolicy(l, run.Test)
+		if err == nil && run.Conf.MonitorMode {
+			err = handlers[i].Configure(l, r.cli, nil, new(tetragon.TracingPolicyMode_TP_MODE_MONITOR))
+			if err != nil {
+				err = errors.Join(err, handlers[i].Cleanup(l, r.conf, r.cli))
+			}
+		}
+		results[i].TotalTime += time.Since(t0)
+		if err != nil {
+			results[i].Err = JSONError{Err: err}
+			continue
+		}
+		loaded = append(loaded, i)
+	}
+
+	// run scenarios on loaded policies
+	for _, i := range loaded {
+		t0 := time.Now()
+		r.conf.TestConf = runs[i].Conf
+		results[i].ScenariosRes = r.runScenarios(l, runs[i].Test, handlers[i], runs[i].Conf)
+		results[i].TotalTime += time.Since(t0)
+	}
+
+	// unload (loaded) policies
+	for _, i := range loaded {
+		t0 := time.Now()
+		if err := handlers[i].Cleanup(l, r.conf, r.cli); err != nil {
+			results[i].Err.Err = errors.Join(results[i].Err.Err, fmt.Errorf("failed to cleanup policy: %w", err))
+		}
+		results[i].TotalTime += time.Since(t0)
+	}
+
+	return results
+}
+
 func processCacheDisabled(info *tetragoninfo.Info) bool {
 	if info != nil {
 		disabledPC, _ := info.Conf["disable-process-cache"].(bool)
