@@ -37,6 +37,7 @@ func New() *cobra.Command {
 	tpCmd.AddCommand(
 		listCmd(),
 		runCmd(),
+		runMultiCmd(),
 		dumpPolicyCmd(),
 	)
 	return tpCmd
@@ -250,6 +251,93 @@ func podArgs(tests []string, allTests, allParams, monitorMode bool, params map[s
 		ret = append(ret, "--set-param="+k+"="+params[k])
 	}
 	return append(append(ret, "--"), tests...)
+}
+
+func runMultiCmd() *cobra.Command {
+	cwd, _ := os.Getwd()
+	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
+	dumpPolicyPath := ""
+	monitorMode := false
+	allTests := false
+	var params map[string]string
+	var outputFile = ""
+	outputFmt, _ := option.NewEnum([]string{"text", "json"}, "text")
+	cmd := cobra.Command{
+		Use:   "run-multi [<test-regexp>...]",
+		Short: "Run multiple Tetragon policy tests with all their policies loaded at the same time",
+		Long: `Run multiple Tetragon policy tests.
+
+Each argument is a regular expression that has to match the whole test name (e.g., 'uprobe-.*'
+runs all tests whose name starts with 'uprobe-'). The passed regex gets automatically anchored to
+both start and end of string.
+
+The policies of all tests are loaded first, then the scenarios of all tests are executed, and
+finally the policies are unloaded.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			log := newLogger()
+
+			// NB: parameters are applied to all policies
+			paramValues := make(map[string]any)
+			for k, v := range params {
+				paramValues[k] = v
+			}
+
+			ctx := context.Background()
+			tests, err := selectTests(allTests, args)
+			if err != nil {
+				return err
+			}
+			runs := make([]policytest.TestRun, 0, len(tests))
+			results := make([]*policytest.NamedResult, 0, len(tests))
+			for _, t := range tests {
+				runs = append(runs, policytest.TestRun{
+					Test: t,
+					// each run needs its own TestConf
+					Conf: &policytest.TestConf{
+						MonitorMode: monitorMode,
+						ParamValues: paramValues,
+					},
+				})
+				results = append(results, &policytest.NamedResult{
+					Name: fmt.Sprintf("%s (%s)", t.Name, policytest.ParamVals(paramValues)),
+				})
+			}
+
+			runner, err := newRunner(
+				ctx, log, testBinsPath, dumpPolicyPath, nil, time.Minute*time.Duration(len(tests)),
+			)
+			if err != nil {
+				return err
+			}
+			runResults := runner.RunTests(log, runs)
+			runner.Close()
+
+			summary := policytest.NewResultsSummary()
+			for i, res := range runResults {
+				results[i].Result = res
+				summary.Update(res)
+			}
+
+			out, closeOut, err := openOutput(cmd.OutOrStdout(), outputFile)
+			if err != nil {
+				return err
+			}
+			defer closeOut()
+			if err := writeResults(out, outputFmt.Value, results); err != nil {
+				return err
+			}
+			return summary.Err()
+		},
+	}
+	flags := cmd.Flags()
+	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
+	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policies in the provided directory, one <policy-name>.yaml file per policy")
+	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
+	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
+	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
+	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
+	flags.BoolVar(&allTests, "all-tests", allTests, "Run all available policy tests")
+	return &cmd
 }
 
 func newLogger() *slog.Logger {
