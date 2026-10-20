@@ -314,7 +314,6 @@ func doBugtool(info *InitInfo, outFname string, commandActions []CommandAction, 
 	}()
 
 	si.addInitInfo()
-	si.addLibFiles()
 	si.addBTFFile()
 	si.addTetragonLog()
 	si.addAgentLog()
@@ -360,77 +359,6 @@ func (s *bugtoolInfo) addInitInfo() error {
 		return err
 	}
 	return s.tarAddBuff("tetragon-info.json", buff)
-}
-
-// addLibFiles adds all files under the hubble lib directory to the archive.
-//
-// Currently, this includes the bpf files and potentially the btf file if it is stored there.  If
-// there are files that we do not want to add, we can filter them out, but for now we can just grab
-// everything.
-func (s *bugtoolInfo) addLibFiles() error {
-	s.multiLog.WithField("libDir", s.info.LibDir).Info("retrieving lib directory")
-	return filepath.Walk(
-		s.info.LibDir,
-		// NB: if the walk function returns an error, the walk terminates.
-		// We want to gather as much information as possible, so we
-		// never return an error.
-		func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				s.multiLog.WithField("path", path).Warn("error walking path.")
-				return nil
-			}
-
-			if info.IsDir() && info.Name() == "metadata" {
-				s.multiLog.WithField("path", path).Info("skipping metadata directory")
-				return filepath.SkipDir
-			}
-
-			// We ignore non-regular files.
-			// Note that this also includes symbolic links. We could be smarter about
-			// symlinks if they point within the directory we are archiving, but since
-			// we do not use them, there is currently no reason for the complexity.
-			mode := info.Mode()
-			if !mode.IsRegular() && !mode.IsDir() {
-				s.multiLog.WithField("path", path).Warn("not a regular file, ignoring")
-				return nil
-			}
-
-			if !strings.HasSuffix(info.Name(), ".o") {
-				s.multiLog.WithField("path", path).Warn("not an object file, ignoring")
-				return nil
-			}
-
-			hdr, err := tar.FileInfoHeader(info, "" /* unused link target */)
-			if err != nil {
-				s.multiLog.WithField("path", path).Warn("error creating tar header")
-				return nil
-			}
-			// fix filename
-			hdr.Name = filepath.Join(s.prefixDir, "lib", strings.TrimPrefix(path, s.info.LibDir))
-
-			if err := s.tarWriter.WriteHeader(hdr); err != nil {
-				s.multiLog.WithField("path", path).Warn("failed to write tar header")
-				return nil
-			}
-
-			if info.IsDir() {
-				return nil
-			}
-
-			// open and copy file to the tar archive
-			file, err := os.Open(path)
-			if err != nil {
-				s.multiLog.WithField("path", path).Warn("error opening file")
-				return nil
-			}
-			defer file.Close()
-			_, err = io.Copy(s.tarWriter, file)
-			if err != nil {
-				s.multiLog.WithField("path", path).Warn("error copying data from file")
-				return nil
-			}
-			return nil
-		})
 }
 
 // addBTFFile adds the btf file to the archive.
