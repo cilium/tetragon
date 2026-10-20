@@ -1114,6 +1114,88 @@ spec:
 	}
 }).RegisterAtInit()
 
+// Resolving the symbol from sopath re-triggers the uprobe after mmap() and after
+// dlopen(), with the registers left by those calls: after mmap(), the first
+// argument is 0. Those hits are part of the override, not calls to the traced
+// symbol, so they must not match selectors, post events or run actions.
+// uprobe-simple only calls lasagna(10), so the arg0 == 0 selector must never match.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-no-false-match").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-no-false-match"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "lasagna"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "10"
+      matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_pizza
+        sopath: {{ testBinary "libuprobe.so" }}
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "0"
+      matchActions:
+      - action: Post
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-simple").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("lasagna")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(ec.NewKprobeArgumentChecker().WithIntArg(10)))
+
+	// A single lasagna(10) call: one event and one override.
+	postCount := uint64(1)
+	overrideCount := uint64(1)
+	return &policytest.Scenario{
+		Name: "check the sopath resolution hits do not match selectors",
+		// See uprobe-simple.c: lasagna(10) is redirected to
+		// uprobe_test_lib_pizza(10) returning 11.
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(11),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Post:     &postCount,
+			Override: &overrideCount,
+		},
+	}
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-simple")
+	falseMatchChecker := ec.NewProcessUprobeChecker("uprobe-simple-false-match").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("lasagna")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(ec.NewKprobeArgumentChecker().WithIntArg(0)))
+
+	return &policytest.Scenario{
+		Name:                 "check no event is posted for the sopath resolution hits",
+		Trigger:              policytest.NewCmdTrigger(bin).ExpectExitCode(11),
+		EventChecker:         ec.NewUnorderedEventChecker(falseMatchChecker),
+		ExpectCheckerFailure: true,
+	}
+}).RegisterAtInit()
+
 // GCC nested functions receive a pointer to the enclosing function's frame in
 // the static chain register (r10 on x86_64, x18 on arm64), a hidden argument
 // that must be preserved across the mmap()/dlopen() detour done while
