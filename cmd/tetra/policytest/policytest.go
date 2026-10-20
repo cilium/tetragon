@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"iter"
 	"log/slog"
 	"maps"
@@ -144,16 +145,7 @@ func runCmd() *cobra.Command {
 			"(e.g., 'uprobe-.*' runs all tests whose name starts with 'uprobe-')." +
 			"The passed regex gets automatically anchored to both start end end of string.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logLevel := slog.LevelInfo
-			if common.Debug {
-				logLevel = slog.LevelDebug
-			}
-			log := slog.New(slog.NewTextHandler(
-				os.Stderr,
-				&slog.HandlerOptions{
-					Level: logLevel,
-				},
-			))
+			log := newLogger()
 
 			var getParamValues func(t *policytest.T) iter.Seq[policytest.ParamVals]
 			if len(params) > 0 && allParams {
@@ -185,57 +177,28 @@ func runCmd() *cobra.Command {
 				return errors.New("--k8s-context requires --k8s")
 			}
 
-			var tests []*policytest.T
-			if allTests {
-				tests = policytest.AllPolicyTests.GetByFunction(func(_ *policytest.T) bool {
-					return true
-				})
-			} else {
-				var err error
-				tests, err = policytest.AllPolicyTests.GetByRegexps(args)
-				if err != nil {
-					return err
-				}
-				for _, arg := range args {
-					matched, _ := policytest.AllPolicyTests.GetByRegexps([]string{arg})
-					if len(matched) == 0 {
-						return fmt.Errorf("no policy tests matching %q, see `tetra policytest list`", arg)
-					}
-				}
-				if len(tests) == 0 {
-					return fmt.Errorf("no policy tests matching %q", args)
-				}
+			tests, err := selectTests(allTests, args)
+			if err != nil {
+				return err
 			}
 
 			timeout := time.Minute * time.Duration(len(tests))
 
-			out := cmd.OutOrStdout()
-			if outputFile != "" {
-				f, err := os.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-				if err != nil {
-					return fmt.Errorf("error opening output file: %w", err)
-				}
-				defer f.Close()
-				out = f
+			out, closeOut, err := openOutput(cmd.OutOrStdout(), outputFile)
+			if err != nil {
+				return err
 			}
+			defer closeOut()
 
 			if k8s.enabled {
 				return k8s.run(out, timeout, podArgs(args, allTests, allParams, monitorMode, params, outputFmt.Value))
 			}
 
 			ctx := context.Background()
-			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
-				GrpcAddr:        common.ServerAddress,
-				BinsDir:         testBinsPath,
-				DumpPolicyPath:  dumpPolicyPath,
-				Timeout:         timeout,
-				ScenarioTimeout: time.Minute,
-				PodSelector:     podSelector,
-			})
+			runner, err := newRunner(ctx, log, testBinsPath, dumpPolicyPath, podSelector, timeout)
 			if err != nil {
-				return fmt.Errorf("failed to start local runner: %w", err)
+				return err
 			}
-
 			defer runner.Close()
 
 			summary := policytest.NewResultsSummary()
@@ -250,15 +213,8 @@ func runCmd() *cobra.Command {
 					})
 					summary.Update(res.Result)
 
-					switch outputFmt.Value {
-					case "json":
-						b, err := json.Marshal(res)
-						if err != nil {
-							return fmt.Errorf("failed to generate json: %w", err)
-						}
-						fmt.Fprintln(out, string(b))
-					case "text":
-						policytest.DumpResults(out, []*policytest.NamedResult{res})
+					if err := writeResults(out, outputFmt.Value, []*policytest.NamedResult{res}); err != nil {
+						return err
 					}
 				}
 			}
@@ -294,4 +250,94 @@ func podArgs(tests []string, allTests, allParams, monitorMode bool, params map[s
 		ret = append(ret, "--set-param="+k+"="+params[k])
 	}
 	return append(append(ret, "--"), tests...)
+}
+
+func newLogger() *slog.Logger {
+	logLevel := slog.LevelInfo
+	if common.Debug {
+		logLevel = slog.LevelDebug
+	}
+	return slog.New(slog.NewTextHandler(
+		os.Stderr,
+		&slog.HandlerOptions{
+			Level: logLevel,
+		},
+	))
+}
+
+// selectTests returns all the policy tests if allTests is set, or the tests matching any of the
+// given regular expressions
+func selectTests(allTests bool, exprs []string) ([]*policytest.T, error) {
+	if allTests {
+		return policytest.AllPolicyTests.GetByFunction(func(_ *policytest.T) bool {
+			return true
+		}), nil
+	}
+
+	tests, err := policytest.AllPolicyTests.GetByRegexps(exprs)
+	if err != nil {
+		return nil, err
+	}
+	for _, expr := range exprs {
+		matched, _ := policytest.AllPolicyTests.GetByRegexps([]string{expr})
+		if len(matched) == 0 {
+			return nil, fmt.Errorf("no policy tests matching %q, see `tetra policytest list`", expr)
+		}
+	}
+	if len(tests) == 0 {
+		return nil, fmt.Errorf("no policy tests matching %q", exprs)
+	}
+	return tests, nil
+}
+
+// newRunner creates a local runner
+func newRunner(
+	ctx context.Context,
+	log *slog.Logger,
+	testBinsPath, dumpPolicyPath string,
+	podSelector map[string]string,
+	timeout time.Duration,
+) (*policytest.LocalRunner, error) {
+	runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
+		GrpcAddr:        common.ServerAddress,
+		BinsDir:         testBinsPath,
+		DumpPolicyPath:  dumpPolicyPath,
+		Timeout:         timeout,
+		ScenarioTimeout: time.Minute,
+		PodSelector:     podSelector,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to start local runner: %w", err)
+	}
+	return runner, nil
+}
+
+// openOutput returns outputFile opened for writing, or stdout if outputFile is empty. The returned
+// function closes the output.
+func openOutput(stdout io.Writer, outputFile string) (io.Writer, func(), error) {
+	if outputFile == "" {
+		return stdout, func() {}, nil
+	}
+	f, err := os.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error opening output file: %w", err)
+	}
+	return f, func() { f.Close() }, nil
+}
+
+// writeResults writes the results to out in the given format ("json" or "text")
+func writeResults(out io.Writer, format string, results []*policytest.NamedResult) error {
+	switch format {
+	case "json":
+		for _, res := range results {
+			b, err := json.Marshal(res)
+			if err != nil {
+				return fmt.Errorf("failed to generate json: %w", err)
+			}
+			fmt.Fprintln(out, string(b))
+		}
+	case "text":
+		policytest.DumpResults(out, results)
+	}
+	return nil
 }
