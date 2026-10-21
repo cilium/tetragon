@@ -149,8 +149,9 @@ const (
 	KeyEventCacheRetries    = "event-cache-retries"
 	KeyEventCacheRetryDelay = "event-cache-retry-delay"
 
-	KeyExecveMapEntries = "execve-map-entries"
-	KeyExecveMapSize    = "execve-map-size"
+	KeyExecveMapEntries    = "execve-map-entries"
+	KeyExecveMapSize       = "execve-map-size"
+	KeyExecveMapNoPrealloc = "execve-map-no-prealloc"
 
 	KeyParentsMapEnabled = "parents-map-enabled"
 	KeyParentsMapEntries = "parents-map-entries"
@@ -361,6 +362,7 @@ func ReadAndSetFlags() error {
 
 	Config.ExecveMapEntries = viper.GetInt(KeyExecveMapEntries)
 	Config.ExecveMapSize = viper.GetString(KeyExecveMapSize)
+	Config.ExecveMapNoPrealloc = viper.GetBool(KeyExecveMapNoPrealloc)
 
 	Config.ParentsMapEnabled = viper.GetBool(KeyParentsMapEnabled)
 	Config.ParentsMapEntries = viper.GetInt(KeyParentsMapEntries)
@@ -664,6 +666,7 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Int(KeyExecveMapEntries, 0, "Set entries for execve_map table (default 32768)")
 	flags.String(KeyExecveMapSize, "", "Set size for execve_map table (allows K/M/G suffix)")
+	flags.Bool(KeyExecveMapNoPrealloc, false, "Do not preallocate the entries of execve_map")
 
 	flags.Bool(KeyParentsMapEnabled, false, "Enable parents_map for matchParentBinaries selector")
 	flags.Int(KeyParentsMapEntries, 0, "Set entries for parents_map table (default 32768)")
