@@ -1274,11 +1274,13 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 			if err != nil {
 				return fmt.Errorf("writeMatchStrings error: %w", err)
 			}
+			k.usage.ArgStringEqual = true
 		default:
 			err = writeMatchValues(k, arg.Values, ty, op)
 			if err != nil {
 				return fmt.Errorf("writeMatchValues error: %w", err)
 			}
+			k.usage.ArgNumericCompare = true
 		}
 	case SelectorOpPrefix, SelectorOpNotPrefix:
 		err := writePrefixStrings(k, arg.Values)
@@ -1353,6 +1355,37 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	}
 
 	WriteSelectorLength(&k.data, moff)
+	switch op {
+	case SelectorOpSubString:
+		k.usage.ArgSubString = true
+	case SelectorOpSubStringIgnCase:
+		k.usage.ArgSubStringIgnCase = true
+	case SelectorOpSaddr, SelectorOpDaddr, SelectorOpNotSaddr, SelectorOpNotDaddr:
+		k.usage.ArgInetAddr = true
+	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport,
+		SelectorOpSportPriv, SelectorOpDportPriv, SelectorOpNotSportPriv, SelectorOpNotDportPriv:
+		k.usage.ArgInetPort = true
+	case SelectorOpProtocol, SelectorOpFamily, SelectorOpState:
+		k.usage.ArgInetMeta = true
+	case SelectorOpPrefix, SelectorOpNotPrefix:
+		k.usage.ArgStringPrefix = true
+	case SelectorOpPostfix, SelectorOpNotPostfix:
+		k.usage.ArgStringPostfix = true
+	case SelectorOpLT, SelectorOpGT, SelectorOpMASK:
+		k.usage.ArgNumericCompare = true
+	case SelectorInMap, SelectorNotInMap:
+		k.usage.ArgNumericMap = true
+	case SelectorOpInRange, SelectorOpNotInRange:
+		k.usage.ArgNumericRange = true
+	case SelectorOpFileType, SelectorOpNotFileType:
+		k.usage.ArgFileType = true
+	case SelectorOpCapabilitiesGained:
+		k.usage.ArgCapabilitiesGained = true
+	}
+	switch ty {
+	case gt.GenericSockType, gt.GenericSocketType, gt.GenericSkbType, gt.GenericSockaddrType:
+		k.usage.ArgInetFilters = true
+	}
 	return nil
 }
 

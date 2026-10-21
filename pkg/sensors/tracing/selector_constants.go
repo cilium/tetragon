@@ -24,6 +24,20 @@ const (
 	MatchUserCallers       = uint32(1 << 10)
 	MatchCEL               = uint32(1 << 11)
 	MatchArgFilters        = uint32(1 << 12)
+	ArgSubString           = uint32(1 << 13)
+	ArgSubStringIgnCase    = uint32(1 << 14)
+	ArgInetFilters         = uint32(1 << 15)
+	ArgInetAddr            = uint32(1 << 16)
+	ArgInetPort            = uint32(1 << 17)
+	ArgInetMeta            = uint32(1 << 18)
+	ArgStringEqual         = uint32(1 << 19)
+	ArgStringPrefix        = uint32(1 << 20)
+	ArgStringPostfix       = uint32(1 << 21)
+	ArgNumericCompare      = uint32(1 << 22)
+	ArgNumericMap          = uint32(1 << 23)
+	ArgNumericRange        = uint32(1 << 24)
+	ArgFileType            = uint32(1 << 25)
+	ArgCapabilitiesGained  = uint32(1 << 26)
 )
 
 func rewriteSelectorConstants(load *program.Program, usage selectors.SelectorUsage) {
@@ -49,6 +63,20 @@ func rewriteSelectorConstants(load *program.Program, usage selectors.SelectorUsa
 		MatchUserCallers:       usage.MatchUserCallers,
 		MatchCEL:               usage.MatchCEL,
 		MatchArgFilters:        usage.MatchArgFilters,
+		ArgSubString:           usage.ArgSubString,
+		ArgSubStringIgnCase:    usage.ArgSubStringIgnCase,
+		ArgInetFilters:         usage.ArgInetFilters,
+		ArgInetAddr:            usage.ArgInetAddr,
+		ArgInetPort:            usage.ArgInetPort,
+		ArgInetMeta:            usage.ArgInetMeta,
+		ArgStringEqual:         usage.ArgStringEqual,
+		ArgStringPrefix:        usage.ArgStringPrefix,
+		ArgStringPostfix:       usage.ArgStringPostfix,
+		ArgNumericCompare:      usage.ArgNumericCompare,
+		ArgNumericMap:          usage.ArgNumericMap,
+		ArgNumericRange:        usage.ArgNumericRange,
+		ArgFileType:            usage.ArgFileType,
+		ArgCapabilitiesGained:  usage.ArgCapabilitiesGained,
 	} {
 		if enabled {
 			featureMask |= idx

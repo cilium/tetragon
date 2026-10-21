@@ -73,8 +73,8 @@ volatile const __u8 BPF_DEBUG_ENABLED;
 
 /*
  * FEATURE_MASK is rewritten by the agent on __LARGE_BPF_PROG based on the
- * defined selectors. This allows us to do dead code elimination in unused
- * eBPF code related to specific selectors.
+ * defined selectors and argument operators. This allows us to eliminate unused
+ * eBPF code related to specific selectors and operators.
  * In non-__LARGE_BPF_PROG programs, we always have all selectors enabled.
  */
 #ifdef __LARGE_BPF_PROG
@@ -95,3 +95,18 @@ volatile const __u32 FEATURE_MASK = 0xFFFFFFFF;
 #define HAS_MATCH_USER_CALLERS	     (FEATURE_MASK & (1 << 10))
 #define HAS_MATCH_CEL		     (FEATURE_MASK & (1 << 11))
 #define HAS_MATCH_ARG_FILTERS	     (FEATURE_MASK & (1 << 12))
+
+#define HAS_ARG_SUBSTRING			(FEATURE_MASK & (1U << 13))
+#define HAS_ARG_SUBSTRING_IGNCASE		(FEATURE_MASK & (1U << 14))
+#define HAS_ARG_INET_FILTERS		(FEATURE_MASK & (1U << 15))
+#define HAS_ARG_INET_ADDR			(FEATURE_MASK & (1U << 16))
+#define HAS_ARG_INET_PORT			(FEATURE_MASK & (1U << 17))
+#define HAS_ARG_INET_META			(FEATURE_MASK & (1U << 18))
+#define HAS_ARG_STRING_EQUAL		(FEATURE_MASK & (1U << 19))
+#define HAS_ARG_STRING_PREFIX		(FEATURE_MASK & (1U << 20))
+#define HAS_ARG_STRING_POSTFIX		(FEATURE_MASK & (1U << 21))
+#define HAS_ARG_NUMERIC_COMPARE		(FEATURE_MASK & (1U << 22))
+#define HAS_ARG_NUMERIC_MAP			(FEATURE_MASK & (1U << 23))
+#define HAS_ARG_NUMERIC_RANGE		(FEATURE_MASK & (1U << 24))
+#define HAS_ARG_FILE_TYPE			(FEATURE_MASK & (1U << 25))
+#define HAS_ARG_CAPABILITIES_GAINED		(FEATURE_MASK & (1U << 26))
