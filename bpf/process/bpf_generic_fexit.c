@@ -67,6 +67,12 @@ generic_fexit_actions(void *ctx)
 __attribute__((section(SECTION_TAIL), used)) int
 generic_fexit_output(void *ctx)
 {
-	heap_dtor(generic_output(ctx, MSG_OP_GENERIC_KPROBE));
+	struct msg_generic_kprobe *e;
+	heap_key_t key = heap_key();
+
+	e = map_lookup_elem(&process_call_heap, &key);
+	if (e)
+		generic_output(e, ctx, MSG_OP_GENERIC_KPROBE);
+	heap_dtor(0);
 	return 0;
 }

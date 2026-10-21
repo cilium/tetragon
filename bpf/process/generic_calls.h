@@ -449,21 +449,16 @@ __read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
  * Returns the size of data appended to @args.
  */
 FUNC_INLINE long
-read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int argm, int process)
+read_arg(struct msg_generic_kprobe *e, void *ctx, int index, int type,
+	 long orig_off, unsigned long arg, int argm, int process)
 {
 	// min size of type plus the size of the header which indicates arg read status
 	size_t min_size = type_to_min_size(type, argm) + sizeof(arg_status_t);
 
-	struct msg_generic_kprobe *e;
 	char *args;
 	const struct path *path_arg = 0;
-	heap_key_t key = heap_key();
 	struct path path_buf;
 	int ret;
-
-	e = map_lookup_elem(&process_call_heap, &key);
-	if (!e)
-		return 0;
 
 	if (orig_off >= 16383 - min_size)
 		return 0;
@@ -586,23 +581,14 @@ FUNC_INLINE long get_preload_arg(struct pt_regs *ctx, long ty, int index, arg_st
 }
 #endif
 
-FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals,
+FUNC_INLINE long generic_read_arg(struct msg_generic_kprobe *e,
+				  struct event_config *config, void *ctx,
+				  int index, long off, struct bpf_map_def *tailcals,
 				  int process)
 {
 	int am, arg_index __maybe_unused;
-	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	heap_key_t key = heap_key();
 	unsigned long a;
 	long ty;
-
-	e = map_lookup_elem(&process_call_heap, &key);
-	if (!e)
-		return 0;
-
-	config = map_lookup_elem(&config_map, &e->idx);
-	if (!config)
-		return 0;
 
 	if (index >= MAX_POSSIBLE_ARGS)
 		return 0;
@@ -663,19 +649,24 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
 #endif
 
-	return read_arg(ctx, index, ty, off, a, am, process);
+	return read_arg(e, ctx, index, ty, off, a, am, process);
 }
 
 FUNC_INLINE int
 generic_process_event(void *ctx, struct bpf_map_def *tailcals, int process)
 {
 	struct msg_generic_kprobe *e;
+	struct event_config *config;
 	heap_key_t key = heap_key();
 	int index;
 	long total;
 
 	e = map_lookup_elem(&process_call_heap, &key);
 	if (!e)
+		return 0;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
 		return 0;
 
 	index = e->tailcall_index_process;
@@ -685,7 +676,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals, int process)
 	if (total < MAX_TOTAL) {
 		long errv;
 
-		errv = generic_read_arg(ctx, index, total, tailcals, process);
+		errv = generic_read_arg(e, config, ctx, index, total, tailcals, process);
 		if (errv > 0)
 			total += errv;
 		/* Follow filter lookup failed so lets abort the event.
@@ -698,7 +689,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals, int process)
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
-	if (index < 4 && arg_idx(index + 1) != -1) {
+	if (index < 4 && arg_idx(config, index + 1) != -1) {
 		e->tailcall_index_process = index + 1;
 		tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
 	}
@@ -861,7 +852,7 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 #endif
 
 	/* No arguments, go send.. */
-	if (arg_idx(0) == -1)
+	if (arg_idx(config, 0) == -1)
 		tail_call(ctx, tailcals, TAIL_CALL_ARGS);
 
 	tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
@@ -1170,15 +1161,9 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 }
 
 FUNC_INLINE long
-generic_output(void *ctx, u8 op)
+generic_output(struct msg_generic_kprobe *e, void *ctx, u8 op)
 {
-	struct msg_generic_kprobe *e;
-	heap_key_t key = heap_key();
 	size_t total;
-
-	e = map_lookup_elem(&process_call_heap, &key);
-	if (!e)
-		return 0;
 
 /* We don't need this data in return kprobe event */
 #if !defined(GENERIC_KRETPROBE) && !defined(GENERIC_URETPROBE) && !defined(GENERIC_FEXIT)
@@ -1259,7 +1244,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
 		e->arg_status[0] = 0;
-		size += read_arg(ctx, 0, ty_arg, size, ret, 0, __READ_ARG_ALL);
+		size += read_arg(e, ctx, 0, ty_arg, size, ret, 0, __READ_ARG_ALL);
 #if defined(__LARGE_BPF_PROG) && (defined(GENERIC_KRETPROBE) || defined(GENERIC_FEXIT))
 		struct socket_owner owner;
 
@@ -1419,13 +1404,10 @@ generic_process_filter_stage(void *ctx, int stage, __u32 fail, __u32 pass,
  * - the offset immediately after the argument filters.
  */
 FUNC_INLINE int filter_args(void *ctx, struct bpf_map_def *tailcalls,
-			    struct msg_generic_kprobe *e, int selidx, bool is_entry,
-			    int arg)
+			    struct msg_generic_kprobe *e, __u8 *f, int selidx,
+			    bool is_entry, int arg)
 {
-	__u8 *f;
-
 	/* No filters and no selectors so just accepts */
-	f = map_lookup_elem(&filter_map, &e->idx);
 	if (!f)
 		return 1;
 
@@ -1495,12 +1477,16 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 	struct msg_generic_kprobe *e;
 	heap_key_t key = heap_key();
 	int selidx, pass;
+	__u8 *f;
 
 	e = map_lookup_elem(&process_call_heap, &key);
 	if (!e)
 		return 0;
+
+	f = map_lookup_elem(&filter_map, &e->idx);
+
 	selidx = e->tailcall_index_selector;
-	pass = filter_args(ctx, tailcalls, e, selidx & MAX_SELECTORS_MASK,
+	pass = filter_args(ctx, tailcalls, e, f, selidx & MAX_SELECTORS_MASK,
 			   is_entry, arg);
 	if (!pass) {
 		selidx = next_selidx(e, selidx);
