@@ -138,7 +138,12 @@ func newCriResolver(m Map) *criResolver {
 			err := criResolve(m, id)
 			if err != nil {
 				crimetrics.CriResolutionErrorsTotal.WithLabelValues().Inc()
-				logger.GetLogger().Warn("criResolve failed", logfields.Error, err)
+				logger.GetLogger().Warn("criResolve failed",
+					logfields.Error, err,
+					"pod-id", id.podID,
+					"container-id", id.contID,
+					"is-sandbox", id.isSandbox,
+				)
 			}
 			crimetrics.CriResolutionsTotal.WithLabelValues().Inc()
 			ret.mu.Lock()
