@@ -352,6 +352,8 @@ spec:
 	}
 }).RegisterAtInit()
 
+// The file tests hook security_mmap_file, because clang LTO kernels inline
+// security_file_open into its only caller and a probe on it never fires.
 var _ = policytest.NewBuilder("kprobe-substring-file").
 	WithLabels("kprobes").
 	WithSkip(skipSubStringKfunc).
@@ -367,7 +369,7 @@ metadata:
   name: "substring-file"
 spec:
   {{ .Hook }}:
-  - call: "security_file_open"
+  - call: "security_mmap_file"
     syscall: false
     args:
     - index: 0
@@ -380,7 +382,7 @@ spec:
         - "/i"
 `).AddScenario(func(_ *policytest.Conf) *policytest.Scenario {
 	checker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full("security_file_open")).
+		WithFunctionName(sm.Full("security_mmap_file")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -401,11 +403,13 @@ func (t *triggerSubStringFileTwoFilters) Trigger(_ context.Context) error {
 	if err != nil {
 		return err
 	}
-	name := file.Name()
-	if err := file.Close(); err != nil {
+	defer os.Remove(file.Name())
+	defer file.Close()
+	mem, err := unix.Mmap(int(file.Fd()), 0, 1, unix.PROT_READ, unix.MAP_SHARED)
+	if err != nil {
 		return err
 	}
-	return os.Remove(name)
+	return unix.Munmap(mem)
 }
 
 var _ = policytest.NewBuilder("kprobe-substring-file-two-filters").
@@ -437,7 +441,7 @@ spec:
     value: "1"
   {{- end }}
   kprobes:
-  - call: security_file_open
+  - call: security_mmap_file
     syscall: false
     args:
     - index: 0
@@ -455,7 +459,7 @@ spec:
         - test1
 `).AddScenario(func(_ *policytest.Conf) *policytest.Scenario {
 	checker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full("security_file_open")).
+		WithFunctionName(sm.Full("security_mmap_file")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
