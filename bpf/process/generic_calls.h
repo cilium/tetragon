@@ -1325,6 +1325,11 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	*(unsigned long *)e->args = info.ktime_enter;
 	size += sizeof(info.ktime_enter);
 
+#ifdef GENERIC_FEXIT
+	get_func_ret(ctx, (__u64 *)&e->a0);
+	ret = e->a0;
+#endif
+
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
