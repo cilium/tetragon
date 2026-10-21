@@ -1014,6 +1014,8 @@ func doLoadProgram(
 			}
 			ms.InnerMap.MaxEntries = innerMax
 		}
+
+		ms.Flags |= m.GetFlags()
 	}
 
 	// Find all the maps referenced by the program, so we'll rewrite only
@@ -1066,10 +1068,11 @@ func doLoadProgram(
 		defer m.Close()
 
 		// Shared map referenced but not declared by this sensor, take
-		// max entries from the pin. Declared ones are checked in loadMap.
+		// max entries and flags from the pin. Declared ones are checked in loadMap.
 		if isSharedMapPinned(name) {
 			if ms, ok := spec.Maps[name]; ok {
 				ms.MaxEntries = m.MaxEntries()
+				ms.Flags = m.Flags()
 			}
 		}
 		pinnedMaps[name] = m

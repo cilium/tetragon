@@ -115,6 +115,7 @@ type Map struct {
 	MapHandle    *ebpf.Map
 	Entries      MaxEntries
 	InnerEntries MaxEntries
+	Flags        uint32
 	Type         MapType
 	Owner        bool
 	Shared       bool
@@ -204,7 +205,7 @@ func mapBuilder(name, pinName string, ty MapType, owner bool, shared bool, lds .
 	if len(lds) != 0 {
 		prog = lds[0]
 	}
-	m := &Map{name, pinName, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner, shared, nil, nil}
+	m := &Map{name, pinName, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, 0, ty, owner, shared, nil, nil}
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
@@ -250,7 +251,7 @@ func MapSharedPin(name, pinName string, lds ...*Program) *Map {
 }
 
 func mapUser(name, pinName string, ty MapType, prog *Program) *Map {
-	return &Map{name, pinName, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false, false, nil, nil}
+	return &Map{name, pinName, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, 0, ty, false, false, nil, nil}
 }
 
 func MapUser(name string, prog *Program) *Map {
@@ -470,6 +471,22 @@ func (m *Map) SetMaxEntries(maximum int) {
 
 func (m *Map) SetInnerMaxEntries(maximum int) {
 	m.InnerEntries = MaxEntries{uint32(maximum), true}
+}
+
+func (m *Map) SetFlags(flags uint32) {
+	m.Flags = flags
+}
+
+func (m *Map) SetFlag(flag uint32) {
+	m.Flags |= flag
+}
+
+func (m *Map) ClearFlag(flag uint32) {
+	m.Flags &^= flag
+}
+
+func (m *Map) GetFlags() uint32 {
+	return m.Flags
 }
 
 func (m *Map) GetMaxEntries() (uint32, bool) {
