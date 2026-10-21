@@ -132,6 +132,13 @@ enum {
 	ACTION_NOTIFY_ENFORCER = 12,
 	ACTION_CLEANUP_ENFORCER_NOTIFICATION = 13,
 	ACTION_SET = 14,
+	ACTION_UPDATE_STATE = 15,
+};
+
+// Mirrored by StateOp* in pkg/selectors/kernel.go
+enum {
+	STATE_OP_SET = 0,
+	STATE_OP_DELETE = 1,
 };
 
 enum {
@@ -171,6 +178,15 @@ struct selector_arg_filters {
 	__u32 arglen;
 	__u32 argoff[5];
 } __attribute__((packed));
+
+#ifdef __LARGE_BPF_PROG
+struct selector_state_filter {
+	// state_id is a number representing the user-defined state name
+	__u32 state_id;
+	__u32 op;
+	__u64 value;
+} __attribute__((packed));
+#endif
 
 #define MAX_ARGS_SIZE	     80
 #define MAX_ARGS_ENTRIES     8
@@ -2387,6 +2403,9 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 	}
 
 #ifdef __LARGE_BPF_PROG
+	/* skip the matchState section */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+
 	/* skip the matchCmdArgs section */
 	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 #endif
