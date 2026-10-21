@@ -560,7 +560,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 		path.Join(option.Config.HubbleLib, loadProgOutputName),
 		lsmEntry.hook,
 		"lsm/generic_lsm_output",
-		pinName,
+		pinName+"_out",
 		"generic_lsm").
 		SetLoaderData(lsmEntry.tableId).
 		SetPolicy(lsmEntry.policyName)
@@ -570,7 +570,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 		path.Join(option.Config.HubbleLib, loadProgCoreName),
 		lsmEntry.hook,
 		"lsm/generic_lsm_core",
-		pinName,
+		pinName+"_core",
 		"generic_lsm").
 		SetLoaderData(lsmEntry.tableId).
 		SetPolicy(lsmEntry.policyName)
@@ -584,7 +584,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 				path.Join(option.Config.HubbleLib, loadProgImaName),
 				lsmEntry.hook,
 				"lsm.s/generic_lsm_ima_"+loadProgImaType,
-				pinName,
+				pinName+"_ima",
 				"generic_lsm").
 				SetLoaderData(lsmEntry.tableId).
 				SetPolicy(lsmEntry.policyName)
