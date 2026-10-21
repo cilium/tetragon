@@ -165,19 +165,17 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 	_, err = r.cli.Client.AddTracingPolicy(r.cli.Ctx, &tetragon.AddTracingPolicyRequest{
 		Yaml: string(pol),
 	})
-	ph := &PolicyHandler{
-		tpName:      tpName,
-		tpNamespace: "", // TODO: change this when we add support for namespaced policies
-		cleanup:     cleanup,
-	}
 	if err != nil {
 		err = fmt.Errorf("failed to load policy for test %q: %w", test.Name, err)
-		// the agent keeps a policy that failed to load
-		return nil, errors.Join(err, ph.Cleanup(l, r.conf, r.cli))
+		return nil, err
 	}
 	l.Debug("policy loaded", "name", tpName)
 
-	return ph, nil
+	return &PolicyHandler{
+		tpName:      tpName,
+		tpNamespace: "", // TODO: change this when we add support for namespaced policies
+		cleanup:     cleanup,
+	}, nil
 }
 
 // RunTest runs a policy test
@@ -442,11 +440,11 @@ func (ph *PolicyHandler) Cleanup(l *slog.Logger, conf *Conf, client *cli.ClientW
 		l.Debug("policy unloaded", "name", ph.tpName)
 		return nil
 	}
-	if code := grpcStatus.Code(err); code != grpcCodes.DeadlineExceeded && code != grpcCodes.Canceled {
+	if grpcStatus.Code(err) != grpcCodes.DeadlineExceeded {
 		return fmt.Errorf("failed to unload policy: %w", err)
 	}
 
-	// deadline exceeded or interrupted: let's try to reconnect to unload the policy
+	// deadline exceeded: let's try to reconnect to unload the policy
 	client, err = cli.NewClient(context.Background(), conf.GrpcAddr, time.Second*20)
 	if err != nil {
 		return fmt.Errorf("failed to create a new client to unload policy: %w", err)
