@@ -124,6 +124,9 @@ options:
     - name: execve-map-entries
       default_value: "0"
       usage: Set entries for execve_map table (default 32768)
+    - name: execve-map-no-prealloc
+      default_value: "false"
+      usage: Do not preallocate the entries of execve_map
     - name: execve-map-size
       usage: Set size for execve_map table (allows K/M/G suffix)
     - name: export-aggregation-buffer-size

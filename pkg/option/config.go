@@ -135,8 +135,9 @@ type config struct {
 	EventCacheNumRetries int
 	EventCacheRetryDelay int
 
-	ExecveMapEntries int
-	ExecveMapSize    string
+	ExecveMapEntries    int
+	ExecveMapSize       string
+	ExecveMapNoPrealloc bool
 
 	ParentsMapEnabled bool
 	ParentsMapEntries int
