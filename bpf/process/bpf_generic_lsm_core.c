@@ -126,7 +126,7 @@ generic_lsm_actions(void *ctx)
 	e->lsm.post = postit;
 #ifdef __V511_BPF_PROG
 	// Set dummy hash entry for ima program
-	if (e && e->common.flags & MSG_COMMON_FLAG_IMA_HASH && e->lsm.post) {
+	if (HAS_POST_IMA_HASH && e && e->common.flags & MSG_COMMON_FLAG_IMA_HASH && e->lsm.post) {
 		struct ima_hash hash;
 
 		__u64 pid_tgid = get_current_pid_tgid();
@@ -138,7 +138,7 @@ generic_lsm_actions(void *ctx)
 #endif
 
 	// If NoPost action is set, check for Override action here
-	if (!e->lsm.post) {
+	if (ACTION_ENABLED(ACTION_OVERRIDE) && !e->lsm.post) {
 		ret = try_override(ctx, (struct bpf_map_def *)&override_tasks);
 		// Non zero return skips the output program, release heaps here.
 		if (ret)

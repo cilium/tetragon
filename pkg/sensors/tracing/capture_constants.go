@@ -9,6 +9,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
+	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
@@ -49,6 +50,12 @@ func rewriteCaptureConstants(load *program.Program, eventConfig *tracingapi.Even
 		mask |= captureTypeMask(eventConfig.ArgReturn)
 		mask |= captureTypeMask(eventConfig.ArgReturnCopy)
 		returnCopy = eventConfig.ArgReturnCopy > 0
+		actions, _ := load.RewriteConstants["ACTION_FEATURE_MASK"].(uint64)
+		switch eventConfig.ArgReturnAction {
+		case selectors.ActionTypeTrackSock, selectors.ActionTypeUntrackSock:
+			actions |= uint64(1) << (eventConfig.ArgReturnAction + returnActionShift)
+		}
+		load.RewriteConstants["ACTION_FEATURE_MASK"] = actions
 	} else {
 		for i, argType := range eventConfig.ArgType {
 			mask |= captureTypeMask(argType)

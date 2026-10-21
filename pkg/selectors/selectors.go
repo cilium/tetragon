@@ -149,6 +149,11 @@ type SelectorUsage struct {
 	ArgNumericRange        bool
 	ArgFileType            bool
 	ArgCapabilitiesGained  bool
+	ActionTypes            uint64
+	PostRateLimit          bool
+	PostKernelStack        bool
+	PostUserStack          bool
+	PostIMAHash            bool
 }
 
 type KernelSelectorState struct {

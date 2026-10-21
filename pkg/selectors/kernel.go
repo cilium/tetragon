@@ -1590,6 +1590,13 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	default:
 		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
 	}
+	k.usage.ActionTypes |= uint64(1) << uint32(act)
+	if act == ActionTypePost {
+		k.usage.PostRateLimit = k.usage.PostRateLimit || rateLimit != 0
+		k.usage.PostKernelStack = k.usage.PostKernelStack || action.KernelStackTrace
+		k.usage.PostUserStack = k.usage.PostUserStack || action.UserStackTrace
+		k.usage.PostIMAHash = k.usage.PostIMAHash || action.ImaHash
+	}
 	return nil
 }
 

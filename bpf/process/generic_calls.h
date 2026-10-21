@@ -1025,19 +1025,29 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	polacct = POLICY_INVALID_ACT_;
 	switch (action) {
 	case ACTION_NOPOST:
+		if (!ACTION_ENABLED(ACTION_NOPOST))
+			break;
 		*post = false;
 		polacct = POLICY_NOPOST;
 		break;
 	case ACTION_POST: {
+		if (!ACTION_ENABLED(ACTION_POST)) {
+			/* Preserve the encoded Post-option offsets when this action is disabled. */
+			i += 4;
+#ifdef __V511_BPF_PROG
+			i++;
+#endif
+			break;
+		}
 		__u64 ratelimit_interval __maybe_unused = actions->act[++i];
 		__u64 ratelimit_scope __maybe_unused = actions->act[++i];
 #ifdef __LARGE_BPF_PROG
-		if (rate_limit(ratelimit_interval, ratelimit_scope, e))
+		if (HAS_POST_RATE_LIMIT && rate_limit(ratelimit_interval, ratelimit_scope, e))
 			*post = false;
 #endif /* __LARGE_BPF_PROG */
 		__u32 kernel_stack_trace = actions->act[++i];
 
-		if (kernel_stack_trace) {
+		if (HAS_POST_KERNEL_STACK && kernel_stack_trace) {
 			// Stack id 0 is valid so we need a flag.
 			e->common.flags |= MSG_COMMON_FLAG_KERNEL_STACKTRACE;
 			// We could use BPF_F_REUSE_STACKID to override old with new stack if
@@ -1051,14 +1061,14 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 
 		__u32 user_stack_trace = actions->act[++i];
 
-		if (user_stack_trace) {
+		if (HAS_POST_USER_STACK && user_stack_trace) {
 			e->common.flags |= MSG_COMMON_FLAG_USER_STACKTRACE;
 			e->user_stack_id = get_stackid(ctx, &stack_trace_map, BPF_F_USER_STACK);
 		}
 #ifdef __V511_BPF_PROG
 		__u32 ima_hash = actions->act[++i];
 
-		if (ima_hash)
+		if (HAS_POST_IMA_HASH && ima_hash)
 			e->common.flags |= MSG_COMMON_FLAG_IMA_HASH;
 #endif
 		break;
@@ -1068,6 +1078,8 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		signal = actions->act[++i];
 		fallthrough;
 	case ACTION_SIGKILL:
+		if (!ACTION_TYPES_ENABLED(ACTION_TYPE_MASK(ACTION_SIGNAL) | ACTION_TYPE_MASK(ACTION_SIGKILL)))
+			break;
 		if (enforce_mode) {
 			do_action_signal(signal);
 			polacct = POLICY_SIGNAL;
@@ -1077,6 +1089,8 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		break;
 	case ACTION_OVERRIDE:
 		error = actions->act[++i];
+		if (!ACTION_ENABLED(ACTION_OVERRIDE))
+			break;
 		if (enforce_mode) {
 #if defined(GENERIC_UPROBE)
 			do_uprobe_override(ctx, error);
@@ -1091,17 +1105,22 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	case ACTION_GETURL:
 	case ACTION_DNSLOOKUP:
 		/* Set the URL or DNS action */
-		e->action_arg_id = actions->act[++i];
+		value = actions->act[++i];
+		if (ACTION_TYPES_ENABLED(ACTION_TYPE_MASK(ACTION_GETURL) | ACTION_TYPE_MASK(ACTION_DNSLOOKUP)))
+			e->action_arg_id = value;
 		break;
 	case ACTION_TRACKSOCK:
 	case ACTION_UNTRACKSOCK:
 		socki = actions->act[++i];
-		err = tracksock(e, socki, action == ACTION_TRACKSOCK);
+		if (ACTION_TYPES_ENABLED(ACTION_TYPE_MASK(ACTION_TRACKSOCK) | ACTION_TYPE_MASK(ACTION_UNTRACKSOCK)))
+			err = tracksock(e, socki, action == ACTION_TRACKSOCK);
 		break;
 	case ACTION_NOTIFY_ENFORCER:
 		error = actions->act[++i];
 		signal = actions->act[++i];
 		argi = actions->act[++i];
+		if (!ACTION_ENABLED(ACTION_NOTIFY_ENFORCER))
+			break;
 		if (enforce_mode) {
 			do_action_notify_enforcer(e, error, signal, argi);
 			polacct = POLICY_NOTIFY_ENFORCER;
@@ -1110,11 +1129,14 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		}
 		break;
 	case ACTION_CLEANUP_ENFORCER_NOTIFICATION:
-		do_enforcer_cleanup();
+		if (ACTION_ENABLED(ACTION_CLEANUP_ENFORCER_NOTIFICATION))
+			do_enforcer_cleanup();
 		break;
 	case ACTION_SET:
 		index = actions->act[++i];
 		value = actions->act[++i];
+		if (!ACTION_ENABLED(ACTION_SET))
+			break;
 		if (enforce_mode) {
 #if defined(GENERIC_UPROBE)
 			// value is discarded here
@@ -1159,12 +1181,18 @@ do_actions(void *ctx, struct selector_action *actions)
 	struct policy_conf *pcnf;
 	bool enforce_mode = true;
 
+	/* An empty action section defaults to Post. */
+	if (!ACTION_TYPES_ENABLED(~0ULL))
+		return true;
+
 	/* check if policy is in monitor (non-enforcement) mode and, if it is, skip enforcement
 	 * actions
 	 */
-	pcnf = map_lookup_elem(&policy_conf, &zero);
-	if (pcnf && pcnf->mode != POLICY_MODE_ENFORCE)
-		enforce_mode = false;
+	if (ACTION_TYPES_ENABLED(ACTION_ENFORCEMENT_TYPES)) {
+		pcnf = map_lookup_elem(&policy_conf, &zero);
+		if (pcnf && pcnf->mode != POLICY_MODE_ENFORCE)
+			enforce_mode = false;
+	}
 
 #ifndef __LARGE_BPF_PROG
 #pragma unroll
@@ -1311,13 +1339,16 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 		 */
 		switch (config->argreturnaction) {
 		case ACTION_TRACKSOCK:
-			owner.pid = e->current.pid;
-			owner.tid = e->tid;
-			owner.ktime = e->current.ktime;
-			map_update_elem(&socktrack_map, &ret, &owner, BPF_ANY);
+			if (RETURN_ACTION_ENABLED(ACTION_TRACKSOCK)) {
+				owner.pid = e->current.pid;
+				owner.tid = e->tid;
+				owner.ktime = e->current.ktime;
+				map_update_elem(&socktrack_map, &ret, &owner, BPF_ANY);
+			}
 			break;
 		case ACTION_UNTRACKSOCK:
-			map_delete_elem(&socktrack_map, &ret);
+			if (RETURN_ACTION_ENABLED(ACTION_UNTRACKSOCK))
+				map_delete_elem(&socktrack_map, &ret);
 			break;
 		}
 #endif

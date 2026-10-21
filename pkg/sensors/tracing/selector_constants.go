@@ -40,10 +40,32 @@ const (
 	ArgCapabilitiesGained  = uint32(1 << 26)
 )
 
+// Keep these bits in sync with ACTION_FEATURE_MASK in bpf/lib/config.h.
+const (
+	returnActionShift = 16
+	PostRateLimit     = uint64(1 << 32)
+	PostKernelStack   = uint64(1 << 33)
+	PostUserStack     = uint64(1 << 34)
+	PostIMAHash       = uint64(1 << 35)
+)
+
 func rewriteSelectorConstants(load *program.Program, usage selectors.SelectorUsage) {
 	if !config.EnableLargeProgs() || load.RewriteConstants == nil {
 		return
 	}
+	actions, _ := load.RewriteConstants["ACTION_FEATURE_MASK"].(uint64)
+	actions |= usage.ActionTypes
+	for feature, enabled := range map[uint64]bool{
+		PostRateLimit:   usage.PostRateLimit,
+		PostKernelStack: usage.PostKernelStack,
+		PostUserStack:   usage.PostUserStack,
+		PostIMAHash:     usage.PostIMAHash,
+	} {
+		if enabled {
+			actions |= feature
+		}
+	}
+	load.RewriteConstants["ACTION_FEATURE_MASK"] = actions
 	if load.Type == "generic_lsm" && load.Label != "lsm/generic_lsm_core" {
 		return
 	}

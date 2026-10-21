@@ -28,7 +28,7 @@ FUNC_INLINE int lsm_output(void *ctx)
 	if (!e)
 		return 0;
 #ifdef __V511_BPF_PROG
-	if (e && e->common.flags & MSG_COMMON_FLAG_IMA_HASH) {
+	if (HAS_POST_IMA_HASH && e && e->common.flags & MSG_COMMON_FLAG_IMA_HASH) {
 		__u64 pid_tgid = get_current_pid_tgid();
 		struct ima_hash *hash = map_lookup_elem(&ima_hash_map, &pid_tgid);
 
@@ -44,7 +44,9 @@ FUNC_INLINE int lsm_output(void *ctx)
 #endif
 	if (e->lsm.post)
 		generic_output(ctx, MSG_OP_GENERIC_LSM);
-	return try_override(ctx, (struct bpf_map_def *)&override_tasks);
+	if (ACTION_ENABLED(ACTION_OVERRIDE))
+		return try_override(ctx, (struct bpf_map_def *)&override_tasks);
+	return 0;
 }
 
 /*
