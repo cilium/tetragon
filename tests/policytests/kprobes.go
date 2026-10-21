@@ -626,7 +626,7 @@ spec:
     - source: current_task
       index: 0
       type: int
-      resolve: cred.uid.val
+      resolve: pid
     args:
     - index: 0
       type: "int"
