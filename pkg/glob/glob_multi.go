@@ -11,11 +11,12 @@ import (
 // Glob patterns are combined into one state machine so they can all be matched
 // in a single pass over the input. BuildMultiNFA() builds the combined machine,
 // and ToDFA() converts it into a deterministic state machine. Each state records
-// which pattern IDs match there. The result can be used by MatchString().
+// which pattern IDs match there. The result can be used by MatchString() or
+// exported to BPF maps through glob_multi_maps.go.
 //
 // Example usage:
 //
-// In Go:
+// Generate FSM in Go:
 //
 //	allPatterns := map[string][]int32{
 //		"*.txt": {1},
@@ -26,10 +27,24 @@ import (
 //	literals, knownMap := GetLiterals(allPatterns)
 //	nfa := BuildMultiNFA(allPatterns)
 //	dfa := ToDFA(nfa, literals)
+//  stateTransitions, finalStates := GetAll(dfa, knownMap)
+//
+//  Evaluate in Go:
 //
 //  MatchString(dfa, "text.txt", knownMap) // returns []uint32{1}
 //  MatchString(dfa, "text.tmp", knownMap) // returns []uint32{1, 2}
 //  MatchString(dfa, "text.random", knownMap) // returns []uint32{}
+//
+//  Evaluate in eBPF
+//
+//  Use GenerateFinalStatesMap() to populate the tg_glob_final map
+//  and GenerateStateTransitionsMap() to populate the tg_glob_dfa map.
+//
+//	__s32 state_id = check_pattern(&tg_glob_dfa, "text.txt", strlen("text.txt"));
+//	match_any(&tg_glob_final, state_id); // returns 1
+//	match_value(&tg_glob_final, state_id, 1); // returns 1
+//	match_value(&tg_glob_final, state_id, 2); // returns 0
+//	match_value(&tg_glob_final, state_id, 3); // returns 0
 
 const (
 	TypeEpsilon = iota
