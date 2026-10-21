@@ -2180,6 +2180,7 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		k.usage.MatchCmdArgs = k.usage.MatchCmdArgs || len(selector.MatchCmdArgs) > 0
 		k.usage.MatchWorkloads = k.usage.MatchWorkloads || selector.MatchWorkloads != nil
 		k.usage.MatchUserCallers = k.usage.MatchUserCallers || len(selector.MatchUserCallers) > 0
+		k.usage.MatchStates = k.usage.MatchStates || len(selector.MatchStates) > 0
 		return nil
 	}
 
