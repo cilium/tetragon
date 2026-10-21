@@ -1007,12 +1007,16 @@ cel_eval_assignments(struct offload_data *d, struct msg_generic_kprobe *e, __u32
 FUNC_LOCAL __u32
 do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool enforce_mode)
 {
+	struct state_value new_state_value __maybe_unused;
 	__u32 index __maybe_unused, value __maybe_unused;
 	int signal __maybe_unused = FGS_SIGKILL;
+	__u64 state_data __maybe_unused;
+	__u32 state_key __maybe_unused;
 	int action = actions->act[i];
 	struct msg_generic_kprobe *e;
 	heap_key_t key = heap_key();
 	__s32 error __maybe_unused;
+	int map_ret;
 	int socki;
 	int argi __maybe_unused;
 	int err = 0;
@@ -1133,6 +1137,32 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 			polacct = POLICY_SET;
 		} else {
 			polacct = POLICY_MONITOR_SET;
+		}
+		break;
+	case ACTION_UPDATE_STATE:
+		// value contains the state operation
+		value = actions->act[++i];
+
+		state_key = actions->act[++i];
+		state_data = (__u64)actions->act[++i];
+		state_data |= (__u64)actions->act[++i] << 32;
+
+		switch (value) {
+		case STATE_OP_DELETE: {
+			map_ret = map_delete_elem(&tg_state_map, &state_key);
+			if (map_ret != 0 && map_ret != -ENOENT)
+				err = -1;
+			break;
+		}
+		case STATE_OP_SET: {
+			new_state_value.data = state_data;
+			if (map_update_elem(&tg_state_map, &state_key, &new_state_value, BPF_ANY))
+				err = -1;
+			break;
+		}
+		default:
+			err = -1;
+			break;
 		}
 		break;
 	default:
