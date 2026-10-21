@@ -24,6 +24,7 @@ const (
 	MatchUserCallers       = uint32(1 << 10)
 	MatchCEL               = uint32(1 << 11)
 	MatchArgFilters        = uint32(1 << 12)
+	MatchStates            = uint32(1 << 13)
 )
 
 func rewriteSelectorConstants(load *program.Program, usage selectors.SelectorUsage) {
@@ -49,6 +50,7 @@ func rewriteSelectorConstants(load *program.Program, usage selectors.SelectorUsa
 		MatchUserCallers:       usage.MatchUserCallers,
 		MatchCEL:               usage.MatchCEL,
 		MatchArgFilters:        usage.MatchArgFilters,
+		MatchStates:            usage.MatchStates,
 	} {
 		if enabled {
 			featureMask |= idx

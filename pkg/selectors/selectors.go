@@ -135,6 +135,7 @@ type SelectorUsage struct {
 	MatchCEL               bool
 	MatchArgFilters        bool
 	MatchUserCallers       bool
+	MatchStates            bool
 }
 
 type KernelSelectorState struct {
