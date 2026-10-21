@@ -36,6 +36,19 @@
 #include "../cel_expr.h"
 #include "process/event_config.h"
 
+#ifdef __LARGE_BPF_PROG
+volatile const __u64 CAPTURE_ARG_TYPES = ~0ULL;
+#define CAPTURE_TYPES_ENABLED(mask) ((CAPTURE_ARG_TYPES & (mask)) != 0)
+#else
+#define CAPTURE_TYPES_ENABLED(mask) 1
+#endif
+
+#define CAPTURE_TYPE_MASK(type) (1ULL << (type))
+#define CAPTURE_TYPE_ENABLED(type) CAPTURE_TYPES_ENABLED(CAPTURE_TYPE_MASK(type))
+#define CAPTURE_PATH_TYPES (CAPTURE_TYPE_MASK(kiocb_type) | CAPTURE_TYPE_MASK(file_ty) | \
+			    CAPTURE_TYPE_MASK(path_ty) | CAPTURE_TYPE_MASK(dentry_type) | \
+			    CAPTURE_TYPE_MASK(fd_ty) | CAPTURE_TYPE_MASK(linux_binprm_type))
+
 /* Type IDs form API with user space generickprobe.go */
 enum {
 	invalid_ty = -2,
@@ -1410,7 +1423,7 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 
 	meta = get_arg_meta(argm, e);
 
-	if (has_return_copy(argm)) {
+	if (HAS_CAPTURE_RETURN_COPY && has_return_copy(argm)) {
 		int ret = return_error(s, char_buf_saved_for_retprobe);
 		u64 retid = retprobe_map_get_key(ctx);
 
@@ -2806,32 +2819,42 @@ FUNC_INLINE const struct path *get_path(long type, unsigned long arg, struct pat
 
 	switch (type) {
 	case kiocb_type:
+		if (!CAPTURE_TYPE_ENABLED(kiocb_type))
+			break;
 		kiocb = (struct kiocb *)arg;
 		arg = (unsigned long)_(&kiocb->ki_filp);
 		probe_read(&file, sizeof(file), (const void *)arg);
 		arg = (unsigned long)file;
 		fallthrough;
 	case file_ty:
-		probe_read(&file, sizeof(file), &arg);
-		path_arg = _(&file->f_path);
+		if (CAPTURE_TYPE_ENABLED(file_ty)) {
+			probe_read(&file, sizeof(file), &arg);
+			path_arg = _(&file->f_path);
+		}
 		break;
 	case path_ty:
-		probe_read(&path_arg, sizeof(path_arg), &arg);
+		if (CAPTURE_TYPE_ENABLED(path_ty))
+			probe_read(&path_arg, sizeof(path_arg), &arg);
 		break;
 	case dentry_type:
-		path_from_dentry((struct dentry *)arg, path_buf);
-		path_arg = path_buf;
+		if (CAPTURE_TYPE_ENABLED(dentry_type)) {
+			path_from_dentry((struct dentry *)arg, path_buf);
+			path_arg = path_buf;
+		}
 		break;
 	case fd_ty:
-		path_arg = path_from_fd(arg);
+		if (CAPTURE_TYPE_ENABLED(fd_ty))
+			path_arg = path_from_fd(arg);
 		break;
 #ifdef __LARGE_BPF_PROG
 	case linux_binprm_type: {
 		struct linux_binprm *bprm = (struct linux_binprm *)arg;
 
-		arg = (unsigned long)_(&bprm->file);
-		with_errmetrics(probe_read, &file, sizeof(file), (const void *)arg);
-		path_arg = _(&file->f_path);
+		if (CAPTURE_TYPE_ENABLED(linux_binprm_type)) {
+			arg = (unsigned long)_(&bprm->file);
+			with_errmetrics(probe_read, &file, sizeof(file), (const void *)arg);
+			path_arg = _(&file->f_path);
+		}
 		break;
 	};
 #endif

@@ -107,7 +107,7 @@ __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 	int err;
 
 #ifdef __LARGE_BPF_PROG
-	if (max_data && data_heap_ptr) {
+	if (HAS_CAPTURE_MAX_DATA && max_data && data_heap_ptr) {
 		/* The max_data flag is enabled, the first int value indicates
 		 * if we use (1) data events or not (0).
 		 */
@@ -142,7 +142,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 {
 	int *s = (int *)args_off(e, off);
 
-	if (has_return_copy(argm)) {
+	if (HAS_CAPTURE_RETURN_COPY && has_return_copy(argm)) {
 		/* Write the error before the calls below. Otherwise clang
 		 * computes 's' only after them, which means keeping the offset
 		 * on the stack across the calls.
@@ -276,7 +276,7 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 {
 	struct msg_generic_kprobe *e;
 	heap_key_t key = heap_key();
-	long size = -1;
+	long size = 0;
 
 	e = map_lookup_elem(&process_call_heap, &key);
 	if (!e)
@@ -284,70 +284,93 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 
 	switch (type) {
 	case iov_iter_type:
-		size = copy_iov_iter(ctx, orig_off, arg, argm, e);
+		if (CAPTURE_TYPE_ENABLED(iov_iter_type))
+			size = copy_iov_iter(ctx, orig_off, arg, argm, e);
 		break;
 	case filename_ty: {
 		struct filename *file;
 
+		if (!CAPTURE_TYPE_ENABLED(filename_ty))
+			break;
 		file = (struct filename *)arg;
 		probe_read(&arg, sizeof(arg), &file->name);
 	}
 		fallthrough;
 	case string_type:
-		size = copy_strings(args, (char *)arg, MAX_STRING);
+		if (CAPTURE_TYPE_ENABLED(string_type))
+			size = copy_strings(args, (char *)arg, MAX_STRING);
 		break;
 	case net_dev_ty: {
-		struct net_device *dev = (struct net_device *)arg;
+		if (CAPTURE_TYPE_ENABLED(net_dev_ty)) {
+			struct net_device *dev = (struct net_device *)arg;
 
-		size = copy_strings(args, dev->name, IFNAMSIZ);
+			size = copy_strings(args, dev->name, IFNAMSIZ);
+		}
 	} break;
 	case data_loc_type: {
-		// data_loc: lower 16 bits is offset from ctx; upper 16 bits is length
-		long dl_len = (arg >> 16) & 0xfff; // masked to 4095 chars
-		char *dl_loc = ctx + (arg & 0xffff);
+		if (CAPTURE_TYPE_ENABLED(data_loc_type)) {
+			// data_loc: lower 16 bits is offset from ctx; upper 16 bits is length
+			long dl_len = (arg >> 16) & 0xfff; // masked to 4095 chars
+			char *dl_loc = ctx + (arg & 0xffff);
 
-		size = copy_strings(args, dl_loc, dl_len);
+			size = copy_strings(args, dl_loc, dl_len);
+		}
 	} break;
 	case syscall64_type:
 	case size_type:
 	case s64_ty:
 	case u64_ty:
-		*(__u64 *)args = (__u64)arg;
-		size = sizeof(__u64);
+		if (CAPTURE_TYPES_ENABLED(CAPTURE_TYPE_MASK(syscall64_type) | CAPTURE_TYPE_MASK(size_type) |
+					  CAPTURE_TYPE_MASK(s64_ty) | CAPTURE_TYPE_MASK(u64_ty))) {
+			*(__u64 *)args = (__u64)arg;
+			size = sizeof(__u64);
+		}
 		break;
 	/* Consolidate all the types to save instructions */
 	case int_type:
 	case s32_ty:
 	case u32_ty:
-		*(__u32 *)args = (__u32)arg;
-		size = sizeof(__u32);
+		if (CAPTURE_TYPES_ENABLED(CAPTURE_TYPE_MASK(int_type) | CAPTURE_TYPE_MASK(s32_ty) |
+					  CAPTURE_TYPE_MASK(u32_ty))) {
+			*(__u32 *)args = (__u32)arg;
+			size = sizeof(__u32);
+		}
 		break;
 	case s16_ty:
 	case u16_ty:
-		/* read 2 bytes, but send 4 to keep alignment */
-		*(__u16 *)args = (__u16)arg;
-		size = sizeof(__u32);
+		if (CAPTURE_TYPES_ENABLED(CAPTURE_TYPE_MASK(s16_ty) | CAPTURE_TYPE_MASK(u16_ty))) {
+			/* read 2 bytes, but send 4 to keep alignment */
+			*(__u16 *)args = (__u16)arg;
+			size = sizeof(__u32);
+		}
 		break;
 	case s8_ty:
 	case u8_ty:
-		/* read 1 byte, but send 4 to keep alignment */
-		*(__u8 *)args = (__u8)arg;
-		size = sizeof(__u32);
+		if (CAPTURE_TYPES_ENABLED(CAPTURE_TYPE_MASK(s8_ty) | CAPTURE_TYPE_MASK(u8_ty))) {
+			/* read 1 byte, but send 4 to keep alignment */
+			*(__u8 *)args = (__u8)arg;
+			size = sizeof(__u32);
+		}
 		break;
 	case skb_type:
-		size = copy_skb(args, arg);
+		if (CAPTURE_TYPE_ENABLED(skb_type))
+			size = copy_skb(args, arg);
 		break;
 	case sock_type:
-		size = copy_sock(args, arg);
-		// Look up socket in our sock->pid_tgid map
-		update_pid_tid_from_sock(e, arg);
+		if (CAPTURE_TYPE_ENABLED(sock_type)) {
+			size = copy_sock(args, arg);
+			// Look up socket in our sock->pid_tgid map
+			update_pid_tid_from_sock(e, arg);
+		}
 		break;
 	case sockaddr_type:
-		size = copy_sockaddr(args, arg);
+		if (CAPTURE_TYPE_ENABLED(sockaddr_type))
+			size = copy_sockaddr(args, arg);
 		break;
 #if defined(__V511_BPF_PROG)
 	case sockaddr_un_type:
-		size = copy_sockaddr_un(args, arg);
+		if (CAPTURE_TYPE_ENABLED(sockaddr_un_type))
+			size = copy_sockaddr_un(args, arg);
 		break;
 #endif
 	default:
@@ -362,7 +385,7 @@ __read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 {
 	struct msg_generic_kprobe *e;
 	heap_key_t key = heap_key();
-	long size = -1;
+	long size = 0;
 
 	e = map_lookup_elem(&process_call_heap, &key);
 	if (!e)
@@ -370,63 +393,81 @@ __read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 
 	switch (type) {
 	case socket_type:
-		size = copy_socket(args, arg);
-		// Look up socket in our sock->pid_tgid map
-		update_pid_tid_from_sock(e, ((struct sk_type *)args)->sockaddr);
+		if (CAPTURE_TYPE_ENABLED(socket_type)) {
+			size = copy_socket(args, arg);
+			// Look up socket in our sock->pid_tgid map
+			update_pid_tid_from_sock(e, ((struct sk_type *)args)->sockaddr);
+		}
 		break;
 	case cred_type:
-		size = copy_cred(args, arg);
+		if (CAPTURE_TYPE_ENABLED(cred_type))
+			size = copy_cred(args, arg);
 		break;
 	case char_buf:
-		size = copy_char_buf(ctx, orig_off, arg, argm, e);
+		if (CAPTURE_TYPE_ENABLED(char_buf))
+			size = copy_char_buf(ctx, orig_off, arg, argm, e);
 		break;
 	case char_iovec:
-		size = copy_char_iovec(ctx, orig_off, arg, argm, e);
+		if (CAPTURE_TYPE_ENABLED(char_iovec))
+			size = copy_char_iovec(ctx, orig_off, arg, argm, e);
 		break;
 	case const_buf_type: {
-		// bound size to 1023 to help the verifier out
-		size = argm & 0x03ff;
-		probe_read(args, size, (char *)arg);
+		if (CAPTURE_TYPE_ENABLED(const_buf_type)) {
+			// bound size to 1023 to help the verifier out
+			size = argm & 0x03ff;
+			probe_read(args, size, (char *)arg);
+		}
 		break;
 	}
 	case bpf_attr_type: {
-		size = copy_bpf_attr(args, arg);
+		if (CAPTURE_TYPE_ENABLED(bpf_attr_type))
+			size = copy_bpf_attr(args, arg);
 		break;
 	}
 	case bpf_prog_type: {
-		size = copy_bpf_prog(args, arg);
+		if (CAPTURE_TYPE_ENABLED(bpf_prog_type))
+			size = copy_bpf_prog(args, arg);
 		break;
 	}
 	case perf_event_type: {
-		size = copy_perf_event(args, arg);
+		if (CAPTURE_TYPE_ENABLED(perf_event_type))
+			size = copy_perf_event(args, arg);
 		break;
 	}
 	case bpf_map_type: {
-		size = copy_bpf_map(args, arg);
+		if (CAPTURE_TYPE_ENABLED(bpf_map_type))
+			size = copy_bpf_map(args, arg);
 		break;
 	}
 	case user_namespace_type: {
-		size = copy_user_ns(args, arg);
+		if (CAPTURE_TYPE_ENABLED(user_namespace_type))
+			size = copy_user_ns(args, arg);
 		break;
 	}
 	case capability_type: {
-		size = copy_capability(args, arg);
+		if (CAPTURE_TYPE_ENABLED(capability_type))
+			size = copy_capability(args, arg);
 		break;
 	}
 	case load_module_type: {
-		size = copy_load_module(args, arg);
+		if (CAPTURE_TYPE_ENABLED(load_module_type))
+			size = copy_load_module(args, arg);
 		break;
 	}
 	case kernel_module_type: {
-		size = copy_kernel_module(args, arg);
+		if (CAPTURE_TYPE_ENABLED(kernel_module_type))
+			size = copy_kernel_module(args, arg);
 		break;
 	}
 	case kernel_cap_ty:
 	case cap_inh_ty:
 	case cap_prm_ty:
 	case cap_eff_ty:
-		probe_read(args, sizeof(__u64), (char *)arg);
-		size = sizeof(__u64);
+		if (CAPTURE_TYPES_ENABLED(CAPTURE_TYPE_MASK(kernel_cap_ty) | CAPTURE_TYPE_MASK(cap_inh_ty) |
+					  CAPTURE_TYPE_MASK(cap_prm_ty) | CAPTURE_TYPE_MASK(cap_eff_ty))) {
+			probe_read(args, sizeof(__u64), (char *)arg);
+			size = sizeof(__u64);
+		}
 		break;
 	default:
 		size = 0;
@@ -476,12 +517,13 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 
 	args = args_off(e, orig_off);
 
-	path_arg = get_path(type, arg, &path_buf);
+	if (CAPTURE_TYPES_ENABLED(CAPTURE_PATH_TYPES))
+		path_arg = get_path(type, arg, &path_buf);
 	/*
 	 * If not path_ag, separate argument processing based on the process
 	 * const for 4.19 kernels..
 	 */
-	if (path_arg) {
+	if (CAPTURE_TYPES_ENABLED(CAPTURE_PATH_TYPES) && path_arg) {
 		ret = copy_path(args, path_arg);
 	} else if (process == __READ_ARG_1) {
 		ret = __read_arg_1(ctx, type, orig_off, arg, argm, args);
@@ -628,7 +670,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		     : "i"(MAX_ACCESSIBLE_ARGS_MASK));
 
 	a = (&e->a0)[index];
-	if (am & ARGM_PRELOAD)
+	if (HAS_CAPTURE_PRELOAD && (am & ARGM_PRELOAD))
 		a = get_preload_arg(ctx, ty, index, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	else
 		extract_arg(config, index, &a, false, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
@@ -642,15 +684,15 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	 *   - current task object
 	 *   - real argument value
 	 */
-	if (am & ARGM_PRELOAD) {
+	if (HAS_CAPTURE_PRELOAD && (am & ARGM_PRELOAD)) {
 		a = get_preload_arg(ctx, ty, index, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	} else {
 		asm volatile("%[index] &= %1 ;\n"
 			     : [index] "+r"(index)
 			     : "i"(MAX_POSSIBLE_ARGS_MASK));
-		if (am & ARGM_PT_REGS) {
+		if (HAS_CAPTURE_PT_REGS && (am & ARGM_PT_REGS)) {
 			a = get_pt_regs_arg(ctx, config, index);
-		} else if (am & ARGM_CURRENT_TASK) {
+		} else if (HAS_CAPTURE_CURRENT_TASK && (am & ARGM_CURRENT_TASK)) {
 			a = get_current_task();
 		} else {
 			arg_index = config->idx[index & MAX_POSSIBLE_ARGS_MASK];
@@ -1288,17 +1330,23 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	asm volatile("%[size] &= 0x1fff;\n"
 		     : [size] "+r"(size));
 
-	switch (do_copy) {
-	case char_buf:
-		size = write_arg_status(e, size, 0);
-		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e);
-		break;
-	case char_iovec:
-		size = write_arg_status(e, size, 0);
-		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
-		break;
-	default:
-		break;
+	if (HAS_CAPTURE_RETURN_COPY) {
+		switch (do_copy) {
+		case char_buf:
+			if (CAPTURE_TYPE_ENABLED(char_buf)) {
+				size = write_arg_status(e, size, 0);
+				size += __copy_char_buf(ctx, size, info.ptr, ret, false, e);
+			}
+			break;
+		case char_iovec:
+			if (CAPTURE_TYPE_ENABLED(char_iovec)) {
+				size = write_arg_status(e, size, 0);
+				size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
+			}
+			break;
+		default:
+			break;
+		}
 	}
 
 	/* Complete message header and send */

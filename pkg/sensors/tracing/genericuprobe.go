@@ -269,6 +269,7 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 
 	// config_map data
 	var configData bytes.Buffer
+	rewriteCaptureConstants(load, uprobeEntry.loadArgs.config)
 	binary.Write(&configData, binary.LittleEndian, uprobeEntry.loadArgs.config)
 
 	mapLoad := []*program.MapLoad{
@@ -386,6 +387,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 
 		// config_map data
 		var configData bytes.Buffer
+		rewriteCaptureConstants(load, uprobeEntry.loadArgs.config)
 		binary.Write(&configData, binary.LittleEndian, uprobeEntry.loadArgs.config)
 
 		mapLoad := []*program.MapLoad{
