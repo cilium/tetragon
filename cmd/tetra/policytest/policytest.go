@@ -148,6 +148,10 @@ func runCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := newLogger()
 
+			if allTests {
+				return errors.New("--all-tests is deprecated. Use .* regex pattern instead")
+			}
+
 			var getParamValues func(t *policytest.T) iter.Seq[policytest.ParamVals]
 			if len(params) > 0 && allParams {
 				return errors.New("setting --params conflicts with --all-params")
@@ -178,7 +182,7 @@ func runCmd() *cobra.Command {
 				return errors.New("--k8s-context requires --k8s")
 			}
 
-			tests, err := selectTests(allTests, args)
+			tests, err := selectTests(args)
 			if err != nil {
 				return err
 			}
@@ -192,7 +196,7 @@ func runCmd() *cobra.Command {
 			defer closeOut()
 
 			if k8s.enabled {
-				return k8s.run(out, timeout, podArgs(args, allTests, allParams, monitorMode, params, outputFmt.Value))
+				return k8s.run(out, timeout, podArgs(args, allParams, monitorMode, params, outputFmt.Value))
 			}
 
 			ctx := context.Background()
@@ -231,16 +235,15 @@ func runCmd() *cobra.Command {
 	flags.BoolVar(&allParams, "all-params", allParams, "Run policy tests using all available parameters")
 	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
 	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
-	flags.BoolVar(&allTests, "all-tests", allTests, "Run all available policy tests")
+	// --all-tests is deprecated. TODO: remove in 1.9
+	flags.BoolVar(&allTests, "all-tests", false, "Run all available policy tests.")
+	flags.MarkHidden("all-tests")
 	k8s.register(flags)
 	return &cmd
 }
 
-func podArgs(tests []string, allTests, allParams, monitorMode bool, params map[string]string, output string) []string {
+func podArgs(tests []string, allParams, monitorMode bool, params map[string]string, output string) []string {
 	ret := []string{"--output=" + output}
-	if allTests {
-		ret = append(ret, "--all-tests")
-	}
 	if allParams {
 		ret = append(ret, "--all-params")
 	}
@@ -276,6 +279,10 @@ finally the policies are unloaded.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := newLogger()
 
+			if allTests {
+				return errors.New("--all-tests is deprecated. Use .* regex pattern instead")
+			}
+
 			// NB: parameters are applied to all policies
 			paramValues := make(map[string]any)
 			for k, v := range params {
@@ -283,7 +290,7 @@ finally the policies are unloaded.`,
 			}
 
 			ctx := context.Background()
-			tests, err := selectTests(allTests, args)
+			tests, err := selectTests(args)
 			if err != nil {
 				return err
 			}
@@ -336,7 +343,9 @@ finally the policies are unloaded.`,
 	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
 	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
 	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
-	flags.BoolVar(&allTests, "all-tests", allTests, "Run all available policy tests")
+	// --all-tests is deprecated. TODO: remove in 1.9
+	flags.BoolVar(&allTests, "all-tests", false, "Run all available policy tests.")
+	flags.MarkHidden("all-tests")
 	return &cmd
 }
 
@@ -353,15 +362,8 @@ func newLogger() *slog.Logger {
 	))
 }
 
-// selectTests returns all the policy tests if allTests is set, or the tests matching any of the
-// given regular expressions
-func selectTests(allTests bool, exprs []string) ([]*policytest.T, error) {
-	if allTests {
-		return policytest.AllPolicyTests.GetByFunction(func(_ *policytest.T) bool {
-			return true
-		}), nil
-	}
-
+// selectTests returns all the tests matching the regular expressions
+func selectTests(exprs []string) ([]*policytest.T, error) {
 	tests, err := policytest.AllPolicyTests.GetByRegexps(exprs)
 	if err != nil {
 		return nil, err
