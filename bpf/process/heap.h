@@ -25,19 +25,6 @@ struct {
 	__type(value, struct heap_ro_value);
 } heap_ro_zero SEC(".maps");
 
-struct heap_value {
-	union {
-		char fdinstall[4104]; /* 4096B paths + 4B length + 4B flags */
-	};
-};
-
-struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct heap_value);
-} heap SEC(".maps");
-
 /*
  * Uprobe/uretprobe/usdt probes run in a context that does not disable
  * preemption, unlike kprobes/tracepoints, so their per-process heap maps
