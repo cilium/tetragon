@@ -32,7 +32,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           filters: |
             src:
-              - .github/workflows/lint-codeql.yaml
+              - .github/workflows/lint-codeql.yml
               - '**/*.go'
               - 'go.mod'
               - 'go.sum'
