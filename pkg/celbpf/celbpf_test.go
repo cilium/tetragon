@@ -11,6 +11,7 @@ package celbpf
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math"
 	"os/exec"
 	"strconv"
@@ -254,6 +255,56 @@ var argTestCases = []struct {
 	{
 		expr:     "arg0 == arg1 || arg2 != arg3",
 		hookArgs: []any{int64(42), int64(41), uint32(42), uint32(41)},
+		ret:      1,
+	},
+	{
+		expr:     fmt.Sprintf("htons(arg0) == uint16(%du)", hostToBE16(0x1234)),
+		hookArgs: []any{uint16(0x1234)},
+		ret:      1,
+	},
+	{
+		expr:     "ntohs(arg0) == uint16(80u)",
+		hookArgs: []any{hostToBE16(80)},
+		ret:      1,
+	},
+	{
+		expr:     "ntohs(arg0) == uint16(443u)",
+		hookArgs: []any{hostToBE16(80)},
+		ret:      0,
+	},
+	{
+		expr:     "ntohs(htons(arg0)) == arg0",
+		hookArgs: []any{uint16(0xabcd)},
+		ret:      1,
+	},
+	{
+		expr:     fmt.Sprintf("htonl(arg0) == uint32(%du)", hostToBE32(0x12345678)),
+		hookArgs: []any{uint32(0x12345678)},
+		ret:      1,
+	},
+	{
+		expr:     "ntohl(arg0) == arg1",
+		hookArgs: []any{hostToBE32(0x7f000001), uint32(0x7f000001)},
+		ret:      1,
+	},
+	{
+		expr:     "htonl(ntohl(arg0)) == arg0",
+		hookArgs: []any{uint32(0xdeadbeef)},
+		ret:      1,
+	},
+	{
+		expr:     fmt.Sprintf("htonll(arg0) == %du", hostToBE64(0x0102030405060708)),
+		hookArgs: []any{uint64(0x0102030405060708)},
+		ret:      1,
+	},
+	{
+		expr:     "ntohll(arg0) == arg1",
+		hookArgs: []any{hostToBE64(0xdeadbeefcafebabe), uint64(0xdeadbeefcafebabe)},
+		ret:      1,
+	},
+	{
+		expr:     "ntohll(htonll(arg0)) == arg0",
+		hookArgs: []any{uint64(0xfedcba9876543210)},
 		ret:      1,
 	},
 }
