@@ -97,6 +97,13 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 			return c.cg.emitU8(scratchRegs[0], argTypes[0])
 		}
 
+	// hton and ntoh are the same operation: a swap on little-endian hosts and a no-op
+	// (besides truncation) on big-endian hosts.
+	case htonsFn, ntohsFn, htonlFn, ntohlFn, htonllFn, ntohllFn:
+		emitCall = func() error {
+			return c.cg.emitHostToBE(scratchRegs[0], argTypes[0])
+		}
+
 	case cgOperators.Add:
 		emitCall = func() error {
 			if err := c.cg.emitArithOp(
