@@ -141,14 +141,14 @@ func procArgs(p *procs) string {
 	return args.String()
 }
 
-func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
+func pushExecveEvents(procPath string, p procs, inInitTreeMap map[uint32]struct{}) {
 	var err error
 
 	filename := procFilename(&p)
 	args := procArgs(&p)
 	cwd, flags := p.cwd, p.cwdFlags
 	if !p.scanned {
-		cwd, flags = getCWD(p.pid)
+		cwd, flags = getCWD(procPath, p.pid)
 	}
 
 	if p.kernelThread {
@@ -258,13 +258,13 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 	}
 }
 
-func pushEvents(ps []procs, inInitTreeMap map[uint32]struct{}) {
+func pushEvents(procPath string, ps []procs, inInitTreeMap map[uint32]struct{}) {
 	sort.Slice(ps, func(i, j int) bool {
 		return ps[i].ppid < ps[j].ppid
 	})
 	ps = append([]procs{procKernel()}, ps...)
 	for _, p := range ps {
-		pushExecveEvents(p, inInitTreeMap)
+		pushExecveEvents(procPath, p, inInitTreeMap)
 	}
 }
 
@@ -289,7 +289,7 @@ func GetRunningProcs() error {
 	}
 
 	if err == nil {
-		pushEvents(processes, inInitTreeMap)
+		pushEvents(option.Config.ProcFS, processes, inInitTreeMap)
 	}
 	return err
 }
