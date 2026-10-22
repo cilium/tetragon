@@ -36,6 +36,13 @@ type procReader interface {
 
 var procReaders = make(map[string]procReader)
 
+type bpfProcs struct {
+	cwd      string
+	cwdFlags uint32
+	dockerId string
+	cgrpid   uint64
+}
+
 type procs struct {
 	ppid              uint32
 	pnspid            uint32
@@ -65,6 +72,9 @@ type procs struct {
 	cgroupNs          uint32
 	userNs            uint32
 	kernelThread      bool
+
+	// bpf scan pre-filled data
+	*bpfProcs
 }
 
 func procFilename(p *procs) string {
