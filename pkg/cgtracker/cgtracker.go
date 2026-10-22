@@ -148,7 +148,7 @@ func RegisterCgroupTracker(sensor *sensors.Sensor) (*sensors.Sensor, error) {
 
 	trackerProgs := []*program.Program{mkdirProg, releaseProg}
 	for _, p := range sensor.Progs {
-		if base.IsExecve(p) || base.IsFork(p) || base.IsExit(p) {
+		if base.IsExecve(p) || base.IsFork(p) || base.IsExit(p) || base.IsProcScan(p) {
 			trackerProgs = append(trackerProgs, p)
 		}
 	}
