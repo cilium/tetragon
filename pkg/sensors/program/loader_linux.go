@@ -73,7 +73,7 @@ func TracepointAttach(load *Program, bpfDir string) AttachFunc {
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("tracepoint attach argument must be in the form category/tracepoint, got: %s", load.Attach)
 		}
-		tpLink, err := link.Tracepoint(parts[0], parts[1], prog, nil)
+		tpLink, err := attachTracepoint(parts[0], parts[1], prog)
 		if err != nil {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 		}
@@ -87,7 +87,7 @@ func TracepointAttach(load *Program, bpfDir string) AttachFunc {
 			IsLinked:   true,
 			Link:       tpLink,
 			RelinkFn: func() (link.Link, error) {
-				return link.Tracepoint(parts[0], parts[1], prog, nil)
+				return attachTracepoint(parts[0], parts[1], prog)
 			},
 		}, nil
 	}
