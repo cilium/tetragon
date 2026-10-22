@@ -62,6 +62,7 @@ func newDefaultSpecOptions() *specOptions {
 	return &specOptions{
 		DisableKprobeMulti: false,
 		OverrideMethod:     OverrideMethodDefault,
+		policyMode:         policyconf.UnsetMode,
 	}
 }
 
