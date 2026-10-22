@@ -589,12 +589,8 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 				SetLoaderData(lsmEntry.tableId).
 				SetPolicy(lsmEntry.policyName)
 			progs = append(progs, loadIma)
-			imaHashMap := program.MapBuilderProgram("ima_hash_map", loadIma)
+			imaHashMap := program.MapBuilderSensor("ima_hash_map", loadIma, load, loadOutput)
 			maps = append(maps, imaHashMap)
-			imaHashMapOutput := program.MapBuilderProgram("ima_hash_map", loadOutput)
-			maps = append(maps, imaHashMapOutput)
-			imaHashMapCore := program.MapBuilderProgram("ima_hash_map", load)
-			maps = append(maps, imaHashMapCore)
 		} else {
 			logger.GetLogger().
 				Warn("IMA hash calculation is not supported for this hook: " + lsmEntry.hook)
