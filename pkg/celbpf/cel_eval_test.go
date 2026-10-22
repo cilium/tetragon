@@ -19,6 +19,8 @@ import (
 	celTypes "cel.dev/cel-go/common/types"
 	"cel.dev/cel-go/common/types/ref"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/testutils/byteorder"
 )
 
 type number interface {
@@ -308,6 +310,21 @@ func celBitwiseNOT(value ref.Val) ref.Val {
 	return celTypes.MaybeNoSuchOverloadErr(value)
 }
 
+func celHostToNetwork(value ref.Val) ref.Val {
+	switch v := value.(type) {
+	case celTypes.Uint:
+		return celTypes.Uint(byteorder.HostToNetwork64(uint64(v)))
+	case celU16:
+		return newCelU16(byteorder.HostToNetwork16(v.value))
+	case celU32:
+		return newCelU32(byteorder.HostToNetwork32(v.value))
+	}
+	// The byte order functions are only declared for u16/u32/u64 (see getFnsOpts), so the type
+	// checker rejects other types before evaluation. Return a CEL error in case one slips
+	// through, so that the mismatch shows up as a failure instead of a bogus value.
+	return celTypes.MaybeNoSuchOverloadErr(value)
+}
+
 func compareIntegers[T number | celTypes.Int | celTypes.Uint](op string, left, right T) ref.Val {
 	switch op {
 	case "lt":
@@ -407,7 +424,9 @@ func getOverloadOpts(t *testing.T, o *fnOverload) []cel.OverloadOpt {
 		}))
 	case "equals", "not_equals", "logical_and", "logical_or":
 		return ret
-
+	case htonsFn + "_u16", ntohsFn + "_u16", htonlFn + "_u32", ntohlFn + "_u32",
+		htonllFn + "_u64", ntohllFn + "_u64":
+		return append(ret, cel.UnaryBinding(celHostToNetwork))
 	}
 
 	if strings.HasPrefix(o.name, "sub_") {
