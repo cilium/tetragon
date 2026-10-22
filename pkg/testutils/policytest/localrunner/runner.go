@@ -3,7 +3,8 @@
 
 //go:build !windows
 
-package policytest
+// Package localrunner runs the policy tests in process against a local agent.
+package localrunner
 
 import (
 	"context"
@@ -23,12 +24,14 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	cli "github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/bugtool"
+	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	"github.com/cilium/tetragon/pkg/tetragoninfo"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
-type LocalRunner struct {
-	conf *Conf
+// Runner runs the tests in process against a local agent.
+type Runner struct {
+	conf *policytest.Conf
 	cli  *cli.ClientWithContext
 	info *tetragoninfo.Info
 	wg   sync.WaitGroup
@@ -36,7 +39,7 @@ type LocalRunner struct {
 	fwdCtlChan chan fwdCtl
 }
 
-// NewLocalRunner creates a new local runner
+// New creates a new local runner
 //
 // For event testing, the local runner uses three goroutines:
 //   - receive (runRecv)
@@ -49,11 +52,11 @@ type LocalRunner struct {
 //
 // When a new scenario starts, a new check goroutine is created and the forwarder is configured to
 // forward events to it.
-func NewLocalRunner(
+func New(
 	ctx context.Context,
 	log *slog.Logger,
-	cnf *Conf,
-) (*LocalRunner, error) {
+	cnf *policytest.Conf,
+) (*Runner, error) {
 	if cnf.GrpcAddr == "" {
 		info, err := bugtool.LoadInitInfo()
 		if err == nil {
@@ -86,7 +89,7 @@ func NewLocalRunner(
 		return nil, fmt.Errorf("failed to retrieve info from agent: %w", err)
 	}
 	info := tetragoninfo.Decode(res)
-	ret := &LocalRunner{
+	ret := &Runner{
 		conf: cnf,
 		cli:  cli,
 		info: info,
@@ -113,7 +116,7 @@ func NewLocalRunner(
 	return ret, nil
 }
 
-func (r *LocalRunner) Close() {
+func (r *Runner) Close() {
 	if r.cli != nil {
 		r.cli.Close()
 	}
@@ -124,7 +127,7 @@ func (r *LocalRunner) Close() {
 	r.wg.Wait()
 }
 
-func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error) {
+func (r *Runner) AddPolicy(l *slog.Logger, test *policytest.T) (*PolicyHandler, error) {
 	// generate policy
 	pol, cleanup, err := test.Policy(r.conf)
 	if err != nil {
@@ -187,13 +190,13 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 }
 
 // RunTest runs a policy test
-func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Result {
-	if reason := CheckCLIFlags(r.info, test.CLIFlags); reason != "" {
-		return &Result{Skipped: reason}
+func (r *Runner) RunTest(l *slog.Logger, test *policytest.T, testConf *policytest.TestConf) *policytest.Result {
+	if reason := policytest.CheckCLIFlags(r.info, test.CLIFlags); reason != "" {
+		return &policytest.Result{Skipped: reason}
 	}
 	if test.ShouldSkip != nil {
-		if reason := test.ShouldSkip(&SkipInfo{r.info, testConf.ParamValues}); reason != "" {
-			return &Result{Skipped: reason}
+		if reason := test.ShouldSkip(&policytest.SkipInfo{AgentInfo: r.info, ParamValues: testConf.ParamValues}); reason != "" {
+			return &policytest.Result{Skipped: reason}
 		}
 	}
 
@@ -207,18 +210,18 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 
 	polHandler, err := r.AddPolicy(l, test)
 	if err != nil {
-		return &Result{Err: JSONError{Err: err}, TotalTime: time.Since(t0)}
+		return &policytest.Result{Err: policytest.JSONError{Err: err}, TotalTime: time.Since(t0)}
 	}
 
 	if testConf.MonitorMode {
 		err := polHandler.Configure(l, r.cli, nil, new(tetragon.TracingPolicyMode_TP_MODE_MONITOR))
 		if err != nil {
 			err = errors.Join(err, polHandler.Cleanup(l, r.conf, r.cli))
-			return &Result{Err: JSONError{Err: err}, TotalTime: time.Since(t0)}
+			return &policytest.Result{Err: policytest.JSONError{Err: err}, TotalTime: time.Since(t0)}
 		}
 	}
 
-	var res Result
+	var res policytest.Result
 	for _, sc := range test.Scenarios {
 		scenario := sc(r.conf)
 		scRes := r.RunScenario(l, scenario, polHandler, testConf)
@@ -248,9 +251,9 @@ func processCacheDisabled(info *tetragoninfo.Info) bool {
 	return false
 }
 
-func (r *LocalRunner) RunScenario(
-	l *slog.Logger, scenario *Scenario, polHandler *PolicyHandler, testConf *TestConf,
-) ScenarioRes {
+func (r *Runner) RunScenario(
+	l *slog.Logger, scenario *policytest.Scenario, polHandler *PolicyHandler, testConf *policytest.TestConf,
+) policytest.ScenarioRes {
 	ctx, cancel := context.WithTimeout(r.cli.Ctx, r.conf.ScenarioTimeout)
 	defer cancel()
 
@@ -270,7 +273,7 @@ func (r *LocalRunner) RunScenario(
 
 	var actionCountsErr error
 	var cntsBefore, cntsAfter *tetragon.TracingPolicyActionCounters
-	if !scenario.ActCountChecker.empty() {
+	if !scenario.ActCountChecker.Empty() {
 		cntsBefore, actionCountsErr = polHandler.GetCounts(l, r.cli)
 	}
 
@@ -284,7 +287,7 @@ func (r *LocalRunner) RunScenario(
 	if cntsBefore != nil {
 		cntsAfter, actionCountsErr = polHandler.GetCounts(l, r.cli)
 		if actionCountsErr == nil {
-			actionCountsErr = actCountsCheck(testConf.MonitorMode,
+			actionCountsErr = policytest.CheckActionCounts(testConf.MonitorMode,
 				cntsBefore, cntsAfter, &scenario.ActCountChecker)
 		}
 	}
@@ -294,11 +297,11 @@ func (r *LocalRunner) RunScenario(
 	// notify the forwarder to stop forwarding events to the checker
 	r.fwdCtlChan <- fwdCtl{cmd: fwdCmdSetForward, fwd: nil}
 
-	return ScenarioRes{
+	return policytest.ScenarioRes{
 		Name:            scenario.Name,
-		TriggerErr:      JSONError{Err: triggerErr},
-		CheckerErr:      JSONError{Err: checkerRet.err},
-		ActionCountsErr: JSONError{Err: actionCountsErr},
+		TriggerErr:      policytest.JSONError{Err: triggerErr},
+		CheckerErr:      policytest.JSONError{Err: checkerRet.err},
+		ActionCountsErr: policytest.JSONError{Err: actionCountsErr},
 	}
 }
 
@@ -431,10 +434,10 @@ func runFwd(
 type PolicyHandler struct {
 	tpName      string
 	tpNamespace string
-	cleanup     PolicyCleanupFn
+	cleanup     policytest.PolicyCleanupFn
 }
 
-func (ph *PolicyHandler) Cleanup(l *slog.Logger, conf *Conf, client *cli.ClientWithContext) error {
+func (ph *PolicyHandler) Cleanup(l *slog.Logger, conf *policytest.Conf, client *cli.ClientWithContext) error {
 	// call policy cleanup after we are done
 	if ph.cleanup != nil {
 		defer ph.cleanup()

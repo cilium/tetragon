@@ -24,6 +24,7 @@ import (
 
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
+	"github.com/cilium/tetragon/pkg/testutils/policytest/localrunner"
 	_ "github.com/cilium/tetragon/tests/policytests" // so that tests can be registered
 )
 
@@ -224,7 +225,7 @@ func runCmd() *cobra.Command {
 			}
 
 			ctx := context.Background()
-			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
+			runner, err := localrunner.New(ctx, log, &policytest.Conf{
 				GrpcAddr:        common.ServerAddress,
 				BinsDir:         testBinsPath,
 				DumpPolicyPath:  dumpPolicyPath,
