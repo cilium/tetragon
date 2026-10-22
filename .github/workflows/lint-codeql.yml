@@ -39,7 +39,8 @@ jobs:
 
   analyze:
     needs: check_changes
-    if: ${{ needs.check_changes.outputs.go-changes == 'true' || github.event_name != 'pull_request' }}
+    # Use !cancelled() to keep analyzing even when check_changes is skipped.
+    if: ${{ !cancelled() && (needs.check_changes.outputs.go-changes == 'true' || github.event_name != 'pull_request') }}
     runs-on: ubuntu-26.04
     permissions:
       security-events: write
