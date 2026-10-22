@@ -111,12 +111,12 @@ func procArgs(p *procs) string {
 	return args.String()
 }
 
-func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
+func pushExecveEvents(procPath string, p procs, inInitTreeMap map[uint32]struct{}) {
 	var err error
 
 	filename := procFilename(&p)
 	args := procArgs(&p)
-	cwd, flags := getCWD(p.pid)
+	cwd, flags := getCWD(procPath, p.pid)
 
 	if p.kernelThread {
 		m := exec.MsgKThreadInitUnix{}
@@ -221,7 +221,7 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 	}
 }
 
-func pushEvents(ps []procs) {
+func pushEvents(procPath string, ps []procs) {
 	inInitTreeMap := writeExecveMap(ps)
 
 	sort.Slice(ps, func(i, j int) bool {
@@ -229,7 +229,7 @@ func pushEvents(ps []procs) {
 	})
 	ps = append([]procs{procKernel()}, ps...)
 	for _, p := range ps {
-		pushExecveEvents(p, inInitTreeMap)
+		pushExecveEvents(procPath, p, inInitTreeMap)
 	}
 }
 
@@ -240,6 +240,6 @@ func GetRunningProcs() error {
 		return err
 	}
 
-	pushEvents(procs)
+	pushEvents(option.Config.ProcFS, procs)
 	return nil
 }
