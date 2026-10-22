@@ -22,6 +22,7 @@ import (
 
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
+	"github.com/cilium/tetragon/pkg/testutils/policytest/localrunner"
 	_ "github.com/cilium/tetragon/tests/policytests" // so that tests can be registered
 )
 
@@ -242,10 +243,10 @@ finally the policies are unloaded.`,
 			if err != nil {
 				return err
 			}
-			runs := make([]policytest.TestRun, 0, len(tests))
+			runs := make([]localrunner.TestRun, 0, len(tests))
 			results := make([]*policytest.NamedResult, 0, len(tests))
 			for _, t := range tests {
-				runs = append(runs, policytest.TestRun{
+				runs = append(runs, localrunner.TestRun{
 					Test: t,
 					// each run needs its own TestConf
 					Conf: &policytest.TestConf{
@@ -317,8 +318,8 @@ func newRunner(
 	testBinsPath, dumpPolicyPath string,
 	podSelector map[string]string,
 	timeout time.Duration,
-) (*policytest.LocalRunner, error) {
-	runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
+) (*localrunner.Runner, error) {
+	runner, err := localrunner.New(ctx, log, &policytest.Conf{
 		GrpcAddr:        common.ServerAddress,
 		BinsDir:         testBinsPath,
 		DumpPolicyPath:  dumpPolicyPath,
