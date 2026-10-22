@@ -1,20 +1,5 @@
 # Demo of restricting file access from kubectl exec processes, while still making the file
-# available from the pod process.
-apiVersion: v1
-kind: Pod
-metadata:
-  name: bigsecret
-  labels:
-    app: "bigsecret"
-spec:
-  containers:
-  - image: ubuntu
-    name: mycontainer
-    command:
-      - /bin/bash
-      - -c
-      - echo "I love pizza!" > /secretfile; while true; do sha256sum /secretfile; sleep 1; done
----
+# available from the pod process. Apply against a pod labeled app=bigsecret.
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:

@@ -7,7 +7,7 @@ description: "Monitor Process Credentials changes at the kernel layer"
 Monitoring Process Credentials changes at the kernel layer is also possible.
 This allows to capture the new [`process_credentials`]({{< ref "/docs/reference/grpc-api#processcredentials" >}}) that should be applied.
 
-This [process-creds-installed](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml) tracing policy can be used to answer the following questions:
+This {{< policy-ref "process-credentials/process-creds-installed.yaml">}} tracing policy can be used to answer the following questions:
 
 > Which process or container is trying to change its own UIDs/GIDs in the cluster?
 
@@ -53,12 +53,12 @@ kube-system          tetragon-sdwv6                               2/2     Runnin
 
 ### Monitor Process Credentials installation
 
-We use the [process-creds-installed](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml) Tracing Policy that hooks the kernel layer when credentials are being installed.
+We use the {{< policy-ref "process-credentials/process-creds-installed.yaml">}} Tracing Policy that hooks the kernel layer when credentials are being installed.
 
-So let's apply the [process-creds-installed](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml) Tracing Policy.
+So let's apply the {{< policy-ref "process-credentials/process-creds-installed.yaml">}} Tracing Policy.
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml
+kubectl apply -f {{< policy-raw-url "process-credentials/process-creds-installed.yaml">}}
 ```
 
 Then we start monitoring for events with `tetra` cli:
@@ -217,8 +217,8 @@ In addition to the Kubernetes Identity and process metadata from exec events, [P
 
 Here we can clearly see that the suid binary is being executed by a user ID `11` in order to elevate its privileges to user ID `0` including capabilities.
 
-To disable the [process-creds-installed Tracing Policy](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml) run:
+To disable the {{< policy-ref "process-credentials/process-creds-installed.yaml">}} Tracing Policy run:
 
 ```shell
-kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/process-credentials/process-creds-installed.yaml
+kubectl delete -f {{< policy-raw-url "process-credentials/process-creds-installed.yaml">}}
 ```

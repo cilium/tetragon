@@ -1,0 +1,21 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "af-alg-bind"
+spec:
+  kprobes:
+  - call: "security_socket_bind"
+    syscall: false
+    args:
+    - index: 1
+      type: "uint16"
+      label: "sockaddr_alg.salg_family"
+      btfType: "sockaddr_alg_new"
+      btfTypeModule: "af_alg"
+      resolve: "salg_family"
+    - index: 1
+      type: "string"
+      label: "sockaddr_alg.salg_name"
+      btfType: "sockaddr_alg_new"
+      btfTypeModule: "af_alg"
+      resolve: "salg_name"

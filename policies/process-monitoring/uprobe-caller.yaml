@@ -1,0 +1,13 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-caller"
+spec:
+  uprobes:
+  - path: test
+    symbols:
+    - "func2"
+    selectors:
+    - matchUserCallers:
+      - depth: "2"
+        symbol: "main"
