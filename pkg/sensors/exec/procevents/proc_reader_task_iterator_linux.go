@@ -210,7 +210,7 @@ func procFromScan(procPath string, m *ebpf.Map, e *ProcScanEntry, v *execvemap.E
 		// The cwd is truncated, read the full one from procfs as the
 		// procfs scan does, and keep the truncated one if that fails.
 		if e.Flags&ProcScanCwdPathComponents != 0 {
-			if fullCwd, flags := getCWD(e.Pid); flags == 0 {
+			if fullCwd, flags := getCWD(procPath, e.Pid); flags == 0 {
 				cwd = fullCwd
 			} else {
 				cwdFlags = api.EventErrorPathComponents

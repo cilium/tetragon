@@ -20,7 +20,6 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/proc"
@@ -57,7 +56,7 @@ func procKernel() procs {
 	}
 }
 
-func getCWD(pid uint32) (string, uint32) {
+func getCWD(procPath string, pid uint32) (string, uint32) {
 	flags := uint32(0)
 	pidstr := strconv.FormatUint(uint64(pid), 10)
 
@@ -65,7 +64,7 @@ func getCWD(pid uint32) (string, uint32) {
 		return "", flags
 	}
 
-	cwd, err := os.Readlink(filepath.Join(option.Config.ProcFS, pidstr, "cwd"))
+	cwd, err := os.Readlink(filepath.Join(procPath, pidstr, "cwd"))
 	if err != nil {
 		flags |= api.EventRootCWD | api.EventErrorCWD
 		return "", flags
