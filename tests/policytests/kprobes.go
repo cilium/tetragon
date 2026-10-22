@@ -21,6 +21,7 @@ import (
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	tpath "github.com/cilium/tetragon/pkg/reader/path"
+	"github.com/cilium/tetragon/pkg/testutils/byteorder"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 )
 
@@ -721,6 +722,68 @@ spec:
 			{Bin: helper, Args: []string{"getcpu"}},
 		}).ExpectExitCodes([]int{0, 0, 0, 0}),
 		EventChecker: ec.NewUnorderedEventChecker(getcpuChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Post: &postCnt,
+		},
+	}
+}).RegisterAtInit()
+
+var _ = policytest.NewBuilder("cel-byte-order").
+	WithLabels("kprobes", "cel").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if !si.AgentInfo.Probes[bpf.MixBPFAndTailCallsProbe] {
+			return "need kernel where we can mix bpf and tail calls"
+		}
+		return ""
+	}).
+	WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "connect-port-1234"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    syscall: false
+    args:
+    - index: 1
+      type: "uint16"
+      btfType: "sockaddr_in"
+      resolve: "sin_port"
+    selectors:
+    - matchBinaries:
+      - operator: In
+        values:
+        - {{ testBinary "test-helper" }}
+      matchActions:
+      - action: Post
+      matchCEL:
+        expr: "ntohs(arg0) == uint16(1234u)"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	helper := c.TestBinary("test-helper")
+
+	// sin_port holds the port in network byte order, so arg0 is not 1234: on a little-endian
+	// host it reads as 53764. The policy only posts an event if ntohs() converted it back.
+	connectChecker := ec.NewProcessKprobeChecker("connect-checker").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(helper))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithUintArg(uint32(byteorder.HostToNetwork16(1234))),
+			))
+
+	// Connecting to a second port exercises the negative case: only the connect to port 1234
+	// is expected to post an event, which the Post action count below checks.
+	postCnt := uint64(1)
+	return &policytest.Scenario{
+		Name: "CEL byte order conversion matches a port in network byte order",
+		Trigger: policytest.NewMultiCmdTrigger([]policytest.CmdTrigger{
+			*policytest.NewCmdTrigger(helper, "connect", "127.0.0.1:1234"),
+			*policytest.NewCmdTrigger(helper, "connect", "127.0.0.1:4321"),
+		}),
+		EventChecker: ec.NewUnorderedEventChecker(connectChecker),
 		ActCountChecker: policytest.ActionCounts{
 			Post: &postCnt,
 		},

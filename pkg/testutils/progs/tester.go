@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -105,6 +106,21 @@ func TestHelperMain() {
 			whence := os.Getuid() - 42
 			o, err := unix.Seek(int(-1), 0, int(whence))
 			fmt.Fprintf(os.Stdout, "cmd=%q returned o=%d err=%v\n", cmd, o, err)
+
+		case strings.HasPrefix(cmd, "connect "):
+			fields := strings.Fields(cmd)
+			if len(fields) < 2 {
+				fmt.Fprintf(os.Stderr, "invalid cmd='%s'\n", cmd)
+				os.Exit(1)
+			}
+			// NB: it does not matter whether the connection succeeds. The
+			// security_socket_connect hook is called before the connection is
+			// attempted, so connecting to a closed port is enough to trigger it.
+			conn, err := net.Dial("tcp", fields[1])
+			if err == nil {
+				conn.Close()
+			}
+			fmt.Fprintf(os.Stdout, "cmd=%q returned err=%v\n", cmd, err)
 
 		case cmd == "getcpu":
 			var cpu, node int
