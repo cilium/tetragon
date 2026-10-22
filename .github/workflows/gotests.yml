@@ -75,7 +75,13 @@ jobs:
         sudo -E echo "run go tests: " `uname -a`
         sudo -E go mod verify
         export TETRAGON_LIB=$(realpath "bpf/objs/")
-        make test GO_TEST_TIMEOUT=60m
+        # The runner kernel runs BPF on syscalls tracepoints of syscalls that
+        # read user memory only on the CPU of the attaching perf event, so the
+        # tests on sys_enter_write and sys_enter_mkdirat fail in most runs.
+        # Skip them until the kernel is fixed; the vmtests still run them.
+        # https://github.com/cilium/tetragon/issues/5846
+        make test GO_TEST_TIMEOUT=60m \
+          EXTRA_TESTFLAGS="-skip '^(TestCharBufTracepoint|TestGenericTracepointMeta|TestStringTracepoint)'"
 
     # Run some somple nok8s tests in packages where there is meaningful differentiation
     - name: Run nok8s go tests
