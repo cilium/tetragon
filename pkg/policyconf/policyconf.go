@@ -18,6 +18,8 @@ type Mode uint8
 
 const (
 	InvalidMode Mode = Mode(^uint8(0))
+	// UnsetMode: no mode was explicitly requested (the default value).
+	UnsetMode Mode = Mode(^uint8(0) - 1)
 	// NB: values below should match the ones in bpf/lib/policy_conf.h
 	EnforceMode     Mode = 0
 	MonitorMode     Mode = 1
