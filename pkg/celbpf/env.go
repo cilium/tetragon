@@ -34,6 +34,13 @@ var (
 	notFn = "not"
 	lshFn = "lsh"
 	rshFn = "rsh"
+
+	htonsFn  = "htons"
+	ntohsFn  = "ntohs"
+	htonlFn  = "htonl"
+	ntohlFn  = "ntohl"
+	htonllFn = "htonll"
+	ntohllFn = "ntohll"
 )
 
 type fnOverload struct {
@@ -103,6 +110,26 @@ func getFnsOpts() []fnOpts {
 		{name: notFn, overloads: intUnaryOperatorFnOverloads(notFn)},
 		{name: lshFn, overloads: intBinaryOperatorFnOverloads(lshFn)},
 		{name: rshFn, overloads: intBinaryOperatorFnOverloads(rshFn)},
+
+		// Byte order conversion (host <-> network/big-endian)
+		{name: htonsFn, overloads: []fnOverload{
+			{name: htonsFn + "_u16", args: []*cgTypes.Type{u16Ty}, res: u16Ty},
+		}},
+		{name: ntohsFn, overloads: []fnOverload{
+			{name: ntohsFn + "_u16", args: []*cgTypes.Type{u16Ty}, res: u16Ty},
+		}},
+		{name: htonlFn, overloads: []fnOverload{
+			{name: htonlFn + "_u32", args: []*cgTypes.Type{u32Ty}, res: u32Ty},
+		}},
+		{name: ntohlFn, overloads: []fnOverload{
+			{name: ntohlFn + "_u32", args: []*cgTypes.Type{u32Ty}, res: u32Ty},
+		}},
+		{name: htonllFn, overloads: []fnOverload{
+			{name: htonllFn + "_u64", args: []*cgTypes.Type{u64Ty}, res: u64Ty},
+		}},
+		{name: ntohllFn, overloads: []fnOverload{
+			{name: ntohllFn + "_u64", args: []*cgTypes.Type{u64Ty}, res: u64Ty},
+		}},
 
 		// Integer casting
 		{name: int8Fn, overloads: []fnOverload{
