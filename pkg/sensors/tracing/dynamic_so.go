@@ -7,7 +7,6 @@ package tracing
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
@@ -98,18 +98,29 @@ func (offsets *libcOffsets) load(binary string) error {
 	return nil
 }
 
+func ValidateSODynamicMultiUprobeConsistency(uprobes []v1alpha1.UProbeSpec) error {
+	// Each sopath selector of each uprobe takes a slot in the per-thread
+	// state machine, which is shared by all the uprobes of a multi-uprobe sensor.
+	numSoOverride := 0
+	for _, curr := range uprobes {
+		for _, s := range curr.Selectors {
+			if slices.ContainsFunc(s.MatchActions, isSODynamicAction) {
+				numSoOverride++
+			}
+		}
+	}
+	if numSoOverride > selectors.MaxSelectors {
+		return fmt.Errorf("multi-uprobes mandate at most %d `sopath` selectors to be specified in the whole policy; found: %d", selectors.MaxSelectors, numSoOverride)
+	}
+	return nil
+}
+
 func ValidateSODynamic(uprobe *v1alpha1.UProbeSpec) error {
-	foundSoOverride := false
 	for _, s := range uprobe.Selectors {
 		for _, action := range s.MatchActions {
 			if !isSODynamicAction(action) {
 				continue
 			}
-
-			if foundSoOverride {
-				return errors.New("multiple `sopath` selectors are not supported")
-			}
-			foundSoOverride = true
 
 			// -1 to account for null terminator
 			if len(action.SoPath) > processapi.SOPATH_MAX-1 {
@@ -189,7 +200,7 @@ func (dynOv *DynamicOverride) PopulateUprobeRegs() processapi.UprobeRegs {
 	return uprobeRegs
 }
 
-func (dynOv *DynamicOverride) GetMaps(load *program.Program) []*program.Map {
+func GetSODynamicMaps(load *program.Program) []*program.Map {
 	pendingCallsMap := program.MapBuilderProgram("tg_dyn_sm", load)
 	return []*program.Map{pendingCallsMap}
 }
