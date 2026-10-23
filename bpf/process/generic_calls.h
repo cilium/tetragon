@@ -962,6 +962,48 @@ do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_
 #define do_set_action(ctx, idx, arg_idx, arg_value)
 #endif
 
+#if defined(GENERIC_UPROBE) && defined(__V61_BPF_PROG)
+FUNC_INLINE int
+__cel_eval_idx(struct offload_data *d, struct uprobe_regs *regs, struct msg_generic_kprobe *e, __u32 j)
+{
+	if (j >= regs->cnt)
+		return 1;
+	if (regs->ass[j].type == ASM_ASSIGNMENT_TYPE_CEL) {
+		/* We use the ->off to store the CEL expression index */
+		size_t cel_idx = regs->ass[j].off & CEL_VALS_MASK;
+		/* The result of the CEL expression is stored in ->vals, using the CEL
+		 * expression index
+		 */
+		d->vals[cel_idx] = cel_expr(cel_idx, e->argsoff, e->args);
+	}
+	return 0;
+}
+
+FUNC_INLINE void
+cel_eval_assignments(struct offload_data *d, struct msg_generic_kprobe *e, __u32 idx)
+{
+	struct uprobe_regs *regs;
+	__u32 key = idx, j;
+
+	regs = map_lookup_elem(&regs_map, &key);
+	if (!regs)
+		return;
+
+	if (CONFIG(ITER_NUM)) {
+		bpf_for(j, 0, REGS_MAX)
+		{
+			if (__cel_eval_idx(d, regs, e, j))
+				break;
+		}
+	} else {
+		for (j = 0; j < REGS_MAX; j++) {
+			if (__cel_eval_idx(d, regs, e, j))
+				break;
+		}
+	}
+}
+#endif /* GENERIC_UPROBE && __V61_BPF_PROG */
+
 FUNC_LOCAL __u32
 do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool enforce_mode)
 {
@@ -1037,7 +1079,15 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		error = actions->act[++i];
 		if (enforce_mode) {
 #if defined(GENERIC_UPROBE)
-			do_uprobe_override(ctx, error);
+			struct offload_data d = { .idx = error };
+
+			// In pre6.1 kernels this function is inlined into do_actions and
+			// the loop here exceeds the verifier's complexity limit
+#ifdef __V61_BPF_PROG
+			cel_eval_assignments(&d, e, error);
+
+#endif /* __V61_BPF_PROG */
+			do_uprobe_override(ctx, &d);
 #else
 			do_override_action(error);
 #endif
@@ -1076,7 +1126,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		if (enforce_mode) {
 #if defined(GENERIC_UPROBE)
 			// value is discarded here
-			do_uprobe_override(ctx, index);
+			do_uprobe_set(index);
 #else
 			do_set_action(ctx, e, index, value);
 #endif

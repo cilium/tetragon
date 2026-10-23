@@ -10,6 +10,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -118,11 +119,11 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		require.NoError(t, err, "failed to parse elf file into collection spec")
 		require.NotNil(t, spec, "collection spec should not be nil")
 
-		// The filter_arg programs call cel_expr_N functions generated at policy
-		// load time. The base (4.19) objects have no such calls.
+		// Programs that call cel_expr() need the generated functions linked
+		// in; which ones do depends on the object variant
 		if fileName != "bpf_generic_kprobe.o" && fileName != "bpf_generic_uprobe.o" {
 			for _, prog := range spec.Programs {
-				if prog.Name == "generic_kprobe_filter_arg" || prog.Name == "generic_uprobe_filter_arg" {
+				if slices.Contains(prog.Instructions.FunctionReferences(), "cel_expr") {
 					var exprs selectors.CelExprFunctions
 					err := exprs.RewriteProg(prog)
 					require.NoError(t, err, "failed to rewrite program for empty CEL expressions")

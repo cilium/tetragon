@@ -19,6 +19,7 @@ const (
 	ASM_ASSIGNMENT_TYPE_REG       uint8 = 2
 	ASM_ASSIGNMENT_TYPE_REG_OFF   uint8 = 3
 	ASM_ASSIGNMENT_TYPE_REG_DEREF uint8 = 4
+	ASM_ASSIGNMENT_TYPE_CEL       uint8 = 5
 )
 
 var errNext = errors.New("next")

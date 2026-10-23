@@ -467,7 +467,7 @@ func getOverloadOpts(t *testing.T, o *fnOverload) []cel.OverloadOpt {
 	return ret
 }
 
-func evalCEL(t *testing.T, expr string, hookArgs []any) uint32 {
+func evalCELRaw(t *testing.T, expr string, hookArgs []any) ref.Val {
 	t.Helper()
 
 	opts := []cel.EnvOption{
@@ -526,8 +526,12 @@ func evalCEL(t *testing.T, expr string, hookArgs []any) uint32 {
 	result, _, err := prog.Eval(values)
 	require.NoError(t, err, "Failed to evaluate CEL program")
 
-	boolResult, ok := result.(celTypes.Bool)
-	require.True(t, ok, "CEL expression %q returned %T, not bool", expr, result)
+	return result
+}
+
+func evalCEL(t *testing.T, expr string, hookArgs []any) uint32 {
+	boolResult, ok := evalCELRaw(t, expr, hookArgs).(celTypes.Bool)
+	require.True(t, ok, "CEL expression %q returned non-bool", expr)
 	if bool(boolResult) {
 		return 1
 	}
