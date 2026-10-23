@@ -54,6 +54,8 @@ enum {
 	// file type
 	op_filter_file_type = 36,
 	op_filter_not_file_type = 37,
+	op_filter_in_pattern = 38,
+	op_filter_not_in_pattern = 39,
 };
 
 #endif // __OPERATIONS_H__
