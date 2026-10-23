@@ -113,23 +113,18 @@ uprobe_offload(struct pt_regs *ctx)
 	struct reg_assignment *ass;
 	struct uprobe_regs *regs;
 	__u32 *idxp, idx = 0, i;
-	bool dyn_pending;
 	int err;
 
-	// The return from the mmap()/dlopen() detour of an sopath override
-	// continues the resolution started by the selector that matched first.
-	// The main program skips those hits, so nothing is queued for them; any
-	// stale queued entry is dropped.
-	dyn_pending = uprobe_dyn_pending(ctx, &idx);
-
-	idxp = map_lookup_elem(&sleepable_offload, &id);
-	if (idxp) {
-		if (!dyn_pending)
-			idx = *idxp;
-		map_delete_elem(&sleepable_offload, &id);
-	} else if (!dyn_pending) {
-		return 0;
+	// On the return from an sopath override mmap()/dlopen() detour, the
+	// resolution continues with the stored selector: nothing is queued for
+	// it, any stale entry is dropped.
+	if (!uprobe_dyn_pending(ctx, &idx)) {
+		idxp = map_lookup_elem(&sleepable_offload, &id);
+		if (!idxp)
+			return 0;
+		idx = *idxp;
 	}
+	map_delete_elem(&sleepable_offload, &id);
 
 	regs = map_lookup_elem(&regs_map, &idx);
 	if (!regs)
