@@ -85,7 +85,7 @@ func testMatchBinariesFollowChildren(t *testing.T, op string, result, resultMyPi
 
 	// Extra execution of getcpu syscall in current process to make sure
 	// the filtering will include only proper getcpu children
-	getCpu := func() {
+	getCPU := func() {
 		var cpu, node int
 
 		_, _, err := unix.Syscall(
@@ -104,7 +104,7 @@ func testMatchBinariesFollowChildren(t *testing.T, op string, result, resultMyPi
 			t.Fatalf("failed to run command %s: %v", cmd, err)
 		}
 
-		getCpu()
+		getCPU()
 	}
 	perfring.RunTest(t, ctx, ops, eventFn)
 	require.Equal(t, result, getcpuCnt, "single exec")
@@ -118,7 +118,7 @@ func testMatchBinariesFollowChildren(t *testing.T, op string, result, resultMyPi
 			t.Fatalf("failed to run command %s: %v", cmd, err)
 		}
 
-		getCpu()
+		getCPU()
 	}
 	perfring.RunTest(t, ctx, ops2, eventFn)
 	require.Equal(t, result, getcpuCnt, "double exec")

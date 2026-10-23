@@ -91,7 +91,7 @@ type genericKprobe struct {
 	// the retprobe_id (thread_id) and the enter ktime as the key.
 	pendingEvents *lru.Cache[pendingEventKey, pendingEvent[*tracing.MsgGenericKprobeUnix]]
 
-	tableId idtable.EntryID
+	tableID idtable.EntryID
 
 	// for kprobes that have a GetUrl or DnsLookup action, we store the table of arguments.
 	actionArgs idtable.Table
@@ -125,7 +125,7 @@ type genericKprobe struct {
 }
 
 func (g *genericKprobe) SetID(id idtable.EntryID) {
-	g.tableId = id
+	g.tableID = id
 }
 
 func (g *genericKprobe) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
@@ -936,7 +936,7 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 		funcName:          funcName,
 		instance:          instance,
 		pendingEvents:     nil,
-		tableId:           idtable.UninitializedEntryID,
+		tableID:           idtable.UninitializedEntryID,
 		policyName:        in.policyName,
 		hasOverride:       selectors.HasOverride(f.Selectors),
 		hasSelector:       selectors.HasSelector(f),
@@ -973,13 +973,13 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 	}
 
 	genericKprobeTable.AddEntry(&kprobeEntry)
-	eventConfig.FuncId = uint32(kprobeEntry.tableId.ID)
+	eventConfig.FuncId = uint32(kprobeEntry.tableID.ID)
 
 	logger.GetLogger().
 		Info("Added kprobe", "return", setRetprobe, "function", kprobeEntry.funcName,
 			"override", kprobeEntry.hasOverride, "enforcer", has.enforcer)
 
-	return kprobeEntry.tableId, nil
+	return kprobeEntry.tableID, nil
 }
 
 func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe,
@@ -1021,7 +1021,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 
 	load.SetPolicy(kprobeEntry.policyName)
-	load.SetLoaderData(kprobeEntry.tableId)
+	load.SetLoaderData(kprobeEntry.tableID)
 	load.Override = kprobeEntry.hasOverride
 
 	if load.Override {
@@ -1133,7 +1133,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		}
 
 		loadret.SetRetProbe(true)
-		loadret.SetLoaderData(kprobeEntry.tableId)
+		loadret.SetLoaderData(kprobeEntry.tableID)
 		loadret.SetPolicy(kprobeEntry.policyName)
 
 		progs = append(progs, loadret)
@@ -1305,7 +1305,7 @@ func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*progr
 		load.LoaderData, load.LoaderData)
 }
 
-func getUrl(url string) {
+func getURL(url string) {
 	// We fire and forget URLs, and we don't care if they hit or not.
 	resp, err := http.Get(url)
 	if err != nil {
@@ -1364,7 +1364,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 		switch m.ActionId {
 		case selectors.ActionTypeGetUrl:
 			gk.LogAttrs(logger.LevelTrace, "Get URL Action", slog.Any("URL", actionArg))
-			getUrl(actionArg)
+			getURL(actionArg)
 		case selectors.ActionTypeDnsLookup:
 			gk.LogAttrs(logger.LevelTrace, "DNS lookup", slog.Any("FQDN", actionArg))
 			dnsLookup(actionArg)

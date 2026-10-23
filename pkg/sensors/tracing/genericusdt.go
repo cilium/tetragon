@@ -58,7 +58,7 @@ var (
 )
 
 type genericUsdt struct {
-	tableId idtable.EntryID
+	tableID idtable.EntryID
 	config  *api.EventConfig
 	path    string
 	target  *elf.UsdtTarget
@@ -75,7 +75,7 @@ type genericUsdt struct {
 }
 
 func (g *genericUsdt) SetID(id idtable.EntryID) {
-	g.tableId = id
+	g.tableID = id
 }
 
 func (g *genericUsdt) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
@@ -332,7 +332,7 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("%s %s %s", usdtEntry.path, usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name),
 		"uprobe/generic_usdt",
-		fmt.Sprintf("%s_%s_%d", usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name, usdtEntry.tableId.ID),
+		fmt.Sprintf("%s_%s_%d", usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name, usdtEntry.tableID.ID),
 		"generic_usdt").
 		SetAttachData(attachData).
 		SetLoaderData(usdtEntry).
@@ -546,7 +546,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		config.BTFArg = allBTFArgs
 
 		usdtEntry := &genericUsdt{
-			tableId:     idtable.UninitializedEntryID,
+			tableID:     idtable.UninitializedEntryID,
 			config:      config,
 			path:        spec.Path,
 			target:      target,
@@ -559,7 +559,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 
 		usdtTable.AddEntry(usdtEntry)
 
-		id := usdtEntry.tableId
+		id := usdtEntry.tableID
 		config.FuncId = uint32(id.ID)
 
 		ids = append(ids, id)
