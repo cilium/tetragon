@@ -594,6 +594,7 @@ func loadSingleUsdtSensor(usdtEntry *genericUsdt, args sensors.LoadProbeArgs) er
 
 	// config_map data
 	var configData bytes.Buffer
+	rewriteCaptureConstants(load, usdtEntry.config)
 	binary.Write(&configData, binary.LittleEndian, usdtEntry.config)
 
 	// filter_map data
@@ -641,6 +642,7 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 
 		// config_map data
 		var configData bytes.Buffer
+		rewriteCaptureConstants(load, usdtEntry.config)
 		binary.Write(&configData, binary.LittleEndian, usdtEntry.config)
 
 		// filter_map data

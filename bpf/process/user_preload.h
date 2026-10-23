@@ -157,8 +157,8 @@ try_preload_arg(int idx, struct preload_arg_data *data)
 		     : [idx] "+r"(idx)
 		     : "i"(MAX_POSSIBLE_ARGS_MASK));
 
-	if (data->config->arm[idx] & ARGM_PRELOAD) {
-		if (data->config->arm[idx] & ARGM_PT_REGS)
+	if (HAS_CAPTURE_PRELOAD && (data->config->arm[idx] & ARGM_PRELOAD)) {
+		if (HAS_CAPTURE_PT_REGS && (data->config->arm[idx] & ARGM_PT_REGS))
 			return preload_pt_regs_arg(data->ctx, data->config, idx);
 		else
 			return preload_arg(data->ctx, data->config, idx);
@@ -170,9 +170,13 @@ FUNC_INLINE int
 user_preload(struct pt_regs *ctx)
 {
 	struct event_config *config;
-	__u32 idx = get_index(ctx);
+	__u32 idx;
 	int i;
 
+	if (!HAS_CAPTURE_PRELOAD)
+		return 0;
+
+	idx = get_index(ctx);
 	config = map_lookup_elem(&config_map, &idx);
 	if (!config)
 		return 0;
@@ -219,6 +223,10 @@ FUNC_INLINE int
 user_preload_cleanup(struct pt_regs *ctx)
 {
 	int i;
+
+	if (!HAS_CAPTURE_PRELOAD)
+		return 0;
+
 	struct preload_key key = {
 		.tgid = get_current_pid_tgid(),
 	};

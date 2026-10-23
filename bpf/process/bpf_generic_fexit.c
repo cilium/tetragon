@@ -43,10 +43,7 @@ struct {
 __attribute__((section(SECTION_ENTRY), used)) int
 generic_fexit_event(void *ctx)
 {
-	__u64 ret;
-
-	get_func_ret(ctx, &ret);
-	heap_dtor(generic_retprobe(ctx, (struct bpf_map_def *)&fexit_calls, ret));
+	heap_dtor(generic_retprobe(ctx, (struct bpf_map_def *)&fexit_calls, 0));
 	return 0;
 }
 

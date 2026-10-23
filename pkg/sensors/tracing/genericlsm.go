@@ -114,6 +114,7 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 			return err
 		}
 		args.Load.MapLoad = append(args.Load.MapLoad, selectorsMaploads(args.Load, gl.selectors, 0)...)
+		rewriteCaptureConstants(args.Load, gl.config)
 		var configData bytes.Buffer
 		binary.Write(&configData, binary.LittleEndian, gl.config)
 		config := &program.MapLoad{

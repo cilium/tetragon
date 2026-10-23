@@ -36,6 +36,23 @@
 #include "../cel_expr.h"
 #include "process/event_config.h"
 
+#ifdef __LARGE_BPF_PROG
+volatile const __u64 CAPTURE_ARG_TYPES = ~0ULL;
+#define CAPTURE_TYPES_ENABLED(mask) ((CAPTURE_ARG_TYPES & (mask)) != 0)
+#else
+#define CAPTURE_TYPES_ENABLED(mask) 1
+#endif
+
+#define ACTION_ENFORCEMENT_TYPES (ACTION_TYPE_MASK(ACTION_SIGKILL) | ACTION_TYPE_MASK(ACTION_SIGNAL) | \
+				  ACTION_TYPE_MASK(ACTION_OVERRIDE) | ACTION_TYPE_MASK(ACTION_NOTIFY_ENFORCER) | \
+				  ACTION_TYPE_MASK(ACTION_SET))
+
+#define CAPTURE_TYPE_MASK(type) (1ULL << (type))
+#define CAPTURE_TYPE_ENABLED(type) CAPTURE_TYPES_ENABLED(CAPTURE_TYPE_MASK(type))
+#define CAPTURE_PATH_TYPES (CAPTURE_TYPE_MASK(kiocb_type) | CAPTURE_TYPE_MASK(file_ty) | \
+			    CAPTURE_TYPE_MASK(path_ty) | CAPTURE_TYPE_MASK(dentry_type) | \
+			    CAPTURE_TYPE_MASK(fd_ty) | CAPTURE_TYPE_MASK(linux_binprm_type))
+
 /* Type IDs form API with user space generickprobe.go */
 enum {
 	invalid_ty = -2,
@@ -913,11 +930,11 @@ do_filter_char_substring(__u32 i, struct filter_char_substring_data *data, bool 
 		return 0;
 
 	if (igncase) {
-		if (!bpf_ksym_exists(bpf_strncasestr))
+		if (!HAS_ARG_SUBSTRING_IGNCASE || !bpf_ksym_exists(bpf_strncasestr))
 			return 0;
 		idx = bpf_strncasestr(data->arg_str, sub_str, data->arg_len);
 	} else {
-		if (!bpf_ksym_exists(bpf_strnstr))
+		if (!HAS_ARG_SUBSTRING || !bpf_ksym_exists(bpf_strnstr))
 			return 0;
 		idx = bpf_strnstr(data->arg_str, sub_str, data->arg_len);
 	}
@@ -1002,25 +1019,28 @@ filter_char_buf_value(struct selector_arg_filter *filter, char *arg_str, uint le
 	switch (filter->op) {
 #ifdef __LARGE_BPF_PROG
 	case op_substring_igncase:
-		if (bpf_ksym_exists(bpf_strncasestr))
+		if (HAS_ARG_SUBSTRING_IGNCASE && bpf_ksym_exists(bpf_strncasestr))
 			match = filter_char_substring(filter, arg_str, len, true);
 		break;
 	case op_substring:
-		if (bpf_ksym_exists(bpf_strnstr))
+		if (HAS_ARG_SUBSTRING && bpf_ksym_exists(bpf_strnstr))
 			match = filter_char_substring(filter, arg_str, len, false);
 		break;
 #endif
 	case op_filter_eq:
 	case op_filter_neq:
-		match = filter_char_buf_equal(filter, arg_str, len);
+		if (HAS_ARG_STRING_EQUAL)
+			match = filter_char_buf_equal(filter, arg_str, len);
 		break;
 	case op_filter_str_prefix:
 	case op_filter_str_notprefix:
-		match = filter_char_buf_prefix(filter, arg_str, len);
+		if (HAS_ARG_STRING_PREFIX)
+			match = filter_char_buf_prefix(filter, arg_str, len);
 		break;
 	case op_filter_str_postfix:
 	case op_filter_str_notpostfix:
-		match = filter_char_buf_postfix(filter, arg_str, len);
+		if (HAS_ARG_STRING_POSTFIX)
+			match = filter_char_buf_postfix(filter, arg_str, len);
 		break;
 	}
 
@@ -1117,29 +1137,33 @@ filter_file_buf(struct selector_arg_filter *filter, struct string_buf *args)
 	switch (filter->op) {
 #ifdef __LARGE_BPF_PROG
 	case op_substring_igncase:
-		if (bpf_ksym_exists(bpf_strncasestr))
+		if (HAS_ARG_SUBSTRING_IGNCASE && bpf_ksym_exists(bpf_strncasestr))
 			match = filter_char_substring(filter, args->buf, args->len, true);
 		break;
 	case op_substring:
-		if (bpf_ksym_exists(bpf_strnstr))
+		if (HAS_ARG_SUBSTRING && bpf_ksym_exists(bpf_strnstr))
 			match = filter_char_substring(filter, args->buf, args->len, false);
 		break;
 #endif
 	case op_filter_eq:
 	case op_filter_neq:
-		match = filter_char_buf_equal(filter, args->buf, args->len);
+		if (HAS_ARG_STRING_EQUAL)
+			match = filter_char_buf_equal(filter, args->buf, args->len);
 		break;
 	case op_filter_str_prefix:
 	case op_filter_str_notprefix:
-		match = filter_char_buf_prefix(filter, args->buf, args->len);
+		if (HAS_ARG_STRING_PREFIX)
+			match = filter_char_buf_prefix(filter, args->buf, args->len);
 		break;
 	case op_filter_str_postfix:
 	case op_filter_str_notpostfix:
-		match = filter_char_buf_postfix(filter, args->buf, args->len);
+		if (HAS_ARG_STRING_POSTFIX)
+			match = filter_char_buf_postfix(filter, args->buf, args->len);
 		break;
 	case op_filter_file_type:
 	case op_filter_not_file_type:
-		match = filter_file_type(filter, args);
+		if (HAS_ARG_FILE_TYPE)
+			match = filter_file_type(filter, args);
 		break;
 	}
 
@@ -1283,24 +1307,36 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	case op_filter_dport:
 	case op_filter_notsport:
 	case op_filter_notdport:
-		return filter_32ty_map(filter, (char *)&port);
+		if (HAS_ARG_INET_PORT)
+			return filter_32ty_map(filter, (char *)&port);
+		break;
 	case op_filter_sportpriv:
 	case op_filter_dportpriv:
-		return port < 1024;
+		if (HAS_ARG_INET_PORT)
+			return port < 1024;
+		break;
 	case op_filter_notsportpriv:
 	case op_filter_notdportpriv:
-		return port >= 1024;
+		if (HAS_ARG_INET_PORT)
+			return port >= 1024;
+		break;
 	case op_filter_saddr:
 	case op_filter_daddr:
 	case op_filter_notsaddr:
 	case op_filter_notdaddr:
-		return filter_addr_map(filter, addr, tuple->family);
+		if (HAS_ARG_INET_ADDR)
+			return filter_addr_map(filter, addr, tuple->family);
+		break;
 	case op_filter_protocol:
 	case op_filter_family:
-		return filter_32ty_map(filter, (char *)&value);
-	case op_filter_state:
-		if (filter->type == sock_type || filter->type == socket_type)
+		if (HAS_ARG_INET_META)
 			return filter_32ty_map(filter, (char *)&value);
+		break;
+	case op_filter_state:
+		if (HAS_ARG_INET_META) {
+			if (filter->type == sock_type || filter->type == socket_type)
+				return filter_32ty_map(filter, (char *)&value);
+		}
 	}
 	return 0;
 }
@@ -1316,34 +1352,43 @@ filter_sockaddr_un(struct selector_arg_filter *filter, char *args)
 	switch (filter->op) {
 #ifdef __LARGE_BPF_PROG
 	case op_substring_igncase:
-		if (bpf_ksym_exists(bpf_strncasestr))
+		if (HAS_ARG_SUBSTRING_IGNCASE && bpf_ksym_exists(bpf_strncasestr))
 			return filter_char_substring(filter, path, path_len, true);
 		break;
 	case op_substring:
-		if (bpf_ksym_exists(bpf_strnstr))
+		if (HAS_ARG_SUBSTRING && bpf_ksym_exists(bpf_strnstr))
 			return filter_char_substring(filter, path, path_len, false);
 		break;
 #endif
 	case op_filter_str_prefix:
 	case op_filter_str_notprefix: {
-		long match = filter_char_buf_prefix(filter, path, path_len);
+		if (HAS_ARG_STRING_PREFIX) {
+			long match = filter_char_buf_prefix(filter, path, path_len);
 
-		if (is_not_operator(filter->op))
-			return !match;
-		return match;
+			if (is_not_operator(filter->op))
+				return !match;
+			return match;
+		}
+		break;
 	}
 	case op_filter_eq:
 	case op_filter_neq: {
-		long match = filter_char_buf_equal(filter, path, path_len);
+		if (HAS_ARG_STRING_EQUAL) {
+			long match = filter_char_buf_equal(filter, path, path_len);
 
-		if (is_not_operator(filter->op))
-			return !match;
-		return match;
+			if (is_not_operator(filter->op))
+				return !match;
+			return match;
+		}
+		break;
 	}
 	case op_filter_family: {
-		__u32 value = address->family;
+		if (HAS_ARG_INET_META) {
+			__u32 value = address->family;
 
-		return filter_32ty_map(filter, (char *)&value);
+			return filter_32ty_map(filter, (char *)&value);
+		}
+		break;
 	}
 	default:
 		break;
@@ -1382,7 +1427,7 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 
 	meta = get_arg_meta(argm, e);
 
-	if (has_return_copy(argm)) {
+	if (HAS_CAPTURE_RETURN_COPY && has_return_copy(argm)) {
 		int ret = return_error(s, char_buf_saved_for_retprobe);
 		u64 retid = retprobe_map_get_key(ctx);
 
@@ -1835,14 +1880,20 @@ filter_64ty(struct selector_arg_filter *filter, char *args)
 	case op_filter_eq:
 	case op_filter_neq:
 	case op_filter_mask:
-		return filter_64ty_selector_val(filter, args);
+		if (HAS_ARG_NUMERIC_COMPARE)
+			return filter_64ty_selector_val(filter, args);
+		break;
 	case op_filter_inmap:
 	case op_filter_notinmap:
-		return filter_64ty_map(filter, args);
+		if (HAS_ARG_NUMERIC_MAP)
+			return filter_64ty_map(filter, args);
+		break;
 #ifdef __LARGE_BPF_PROG
 	case op_in_range:
 	case op_notin_range:
-		return filter_64ty_range(filter, args);
+		if (HAS_ARG_NUMERIC_RANGE)
+			return filter_64ty_range(filter, args);
+		break;
 #endif
 	}
 
@@ -1943,14 +1994,20 @@ filter_32ty(struct selector_arg_filter *filter, char *args)
 	case op_filter_eq:
 	case op_filter_neq:
 	case op_filter_mask:
-		return filter_32ty_selector_val(filter, args);
+		if (HAS_ARG_NUMERIC_COMPARE)
+			return filter_32ty_selector_val(filter, args);
+		break;
 	case op_filter_inmap:
 	case op_filter_notinmap:
-		return filter_32ty_map(filter, args);
+		if (HAS_ARG_NUMERIC_MAP)
+			return filter_32ty_map(filter, args);
+		break;
 #ifdef __LARGE_BPF_PROG
 	case op_in_range:
 	case op_notin_range:
-		return filter_32ty_range(filter, args);
+		if (HAS_ARG_NUMERIC_RANGE)
+			return filter_32ty_range(filter, args);
+		break;
 #endif
 	}
 
@@ -1966,14 +2023,20 @@ filter_16ty(struct selector_arg_filter *filter, char *args)
 	case op_filter_eq:
 	case op_filter_neq:
 	case op_filter_mask:
-		return filter_16ty_selector_val(filter, args);
+		if (HAS_ARG_NUMERIC_COMPARE)
+			return filter_16ty_selector_val(filter, args);
+		break;
 	case op_filter_inmap:
 	case op_filter_notinmap:
-		return filter_16ty_map(filter, args);
+		if (HAS_ARG_NUMERIC_MAP)
+			return filter_16ty_map(filter, args);
+		break;
 #ifdef __LARGE_BPF_PROG
 	case op_in_range:
 	case op_notin_range:
-		return filter_16ty_range(filter, args);
+		if (HAS_ARG_NUMERIC_RANGE)
+			return filter_16ty_range(filter, args);
+		break;
 #endif
 	}
 
@@ -1989,14 +2052,20 @@ filter_8ty(struct selector_arg_filter *filter, char *args)
 	case op_filter_eq:
 	case op_filter_neq:
 	case op_filter_mask:
-		return filter_8ty_selector_val(filter, args);
+		if (HAS_ARG_NUMERIC_COMPARE)
+			return filter_8ty_selector_val(filter, args);
+		break;
 	case op_filter_inmap:
 	case op_filter_notinmap:
-		return filter_8ty_map(filter, args);
+		if (HAS_ARG_NUMERIC_MAP)
+			return filter_8ty_map(filter, args);
+		break;
 #ifdef __LARGE_BPF_PROG
 	case op_in_range:
 	case op_notin_range:
-		return filter_8ty_range(filter, args);
+		if (HAS_ARG_NUMERIC_RANGE)
+			return filter_8ty_range(filter, args);
+		break;
 #endif
 	}
 
@@ -2259,7 +2328,7 @@ filter_arg_1(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 	case cap_eff_ty:
 	case kernel_cap_ty:
 #ifdef __LARGE_BPF_PROG
-		if (filter->op == op_capabilities_gained) {
+		if (HAS_ARG_CAPABILITIES_GAINED && filter->op == op_capabilities_gained) {
 			__u64 cap_old = *(__u64 *)args;
 			__u32 index2 = *((__u32 *)&filter->value);
 
@@ -2284,7 +2353,9 @@ filter_arg_1(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 	case sock_type:
 	case socket_type:
 	case sockaddr_type:
-		return filter_inet(filter, args);
+		if (HAS_ARG_INET_FILTERS)
+			return filter_inet(filter, args);
+		return 0;
 #ifdef __LARGE_BPF_PROG
 	case s16_ty:
 	case u16_ty:
@@ -2752,32 +2823,42 @@ FUNC_INLINE const struct path *get_path(long type, unsigned long arg, struct pat
 
 	switch (type) {
 	case kiocb_type:
+		if (!CAPTURE_TYPE_ENABLED(kiocb_type))
+			break;
 		kiocb = (struct kiocb *)arg;
 		arg = (unsigned long)_(&kiocb->ki_filp);
 		probe_read(&file, sizeof(file), (const void *)arg);
 		arg = (unsigned long)file;
 		fallthrough;
 	case file_ty:
-		probe_read(&file, sizeof(file), &arg);
-		path_arg = _(&file->f_path);
+		if (CAPTURE_TYPE_ENABLED(file_ty)) {
+			probe_read(&file, sizeof(file), &arg);
+			path_arg = _(&file->f_path);
+		}
 		break;
 	case path_ty:
-		probe_read(&path_arg, sizeof(path_arg), &arg);
+		if (CAPTURE_TYPE_ENABLED(path_ty))
+			probe_read(&path_arg, sizeof(path_arg), &arg);
 		break;
 	case dentry_type:
-		path_from_dentry((struct dentry *)arg, path_buf);
-		path_arg = path_buf;
+		if (CAPTURE_TYPE_ENABLED(dentry_type)) {
+			path_from_dentry((struct dentry *)arg, path_buf);
+			path_arg = path_buf;
+		}
 		break;
 	case fd_ty:
-		path_arg = path_from_fd(arg);
+		if (CAPTURE_TYPE_ENABLED(fd_ty))
+			path_arg = path_from_fd(arg);
 		break;
 #ifdef __LARGE_BPF_PROG
 	case linux_binprm_type: {
 		struct linux_binprm *bprm = (struct linux_binprm *)arg;
 
-		arg = (unsigned long)_(&bprm->file);
-		with_errmetrics(probe_read, &file, sizeof(file), (const void *)arg);
-		path_arg = _(&file->f_path);
+		if (CAPTURE_TYPE_ENABLED(linux_binprm_type)) {
+			arg = (unsigned long)_(&bprm->file);
+			with_errmetrics(probe_read, &file, sizeof(file), (const void *)arg);
+			path_arg = _(&file->f_path);
+		}
 		break;
 	};
 #endif

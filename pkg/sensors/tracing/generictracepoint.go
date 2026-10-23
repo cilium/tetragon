@@ -814,6 +814,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 	if err != nil {
 		return fmt.Errorf("failed to generate config data for generic tracepoint: %w", err)
 	}
+	rewriteCaptureConstants(load, config)
 	var binBuf bytes.Buffer
 	binary.Write(&binBuf, binary.LittleEndian, *config)
 	cfg := &program.MapLoad{

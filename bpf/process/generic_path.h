@@ -120,6 +120,9 @@ FUNC_INLINE long generic_path(void *ctx, struct bpf_map_def *tailcals)
 	struct msg_generic_kprobe *e;
 	heap_key_t key = heap_key();
 
+	if (!CAPTURE_TYPES_ENABLED(CAPTURE_PATH_TYPES))
+		return 0;
+
 	e = map_lookup_elem(&process_call_heap, &key);
 	if (!e)
 		return 0;
@@ -220,6 +223,9 @@ FUNC_INLINE long generic_path_offload(void *ctx, long ty, unsigned long arg,
 
 FUNC_INLINE bool should_offload_path(long type)
 {
+	if (!CAPTURE_TYPES_ENABLED(CAPTURE_PATH_TYPES))
+		return false;
+
 	switch (type) {
 	case kiocb_type:
 	case file_ty:

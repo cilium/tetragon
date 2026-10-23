@@ -135,6 +135,25 @@ type SelectorUsage struct {
 	MatchCEL               bool
 	MatchArgFilters        bool
 	MatchUserCallers       bool
+	ArgSubString           bool
+	ArgSubStringIgnCase    bool
+	ArgInetFilters         bool
+	ArgInetAddr            bool
+	ArgInetPort            bool
+	ArgInetMeta            bool
+	ArgStringEqual         bool
+	ArgStringPrefix        bool
+	ArgStringPostfix       bool
+	ArgNumericCompare      bool
+	ArgNumericMap          bool
+	ArgNumericRange        bool
+	ArgFileType            bool
+	ArgCapabilitiesGained  bool
+	ActionTypes            uint64
+	PostRateLimit          bool
+	PostKernelStack        bool
+	PostUserStack          bool
+	PostIMAHash            bool
 }
 
 type KernelSelectorState struct {
