@@ -148,6 +148,11 @@ func TestFentryLseek(t *testing.T) {
 	})
 }
 
+func TestFentryKptrRestrict(t *testing.T) {
+	checkFentry(t)
+	policytest.AllPolicyTests.DoObserverTest(t, "fentry-kptr-restrict", nil)
+}
+
 func TestFentryObjectWriteReadHostNs(t *testing.T) {
 	checkFentry(t)
 	testKprobeObjectWriteReadHostNs(t, true)
