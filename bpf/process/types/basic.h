@@ -2188,9 +2188,15 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 				file_copy_reverse((__u8 *)bin->end_r, postfix_len, (__u8 *)bin->end, bin->path_length - postfix_len);
 				bin->reversed = true;
 			}
-			if (postfix_len < STRING_POSTFIX_MAX_MATCH_LENGTH)
+			if (postfix_len < STRING_POSTFIX_MAX_MATCH_LENGTH) {
+				/* Older verifiers (< 6.9) lose the bounds of
+				 * postfix_len if it gets spilled to the stack.
+				 */
+				asm volatile("%[len] &= 0x7f;\n"
+					     : [len] "+r"(postfix_len));
 				if (probe_read(postfix_key->data, postfix_len, bin->end_r) < 0)
 					return 0;
+			}
 			found_key = map_lookup_elem(path_map, postfix_key);
 			break;
 #endif /* __LARGE_BPF_PROG */
