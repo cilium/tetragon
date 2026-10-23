@@ -101,11 +101,11 @@ var actionRateLimitScope = map[string]uint32{
 // Action argument table entry (for URL and FQDN arguments)
 type ActionArgEntry struct {
 	arg     string
-	tableId idtable.EntryID
+	tableID idtable.EntryID
 }
 
 func (g *ActionArgEntry) SetID(id idtable.EntryID) {
-	g.tableId = id
+	g.tableID = id
 }
 
 func (g *ActionArgEntry) GetArg() string {
@@ -1501,7 +1501,7 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		}
 	case ActionTypeGetUrl, ActionTypeDnsLookup:
 		actionArg := ActionArgEntry{
-			tableId: idtable.UninitializedEntryID,
+			tableID: idtable.UninitializedEntryID,
 		}
 		switch act {
 		case ActionTypeGetUrl:
@@ -1510,7 +1510,7 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 			actionArg.arg = action.ArgFqdn
 		}
 		actionArgTable.AddEntry(&actionArg)
-		WriteSelectorUint32(&k.data, uint32(actionArg.tableId.ID))
+		WriteSelectorUint32(&k.data, uint32(actionArg.tableID.ID))
 	case ActionTypeSignal:
 		WriteSelectorUint32(&k.data, action.ArgSig)
 	case ActionTypeTrackSock, ActionTypeUntrackSock:
@@ -1607,13 +1607,13 @@ func ParseMatchWorkloads(k *KernelSelectorState, workload *v1alpha1.WorkloadsSel
 		return nil
 	}
 
-	selPolId := policyfilter.GetSelectorPolicyID()
-	err = state.AddPolicy(selPolId, "", podSelector, containerSelector, hostSelector)
+	selPolID := policyfilter.GetSelectorPolicyID()
+	err = state.AddPolicy(selPolID, "", podSelector, containerSelector, hostSelector)
 	if err != nil {
 		return fmt.Errorf("parseMatchWorkloads: failed to add policy: %w", err)
 	}
 
-	k.matchWorkloadIDs[selIdx] = selPolId
+	k.matchWorkloadIDs[selIdx] = selPolID
 
 	return nil
 }

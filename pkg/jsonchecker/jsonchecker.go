@@ -119,7 +119,7 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *slog.Logger
 	return nil
 }
 
-func doJsonTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventChecker) error {
+func doJSONTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventChecker) error {
 	cnt := 0
 	prevEvents := 0
 	var err error
@@ -183,7 +183,7 @@ func JsonTestCheckExpectWithKeep(t *testing.T, checker ec.MultiEventChecker, exp
 	}
 	defer jsonFile.Close()
 
-	err = doJsonTestCheck(t, jsonFile, checker)
+	err = doJSONTestCheck(t, jsonFile, checker)
 	if expectCheckerFailure {
 		if err == nil {
 			err = errors.New("tester expected to fail, but succeeded")

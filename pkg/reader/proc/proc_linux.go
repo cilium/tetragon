@@ -94,7 +94,7 @@ func fillStatus(file string, status *Status) error {
 	return nil
 }
 
-func fillLoginUid(file string, status *Status) error {
+func fillLoginUID(file string, status *Status) error {
 	path := filepath.Join(file, "loginuid")
 	auid, err := os.ReadFile(path)
 	if err != nil {
@@ -113,7 +113,7 @@ func GetStatus(file string) (*Status, error) {
 		return nil, err
 	}
 
-	err = fillLoginUid(file, &status)
+	err = fillLoginUID(file, &status)
 	if err != nil {
 		return nil, err
 	}

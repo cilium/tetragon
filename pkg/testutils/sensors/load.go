@@ -274,7 +274,7 @@ func CheckSensorLoadBase(t *testing.T, sensors []*sensors.Sensor,
 
 	// check user provided maps
 	for _, tm := range sensorMaps {
-		var sharedId ebpf.MapID
+		var sharedID ebpf.MapID
 
 		t.Logf("Checking map %v\n", tm.Name)
 
@@ -299,12 +299,12 @@ func CheckSensorLoadBase(t *testing.T, sensors []*sensors.Sensor,
 
 				t.Logf("\tFound map %v id %v in prog %v\n", tm.Name, m.ID, tp.Name)
 
-				if sharedId == 0 {
-					sharedId = m.ID
+				if sharedID == 0 {
+					sharedID = m.ID
 				}
 
-				if m.ID != sharedId {
-					t.Fatalf("map %v has wrong shared id %v != %v\n", tm.Name, m.ID, sharedId)
+				if m.ID != sharedID {
+					t.Fatalf("map %v has wrong shared id %v != %v\n", tm.Name, m.ID, sharedID)
 				}
 				c.mark = true
 			}
@@ -321,7 +321,7 @@ func CheckSensorLoadBase(t *testing.T, sensors []*sensors.Sensor,
 				continue
 			}
 
-			if m.ID == sharedId {
+			if m.ID == sharedID {
 				t.Fatalf("Error: Map %s[%d] is shared also with program %s", tm.Name, m.ID, c.name)
 			}
 		}

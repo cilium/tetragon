@@ -190,7 +190,7 @@ func HasUprobeMulti() bool {
 	return uprobeMulti.detected
 }
 
-func detectBuildId() bool {
+func detectBuildID() bool {
 	attr := &unix.PerfEventAttr{
 		Type:        unix.PERF_TYPE_SOFTWARE,
 		Config:      unix.PERF_COUNT_SW_BPF_OUTPUT,
@@ -210,7 +210,7 @@ func detectBuildId() bool {
 
 func HasBuildId() bool {
 	buildid.init.Do(func() {
-		buildid.detected = detectBuildId()
+		buildid.detected = detectBuildID()
 	})
 	return buildid.detected
 }
