@@ -10,6 +10,12 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
+type policyHandler struct{}
+
+func init() {
+	sensors.RegisterPolicyHandlerAtInit("tracing", policyHandler{})
+}
+
 func (h policyHandler) PolicyHandler(
 	_ tracingpolicy.TracingPolicy,
 	_ policyfilter.PolicyID,
