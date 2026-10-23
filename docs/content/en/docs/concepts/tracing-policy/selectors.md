@@ -1264,7 +1264,6 @@ In this case, following restrictions apply:
 - libc.so.6 must offer `dlopen` function, incorporating `libdl` ([libc.so.6 >= 2.34](https://lists.gnu.org/archive/html/info-gnu/2021-08/msg00001.html));
 - Intel CET (Control-flow Enforcement Technology) and AMD Shadow Stack are not supported;
 - floating point argument functions are not supported;
-- only a single selector in the same uprobe spec can use `sopath` resolution;
 - new symbol must have the same signature as the original symbol.
 
 {{< warning >}}
