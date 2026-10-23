@@ -162,8 +162,7 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 	}
 
 	if r.conf.DumpPolicyPath != "" {
-		err := os.WriteFile(r.conf.DumpPolicyPath, []byte(pol), 0644)
-		if err != nil {
+		if err := dumpPolicy(r.conf.DumpPolicyPath, tpName, pol); err != nil {
 			l.Warn("failed to dump policy", "err", err)
 		}
 	}
@@ -184,6 +183,14 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 	l.Debug("policy loaded", "name", tpName)
 
 	return ph, nil
+}
+
+// dumpPolicy saves a policy in the directory dir, in a file named after the policy
+func dumpPolicy(dir, name string, pol Policy) error {
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, filepath.Base(name)+".yaml"), []byte(pol), 0644)
 }
 
 // RunTest runs a policy test
@@ -219,6 +226,21 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 	}
 
 	var res Result
+	res.ScenariosRes = r.runScenarios(l, test, polHandler, testConf)
+
+	err = polHandler.Cleanup(l, r.conf, r.cli)
+	if err != nil {
+		res.Err.Err = errors.Join(res.Err.Err, fmt.Errorf("failed to cleanup policy: %w", err))
+	}
+	res.TotalTime = time.Since(t0)
+	return &res
+}
+
+// runScenarios runs all the scenarios of a test, and returns their results
+func (r *LocalRunner) runScenarios(
+	l *slog.Logger, test *T, polHandler *PolicyHandler, testConf *TestConf,
+) []ScenarioRes {
+	var ret []ScenarioRes
 	for _, sc := range test.Scenarios {
 		scenario := sc(r.conf)
 		scRes := r.RunScenario(l, scenario, polHandler, testConf)
@@ -229,15 +251,85 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 				scRes.CheckerErr.Err = nil
 			}
 		}
-		res.ScenariosRes = append(res.ScenariosRes, scRes)
+		ret = append(ret, scRes)
+	}
+	return ret
+}
+
+// TestRun is a test together with the configuration to run it with
+type TestRun struct {
+	Test *T
+	// Conf is the configuration of the test. It should not be shared with other runs.
+	Conf *TestConf
+}
+
+// RunTests runs multiple policy tests by first loading the policies of all the tests, executing all
+// scenarios, and, finally, unloading the policies.
+//
+// The returned slice has one result for each element of runs, in the same order. A test whose
+// policy fails to load gets an error result, and does not prevent the other tests from running.
+func (r *LocalRunner) RunTests(l *slog.Logger, runs []TestRun) []*Result {
+	// clear the run configuration after we are done
+	defer func() {
+		r.conf.TestConf = nil
+	}()
+
+	// results and handlers indexed like runs
+	results := make([]*Result, len(runs))
+	handlers := make([]*PolicyHandler, len(runs))
+	// indices of loaded policies
+	var loaded []int
+
+	// load policies
+	for i, run := range runs {
+		results[i] = &Result{}
+		if reason := CheckCLIFlags(r.info, run.Test.CLIFlags); reason != "" {
+			results[i].Skipped = reason
+			continue
+		}
+		if run.Test.ShouldSkip != nil {
+			if reason := run.Test.ShouldSkip(&SkipInfo{r.info, run.Conf.ParamValues}); reason != "" {
+				results[i].Skipped = reason
+				continue
+			}
+		}
+
+		t0 := time.Now()
+		r.conf.TestConf = run.Conf
+		var err error
+		handlers[i], err = r.AddPolicy(l, run.Test)
+		if err == nil && run.Conf.MonitorMode {
+			err = handlers[i].Configure(l, r.cli, nil, new(tetragon.TracingPolicyMode_TP_MODE_MONITOR))
+			if err != nil {
+				err = errors.Join(err, handlers[i].Cleanup(l, r.conf, r.cli))
+			}
+		}
+		results[i].TotalTime += time.Since(t0)
+		if err != nil {
+			results[i].Err = JSONError{Err: err}
+			continue
+		}
+		loaded = append(loaded, i)
 	}
 
-	err = polHandler.Cleanup(l, r.conf, r.cli)
-	if err != nil {
-		res.Err.Err = errors.Join(res.Err.Err, fmt.Errorf("failed to cleanup policy: %w", err))
+	// run scenarios on loaded policies
+	for _, i := range loaded {
+		t0 := time.Now()
+		r.conf.TestConf = runs[i].Conf
+		results[i].ScenariosRes = r.runScenarios(l, runs[i].Test, handlers[i], runs[i].Conf)
+		results[i].TotalTime += time.Since(t0)
 	}
-	res.TotalTime = time.Since(t0)
-	return &res
+
+	// unload (loaded) policies
+	for _, i := range loaded {
+		t0 := time.Now()
+		if err := handlers[i].Cleanup(l, r.conf, r.cli); err != nil {
+			results[i].Err.Err = errors.Join(results[i].Err.Err, fmt.Errorf("failed to cleanup policy: %w", err))
+		}
+		results[i].TotalTime += time.Since(t0)
+	}
+
+	return results
 }
 
 func processCacheDisabled(info *tetragoninfo.Info) bool {
@@ -434,7 +526,12 @@ type PolicyHandler struct {
 	cleanup     PolicyCleanupFn
 }
 
+// Cleanup unloads the policy. It is a no-op if ph is nil (i.e., the test has no policy).
 func (ph *PolicyHandler) Cleanup(l *slog.Logger, conf *Conf, client *cli.ClientWithContext) error {
+	if ph == nil {
+		return nil
+	}
+
 	// call policy cleanup after we are done
 	if ph.cleanup != nil {
 		defer ph.cleanup()
@@ -470,9 +567,14 @@ func (ph *PolicyHandler) Cleanup(l *slog.Logger, conf *Conf, client *cli.ClientW
 	return nil
 }
 
+// Configure configures the policy. It is a no-op if ph is nil (i.e., the test has no policy).
 func (ph *PolicyHandler) Configure(
 	l *slog.Logger, client *cli.ClientWithContext,
 	enable *bool, mode *tetragon.TracingPolicyMode) error {
+	if ph == nil {
+		return nil
+	}
+
 	_, err := client.Client.ConfigureTracingPolicy(client.Ctx, &tetragon.ConfigureTracingPolicyRequest{
 		Name:      ph.tpName,
 		Namespace: ph.tpNamespace,
@@ -493,6 +595,10 @@ func (ph *PolicyHandler) Configure(
 
 func (ph *PolicyHandler) GetCounts(
 	_ *slog.Logger, client *cli.ClientWithContext) (*tetragon.TracingPolicyActionCounters, error) {
+	if ph == nil {
+		return nil, errors.New("failed to get action counts: no policy loaded")
+	}
+
 	res, err := client.Client.ListTracingPolicies(client.Ctx, &tetragon.ListTracingPoliciesRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get action counts: %w", err)

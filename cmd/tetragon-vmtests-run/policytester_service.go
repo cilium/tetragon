@@ -29,7 +29,7 @@ FailureAction=poweroff
 Environment={{ .environment }}
 {{ end -}}
 ExecStartPre=/bin/sh -c 'until {{ .tetraBinary }} status | grep -q "Health Status: running"; do sleep 2; done'
-ExecStart={{ .tetraBinary }} policytest run --bindir {{ .testerProgsDir }} --all-tests --all-params --output json --output-file {{ .resultsDir }}/results.json {{ .policytestArgs }}
+ExecStart={{ .tetraBinary }} policytest run --bindir {{ .testerProgsDir }} --all-params --output json --output-file {{ .resultsDir }}/results.json {{ .policytestArgs }} .*
 Type=oneshot
 StandardOutput=tty
 # StandardOutput=journal+console
