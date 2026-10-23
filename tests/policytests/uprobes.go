@@ -1190,6 +1190,90 @@ spec:
 	}
 }).RegisterAtInit()
 
+// One uprobes entry with three matchArgs selectors, 2 of them redirecting the call to
+// a replacement loaded from a different sopath depending on the argument value,
+// while the last one redirects the call to a replacement from within the same binary.
+// The first scenario does each call in a separate process, the second one does
+// both calls on the same thread: the second call must not reuse the symbol
+// resolved for the first one. See uprobe-arg-targets.c for the exit codes.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-arg-targets").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-arg-targets"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-arg-targets" }}
+    symbols:
+    - "arg_target"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "1"
+      matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_arg_target
+        sopath: {{ testBinary "libuprobe-arg-target-1.so" }}
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "2"
+      matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_arg_target
+        sopath: {{ testBinary "libuprobe-arg-target-2.so" }}
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "3"
+      matchActions:
+      - action: Override
+        argNewSymbol: arg_target_3
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-arg-targets")
+
+	return &policytest.Scenario{
+		Name: "check each selector redirects to its own symbol loaded by SO",
+		// The exit code is the value returned by the replacement.
+		Trigger: policytest.NewMultiCmdTrigger([]policytest.CmdTrigger{
+			{Bin: bin, Args: []string{"1"}},
+			{Bin: bin, Args: []string{"2"}},
+		}).ExpectExitCodes([]int{1, 2}),
+		EventChecker: ec.NewUnorderedEventChecker(argTargetChecker(bin, 1), argTargetChecker(bin, 2)),
+	}
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-arg-targets")
+
+	return &policytest.Scenario{
+		Name: "check each selector redirects to its own symbol loaded by SO on the same thread",
+		// The exit code is 10 * (first + first_2) + second + second_2 + third -> 10 * 2 + 4 + 3
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(27),
+		EventChecker: ec.NewUnorderedEventChecker(argTargetChecker(bin, 1), argTargetChecker(bin, 2), argTargetChecker(bin, 3)),
+	}
+}).RegisterAtInit()
+
+func argTargetChecker(bin string, arg int32) *ec.ProcessUprobeChecker {
+	return ec.NewProcessUprobeChecker("uprobe-arg-targets").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("arg_target")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(ec.NewKprobeArgumentChecker().WithIntArg(arg)))
+}
+
 // resolveFuncStart is a helper function to be used in the yaml.
 func resolveFuncStart(bin, funcName string) (uint64, error) {
 	se, err := telf.OpenSafeELFFile(bin)

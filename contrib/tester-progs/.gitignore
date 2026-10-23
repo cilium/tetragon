@@ -48,6 +48,9 @@ uprobe-null.btf
 /uprobe-selector-targets-1
 /uprobe-selector-targets-2
 /uprobe-execve
+/uprobe-arg-targets
+libuprobe-arg-target-1.so
+libuprobe-arg-target-2.so
 /uprobe-static-chain
 /uprobe-big-struct
 libuprobe-static-chain.so
