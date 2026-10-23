@@ -54,25 +54,25 @@ jobs:
       matrix:
         kernel:
           # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-          - 'rhel8.10-20261013.143814'
+          - 'rhel8.10-20261021.083220'
           # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-          - 'bpf-next-20261013.143814'
+          - 'bpf-next-20261021.083220'
           # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-          - '6.18-20261013.143814'
+          - '6.18-20261021.083220'
           # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-          - '6.12-20261013.143814'
+          - '6.12-20261021.083220'
           # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-          - '6.6-20261013.143814'
+          - '6.6-20261021.083220'
           # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-          - '6.1-20261013.143814'
+          - '6.1-20261021.083220'
           # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-          - '5.15-20261013.143814'
+          - '5.15-20261021.083220'
           # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-          - '5.10-20261013.143814'
+          - '5.10-20261021.083220'
           # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-          - '5.4-20261013.143814'
+          - '5.4-20261021.083220'
           # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-          - '4.19-20261013.143814'
+          - '4.19-20261021.083220'
     concurrency:
       group: ${{ github.ref }}-vmtest-${{ matrix.kernel }}-${{ matrix.group }}
       cancel-in-progress: true
