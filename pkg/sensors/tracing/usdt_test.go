@@ -171,7 +171,7 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -349,7 +349,7 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -420,7 +420,7 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -499,7 +499,7 @@ spec:
 	err = exec.Command(usdt).Run()
 	require.Error(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -650,7 +650,7 @@ spec:
 		require.NoError(t, cmdErr)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
 }
 

@@ -12,7 +12,7 @@ import (
 )
 
 type cache struct {
-	cache *lru.Cache[dataapi.DataEventId, []byte]
+	cache *lru.Cache[dataapi.DataEventID, []byte]
 	size  int
 }
 
@@ -21,7 +21,7 @@ type cache struct {
 func newCache(dataCacheSize int) (*cache, error) {
 	lruCache, err := lru.NewWithEvict(
 		dataCacheSize,
-		func(_ dataapi.DataEventId, _ []byte) {
+		func(_ dataapi.DataEventID, _ []byte) {
 			dataCacheEvictions.Inc()
 		},
 	)
@@ -35,7 +35,7 @@ func newCache(dataCacheSize int) (*cache, error) {
 	return cache, nil
 }
 
-func (c *cache) get(dataEventID dataapi.DataEventId) ([]byte, error) {
+func (c *cache) get(dataEventID dataapi.DataEventID) ([]byte, error) {
 	data, ok := c.cache.Get(dataEventID)
 	if !ok {
 		dataCacheMisses.WithLabelValues("get").Inc()
@@ -44,7 +44,7 @@ func (c *cache) get(dataEventID dataapi.DataEventId) ([]byte, error) {
 	return data, nil
 }
 
-func (c *cache) add(id dataapi.DataEventId, msgData []byte) bool {
+func (c *cache) add(id dataapi.DataEventID, msgData []byte) bool {
 	evicted := c.cache.Add(id, msgData)
 	if !evicted {
 		dataCacheTotal.Inc()
@@ -53,7 +53,7 @@ func (c *cache) add(id dataapi.DataEventId, msgData []byte) bool {
 }
 
 func (c *cache) remove(desc dataapi.DataEventDesc) bool {
-	present := c.cache.Remove(desc.Id)
+	present := c.cache.Remove(desc.ID)
 	if present {
 		dataCacheTotal.Dec()
 	} else {

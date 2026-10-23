@@ -35,7 +35,7 @@ import (
 var (
 	TetragonContainerName         = "tetragon"
 	TetragonOperatorContainerName = "tetragon-operator"
-	TetragonJsonPathname          = "/var/log/tetragon/tetragon.log"
+	TetragonJSONPathname          = "/var/log/tetragon/tetragon.log"
 )
 
 type TestEnvFunc = func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error)
@@ -143,7 +143,7 @@ func extractJSON(pod *corev1.Pod, exportDir string) error {
 	return kubectlCp(pod.Namespace,
 		pod.Name,
 		TetragonContainerName,
-		TetragonJsonPathname,
+		TetragonJSONPathname,
 		filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.json", pod.Name)))
 }
 

@@ -104,7 +104,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	readyWG.Wait()
 	unix.Seek(-1, 0, whenceBogusValue)
 	time.Sleep(1000 * time.Millisecond)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -197,7 +197,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 	}
 	checker := testsensor.NewTestChecker(&checker_)
 
-	if err := jsonchecker.JsonTestCheck(t, checker); err != nil {
+	if err := jsonchecker.JSONTestCheck(t, checker); err != nil {
 		t.Logf("error: %s", err)
 		t.Fail()
 	}
@@ -596,7 +596,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(execCheck, child1TpChecker, thread1TpChecker, exitCheck)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -702,7 +702,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(execCheck, child1TpChecker, thread1TpChecker, exitCheck)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -857,7 +857,7 @@ func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, 
 		syscall.Dup(i)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 

@@ -44,7 +44,7 @@ func cgroupGetIDCommand() *cobra.Command {
 		Short: "retrieve cgroup id from file",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cgID, err := cgroups.GetCgroupIdFromPath(args[0])
+			cgID, err := cgroups.GetCgroupIDFromPath(args[0])
 			if err != nil {
 				return fmt.Errorf("failed to parse cgroup: %w", err)
 			}
@@ -91,7 +91,7 @@ func addCommand() *cobra.Command {
 			var cgID uint64
 			switch argType {
 			case "file":
-				cgID, err = cgroups.GetCgroupIdFromPath(args[1])
+				cgID, err = cgroups.GetCgroupIDFromPath(args[1])
 			case "id":
 				cgID, err = strconv.ParseUint(args[1], 10, 32)
 			default:

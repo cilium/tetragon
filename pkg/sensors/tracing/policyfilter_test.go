@@ -86,7 +86,7 @@ func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupI
 		t.Fatal("createCgroup: unexpected error")
 	}
 
-	id, err := tgcgroups.GetCgroupIdFromPath(path)
+	id, err := tgcgroups.GetCgroupIDFromPath(path)
 	require.NoError(t, err, "failed to get cgroup id for path="+path)
 	t.Logf("cgroup path:%s cgroup id:%d", path, id)
 	return policyfilter.CgroupID(id)

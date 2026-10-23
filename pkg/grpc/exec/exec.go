@@ -158,7 +158,7 @@ func (msg *MsgCgroupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 			"NSPID", msg.NSPID,
 			"cgroup.ID", msg.Cgrpid,
 			"cgroup.state", st,
-			"cgroup.hierarchyID", msg.CgrpData.HierarchyId,
+			"cgroup.hierarchyID", msg.CgrpData.HierarchyID,
 			"cgroup.level", msg.CgrpData.Level,
 			"cgroup.path", cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]))
 	case ops.MSG_OP_CGROUP_ATTACH_TASK:
@@ -171,7 +171,7 @@ func (msg *MsgCgroupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 			"cgroup.IDTracker", msg.CgrpidTracker,
 			"cgroup.ID", msg.Cgrpid,
 			"cgroup.state", st,
-			"cgroup.hierarchyID", msg.CgrpData.HierarchyId,
+			"cgroup.hierarchyID", msg.CgrpData.HierarchyID,
 			"cgroup.level", msg.CgrpData.Level,
 			"cgroup.path", cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]))
 	default:

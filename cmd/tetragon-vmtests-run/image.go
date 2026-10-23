@@ -21,8 +21,8 @@ import (
 
 var (
 	TetragonTesterBin   = "./tests/vmtests/tetragon-tester"
-	TetragonTesterVmDir = "/sbin"
-	TetragonTesterVmBin = filepath.Join(TetragonTesterVmDir, filepath.Base(TetragonTesterBin))
+	TetragonTesterVMDir = "/sbin"
+	TetragonTesterVMBin = filepath.Join(TetragonTesterVMDir, filepath.Base(TetragonTesterBin))
 )
 
 func buildFilesystemActions(fs []QemuFS, tmpDir string) ([]images.Action, error) {
@@ -73,7 +73,7 @@ WantedBy=multi-user.target
 `
 
 func buildTesterService(tmpDir string) ([]images.Action, error) {
-	execStart := TetragonTesterVmBin + " gotest"
+	execStart := TetragonTesterVMBin + " gotest"
 	service := fmt.Sprintf(tetragonTesterService, execStart)
 	var b bytes.Buffer
 	b.WriteString(service)

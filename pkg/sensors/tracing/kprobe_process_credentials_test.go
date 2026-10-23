@@ -175,7 +175,7 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUIDChecker, kpPrivilegedChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -337,7 +337,7 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUIDChecker, kpPrivilegedChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -467,7 +467,7 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCurrentUID)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -573,7 +573,7 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCurrentUID)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -685,7 +685,7 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCurrentUID)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -800,6 +800,6 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCurrentUID)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
