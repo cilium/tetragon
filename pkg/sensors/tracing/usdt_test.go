@@ -47,7 +47,7 @@ import (
 // not crash, and instead returns an error, if a GetUrl or DnsLookup action is
 // specified in a usdt policy.
 func TestUsdtCheckGetUrlAction(t *testing.T) {
-	usdtGetUrlHook := `
+	usdtGetURLHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -79,7 +79,7 @@ spec: {}
 	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	require.NoError(t, err)
 
-	tp, err := tracingpolicy.FromYAML(usdtGetUrlHook)
+	tp, err := tracingpolicy.FromYAML(usdtGetURLHook)
 	require.NoError(t, err)
 	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
 	require.Error(t, err)
@@ -87,7 +87,7 @@ spec: {}
 }
 
 func TestUsdtCheckDnsLookupAction(t *testing.T) {
-	usdtDnsLookupHook := `
+	usdtDNSLookupHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -119,7 +119,7 @@ spec: {}
 	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	require.NoError(t, err)
 
-	tp, err := tracingpolicy.FromYAML(usdtDnsLookupHook)
+	tp, err := tracingpolicy.FromYAML(usdtDNSLookupHook)
 	require.NoError(t, err)
 	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
 	require.Error(t, err)
@@ -774,7 +774,7 @@ func TestUsdtPinNameSanitizedSymbols(t *testing.T) {
 		state, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{})
 		require.NoError(t, err)
 		entry := &genericUsdt{
-			tableId:    idtable.UninitializedEntryID,
+			tableID:    idtable.UninitializedEntryID,
 			config:     &api.EventConfig{},
 			path:       "/proc/self/exe",
 			target:     &elf.UsdtTarget{Spec: &elf.UsdtSpec{Provider: "test", Name: name}},
@@ -782,7 +782,7 @@ func TestUsdtPinNameSanitizedSymbols(t *testing.T) {
 			selectors:  state,
 		}
 		usdtTable.AddEntry(entry)
-		ids = append(ids, entry.tableId)
+		ids = append(ids, entry.tableID)
 	}
 
 	progs, _, err := createSingleUsdtSensor(polInfo, ids, usdtHas{})

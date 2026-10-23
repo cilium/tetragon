@@ -139,13 +139,13 @@ func GetCgroupIdFromPath(cgroupPath string) (uint64, error) {
 	return fh.Id, nil
 }
 
-// parseCgroupv1SubSysIds() parse cgroupv1 controllers and save their
+// parseCgroupv1SubSysIDs() parse cgroupv1 controllers and save their
 // hierarchy IDs and related css indexes.
 // If the 'memory' or 'cpuset' are not detected we fail, as we use them
 // from BPF side to gather cgroup information and we need them to be
 // exported by the kernel since their corresponding index allows us to
 // fetch the cgroup from the corresponding cgroup subsystem state.
-func parseCgroupv1SubSysIds(filePath string) error {
+func parseCgroupv1SubSysIDs(filePath string) error {
 	var allcontrollers []string
 
 	file, err := os.Open(filePath)
@@ -243,7 +243,7 @@ func DiscoverSubSysIds() error {
 
 	switch magic {
 	case unix.CGROUP_SUPER_MAGIC:
-		return parseCgroupv1SubSysIds(filepath.Join(option.Config.ProcFS, "cgroups"))
+		return parseCgroupv1SubSysIDs(filepath.Join(option.Config.ProcFS, "cgroups"))
 	case unix.CGROUP2_SUPER_MAGIC:
 		/* Parse Root Cgroup active controllers.
 		 * This step helps debugging since we may have some

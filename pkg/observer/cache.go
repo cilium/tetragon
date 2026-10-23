@@ -35,11 +35,11 @@ func newCache(dataCacheSize int) (*cache, error) {
 	return cache, nil
 }
 
-func (c *cache) get(dataEventId dataapi.DataEventId) ([]byte, error) {
-	data, ok := c.cache.Get(dataEventId)
+func (c *cache) get(dataEventID dataapi.DataEventId) ([]byte, error) {
+	data, ok := c.cache.Get(dataEventID)
 	if !ok {
 		dataCacheMisses.WithLabelValues("get").Inc()
-		return nil, fmt.Errorf("data event with id : %v not found", dataEventId)
+		return nil, fmt.Errorf("data event with id : %v not found", dataEventID)
 	}
 	return data, nil
 }

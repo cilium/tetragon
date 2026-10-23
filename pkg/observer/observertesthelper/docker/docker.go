@@ -12,7 +12,7 @@ import (
 // Create creates a new docker container in the background. The container will
 // be killed and removed on test cleanup.
 // It returns the containerId on success, or an error if spawning the container failed.
-func Create(tb testing.TB, args ...string) (containerId string) {
+func Create(tb testing.TB, args ...string) (containerID string) {
 	// note: we are not using `--rm` so we can choose to wait on the container
 	// with `docker wait`. We remove it manually below in t.Cleanup instead
 	args = append([]string{"create"}, args...)
@@ -21,15 +21,15 @@ func Create(tb testing.TB, args ...string) (containerId string) {
 		tb.Fatalf("failed to spawn docker container %v: %s", args, err)
 	}
 
-	containerId = strings.TrimSpace(string(id))
+	containerID = strings.TrimSpace(string(id))
 	tb.Cleanup(func() {
-		err := exec.Command("docker", "rm", "--force", containerId).Run()
+		err := exec.Command("docker", "rm", "--force", containerID).Run()
 		if err != nil {
-			tb.Logf("failed to remove container %s: %s", containerId, err)
+			tb.Logf("failed to remove container %s: %s", containerID, err)
 		}
 	})
 
-	return containerId
+	return containerID
 }
 
 // Start starts a new docker container with a given ID.
@@ -43,7 +43,7 @@ func Start(tb testing.TB, id string) {
 // dockerRun starts a new docker container in the background. The container will
 // be killed and removed on test cleanup.
 // It returns the containerId on success, or an error if spawning the container failed.
-func Run(tb testing.TB, args ...string) (containerId string) {
+func Run(tb testing.TB, args ...string) (containerID string) {
 	// note: we are not using `--rm` so we can choose to wait on the container
 	// with `docker wait`. We remove it manually below in t.Cleanup instead
 	args = append([]string{"run", "--detach"}, args...)
@@ -52,15 +52,15 @@ func Run(tb testing.TB, args ...string) (containerId string) {
 		tb.Fatalf("failed to spawn docker container %v: %s", args, err)
 	}
 
-	containerId = strings.TrimSpace(string(id))
+	containerID = strings.TrimSpace(string(id))
 	tb.Cleanup(func() {
-		err := exec.Command("docker", "rm", "--force", containerId).Run()
+		err := exec.Command("docker", "rm", "--force", containerID).Run()
 		if err != nil {
-			tb.Logf("failed to remove container %s: %s", containerId, err)
+			tb.Logf("failed to remove container %s: %s", containerID, err)
 		}
 	})
 
-	return containerId
+	return containerID
 }
 
 // dockerExec executes a command in a container.

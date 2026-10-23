@@ -274,9 +274,9 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			logger.GetLogger().Warn("Reading user namespace failed", logfields.Error, err)
 		}
 
-		// On error procsDockerId zeros dockerId so we can ignore any errors.
-		dockerId, _ := procsDockerId(uint32(pid))
-		if dockerId == "" {
+		// On error procsDockerId zeros dockerID so we can ignore any errors.
+		dockerID, _ := procsDockerID(uint32(pid))
+		if dockerID == "" {
 			// If we do not have a container ID, then set nspid to zero.
 			// This field is used to construct the pod information to
 			// identify pids inside the container.
@@ -298,7 +298,7 @@ func listRunningProcs(procPath string) ([]procs, error) {
 				logger.GetLogger().Warn("parent ktime read error", logfields.Error, err)
 			}
 
-			if dockerId != "" {
+			if dockerID != "" {
 				// We have a container ID so let's get the nspid inside.
 				pnspid, _, _, _ = caps.GetPIDCaps(filepath.Join(procPath, ppid, "status"))
 			}

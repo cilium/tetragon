@@ -48,8 +48,8 @@ func makeTetragonPolicyTesterServiceFile(fname string, tetraBinary string, ptArg
 
 	data := map[string]string{
 		"tetraBinary":    tetraBinary,
-		"resultsDir":     policytestsVmResultsDir,
-		"testerProgsDir": policytestsVmTestProgsDir,
+		"resultsDir":     policytestsVMResultsDir,
+		"testerProgsDir": policytestsVMTestProgsDir,
 		"policytestArgs": ptArgs,
 		"environment":    environment,
 	}

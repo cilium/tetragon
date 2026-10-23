@@ -188,8 +188,8 @@ func Install(opts ...Option) env.Func {
 		// Handle BTF option for KinD cluster
 		if o.BTF != "" {
 			if clusterName := helpers.GetTempKindClusterName(ctx); clusterName != "" {
-				controlPlaneId := clusterName + "-control-plane"
-				cmd := exec.CommandContext(ctx, "docker", "cp", o.BTF, controlPlaneId+":/btf")
+				controlPlaneID := clusterName + "-control-plane"
+				cmd := exec.CommandContext(ctx, "docker", "cp", o.BTF, controlPlaneID+":/btf")
 				err := cmd.Run()
 				if err != nil {
 					return ctx, fmt.Errorf("failed to load BTF file into KinD cluster: %w", err)

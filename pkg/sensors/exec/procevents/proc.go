@@ -135,7 +135,7 @@ func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, 
 	return "", 0
 }
 
-func procsFindDockerId(cgroups string) (string, int) {
+func procsFindDockerID(cgroups string) (string, int) {
 	cgrpPaths := strings.SplitSeq(cgroups, "\n")
 	for s := range cgrpPaths {
 		if strings.Contains(s, "pods") || strings.Contains(s, "docker") ||

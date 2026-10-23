@@ -556,7 +556,7 @@ func changeTestCgrpController(t *testing.T, trackingCgrpLevel, traceLevel uint32
 	return ""
 }
 
-func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, subSysIdx uint32) {
+func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyID, subSysIdx uint32) {
 	val, err := testutils.GetTgRuntimeConf()
 	if err != nil {
 		t.Fatalf("GetTgRuntimeConf() failed: %v", err)
@@ -570,8 +570,8 @@ func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, 
 		val.TgCgrpLevel = trackingCgrpLevel
 	}
 
-	if hierarchyId != invalidValue {
-		val.TgCgrpHierarchy = hierarchyId
+	if hierarchyID != invalidValue {
+		val.TgCgrpHierarchy = hierarchyID
 	}
 
 	if subSysIdx != invalidValue {
@@ -722,7 +722,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	rmdir := false
 	cgrpMap := testsensor.GetCgroupsTrackingMap()
 	cgrpMapPath := filepath.Join(bpf.MapPrefixPath(), cgrpMap.Name)
-	cgrpTrackingId := uint64(0)
+	cgrpTrackingID := uint64(0)
 	events := perfring.RunTestEvents(t, ctx, trigger)
 	for _, ev := range events {
 		if msg, ok := ev.(*grpcexec.MsgCgroupEventUnix); ok {
@@ -755,7 +755,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 						assert.Equal(t, t.Name(), cgrpName)
 
 						mkdir = true
-						cgrpTrackingId = msg.CgrpidTracker
+						cgrpTrackingID = msg.CgrpidTracker
 					}
 				case ops.MSG_OP_CGROUP_RMDIR:
 					// Match only our test
@@ -772,10 +772,10 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	// Ensure that we received proper events
 	assert.True(t, mkdir)
 	assert.True(t, rmdir)
-	assert.NotZero(t, cgrpTrackingId)
+	assert.NotZero(t, cgrpTrackingID)
 
 	// Should be removed from the tracking map
-	_, err = cgrouptrackmap.LookupTrackingCgroup(cgrpMapPath, cgrpTrackingId)
+	_, err = cgrouptrackmap.LookupTrackingCgroup(cgrpMapPath, cgrpTrackingID)
 	require.Error(t, err)
 }
 

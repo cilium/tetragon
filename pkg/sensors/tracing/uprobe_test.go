@@ -98,7 +98,7 @@ func TestUretprobeOverrideNoMulti(t *testing.T) {
 // not crash, and instead returns an error, if a GetUrl or DnsLookup action is
 // specified in a uprobe policy.
 func TestUprobeCheckGetUrlAction(t *testing.T) {
-	uprobeGetUrlHook := `
+	uprobeGetURLHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -129,7 +129,7 @@ spec: {}
 	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	require.NoError(t, err)
 
-	tp, err := tracingpolicy.FromYAML(uprobeGetUrlHook)
+	tp, err := tracingpolicy.FromYAML(uprobeGetURLHook)
 	require.NoError(t, err)
 	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
 	require.Error(t, err)
@@ -137,7 +137,7 @@ spec: {}
 }
 
 func TestUprobeCheckDnsLookupAction(t *testing.T) {
-	uprobeDnsLookupHook := `
+	uprobeDNSLookupHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -168,7 +168,7 @@ spec: {}
 	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	require.NoError(t, err)
 
-	tp, err := tracingpolicy.FromYAML(uprobeDnsLookupHook)
+	tp, err := tracingpolicy.FromYAML(uprobeDNSLookupHook)
 	require.NoError(t, err)
 	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
 	require.Error(t, err)
@@ -1777,7 +1777,7 @@ spec:
 			entry, ok := p.LoaderData.(*genericUprobe)
 			require.True(t, ok)
 			pinNames = append(pinNames, p.PinName)
-			ids = append(ids, entry.tableId.ID)
+			ids = append(ids, entry.tableID.ID)
 		}
 	}
 
