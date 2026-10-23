@@ -80,7 +80,7 @@ func createStackTraceMap(enabled bool, load *program.Program) *program.Map {
 	return stackTraceMap
 }
 
-func getHeapMaps(prefix string, size, userSize int, load *program.Program) []*program.Map {
+func getHeapMaps(prefix string, size, userSize int, load ...*program.Program) []*program.Map {
 	var maps []*program.Map
 
 	for _, name := range []string{
@@ -94,10 +94,10 @@ func getHeapMaps(prefix string, size, userSize int, load *program.Program) []*pr
 		var m *program.Map
 
 		if userSize != 0 {
-			m = program.MapBuilderProgram(name, load)
+			m = program.MapBuilderProgram(name, load...)
 			m.SetMaxEntries(userSize)
 		} else {
-			m = program.MapSharedPin(name, prefix+name, load)
+			m = program.MapSharedPin(name, prefix+name, load...)
 			m.SetMaxEntries(size)
 		}
 		maps = append(maps, m)

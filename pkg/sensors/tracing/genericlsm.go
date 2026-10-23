@@ -560,7 +560,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 		path.Join(option.Config.HubbleLib, loadProgOutputName),
 		lsmEntry.hook,
 		"lsm/generic_lsm_output",
-		pinName,
+		pinName+"_out",
 		"generic_lsm").
 		SetLoaderData(lsmEntry.tableId).
 		SetPolicy(lsmEntry.policyName)
@@ -570,7 +570,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 		path.Join(option.Config.HubbleLib, loadProgCoreName),
 		lsmEntry.hook,
 		"lsm/generic_lsm_core",
-		pinName,
+		pinName+"_core",
 		"generic_lsm").
 		SetLoaderData(lsmEntry.tableId).
 		SetPolicy(lsmEntry.policyName)
@@ -584,17 +584,13 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 				path.Join(option.Config.HubbleLib, loadProgImaName),
 				lsmEntry.hook,
 				"lsm.s/generic_lsm_ima_"+loadProgImaType,
-				pinName,
+				pinName+"_ima",
 				"generic_lsm").
 				SetLoaderData(lsmEntry.tableId).
 				SetPolicy(lsmEntry.policyName)
 			progs = append(progs, loadIma)
-			imaHashMap := program.MapBuilderProgram("ima_hash_map", loadIma)
+			imaHashMap := program.MapBuilderSensor("ima_hash_map", loadIma, load, loadOutput)
 			maps = append(maps, imaHashMap)
-			imaHashMapOutput := program.MapBuilderProgram("ima_hash_map", loadOutput)
-			maps = append(maps, imaHashMapOutput)
-			imaHashMapCore := program.MapBuilderProgram("ima_hash_map", load)
-			maps = append(maps, imaHashMapCore)
 		} else {
 			logger.GetLogger().
 				Warn("IMA hash calculation is not supported for this hook: " + lsmEntry.hook)
@@ -623,8 +619,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	}
 	maps = append(maps, ratelimitMap)
 
-	maps = append(maps, getHeapMaps("lsm_", option.Config.LsmHeapSize, polInfo.specOpts.LsmHeapSize, load)...)
-	maps = append(maps, getHeapMaps("lsm_", option.Config.LsmHeapSize, polInfo.specOpts.LsmHeapSize, loadOutput)...)
+	maps = append(maps, getHeapMaps("lsm_", option.Config.LsmHeapSize, polInfo.specOpts.LsmHeapSize, load, loadOutput)...)
 
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, selMatchBinariesMap)
