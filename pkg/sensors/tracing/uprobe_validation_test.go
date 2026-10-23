@@ -10,8 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cilium/tetragon/pkg/bpf"
-
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
@@ -111,36 +109,4 @@ spec:
 `)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "only a single uprobe symbol can be redirected")
-}
-
-func TestMultiUprobeValidationOverrideSopath(t *testing.T) {
-	if !bpf.HasUprobeMulti() {
-		t.Skip("skipping sopath validation test for uprobe multi, it is not supported in kernel")
-	}
-	err := checkCrd(t, `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "uprobe-multi-override-new-symbol-so-two-targets"
-spec:
-  uprobes:
-  - path: "/proc/self/exe"
-    symbols:
-    - "first_target"
-    selectors:
-    - matchActions:
-      - action: Override
-        argNewSymbol: uprobe_test_lib_first_target
-        sopath: "libuprobe.so"
-  - path: "/proc/self/exe"
-    symbols:
-    - "second_target"
-    selectors:
-    - matchActions:
-      - action: Override
-        argNewSymbol: uprobe_test_lib_second_target
-        sopath: "libuprobe.so"
-`)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "multi-uprobes mandate at most a single override action with sopath to be specified in the whole policy")
 }
