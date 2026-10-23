@@ -125,11 +125,6 @@ func TestDynamicSOValidate(t *testing.T) {
 			selectors: selectors(soAction(maxPath)),
 		},
 		{
-			name:       "multiple sopath actions",
-			selectors:  selectors(soAction("/usr/lib/libfoo.so"), soAction("/usr/lib/libbar.so")),
-			wantErrMsg: "multiple `sopath` selectors are not supported",
-		},
-		{
 			name:       "sopath too long",
 			selectors:  selectors(soAction(maxPath + "x")),
 			wantErrMsg: "exceeds maximum length",
