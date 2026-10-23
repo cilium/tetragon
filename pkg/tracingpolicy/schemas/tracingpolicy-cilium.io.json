@@ -501,7 +501,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -579,6 +580,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -592,6 +627,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -1107,7 +1146,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -1185,6 +1225,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -1198,6 +1272,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -1279,6 +1357,38 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "pattern": "^[0-9]+$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {
@@ -2005,7 +2115,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -2083,6 +2194,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -2096,6 +2241,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -2611,7 +2760,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -2689,6 +2839,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -2702,6 +2886,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -2783,6 +2971,38 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "pattern": "^[0-9]+$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {
@@ -3243,7 +3463,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -3321,6 +3542,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -3334,6 +3589,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -3849,7 +4108,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -3927,6 +4187,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -3940,6 +4234,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -4021,6 +4319,38 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "pattern": "^[0-9]+$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {
@@ -4429,7 +4759,8 @@
                         "UntrackSock",
                         "NotifyEnforcer",
                         "CleanupEnforcerNotification",
-                        "Set"
+                        "Set",
+                        "UpdateState"
                       ],
                       "type": "string"
                     },
@@ -4507,6 +4838,40 @@
                       "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                       "type": "string"
                     },
+                    "state": {
+                      "description": "State operation to perform. Only valid with the UpdateState action.",
+                      "properties": {
+                        "name": {
+                          "description": "The state object to update. Must reference a previously defined state object.",
+                          "type": "string"
+                        },
+                        "operator": {
+                          "description": "Operation to perform on the state.",
+                          "enum": [
+                            "Set",
+                            "Delete"
+                          ],
+                          "type": "string"
+                        },
+                        "value": {
+                          "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                          "pattern": "^[0-9]+$",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "operator"
+                      ],
+                      "type": "object",
+                      "x-kubernetes-validations": [
+                        {
+                          "message": "Set requires a value and Delete does not accept a value",
+                          "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                        }
+                      ],
+                      "additionalProperties": false
+                    },
                     "userStackTrace": {
                       "description": "Enable user stack trace export. Only valid with the post action.",
                       "type": "boolean"
@@ -4520,6 +4885,10 @@
                     {
                       "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                       "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                    },
+                    {
+                      "message": "state is required for UpdateState and only valid with that action",
+                      "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                     }
                   ],
                   "additionalProperties": false
@@ -5035,7 +5404,8 @@
                         "UntrackSock",
                         "NotifyEnforcer",
                         "CleanupEnforcerNotification",
-                        "Set"
+                        "Set",
+                        "UpdateState"
                       ],
                       "type": "string"
                     },
@@ -5113,6 +5483,40 @@
                       "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                       "type": "string"
                     },
+                    "state": {
+                      "description": "State operation to perform. Only valid with the UpdateState action.",
+                      "properties": {
+                        "name": {
+                          "description": "The state object to update. Must reference a previously defined state object.",
+                          "type": "string"
+                        },
+                        "operator": {
+                          "description": "Operation to perform on the state.",
+                          "enum": [
+                            "Set",
+                            "Delete"
+                          ],
+                          "type": "string"
+                        },
+                        "value": {
+                          "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                          "pattern": "^[0-9]+$",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "operator"
+                      ],
+                      "type": "object",
+                      "x-kubernetes-validations": [
+                        {
+                          "message": "Set requires a value and Delete does not accept a value",
+                          "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                        }
+                      ],
+                      "additionalProperties": false
+                    },
                     "userStackTrace": {
                       "description": "Enable user stack trace export. Only valid with the post action.",
                       "type": "boolean"
@@ -5126,6 +5530,10 @@
                     {
                       "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                       "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                    },
+                    {
+                      "message": "state is required for UpdateState and only valid with that action",
+                      "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                     }
                   ],
                   "additionalProperties": false
@@ -5207,6 +5615,38 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "type": "array"
+              },
+              "matchStates": {
+                "description": "State predicates to match. MatchStates are ANDed.",
+                "items": {
+                  "properties": {
+                    "name": {
+                      "description": "Name of the state object to match. Must reference a previously defined state object.",
+                      "type": "string"
+                    },
+                    "operator": {
+                      "enum": [
+                        "Equal",
+                        "NotEqual"
+                      ],
+                      "type": "string"
+                    },
+                    "value": {
+                      "description": "Value to compare against the state value.",
+                      "pattern": "^[0-9]+$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "operator",
+                    "value"
+                  ],
+                  "type": "object",
+                  "additionalProperties": false
+                },
+                "maxItems": 4,
                 "type": "array"
               },
               "matchUserCallers": {
@@ -5433,6 +5873,33 @@
           "description": "SelectorsMacros is used to define selectors macros, which can be used\nin probes/hooks selectors by their names.",
           "type": "object"
         },
+        "state": {
+          "description": "A list of state objects shared by all probes in the policy. The entries\nmust be unique and there can be at most 10 entries.",
+          "items": {
+            "properties": {
+              "name": {
+                "description": "Name of the state object. Use this name to reference the state in other\nparts of the policy. The state value can hold u64 values.",
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object",
+            "additionalProperties": false
+          },
+          "maxItems": 10,
+          "type": "array",
+          "x-kubernetes-validations": [
+            {
+              "message": "state names must be unique",
+              "rule": "self.all(x, self.exists_one(y, x.name == y.name))"
+            }
+          ]
+        },
         "tracepoints": {
           "description": "A list of tracepoint specs.",
           "items": {
@@ -5600,7 +6067,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -5678,6 +6146,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -5691,6 +6193,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -6206,7 +6712,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -6284,6 +6791,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -6297,6 +6838,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -6378,6 +6923,38 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "pattern": "^[0-9]+$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {
@@ -7068,7 +7645,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -7146,6 +7724,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -7159,6 +7771,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -7674,7 +8290,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -7752,6 +8369,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -7765,6 +8416,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -7846,6 +8501,38 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "pattern": "^[0-9]+$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {
@@ -8279,7 +8966,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -8357,6 +9045,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -8370,6 +9092,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -8885,7 +9611,8 @@
                               "UntrackSock",
                               "NotifyEnforcer",
                               "CleanupEnforcerNotification",
-                              "Set"
+                              "Set",
+                              "UpdateState"
                             ],
                             "type": "string"
                           },
@@ -8963,6 +9690,40 @@
                             "description": "For ArgNewSymbol, ArgNewAddr and ArgNewOffset, indicates to load\nthe new symbol from a shared object located at sopath.\nFull `sopath` cannot exceed 127 characters.\nIts basename (ie: the library name) cannot exceed 31 characters.",
                             "type": "string"
                           },
+                          "state": {
+                            "description": "State operation to perform. Only valid with the UpdateState action.",
+                            "properties": {
+                              "name": {
+                                "description": "The state object to update. Must reference a previously defined state object.",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "Operation to perform on the state.",
+                                "enum": [
+                                  "Set",
+                                  "Delete"
+                                ],
+                                "type": "string"
+                              },
+                              "value": {
+                                "description": "Unsigned 64-bit integer to assign. Only valid with the Set operator.",
+                                "pattern": "^[0-9]+$",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "operator"
+                            ],
+                            "type": "object",
+                            "x-kubernetes-validations": [
+                              {
+                                "message": "Set requires a value and Delete does not accept a value",
+                                "rule": "has(self.operator) && (self.operator == 'Set' ? has(self.value) : !has(self.value))"
+                              }
+                            ],
+                            "additionalProperties": false
+                          },
                           "userStackTrace": {
                             "description": "Enable user stack trace export. Only valid with the post action.",
                             "type": "boolean"
@@ -8976,6 +9737,10 @@
                           {
                             "message": "override action needs at most one of argNewSymbol, argNewAddr or argNewOffset defined",
                             "rule": "!(has(self.argNewSymbol) && has(self.argNewAddr)) && !(has(self.argNewSymbol) && has(self.argNewOffset)) && !(has(self.argNewAddr) && has(self.argNewOffset))"
+                          },
+                          {
+                            "message": "state is required for UpdateState and only valid with that action",
+                            "rule": "self.action == 'UpdateState' ? has(self.state) : !has(self.state)"
                           }
                         ],
                         "additionalProperties": false
@@ -9057,6 +9822,38 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "type": "array"
+                    },
+                    "matchStates": {
+                      "description": "State predicates to match. MatchStates are ANDed.",
+                      "items": {
+                        "properties": {
+                          "name": {
+                            "description": "Name of the state object to match. Must reference a previously defined state object.",
+                            "type": "string"
+                          },
+                          "operator": {
+                            "enum": [
+                              "Equal",
+                              "NotEqual"
+                            ],
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "Value to compare against the state value.",
+                            "pattern": "^[0-9]+$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "operator",
+                          "value"
+                        ],
+                        "type": "object",
+                        "additionalProperties": false
+                      },
+                      "maxItems": 4,
                       "type": "array"
                     },
                     "matchUserCallers": {

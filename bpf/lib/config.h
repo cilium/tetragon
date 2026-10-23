@@ -95,3 +95,4 @@ volatile const __u32 FEATURE_MASK = 0xFFFFFFFF;
 #define HAS_MATCH_USER_CALLERS	     (FEATURE_MASK & (1 << 10))
 #define HAS_MATCH_CEL		     (FEATURE_MASK & (1 << 11))
 #define HAS_MATCH_ARG_FILTERS	     (FEATURE_MASK & (1 << 12))
+#define HAS_MATCH_STATES	     (FEATURE_MASK & (1 << 13))

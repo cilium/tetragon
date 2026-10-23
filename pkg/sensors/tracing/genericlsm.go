@@ -208,6 +208,7 @@ func isValidLsmSelectors(selectors []v1alpha1.KProbeSelector) error {
 				case "signal":
 				case "nopost":
 				case "override":
+				case "updatestate":
 					continue
 				case "post":
 					if a.KernelStackTrace || a.UserStackTrace {
@@ -291,6 +292,7 @@ type addLsmIn struct {
 	sensorPath        string
 	policyName        string
 	policyID          policyfilter.PolicyID
+	stateIDs          map[string]uint32
 	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32
 }
@@ -404,6 +406,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, instance InstanceID, in *addLsmIn) (id idta
 		Args:      f.Args,
 		Data:      []v1alpha1.KProbeArg{},
 		Maps:      in.selMaps,
+		StateIDs:  in.stateIDs,
 	})
 	if err != nil {
 		return errFn(err)
@@ -438,6 +441,7 @@ func createGenericLsmSensor(
 		sensorPath: name,
 		policyID:   polInfo.policyID,
 		policyName: polInfo.name,
+		stateIDs:   polInfo.stateIDs,
 		selMaps:    selMaps,
 	}
 
@@ -639,6 +643,9 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	maps = append(maps, overrideTasksMap)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
+	if len(polInfo.stateIDs) != 0 {
+		maps = append(maps, polInfo.policyStateMap(load))
+	}
 
 	if option.Config.EnableCgTrackerID {
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))

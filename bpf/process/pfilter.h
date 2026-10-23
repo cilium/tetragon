@@ -457,6 +457,8 @@ selector_match_cmd_args_offset(__u8 *f, __u32 selidx)
 	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 	/* matchCapabilityChanges */
 	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	/* matchState */
+	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 
 	return seloff & INDEX_MASK;
 }
@@ -662,6 +664,71 @@ selector_process_filter_1(__u32 *f, __u32 index, struct execve_map_value *enter)
 	return PFILTER_ACCEPT;
 }
 
+#ifdef __LARGE_BPF_PROG
+
+#define MAX_STATE_FILTERS 4
+
+FUNC_LOCAL bool
+filter_state_loop(__u32 i, __u8 *f, int section_off)
+{
+	struct selector_state_filter *filter;
+	struct state_value *state_value;
+	__u64 state_data, filter_value;
+
+	section_off += sizeof(__u32) + i * sizeof(struct selector_state_filter);
+	filter = (struct selector_state_filter *)((__u64)f + (section_off & INDEX_MASK));
+	state_value = map_lookup_elem(&state_map, &filter->state_id);
+	if (!state_value)
+		return false;
+
+	state_data = state_value->data;
+	filter_value = filter->value;
+
+	switch (filter->op) {
+	case op_filter_eq:
+		return state_data == filter_value;
+	case op_filter_neq:
+		return state_data != filter_value;
+	default:
+		return false;
+	}
+}
+
+FUNC_INLINE bool filter_state(__u8 *f, int section_off)
+{
+	__u32 section_len;
+
+	section_off &= INDEX_MASK;
+	section_len = *(__u32 *)((__u64)f + section_off);
+	if (section_len < sizeof(section_len) ||
+	    section_len > sizeof(section_len) + MAX_STATE_FILTERS * sizeof(struct selector_state_filter) ||
+	    (section_len - sizeof(section_len)) % sizeof(struct selector_state_filter))
+		return false;
+
+	int i;
+
+	if (CONFIG(ITER_NUM)) {
+		bpf_for(i, 0, MAX_STATE_FILTERS)
+		{
+			if (sizeof(section_len) + i * sizeof(struct selector_state_filter) >= section_len)
+				break;
+			if (!filter_state_loop(i, f, section_off))
+				return false;
+		}
+	} else {
+#pragma unroll
+		for (i = 0; i < MAX_STATE_FILTERS; i++) {
+			if (sizeof(section_len) + i * sizeof(struct selector_state_filter) >= section_len)
+				break;
+			if (!filter_state_loop(i, f, section_off))
+				return false;
+		}
+	}
+
+	return true;
+}
+#endif /* __LARGE_BPF_PROG */
+
 FUNC_INLINE int
 selector_process_filter_2(void *ctx, __u32 *f, __u32 index, struct execve_map_value *enter,
 			  struct msg_generic_kprobe *msg)
@@ -810,6 +877,10 @@ selector_process_filter_2(void *ctx, __u32 *f, __u32 index, struct execve_map_va
 #endif
 
 #ifdef __LARGE_BPF_PROG
+	if (HAS_MATCH_STATES && !filter_state((__u8 *)f, index))
+		return PFILTER_REJECT;
+	index += *(__u32 *)((__u64)f + (index & INDEX_MASK));
+
 	if (HAS_MATCH_USER_CALLERS && generic_filter_caller(ctx, msg, f, index) == CALLER_FILTER_REJECT)
 		return PFILTER_REJECT;
 #endif
