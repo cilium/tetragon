@@ -46,8 +46,8 @@ const (
 	// ActionTypeUnfollowFd                  = 3 deprecated
 	ActionTypeOverride = 4
 	// ActionTypeCopyFd                      = 5 deprecated
-	ActionTypeGetUrl                      = 6
-	ActionTypeDnsLookup                   = 7
+	ActionTypeGetURL                      = 6
+	ActionTypeDNSLookup                   = 7
 	ActionTypeNoPost                      = 8
 	ActionTypeSignal                      = 9
 	ActionTypeTrackSock                   = 10
@@ -61,8 +61,8 @@ var actionTypeTable = map[string]uint32{
 	"post":                        ActionTypePost,
 	"sigkill":                     ActionTypeSigKill,
 	"override":                    ActionTypeOverride,
-	"geturl":                      ActionTypeGetUrl,
-	"dnslookup":                   ActionTypeDnsLookup,
+	"geturl":                      ActionTypeGetURL,
+	"dnslookup":                   ActionTypeDNSLookup,
 	"nopost":                      ActionTypeNoPost,
 	"signal":                      ActionTypeSignal,
 	"tracksock":                   ActionTypeTrackSock,
@@ -76,8 +76,8 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypePost:                        "post",
 	ActionTypeSigKill:                     "sigkill",
 	ActionTypeOverride:                    "override",
-	ActionTypeGetUrl:                      "geturl",
-	ActionTypeDnsLookup:                   "dnslookup",
+	ActionTypeGetURL:                      "geturl",
+	ActionTypeDNSLookup:                   "dnslookup",
 	ActionTypeNoPost:                      "nopost",
 	ActionTypeSignal:                      "signal",
 	ActionTypeTrackSock:                   "tracksock",
@@ -623,7 +623,7 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 				rangeStr = []string{familyStr, familyStr}
 			}
 		case SelectorOpState:
-			state, err := network.TcpStateNumber(v)
+			state, err := network.TCPStateNumber(v)
 			if err == nil {
 				stateStr := strconv.FormatUint(uint64(state), 10)
 				rangeStr = []string{stateStr, stateStr}
@@ -1499,14 +1499,14 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		} else {
 			WriteSelectorInt32(&k.data, action.ArgError)
 		}
-	case ActionTypeGetUrl, ActionTypeDnsLookup:
+	case ActionTypeGetURL, ActionTypeDNSLookup:
 		actionArg := ActionArgEntry{
 			tableID: idtable.UninitializedEntryID,
 		}
 		switch act {
-		case ActionTypeGetUrl:
+		case ActionTypeGetURL:
 			actionArg.arg = action.ArgUrl
-		case ActionTypeDnsLookup:
+		case ActionTypeDNSLookup:
 			actionArg.arg = action.ArgFqdn
 		}
 		actionArgTable.AddEntry(&actionArg)
@@ -2156,11 +2156,11 @@ func HasOverride(selectors []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
-func HasGetUrlOrDnsLookup(selectors []v1alpha1.KProbeSelector) bool {
+func HasGetURLOrDNSLookup(selectors []v1alpha1.KProbeSelector) bool {
 	for _, s := range selectors {
 		for _, action := range s.MatchActions {
 			act := actionTypeTable[strings.ToLower(action.Action)]
-			if act == ActionTypeGetUrl || act == ActionTypeDnsLookup {
+			if act == ActionTypeGetURL || act == ActionTypeDNSLookup {
 				return true
 			}
 		}

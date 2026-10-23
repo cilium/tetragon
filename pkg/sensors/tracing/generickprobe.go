@@ -973,7 +973,7 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 	}
 
 	genericKprobeTable.AddEntry(&kprobeEntry)
-	eventConfig.FuncId = uint32(kprobeEntry.tableID.ID)
+	eventConfig.FuncID = uint32(kprobeEntry.tableID.ID)
 
 	logger.GetLogger().
 		Info("Added kprobe", "return", setRetprobe, "function", kprobeEntry.funcName,
@@ -1334,9 +1334,9 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, errors.New("failed to read process call msg")
 	}
 
-	gk, err := genericKprobeTableGet(idtable.EntryID{ID: int(m.FuncId)})
+	gk, err := genericKprobeTableGet(idtable.EntryID{ID: int(m.FuncID)})
 	if err != nil {
-		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncId), logfields.Error, err)
+		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncID), logfields.Error, err)
 		return nil, errors.New("failed to match id")
 	}
 
@@ -1350,22 +1350,22 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes.Reader) ([]observer.Event, error) {
 	var err error
 
-	switch m.ActionId {
-	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
-		actionArgEntry, err := gk.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
+	switch m.ActionID {
+	case selectors.ActionTypeGetURL, selectors.ActionTypeDNSLookup:
+		actionArgEntry, err := gk.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgID)})
 		if err != nil {
 			gk.LogAttrs(slog.LevelWarn, "GetURL/TypeDnsLookup: failed to find argument",
 				slog.Any(logfields.Error, err),
-				slog.Any("actionArgId", m.ActionArgId),
+				slog.Any("actionArgId", m.ActionArgID),
 			)
 			return nil, errors.New("failed to find argument for id")
 		}
 		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
-		switch m.ActionId {
-		case selectors.ActionTypeGetUrl:
+		switch m.ActionID {
+		case selectors.ActionTypeGetURL:
 			gk.LogAttrs(logger.LevelTrace, "Get URL Action", slog.Any("URL", actionArg))
 			getURL(actionArg)
-		case selectors.ActionTypeDnsLookup:
+		case selectors.ActionTypeDNSLookup:
 			gk.LogAttrs(logger.LevelTrace, "DNS lookup", slog.Any("FQDN", actionArg))
 			dnsLookup(actionArg)
 		}
@@ -1428,11 +1428,11 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 			unix,
 			gk.pendingEvents,
 			returnEvent,
-			m.RetProbeId,
+			m.RetProbeID,
 			ktimeEnter,
 			reportMergeError[*tracing.MsgGenericKprobeUnix])
 		if unix != nil {
-			unix.ReturnAction = other.Msg.ActionId
+			unix.ReturnAction = other.Msg.ActionID
 		}
 	}
 	if unix == nil {

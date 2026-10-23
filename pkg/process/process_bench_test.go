@@ -25,7 +25,7 @@ func newBenchExecEvent() *processapi.MsgExecveEventUnix {
 		Msg: processapi.MsgExecveEvent{
 			Parent: processapi.MsgExecveKey{Pid: 1000, Ktime: 123456789},
 			Creds: processapi.MsgGenericCred{
-				Uid: 1000, Gid: 1000, Euid: 1000, Egid: 1000,
+				UID: 1000, Gid: 1000, Euid: 1000, Egid: 1000,
 				Suid: 1000, Sgid: 1000, FSuid: 1000, FSgid: 1000,
 			},
 			Namespaces: processapi.MsgNamespaces{

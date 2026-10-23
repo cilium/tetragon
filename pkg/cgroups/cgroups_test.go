@@ -158,10 +158,10 @@ misc	10	1	1
 	for _, c := range CgroupControllers {
 		if strings.Contains(d.used, c.Name) {
 			require.True(t, c.Active)
-			require.NotZero(t, c.Id)
+			require.NotZero(t, c.ID)
 		} else {
 			require.False(t, c.Active)
-			require.Zero(t, c.Id)
+			require.Zero(t, c.ID)
 		}
 	}
 }
@@ -296,7 +296,7 @@ func TestDiscoverCgroupv1SubSysIdsDefault(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, CGROUP_UNDEF, fs)
 
-	err = DiscoverSubSysIds()
+	err = DiscoverSubSysIDs()
 	require.NoError(t, err)
 
 	accessFs := false
@@ -314,7 +314,7 @@ func TestDiscoverCgroupv1SubSysIdsDefault(t *testing.T) {
 
 	for _, controller := range CgroupControllers {
 		if accessFs {
-			assert.NotEqualValues(t, 0, controller.Id, "Cgroupv1 Controller '%s' hierarchy ID should not be zero", controller.Name)
+			assert.NotEqualValues(t, 0, controller.ID, "Cgroupv1 Controller '%s' hierarchy ID should not be zero", controller.Name)
 		}
 
 		if controller.Active {
@@ -335,7 +335,7 @@ func TestGetCgroupIdFromPath(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, CGROUP_UNDEF, mode)
 
-	err = DiscoverSubSysIds()
+	err = DiscoverSubSysIDs()
 	require.NoError(t, err)
 
 	pid := os.Getpid()
@@ -343,7 +343,7 @@ func TestGetCgroupIdFromPath(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, path)
 
-	id, err := GetCgroupIdFromPath(path)
+	id, err := GetCgroupIDFromPath(path)
 	require.NoError(t, err)
 	assert.NotZero(t, id)
 

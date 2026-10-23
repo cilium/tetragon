@@ -11,7 +11,7 @@ import (
 
 // Create creates a new docker container in the background. The container will
 // be killed and removed on test cleanup.
-// It returns the containerId on success, or an error if spawning the container failed.
+// It returns the containerID on success, or an error if spawning the container failed.
 func Create(tb testing.TB, args ...string) (containerID string) {
 	// note: we are not using `--rm` so we can choose to wait on the container
 	// with `docker wait`. We remove it manually below in t.Cleanup instead
@@ -42,7 +42,7 @@ func Start(tb testing.TB, id string) {
 
 // dockerRun starts a new docker container in the background. The container will
 // be killed and removed on test cleanup.
-// It returns the containerId on success, or an error if spawning the container failed.
+// It returns the containerID on success, or an error if spawning the container failed.
 func Run(tb testing.TB, args ...string) (containerID string) {
 	// note: we are not using `--rm` so we can choose to wait on the container
 	// with `docker wait`. We remove it manually below in t.Cleanup instead

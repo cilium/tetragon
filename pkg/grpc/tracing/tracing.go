@@ -73,9 +73,9 @@ func kprobeAction(act uint64) tetragon.KprobeAction {
 		return tetragon.KprobeAction_KPROBE_ACTION_SIGKILL
 	case tracingapi.ActionOverride:
 		return tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE
-	case tracingapi.ActionGetUrl:
+	case tracingapi.ActionGetURL:
 		return tetragon.KprobeAction_KPROBE_ACTION_GETURL
-	case tracingapi.ActionLookupDns:
+	case tracingapi.ActionLookupDNS:
 		return tetragon.KprobeAction_KPROBE_ACTION_DNSLOOKUP
 	case tracingapi.ActionNoPost:
 		return tetragon.KprobeAction_KPROBE_ACTION_NOPOST
@@ -136,7 +136,7 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		sockArg := &tetragon.KprobeSock{
 			Cookie:   e.Sockaddr,
 			Family:   network.InetFamily(e.Family),
-			State:    network.TcpState(e.State),
+			State:    network.TCPState(e.State),
 			Type:     network.InetType(e.Type),
 			Protocol: network.InetProtocol(e.Protocol),
 			Mark:     e.Mark,
@@ -183,7 +183,7 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		a.Label = e.Label
 	case tracingapi.MsgGenericKprobeArgCred:
 		credArg := &tetragon.ProcessCredentials{
-			Uid:        &wrapperspb.UInt32Value{Value: e.Uid},
+			Uid:        &wrapperspb.UInt32Value{Value: e.UID},
 			Gid:        &wrapperspb.UInt32Value{Value: e.Gid},
 			Euid:       &wrapperspb.UInt32Value{Value: e.Euid},
 			Egid:       &wrapperspb.UInt32Value{Value: e.Egid},
@@ -200,7 +200,7 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		}
 		credArg.UserNs = &tetragon.UserNamespace{
 			Level: &wrapperspb.Int32Value{Value: e.UserNs.Level},
-			Uid:   &wrapperspb.UInt32Value{Value: e.UserNs.Uid},
+			Uid:   &wrapperspb.UInt32Value{Value: e.UserNs.UID},
 			Gid:   &wrapperspb.UInt32Value{Value: e.UserNs.Gid},
 			Ns: &tetragon.Namespace{
 				Inum: e.UserNs.NsInum,
@@ -277,7 +277,7 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 	case tracingapi.MsgGenericKprobeArgUserNamespace:
 		nsArg := &tetragon.UserNamespace{
 			Level: &wrapperspb.Int32Value{Value: e.Level},
-			Uid:   &wrapperspb.UInt32Value{Value: e.Uid},
+			Uid:   &wrapperspb.UInt32Value{Value: e.UID},
 			Gid:   &wrapperspb.UInt32Value{Value: e.Gid},
 			Ns: &tetragon.Namespace{
 				Inum: e.NsInum,
@@ -376,7 +376,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		Args:             tetragonArgs,
 		Data:             tetragonData,
 		Return:           tetragonReturnArg,
-		Action:           kprobeAction(event.Msg.ActionId),
+		Action:           kprobeAction(event.Msg.ActionID),
 		ReturnAction:     kprobeAction(event.ReturnAction),
 		KernelStackTrace: kernelStackTrace,
 		UserStackTrace:   userStackTrace,
@@ -619,7 +619,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 				Sport:    v.Sport,
 				Dport:    v.Dport,
 				Cookie:   v.Sockaddr,
-				State:    network.TcpState(v.State),
+				State:    network.TCPState(v.State),
 			}
 
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockArg{
@@ -690,7 +690,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		PolicyName: msg.PolicyName,
 		Message:    msg.Message,
 		Tags:       msg.Tags,
-		Action:     kprobeAction(msg.Msg.ActionId),
+		Action:     kprobeAction(msg.Msg.ActionID),
 	}
 
 	if tetragonProcess.Pid == nil {
@@ -942,7 +942,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		Tags:           event.Tags,
 		Offset:         event.Offset,
 		RefCtrOffset:   event.RefCtrOffset,
-		Action:         kprobeAction(event.Msg.ActionId),
+		Action:         kprobeAction(event.Msg.ActionID),
 		UserStackTrace: userStackTrace,
 	}
 
@@ -1048,7 +1048,7 @@ func GetProcessUsdt(event *MsgGenericUsdtUnix) *tetragon.ProcessUsdt {
 		Message:    event.Message,
 		Args:       tetragonArgs,
 		Tags:       event.Tags,
-		Action:     kprobeAction(event.Msg.ActionId),
+		Action:     kprobeAction(event.Msg.ActionID),
 	}
 
 	if tetragonProcess.Pid == nil {
@@ -1168,7 +1168,7 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 		Ancestors:    tetragonAncestors,
 		FunctionName: event.Hook,
 		Args:         tetragonArgs,
-		Action:       kprobeAction(event.Msg.ActionId),
+		Action:       kprobeAction(event.Msg.ActionID),
 		PolicyName:   event.PolicyName,
 		Message:      event.Message,
 		Tags:         event.Tags,
