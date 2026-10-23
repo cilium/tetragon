@@ -68,12 +68,12 @@ FUNC_INLINE bool is_expected_sp(struct pt_regs *ctx, struct pending_call *pc)
 	return ctx->sp == pc->expected_sp || ctx->sp == pc->expected_sp - 8;
 }
 
-FUNC_INLINE void revert_ctx(struct pt_regs *ctx, struct pending_call *pc, __u64 pid_tgid, __u32 sym_id)
+FUNC_INLINE void revert_ctx(struct pt_regs *ctx, struct pending_call *pc, __u64 pid_tgid, __s32 idx)
 {
 	restore_orig_regs(ctx, pc);
 	jump_to(ctx, pc->orig_addr);
 	// Signal that the flow is not working, and skip next time.
-	skip_flow(pc, pid_tgid, sym_id);
+	skip_flow(pc, pid_tgid, pc->sym_id[idx], idx);
 }
 
 FUNC_INLINE void store_orig_regs(struct pt_regs *ctx, struct pending_call *pc)
