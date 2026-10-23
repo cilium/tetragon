@@ -24,7 +24,7 @@ require (
 	github.com/prometheus/client_golang v1.25.0
 	github.com/prometheus/client_model v0.6.3
 	github.com/prometheus/common v0.72.1
-	github.com/prometheus/procfs v0.22.0
+	github.com/prometheus/procfs v0.23.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cast v1.10.0
 	github.com/spf13/cobra v1.10.2
