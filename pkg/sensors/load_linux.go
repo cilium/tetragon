@@ -92,14 +92,20 @@ func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map
 				mapSpec.InnerMap.MaxEntries = innerMax
 			}
 		}
+
+		mapSpec.Flags |= m.GetFlags()
 	} else {
 		// If map is NOT the owner we follow the maximum entries
-		// of the pinned map and update the spec with that.
-		maximum, err := program.GetMaxEntriesPinnedMap(pinPath)
+		// and the flags of the pinned map and update the spec with that.
+		pinned, err := ebpf.LoadPinnedMap(pinPath, nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("loading pinned map from path '%s' failed: %w", pinPath, err)
 		}
+		defer pinned.Close()
+
+		maximum := pinned.MaxEntries()
 		mapSpec.MaxEntries = maximum
+		mapSpec.Flags = pinned.Flags()
 
 		// 'm' is not the owner but for some reason requires maximum
 		// entries setup, make sure it matches the pinned map.
@@ -111,6 +117,7 @@ func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map
 		}
 
 		m.SetMaxEntries(int(maximum))
+		m.SetFlags(pinned.Flags())
 	}
 
 	// Disable content loading at this point, we just care about the map,

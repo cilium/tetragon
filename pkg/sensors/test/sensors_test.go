@@ -527,6 +527,158 @@ func TestMaxEntriesMulti(t *testing.T) {
 	assert.Equal(t, uint32(222), getMaxEntries(t, path2))
 }
 
+func getFlags(t *testing.T, path string) uint32 {
+	m, err := ebpf.LoadPinnedMap(path, nil)
+	if err != nil {
+		t.Fatalf("failed to load map from '%s': %s\n", path, err)
+	}
+
+	info, err := m.Info()
+	if err != nil {
+		t.Fatalf("failed to get map info: %s\n", err)
+	}
+
+	return info.Flags
+}
+
+func TestNoPreallocOwner(t *testing.T) {
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.VerifierLogLevel = 5
+
+	p1 := program.Builder(
+		"bpf_map_test_p1.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p1",
+		"kprobe",
+	)
+
+	m1 := program.MapBuilderPolicy("m1", p1)
+	m1.SetFlag(bpf.BPF_F_NO_PREALLOC)
+
+	s := &sensors.Sensor{
+		Name:   "sensor",
+		Progs:  []*program.Program{p1},
+		Maps:   []*program.Map{m1},
+		Policy: "policy",
+	}
+
+	err := s.Load(bpf.MapPrefixPath())
+	require.NoError(t, err)
+	defer s.Unload(true)
+
+	path := program.PolicyMapPath(bpf.MapPrefixPath(), "policy", "m1")
+	assert.NotZero(t, getFlags(t, path)&bpf.BPF_F_NO_PREALLOC)
+}
+
+func TestNoPreallocUser(t *testing.T) {
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.VerifierLogLevel = 5
+
+	p1 := program.Builder(
+		"bpf_map_test_p1.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p1",
+		"kprobe",
+	)
+
+	p2 := program.Builder(
+		"bpf_map_test_p2.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p2",
+		"kprobe",
+	)
+
+	m1 := program.MapBuilder("m1", p1)
+	m1.SetFlag(bpf.BPF_F_NO_PREALLOC)
+
+	s1 := &sensors.Sensor{
+		Name:   "sensor1",
+		Progs:  []*program.Program{p1},
+		Maps:   []*program.Map{m1},
+		Policy: "policy",
+	}
+
+	m1User := program.MapUser("m1", p2)
+
+	s2 := &sensors.Sensor{
+		Name:   "sensor2",
+		Progs:  []*program.Program{p2},
+		Maps:   []*program.Map{m1User},
+		Policy: "policy",
+	}
+
+	err := s1.Load(bpf.MapPrefixPath())
+	require.NoError(t, err)
+	defer s1.Unload(true)
+
+	err = s2.Load(bpf.MapPrefixPath())
+	require.NoError(t, err)
+	defer s2.Unload(true)
+
+	assert.NotZero(t, m1User.GetFlags()&bpf.BPF_F_NO_PREALLOC)
+	path := filepath.Join(bpf.MapPrefixPath(), m1.PinPath)
+	assert.NotZero(t, getFlags(t, path)&bpf.BPF_F_NO_PREALLOC)
+}
+
+func TestNoPreallocShared(t *testing.T) {
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.VerifierLogLevel = 5
+
+	p1 := program.Builder(
+		"bpf_map_test_p1.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p1",
+		"kprobe",
+	)
+
+	p2 := program.Builder(
+		"bpf_map_test_p2.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p2",
+		"kprobe",
+	)
+
+	m1a := program.MapShared("m1", p1)
+	m1a.SetFlag(bpf.BPF_F_NO_PREALLOC)
+
+	// Only used by sensor1, but still referenced within sensor2 object code
+	m2a := program.MapShared("m2", p1)
+	m2a.SetFlag(bpf.BPF_F_NO_PREALLOC)
+
+	m1b := program.MapShared("m1", p2)
+
+	s1 := &sensors.Sensor{
+		Name:   "sensor1",
+		Progs:  []*program.Program{p1},
+		Maps:   []*program.Map{m1a, m2a},
+		Policy: "policy",
+	}
+	s2 := &sensors.Sensor{
+		Name:   "sensor2",
+		Progs:  []*program.Program{p2},
+		Maps:   []*program.Map{m1b},
+		Policy: "policy",
+	}
+
+	err := s1.Load(bpf.MapPrefixPath())
+	require.NoError(t, err)
+	defer s1.Unload(true)
+
+	err = s2.Load(bpf.MapPrefixPath())
+	require.NoError(t, err)
+	defer s2.Unload(true)
+
+	for _, name := range []string{"m1", "m2"} {
+		path := filepath.Join(bpf.MapPrefixPath(), name)
+		assert.NotZero(t, getFlags(t, path)&bpf.BPF_F_NO_PREALLOC)
+	}
+}
+
 func TestMaxEntriesInnerSingle(t *testing.T) {
 	// TODO, we need to check BTF for inner map max entries
 	t.Skip()
