@@ -71,7 +71,7 @@ RUN if [ $BUILDARCH != $TARGETARCH ]; \
     then apt-get install -y curl git llvm gcc pkg-config zlib1g-dev libelf-dev libelf-dev:arm64 libcap-dev:arm64 libssl-dev libssl-dev:arm64 crossbuild-essential-$TARGETARCH; \
     else apt-get install -y curl git llvm gcc pkg-config zlib1g-dev libelf-dev libcap-dev libssl-dev; fi
 # renovate: datasource=github-releases depName=libbpf/bpftool
-ARG BPFTOOL_TAG=v7.7.0
+ARG BPFTOOL_TAG=v7.8.1
 RUN git clone https://github.com/libbpf/bpftool.git . && git checkout ${BPFTOOL_TAG} && git submodule update --init --recursive
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
     then make -C src EXTRA_CFLAGS=--static CC=aarch64-linux-gnu-gcc -j $(nproc) && aarch64-linux-gnu-strip src/bpftool; \
@@ -81,7 +81,7 @@ RUN if [ $BUILDARCH != $TARGETARCH ]; \
 FROM --platform=$BUILDPLATFORM quay.io/cilium/alpine-curl@sha256:408430f548a8390089b9b83020148b0ef80b0be1beb41a98a8bfe036709c196e AS bpftool-downloader
 ARG TARGETARCH
 # renovate: datasource=github-releases depName=libbpf/bpftool
-ARG BPFTOOL_TAG=v7.7.0
+ARG BPFTOOL_TAG=v7.8.1
 RUN curl -L https://github.com/libbpf/bpftool/releases/download/${BPFTOOL_TAG}/bpftool-${BPFTOOL_TAG}-${TARGETARCH}.tar.gz | tar xz && chmod +x bpftool
 
 # Get bash-completion manifests and generate tetra CLI bash
