@@ -3,7 +3,7 @@
 
 //go:build !windows
 
-package policytest
+package localrunner
 
 import (
 	"testing"
