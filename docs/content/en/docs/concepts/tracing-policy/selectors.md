@@ -913,6 +913,11 @@ Currently, `MatchCEL` supports:
 * Comparison operators (`==`, `!=`, `<`, `<=`, `>`, `>=`)
 * Integer casting to 32-bits (`int32()`, `uint32()`)
 * Bitwise operations (`and()`, `or()`, `xor()`, `not()`, `lsh()`, `rsh()`)
+* Byte order conversion between host and network byte order (`htons()`,
+  `ntohs()` on `uint16` values, `htonl()`, `ntohl()` on `uint32` values, and
+  `htonll()`, `ntohll()` on `uint64` values).
+  For example, `ntohs(arg0) == uint16(80u)` matches a port stored in network
+  byte order.
 
 Shift operations (`lsh()`, `rsh()`) mask the shift amount to the bit width of
 the operand. In other words, the shift amount is reduced modulo the bit width
