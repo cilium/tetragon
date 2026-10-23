@@ -437,12 +437,10 @@ spec:` + opts + `
 		mapsByName := findHeapMaps(sens)
 		for _, name := range heapMapNames {
 			maps := mapsByName[name]
-			require.Len(t, maps, 2, "%s map not found in core and output programs", name)
-
-			for _, m := range maps {
-				assert.Equal(t, "lsm_"+name, m.PinPath)
-				assert.Equal(t, uint32(defaults.DefaultLsmHeapSize), getMaxEntries(m))
-			}
+			require.Len(t, maps, 1, "%s map not found", name)
+			m := maps[0]
+			assert.Equal(t, "lsm_"+name, m.PinPath)
+			assert.Equal(t, uint32(defaults.DefaultLsmHeapSize), getMaxEntries(m))
 		}
 	})
 
@@ -458,14 +456,11 @@ spec:` + opts + `
 		mapsByName := findHeapMaps(sens)
 		for _, name := range heapMapNames {
 			maps := mapsByName[name]
-			require.Len(t, maps, 2, "%s map not found in core and output programs", name)
-			assert.Equal(t, maps[0].PinPath, maps[1].PinPath)
-
-			for _, m := range maps {
-				assert.NotEqual(t, name, m.PinPath)
-				assert.Equal(t, name, filepath.Base(m.PinPath))
-				assert.Equal(t, uint32(1024), getMaxEntries(m))
-			}
+			require.Len(t, maps, 1, "%s map not found", name)
+			m := maps[0]
+			assert.NotEqual(t, name, m.PinPath)
+			assert.Equal(t, name, filepath.Base(m.PinPath))
+			assert.Equal(t, uint32(1024), getMaxEntries(m))
 		}
 	})
 }

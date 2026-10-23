@@ -619,8 +619,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	}
 	maps = append(maps, ratelimitMap)
 
-	maps = append(maps, getHeapMaps("lsm_", option.Config.LsmHeapSize, polInfo.specOpts.LsmHeapSize, load)...)
-	maps = append(maps, getHeapMaps("lsm_", option.Config.LsmHeapSize, polInfo.specOpts.LsmHeapSize, loadOutput)...)
+	maps = append(maps, getHeapMaps("lsm_", option.Config.LsmHeapSize, polInfo.specOpts.LsmHeapSize, load, loadOutput)...)
 
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, selMatchBinariesMap)
