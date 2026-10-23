@@ -100,7 +100,14 @@ linters:
         text: exported const
       - linters:
           - revive
-        text: var-naming
+        text: "don't use ALL_CAPS in Go names"
+      # TODO: fix the remaining snake_case names and drop this exclusion.
+      - linters:
+          - revive
+        text: "don't use underscores in Go names"
+      - linters:
+          - revive
+        text: "var t_ should be t"
       - linters:
           - goheader
         path: pkg/sensors/tracing/genericuprobe_cgo.go
