@@ -19,19 +19,19 @@ func TestProcsContainerIdOffset(t *testing.T) {
 	test3 := "cri-containerd-123456789abcdef"
 	offsetValue3 := 15
 
-	s, i := ProcsContainerIdOffset(test1)
+	s, i := ProcsContainerIDOffset(test1)
 	assert.Equal(t, s, test1, "Expect input == output")
 	assert.Equal(t, 0, i, "Expect zero offset")
 
-	s, i = ProcsContainerIdOffset(test2)
+	s, i = ProcsContainerIDOffset(test2)
 	assert.Equal(t, test1, s, "Expect output is test1")
 	assert.Equal(t, offsetValue, i, "Expect docker- offset")
 
-	s, i = ProcsContainerIdOffset(test3)
+	s, i = ProcsContainerIDOffset(test3)
 	assert.Equal(t, test1, s, "Expect output is test3")
 	assert.Equal(t, offsetValue3, i, "Expect docker- offset")
 
-	s, i = ProcsContainerIdOffset("")
+	s, i = ProcsContainerIDOffset("")
 	assert.Empty(t, s, "Expect output '' empty string")
 	assert.Equal(t, 0, i, "Expect ContainerId offset should be zero")
 }
@@ -186,36 +186,36 @@ func TestLookupContainerIdPlainDocker(t *testing.T) {
 	assert.Equal(t, 4, i, "ContainerId offset wrong for bare hex ID")
 	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "ContainerId wrong for bare hex ID")
 
-	// 2. Verify LookupContainerId logic directly for bare hex ID
-	d, i = LookupContainerId(p, false, false)
-	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "LookupContainerId failed for bare hex ID")
-	assert.Equal(t, 0, i, "LookupContainerId offset wrong for bare hex ID")
+	// 2. Verify LookupContainerID logic directly for bare hex ID
+	d, i = LookupContainerID(p, false, false)
+	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "LookupContainerID failed for bare hex ID")
+	assert.Equal(t, 0, i, "LookupContainerID offset wrong for bare hex ID")
 
 	// 3. Docker cgroupfs format
 	// "/docker/5aaf9eb7648eeb1459d86eaa0ace8bcfa93089642e5c3113a14250dae3238aaf"
 	p = "/docker/5aaf9eb7648eeb1459d86eaa0ace8bcfa93089642e5c3113a14250dae3238aaf"
-	d, i = LookupContainerId(p, false, false)
-	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "LookupContainerId failed for cgroupfs format")
-	assert.Equal(t, 0, i, "LookupContainerId offset wrong for cgroupfs format")
+	d, i = LookupContainerID(p, false, false)
+	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "LookupContainerID failed for cgroupfs format")
+	assert.Equal(t, 0, i, "LookupContainerID offset wrong for cgroupfs format")
 
 	// 4. Docker systemd format
 	// "/system.slice/docker-ee40841f79d52f66f4958c8a484bd2dfb453228874dcca1a3f2ec6e8420ec87c.scope"
 	p = "/system.slice/docker-ee40841f79d52f66f4958c8a484bd2dfb453228874dcca1a3f2ec6e8420ec87c.scope"
-	d, i = LookupContainerId(p, false, false)
-	assert.Equal(t, "ee40841f79d52f66f4958c8a484bd2d", d, "LookupContainerId failed for systemd format")
+	d, i = LookupContainerID(p, false, false)
+	assert.Equal(t, "ee40841f79d52f66f4958c8a484bd2d", d, "LookupContainerID failed for systemd format")
 	assert.Equal(t, 7, i)
 
 	// 5. Nested systemd path where ID is in parent
 	// "/system.slice/docker-ee40841f79d52f66f4958c8a484bd2dfb453228874dcca1a3f2ec6e8420ec87c.scope/init.scope"
 	p = "/system.slice/docker-ee40841f79d52f66f4958c8a484bd2dfb453228874dcca1a3f2ec6e8420ec87c.scope/init.scope"
-	d, i = LookupContainerId(p, false, true) // walkParent=true
-	assert.Equal(t, "ee40841f79d52f66f4958c8a484bd2d", d, "LookupContainerId walkParent failed for systemd")
+	d, i = LookupContainerID(p, false, true) // walkParent=true
+	assert.Equal(t, "ee40841f79d52f66f4958c8a484bd2d", d, "LookupContainerID walkParent failed for systemd")
 	assert.Equal(t, 7, i)
 
 	// 6. Nested path where ID is in parent and is bare hex (rare but possible in some manual setups?)
 	// "/docker/5aaf9eb7648eeb1459d86eaa0ace8bcfa93089642e5c3113a14250dae3238aaf/ns"
 	p = "/docker/5aaf9eb7648eeb1459d86eaa0ace8bcfa93089642e5c3113a14250dae3238aaf/ns"
-	d, i = LookupContainerId(p, false, true)
-	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "LookupContainerId walkParent failed for bare hex parent")
+	d, i = LookupContainerID(p, false, true)
+	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "LookupContainerID walkParent failed for bare hex parent")
 	assert.Equal(t, 0, i)
 }

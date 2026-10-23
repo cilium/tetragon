@@ -34,7 +34,7 @@ type TetragonConfValue struct {
 	TgCgrpHierarchy   uint32   `align:"tg_cgrp_hierarchy"`    // Tetragon Cgroup tracking hierarchy ID
 	TgCgrpv1SubsysIdx uint32   `align:"tg_cgrpv1_subsys_idx"` // Tracking Cgroupv1 css idx at compile time
 	TgCgrpLevel       uint32   `align:"tg_cgrp_level"`        // Tetragon cgroup level
-	TgCgrpId          uint64   `align:"tg_cgrpid"`            // Tetragon cgroup ID
+	TgCgrpID          uint64   `align:"tg_cgrpid"`            // Tetragon cgroup ID
 	CgrpFsMagic       uint64   `align:"cgrp_fs_magic"`        // Cgroupv1 or cgroupv2
 	Pad               [8]uint8 `align:"pad"`
 }
@@ -86,7 +86,7 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 	}
 
 	// This must be called before probing cgroup configurations
-	if err = cgroups.DiscoverSubSysIds(); err != nil { // nolint: staticcheck // DiscoverSubSysIds is always return non-nil error in windows
+	if err = cgroups.DiscoverSubSysIDs(); err != nil { // nolint: staticcheck // DiscoverSubSysIDs is always return non-nil error in windows
 		log.Warn("Detection of Cgroup Subsystem Controllers failed", "confmap-update", configMapName, logfields.Error, err)
 		log.Warn("Cgroup Subsystems IDs are unknown, advanced Cgroups tracking will be disabled", "confmap-update", configMapName)
 		return err

@@ -194,7 +194,7 @@ func detectBuildID() bool {
 	attr := &unix.PerfEventAttr{
 		Type:        unix.PERF_TYPE_SOFTWARE,
 		Config:      unix.PERF_COUNT_SW_BPF_OUTPUT,
-		Bits:        unix.PerfBitWatermark | unix.PerfBitMmap | unix.PerfBitMmap2 | PerfBitBuildId,
+		Bits:        unix.PerfBitWatermark | unix.PerfBitMmap | unix.PerfBitMmap2 | PerfBitBuildID,
 		Sample_type: unix.PERF_SAMPLE_RAW,
 		Wakeup:      1,
 	}
@@ -208,7 +208,7 @@ func detectBuildID() bool {
 	return false
 }
 
-func HasBuildId() bool {
+func HasBuildID() bool {
 	buildid.init.Do(func() {
 		buildid.detected = detectBuildID()
 	})
@@ -839,7 +839,7 @@ type FeatureProbe struct {
 
 var FeatureProbes = []FeatureProbe{
 	{OverrideReturnProbe, HasOverrideHelper},
-	{BuildIDProbe, HasBuildId},
+	{BuildIDProbe, HasBuildID},
 	{KprobeMultiProbe, HasKprobeMulti},
 	{UprobeMultiProbe, HasUprobeMulti},
 	{FmodRetProbe, HasModifyReturn},

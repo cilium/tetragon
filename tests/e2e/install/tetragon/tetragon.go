@@ -139,10 +139,10 @@ func Install(opts ...Option) env.Func {
 		manager := helm.New(cfg.KubeconfigFile())
 
 		// Only add and upate repo if helm url is specified
-		if o.HelmRepoUrl != "" {
+		if o.HelmRepoURL != "" {
 			repoName, _, _ := strings.Cut(o.HelmChart, "/")
-			if err := manager.RunRepo(helm.WithArgs("add", "--force-update", repoName, o.HelmRepoUrl)); err != nil {
-				return ctx, fmt.Errorf("failed to add helm repo %s (%s): %w", repoName, o.HelmRepoUrl, err)
+			if err := manager.RunRepo(helm.WithArgs("add", "--force-update", repoName, o.HelmRepoURL)); err != nil {
+				return ctx, fmt.Errorf("failed to add helm repo %s (%s): %w", repoName, o.HelmRepoURL, err)
 			}
 
 			if err := manager.RunRepo(helm.WithArgs("update")); err != nil {

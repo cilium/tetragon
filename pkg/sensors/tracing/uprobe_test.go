@@ -222,7 +222,7 @@ spec:
 	err = exec.Command(testUretprobe).Run()
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -273,7 +273,7 @@ spec:
 
 	UprobeTestFunc()
 
-	return jsonchecker.JsonTestCheck(t, checker)
+	return jsonchecker.JSONTestCheck(t, checker)
 }
 
 func TestUprobePidMatch(t *testing.T) {
@@ -332,7 +332,7 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	return jsonchecker.JsonTestCheck(t, checker)
+	return jsonchecker.JSONTestCheck(t, checker)
 }
 
 func TestUprobeBinariesMatch(t *testing.T) {
@@ -440,7 +440,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(execCheck, child1UpChecker, thread1UpChecker, exitCheck)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -664,7 +664,7 @@ func testUprobeArgs(t *testing.T, checkers [5]*ec.ProcessUprobeChecker, tp traci
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -804,7 +804,7 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -900,7 +900,7 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	return jsonchecker.JsonTestCheckExpect(t, checker, expectCheckerFailure)
+	return jsonchecker.JSONTestCheckExpect(t, checker, expectCheckerFailure)
 }
 
 func TestUprobeIntArgMatch(t *testing.T) {
@@ -1040,7 +1040,7 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(upChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1101,7 +1101,7 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1159,7 +1159,7 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1218,7 +1218,7 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1559,7 +1559,7 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 
 }
@@ -1735,7 +1735,7 @@ spec:
 		))
 
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
-	require.NoError(t, jsonchecker.JsonTestCheck(t, checker))
+	require.NoError(t, jsonchecker.JSONTestCheck(t, checker))
 }
 
 // Symbols that only differ by '.' vs '_' must not collide on bpffs: '.' is

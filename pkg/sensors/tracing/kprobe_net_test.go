@@ -214,7 +214,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -294,7 +294,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -378,7 +378,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -458,7 +458,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -534,7 +534,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -610,7 +610,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -690,7 +690,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -770,7 +770,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -854,7 +854,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -946,7 +946,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1031,7 +1031,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1122,7 +1122,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1208,7 +1208,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1288,7 +1288,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1374,7 +1374,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1453,7 +1453,7 @@ spec:
 		)
 
 	checker := ec.NewUnorderedEventChecker(kpFS, kpAbs)
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 
 }
@@ -1539,7 +1539,7 @@ spec:
 		)
 
 	checker := ec.NewUnorderedEventChecker(kpFS, kpAbs)
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1611,7 +1611,7 @@ spec:
 		)
 
 	checker := ec.NewUnorderedEventChecker(kpFS, kpAbs)
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1672,7 +1672,7 @@ spec:
 		)
 
 	checker := ec.NewUnorderedEventChecker(kpAbs)
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1723,6 +1723,6 @@ spec:
 		)
 
 	checker := ec.NewUnorderedEventChecker(kp)
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }

@@ -105,7 +105,7 @@ spec:
 	require.Error(t, cmd.Run())
 	require.Equal(t, 234, cmd.ProcessState.ExitCode())
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -200,7 +200,7 @@ spec:
 	require.Error(t, cmd.Run())
 	require.Equal(t, 11, cmd.ProcessState.ExitCode())
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -272,7 +272,7 @@ spec:
 	require.Error(t, cmd.Run())
 	require.Equal(t, 100, cmd.ProcessState.ExitCode())
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -419,7 +419,7 @@ spec:
 		require.NoError(t, cmdErr)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
 }
 
@@ -502,7 +502,7 @@ spec:
 	cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
 	require.NoError(t, cmdErr)
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 
 	if shouldfail {
 		require.Error(t, err)
@@ -614,7 +614,7 @@ spec:
 		require.NoError(t, cmdErr)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
 }
 
@@ -691,7 +691,7 @@ spec:
 	require.NoError(t, cmd.Run())
 	require.Equal(t, 0, cmd.ProcessState.ExitCode())
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -818,7 +818,7 @@ spec:
 	require.Error(t, cmd.Run())
 	require.Equal(t, 3, cmd.ProcessState.ExitCode())
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -923,7 +923,7 @@ spec:
 	require.Error(t, cmd.Run())
 	require.Equal(t, 3, cmd.ProcessState.ExitCode())
 
-	err = jsonchecker.JsonTestCheckExpect(t, checker, expectFail)
+	err = jsonchecker.JSONTestCheckExpect(t, checker, expectFail)
 	require.NoError(t, err)
 }
 
@@ -1035,7 +1035,7 @@ spec: ` + disableUprobeMulti + `
 	require.Error(t, cmd.Run())
 	require.Equal(t, 255, cmd.ProcessState.ExitCode())
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1162,7 +1162,7 @@ spec: ` + disableUprobeMulti + `
 	require.Error(t, cmd.Run())
 	require.Equal(t, 255, cmd.ProcessState.ExitCode())
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1296,7 +1296,7 @@ spec:
 	require.Error(t, cmd.Run())
 	require.Equal(t, 255, cmd.ProcessState.ExitCode())
 
-	err = jsonchecker.JsonTestCheckExpect(t, checker, fail)
+	err = jsonchecker.JSONTestCheckExpect(t, checker, fail)
 	require.NoError(t, err)
 }
 
@@ -1499,7 +1499,7 @@ spec:
 	require.NoError(t, cmd.Run())
 	require.Equal(t, 0, cmd.ProcessState.ExitCode())
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1588,7 +1588,7 @@ spec:
 		require.NoError(t, cmdErr)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
 }
 
@@ -1657,7 +1657,7 @@ spec:
 	cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
 	require.NoError(t, cmdErr)
 
-	err = jsonchecker.JsonTestCheckExpect(t, ec.NewUnorderedEventChecker(checkers...), expectCheckerFailure)
+	err = jsonchecker.JSONTestCheckExpect(t, ec.NewUnorderedEventChecker(checkers...), expectCheckerFailure)
 	require.NoError(t, err)
 }
 

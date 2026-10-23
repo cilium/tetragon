@@ -103,7 +103,7 @@ spec:
 
 	exec.Command(testCapIoperm).Run()
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -247,6 +247,6 @@ spec:
 
 	unix.Prctl(0xffff0, 1, 2, 3, 4)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }

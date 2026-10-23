@@ -201,7 +201,7 @@ func (s *bugtoolInfo) tarAddBuff(fname string, buff *bytes.Buffer) error {
 	return doTarAddBuff(s.tarWriter, name, buff)
 }
 
-func (s *bugtoolInfo) TarAddJson(fname string, obj any) error {
+func (s *bugtoolInfo) TarAddJSON(fname string, obj any) error {
 	b, err := json.Marshal(obj)
 	if err != nil {
 		return err
@@ -249,7 +249,7 @@ type Commander interface {
 }
 
 type GRPCer interface {
-	TarAddJson(fname string, obj any) error
+	TarAddJSON(fname string, obj any) error
 }
 
 type CommandAction func(Commander) error
@@ -620,7 +620,7 @@ func (s *bugtoolInfo) dumpPolicyFilterMap() error {
 		s.multiLog.WithError(err).Warnf("failed to dump policyfilter map")
 		return err
 	}
-	return s.TarAddJson(policyfilter.MapName+".json", obj)
+	return s.TarAddJSON(policyfilter.MapName+".json", obj)
 }
 
 func (s *bugtoolInfo) addExecveMap() error {
@@ -697,7 +697,7 @@ func (s *bugtoolInfo) addGrpcInfo() {
 	}
 
 	fname := "tracing-policies.json"
-	err = s.TarAddJson(fname, res)
+	err = s.TarAddJSON(fname, res)
 	if err != nil {
 		s.multiLog.Warnf("failed to dump tracing policies: %v", err)
 		return
@@ -909,7 +909,7 @@ func (s bugtoolInfo) addBPFMapsStats() error {
 	}
 
 	const file = "debugmaps.json"
-	err = s.TarAddJson(file, out)
+	err = s.TarAddJSON(file, out)
 	if err != nil {
 		s.multiLog.WithError(err).Warn("failed to add the BPF maps checks to the tar archive")
 		return err
