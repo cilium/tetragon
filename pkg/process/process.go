@@ -185,11 +185,11 @@ func (pi *ProcessInternal) UpdateExecOutsideCache(cred bool) (*tetragon.Process,
 	// Check if we should augment the process
 	if cred && pi.apiBinaryProp != nil {
 		// Annotate privileged execution if it was successfully set
-		if pi.apiBinaryProp.Setuid.GetValue() != proc.InvalidUid {
+		if pi.apiBinaryProp.Setuid.GetValue() != proc.InvalidUID {
 			prop.Setuid = pi.apiBinaryProp.Setuid
 			update = true
 		}
-		if pi.apiBinaryProp.Setgid.GetValue() != proc.InvalidUid {
+		if pi.apiBinaryProp.Setgid.GetValue() != proc.InvalidUID {
 			prop.Setgid = pi.apiBinaryProp.Setgid
 			update = true
 		}
@@ -349,7 +349,7 @@ func initProcessInternalExec(
 	}
 
 	apiCreds := &tetragon.ProcessCredentials{
-		Uid:        &wrapperspb.UInt32Value{Value: creds.Uid},
+		Uid:        &wrapperspb.UInt32Value{Value: creds.UID},
 		Gid:        &wrapperspb.UInt32Value{Value: creds.Gid},
 		Euid:       &wrapperspb.UInt32Value{Value: creds.Euid},
 		Egid:       &wrapperspb.UInt32Value{Value: creds.Egid},
@@ -361,9 +361,9 @@ func initProcessInternalExec(
 	}
 
 	apiBinaryProp := &tetragon.BinaryProperties{
-		// Initialize with InvalidUid
-		Setuid: &wrapperspb.UInt32Value{Value: proc.InvalidUid},
-		Setgid: &wrapperspb.UInt32Value{Value: proc.InvalidUid},
+		// Initialize with InvalidUID
+		Setuid: &wrapperspb.UInt32Value{Value: proc.InvalidUID},
+		Setgid: &wrapperspb.UInt32Value{Value: proc.InvalidUID},
 		File:   nil,
 	}
 

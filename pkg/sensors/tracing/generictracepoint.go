@@ -759,7 +759,7 @@ func (tp *genericTracepoint) EventConfig() (*tracingapi.EventConfig, error) {
 
 	config := initEventConfig()
 	config.PolicyID = uint32(tp.policyID)
-	config.FuncId = uint32(tp.tableID.ID)
+	config.FuncID = uint32(tp.tableID.ID)
 	config.SelStatsBase = tp.selectorStatsBase
 
 	if tp.raw {
@@ -849,9 +849,9 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 		Event:  "UNKNOWN",
 	}
 
-	tp, err := genericTracepointTableGet(idtable.EntryID{ID: int(m.FuncId)})
+	tp, err := genericTracepointTableGet(idtable.EntryID{ID: int(m.FuncID)})
 	if err != nil {
-		logger.GetLogger().Warn("genericTracepoint info not found", "id", m.FuncId, logfields.Error, err)
+		logger.GetLogger().Warn("genericTracepoint info not found", "id", m.FuncID, logfields.Error, err)
 		return []observer.Event{unix}, nil
 	}
 
@@ -868,19 +868,19 @@ func handleMsgGenericTracepoint(
 	tp *genericTracepoint,
 	r *bytes.Reader,
 ) ([]observer.Event, error) {
-	switch m.ActionId {
-	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
-		actionArgEntry, err := tp.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
+	switch m.ActionID {
+	case selectors.ActionTypeGetURL, selectors.ActionTypeDNSLookup:
+		actionArgEntry, err := tp.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgID)})
 		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("Failed to find argument for id:%d", m.ActionArgId), logfields.Error, err)
+			logger.GetLogger().Warn(fmt.Sprintf("Failed to find argument for id:%d", m.ActionArgID), logfields.Error, err)
 			return nil, errors.New("failed to find argument for id")
 		}
 		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
-		switch m.ActionId {
-		case selectors.ActionTypeGetUrl:
+		switch m.ActionID {
+		case selectors.ActionTypeGetURL:
 			logger.Trace(logger.GetLogger(), "Get URL Action", "URL", actionArg)
 			getURL(actionArg)
-		case selectors.ActionTypeDnsLookup:
+		case selectors.ActionTypeDNSLookup:
 			logger.Trace(logger.GetLogger(), "DNS lookup", "FQDN", actionArg)
 			dnsLookup(actionArg)
 		}

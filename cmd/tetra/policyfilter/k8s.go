@@ -51,7 +51,7 @@ func listPoliciesForContainer() *cobra.Command {
 				logger.GetLogger().Info("cgroup", "path", fullCgroupPath)
 			}
 
-			cgID, err := cgroups.GetCgroupIdFromPath(fullCgroupPath)
+			cgID, err := cgroups.GetCgroupIDFromPath(fullCgroupPath)
 			if err != nil {
 				logger.Fatal(logger.GetLogger(), "Failed to parse cgroup", logfields.Error, err)
 			}

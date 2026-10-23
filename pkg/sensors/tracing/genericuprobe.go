@@ -189,9 +189,9 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, errors.New("failed to read process call msg")
 	}
 
-	uprobeEntry, err := genericUprobeTableGet(idtable.EntryID{ID: int(m.FuncId)})
+	uprobeEntry, err := genericUprobeTableGet(idtable.EntryID{ID: int(m.FuncID)})
 	if err != nil {
-		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncId), logfields.Error, err)
+		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncID), logfields.Error, err)
 		return nil, errors.New("failed to match id")
 	}
 
@@ -251,7 +251,7 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 			unix,
 			uprobeEntry.pendingEvents,
 			returnEvent,
-			m.RetProbeId,
+			m.RetProbeID,
 			ktimeEnter,
 			reportMergeError[*tracing.MsgGenericUprobeUnix])
 	}
@@ -629,7 +629,7 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		return errors.New("only a single uprobe symbol can be redirected")
 	}
 
-	if selectors.HasGetUrlOrDnsLookup(spec.Selectors) {
+	if selectors.HasGetURLOrDNSLookup(spec.Selectors) {
 		return errors.New("failed to configure uprobe, GetUrl and DnsLookup actions not supported")
 	}
 
@@ -1400,7 +1400,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 		uprobeTable.AddEntry(uprobeEntry)
 		id := uprobeEntry.tableID
 
-		state.eventConfig.FuncId = uint32(id.ID)
+		state.eventConfig.FuncID = uint32(id.ID)
 
 		ids = append(ids, id)
 		return nil

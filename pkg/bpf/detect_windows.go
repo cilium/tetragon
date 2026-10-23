@@ -13,7 +13,7 @@ func HasSignalHelper() bool {
 	return false
 }
 
-func HasBuildId() bool {
+func HasBuildID() bool {
 	return false
 }
 
@@ -47,6 +47,6 @@ func DetectMixBpfAndTailCalls() bool {
 
 func LogFeatures() string {
 	return fmt.Sprintf("override_return: %t, buildid: %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t mix_bpf_and_tail_calls: %t",
-		HasOverrideHelper(), HasBuildId(), HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
+		HasOverrideHelper(), HasBuildID(), HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
 		HasLinkPin(), DetectMixBpfAndTailCalls())
 }

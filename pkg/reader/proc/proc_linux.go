@@ -101,7 +101,7 @@ func fillLoginUID(file string, status *Status) error {
 		return fmt.Errorf("ReadFile %s failed: %w", path, err)
 	}
 
-	status.LoginUid = strings.TrimRight(string(auid), "\n")
+	status.LoginUID = strings.TrimRight(string(auid), "\n")
 
 	return nil
 }

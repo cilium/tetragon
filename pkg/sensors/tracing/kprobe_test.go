@@ -188,7 +188,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string, fentry bool) {
 	_, err = syscall.Write(1, []byte("hello world"))
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -477,7 +477,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 		t.Fatal()
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -757,7 +757,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	n, err := syscall.Write(fd2, []byte(data))
 	assert.Equal(t, len(data), n)
 	require.NoError(t, err)
-	err = jsonchecker.JsonTestCheckExpect(t, checker, expectFailure)
+	err = jsonchecker.JSONTestCheckExpect(t, checker, expectFailure)
 	require.NoError(t, err)
 }
 
@@ -852,7 +852,7 @@ func testKprobeStringMatch(t *testing.T,
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	syscall.Open(filePath, syscall.O_RDONLY, 0)
-	err = jsonchecker.JsonTestCheckExpect(t, checker, false)
+	err = jsonchecker.JSONTestCheckExpect(t, checker, false)
 	require.NoError(t, err)
 }
 
@@ -1749,7 +1749,7 @@ func testKprobeObjectFilteredReturnValue(t *testing.T,
 	readyWG.Wait()
 	fd2, _ := syscall.Open(path, syscall.O_RDWR, 0x770)
 	t.Cleanup(func() { syscall.Close(fd2) })
-	err = jsonchecker.JsonTestCheckExpect(t, checker, expectFailure)
+	err = jsonchecker.JSONTestCheckExpect(t, checker, expectFailure)
 	require.NoError(t, err)
 }
 
@@ -1927,7 +1927,7 @@ spec:
 	err = helloIovecWorldWritev()
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -2219,7 +2219,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	n, err := syscall.Write(fd2, []byte(data))
 	assert.Equal(t, len(data), n)
 	require.NoError(t, err)
-	err = jsonchecker.JsonTestCheck(t, writeChecker)
+	err = jsonchecker.JSONTestCheck(t, writeChecker)
 	require.NoError(t, err)
 }
 
@@ -2478,7 +2478,7 @@ spec:
 		uintptr(newFd), uintptr(unsafe.Pointer(newBytes)),
 		uintptr(flags), 0)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -2522,7 +2522,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 		t.Fatal()
 	}
 
-	err = jsonchecker.JsonTestCheckExpect(t, checker, nopost)
+	err = jsonchecker.JSONTestCheckExpect(t, checker, nopost)
 
 	require.NoError(t, err)
 }
@@ -2755,7 +2755,7 @@ func runKprobeOverrideSignal(t *testing.T, hook string, checker ec.MultiEventChe
 		t.Fatalf("got wrong signal number %d, expocted %d", sig, expectedSig)
 	}
 
-	err = jsonchecker.JsonTestCheckExpect(t, checker, nopost)
+	err = jsonchecker.JSONTestCheckExpect(t, checker, nopost)
 
 	require.NoError(t, err)
 }
@@ -3010,7 +3010,7 @@ func runKprobeOverrideMulti(t *testing.T, hook string, checker ec.MultiEventChec
 		t.Fatalf("syscall.Rename failed\n")
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3252,7 +3252,7 @@ func runKprobeCharIovec(t *testing.T, configHook string,
 	_, err = unix.Readv(fdr, iovr)
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3636,7 +3636,7 @@ func testKprobeMatchArgsFileEqual(t *testing.T, fentry bool) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3680,7 +3680,7 @@ func testKprobeMatchArgsFilePostfix(t *testing.T, fentry bool) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3724,7 +3724,7 @@ func testKprobeMatchArgsFilePrefix(t *testing.T, fentry bool) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3764,7 +3764,7 @@ func testKprobeMatchArgsFdEqual(t *testing.T, fentry bool) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3804,7 +3804,7 @@ func testKprobeMatchArgsFdPostfix(t *testing.T, fentry bool) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3847,7 +3847,7 @@ func testKprobeMatchArgsFdPrefix(t *testing.T, fentry bool) {
 	// This check is failing in CI on bpf-next but working locally. This will give it a few
 	// more chances for the events to show up.
 	for range 3 {
-		err = jsonchecker.JsonTestCheck(t, checker)
+		err = jsonchecker.JSONTestCheck(t, checker)
 		if err == nil {
 			break
 		}
@@ -3916,7 +3916,7 @@ func testKprobeMatchArgsFileMonitoringPrefix(t *testing.T, fentry bool) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3990,7 +3990,7 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 
 	// now check that there is no read event for "/etc/passwd" and "/etc/group"
@@ -4007,7 +4007,7 @@ spec:
 	}
 
 	errChecker := ec.NewUnorderedEventChecker(kpErrCheckers...)
-	err = jsonchecker.JsonTestCheckExpect(t, errChecker, true)
+	err = jsonchecker.JSONTestCheckExpect(t, errChecker, true)
 	require.NoError(t, err)
 }
 
@@ -4084,7 +4084,7 @@ func matchParentBinariesTest(t *testing.T, operator string, values []string, kpC
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -4263,7 +4263,7 @@ func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -4329,7 +4329,7 @@ func matchBinariesLargePathTest(t *testing.T, operator string, values []string, 
 	checker := ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker("").
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(binary))).
 		WithFunctionName(sm.Full("fd_install")))
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 
 }
@@ -4970,7 +4970,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -5026,7 +5026,7 @@ func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, c
 	_, err = syscall.Write(fd, data)
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -5765,7 +5765,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker1, kpChecker2, kpChecker3, kpChecker4)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -5857,7 +5857,7 @@ spec: ` + disableKprobeMulti + `
 			ec.NewStackTraceEntryChecker().WithSymbol(symbolMatcher),
 		))
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -5933,7 +5933,7 @@ spec: ` + disableKprobeMulti + `
 	}
 
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 
 	// Kill test because of endless loop in the test for stable stack trace extraction
 	testCmd.Process.Kill()
@@ -6051,7 +6051,7 @@ spec:
 			))
 
 	checker := ec.NewUnorderedEventChecker(kpCheckersRead, kpCheckersMmap)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -6257,7 +6257,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(check1, check2, check3, check4, check5)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -6389,7 +6389,7 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers1, kpCheckers2)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -6523,7 +6523,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(mapCreate, progLoad, btfLoad)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -6591,7 +6591,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kp8888, kp9999)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -6672,7 +6672,7 @@ spec:
 	require.NoError(t, err)
 
 	checker := ec.NewUnorderedEventChecker(kprobeLongFileArgChecker, processLongCWDChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -6762,7 +6762,7 @@ spec:
 		file.Close()
 
 		checker := ec.NewUnorderedEventChecker(kprobeCheck)
-		err = jsonchecker.JsonTestCheck(t, checker)
+		err = jsonchecker.JSONTestCheck(t, checker)
 		require.NoError(t, err)
 	})
 
@@ -6858,7 +6858,7 @@ spec:
 		}
 
 		checker := ec.NewUnorderedEventChecker(kprobeChecker)
-		err = jsonchecker.JsonTestCheck(t, checker)
+		err = jsonchecker.JSONTestCheck(t, checker)
 		require.NoError(t, err)
 	})
 
@@ -6946,7 +6946,7 @@ spec:
 
 		checker := ec.NewUnorderedEventChecker(kpChecker)
 
-		err = jsonchecker.JsonTestCheck(t, checker)
+		err = jsonchecker.JSONTestCheck(t, checker)
 		require.NoError(t, err)
 	})
 }
@@ -7047,11 +7047,11 @@ spec:
 	}
 
 	// We filter for file_1 (check_1) so we should get event for that
-	err = jsonchecker.JsonTestCheck(t, getChecker(check1))
+	err = jsonchecker.JSONTestCheck(t, getChecker(check1))
 	require.NoError(t, err)
 
 	// ... but not for file_2 (check_2).
-	err = jsonchecker.JsonTestCheckExpect(t, getChecker(check2), true)
+	err = jsonchecker.JSONTestCheckExpect(t, getChecker(check2), true)
 	require.NoError(t, err)
 }
 
@@ -7109,7 +7109,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -7176,7 +7176,7 @@ spec:
 	fmt.Printf("Calling lseek...\n")
 	unix.Seek(0, 1, 2)
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
 }
 
@@ -7233,7 +7233,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -7290,7 +7290,7 @@ spec:
 	fmt.Printf("Calling lseek...\n")
 	unix.Seek(-1, 0, 4444)
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
 }
 
@@ -7365,7 +7365,7 @@ spec:
 	fmt.Printf("Calling lseek...\n")
 	unix.Seek(0, 1, 2)
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
 }
 
@@ -7427,7 +7427,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -7527,7 +7527,7 @@ spec:
 	fmt.Printf("Calling lseek...\n")
 	unix.Seek(0, 1, 2)
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
 }
 
@@ -7709,7 +7709,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -7793,11 +7793,11 @@ spec:
 	// matched_2 is matched , expectCheckerFailure == false
 
 	matched_1 := []int{0, 1, 5, 6, 8, 9, 0xe, 0xf}
-	err = jsonchecker.JsonTestCheckExpect(t, getChecker(matched_1), !in)
+	err = jsonchecker.JSONTestCheckExpect(t, getChecker(matched_1), !in)
 	require.NoError(t, err)
 
 	matched_2 := []int{2, 3, 4, 7, 0xa, 0xb, 0xc, 0xd}
-	err = jsonchecker.JsonTestCheckExpect(t, getChecker(matched_2), in)
+	err = jsonchecker.JSONTestCheckExpect(t, getChecker(matched_2), in)
 	require.NoError(t, err)
 }
 
@@ -7863,7 +7863,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpect(t, checker, fail)
+	err = jsonchecker.JSONTestCheckExpect(t, checker, fail)
 	require.NoError(t, err)
 }
 
@@ -7938,7 +7938,7 @@ spec:
 	_, err = unix.Write(fd, []byte("test data for regular file"))
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -8007,7 +8007,7 @@ spec:
 	_, err = unix.Write(pipeFd, []byte("test data for pipe"))
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -8087,7 +8087,7 @@ spec:
 	_, err = unix.Write(pipeFd, []byte("test data for pipe"))
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -8178,7 +8178,7 @@ spec:
 	})
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -8258,7 +8258,7 @@ spec:
 	_, err = unix.Write(fd, []byte("test data for regular file"))
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -8346,7 +8346,7 @@ spec:
 	_, err = unix.Write(pipeFd, []byte("test data for pipe"))
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -8408,7 +8408,7 @@ spec:
 	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("security_file_permission"))
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
 }
 

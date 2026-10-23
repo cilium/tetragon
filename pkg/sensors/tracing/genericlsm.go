@@ -144,9 +144,9 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, errors.New("failed to read process call msg")
 	}
 
-	gl, err := genericLsmTableGet(idtable.EntryID{ID: int(m.FuncId)})
+	gl, err := genericLsmTableGet(idtable.EntryID{ID: int(m.FuncID)})
 	if err != nil {
-		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncId), logfields.Error, err)
+		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncID), logfields.Error, err)
 		return nil, errors.New("failed to match id")
 	}
 
@@ -410,7 +410,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, instance InstanceID, in *addLsmIn) (id idta
 	}
 
 	genericLsmTable.AddEntry(&lsmEntry)
-	eventConfig.FuncId = uint32(lsmEntry.tableID.ID)
+	eventConfig.FuncID = uint32(lsmEntry.tableID.ID)
 
 	logger.GetLogger().Info("Added lsm Hook", "hook", lsmEntry.hook)
 
