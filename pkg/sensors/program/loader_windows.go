@@ -52,11 +52,11 @@ func RawAttachWithFlags(_ int, _ uint32) AttachFunc {
 }
 
 func getAttachTypeForAttachTarget(attachTarget string) (ebpf.AttachType, error) {
-	attachTypeGuid, ok := attachTypeMap[attachTarget]
+	attachTypeGUID, ok := attachTypeMap[attachTarget]
 	if !ok {
 		return ebpf.AttachNone, nil
 	}
-	return ebpf.WindowsAttachTypeForGUID(attachTypeGuid)
+	return ebpf.WindowsAttachTypeForGUID(attachTypeGUID)
 }
 
 func windowsAttach(_ *Program, prog *ebpf.Program, _ *ebpf.ProgramSpec,

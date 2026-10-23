@@ -1568,8 +1568,8 @@ func testExecProcessCredentialsFileCapChanges(t *testing.T) {
 }
 
 func testExecInodeNotDeleted(t *testing.T) {
-	strId := "tetragon-test-memfd"
-	if err := exec.Command("/bin/true", strId).Run(); err != nil {
+	strID := "tetragon-test-memfd"
+	if err := exec.Command("/bin/true", strID).Run(); err != nil {
 		t.Fatalf("command failed: %s", err)
 	}
 
@@ -1577,7 +1577,7 @@ func testExecInodeNotDeleted(t *testing.T) {
 		ec.NewProcessExecChecker("exec").
 			WithProcess(ec.NewProcessChecker().
 				WithBinary(sm.Suffix("/bin/true")).
-				WithArguments(sm.Full(strId)).
+				WithArguments(sm.Full(strID)).
 				WithBinaryProperties(nil)),
 	)
 
@@ -1587,8 +1587,8 @@ func testExecInodeNotDeleted(t *testing.T) {
 
 func testExecDeletedBinaryMemfd(t *testing.T) {
 	// Get an anonymous shm
-	strId := "tetragon-test-memfd"
-	fd, err := unix.MemfdCreate(strId, 0)
+	strID := "tetragon-test-memfd"
+	fd, err := unix.MemfdCreate(strID, 0)
 	if err != nil {
 		t.Fatalf("MemfdCreate() error: %s", err)
 	}
@@ -1615,7 +1615,7 @@ func testExecDeletedBinaryMemfd(t *testing.T) {
 	}
 
 	// Execute from memory
-	if err := exec.Command(execPath, strId).Run(); err != nil {
+	if err := exec.Command(execPath, strID).Run(); err != nil {
 		t.Fatalf("command failed: %s", err)
 	}
 
@@ -1623,7 +1623,7 @@ func testExecDeletedBinaryMemfd(t *testing.T) {
 		ec.NewProcessExecChecker("exec").
 			WithProcess(ec.NewProcessChecker().
 				WithBinary(sm.Suffix(execPath)).
-				WithArguments(sm.Full(strId)).
+				WithArguments(sm.Full(strID)).
 				WithBinaryProperties(ec.NewBinaryPropertiesChecker().
 					WithFile(ec.NewFilePropertiesChecker().
 						WithInode(ec.NewInodePropertiesChecker().
@@ -1673,8 +1673,8 @@ func testExecDeletedBinary(t *testing.T) {
 	}
 
 	// Execute from fd
-	strId := "tetragon-test-execfd-deleted-inode"
-	if err := exec.Command(execPath, strId).Run(); err != nil {
+	strID := "tetragon-test-execfd-deleted-inode"
+	if err := exec.Command(execPath, strID).Run(); err != nil {
 		t.Fatalf("command failed: %s", err)
 	}
 
@@ -1682,7 +1682,7 @@ func testExecDeletedBinary(t *testing.T) {
 		ec.NewProcessExecChecker("exec").
 			WithProcess(ec.NewProcessChecker().
 				WithBinary(sm.Suffix(execPath)).
-				WithArguments(sm.Full(strId)).
+				WithArguments(sm.Full(strID)).
 				WithBinaryProperties(ec.NewBinaryPropertiesChecker().
 					WithFile(ec.NewFilePropertiesChecker().
 						WithInode(ec.NewInodePropertiesChecker().

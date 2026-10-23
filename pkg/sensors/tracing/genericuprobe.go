@@ -95,7 +95,7 @@ type uprobeLoadArgs struct {
 
 type genericUprobe struct {
 	loadArgs     uprobeLoadArgs
-	tableId      idtable.EntryID
+	tableID      idtable.EntryID
 	targetPath   string
 	linkPath     string
 	symbol       string
@@ -148,7 +148,7 @@ func populateSelectorRegsMap(m *ebpf.Map, selector *selectors.KernelSelectorStat
 }
 
 func (g *genericUprobe) SetID(id idtable.EntryID) {
-	g.tableId = id
+	g.tableID = id
 }
 
 func (g *genericUprobe) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
@@ -1378,7 +1378,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 				config:    &eventConfig,
 				selectors: state.selectors,
 			},
-			tableId:           idtable.UninitializedEntryID,
+			tableID:           idtable.UninitializedEntryID,
 			targetPath:        spec.Path,
 			linkPath:          getLinkPath(state.entryFile, spec.Path),
 			symbol:            sym,
@@ -1403,7 +1403,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 		}
 
 		uprobeTable.AddEntry(uprobeEntry)
-		id := uprobeEntry.tableId
+		id := uprobeEntry.tableID
 
 		eventConfig.FuncId = uint32(id.ID)
 
@@ -1708,7 +1708,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("%s %s", uprobeEntry.targetPath, uprobeEntry.symbol),
 		"uprobe/generic_uprobe",
-		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, uprobeEntry.symbol),
+		fmt.Sprintf("%d-%s", uprobeEntry.tableID.ID, uprobeEntry.symbol),
 		"generic_uprobe").
 		SetLoaderData(uprobeEntry).
 		SetPolicy(uprobeEntry.policyName)
@@ -1769,7 +1769,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	}
 
 	if uprobeEntry.loadArgs.retprobe {
-		pinRetProg := fmt.Sprintf("%d-%s_return", uprobeEntry.tableId.ID, uprobeEntry.symbol)
+		pinRetProg := fmt.Sprintf("%d-%s_return", uprobeEntry.tableID.ID, uprobeEntry.symbol)
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
 			fmt.Sprintf("%s %s", uprobeEntry.targetPath, uprobeEntry.symbol),

@@ -163,7 +163,7 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 
 		m.Unix.Msg.Kube.Cgrpid = 0
 		if p.pid > 0 {
-			m.Unix.Kube.Docker, err = procsDockerId(p.pid)
+			m.Unix.Kube.Docker, err = procsDockerID(p.pid)
 			if err != nil {
 				logger.GetLogger().Warn("Procfs execve event pods/ identifier error", logfields.Error, err)
 			}

@@ -61,7 +61,7 @@ var (
 )
 
 type genericLsm struct {
-	tableId   idtable.EntryID
+	tableID   idtable.EntryID
 	config    *api.EventConfig
 	hook      string
 	selectors *selectors.KernelSelectorState
@@ -84,7 +84,7 @@ type genericLsm struct {
 }
 
 func (g *genericLsm) SetID(id idtable.EntryID) {
-	g.tableId = id
+	g.tableID = id
 }
 
 func (g *genericLsm) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
@@ -381,7 +381,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, instance InstanceID, in *addLsmIn) (id idta
 		config:      eventConfig,
 		argPrinters: argSigPrinters,
 		hook:        f.Hook,
-		tableId:     idtable.UninitializedEntryID,
+		tableID:     idtable.UninitializedEntryID,
 		policyName:  in.policyName,
 		message:     msgField,
 		tags:        tagsField,
@@ -413,11 +413,11 @@ func addLsm(f *v1alpha1.LsmHookSpec, instance InstanceID, in *addLsmIn) (id idta
 	}
 
 	genericLsmTable.AddEntry(&lsmEntry)
-	eventConfig.FuncId = uint32(lsmEntry.tableId.ID)
+	eventConfig.FuncId = uint32(lsmEntry.tableID.ID)
 
 	logger.GetLogger().Info("Added lsm Hook", "hook", lsmEntry.hook)
 
-	return lsmEntry.tableId, nil
+	return lsmEntry.tableID, nil
 }
 
 func createGenericLsmSensor(
@@ -566,7 +566,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 		"lsm/generic_lsm_output",
 		pinName+"_out",
 		"generic_lsm").
-		SetLoaderData(lsmEntry.tableId).
+		SetLoaderData(lsmEntry.tableID).
 		SetPolicy(lsmEntry.policyName)
 	progs = append(progs, loadOutput)
 
@@ -576,7 +576,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 		"lsm/generic_lsm_core",
 		pinName+"_core",
 		"generic_lsm").
-		SetLoaderData(lsmEntry.tableId).
+		SetLoaderData(lsmEntry.tableID).
 		SetPolicy(lsmEntry.policyName)
 
 	// Load ima program for hash calculating
@@ -590,7 +590,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 				"lsm.s/generic_lsm_ima_"+loadProgImaType,
 				pinName+"_ima",
 				"generic_lsm").
-				SetLoaderData(lsmEntry.tableId).
+				SetLoaderData(lsmEntry.tableID).
 				SetPolicy(lsmEntry.policyName)
 			progs = append(progs, loadIma)
 			imaHashMap := program.MapBuilderSensor("ima_hash_map", loadIma, load, loadOutput)
