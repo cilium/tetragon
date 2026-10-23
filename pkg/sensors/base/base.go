@@ -45,6 +45,17 @@ var (
 		"socket",
 	).SetPolicy(sensors.BaseSensorName)
 
+	// BpfProcScan is run once at startup to populate execve_map with the
+	// processes already running, see RunProcScan. It's only loaded when
+	// BPFProcScanEnabled() is true.
+	BpfProcScan = program.Builder(
+		"bpf_proc_scan_v61.o",
+		"syscall",
+		"syscall",
+		"proc_scan",
+		"socket",
+	).SetPolicy(sensors.BaseSensorName)
+
 	ExecveBprmCommit = program.Builder(
 		"bpf_execve_bprm_commit_creds.o",
 		"security_bprm_committing_creds",
@@ -73,9 +84,10 @@ var (
 	TCPMonMap     = program.MapBuilder("tcpmon_map", Execve)
 	RingBufEvents = program.MapBuilder(RingBufMapName, Execve, Exit, Fork)
 	/* Networking and Process Monitoring maps */
-	ExecveMap           = program.MapBuilder("execve_map", Execve, Exit, Fork, ExecveBprmCommit, ExecveMapUpdate)
+	ExecveMap           = program.MapBuilder("execve_map", Execve, Exit, Fork, ExecveBprmCommit, ExecveMapUpdate, BpfProcScan)
 	ExecveTailCallsMap  = program.MapBuilderProgram("execve_calls", Execve)
 	ExecveMapUpdateData = program.MapBuilder("execve_map_update_data", ExecveMapUpdate)
+	BpfProcScanMap      = program.MapBuilder("tg_proc_scan_map", BpfProcScan)
 
 	ExecveJoinMap = program.MapBuilder("tg_execve_joined_info_map", ExecveBprmCommit)
 
@@ -151,6 +163,10 @@ func setupSensor() {
 
 	entries := GetExecveEntries(option.Config.ExecveMapEntries, option.Config.ExecveMapSize)
 	ExecveMap.SetMaxEntries(entries)
+	// The scan also records the processes that don't fit in execve_map, so
+	// don't go below the default execve_map size. The map is not
+	// preallocated, so it only uses memory for the running processes.
+	BpfProcScanMap.SetMaxEntries(max(entries, execveMapMaxEntries))
 
 	logger.GetLogger().Info(fmt.Sprintf("Set execve_map entries %d", entries),
 		"size", strutils.SizeWithSuffix(entries*int(unsafe.Sizeof(execvemap.ExecveValue{}))))

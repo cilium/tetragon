@@ -21,7 +21,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/proc"
 )
 
@@ -216,7 +215,7 @@ func procKernel() procs {
 	}
 }
 
-func getCWD(pid uint32) (string, uint32) {
+func getCWD(procPath string, pid uint32) (string, uint32) {
 	flags := uint32(0)
 	pidstr := strconv.FormatUint(uint64(pid), 10)
 
@@ -224,7 +223,7 @@ func getCWD(pid uint32) (string, uint32) {
 		return "", flags
 	}
 
-	cwd, err := os.Readlink(filepath.Join(option.Config.ProcFS, pidstr, "cwd"))
+	cwd, err := os.Readlink(filepath.Join(procPath, pidstr, "cwd"))
 	if err != nil {
 		flags |= api.EventRootCWD | api.EventErrorCWD
 		return "", flags
@@ -631,4 +630,24 @@ func listRunningProcs(_ string) ([]procs, error) {
 
 	logger.GetLogger().Info(fmt.Sprintf("Read process list appended %d entries", len(processes)))
 	return processes, nil
+}
+
+type FSProcReader struct{}
+
+func init() {
+	procReaders["fs"] = &FSProcReader{}
+}
+
+func (r *FSProcReader) enabled() bool {
+	return true
+}
+
+func (r *FSProcReader) scan(procPath string) ([]procs, map[uint32]struct{}, error) {
+	processes, err := listRunningProcs(procPath)
+	if err != nil {
+		logger.GetLogger().Error(fmt.Sprintf("Failed to list running processes from '%s'", procPath), logfields.Error, err)
+		return nil, nil, err
+	}
+	inInitTreeMap := writeExecveMap(processes)
+	return processes, inInitTreeMap, nil
 }
