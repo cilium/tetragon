@@ -234,6 +234,11 @@ func (k KernelSelectorState) MatchWorkloadIDs() map[int]policyfilter.PolicyID {
 func (k *KernelSelectorState) WriteMatchBinariesPath(selectorID int, path string) {
 	var bytePath [processapi.BINARY_PATH_MAX_LEN]byte
 	copy(bytePath[:], path)
+	for _, existing := range k.matchBinariesPaths[selectorID] {
+		if existing == bytePath {
+			return
+		}
+	}
 	k.matchBinariesPaths[selectorID] = append(k.matchBinariesPaths[selectorID], bytePath)
 }
 
