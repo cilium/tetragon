@@ -8,6 +8,7 @@ package selectors
 import (
 	"encoding/binary"
 	"errors"
+	"slices"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -234,6 +235,9 @@ func (k KernelSelectorState) MatchWorkloadIDs() map[int]policyfilter.PolicyID {
 func (k *KernelSelectorState) WriteMatchBinariesPath(selectorID int, path string) {
 	var bytePath [processapi.BINARY_PATH_MAX_LEN]byte
 	copy(bytePath[:], path)
+	if slices.Contains(k.matchBinariesPaths[selectorID], bytePath) {
+		return
+	}
 	k.matchBinariesPaths[selectorID] = append(k.matchBinariesPaths[selectorID], bytePath)
 }
 
