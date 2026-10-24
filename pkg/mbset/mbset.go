@@ -106,6 +106,11 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 
 		err := mbsetMap.Lookup(path, &val)
 		if err != nil {
+			// Duplicate paths in one selector hit Delete on the first copy;
+			// a second Lookup returns ErrKeyNotExist — continue, do not leak ID.
+			if errors.Is(err, ebpf.ErrKeyNotExist) {
+				continue
+			}
 			return fmt.Errorf("failed to lookup mbset map: %w", err)
 		}
 
