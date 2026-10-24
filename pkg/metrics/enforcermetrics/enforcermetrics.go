@@ -73,7 +73,7 @@ func (st *state) newCollector() metrics.CollectorWithInit {
 
 // NB: should match bpf's struct enforcer_missed_key
 type enforcerMissedMapKey struct {
-	FuncId uint32
+	FuncID uint32
 	Arg    uint32
 	Reason uint32
 }
@@ -124,7 +124,7 @@ func (st *state) collect(ch chan<- prometheus.Metric) {
 		iter := m.Iterate()
 		for iter.Next(&key, &cnt) {
 			info := ""
-			if fn, ok := polM[key.FuncId]; ok {
+			if fn, ok := polM[key.FuncID]; ok {
 				info = fn(key.Arg)
 			}
 			ch <- st.missedNotifications.MustMetric(

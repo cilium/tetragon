@@ -13,13 +13,13 @@ import (
 )
 
 var (
-	policytestsVmTestProgsDir = "/usr/local/lib/tetragon/tester-progs"
+	policytestsVMTestProgsDir = "/usr/local/lib/tetragon/tester-progs"
 )
 
 func mustCopyTesterProgsCmd(hostDir string, tmpDir string) images.Action {
 	// NB: because in general, the basename of hostDir is not the same as the basename of
 	// policyTestCmd, we copy the binaries in the temp directory, and do the action from there.
-	dstDir := filepath.Join(tmpDir, filepath.Base(policytestsVmTestProgsDir))
+	dstDir := filepath.Join(tmpDir, filepath.Base(policytestsVMTestProgsDir))
 	if err := os.Mkdir(dstDir, 0755); err != nil {
 		panic(err)
 	}
@@ -30,6 +30,6 @@ func mustCopyTesterProgsCmd(hostDir string, tmpDir string) images.Action {
 
 	return images.Action{Op: &images.CopyInCommand{
 		LocalPath: dstDir,
-		RemoteDir: filepath.Dir(policytestsVmTestProgsDir),
+		RemoteDir: filepath.Dir(policytestsVMTestProgsDir),
 	}}
 }

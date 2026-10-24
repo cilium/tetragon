@@ -186,7 +186,7 @@ spec:
 		t.Fatalf("failed to run %s: %s", testCmd, err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
 	require.NoError(t, err)
 }
 
@@ -272,7 +272,7 @@ spec:
 			err = exec.Command(testBin).Run()
 			require.ErrorIs(t, err, test.wantErr)
 
-			err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
+			err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
 			require.NoError(t, err)
 		})
 	}
@@ -347,8 +347,8 @@ spec:
 		t.Fatalf("failed to run %s: %s", testCmd, err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmCheckerSha256))
-	err2 := jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmCheckerSha1))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(lsmCheckerSha256))
+	err2 := jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(lsmCheckerSha1))
 	checkFunc := func() bool {
 		if err != nil && err2 != nil {
 			return false

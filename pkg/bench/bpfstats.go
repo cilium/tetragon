@@ -35,7 +35,7 @@ func EnableBpfStats() func() error {
 }
 
 type BpfProgStats struct {
-	Id     int64  `json:"id"`
+	ID     int64  `json:"id"`
 	Type   string `json:"type"`
 	Name   string `json:"name"`
 	RunNs  int64  `json:"run_time_ns"`
@@ -53,7 +53,7 @@ func (bps *BpfProgStats) String() string {
 		name = "<unnamed>"
 	}
 
-	lbl := fmt.Sprintf("%-30s [%s/%d]", name, bps.Type, bps.Id)
+	lbl := fmt.Sprintf("%-30s [%s/%d]", name, bps.Type, bps.ID)
 
 	return fmt.Sprintf("%-50s:\t%.2fµs (%d)",
 		lbl, float64(duration)/float64(time.Microsecond), bps.RunCnt)
@@ -87,7 +87,7 @@ func GetBpfStats() map[int64]*BpfProgStats {
 	m := make(map[int64]*BpfProgStats)
 	for id := range stats {
 		var s = &stats[id]
-		m[s.Id] = s
+		m[s.ID] = s
 	}
 	return m
 }

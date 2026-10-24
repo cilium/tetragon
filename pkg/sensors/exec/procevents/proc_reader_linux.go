@@ -45,7 +45,7 @@ func procKernel() procs {
 		pid:         kernelPid,
 		tid:         kernelPid,
 		nspid:       0,
-		auid:        proc.InvalidUid,
+		auid:        proc.InvalidUID,
 		flags:       api.EventProcFS,
 		ktime:       1,
 		exe:         kernelArgs,
@@ -201,9 +201,9 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		}
 
 		// Initialize with invalid uid
-		uids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
-		gids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
-		auid := proc.InvalidUid
+		uids := []uint32{proc.InvalidUID, proc.InvalidUID, proc.InvalidUID, proc.InvalidUID}
+		gids := []uint32{proc.InvalidUID, proc.InvalidUID, proc.InvalidUID, proc.InvalidUID}
+		auid := proc.InvalidUID
 		// Get process status
 		status, err := proc.GetStatus(pathName)
 		if err != nil {
@@ -211,15 +211,15 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		} else {
 			uids, err = status.GetUids()
 			if err != nil {
-				logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %s failed, falling back to uid: %d", pathName, proc.InvalidUid), logfields.Error, err)
+				logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %s failed, falling back to uid: %d", pathName, proc.InvalidUID), logfields.Error, err)
 			}
 
 			gids, err = status.GetGids()
 			if err != nil {
-				logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %s failed, falling back to gid: %d", pathName, proc.InvalidUid), logfields.Error, err)
+				logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %s failed, falling back to gid: %d", pathName, proc.InvalidUID), logfields.Error, err)
 			}
 
-			auid, err = status.GetLoginUid()
+			auid, err = status.GetLoginUID()
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Reading Loginuid of %s failed, falling back to loginuid: %d", pathName, uint32(auid)), logfields.Error, err)
 			}
@@ -274,9 +274,9 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			logger.GetLogger().Warn("Reading user namespace failed", logfields.Error, err)
 		}
 
-		// On error procsDockerId zeros dockerId so we can ignore any errors.
-		dockerId, _ := procsDockerId(uint32(pid))
-		if dockerId == "" {
+		// On error procsDockerID zeros dockerID so we can ignore any errors.
+		dockerID, _ := procsDockerID(uint32(pid))
+		if dockerID == "" {
 			// If we do not have a container ID, then set nspid to zero.
 			// This field is used to construct the pod information to
 			// identify pids inside the container.
@@ -298,7 +298,7 @@ func listRunningProcs(procPath string) ([]procs, error) {
 				logger.GetLogger().Warn("parent ktime read error", logfields.Error, err)
 			}
 
-			if dockerId != "" {
+			if dockerID != "" {
 				// We have a container ID so let's get the nspid inside.
 				pnspid, _, _, _ = caps.GetPIDCaps(filepath.Join(procPath, ppid, "status"))
 			}

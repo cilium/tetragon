@@ -262,7 +262,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		}
 
 		arg.Index = uint64(a.index)
-		arg.Uid = cred.Uid
+		arg.UID = cred.UID
 		arg.Gid = cred.Gid
 		arg.Suid = cred.Suid
 		arg.Sgid = cred.Sgid
@@ -275,7 +275,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.Cap.Effective = cred.Cap.Effective
 		arg.Cap.Inheritable = cred.Cap.Inheritable
 		arg.UserNs.Level = cred.UserNs.Level
-		arg.UserNs.Uid = cred.UserNs.Uid
+		arg.UserNs.UID = cred.UserNs.UID
 		arg.UserNs.Gid = cred.UserNs.Gid
 		arg.UserNs.NsInum = cred.UserNs.NsInum
 		arg.Label = a.label
@@ -468,7 +468,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 			l.LogAttrs(slog.LevelWarn, "user_namespace type error", slog.Any(logfields.Error, err))
 		}
 		arg.Level = output.Level
-		arg.Uid = output.Uid
+		arg.UID = output.UID
 		arg.Gid = output.Gid
 		arg.NsInum = output.NsInum
 		arg.Label = a.label

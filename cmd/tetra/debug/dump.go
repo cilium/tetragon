@@ -178,12 +178,12 @@ func PolicyfilterState(cmd *cobra.Command, fname string) error {
 		cmd.Println("(empty)")
 	}
 
-	for polId, cgIDs := range data.Policy {
+	for polID, cgIDs := range data.Policy {
 		ids := make([]string, 0, len(cgIDs))
 		for id := range cgIDs {
 			ids = append(ids, strconv.FormatUint(uint64(id), 10))
 		}
-		cmd.Printf("%d: %s\n", polId, strings.Join(ids, ","))
+		cmd.Printf("%d: %s\n", polID, strings.Join(ids, ","))
 	}
 
 	if data.Cgroup != nil {
@@ -193,9 +193,9 @@ func PolicyfilterState(cmd *cobra.Command, fname string) error {
 			cmd.Println("(empty)")
 		}
 
-		for cgIDs, polIds := range data.Cgroup {
-			ids := make([]string, 0, len(polIds))
-			for id := range polIds {
+		for cgIDs, polIDs := range data.Cgroup {
+			ids := make([]string, 0, len(polIDs))
+			for id := range polIDs {
 				ids = append(ids, strconv.FormatUint(uint64(id), 10))
 			}
 			cmd.Printf("%d: %s\n", cgIDs, strings.Join(ids, ","))

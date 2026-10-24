@@ -163,7 +163,7 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 					Ktime: 1234,
 				},
 				Creds: processapi.MsgGenericCred{
-					Uid:  1000,
+					UID:  1000,
 					Gid:  1000,
 					Euid: 10000,
 					Egid: 10000,
