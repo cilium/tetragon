@@ -73,6 +73,8 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 	defer s.mu.Unlock()
 
 	if update == nil {
+		// No execve_map updater (only set when large bpf progs are enabled): still release the ID slot.
+		delete(s.ids, id)
 		return nil
 	}
 
