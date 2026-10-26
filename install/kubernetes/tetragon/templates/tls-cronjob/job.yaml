@@ -19,6 +19,6 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  ttlSecondsAfterFinished: {{ .Values.certgen.ttlSecondsAfterFinished }}
+  ttlSecondsAfterFinished: {{ .Values.certgen.ttlSecondsAfterFinished | int64 }}
   {{- $jobSpec | nindent 2 }}
 {{- end }}

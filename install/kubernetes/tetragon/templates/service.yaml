@@ -23,7 +23,7 @@ spec:
     - name: metrics
       port: 2112
       protocol: TCP
-      targetPort: {{ .Values.tetragon.prometheus.port }}
+      targetPort: {{ .Values.tetragon.prometheus.port | int64 }}
   selector:
     {{- with .Values.daemonSetLabelsOverride}}
     {{- toYaml . | nindent 4 }}

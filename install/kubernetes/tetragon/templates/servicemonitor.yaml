@@ -17,7 +17,7 @@ metadata:
 spec:
   endpoints:
     - honorLabels: true
-      interval: {{ .Values.tetragon.prometheus.serviceMonitor.scrapeInterval }}
+      interval: {{ .Values.tetragon.prometheus.serviceMonitor.scrapeInterval | quote }}
       path: /metrics
       port: metrics
       relabelings:

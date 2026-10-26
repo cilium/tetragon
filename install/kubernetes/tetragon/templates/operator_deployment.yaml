@@ -17,7 +17,7 @@ spec:
   selector:
     matchLabels:
       {{- include "tetragon-operator.selectorLabels" . | nindent 6 }}
-  replicas: {{ .Values.tetragonOperator.replicas }}
+  replicas: {{ .Values.tetragonOperator.replicas | int64 }}
   template:
     metadata:
       {{- with .Values.tetragonOperator.podAnnotations }}
@@ -59,7 +59,7 @@ spec:
         {{- if .Values.tetragonOperator.prometheus.enabled }}
         ports:
           - name: metrics
-            containerPort: {{ .Values.tetragonOperator.prometheus.port }}
+            containerPort: {{ .Values.tetragonOperator.prometheus.port | int64 }}
             protocol: TCP
         {{- end }}
         livenessProbe:
