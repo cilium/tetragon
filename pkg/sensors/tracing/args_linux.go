@@ -68,7 +68,7 @@ func argReturnCopy(meta int) bool {
 // meta value format:
 // bits
 //
-//	0-3 : SizeArgIndex
+//	0-3 : SizeFromArgIndex
 //	  4 : ReturnCopy
 //	  5 : MaxData
 //	  6 : CurrentTask
@@ -77,7 +77,17 @@ func argReturnCopy(meta int) bool {
 func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	var meta int
 
-	if arg.SizeArgIndex > 0 {
+	// SizeArgIndex is deprecated and the new SizeFromArgIndex takes
+	// precedence, the only difference is a shift by one on the old field:
+	// SizeFromArgIndex = SizeArgIndex - 1
+	if arg.SizeFromArgIndex != nil {
+		if *arg.SizeFromArgIndex > 4 {
+			return 0, fmt.Errorf("invalid SizeArgFromIndex value (>4): %v", *arg.SizeFromArgIndex)
+		}
+		// Keep the BPF encoding one based so zero continues to mean that
+		// no size argument was configured.
+		meta = int(*arg.SizeFromArgIndex) + 1
+	} else if arg.SizeArgIndex > 0 {
 		if arg.SizeArgIndex > 15 {
 			return 0, fmt.Errorf("invalid SizeArgIndex value (>15): %v", arg.SizeArgIndex)
 		}
@@ -115,6 +125,9 @@ func getUserMetaValue(arg *v1alpha1.KProbeArg, preload bool) (int, error) {
 // getTracepointMetaArg is a temporary helper to find meta values while tracepoint
 // converts into new CRD and config formats.
 func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
+	if arg.SizeFromArgIndex != nil {
+		return int(*arg.SizeFromArgIndex) + 1
+	}
 	if arg.SizeArgIndex > 0 {
 		return int(arg.SizeArgIndex)
 	}
