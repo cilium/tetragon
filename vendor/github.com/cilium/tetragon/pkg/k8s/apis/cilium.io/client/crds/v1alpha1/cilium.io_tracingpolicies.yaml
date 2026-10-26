@@ -172,6 +172,13 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          sizeFromArgIndex:
+                            description: |-
+                              Specifies the position of the corresponding size argument for this
+                              argument.
+                              This field is used only for char_buf and char_iovec types.
+                            format: int32
+                            type: integer
                           source:
                             description: Source of the data, if missing the default
                               if function arguments
@@ -293,6 +300,13 @@ spec:
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
+                            type: integer
+                          sizeFromArgIndex:
+                            description: |-
+                              Specifies the position of the corresponding size argument for this
+                              argument.
+                              This field is used only for char_buf and char_iovec types.
+                            format: int32
                             type: integer
                           source:
                             description: Source of the data, if missing the default
@@ -428,6 +442,13 @@ spec:
                             This field is used only for char_buf and char_iovec types.
                           format: int32
                           minimum: 0
+                          type: integer
+                        sizeFromArgIndex:
+                          description: |-
+                            Specifies the position of the corresponding size argument for this
+                            argument.
+                            This field is used only for char_buf and char_iovec types.
+                          format: int32
                           type: integer
                         source:
                           description: Source of the data, if missing the default
@@ -1625,6 +1646,13 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          sizeFromArgIndex:
+                            description: |-
+                              Specifies the position of the corresponding size argument for this
+                              argument.
+                              This field is used only for char_buf and char_iovec types.
+                            format: int32
+                            type: integer
                           source:
                             description: Source of the data, if missing the default
                               if function arguments
@@ -1746,6 +1774,13 @@ spec:
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
+                            type: integer
+                          sizeFromArgIndex:
+                            description: |-
+                              Specifies the position of the corresponding size argument for this
+                              argument.
+                              This field is used only for char_buf and char_iovec types.
+                            format: int32
                             type: integer
                           source:
                             description: Source of the data, if missing the default
@@ -1881,6 +1916,13 @@ spec:
                             This field is used only for char_buf and char_iovec types.
                           format: int32
                           minimum: 0
+                          type: integer
+                        sizeFromArgIndex:
+                          description: |-
+                            Specifies the position of the corresponding size argument for this
+                            argument.
+                            This field is used only for char_buf and char_iovec types.
+                          format: int32
                           type: integer
                         source:
                           description: Source of the data, if missing the default
@@ -3049,6 +3091,13 @@ spec:
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
+                            type: integer
+                          sizeFromArgIndex:
+                            description: |-
+                              Specifies the position of the corresponding size argument for this
+                              argument.
+                              This field is used only for char_buf and char_iovec types.
+                            format: int32
                             type: integer
                           source:
                             description: Source of the data, if missing the default
@@ -5292,6 +5341,13 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          sizeFromArgIndex:
+                            description: |-
+                              Specifies the position of the corresponding size argument for this
+                              argument.
+                              This field is used only for char_buf and char_iovec types.
+                            format: int32
+                            type: integer
                           source:
                             description: Source of the data, if missing the default
                               if function arguments
@@ -6439,6 +6495,13 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          sizeFromArgIndex:
+                            description: |-
+                              Specifies the position of the corresponding size argument for this
+                              argument.
+                              This field is used only for char_buf and char_iovec types.
+                            format: int32
+                            type: integer
                           source:
                             description: Source of the data, if missing the default
                               if function arguments
@@ -6569,6 +6632,13 @@ spec:
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
+                            type: integer
+                          sizeFromArgIndex:
+                            description: |-
+                              Specifies the position of the corresponding size argument for this
+                              argument.
+                              This field is used only for char_buf and char_iovec types.
+                            format: int32
                             type: integer
                           source:
                             description: Source of the data, if missing the default
@@ -6720,6 +6790,13 @@ spec:
                             This field is used only for char_buf and char_iovec types.
                           format: int32
                           minimum: 0
+                          type: integer
+                        sizeFromArgIndex:
+                          description: |-
+                            Specifies the position of the corresponding size argument for this
+                            argument.
+                            This field is used only for char_buf and char_iovec types.
+                          format: int32
                           type: integer
                         source:
                           description: Source of the data, if missing the default
@@ -7855,6 +7932,13 @@ spec:
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
+                            type: integer
+                          sizeFromArgIndex:
+                            description: |-
+                              Specifies the position of the corresponding size argument for this
+                              argument.
+                              This field is used only for char_buf and char_iovec types.
+                            format: int32
                             type: integer
                           source:
                             description: Source of the data, if missing the default

@@ -137,6 +137,11 @@
                       "minimum": 0,
                       "type": "integer"
                     },
+                    "sizeFromArgIndex": {
+                      "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                      "format": "int32",
+                      "type": "integer"
+                    },
                     "source": {
                       "description": "Source of the data, if missing the default if function arguments",
                       "type": "string"
@@ -255,6 +260,11 @@
                       "description": "Deprecated, use sizeFromArgIndex instead.\nSpecifies the position of the corresponding size argument for this\nargument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).\nThis field is used only for char_buf and char_iovec types.",
                       "format": "int32",
                       "minimum": 0,
+                      "type": "integer"
+                    },
+                    "sizeFromArgIndex": {
+                      "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                      "format": "int32",
                       "type": "integer"
                     },
                     "source": {
@@ -390,6 +400,11 @@
                     "description": "Deprecated, use sizeFromArgIndex instead.\nSpecifies the position of the corresponding size argument for this\nargument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).\nThis field is used only for char_buf and char_iovec types.",
                     "format": "int32",
                     "minimum": 0,
+                    "type": "integer"
+                  },
+                  "sizeFromArgIndex": {
+                    "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                    "format": "int32",
                     "type": "integer"
                   },
                   "source": {
@@ -1641,6 +1656,11 @@
                       "minimum": 0,
                       "type": "integer"
                     },
+                    "sizeFromArgIndex": {
+                      "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                      "format": "int32",
+                      "type": "integer"
+                    },
                     "source": {
                       "description": "Source of the data, if missing the default if function arguments",
                       "type": "string"
@@ -1759,6 +1779,11 @@
                       "description": "Deprecated, use sizeFromArgIndex instead.\nSpecifies the position of the corresponding size argument for this\nargument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).\nThis field is used only for char_buf and char_iovec types.",
                       "format": "int32",
                       "minimum": 0,
+                      "type": "integer"
+                    },
+                    "sizeFromArgIndex": {
+                      "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                      "format": "int32",
                       "type": "integer"
                     },
                     "source": {
@@ -1894,6 +1919,11 @@
                     "description": "Deprecated, use sizeFromArgIndex instead.\nSpecifies the position of the corresponding size argument for this\nargument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).\nThis field is used only for char_buf and char_iovec types.",
                     "format": "int32",
                     "minimum": 0,
+                    "type": "integer"
+                  },
+                  "sizeFromArgIndex": {
+                    "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                    "format": "int32",
                     "type": "integer"
                   },
                   "source": {
@@ -3126,6 +3156,11 @@
                       "description": "Deprecated, use sizeFromArgIndex instead.\nSpecifies the position of the corresponding size argument for this\nargument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).\nThis field is used only for char_buf and char_iovec types.",
                       "format": "int32",
                       "minimum": 0,
+                      "type": "integer"
+                    },
+                    "sizeFromArgIndex": {
+                      "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                      "format": "int32",
                       "type": "integer"
                     },
                     "source": {
@@ -5480,6 +5515,11 @@
                       "minimum": 0,
                       "type": "integer"
                     },
+                    "sizeFromArgIndex": {
+                      "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                      "format": "int32",
+                      "type": "integer"
+                    },
                     "source": {
                       "description": "Source of the data, if missing the default if function arguments",
                       "type": "string"
@@ -6681,6 +6721,11 @@
                       "minimum": 0,
                       "type": "integer"
                     },
+                    "sizeFromArgIndex": {
+                      "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                      "format": "int32",
+                      "type": "integer"
+                    },
                     "source": {
                       "description": "Source of the data, if missing the default if function arguments",
                       "type": "string"
@@ -6806,6 +6851,11 @@
                       "description": "Deprecated, use sizeFromArgIndex instead.\nSpecifies the position of the corresponding size argument for this\nargument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).\nThis field is used only for char_buf and char_iovec types.",
                       "format": "int32",
                       "minimum": 0,
+                      "type": "integer"
+                    },
+                    "sizeFromArgIndex": {
+                      "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                      "format": "int32",
                       "type": "integer"
                     },
                     "source": {
@@ -6961,6 +7011,11 @@
                     "description": "Deprecated, use sizeFromArgIndex instead.\nSpecifies the position of the corresponding size argument for this\nargument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).\nThis field is used only for char_buf and char_iovec types.",
                     "format": "int32",
                     "minimum": 0,
+                    "type": "integer"
+                  },
+                  "sizeFromArgIndex": {
+                    "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                    "format": "int32",
                     "type": "integer"
                   },
                   "source": {
@@ -8150,6 +8205,11 @@
                       "description": "Deprecated, use sizeFromArgIndex instead.\nSpecifies the position of the corresponding size argument for this\nargument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).\nThis field is used only for char_buf and char_iovec types.",
                       "format": "int32",
                       "minimum": 0,
+                      "type": "integer"
+                    },
+                    "sizeFromArgIndex": {
+                      "description": "Specifies the position of the corresponding size argument for this\nargument.\nThis field is used only for char_buf and char_iovec types.",
+                      "format": "int32",
                       "type": "integer"
                     },
                     "source": {

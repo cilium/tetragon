@@ -547,6 +547,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>source</b></td>
         <td>string</td>
         <td>
@@ -661,6 +672,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -804,6 +826,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2572,6 +2605,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>source</b></td>
         <td>string</td>
         <td>
@@ -2686,6 +2730,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2829,6 +2884,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4519,6 +4585,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7837,6 +7914,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>source</b></td>
         <td>string</td>
         <td>
@@ -9546,6 +9634,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>source</b></td>
         <td>string</td>
         <td>
@@ -9660,6 +9759,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9803,6 +9913,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11458,6 +11579,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13439,6 +13571,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>source</b></td>
         <td>string</td>
         <td>
@@ -13553,6 +13696,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -13696,6 +13850,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15464,6 +15629,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>source</b></td>
         <td>string</td>
         <td>
@@ -15578,6 +15754,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -15721,6 +15908,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -17411,6 +17609,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -20729,6 +20938,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>source</b></td>
         <td>string</td>
         <td>
@@ -22438,6 +22658,17 @@ This field is used only for char_buf and char_iovec types.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>source</b></td>
         <td>string</td>
         <td>
@@ -22552,6 +22783,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -22695,6 +22937,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -24350,6 +24603,17 @@ This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeFromArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this
+argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
