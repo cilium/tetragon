@@ -19,7 +19,7 @@ template:
     restartPolicy: OnFailure
     serviceAccountName: {{ include "tetragon.name" . }}-certgen
     {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
-    hostUsers: {{ .Values.certgen.hostUsers }}
+    hostUsers: {{ include "tetragon.bool" .Values.certgen.hostUsers }}
     {{- end }}
     securityContext:
       runAsNonRoot: true
@@ -46,7 +46,7 @@ template:
     containers:
       - name: certgen
         image: "{{ if .Values.certgen.image.override }}{{ .Values.certgen.image.override }}{{ else }}{{ .Values.certgen.image.repository }}:{{ .Values.certgen.image.tag }}{{ end }}"
-        imagePullPolicy: {{ .Values.certgen.image.pullPolicy }}
+        imagePullPolicy: {{ .Values.certgen.image.pullPolicy | quote }}
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -56,7 +56,7 @@ template:
         command:
           - "/usr/bin/cilium-certgen"
         args:
-          - "--ca-generate={{ .Values.certgen.generateCA }}"
+          - {{ printf "--ca-generate=%v" .Values.certgen.generateCA | quote }}
           - "--ca-reuse-secret"
           - "--ca-secret-namespace={{ .Release.Namespace }}"
           - "--ca-secret-name={{ include "tetragon.caSecretName" . }}"

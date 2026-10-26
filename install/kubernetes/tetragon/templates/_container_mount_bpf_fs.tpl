@@ -7,7 +7,7 @@ the host.
 {{- define "container.mount-bpf-fs" -}}
 - name: mount-bpf-fs
   image: {{ include "tetragon.image" . }}
-  imagePullPolicy: {{ .Values.imagePullPolicy }}
+  imagePullPolicy: {{ .Values.imagePullPolicy | quote }}
   terminationMessagePolicy: FallbackToLogsOnError
   command:
     - /bin/sh

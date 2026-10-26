@@ -38,10 +38,10 @@ spec:
           - serve
           - --config-dir=/etc/tetragon/operator.conf.d/
         {{- if .Values.tetragonOperator.prometheus.enabled }}
-          - --metrics-bind-address={{ .Values.tetragonOperator.prometheus.address }}:{{ .Values.tetragonOperator.prometheus.port }}
+          - {{ printf "--metrics-bind-address=%v:%v" .Values.tetragonOperator.prometheus.address .Values.tetragonOperator.prometheus.port | quote }}
         {{- end }}
         image: "{{ if .Values.tetragonOperator.image.override }}{{ .Values.tetragonOperator.image.override }}{{ else }}{{ .Values.tetragonOperator.image.repository }}:{{ .Values.tetragonOperator.image.tag }}{{ end }}"
-        imagePullPolicy: {{ .Values.tetragonOperator.image.pullPolicy }}
+        imagePullPolicy: {{ .Values.tetragonOperator.image.pullPolicy | quote }}
         volumeMounts:
           - mountPath: /etc/tetragon/operator.conf.d/
             name: tetragon-operator-config
@@ -103,7 +103,7 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "tetragon-operator.serviceAccount" . }}
       {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
-      hostUsers: {{ .Values.tetragonOperator.hostUsers }}
+      hostUsers: {{ include "tetragon.bool" .Values.tetragonOperator.hostUsers }}
       {{- end }}
       terminationGracePeriodSeconds: 10
       volumes:

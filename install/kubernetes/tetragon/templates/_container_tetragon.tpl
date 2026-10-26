@@ -8,7 +8,7 @@
   securityContext:
     {{- toYaml $securityContext | nindent 4 }}
   image: {{ include "tetragon.image" . }}
-  imagePullPolicy: {{ .Values.imagePullPolicy }}
+  imagePullPolicy: {{ .Values.imagePullPolicy | quote }}
   terminationMessagePolicy: FallbackToLogsOnError
 {{- with .Values.tetragon.commandOverride }}
   command:
@@ -47,7 +47,7 @@
       name: cilium-run
     - mountPath: "/var/run/tetragon"
       name: tetragon-run
-    - mountPath: {{ .Values.exportDirectory }}
+    - mountPath: {{ .Values.exportDirectory | quote }}
       name: export-logs
     - mountPath: "/procRoot"
       name: host-proc
