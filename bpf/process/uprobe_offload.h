@@ -27,6 +27,7 @@ struct reg_assignment {
 #define ASM_ASSIGNMENT_TYPE_REG	      2
 #define ASM_ASSIGNMENT_TYPE_REG_OFF   3
 #define ASM_ASSIGNMENT_TYPE_REG_DEREF 4
+#define ASM_ASSIGNMENT_TYPE_CEL	      5
 
 struct uprobe_regs {
 	struct reg_assignment ass[REGS_MAX];
@@ -73,9 +74,15 @@ FUNC_INLINE bool uprobe_dyn_pending(struct pt_regs *ctx, __u32 *sym_id)
 
 #endif /* __V61_BPF_PROG */
 
+#define CEL_VALS_MAX  8
+#define CEL_VALS_MASK (CEL_VALS_MAX - 1)
+
 struct offload_data {
 	__u32 idx;
 	__u32 pad;
+#ifdef __V61_BPF_PROG
+	__u64 vals[CEL_VALS_MAX];
+#endif
 };
 
 struct {
@@ -86,10 +93,27 @@ struct {
 	__uint(map_flags, BPF_F_NO_PREALLOC);
 } sleepable_offload SEC(".maps");
 
-FUNC_INLINE void do_uprobe_override(void *ctx, __u32 idx)
+FUNC_INLINE void do_uprobe_set(__u32 idx)
 {
 	__u64 id = get_current_pid_tgid();
-	struct offload_data *cur_data, d = { .idx = idx };
+	struct offload_data *cur_data;
+
+	cur_data = with_errmetrics_ptr(map_lookup_elem, &sleepable_offload, &id);
+	if (!cur_data) {
+		struct offload_data d = { .idx = idx };
+		/* Only add offload_data with the selector index if one does not
+		 * already exist from a previously parsed Override action. Note that
+		 * Override sets the same idx as this function would
+		 */
+
+		with_errmetrics(map_update_elem, &sleepable_offload, &id, &d, BPF_ANY);
+	}
+}
+
+FUNC_INLINE void do_uprobe_override(void *ctx, struct offload_data *d)
+{
+	__u64 id = get_current_pid_tgid();
+	struct offload_data *cur_data;
 
 	/*
 	 * This should not happen, it means that the override program was
@@ -97,9 +121,9 @@ FUNC_INLINE void do_uprobe_override(void *ctx, __u32 idx)
 	 */
 	cur_data = with_errmetrics_ptr(map_lookup_elem, &sleepable_offload, &id);
 	if (cur_data)
-		*cur_data = d;
+		*cur_data = *d;
 	else
-		with_errmetrics(map_update_elem, &sleepable_offload, &id, &d, BPF_ANY);
+		with_errmetrics(map_update_elem, &sleepable_offload, &id, d, BPF_ANY);
 }
 
 FUNC_INLINE __u64
@@ -169,6 +193,16 @@ uprobe_offload(struct pt_regs *ctx)
 			if (!err)
 				write_reg(ctx, ass->dst, ass->dst_size, val);
 			break;
+#ifdef __V61_BPF_PROG
+		case ASM_ASSIGNMENT_TYPE_CEL:
+			// Should never get here with d being NULL, but verifier doesn't
+			// know that
+			if (!d)
+				break;
+			val = d->vals[ass->off & CEL_VALS_MASK];
+			write_reg(ctx, ass->dst, ass->dst_size, val);
+			break;
+#endif /* __V61_BPF_PROG */
 		case ASM_ASSIGNMENT_TYPE_NONE:
 		default:
 			break;
