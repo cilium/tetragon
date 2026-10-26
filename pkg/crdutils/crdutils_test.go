@@ -38,7 +38,7 @@ spec:
         type: "int"
       - index: 1
         type: "char_buf"
-        sizeArgIndex: 3
+        sizeFromArgIndex: 2
       - index: 2
         type: "size_t"
     selectors:
@@ -107,9 +107,9 @@ var expectedWrite = GenericTracingPolicy{
 						Type:  "int",
 					},
 					{
-						Index:        1,
-						Type:         "char_buf",
-						SizeArgIndex: 3,
+						Index:            1,
+						Type:             "char_buf",
+						SizeFromArgIndex: new(uint32(2)),
 					},
 					{
 						Index: 2,

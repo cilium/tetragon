@@ -362,8 +362,8 @@ func TestGenericTracepointMeta(t *testing.T) {
 				Index: 5, /* fd */
 			},
 			{
-				Index:        6,     /* char *buf */
-				SizeArgIndex: 7 + 1, /* count */
+				Index:            6,              /* char *buf */
+				SizeFromArgIndex: new(uint32(7)), /* count */
 
 			},
 		},

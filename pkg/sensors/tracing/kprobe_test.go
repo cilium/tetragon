@@ -108,7 +108,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 2
+      sizeFromArgIndex: 2
     - index: 2
       type: "size_t"
     selectors:
@@ -215,7 +215,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     - index: 2
       type: "size_t"
     selectors:
@@ -269,7 +269,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     - index: 2
       type: "size_t"
     selectors:
@@ -319,7 +319,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     - index: 2
       type: "size_t"
     selectors:
@@ -362,7 +362,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     - index: 2
       type: "size_t"
     selectors:
@@ -407,7 +407,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     - index: 2
       type: "size_t"
     selectors:
@@ -1890,7 +1890,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_iovec"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     selectors:
     - matchPIDs:
       - operator: In
@@ -2056,7 +2056,7 @@ func testKprobeObjectFileWriteHook(pidStr string) string {
         type: "fd"
       - index: 1
         type: "char_buf"
-        sizeArgIndex: 3
+        sizeFromArgIndex: 2
       - index: 2
         type: "size_t"
       selectors:
@@ -2106,7 +2106,7 @@ func testKprobeObjectFileWriteFilteredHook(pidStr string, dir string) string {
         type: "fd"
       - index: 1
         type: "char_buf"
-        sizeArgIndex: 3
+        sizeFromArgIndex: 2
       - index: 2
         type: "size_t"
       selectors:
@@ -3274,7 +3274,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_iovec"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     - index: 2
       type: "int"
     selectors:
@@ -3332,7 +3332,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_iovec"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     - index: 2
       type: "int"
     selectors:
@@ -3391,7 +3391,7 @@ spec:
     - index: 1
       type: "char_iovec"
       returnCopy: true
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     - index: 2
       type: "size_t"
     selectors:
@@ -5052,7 +5052,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     - index: 2
       type: "size_t"
     selectors:
@@ -5119,7 +5119,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
       maxData: true
     - index: 2
       type: "size_t"
@@ -5182,7 +5182,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
       maxData: true
     - index: 2
       type: "size_t"

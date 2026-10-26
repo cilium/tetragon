@@ -692,24 +692,17 @@ argument of the function, `index: 1` means this is going to be the second
 argument of the function, etc.
 
 Note that for some args types, `char_buf` and `char_iovec`, there are
-additional fields named `returnCopy` and `sizeArgIndex` available:
+additional fields named `returnCopy` and `sizeFromArgIndex` available:
 - `returnCopy` indicates that the corresponding argument should be read later (when
   the kretprobe for the symbol is triggered) because it might not be populated
   when the kprobe is triggered at the entrance of the function. For example, a
   buffer supplied to `read(2)` won't have content until kretprobe is triggered.
-- `sizeArgIndex` indicates the (1-based, see warning below) index of the arguments
-  that represents the size of the `char_buf` or `iovec`. For example, for
-  `write(2)`, the third argument, `size_t count` is the number of `char`
-  element that we can read from the `const void *buf` pointer from the second
-  argument. Similarly, if we would like to capture the `__x64_sys_writev(long,
-  iovec *, vlen)` syscall, then `iovec` has a size of `vlen`, which is going to
-  be the third argument.
-
-{{< caution >}}
-`sizeArgIndex` is inconsistent at the moment and does not take the index, but
-the number of the index (or index + 1). So if the size is the third argument,
-index 2, the value should be 3.
-{{< /caution >}}
+- `sizeFromArgIndex` indicates the index of the arguments that represents the
+  size of the `char_buf` or `iovec`. For example, for `write(2)`, the third
+  argument, `size_t count` is the number of `char` element that we can read from
+  the `const void *buf` pointer from the second argument. Similarly, if we would
+  like to capture the `__x64_sys_writev(long, iovec *, vlen)` syscall, then
+  `iovec` has a size of `vlen`, which is going to be the third argument.
 
 These flags can be combined, see the example below.
 
@@ -722,7 +715,7 @@ These flags can be combined, see the example below.
   - index: 1
     type: "char_buf"
     returnCopy: true
-    sizeArgIndex: 3
+    sizeFromArgIndex: 2
   - index: 2
     type: "size_t"
 ```
@@ -737,7 +730,7 @@ args:
 - index: 1
   type: "char_buf"
   returnCopy: true
-  sizeArgIndex: 3
+  sizeFromArgIndex: 2
 - index: 2
   type: "size_t"
 ```
@@ -754,7 +747,7 @@ args:
 - index: 1
   type: "char_buf"
   maxData: true
-  sizeArgIndex: 3
+  sizeFromArgIndex: 2
 - index: 2
   type: "size_t"
 ```

@@ -133,7 +133,7 @@ spec:
       type: "int"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     - index: 2
       type: "int"
   - call: "sys_read"
