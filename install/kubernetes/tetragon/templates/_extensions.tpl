@@ -4,6 +4,8 @@
 
 {{- define "tetragon.volumemounts.extra" -}}{{- end }}
 
+{{- define "tetragon.environment.extra" -}}{{- end }}
+
 {{- define "initcontainers.extra" -}}{{- end }}
 
 {{- define "containers.extra" -}}{{- end }}
