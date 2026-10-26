@@ -73,28 +73,33 @@ FUNC_INLINE bool uprobe_dyn_pending(struct pt_regs *ctx, __u32 *sym_id)
 
 #endif /* __V61_BPF_PROG */
 
+struct offload_data {
+	__u32 idx;
+	__u32 pad;
+};
+
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 1); // will be resized by agent when needed
 	__type(key, __u64);
-	__type(value, __u32);
+	__type(value, struct offload_data);
 	__uint(map_flags, BPF_F_NO_PREALLOC);
 } sleepable_offload SEC(".maps");
 
 FUNC_INLINE void do_uprobe_override(void *ctx, __u32 idx)
 {
 	__u64 id = get_current_pid_tgid();
-	__u32 *idxp;
+	struct offload_data *cur_data, d = { .idx = idx };
 
 	/*
 	 * This should not happen, it means that the override program was
 	 * not executed for some reason.
 	 */
-	idxp = with_errmetrics_ptr(map_lookup_elem, &sleepable_offload, &id);
-	if (idxp)
-		*idxp = idx;
+	cur_data = with_errmetrics_ptr(map_lookup_elem, &sleepable_offload, &id);
+	if (cur_data)
+		*cur_data = d;
 	else
-		with_errmetrics(map_update_elem, &sleepable_offload, &id, &idx, BPF_ANY);
+		with_errmetrics(map_update_elem, &sleepable_offload, &id, &d, BPF_ANY);
 }
 
 FUNC_INLINE __u64
@@ -112,9 +117,10 @@ uprobe_offload(struct pt_regs *ctx)
 	__u64 val = 0, id = get_current_pid_tgid();
 	struct reg_assignment *ass;
 	struct uprobe_regs *regs;
-	__u32 *idxp, idx = 0, i;
+	__u32 idx = 0, i;
 	bool dyn_pending;
 	int err;
+	struct offload_data *d;
 
 	// The return from the mmap()/dlopen() detour of an sopath override
 	// continues the resolution started by the selector that matched first.
@@ -122,10 +128,10 @@ uprobe_offload(struct pt_regs *ctx)
 	// stale queued entry is dropped.
 	dyn_pending = uprobe_dyn_pending(ctx, &idx);
 
-	idxp = map_lookup_elem(&sleepable_offload, &id);
-	if (idxp) {
+	d = map_lookup_elem(&sleepable_offload, &id);
+	if (d) {
 		if (!dyn_pending)
-			idx = *idxp;
+			idx = d->idx;
 		map_delete_elem(&sleepable_offload, &id);
 	} else if (!dyn_pending) {
 		return 0;
