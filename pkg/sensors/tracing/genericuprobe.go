@@ -662,7 +662,7 @@ func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
 		if !bpf.HasUprobeRegsChange() {
 			return errors.New("can't use override regs action, no kernel support")
 		}
-		if IsSODynamic(spec.Selectors) && !bpf.HasProbeWriteUserHelper() {
+		if IsSODynamic(spec.Selectors) && (!bpf.HasProbeWriteUserHelper() || !bpf.HasKfunc("bpf_iter_task_vma_new")) {
 			return errors.New("can't use override sopath option, no kernel support")
 		}
 		has.sleepableOffload = true
