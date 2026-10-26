@@ -409,8 +409,8 @@ func TestParseMatchArgs(t *testing.T) {
 	}
 
 	args := []v1alpha1.KProbeArg{
-		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 1, Type: "string", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 2, Type: "int", ReturnCopy: false},
 	}
 
 	data := []v1alpha1.KProbeArg{
@@ -672,21 +672,21 @@ func TestParseMatchData(t *testing.T) {
 
 func TestParseMatchArg(t *testing.T) {
 	sig := []v1alpha1.KProbeArg{
-		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 5, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 6, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 7, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 8, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 9, Type: "sockaddr", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 10, Type: "socket", SizeArgIndex: 0, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 1, Type: "string", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 2, Type: "int", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 5, Type: "sock", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 6, Type: "skb", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 7, Type: "skb", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 8, Type: "sock", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 9, Type: "sockaddr", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 10, Type: "socket", ReturnCopy: false},
 	}
 
 	if config.EnableLargeProgs() {
-		sig = append(sig, v1alpha1.KProbeArg{Index: 11, Type: "uint16", SizeArgIndex: 0, ReturnCopy: false},
-			v1alpha1.KProbeArg{Index: 12, Type: "uint8", SizeArgIndex: 0, ReturnCopy: false})
+		sig = append(sig, v1alpha1.KProbeArg{Index: 11, Type: "uint16", ReturnCopy: false},
+			v1alpha1.KProbeArg{Index: 12, Type: "uint8", ReturnCopy: false})
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
@@ -1088,7 +1088,7 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	var actionArgTable idtable.Table
 
 	args := []v1alpha1.KProbeArg{
-		{Index: 1, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
+		{Index: 1, Type: "int", ReturnCopy: false},
 	}
 
 	pidSelector := []v1alpha1.PIDSelector{
@@ -1424,10 +1424,10 @@ func TestInitKernelSelectors(t *testing.T) {
 		},
 	}
 	args := []v1alpha1.KProbeArg{
-		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", SizeArgIndex: 0, ReturnCopy: false},
-		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", SizeArgIndex: 0, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 1, Type: "string", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 2, Type: "int", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 3, Type: "char_buf", ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 4, Type: "char_iovec", ReturnCopy: false},
 	}
 
 	// Create URL and FQDN tables to store URLs and FQDNs for this kprobe
@@ -1466,7 +1466,7 @@ func TestReturnSelectorEmpty(t *testing.T) {
 func TestReturnSelectorArgInt(t *testing.T) {
 	var actionArgTable idtable.Table
 
-	returnArg := v1alpha1.KProbeArg{Index: 0, Type: "int", SizeArgIndex: 0, ReturnCopy: false}
+	returnArg := v1alpha1.KProbeArg{Index: 0, Type: "int", ReturnCopy: false}
 
 	matchReturnArgs := []v1alpha1.ArgSelector{
 		{Index: 0, Operator: "Equal", Values: []string{"10", "20"}},
@@ -1627,7 +1627,7 @@ func TestParseMatchArgSubString(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			sig := []v1alpha1.KProbeArg{
-				{Index: 1, Type: tc.tyName, SizeArgIndex: 0, ReturnCopy: false},
+				{Index: 1, Type: tc.tyName, ReturnCopy: false},
 			}
 
 			arg := &v1alpha1.ArgSelector{Index: 1, Operator: "SubString", Values: []string{"test"}}

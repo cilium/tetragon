@@ -556,21 +556,18 @@ spec:
       maxData: false
       resolve: ""
       returnCopy: false
-      sizeArgIndex: 0
       type: int32
     - index: 1
       label: -8@-8(%rbp)
       maxData: false
       resolve: ""
       returnCopy: false
-      sizeArgIndex: 0
       type: int64
     - index: 2
       label: 8@%rax
       maxData: false
       resolve: ""
       returnCopy: false
-      sizeArgIndex: 0
       type: uint64
 ```
 
