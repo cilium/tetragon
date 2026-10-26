@@ -128,7 +128,7 @@ In `matchArgs` or `matchData`, use network operators: `SAddr`, `DAddr`,
 ## `char_buf`
 
 The `char_buf` data type represents a character buffer. When using this type,
-specify the buffer size using `sizeArgIndex` (referencing another argument)
+specify the buffer size using `sizeFromArgIndex` (referencing another argument)
 or `returnCopy` (using the return value).
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `Postfix`, `SubString` (v6.17+),
@@ -137,7 +137,7 @@ or `SubStringIgnoreCase` (v6.19+) operators.
 ## `char_iovec`
 
 The `char_iovec` data type represents an I/O vector (`struct iovec`) for
-scatter/gather I/O operations. Use `sizeArgIndex` to specify the vector count.
+scatter/gather I/O operations. Use `sizeFromArgIndex` to specify the vector count.
 
 In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, or `Postfix` operators.
 

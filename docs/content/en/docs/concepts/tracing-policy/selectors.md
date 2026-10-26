@@ -454,7 +454,7 @@ while the whole `kprobe` call is the following:
     type: "int"
   - index: 1
     type: "char_buf"
-    sizeArgIndex: 3
+    sizeFromArgIndex: 2
   - index: 2
     type: "size_t"
   selectors:
@@ -1025,7 +1025,7 @@ process is spawned in the container PID namespace and is not a child of PID 1.
     type: "fd"
   - index: 1
     type: "char_buf"
-    sizeArgIndex: 3
+    sizeFromArgIndex: 2
   - index: 2
     type: "size_t"
   selectors:
@@ -1066,7 +1066,7 @@ The difference is to use the signal action with `SIGKILL(9)` signal.
     type: "fd"
   - index: 1
     type: "char_buf"
-    sizeArgIndex: 3
+    sizeFromArgIndex: 2
   - index: 2
     type: "size_t"
   selectors:

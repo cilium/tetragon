@@ -141,7 +141,7 @@ spec:
       type: "fd"
     - index: 1
       type: "char_buf"
-      sizeArgIndex: 3
+      sizeFromArgIndex: 2
     - index: 2
       type: "size_t"
     selectors:

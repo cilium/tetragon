@@ -43,9 +43,9 @@ func TestCharBufKprobe(t *testing.T) {
 			Call:    call,
 			Syscall: true,
 			Args: []v1alpha1.KProbeArg{{
-				Index:        writeBufArgIdx,
-				Type:         "char_buf",
-				SizeArgIndex: writeSizeArgIdx + 1,
+				Index:            writeBufArgIdx,
+				Type:             "char_buf",
+				SizeFromArgIndex: new(uint32(writeSizeArgIdx)),
 			}, {
 				Index: writeSizeArgIdx,
 				Type:  "size_t",
@@ -115,9 +115,9 @@ func TestCharBufTracepoint(t *testing.T) {
 			Subsystem: "syscalls",
 			Event:     event,
 			Args: []v1alpha1.KProbeArg{{
-				Index:        writeBufArgIdx,
-				Type:         "char_buf",
-				SizeArgIndex: writeSizeArgIdx + 1,
+				Index:            writeBufArgIdx,
+				Type:             "char_buf",
+				SizeFromArgIndex: new(uint32(writeSizeArgIdx)),
 			}, {
 				Index: writeSizeArgIdx,
 				Type:  "size_t",
