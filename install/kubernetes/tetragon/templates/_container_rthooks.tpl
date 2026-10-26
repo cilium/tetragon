@@ -2,21 +2,21 @@
 - name: tetragon-rthooks
   image: {{ include "rthooks.image" . }}
   terminationMessagePolicy: FallbackToLogsOnError
-  imagePullPolicy: {{ .Values.imagePullPolicy }}
+  imagePullPolicy: {{ .Values.imagePullPolicy | quote }}
   command:
     - tetragon-oci-hook-setup
     - install
-    - --interface={{ include "rthooksInterface" .  | required "rtooks.interface needs to be correctly defined" }}
+    - {{ printf "--interface=%v" (include "rthooksInterface" . | required "rtooks.interface needs to be correctly defined") | quote }}
     - --local-install-dir={{  include "container.tetragonOCIHookSetup.installPath" . }}
-    - --host-install-dir={{ .Values.rthooks.installDir }}
+    - {{ printf "--host-install-dir=%v" .Values.rthooks.installDir | quote }}
     - --oci-hooks.local-dir={{ include "container.tetragonOCIHookSetup.hooksPath" . }}
     - --daemonize
     - hook-args
-    - --grpc-address={{ .Values.tetragon.grpc.address }}
+    - {{ printf "--grpc-address=%v" .Values.tetragon.grpc.address | quote }}
     - --fail-allow-namespaces
-    - {{ if .Values.rthooks.failAllowNamespaces }}{{ printf "%s,%s" .Release.Namespace .Values.rthooks.failAllowNamespaces }}{{ else }}{{ .Release.Namespace }}{{ end }}
+    - {{ if .Values.rthooks.failAllowNamespaces }}{{ printf "%v,%v" .Release.Namespace .Values.rthooks.failAllowNamespaces | quote }}{{ else }}{{ .Release.Namespace | quote }}{{ end }}
    {{- range .Values.rthooks.failAllowNamespacesRegex }}
-    - --fail-allow-namespaces-regex={{ . }}
+    - {{ printf "--fail-allow-namespaces-regex=%v" . | quote }}
    {{- end }}
    {{- range $key, $value := .Values.rthooks.extraHookArgs }}
    {{- if eq nil $value }}
@@ -37,7 +37,7 @@
 {{- end }}
 {{- if (eq .Values.rthooks.interface "nri-hook") }}
     - name: nri-socket-path
-      mountPath: {{ .Values.rthooks.nriHook.nriSocket }}
+      mountPath: {{ .Values.rthooks.nriHook.nriSocket | quote }}
 {{- end }}
 {{- with .Values.rthooks.resources }}
   resources:
@@ -48,11 +48,11 @@
 {{- define "container.tetragon-rthooks-export-logs" -}}
 - name: export-logs
   image: {{ include "rthooks.image" . }}
-  imagePullPolicy: {{ .Values.imagePullPolicy }}
+  imagePullPolicy: {{ .Values.imagePullPolicy | quote }}
   command:
     - tail
     - -F
-    - {{ printf "%s/%s" .Values.rthooks.installDir "tetragon-oci-hook.log" | quote }}
+    - {{ printf "%v/%v" .Values.rthooks.installDir "tetragon-oci-hook.log" | quote }}
   volumeMounts:
     - name: oci-hook-install-path
       mountPath: {{ .Values.rthooks.installDir | quote }}

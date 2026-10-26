@@ -74,11 +74,11 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      hostNetwork: {{ .Values.hostNetwork }}
+      hostNetwork: {{ include "tetragon.bool" .Values.hostNetwork }}
       {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
       hostUsers: true
       {{- end }}
-      dnsPolicy: {{ .Values.dnsPolicy }}
+      dnsPolicy: {{ .Values.dnsPolicy | quote }}
       terminationGracePeriodSeconds: 1
       volumes:
       - name: cilium-run
@@ -91,7 +91,7 @@ spec:
           type: DirectoryOrCreate
       - name: export-logs
         hostPath:
-          path: {{ .Values.exportDirectory }}
+          path: {{ .Values.exportDirectory | quote }}
           type: DirectoryOrCreate
       - name: tetragon-config
         configMap:
@@ -102,7 +102,7 @@ spec:
           type: DirectoryOrCreate
       - name: host-proc
         hostPath:
-          path: {{ .Values.tetragon.hostProcPath }}
+          path: {{ .Values.tetragon.hostProcPath | quote }}
           type: Directory
 {{- if and (.Values.tetragon.cri.enabled) (.Values.tetragon.cri.socketHostPath) }}
       - name: cri-socket

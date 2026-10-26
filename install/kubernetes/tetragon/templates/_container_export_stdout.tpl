@@ -1,7 +1,7 @@
 {{- define "container.export.stdout" -}}
 - name: {{include "container.export.stdout.name" .}}
   image: "{{ if .Values.export.stdout.image.override }}{{ .Values.export.stdout.image.override }}{{ else }}{{ .Values.export.stdout.image.repository }}:{{ .Values.export.stdout.image.tag }}{{ end }}"
-  imagePullPolicy: {{ .Values.imagePullPolicy }}
+  imagePullPolicy: {{ .Values.imagePullPolicy | quote }}
   terminationMessagePolicy: FallbackToLogsOnError
   {{- with .Values.export.stdout.extraEnv }}
   env:
@@ -44,13 +44,13 @@
   {{- toYaml . | nindent 3 }}
   {{- else }}
   {{- range .Values.export.filenames }}
-    - {{ $.Values.exportDirectory }}/{{ . }}
+    - {{ printf "%v/%v" $.Values.exportDirectory . | quote }}
   {{- end }}
   {{- end }}
 {{- end }}
   volumeMounts:
     - name: export-logs
-      mountPath: {{ .Values.exportDirectory }}
+      mountPath: {{ .Values.exportDirectory | quote }}
       {{- with .Values.export.stdout.extraVolumeMounts }}
         {{- toYaml . | nindent 4 }}
       {{- end }}      
