@@ -537,7 +537,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -652,7 +654,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -793,7 +797,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -2556,7 +2562,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -2671,7 +2679,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -2812,7 +2822,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -4500,7 +4512,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -7813,7 +7827,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -9520,7 +9536,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -9635,7 +9653,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -9776,7 +9796,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -11429,7 +11451,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -13405,7 +13429,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -13520,7 +13546,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -13661,7 +13689,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -15424,7 +15454,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -15539,7 +15571,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -15680,7 +15714,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -17368,7 +17404,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -20681,7 +20719,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -22388,7 +22428,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -22503,7 +22545,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -22644,7 +22688,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>
@@ -24297,7 +24343,9 @@ supplied to read(2) won't have content until kretprobe is triggered.<br/>
         <td><b>sizeArgIndex</b></td>
         <td>integer</td>
         <td>
-          Specifies the position of the corresponding size argument for this argument.
+          Deprecated, use sizeFromArgIndex instead.
+Specifies the position of the corresponding size argument for this
+argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 This field is used only for char_buf and char_iovec types.<br/>
           <br/>
             <i>Format</i>: int32<br/>

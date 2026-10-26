@@ -165,7 +165,9 @@ spec:
                             type: boolean
                           sizeArgIndex:
                             description: |-
-                              Specifies the position of the corresponding size argument for this argument.
+                              Deprecated, use sizeFromArgIndex instead.
+                              Specifies the position of the corresponding size argument for this
+                              argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
@@ -285,7 +287,9 @@ spec:
                             type: boolean
                           sizeArgIndex:
                             description: |-
-                              Specifies the position of the corresponding size argument for this argument.
+                              Deprecated, use sizeFromArgIndex instead.
+                              Specifies the position of the corresponding size argument for this
+                              argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
@@ -418,7 +422,9 @@ spec:
                           type: boolean
                         sizeArgIndex:
                           description: |-
-                            Specifies the position of the corresponding size argument for this argument.
+                            Deprecated, use sizeFromArgIndex instead.
+                            Specifies the position of the corresponding size argument for this
+                            argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                             This field is used only for char_buf and char_iovec types.
                           format: int32
                           minimum: 0
@@ -1612,7 +1618,9 @@ spec:
                             type: boolean
                           sizeArgIndex:
                             description: |-
-                              Specifies the position of the corresponding size argument for this argument.
+                              Deprecated, use sizeFromArgIndex instead.
+                              Specifies the position of the corresponding size argument for this
+                              argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
@@ -1732,7 +1740,9 @@ spec:
                             type: boolean
                           sizeArgIndex:
                             description: |-
-                              Specifies the position of the corresponding size argument for this argument.
+                              Deprecated, use sizeFromArgIndex instead.
+                              Specifies the position of the corresponding size argument for this
+                              argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
@@ -1865,7 +1875,9 @@ spec:
                           type: boolean
                         sizeArgIndex:
                           description: |-
-                            Specifies the position of the corresponding size argument for this argument.
+                            Deprecated, use sizeFromArgIndex instead.
+                            Specifies the position of the corresponding size argument for this
+                            argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                             This field is used only for char_buf and char_iovec types.
                           format: int32
                           minimum: 0
@@ -3031,7 +3043,9 @@ spec:
                             type: boolean
                           sizeArgIndex:
                             description: |-
-                              Specifies the position of the corresponding size argument for this argument.
+                              Deprecated, use sizeFromArgIndex instead.
+                              Specifies the position of the corresponding size argument for this
+                              argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
@@ -5271,7 +5285,9 @@ spec:
                             type: boolean
                           sizeArgIndex:
                             description: |-
-                              Specifies the position of the corresponding size argument for this argument.
+                              Deprecated, use sizeFromArgIndex instead.
+                              Specifies the position of the corresponding size argument for this
+                              argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
@@ -6416,7 +6432,9 @@ spec:
                             type: boolean
                           sizeArgIndex:
                             description: |-
-                              Specifies the position of the corresponding size argument for this argument.
+                              Deprecated, use sizeFromArgIndex instead.
+                              Specifies the position of the corresponding size argument for this
+                              argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
@@ -6545,7 +6563,9 @@ spec:
                             type: boolean
                           sizeArgIndex:
                             description: |-
-                              Specifies the position of the corresponding size argument for this argument.
+                              Deprecated, use sizeFromArgIndex instead.
+                              Specifies the position of the corresponding size argument for this
+                              argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0
@@ -6694,7 +6714,9 @@ spec:
                           type: boolean
                         sizeArgIndex:
                           description: |-
-                            Specifies the position of the corresponding size argument for this argument.
+                            Deprecated, use sizeFromArgIndex instead.
+                            Specifies the position of the corresponding size argument for this
+                            argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                             This field is used only for char_buf and char_iovec types.
                           format: int32
                           minimum: 0
@@ -7827,7 +7849,9 @@ spec:
                             type: boolean
                           sizeArgIndex:
                             description: |-
-                              Specifies the position of the corresponding size argument for this argument.
+                              Deprecated, use sizeFromArgIndex instead.
+                              Specifies the position of the corresponding size argument for this
+                              argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
                               This field is used only for char_buf and char_iovec types.
                             format: int32
                             minimum: 0

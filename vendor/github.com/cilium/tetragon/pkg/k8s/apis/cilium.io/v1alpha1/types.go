@@ -86,7 +86,9 @@ type KProbeArg struct {
 	Resolve string `json:"resolve"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
-	// Specifies the position of the corresponding size argument for this argument.
+	// Deprecated, use sizeFromArgIndex instead.
+	// Specifies the position of the corresponding size argument for this
+	// argument with a offset of 1 (e.g. index 2 is with sizeArgIndex to 3).
 	// This field is used only for char_buf and char_iovec types.
 	SizeArgIndex uint32 `json:"sizeArgIndex"`
 	// +kubebuilder:validation:Optional
