@@ -62,7 +62,6 @@ func updatePodHandler(m Map, pod *corev1.Pod) {
 	}
 	m.Update(podID, podhelpers.PodContainersIDs(pod))
 
-	var sandboxID string
 	ctx := context.Background()
 	if cli, err := cri.GetClient(ctx); err == nil {
 		req := criapi.ListPodSandboxRequest{
@@ -77,12 +76,11 @@ func updatePodHandler(m Map, pod *corev1.Pod) {
 		} else {
 			for _, item := range res.GetItems() {
 				if id := item.GetId(); id != "" {
-					sandboxID = id
+					m.UpdatePodSandbox(podID, id)
 					break
 				}
 			}
 		}
 	}
 
-	m.UpdatePodSandbox(podID, sandboxID)
 }
