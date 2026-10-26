@@ -66,10 +66,9 @@ Components: main universe restricted multiverse\n\
 Architectures: arm64\n\
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" > /etc/apt/sources.list.d/ubuntu.sources \
     && dpkg --add-architecture arm64; fi
-RUN apt-get update
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
-    then apt-get install -y curl git llvm gcc pkg-config zlib1g-dev libelf-dev libelf-dev:arm64 libcap-dev:arm64 libssl-dev libssl-dev:arm64 crossbuild-essential-$TARGETARCH; \
-    else apt-get install -y curl git llvm gcc pkg-config zlib1g-dev libelf-dev libcap-dev libssl-dev; fi
+    then apt-get update && apt-get install -y curl git llvm gcc pkg-config zlib1g-dev libelf-dev libelf-dev:arm64 libcap-dev:arm64 libssl-dev libssl-dev:arm64 crossbuild-essential-$TARGETARCH; \
+    else apt-get update && apt-get install -y curl git llvm gcc pkg-config zlib1g-dev libelf-dev libcap-dev libssl-dev; fi
 # renovate: datasource=github-releases depName=libbpf/bpftool
 ARG BPFTOOL_TAG=v7.8.1
 RUN git clone https://github.com/libbpf/bpftool.git . && git checkout ${BPFTOOL_TAG} && git submodule update --init --recursive
