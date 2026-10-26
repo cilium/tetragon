@@ -82,6 +82,7 @@
 {{- if .Values.tetragon.extraEnv }}
   {{- toYaml .Values.tetragon.extraEnv | nindent 4 }}
 {{- end }}
+    {{- include "tetragon.environment.extra" . | nindent 4 }}
 {{- with .Values.tetragon.resources }}
   resources:
     {{- toYaml . | nindent 4 }}
