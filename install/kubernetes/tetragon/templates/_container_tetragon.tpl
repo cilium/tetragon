@@ -93,7 +93,7 @@
   livenessProbe:
      timeoutSeconds: 60
      grpc:
-      port: {{ .Values.tetragon.healthGrpc.port }}
+      port: {{ .Values.tetragon.healthGrpc.port | int64 }}
       service: "liveness"
 {{- end -}}
 {{- if .Values.tetragon.startupProbe }}
@@ -103,7 +103,7 @@
   startupProbe:
      timeoutSeconds: 60
      grpc:
-      port: {{ .Values.tetragon.healthGrpc.port }}
+      port: {{ .Values.tetragon.healthGrpc.port | int64 }}
       service: "startup"
 {{- end -}}
 {{- end -}}

@@ -13,8 +13,8 @@ metadata:
 spec:
   schedule: {{ .Values.tetragon.grpc.tls.auto.schedule | quote }}
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: {{ .Values.certgen.cronJob.successfulJobsHistoryLimit }}
-  failedJobsHistoryLimit: {{ .Values.certgen.cronJob.failedJobsHistoryLimit }}
+  successfulJobsHistoryLimit: {{ .Values.certgen.cronJob.successfulJobsHistoryLimit | int64 }}
+  failedJobsHistoryLimit: {{ .Values.certgen.cronJob.failedJobsHistoryLimit | int64 }}
   jobTemplate:
     metadata:
       labels:

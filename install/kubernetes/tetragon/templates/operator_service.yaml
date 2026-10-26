@@ -9,8 +9,8 @@ metadata:
 spec:
   ports:
     - name: metrics
-      port: {{ .Values.tetragonOperator.prometheus.port }}
-      targetPort: {{ .Values.tetragonOperator.prometheus.port }}
+      port: {{ .Values.tetragonOperator.prometheus.port | int64 }}
+      targetPort: {{ .Values.tetragonOperator.prometheus.port | int64 }}
       protocol: TCP
   selector:
     {{- include "tetragon-operator.selectorLabels" . | nindent 4 }}
