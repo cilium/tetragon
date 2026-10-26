@@ -15,7 +15,6 @@ import (
 	"log/slog"
 	"maps"
 	"os"
-	"path/filepath"
 	"slices"
 	"time"
 
@@ -68,8 +67,7 @@ func listCmd() *cobra.Command {
 }
 
 func dumpPolicyCmd() *cobra.Command {
-	cwd, _ := os.Getwd()
-	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
+	testBinsPath := ""
 	dumpPolicyPath := ""
 	monitorMode := false
 	var params map[string]string
@@ -86,6 +84,10 @@ func dumpPolicyCmd() *cobra.Command {
 			paramValues := make(map[string]any)
 			for k, v := range params {
 				paramValues[k] = v
+			}
+
+			if testBinsPath == "" {
+				return errors.New("--bindir is required: set it to the tester-progs directory")
 			}
 
 			tests, err := policytest.AllPolicyTests.GetByRegexps(args)
@@ -119,7 +121,7 @@ func dumpPolicyCmd() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
+	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory (required)")
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policies in the provided directory, one <policy-name>.yaml file per policy")
 	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
 	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
@@ -127,8 +129,7 @@ func dumpPolicyCmd() *cobra.Command {
 }
 
 func runCmd() *cobra.Command {
-	cwd, _ := os.Getwd()
-	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
+	testBinsPath := ""
 	dumpPolicyPath := ""
 	monitorMode := false
 	allParams := false
@@ -178,8 +179,13 @@ func runCmd() *cobra.Command {
 						return fmt.Errorf("--%s cannot be used with --k8s", f)
 					}
 				}
-			} else if cmd.Flags().Changed("k8s-context") {
-				return errors.New("--k8s-context requires --k8s")
+			} else {
+				if cmd.Flags().Changed("k8s-context") {
+					return errors.New("--k8s-context requires --k8s")
+				}
+				if testBinsPath == "" {
+					return errors.New("--bindir is required: set it to the tester-progs directory")
+				}
 			}
 
 			tests, err := selectTests(args)
@@ -227,7 +233,7 @@ func runCmd() *cobra.Command {
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
+	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory (required)")
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policies in the provided directory, one <policy-name>.yaml file per policy")
 	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
 	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
@@ -257,8 +263,7 @@ func podArgs(tests []string, allParams, monitorMode bool, params map[string]stri
 }
 
 func runMultiCmd() *cobra.Command {
-	cwd, _ := os.Getwd()
-	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
+	testBinsPath := ""
 	dumpPolicyPath := ""
 	monitorMode := false
 	allTests := false
@@ -287,6 +292,10 @@ finally the policies are unloaded.`,
 			paramValues := make(map[string]any)
 			for k, v := range params {
 				paramValues[k] = v
+			}
+
+			if testBinsPath == "" {
+				return errors.New("--bindir is required: set it to the tester-progs directory")
 			}
 
 			ctx := context.Background()
@@ -337,7 +346,7 @@ finally the policies are unloaded.`,
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
+	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory (required)")
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policies in the provided directory, one <policy-name>.yaml file per policy")
 	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
 	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
