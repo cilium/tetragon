@@ -881,3 +881,38 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		require.NotNil(t, ty)
 	})
 }
+
+func TestResolveBTFPathTypeTag(t *testing.T) {
+	intTy := &btf.Int{Name: "int", Size: 4}
+
+	taskStruct := &btf.Struct{
+		Name: "task_struct",
+		Size: 4,
+		Members: []btf.Member{
+			{Name: "comm", Type: intTy, Offset: 0},
+		},
+	}
+	taskPtr := &btf.Pointer{Target: taskStruct}
+
+	ownerTag := &btf.TypeTag{
+		Type:  taskPtr,
+		Value: "rcu",
+	}
+
+	root := &btf.Struct{
+		Name: "mm_struct",
+		Size: 8,
+		Members: []btf.Member{
+			{Name: "owner", Type: ownerTag, Offset: 0},
+		},
+	}
+
+	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+	ty, err := ResolveBTFPath(&btfArgs, root, []string{"owner", "comm"}, 0)
+
+	require.NoError(t, err)
+	require.NotNil(t, ty)
+
+	assert.Equal(t, btf.Type(intTy), *ty)
+	assert.Equal(t, uint16(1), btfArgs[0].IsPointer)
+}

@@ -239,6 +239,8 @@ func ResolveNestedTypes(ty btf.Type) btf.Type {
 		return ResolveNestedTypes(t.Type)
 	case *btf.Typedef:
 		return ResolveNestedTypes(t.Type)
+	case *btf.TypeTag:
+		return ResolveNestedTypes(t.Type)
 	}
 	return ty
 }
