@@ -27,6 +27,11 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### TracingPolicy (k8s CRD)
 
+* `sizeFromArgIndex` is available for `char_buf` and `char_iovec` arguments to
+  specify which argument provides the size. It uses the same zero-based index
+  as the argument's `index` field. This replaces the deprecated `sizeArgIndex`,
+  whose value is offset by one; for example, change `sizeArgIndex: 3` to
+  `sizeFromArgIndex: 2`.
 * `returnArgAction` no longer accepts `Post`. Use `returnArg` to include the
   return value in events, and omit `returnArgAction` for the default return-value
   behavior. Only `TrackSock` and `UntrackSock` are supported. Existing policies
