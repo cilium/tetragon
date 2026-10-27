@@ -11,7 +11,7 @@ on:
 jobs:
   build-vmpolicy:
     name: Build vmpolicy test data
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     concurrency:
       group: ${{ github.ref }}-build-vmpolicy
