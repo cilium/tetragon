@@ -283,11 +283,16 @@ FUNC_INLINE __s32 find_avail_pending_c_idx(struct pending_call *pending_c, __u32
 // or -1 if none.
 // Saved registers, return address and expected sp are shared by all the
 // slots: only a single resolution can be in progress per thread.
-FUNC_INLINE __s32 find_pending_idx(struct pending_call *pending_c, __s32 skip_idx)
+// A resolution started by a previous image (ie: the thread exec'd while in
+// the middle of mmap() or dlopen()) will never complete: ignore it, otherwise
+// it would block every other resolution on this thread.
+FUNC_INLINE __s32 find_pending_idx(struct pending_call *pending_c, __s32 skip_idx, __u64 self_exec_id)
 {
 #pragma unroll
 	for (int i = 0; i < MAX_SELECTORS; ++i) {
 		if (i == skip_idx)
+			continue;
+		if (pending_c->self_exec_id[i] != self_exec_id)
 			continue;
 		if (pending_c->stage[i] == STAGE_MMAP_PENDING || pending_c->stage[i] == STAGE_DLOPEN_PENDING)
 			return i;
@@ -318,7 +323,7 @@ uprobe_dyn_state_machine(struct pt_regs *ctx, struct uprobe_regs *regs, __u32 sy
 	// * we are overriding a different symbol (from another selector)
 	// * the thread calls `execve` thus replacing its process image
 	if (!pending_c || pending_c->stage[idx] == STAGE_NONE || pending_c->self_exec_id[idx] != self_exec_id) {
-		if (pending_c && find_pending_idx(pending_c, idx) != -1) {
+		if (pending_c && find_pending_idx(pending_c, idx, self_exec_id) != -1) {
 			// A resolution of symbol A runs real code on the same thread:
 			// mmap(), dlopen(), dynamic loader, and the ctors of the library being loaded.
 			// If that code calls another traced symbol B with a sopath override,
@@ -384,13 +389,15 @@ FUNC_INLINE bool uprobe_dyn_pending(struct pt_regs *ctx, __u32 *sym_id)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task_btf();
 	struct pending_call *pending_c;
+	__u64 self_exec_id;
 	__s32 idx;
 
 	pending_c = task_storage_get(&tg_dyn_sm, task, NULL, 0);
 	if (!pending_c)
 		return false;
 
-	idx = find_pending_idx(pending_c, -1);
+	BPF_CORE_READ_INTO(&self_exec_id, task, self_exec_id);
+	idx = find_pending_idx(pending_c, -1, self_exec_id);
 	if (idx == -1)
 		return false;
 
