@@ -76,6 +76,38 @@ spec:
 	}
 }).RegisterAtInit()
 
+var _ = policytest.NewBuilder("uretprobe-generic").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uretprobe-generic"
+spec:
+  uprobes:
+  - path: {{ testBinary "uretprobe" }}
+    symbols:
+    - "return_string"
+    return: true
+    returnArg:
+      index: 0
+      type: "string"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uretprobe")
+	upChecker := ec.NewProcessUprobeChecker("URETPROBE_GENERIC").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("return_string")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("ret input")),
+			))
+	return &policytest.Scenario{
+		Name:         "execute uretprobe and check return value",
+		Trigger:      policytest.NewCmdTrigger(bin),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("uprobe-override").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
