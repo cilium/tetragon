@@ -179,12 +179,18 @@ define DEFINE_VARIANT
 VAR := $1
 
 # We need to define extra rules for multi probes because the object name
-# is different then the source file.
+# is different then the source file. They need the variant CFLAGS, otherwise
+# headers only included for the variant are missing from the dependencies.
 $(DEPSDIR)bpf_multi_kprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_kprobe.c
+	$$(call rule_d,$$(CFLAGS_$1))
 $(DEPSDIR)bpf_multi_retkprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retkprobe.c
+	$$(call rule_d,$$(CFLAGS_$1))
 $(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
+	$$(call rule_d,$$(CFLAGS_$1))
 $(DEPSDIR)bpf_multi_retuprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retuprobe.c
+	$$(call rule_d,$$(CFLAGS_$1))
 $(DEPSDIR)bpf_multi_usdt_$$(VAR).d: $(PROCESSDIR)bpf_generic_usdt.c
+	$$(call rule_d,$$(CFLAGS_$1))
 
 ifneq (,$(filter $1,v53 v511 v61))
 $(DEPSDIR)bpf_execve_event_$1.d: $(PROCESSDIR)bpf_execve_event_notc.c
