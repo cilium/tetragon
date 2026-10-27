@@ -8,12 +8,6 @@
 
 #define DEBUG_SO(__fmt, ...) DEBUG_AREA(BPF_AREA_UPROBE_SO, __fmt, ##__VA_ARGS__)
 
-#ifdef __MULTI_KPROBE
-#define OFFLOAD "uprobe.multi.s/generic_uprobe"
-#else
-#define OFFLOAD "uprobe.s/generic_uprobe"
-#endif
-
 #define PROT_READ  0x1
 #define PROT_WRITE 0x2
 
