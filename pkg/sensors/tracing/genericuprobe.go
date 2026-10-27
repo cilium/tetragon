@@ -1373,10 +1373,13 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 			refCtrOffset = spec.RefCtrOffsets[idx]
 		}
 
+		// Each symbol needs its own config, as it carries the symbol's FuncId.
+		config := *state.eventConfig
+
 		uprobeEntry := &genericUprobe{
 			loadArgs: uprobeLoadArgs{
 				retprobe:  state.setRetprobe,
-				config:    state.eventConfig,
+				config:    &config,
 				selectors: state.selectors,
 			},
 			tableId:           idtable.UninitializedEntryID,
@@ -1406,7 +1409,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 		uprobeTable.AddEntry(uprobeEntry)
 		id := uprobeEntry.tableId
 
-		state.eventConfig.FuncId = uint32(id.ID)
+		config.FuncId = uint32(id.ID)
 
 		ids = append(ids, id)
 		return nil
