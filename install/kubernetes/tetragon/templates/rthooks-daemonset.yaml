@@ -31,7 +31,7 @@ spec:
         {{- end }}
     spec:
       {{- with .Values.rthooks.priorityClassName }}
-      priorityClassName: "{{ . }}"
+      priorityClassName: {{ . | quote }}
       {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

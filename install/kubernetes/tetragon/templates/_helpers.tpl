@@ -121,7 +121,7 @@ ServiceAccounts
 {{- end }}
 
 {{- define "tetragon.image" -}}
-"{{ if .Values.tetragon.image.override }}{{ .Values.tetragon.image.override }}{{ else }}{{ .Values.tetragon.image.repository }}:{{ .Values.tetragon.image.tag | default .Chart.AppVersion }}{{ end }}"
+{{ .Values.tetragon.image.override | default (printf "%v:%v" .Values.tetragon.image.repository (.Values.tetragon.image.tag | default .Chart.AppVersion)) | quote }}
 {{- end -}}
 
 {{/*
@@ -129,7 +129,7 @@ Runtime-hooks
 */}}
 
 {{- define "rthooks.image" -}}
-"{{ if .Values.rthooks.image.override }}{{ .Values.rthooks.image.override }}{{ else }}{{ .Values.rthooks.image.repository }}:{{ .Values.rthooks.image.tag }}{{ end }}"
+{{ .Values.rthooks.image.override | default (printf "%v:%v" .Values.rthooks.image.repository .Values.rthooks.image.tag) | quote }}
 {{- end -}}
 
 {{- define "rthooksInterface" -}}

@@ -45,7 +45,7 @@ template:
     {{- end }}
     containers:
       - name: certgen
-        image: "{{ if .Values.certgen.image.override }}{{ .Values.certgen.image.override }}{{ else }}{{ .Values.certgen.image.repository }}:{{ .Values.certgen.image.tag }}{{ end }}"
+        image: {{ .Values.certgen.image.override | default (printf "%v:%v" .Values.certgen.image.repository .Values.certgen.image.tag) | quote }}
         imagePullPolicy: {{ .Values.certgen.image.pullPolicy | quote }}
         securityContext:
           allowPrivilegeEscalation: false

@@ -1,6 +1,6 @@
 {{- define "container.export.stdout" -}}
 - name: {{include "container.export.stdout.name" .}}
-  image: "{{ if .Values.export.stdout.image.override }}{{ .Values.export.stdout.image.override }}{{ else }}{{ .Values.export.stdout.image.repository }}:{{ .Values.export.stdout.image.tag }}{{ end }}"
+  image: {{ .Values.export.stdout.image.override | default (printf "%v:%v" .Values.export.stdout.image.repository .Values.export.stdout.image.tag) | quote }}
   imagePullPolicy: {{ .Values.imagePullPolicy | quote }}
   terminationMessagePolicy: FallbackToLogsOnError
   {{- with .Values.export.stdout.extraEnv }}
