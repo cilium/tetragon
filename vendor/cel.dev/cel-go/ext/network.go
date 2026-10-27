@@ -21,12 +21,10 @@ import (
 	"reflect"
 
 	"cel.dev/cel-go/cel"
-	"cel.dev/cel-go/checker"
 	"cel.dev/cel-go/common/ast"
 	"cel.dev/cel-go/common/cost"
 	"cel.dev/cel-go/common/types"
 	"cel.dev/cel-go/common/types/ref"
-	"cel.dev/cel-go/interpreter"
 )
 
 const (
@@ -294,58 +292,34 @@ func (*networkLib) CompileOptions() []cel.EnvOption {
 			networkFormatValidator{funcName: ipFunc, argNum: 0, check: checkIP},
 			networkFormatValidator{funcName: cidrFunc, argNum: 0, check: checkCIDR},
 		),
-		cel.CostEstimatorOptions(
-			checker.OverloadCostEstimate("string_to_cidr", estimateNetworkParseCost),
-			checker.OverloadCostEstimate("cidr_to_string", estimateNetworkNominalStringCost),
-			checker.OverloadCostEstimate("cidr_contains_cidr", estimateNetworkContainsCIDRCIDRCost),
-			checker.OverloadCostEstimate("cidr_contains_cidr_string", estimateNetworkContainsCIDRStringCost),
-			checker.OverloadCostEstimate("cidr_contains_ip_ip", estimateNetworkContainsIPIPCost),
-			checker.OverloadCostEstimate("cidr_contains_ip_string", estimateNetworkContainsIPStringCost),
-			checker.OverloadCostEstimate("ip_family", estimateNetworkNominalCost),
-			checker.OverloadCostEstimate("string_to_ip", estimateNetworkParseCost),
-			checker.OverloadCostEstimate("cidr_ip", estimateNetworkNominalOpaqueCost),
-			checker.OverloadCostEstimate("ip_to_string", estimateNetworkNominalStringCost),
-			checker.OverloadCostEstimate("ip_is_canonical", estimateIPIsCanonicalCost),
-			checker.OverloadCostEstimate("is_cidr", estimateNetworkParseBoolCost),
-			checker.OverloadCostEstimate("ip_is_global_unicast", estimateNetworkNominalCost),
-			checker.OverloadCostEstimate("is_ip", estimateNetworkParseBoolCost),
-			checker.OverloadCostEstimate("ip_is_link_local_multicast", estimateNetworkNominalCost),
-			checker.OverloadCostEstimate("ip_is_link_local_unicast", estimateNetworkNominalCost),
-			checker.OverloadCostEstimate("ip_is_loopback", estimateNetworkNominalCost),
-			checker.OverloadCostEstimate("cidr_is_mask", estimateNetworkNominalCost),
-			checker.OverloadCostEstimate("ip_is_unspecified", estimateNetworkNominalCost),
-			checker.OverloadCostEstimate("cidr_masked", estimateNetworkNominalOpaqueCost),
-			checker.OverloadCostEstimate("cidr_prefix_length", estimateNetworkNominalCost),
+		cel.CostModel(
+			networkParseCostModel("string_to_ip"),
+			networkParseCostModel("string_to_cidr"),
+			networkParseBoolCostModel("is_ip"),
+			networkParseBoolCostModel("is_cidr"),
+			networkIsCanonicalCostModel("ip_is_canonical"),
+			networkToStringCostModel("ip_to_string"),
+			networkToStringCostModel("cidr_to_string"),
+			networkCIDROpaqueCostModel("cidr_ip"),
+			networkCIDROpaqueCostModel("cidr_masked"),
+			networkContainsIPIPCostModel("cidr_contains_ip_ip"),
+			networkContainsIPStringCostModel("cidr_contains_ip_string"),
+			networkContainsCIDRCIDRCostModel("cidr_contains_cidr"),
+			networkContainsCIDRStringCostModel("cidr_contains_cidr_string"),
+			networkNominalCostModel("ip_family"),
+			networkNominalCostModel("ip_is_global_unicast"),
+			networkNominalCostModel("ip_is_link_local_multicast"),
+			networkNominalCostModel("ip_is_link_local_unicast"),
+			networkNominalCostModel("ip_is_loopback"),
+			networkNominalCostModel("ip_is_unspecified"),
+			networkNominalCostModel("cidr_is_mask"),
+			networkNominalCostModel("cidr_prefix_length"),
 		),
 	}
 }
 
 func (*networkLib) ProgramOptions() []cel.ProgramOption {
-	return []cel.ProgramOption{
-		cel.CostTrackerOptions(
-			interpreter.OverloadCostTracker("string_to_cidr", trackNetworkParseCost),
-			interpreter.OverloadCostTracker("cidr_to_string", trackNetworkNominalCost),
-			interpreter.OverloadCostTracker("cidr_contains_cidr", trackNetworkContainsCIDRCIDRCost),
-			interpreter.OverloadCostTracker("cidr_contains_cidr_string", trackNetworkContainsCIDRStringCost),
-			interpreter.OverloadCostTracker("cidr_contains_ip_ip", trackNetworkContainsIPIPCost),
-			interpreter.OverloadCostTracker("cidr_contains_ip_string", trackNetworkContainsIPStringCost),
-			interpreter.OverloadCostTracker("ip_family", trackNetworkNominalCost),
-			interpreter.OverloadCostTracker("string_to_ip", trackNetworkParseCost),
-			interpreter.OverloadCostTracker("cidr_ip", trackNetworkNominalCost),
-			interpreter.OverloadCostTracker("ip_to_string", trackNetworkNominalCost),
-			interpreter.OverloadCostTracker("ip_is_canonical", trackIPIsCanonicalCost),
-			interpreter.OverloadCostTracker("is_cidr", trackNetworkParseCost),
-			interpreter.OverloadCostTracker("ip_is_global_unicast", trackNetworkNominalCost),
-			interpreter.OverloadCostTracker("is_ip", trackNetworkParseCost),
-			interpreter.OverloadCostTracker("ip_is_link_local_multicast", trackNetworkNominalCost),
-			interpreter.OverloadCostTracker("ip_is_link_local_unicast", trackNetworkNominalCost),
-			interpreter.OverloadCostTracker("ip_is_loopback", trackNetworkNominalCost),
-			interpreter.OverloadCostTracker("cidr_is_mask", trackNetworkNominalCost),
-			interpreter.OverloadCostTracker("ip_is_unspecified", trackNetworkNominalCost),
-			interpreter.OverloadCostTracker("cidr_masked", trackNetworkNominalCost),
-			interpreter.OverloadCostTracker("cidr_prefix_length", trackNetworkNominalCost),
-		),
-	}
+	return []cel.ProgramOption{}
 }
 
 // networkAdapter adapts netip types while preserving existing adapters.
@@ -685,127 +659,217 @@ func checkCIDR(e *cel.Env, call, arg ast.Expr) error {
 
 // Cost estimation functions for network extensions.
 
-func estimateNetworkParseCost(estimator checker.CostEstimator, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
+func estimateNetworkParseCost(estimator cost.Estimator, target *cost.AstNode, args []cost.AstNode) *cost.CallEstimate {
 	if len(args) < 1 {
 		return nil
 	}
-	sz := estimateSize(estimator, args[0])
-	resultSize := rangedSizeEstimate(4, 16)
-	return callEstimate(sz.MultiplyByCostFactor(stringCostFactor), &resultSize)
+	sz := cost.EstimateSize(estimator, args[0])
+	resultSize := cost.RangedSizeEstimate(4, 16)
+	return cost.NewCallEstimate(sz.MultiplyByCostFactor(cost.StringCostFactor), &resultSize)
 }
 
-func estimateNetworkParseBoolCost(estimator checker.CostEstimator, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
+func estimateNetworkParseBoolCost(estimator cost.Estimator, target *cost.AstNode, args []cost.AstNode) *cost.CallEstimate {
 	if len(args) < 1 {
 		return nil
 	}
-	sz := estimateSize(estimator, args[0])
-	return callEstimate(sz.MultiplyByCostFactor(stringCostFactor), nil)
+	sz := cost.EstimateSize(estimator, args[0])
+	return cost.NewCallEstimate(sz.MultiplyByCostFactor(cost.StringCostFactor), nil)
 }
 
-func estimateIPIsCanonicalCost(estimator checker.CostEstimator, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
+func estimateIPIsCanonicalCost(estimator cost.Estimator, target *cost.AstNode, args []cost.AstNode) *cost.CallEstimate {
 	if len(args) < 1 {
 		return nil
 	}
-	sz := estimateSize(estimator, args[0])
-	return callEstimate(sz.MultiplyByCostFactor(2*stringCostFactor), nil)
+	sz := cost.EstimateSize(estimator, args[0])
+	return cost.NewCallEstimate(sz.MultiplyByCostFactor(2*cost.StringCostFactor), nil)
 }
 
-func estimateNetworkNominalCost(estimator checker.CostEstimator, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
-	return callEstimate(callCostEstimate, nil)
+func estimateNetworkNominalCost(estimator cost.Estimator, target *cost.AstNode, args []cost.AstNode) *cost.CallEstimate {
+	return cost.NewCallEstimate(cost.CallCostEstimate, nil)
 }
 
-func estimateNetworkNominalOpaqueCost(estimator checker.CostEstimator, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
-	resultSize := rangedSizeEstimate(4, 16)
-	return callEstimate(callCostEstimate, &resultSize)
+func estimateNetworkNominalOpaqueCost(estimator cost.Estimator, target *cost.AstNode, args []cost.AstNode) *cost.CallEstimate {
+	resultSize := cost.RangedSizeEstimate(4, 16)
+	return cost.NewCallEstimate(cost.CallCostEstimate, &resultSize)
 }
 
-func estimateNetworkNominalStringCost(estimator checker.CostEstimator, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
-	resultSize := rangedSizeEstimate(3, 45)
-	return callEstimate(callCostEstimate, &resultSize)
+func estimateNetworkNominalStringCost(estimator cost.Estimator, target *cost.AstNode, args []cost.AstNode) *cost.CallEstimate {
+	resultSize := cost.RangedSizeEstimate(3, 45)
+	return cost.NewCallEstimate(cost.CallCostEstimate, &resultSize)
 }
 
-func estimateNetworkContainsIPIPCost(estimator checker.CostEstimator, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
-	sz := rangedSizeEstimate(4, 16)
-	ipCompCost := sz.Add(sz).MultiplyByCostFactor(stringCostFactor)
-	return callEstimate(ipCompCost, nil)
+func estimateNetworkContainsIPIPCost(estimator cost.Estimator, target *cost.AstNode, args []cost.AstNode) *cost.CallEstimate {
+	sz := cost.RangedSizeEstimate(4, 16)
+	ipCompCost := sz.Add(sz).MultiplyByCostFactor(cost.StringCostFactor)
+	return cost.NewCallEstimate(ipCompCost, nil)
 }
 
-func estimateNetworkContainsIPStringCost(estimator checker.CostEstimator, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
+func estimateNetworkContainsIPStringCost(estimator cost.Estimator, target *cost.AstNode, args []cost.AstNode) *cost.CallEstimate {
 	if len(args) < 1 {
 		return nil
 	}
-	sz := rangedSizeEstimate(4, 16)
-	ipCompCost := sz.Add(sz).MultiplyByCostFactor(stringCostFactor)
-	argSz := estimateSize(estimator, args[0])
-	ipCompCost = ipCompCost.Add(argSz.MultiplyByCostFactor(stringCostFactor))
-	return callEstimate(ipCompCost, nil)
+	sz := cost.RangedSizeEstimate(4, 16)
+	ipCompCost := sz.Add(sz).MultiplyByCostFactor(cost.StringCostFactor)
+	argSz := cost.EstimateSize(estimator, args[0])
+	ipCompCost = ipCompCost.Add(argSz.MultiplyByCostFactor(cost.StringCostFactor))
+	return cost.NewCallEstimate(ipCompCost, nil)
 }
 
-func estimateNetworkContainsCIDRCIDRCost(estimator checker.CostEstimator, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
-	sz := rangedSizeEstimate(4, 16)
-	ipCompCost := sz.Add(sz).MultiplyByCostFactor(stringCostFactor)
-	ipCompCost = ipCompCost.Add(sz.MultiplyByCostFactor(stringCostFactor))
+func estimateNetworkContainsCIDRCIDRCost(estimator cost.Estimator, target *cost.AstNode, args []cost.AstNode) *cost.CallEstimate {
+	sz := cost.RangedSizeEstimate(4, 16)
+	ipCompCost := sz.Add(sz).MultiplyByCostFactor(cost.StringCostFactor)
+	ipCompCost = ipCompCost.Add(sz.MultiplyByCostFactor(cost.StringCostFactor))
 	// K8s adds one for the extra IP traversal
-	ipCompCost = ipCompCost.Add(callCostEstimate)
-	return callEstimate(ipCompCost, nil)
+	ipCompCost = ipCompCost.Add(cost.CallCostEstimate)
+	return cost.NewCallEstimate(ipCompCost, nil)
 }
 
-func estimateNetworkContainsCIDRStringCost(estimator checker.CostEstimator, target *checker.AstNode, args []checker.AstNode) *checker.CallEstimate {
+func estimateNetworkContainsCIDRStringCost(estimator cost.Estimator, target *cost.AstNode, args []cost.AstNode) *cost.CallEstimate {
 	if len(args) < 1 {
 		return nil
 	}
-	sz := rangedSizeEstimate(4, 16)
-	ipCompCost := sz.Add(sz).MultiplyByCostFactor(stringCostFactor)
-	ipCompCost = ipCompCost.Add(sz.MultiplyByCostFactor(stringCostFactor))
-	argSz := estimateSize(estimator, args[0])
-	ipCompCost = ipCompCost.Add(argSz.MultiplyByCostFactor(stringCostFactor))
+	sz := cost.RangedSizeEstimate(4, 16)
+	ipCompCost := sz.Add(sz).MultiplyByCostFactor(cost.StringCostFactor)
+	ipCompCost = ipCompCost.Add(sz.MultiplyByCostFactor(cost.StringCostFactor))
+	argSz := cost.EstimateSize(estimator, args[0])
+	ipCompCost = ipCompCost.Add(argSz.MultiplyByCostFactor(cost.StringCostFactor))
 	// K8s adds one for the extra IP traversal
-	ipCompCost = ipCompCost.Add(callCostEstimate)
-	return callEstimate(ipCompCost, nil)
+	ipCompCost = ipCompCost.Add(cost.CallCostEstimate)
+	return cost.NewCallEstimate(ipCompCost, nil)
 }
 
 // Runtime cost tracking functions for network extensions.
 
 func trackNetworkParseCost(args []ref.Val, result ref.Val) *uint64 {
-	total := cost.SafeMultiplyByFactor(actualSize(args[0]), stringCostFactor)
+	total := cost.SafeMultiplyByFactor(cost.ActualSize(args[0]), cost.StringCostFactor)
 	return &total
 }
 
 func trackIPIsCanonicalCost(args []ref.Val, result ref.Val) *uint64 {
-	total := cost.SafeMultiplyByFactor(actualSize(args[0]), 2*stringCostFactor)
+	total := cost.SafeMultiplyByFactor(cost.ActualSize(args[0]), 2*cost.StringCostFactor)
 	return &total
 }
 
 func trackNetworkNominalCost(args []ref.Val, result ref.Val) *uint64 {
-	return &callCost
+	return &cost.CallCost
 }
 
 func trackNetworkContainsIPIPCost(args []ref.Val, result ref.Val) *uint64 {
-	cidrSize := actualSize(args[0])
-	total := cost.SafeMultiplyByFactor(cost.SafeAdd(cidrSize, cidrSize), stringCostFactor)
+	cidrSize := cost.ActualSize(args[0])
+	total := cost.SafeMultiplyByFactor(cost.SafeAdd(cidrSize, cidrSize), cost.StringCostFactor)
 	return &total
 }
 
 func trackNetworkContainsIPStringCost(args []ref.Val, result ref.Val) *uint64 {
-	cidrSize := actualSize(args[0])
-	otherSize := actualSize(args[1])
-	total := cost.SafeMultiplyByFactor(cost.SafeAdd(cidrSize, cidrSize), stringCostFactor)
-	total = cost.SafeAdd(total, cost.SafeMultiplyByFactor(otherSize, stringCostFactor))
+	cidrSize := cost.ActualSize(args[0])
+	otherSize := cost.ActualSize(args[1])
+	total := cost.SafeMultiplyByFactor(cost.SafeAdd(cidrSize, cidrSize), cost.StringCostFactor)
+	total = cost.SafeAdd(total, cost.SafeMultiplyByFactor(otherSize, cost.StringCostFactor))
 	return &total
 }
 
 func trackNetworkContainsCIDRCIDRCost(args []ref.Val, result ref.Val) *uint64 {
-	cidrSize := actualSize(args[0])
-	total := cost.SafeMultiplyByFactor(cost.SafeAdd(cidrSize, cidrSize), stringCostFactor)
-	total = cost.SafeAdd(total, cost.SafeMultiplyByFactor(cidrSize, stringCostFactor), 1)
+	cidrSize := cost.ActualSize(args[0])
+	total := cost.SafeMultiplyByFactor(cost.SafeAdd(cidrSize, cidrSize), cost.StringCostFactor)
+	total = cost.SafeAdd(total, cost.SafeMultiplyByFactor(cidrSize, cost.StringCostFactor), 1)
 	return &total
 }
 
 func trackNetworkContainsCIDRStringCost(args []ref.Val, result ref.Val) *uint64 {
-	cidrSize := actualSize(args[0])
-	otherSize := actualSize(args[1])
-	total := cost.SafeMultiplyByFactor(cost.SafeAdd(cidrSize, cidrSize), stringCostFactor)
-	total = cost.SafeAdd(total, cost.SafeMultiplyByFactor(cidrSize, stringCostFactor), 1)
-	total = cost.SafeAdd(total, cost.SafeMultiplyByFactor(otherSize, stringCostFactor))
+	cidrSize := cost.ActualSize(args[0])
+	otherSize := cost.ActualSize(args[1])
+	total := cost.SafeMultiplyByFactor(cost.SafeAdd(cidrSize, cidrSize), cost.StringCostFactor)
+	total = cost.SafeAdd(total, cost.SafeMultiplyByFactor(cidrSize, cost.StringCostFactor), 1)
+	total = cost.SafeAdd(total, cost.SafeMultiplyByFactor(otherSize, cost.StringCostFactor))
 	return &total
+}
+
+// networkParseCostModel models ip(string) and cidr(string): an IP's length is its address bytes
+// (4 or 16) and a CIDR's is the bytes of its prefix (0 to 16); both strategies size them by that
+// length, so parsed values are sized at most 16 with no lower bound.
+func networkParseCostModel(id string) cost.OverloadModel {
+	return cost.Overload(id,
+		cost.EvalCost(cost.StringScan(cost.Length(cost.Arg(0)))),
+		cost.ResultSize(cost.AtMost(cost.Const(16))),
+		cost.BeforeVersion(1, cost.ManualCost(estimateNetworkParseCost, trackNetworkParseCost)),
+	)
+}
+
+func networkParseBoolCostModel(id string) cost.OverloadModel {
+	return cost.Overload(id,
+		cost.EvalCost(cost.StringScan(cost.Length(cost.Arg(0)))),
+		cost.BeforeVersion(1, cost.ManualCost(estimateNetworkParseBoolCost, trackNetworkParseCost)),
+	)
+}
+
+func networkIsCanonicalCostModel(id string) cost.OverloadModel {
+	return cost.Overload(id,
+		cost.EvalCost(cost.Scale(cost.Length(cost.Arg(0)), 2*cost.StringCostFactor)),
+		cost.BeforeVersion(1, cost.ManualCost(estimateIPIsCanonicalCost, trackIPIsCanonicalCost)),
+	)
+}
+
+// networkToStringCostModel models string(IP) and string(CIDR): formatted IPv6/CIDR strings are at
+// most 45 characters.
+func networkToStringCostModel(id string) cost.OverloadModel {
+	return cost.Overload(id,
+		cost.EvalCost(cost.Const(cost.CallCost)),
+		cost.ResultSize(cost.AtMost(cost.Const(45))),
+		cost.BeforeVersion(1, cost.ManualCost(estimateNetworkNominalStringCost, trackNetworkNominalCost)),
+	)
+}
+
+func networkCIDROpaqueCostModel(id string) cost.OverloadModel {
+	return cost.MemberOverload(id,
+		cost.EvalCost(cost.Const(cost.CallCost)),
+		cost.ResultSize(cost.AtMost(cost.Const(16))),
+		cost.BeforeVersion(1, cost.ManualCost(estimateNetworkNominalOpaqueCost, trackNetworkNominalCost)),
+	)
+}
+
+func networkNominalCostModel(id string) cost.OverloadModel {
+	return cost.MemberOverload(id,
+		cost.EvalCost(cost.Const(cost.CallCost)),
+		cost.BeforeVersion(1, cost.ManualCost(estimateNetworkNominalCost, trackNetworkNominalCost)),
+	)
+}
+
+// networkCIDRLength returns the bounded length of a CIDR receiver (at most 16 bytes), which bounds
+// the estimate for a receiver of unknown size without changing the runtime charge.
+func networkCIDRLength() cost.QuantityExpr {
+	return cost.Min(cost.Length(cost.Target()), cost.Const(16))
+}
+
+// networkCIDRCompareCost returns the address comparison cost for a CIDR receiver, which reads the
+// CIDR twice and therefore scans at twice StringCostFactor.
+func networkCIDRCompareCost() cost.QuantityExpr {
+	return cost.Scale(networkCIDRLength(), 2*cost.StringCostFactor)
+}
+
+func networkContainsIPIPCostModel(id string) cost.OverloadModel {
+	return cost.MemberOverload(id,
+		cost.EvalCost(networkCIDRCompareCost()),
+		cost.BeforeVersion(1, cost.ManualCost(estimateNetworkContainsIPIPCost, trackNetworkContainsIPIPCost)),
+	)
+}
+
+func networkContainsIPStringCostModel(id string) cost.OverloadModel {
+	return cost.MemberOverload(id,
+		cost.EvalCost(cost.Sum(networkCIDRCompareCost(), cost.StringScan(cost.Length(cost.Arg(0))))),
+		cost.BeforeVersion(1, cost.ManualCost(estimateNetworkContainsIPStringCost, trackNetworkContainsIPStringCost)),
+	)
+}
+
+func networkContainsCIDRCIDRCostModel(id string) cost.OverloadModel {
+	return cost.MemberOverload(id,
+		cost.EvalCost(cost.Sum(networkCIDRCompareCost(), cost.StringScan(networkCIDRLength()), cost.Const(1))),
+		cost.BeforeVersion(1, cost.ManualCost(estimateNetworkContainsCIDRCIDRCost, trackNetworkContainsCIDRCIDRCost)),
+	)
+}
+
+func networkContainsCIDRStringCostModel(id string) cost.OverloadModel {
+	return cost.MemberOverload(id,
+		cost.EvalCost(cost.Sum(networkCIDRCompareCost(), cost.StringScan(networkCIDRLength()), cost.Const(1), cost.StringScan(cost.Length(cost.Arg(0))))),
+		cost.BeforeVersion(1, cost.ManualCost(estimateNetworkContainsCIDRStringCost, trackNetworkContainsCIDRStringCost)),
+	)
 }
