@@ -9,7 +9,6 @@ go_library(
     srcs = [
         "bindings.go",
         "comprehensions.go",
-        "costs.go",
         "encoders.go",
         "extension_option_factory.go",
         "formatting.go",
@@ -28,7 +27,6 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//cel:go_default_library",
-        "//checker:go_default_library",
         "//common:go_default_library",
         "//common/ast:go_default_library",
         "//common/cost:go_default_library",
@@ -42,6 +40,7 @@ go_library(
         "//common/types/traits:go_default_library",
         "//interpreter:go_default_library",
         "//parser:go_default_library",
+        "@in_yaml_go_yaml_v3//:go_default_library",
         "@org_golang_google_protobuf//encoding/protojson:go_default_library",
         "@org_golang_google_protobuf//proto:go_default_library",
         "@org_golang_google_protobuf//reflect/protoreflect:go_default_library",
@@ -57,6 +56,8 @@ go_test(
     srcs = [
         "bindings_test.go",
         "comprehensions_test.go",
+        "cost_golden_test.go",
+        "cost_soundness_test.go",
         "encoders_test.go",
         "extension_option_factory_test.go",
         "formatting_test.go",
@@ -70,6 +71,9 @@ go_test(
         "sets_test.go",
         "strings_test.go",
     ],
+    data = glob([
+        "testdata/**",
+    ]),
     embed = [
         ":go_default_library",
     ],
@@ -77,6 +81,7 @@ go_test(
         "//cel:go_default_library",
         "//checker:go_default_library",
         "//common:go_default_library",
+        "//common/cost:go_default_library",
         "//common/env:go_default_library",
         "//common/types:go_default_library",
         "//common/types/ref:go_default_library",
@@ -84,6 +89,7 @@ go_test(
         "//test:go_default_library",
         "//test/proto2pb:go_default_library",
         "//test/proto3pb:go_default_library",
+        "@in_yaml_go_yaml_v3//:go_default_library",
         "@org_golang_google_protobuf//encoding/protojson:go_default_library",
         "@org_golang_google_protobuf//proto:go_default_library",
         "@org_golang_google_protobuf//types/known/wrapperspb:go_default_library",

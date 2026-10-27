@@ -16,6 +16,7 @@ package ext
 
 import (
 	"fmt"
+	"sync"
 
 	"cel.dev/cel-go/cel"
 	"cel.dev/cel-go/common/env"
@@ -28,11 +29,11 @@ func ExtensionOptionFactory(configElement any) (cel.EnvOption, bool) {
 		return nil, false
 	}
 	name := ext.Name
-	alias, found := extAliases[name]
+	alias, found := extAliases()[name]
 	if found {
 		name = alias
 	}
-	fac, found := extFactories[name]
+	fac, found := extFactories()[name]
 	if !found {
 		return nil, false
 	}
@@ -49,44 +50,62 @@ func ExtensionOptionFactory(configElement any) (cel.EnvOption, bool) {
 // extensionFactory accepts a version and produces a CEL environment associated with the versioned extension.
 type extensionFactory func(uint32) cel.EnvOption
 
-var extFactories = map[string]extensionFactory{
-	"cel.lib.ext.cel.bindings": func(version uint32) cel.EnvOption {
-		return Bindings(BindingsVersion(version))
-	},
-	"cel.lib.ext.encoders": func(version uint32) cel.EnvOption {
-		return Encoders(EncodersVersion(version))
-	},
-	"cel.lib.ext.lists": func(version uint32) cel.EnvOption {
-		return Lists(ListsVersion(version))
-	},
-	"cel.lib.ext.math": func(version uint32) cel.EnvOption {
-		return Math(MathVersion(version))
-	},
-	"cel.lib.ext.protos": func(version uint32) cel.EnvOption {
-		return Protos(ProtosVersion(version))
-	},
-	"cel.lib.ext.sets": func(version uint32) cel.EnvOption {
-		return Sets(SetsVersion(version))
-	},
-	"cel.lib.ext.strings": func(version uint32) cel.EnvOption {
-		return Strings(StringsVersion(version))
-	},
-	"cel.lib.ext.comprev2": func(version uint32) cel.EnvOption {
-		return TwoVarComprehensions(TwoVarComprehensionsVersion(version))
-	},
-	"cel.lib.ext.regex": func(version uint32) cel.EnvOption {
-		return Regex(RegexVersion(version))
-	},
+var (
+	extFactoriesOnce sync.Once
+	extFactoriesMap  map[string]extensionFactory
+	extAliasesMap    map[string]string
+)
+
+func extFactories() map[string]extensionFactory {
+	extFactoriesOnce.Do(initExtFactories)
+	return extFactoriesMap
 }
 
-var extAliases = map[string]string{
-	"bindings":               "cel.lib.ext.cel.bindings",
-	"encoders":               "cel.lib.ext.encoders",
-	"lists":                  "cel.lib.ext.lists",
-	"math":                   "cel.lib.ext.math",
-	"protos":                 "cel.lib.ext.protos",
-	"sets":                   "cel.lib.ext.sets",
-	"strings":                "cel.lib.ext.strings",
-	"two-var-comprehensions": "cel.lib.ext.comprev2",
-	"regex":                  "cel.lib.ext.regex",
+func extAliases() map[string]string {
+	extFactoriesOnce.Do(initExtFactories)
+	return extAliasesMap
+}
+
+func initExtFactories() {
+	extFactoriesMap = map[string]extensionFactory{
+		"cel.lib.ext.cel.bindings": func(version uint32) cel.EnvOption {
+			return Bindings(BindingsVersion(version))
+		},
+		"cel.lib.ext.encoders": func(version uint32) cel.EnvOption {
+			return Encoders(EncodersVersion(version))
+		},
+		"cel.lib.ext.lists": func(version uint32) cel.EnvOption {
+			return Lists(ListsVersion(version))
+		},
+		"cel.lib.ext.math": func(version uint32) cel.EnvOption {
+			return Math(MathVersion(version))
+		},
+		"cel.lib.ext.protos": func(version uint32) cel.EnvOption {
+			return Protos(ProtosVersion(version))
+		},
+		"cel.lib.ext.sets": func(version uint32) cel.EnvOption {
+			return Sets(SetsVersion(version))
+		},
+		"cel.lib.ext.strings": func(version uint32) cel.EnvOption {
+			return Strings(StringsVersion(version))
+		},
+		"cel.lib.ext.comprev2": func(version uint32) cel.EnvOption {
+			return TwoVarComprehensions(TwoVarComprehensionsVersion(version))
+		},
+		"cel.lib.ext.regex": func(version uint32) cel.EnvOption {
+			return Regex(RegexVersion(version))
+		},
+	}
+
+	extAliasesMap = map[string]string{
+		"bindings":               "cel.lib.ext.cel.bindings",
+		"encoders":               "cel.lib.ext.encoders",
+		"lists":                  "cel.lib.ext.lists",
+		"math":                   "cel.lib.ext.math",
+		"protos":                 "cel.lib.ext.protos",
+		"sets":                   "cel.lib.ext.sets",
+		"strings":                "cel.lib.ext.strings",
+		"two-var-comprehensions": "cel.lib.ext.comprev2",
+		"regex":                  "cel.lib.ext.regex",
+	}
 }

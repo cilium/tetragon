@@ -94,15 +94,31 @@ func NativeTypesVersion(version uint32) NativeTypesOption {
 // ```go
 // package identity
 //
+//	type Credentials struct {
+//	  APIKey string
+//	}
+//
 //	type Account struct {
+//	  Credentials `cel:"-" json:"-"`
 //	  ID int
 //	  OwnerName string `cel:"owner"`
+//	  Password string `cel:"-" json:"-"`
 //	}
 //
 // ```
 //
 // The `OwnerName` field is now accessible in CEL via `owner`, e.g. `identity.Account{owner: 'bob'}`.
 // In case there are duplicated field names in the struct, an error will be returned.
+//
+// A `cel:"-"` tag hides a field from CEL expressions entirely. Hiding an embedded struct also
+// hides the fields promoted from it, so neither `account.Credentials` nor `account.APIKey` can
+// be referenced above.
+//
+// Note that the `cel` tag only controls what CEL expressions can see. Encoding a native object,
+// whether through the `json.encode` / `yaml.encode` extension functions or through conversion to
+// a protobuf `Struct` or `Value`, follows the `json` tag instead. To keep a field out of both
+// CEL and encoded output, tag it with both `cel:"-"` and `json:"-"` as shown above. Alternatively,
+// configure `ParseStructTag("json")` so that a single tag governs both.
 func NativeTypes(args ...any) cel.EnvOption {
 	return func(env *cel.Env) (*cel.Env, error) {
 		p, a, err := types.ComposeTypes(env.CELTypeProvider(), env.CELTypeAdapter(), args...)
