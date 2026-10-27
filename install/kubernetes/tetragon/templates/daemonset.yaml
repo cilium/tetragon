@@ -40,7 +40,7 @@ spec:
       {{- end }}
     spec:
       {{- with .Values.priorityClassName }}
-      priorityClassName: "{{ . }}"
+      priorityClassName: {{ . | quote }}
       {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

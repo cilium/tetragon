@@ -40,7 +40,7 @@ spec:
         {{- if .Values.tetragonOperator.prometheus.enabled }}
           - {{ printf "--metrics-bind-address=%v:%v" .Values.tetragonOperator.prometheus.address .Values.tetragonOperator.prometheus.port | quote }}
         {{- end }}
-        image: "{{ if .Values.tetragonOperator.image.override }}{{ .Values.tetragonOperator.image.override }}{{ else }}{{ .Values.tetragonOperator.image.repository }}:{{ .Values.tetragonOperator.image.tag }}{{ end }}"
+        image: {{ .Values.tetragonOperator.image.override | default (printf "%v:%v" .Values.tetragonOperator.image.repository .Values.tetragonOperator.image.tag) | quote }}
         imagePullPolicy: {{ .Values.tetragonOperator.image.pullPolicy | quote }}
         volumeMounts:
           - mountPath: /etc/tetragon/operator.conf.d/
@@ -83,7 +83,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tetragonOperator.priorityClassName }}
-      priorityClassName: "{{ . }}"
+      priorityClassName: {{ . | quote }}
       {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
