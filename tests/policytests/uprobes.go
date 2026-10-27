@@ -1279,3 +1279,41 @@ spec:
 		}
 	}).
 	RegisterAtInit()
+
+// Each symbol of a uprobes entry must be reported with its own name, both when
+// the symbols share a multi uprobe program and when each has its own program.
+func registerUprobeMultipleSymbols(name, options string) any {
+	return policytest.NewBuilder(name).WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "` + name + `"
+spec:` + options + `
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    - "lasagna"
+    - "maccheroni"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+		bin := c.TestBinary("uprobe-simple")
+		checker := func(sym string) *ec.ProcessUprobeChecker {
+			return ec.NewProcessUprobeChecker(sym).
+				WithProcess(ec.NewProcessChecker().
+					WithBinary(sm.Full(bin))).
+				WithSymbol(sm.Full(sym))
+		}
+		return &policytest.Scenario{
+			Name:         "execute uprobe-simple and check each symbol is reported",
+			Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(0),
+			EventChecker: ec.NewUnorderedEventChecker(checker("pizza"), checker("lasagna"), checker("maccheroni")),
+		}
+	}).RegisterAtInit()
+}
+
+var _ = registerUprobeMultipleSymbols("uprobe-multiple-symbols", "")
+
+var _ = registerUprobeMultipleSymbols("uprobe-multiple-symbols-no-multi", `
+  options:
+  - name: "disable-uprobe-multi"
+    value: "1"`)

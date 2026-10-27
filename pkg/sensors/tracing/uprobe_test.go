@@ -66,6 +66,14 @@ func TestUprobeMultipleTargets(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-multiple-targets", nil)
 }
 
+func TestUprobeMultipleSymbols(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-multiple-symbols", nil)
+}
+
+func TestUprobeMultipleSymbolsNoMulti(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-multiple-symbols-no-multi", nil)
+}
+
 func TestUprobePostfixSharedMap(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-postfix-shared-map", nil)
 }
