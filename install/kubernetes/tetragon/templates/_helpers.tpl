@@ -217,3 +217,11 @@ templates that render in the same helm pass share one CA.
     {{- $_ := set . "commonCA" $ca -}}
   {{- end -}}
 {{- end -}}
+
+{{- define "tetragon.bool" -}}
+{{- $v := toString . -}}
+{{- if not (has $v (list "true" "false")) -}}
+{{- fail (printf "expected a boolean, got %q" $v) -}}
+{{- end -}}
+{{- $v -}}
+{{- end }}
