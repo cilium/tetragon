@@ -1219,6 +1219,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	load.RewriteProg = rewriteProg
 
 	load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, 0)...)
+	rewriteCaptureConstants(load, gk.loadArgs.config)
 
 	var configData bytes.Buffer
 	binary.Write(&configData, binary.LittleEndian, gk.loadArgs.config)
@@ -1263,6 +1264,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 		load.RewriteProg = rewriteProg
 
 		load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, uint32(index))...)
+		rewriteCaptureConstants(load, gk.loadArgs.config)
 
 		binary.Write(&binBuf[index], binary.LittleEndian, gk.loadArgs.config)
 		config := &program.MapLoad{

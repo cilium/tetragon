@@ -14,7 +14,7 @@ extract_arg_depth(u32 i, struct extract_arg_data *data)
 
 	*data->arg = *data->arg + data->btf_config[i].offset;
 	if (data->btf_config[i].is_pointer) {
-		if (data->can_sleep)
+		if (HAS_CAPTURE_PRELOAD && data->can_sleep)
 			ret = copy_from_user((void *)data->arg, sizeof(char *), (void *)*data->arg);
 		else
 			ret = probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg);
@@ -32,6 +32,9 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 			     bool can_sleep, arg_status_t *arg_status)
 {
 	struct config_btf_arg *btf_config;
+
+	if (!HAS_CAPTURE_BTF_RESOLVE)
+		return;
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
