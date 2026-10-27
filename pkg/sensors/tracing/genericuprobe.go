@@ -1548,6 +1548,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	var progs []*program.Program
 	var maps []*program.Map
 	var substringMapEntries int
+	var selectorState *selectors.KernelSelectorState
 	var regsMapEntries int
 
 	data := &genericStackTraceData{}
@@ -1568,6 +1569,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		if substringMapEntries == 0 {
 			substringMapEntries = len(gu.loadArgs.selectors.entry.SubStrings())
 		}
+		selectorState = gu.loadArgs.selectors.entry
 
 		if selector != nil && selector.Regs() != nil {
 			regsMapEntries += len(selector.Regs())
@@ -1599,7 +1601,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 
 	maps = append(maps, getHeapMaps("uprobe_", option.Config.UprobeHeapSize, has.uprobeHeapSize, load)...)
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
-	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil), substringMapEntries)...)
+	maps = append(maps, createSelectorMaps(load, selectorState, substringMapEntries)...)
 
 	ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
 	if has.rateLimit {
@@ -1658,7 +1660,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
-		maps = append(maps, createSelectorMaps(loadret, getUprobeProgramSelector(loadret, nil), substringMapEntries)...)
+		maps = append(maps, createSelectorMaps(loadret, selectorState, substringMapEntries)...)
 
 		retTailCalls := program.MapBuilderProgram("retuprobe_calls", loadret)
 		maps = append(maps, retTailCalls)
@@ -1778,6 +1780,10 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
 		maps = append(maps, getHeapMaps("uprobe_", option.Config.UprobeHeapSize, has.uprobeHeapSize, loadret)...)
+
+		if state := getUprobeProgramSelector(loadret, uprobeEntry); state != nil {
+			maps = append(maps, createSelectorMaps(loadret, state, len(state.SubStrings()))...)
+		}
 	}
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))

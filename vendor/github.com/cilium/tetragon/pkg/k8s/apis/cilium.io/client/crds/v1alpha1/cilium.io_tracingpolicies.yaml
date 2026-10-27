@@ -669,6 +669,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -706,6 +709,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -884,6 +889,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -921,6 +929,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1208,6 +1218,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -1245,6 +1258,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2116,6 +2131,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -2153,6 +2171,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2331,6 +2351,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -2368,6 +2391,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2655,6 +2680,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -2692,6 +2720,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3285,6 +3315,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -3322,6 +3355,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3500,6 +3535,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -3537,6 +3575,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3824,6 +3864,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -3861,6 +3904,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4414,6 +4459,9 @@ spec:
                               Filter operation.
 
                               Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                              We can match arguments based on glob patterns. InPattern match any provided
+                              glob pattern and NotInPattern match none of the provided glob patterns.
                             enum:
                             - Equal
                             - NotEqual
@@ -4451,6 +4499,8 @@ spec:
                             - CelExpr
                             - FileType
                             - NotFileType
+                            - InPattern
+                            - NotInPattern
                             type: string
                           values:
                             description: Value to compare the argument against.
@@ -4628,6 +4678,9 @@ spec:
                               Filter operation.
 
                               Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                              We can match arguments based on glob patterns. InPattern match any provided
+                              glob pattern and NotInPattern match none of the provided glob patterns.
                             enum:
                             - Equal
                             - NotEqual
@@ -4665,6 +4718,8 @@ spec:
                             - CelExpr
                             - FileType
                             - NotFileType
+                            - InPattern
+                            - NotInPattern
                             type: string
                           values:
                             description: Value to compare the argument against.
@@ -4947,6 +5002,9 @@ spec:
                               Filter operation.
 
                               Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                              We can match arguments based on glob patterns. InPattern match any provided
+                              glob pattern and NotInPattern match none of the provided glob patterns.
                             enum:
                             - Equal
                             - NotEqual
@@ -4984,6 +5042,8 @@ spec:
                             - CelExpr
                             - FileType
                             - NotFileType
+                            - InPattern
+                            - NotInPattern
                             type: string
                           values:
                             description: Value to compare the argument against.
@@ -5529,6 +5589,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -5566,6 +5629,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -5744,6 +5809,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -5781,6 +5849,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -6068,6 +6138,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -6105,6 +6178,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -6939,6 +7014,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -6976,6 +7054,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -7154,6 +7234,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -7191,6 +7274,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -7478,6 +7563,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -7515,6 +7603,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -8090,6 +8180,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -8127,6 +8220,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -8305,6 +8400,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -8342,6 +8440,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -8629,6 +8729,9 @@ spec:
                                     Filter operation.
 
                                     Note: The CelExpr operator is deprecated and will be removed in Tetragon OSS v1.9.0. Use the MatchCEL selector instead.
+
+                                    We can match arguments based on glob patterns. InPattern match any provided
+                                    glob pattern and NotInPattern match none of the provided glob patterns.
                                   enum:
                                   - Equal
                                   - NotEqual
@@ -8666,6 +8769,8 @@ spec:
                                   - CelExpr
                                   - FileType
                                   - NotFileType
+                                  - InPattern
+                                  - NotInPattern
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
