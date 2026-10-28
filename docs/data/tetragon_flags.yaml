@@ -223,6 +223,10 @@ options:
         Set the maximum number of entries in the process call heap map used by lsm sensors
     - name: memprofile
       usage: Store MEM profile into provided file
+    - name: metrics-binary-cache-size
+      default_value: "1024"
+      usage: |
+        Maximum distinct binary label values kept in process metrics (0 = unbounded)
     - name: metrics-label-filter
       default_value: namespace,workload,pod,binary
       usage: |

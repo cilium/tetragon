@@ -97,6 +97,12 @@ may have very high cardinality. This is particularly likely in Kubernetes enviro
 a separate timeseries. To avoid overwhelming Prometheus, Tetragon provides an option to choose which labels are
 populated in these metrics.
 
+Tetragon also keeps at most `--metrics-binary-cache-size` distinct `binary` label values (default 1024); above
+that, the series of the least recently seen binary are deleted. This stops one-off executables, such as installer
+scripts and temporary files, from adding series for the lifetime of the agent on hosts where no pod deletion cleans
+them up. On a node with more live binaries than the bound, counters of evicted binaries reset when they reappear;
+raise the bound or set it to 0 to disable it.
+
 You can configure the labels via Helm values or the `--metrics-label-filter` flag. Set the value to a comma-separated
 list of enabled labels:
 
