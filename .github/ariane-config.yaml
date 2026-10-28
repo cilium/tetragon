@@ -4,7 +4,7 @@ allowed-teams:
 triggers:
   /default\s*:
     workflows: &test-workflows
-      - mock-ci.yaml
+      - ariane-ci.yaml
       - build-images-ci.yml
       - run-e2e-tests.yaml
       - integration-test.yaml
