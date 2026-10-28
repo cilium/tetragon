@@ -57,6 +57,7 @@ LIBS =	libuprobe.so \
 	libtester.so
 
 all: $(PROGS)
+	chmod -R go-w .
 
 %: %.c
 	$(GCC) -Wall $< -o $@
