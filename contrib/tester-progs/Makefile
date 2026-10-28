@@ -45,7 +45,6 @@ PROGS = sigkill-tester \
 	uprobe-selector-targets-1 \
 	uprobe-selector-targets-2 \
 	uprobe-execve \
-	uprobe-execve-pending \
 	uprobe-arg-targets \
 	uprobe-static-chain \
 	uprobe-big-struct \
@@ -57,7 +56,6 @@ PROGS = sigkill-tester \
 
 LIBS =	libuprobe.so \
 	libuprobe-static-chain.so \
-	libuprobe-execve-pending.so \
 	libuprobe-arg-target-1.so \
 	libuprobe-arg-target-2.so \
 	libtester.so
@@ -113,12 +111,6 @@ uprobe-static-chain: uprobe-static-chain.c libuprobe-static-chain.so
 	$(GCC) -Wall $< -o $@
 
 uprobe-big-struct: uprobe-big-struct.c uprobe-big-struct.h libuprobe.so
-	$(GCC) -Wall $< -o $@
-
-libuprobe-execve-pending.so: uprobe-execve-pending.c
-	$(GCC) -Wall -fPIC -DEXECVE_PENDING_LIB $< -o $@ -shared
-
-uprobe-execve-pending: uprobe-execve-pending.c libuprobe-execve-pending.so
 	$(GCC) -Wall $< -o $@
 
 libuprobe-arg-target-1.so libuprobe-arg-target-2.so: uprobe-arg-target-lib.c
