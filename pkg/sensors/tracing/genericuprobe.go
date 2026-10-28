@@ -1368,6 +1368,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 	addUprobeEntry := func(sym string, offset uint64, idx int) error {
 		var refCtrOffset uint64
 		var err error
+		eventConfig := *state.eventConfig
 
 		if state.refCtrOffsets != 0 {
 			refCtrOffset = spec.RefCtrOffsets[idx]
@@ -1376,7 +1377,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 		uprobeEntry := &genericUprobe{
 			loadArgs: uprobeLoadArgs{
 				retprobe:  state.setRetprobe,
-				config:    state.eventConfig,
+				config:    &eventConfig,
 				selectors: state.selectors,
 			},
 			tableId:           idtable.UninitializedEntryID,
@@ -1406,7 +1407,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 		uprobeTable.AddEntry(uprobeEntry)
 		id := uprobeEntry.tableId
 
-		state.eventConfig.FuncId = uint32(id.ID)
+		eventConfig.FuncId = uint32(id.ID)
 
 		ids = append(ids, id)
 		return nil
