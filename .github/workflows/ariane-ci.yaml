@@ -1,4 +1,4 @@
-name: Mock CI
+name: Ariane CI
 
 on:
   workflow_dispatch:
@@ -37,21 +37,21 @@ jobs:
         with:
           sha: ${{ inputs.SHA || github.sha }}
 
-  mock-ci:
-    name: Mock CI
+  ariane-ci:
+    name: Ariane CI
     needs: commit-status-start
     runs-on: ubuntu-26.04
     steps:
-      - name: Run mock CI
-        run: echo "Mock CI completed successfully"
+      - name: Run Ariane
+        run: echo "Ariane completed successfully"
 
   post-job-results:
     name: Post Job Results
     if: ${{ always() }}
-    needs: mock-ci
+    needs: ariane-ci
     permissions:
       statuses: write
     uses: ./.github/workflows/common-post-jobs.yml
     with:
       sha: ${{ inputs.SHA || github.sha }}
-      success: ${{ needs.mock-ci.result == 'success' }}
+      success: ${{ needs.ariane-ci.result == 'success' }}
