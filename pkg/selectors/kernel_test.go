@@ -522,7 +522,7 @@ func TestParseMatchArgs_EmptyValuesRejected(t *testing.T) {
 			// Empty (or stripped-to-empty) postfix values must be rejected
 			// with an error. Without the fix these cases panic the parser
 			// with index out of range, crashing the agent on policy load.
-			ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+			ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 			err := ParseMatchArgs(ks, tt.matchArgs, nil, nil, stringArgs, nil)
 			require.ErrorContains(t, err, "empty value")
 		})
@@ -550,7 +550,7 @@ func TestParseMatchArgs_EmptyValuesRejected(t *testing.T) {
 	}
 	for _, tt := range accepted {
 		t.Run(tt.name, func(t *testing.T) {
-			ks := NewKernelSelectorState(nil, nil, false, 0, 0, nil)
+			ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
 			require.NoError(t, ParseMatchArgs(ks, tt.matchArgs, nil, nil, stringArgs, nil))
 		})
 	}
