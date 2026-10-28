@@ -1023,6 +1023,56 @@ spec:
 	}
 }).RegisterAtInit()
 
+// Same as uprobe-override-set, with the new symbol loaded from sopath: the Set
+// action must change the argument passed to the replacement.
+var _ = policytest.NewBuilder("uprobe-override-new-symbol-so-set").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override-new-symbol-so-set"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    selectors:
+    - matchActions:
+      - action: Override
+        argNewSymbol: uprobe_test_lib_pizza
+        sopath: {{ testBinary "libuprobe.so" }}
+      - action: Set
+        argIndex: 0
+        argValue: 42
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-simple").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("pizza"))
+
+	// see uprobe-lib.c: uprobe_test_lib_pizza() returns (param + 1)
+	exitCode := 43
+	if c.TestConf != nil && c.TestConf.MonitorMode {
+		exitCode = 0
+	}
+	setCnt := uint64(1)
+	overrideCnt := uint64(1)
+	return &policytest.Scenario{
+		Name:         "check set action changes the argument of the symbol loaded by SO",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(exitCode),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Set:      &setCnt,
+			Override: &overrideCnt,
+		},
+	}
+}).RegisterAtInit()
+
 // GCC nested functions receive a pointer to the enclosing function's frame in
 // the static chain register (r10 on x86_64, x18 on arm64), a hidden argument
 // that must be preserved across the mmap()/dlopen() detour done while
