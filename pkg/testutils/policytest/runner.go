@@ -73,6 +73,9 @@ func NewLocalRunner(
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve binaries directory: %w", err)
 	}
+	if err := checkTrustedBinsDir(binsDir); err != nil {
+		return nil, fmt.Errorf("untrusted binaries directory %s (must be owned by root or you, and not group/other writable): %w", binsDir, err)
+	}
 	cnf.BinsDir = binsDir
 
 	cli, err := cli.NewClient(ctx, cnf.GrpcAddr, cnf.Timeout)
