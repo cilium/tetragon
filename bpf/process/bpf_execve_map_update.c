@@ -40,7 +40,7 @@ __execve_map_update_idx(struct update_data *data, int idx)
 	pid = data->pids[idx];
 	curr = execve_map_get_noinit(pid);
 	if (curr)
-		lock_and(&curr->bin.mb_bitset, ~(1 << data->bit));
+		lock_and(&curr->bin.mb_bitset, ~(1ULL << data->bit));
 	return 0;
 }
 
