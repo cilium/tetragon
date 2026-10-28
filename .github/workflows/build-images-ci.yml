@@ -64,6 +64,7 @@ jobs:
       deployment: false
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
+      chart-version: ${{ steps.chart-version.outputs.chart_version }}
     strategy:
       matrix:
         include:
