@@ -413,6 +413,52 @@ spec:
 	}
 }).RegisterAtInit()
 
+// One uprobes entry with multiple symbols: each event must report the symbol
+// that was hit, both when symbols share a multi uprobe program and when each
+// symbol has its own program.
+var _ = policytest.NewBuilder("uprobe-multiple-symbols").WithLabels("uprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if si.ParamValues["DisableUprobeMulti"] != true && !si.AgentInfo.Probes[bpf.UprobeMultiProbe] {
+			return "need uprobe multi support"
+		}
+		return ""
+	}).WithParameter(policytest.Parameter{
+	Name:    "DisableUprobeMulti",
+	Default: false,
+	Values:  []any{false, true},
+	Help:    "value of the disable-uprobe-multi policy option",
+}).WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-multiple-symbols"
+spec:
+  options:
+  - name: "disable-uprobe-multi"
+    value: "{{ .DisableUprobeMulti }}"
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    - "lasagna"
+    - "maccheroni"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-simple")
+	var checkers []ec.EventChecker
+	for _, sym := range []string{"pizza", "lasagna", "maccheroni"} {
+		checkers = append(checkers, ec.NewProcessUprobeChecker(sym).
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Full(bin))).
+			WithSymbol(sm.Full(sym)))
+	}
+
+	return &policytest.Scenario{
+		Name:         "check each event reports its own symbol",
+		Trigger:      policytest.NewCmdTrigger(bin),
+		EventChecker: ec.NewUnorderedEventChecker(checkers...),
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("uprobe-override-new-symbol").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
