@@ -1,5 +1,5 @@
 FROM curlimages/curl:8.23.0@sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93 AS downloader
-ARG HUGO_VERSION=0.111.3
+ARG HUGO_VERSION=0.169.0
 ARG TARGETARCH
 WORKDIR /tmp
 RUN curl -L https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-${TARGETARCH}.tar.gz | tar xz
