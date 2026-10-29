@@ -168,6 +168,29 @@ func (g *codeGenerator) emitU8(reg asm.Register, regTy *cgTypes.Type) error {
 	return nil
 }
 
+// emitHostToBE converts the value in reg between host byte order and big-endian (network) byte
+// order. The result is zero-extended to 64 bits.
+func (g *codeGenerator) emitHostToBE(reg asm.Register, regTy *cgTypes.Type) error {
+	var size asm.Size
+	switch regTy.TypeName() {
+	case u16Ty.TypeName():
+		size = asm.Half
+	case u32Ty.TypeName():
+		size = asm.Word
+	case u64Ty.TypeName():
+		size = asm.DWord
+	default:
+		return fmt.Errorf("emitHostToBE: unknown/unsupported type %s", regTy)
+	}
+
+	g.stackTop -= 8
+	g.emitRaw(
+		asm.HostTo(asm.BE, reg, size),
+		asm.StoreMem(asm.R10, g.stackTop, reg, asm.DWord),
+	)
+	return nil
+}
+
 func (g *codeGenerator) pushArg(argTy *cgTypes.Type, argOffset uint16, tmp1, tmp2 asm.Register) error {
 	off := int(argOffset * 8)
 	if off > math.MaxInt16 {

@@ -146,6 +146,18 @@ func TestExprs(t *testing.T) {
 		{"not(int8(0)) == int8(-1)", 1},
 		{"not(uint8(0u)) == uint8(255u)", 1},
 		{"int8(0) == int8(255) + int8(1)", 1},
+		{fmt.Sprintf("htons(uint16(0x1234u)) == uint16(%du)", hostToBE16(0x1234)), 1},
+		{fmt.Sprintf("ntohs(uint16(0x1234u)) == uint16(%du)", hostToBE16(0x1234)), 1},
+		{"ntohs(htons(uint16(0xabcdu))) == uint16(0xabcdu)", 1},
+		{"htons(uint16(0xffffu)) == uint16(0xffffu)", 1},
+		{fmt.Sprintf("htonl(uint32(0x12345678u)) == uint32(%du)", hostToBE32(0x12345678)), 1},
+		{fmt.Sprintf("ntohl(uint32(0x12345678u)) == uint32(%du)", hostToBE32(0x12345678)), 1},
+		{"ntohl(htonl(uint32(0xdeadbeefu))) == uint32(0xdeadbeefu)", 1},
+		{"htonl(uint32(0u)) == uint32(0u)", 1},
+		{fmt.Sprintf("htonll(0x0102030405060708u) == %du", hostToBE64(0x0102030405060708)), 1},
+		{fmt.Sprintf("ntohll(0x0102030405060708u) == %du", hostToBE64(0x0102030405060708)), 1},
+		{"ntohll(htonll(0xfedcba9876543210u)) == 0xfedcba9876543210u", 1},
+		{"htonll(0xffffffffffffffffu) == 0xffffffffffffffffu", 1},
 	}
 	testCases = append(testCases, testComparisons()...)
 

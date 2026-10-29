@@ -9,6 +9,7 @@ package celbpf
 // This is meant to be used for testing randomized celbpf expressions.
 
 import (
+	"encoding/binary"
 	"errors"
 	"reflect"
 	"strconv"
@@ -308,6 +309,39 @@ func celBitwiseNOT(value ref.Val) ref.Val {
 	return celTypes.MaybeNoSuchOverloadErr(value)
 }
 
+func hostToBE16(v uint16) uint16 {
+	var b [2]byte
+	binary.NativeEndian.PutUint16(b[:], v)
+	return binary.BigEndian.Uint16(b[:])
+}
+
+func hostToBE32(v uint32) uint32 {
+	var b [4]byte
+	binary.NativeEndian.PutUint32(b[:], v)
+	return binary.BigEndian.Uint32(b[:])
+}
+
+func hostToBE64(v uint64) uint64 {
+	var b [8]byte
+	binary.NativeEndian.PutUint64(b[:], v)
+	return binary.BigEndian.Uint64(b[:])
+}
+
+func celHostToBE(value ref.Val) ref.Val {
+	switch v := value.(type) {
+	case celTypes.Uint:
+		return celTypes.Uint(hostToBE64(uint64(v)))
+	case celU16:
+		return newCelU16(hostToBE16(v.value))
+	case celU32:
+		return newCelU32(hostToBE32(v.value))
+	}
+	// The byte order functions are only declared for u16/u32/u64 (see getFnsOpts), so the type
+	// checker rejects other types before evaluation. Return a CEL error in case one slips
+	// through, so that the mismatch shows up as a failure instead of a bogus value.
+	return celTypes.MaybeNoSuchOverloadErr(value)
+}
+
 func compareIntegers[T number | celTypes.Int | celTypes.Uint](op string, left, right T) ref.Val {
 	switch op {
 	case "lt":
@@ -407,7 +441,9 @@ func getOverloadOpts(t *testing.T, o *fnOverload) []cel.OverloadOpt {
 		}))
 	case "equals", "not_equals", "logical_and", "logical_or":
 		return ret
-
+	case htonsFn + "_u16", ntohsFn + "_u16", htonlFn + "_u32", ntohlFn + "_u32",
+		htonllFn + "_u64", ntohllFn + "_u64":
+		return append(ret, cel.UnaryBinding(celHostToBE))
 	}
 
 	if strings.HasPrefix(o.name, "sub_") {
