@@ -1022,7 +1022,6 @@ cel_eval_assignments(struct offload_data *d, struct msg_generic_kprobe *e, __u32
 FUNC_LOCAL __s64
 do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool enforce_mode)
 {
-	struct state_value new_state_value __maybe_unused;
 	__u32 index __maybe_unused, value __maybe_unused;
 	int signal __maybe_unused = FGS_SIGKILL;
 	__u64 state_data __maybe_unused;
@@ -1160,22 +1159,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		state_data = (__u64)actions->act[++i];
 		state_data |= (__u64)actions->act[++i] << 32;
 
-		switch (value) {
-		case STATE_OP_DELETE: {
-			err = map_delete_elem(&tg_state_map, &state_key);
-			if (err == -ENOENT)
-				err = 0;
-			break;
-		}
-		case STATE_OP_SET: {
-			new_state_value.data = state_data;
-			err = map_update_elem(&tg_state_map, &state_key, &new_state_value, BPF_ANY);
-			break;
-		}
-		default:
-			err = -EINVAL;
-			break;
-		}
+		err = state_update(state_key, value, state_data);
 		break;
 	default:
 		break;
