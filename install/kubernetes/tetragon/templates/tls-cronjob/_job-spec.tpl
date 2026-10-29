@@ -17,7 +17,7 @@ template:
       {{- end }}
   spec:
     restartPolicy: OnFailure
-    serviceAccountName: {{ include "tetragon.name" . }}-certgen
+    serviceAccountName: {{ printf "%s-certgen" (include "tetragon.name" .) | quote }}
     {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
     hostUsers: {{ include "tetragon.bool" .Values.certgen.hostUsers }}
     {{- end }}
@@ -59,14 +59,14 @@ template:
           - {{ printf "--ca-generate=%v" .Values.certgen.generateCA | quote }}
           - "--ca-reuse-secret"
           - "--ca-secret-namespace={{ .Release.Namespace }}"
-          - "--ca-secret-name={{ include "tetragon.caSecretName" . }}"
+          - {{ printf "--ca-secret-name=%s" (include "tetragon.caSecretName" .) | quote }}
           - "--ca-common-name=Tetragon CA"
           - "--ca-validity-duration={{ $caValidityStr }}"
         env:
           - name: CILIUM_CERTGEN_CONFIG
             value: |
               certs:
-                - name: {{ include "tetragon.grpcTlsSecretName" . }}
+                - name: {{ include "tetragon.grpcTlsSecretName" . | quote }}
                   namespace: {{ .Release.Namespace }}
                   commonName: {{ include "tetragon.grpcTls.commonName" . | quote }}
                   hosts:
