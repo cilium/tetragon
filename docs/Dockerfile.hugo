@@ -1,21 +1,44 @@
+# Install Hugo
 FROM curlimages/curl:8.23.0@sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93 AS downloader
 ARG HUGO_VERSION=0.169.0
 ARG TARGETARCH
 WORKDIR /tmp
-RUN curl -L https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-${TARGETARCH}.tar.gz | tar xz
+RUN curl -fL https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-${TARGETARCH}.tar.gz | tar xz
 
-# Hugo extended is dynamically linked
-FROM golang:1.20.2@sha256:1724dc3128e2e63f0bc3e055fe4fa478d67f6da4bd95c0e69690f6435f658804
-# create an unprivileged user to run hugo
-RUN mkdir -p /var/hugo && \
-    addgroup --system --gid 1000 hugo && \
-    adduser --system --gecos hugo --uid 1000 --home /var/hugo hugo && \
-    chown -R hugo /var/hugo && \
-    runuser -u hugo -- git config --global --add safe.directory /src
+# Vendor the theme using Go
+FROM golang:1.27-alpine@sha256:d200d2dd76b03a99b52651fd1325aff7dcd35422c35c01bac56571b0507f3deb AS theme
+RUN apk add --no-cache gcompat libstdc++ git
 COPY --from=downloader /tmp/hugo /usr/local/bin/hugo
-WORKDIR /src
+WORKDIR /docs
+COPY go.mod go.sum ./
+COPY config ./config
+RUN hugo mod vendor
 
+# Install the theme dependencies with NPM
+FROM node:lts-alpine@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS dependencies
+WORKDIR /src/docs
+COPY package.json package-lock.json ./
+COPY packages/hugoautogen/package.json ./packages/hugoautogen/package.json
+COPY packages/hugoautogen/hugo_packagemeta.json ./packages/hugoautogen/hugo_packagemeta.json
+RUN npm ci --include=dev
+
+FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
+# Hugo extended is dynamically linked
+RUN apk add --no-cache ca-certificates gcompat libstdc++ git && \
+    addgroup -g 1000 hugo && \
+    adduser -D -u 1000 -G hugo hugo
+COPY --from=downloader /tmp/hugo /usr/local/bin/hugo
+COPY --from=dependencies /src/docs/node_modules/sass-embedded-linux-musl-*/dart-sass/ /opt/dart-sass/
+ENV PATH="/opt/dart-sass:${PATH}"
+WORKDIR /src/docs
+COPY --from=dependencies /src/docs/package.json /src/docs/package-lock.json ./
+COPY --from=dependencies /src/docs/packages/hugoautogen ./packages/hugoautogen
+COPY --from=dependencies /src/docs/node_modules/bootstrap ./node_modules/bootstrap
+COPY --from=dependencies /src/docs/node_modules/@fortawesome/fontawesome-free ./node_modules/@fortawesome/fontawesome-free
+COPY --from=theme /docs/_vendor ./_vendor
 USER hugo:hugo
+RUN git config --global --add safe.directory /src
+RUN hugo env
 EXPOSE 1313
 ENTRYPOINT ["/usr/local/bin/hugo"]
 CMD ["--help"]
