@@ -5678,6 +5678,17 @@ spec:
                       minLength: 1
                       pattern: ^[A-Za-z_][A-Za-z0-9_]*$
                       type: string
+                    scope:
+                      default: System
+                      description: |-
+                        Scope of the state object within this policy. System shares a value across
+                        all tasks, Process shares a value among a process's threads, and Thread
+                        keeps a separate value for each thread. Defaults to System.
+                      enum:
+                      - System
+                      - Process
+                      - Thread
+                      type: string
                   required:
                   - name
                   type: object
