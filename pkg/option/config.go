@@ -88,11 +88,6 @@ type config struct {
 	ExportRateLimit            int
 	ExportFilePerm             string
 
-	// Export aggregation options
-	EnableExportAggregation     bool
-	ExportAggregationWindowSize time.Duration
-	ExportAggregationBufferSize uint64
-
 	CpuProfile string
 	MemProfile string
 	PprofAddr  string

@@ -14,14 +14,11 @@ config-dir:
 tracing-policy:
 debug: false
 disable-kprobe-multi: false
-enable-export-aggregation: false
 enable-k8s-api: false
 enable-ancestors: ""
 enable-process-cred: false
 enable-process-ns: false
 event-queue-size: 10000
-export-aggregation-buffer-size: 10000
-export-aggregation-window-size: 15s
 export-allowlist:
 export-denylist:
 export-file-compress: false

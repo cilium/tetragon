@@ -78,10 +78,6 @@ const (
 	KeyExportRateLimit            = "export-rate-limit"
 	KeyExportFilePerm             = "export-file-perm"
 
-	KeyEnableExportAggregation     = "enable-export-aggregation"
-	KeyExportAggregationWindowSize = "export-aggregation-window-size"
-	KeyExportAggregationBufferSize = "export-aggregation-buffer-size"
-
 	KeyExportAllowlist = "export-allowlist"
 	KeyExportDenylist  = "export-denylist"
 
@@ -297,10 +293,6 @@ func ReadAndSetFlags() error {
 		Config.ExportRateLimit = -1
 	}
 	Config.ExportFilePerm = viper.GetString(KeyExportFilePerm)
-
-	Config.EnableExportAggregation = viper.GetBool(KeyEnableExportAggregation)
-	Config.ExportAggregationWindowSize = viper.GetDuration(KeyExportAggregationWindowSize)
-	Config.ExportAggregationBufferSize = viper.GetUint64(KeyExportAggregationBufferSize)
 
 	Config.CpuProfile = viper.GetString(KeyCpuProfile)
 	Config.MemProfile = viper.GetString(KeyMemProfile)
@@ -588,11 +580,6 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.MarkHidden(KeyMemProfile)
 
 	flags.String(KeyPprofAddr, "", "Serves runtime profile data via HTTP (e.g. 'localhost:6060'). Disabled by default")
-
-	// JSON export aggregation options.
-	flags.Bool(KeyEnableExportAggregation, false, "Enable JSON export aggregation")
-	flags.Duration(KeyExportAggregationWindowSize, 15*time.Second, "JSON export aggregation time window")
-	flags.Uint64(KeyExportAggregationBufferSize, 10000, "Aggregator channel buffer size")
 
 	// JSON export filter options
 	flags.String(KeyExportAllowlist, "", "JSON export allowlist")
