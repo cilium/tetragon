@@ -1,7 +1,7 @@
-FROM curlimages/curl:8.00.1@sha256:9e886c104cae1072f7874c9c214f77c6758f2e8a477234e32eda5fcbfa41f225 AS downloader
+FROM curlimages/curl:8.23.0@sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93 AS downloader
 ARG HUGO_VERSION=0.111.3
 ARG TARGETARCH
-WORKDIR tmp
+WORKDIR /tmp
 RUN curl -L https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-${TARGETARCH}.tar.gz | tar xz
 
 # Hugo extended is dynamically linked
