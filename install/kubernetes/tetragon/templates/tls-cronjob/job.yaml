@@ -10,7 +10,7 @@ immutable).
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "tetragon.name" . }}-certgen-{{ $jobHash }}
+  name: {{ printf "%s-certgen-%s" (include "tetragon.name" .) $jobHash | quote }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "tetragon-certgen.labels" . | nindent 4 }}

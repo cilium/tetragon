@@ -12,7 +12,7 @@ metadata:
   {{- else }}
     {{- include "tetragon.labels" . | nindent 4 }}
   {{- end }}
-  name: {{ include "tetragon.name" . }}
+  name: {{ include "tetragon.name" . | quote }}
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
@@ -95,7 +95,7 @@ spec:
           type: DirectoryOrCreate
       - name: tetragon-config
         configMap:
-          name: {{ include "tetragon.configMapName" . }}
+          name: {{ include "tetragon.configMapName" . | quote }}
       - name: bpf-maps
         hostPath:
           path: /sys/fs/bpf
@@ -113,7 +113,7 @@ spec:
 {{- if and .Values.tetragon.grpc.enabled .Values.tetragon.grpc.tls.enabled }}
       - name: tetragon-grpc-tls
         secret:
-          secretName: {{ .Values.tetragon.grpc.tls.server.existingSecret | default (include "tetragon.grpcTlsSecretName" .) }}
+          secretName: {{ .Values.tetragon.grpc.tls.server.existingSecret | default (include "tetragon.grpcTlsSecretName" .) | quote }}
           defaultMode: 0400
 {{- end }}
       {{- with .Values.extraVolumes }}

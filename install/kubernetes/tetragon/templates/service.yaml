@@ -16,7 +16,7 @@ metadata:
     {{- with .Values.serviceLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  name: {{ include "tetragon.name" . }}
+  name: {{ include "tetragon.name" . | quote }}
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
