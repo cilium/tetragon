@@ -56,9 +56,8 @@ func TestEventFieldFilters(t *testing.T) {
 	}
 
 	request := &tetragon.GetEventsRequest{
-		AllowList:          []*tetragon.Filter{},
-		DenyList:           []*tetragon.Filter{},
-		AggregationOptions: &tetragon.AggregationOptions{},
+		AllowList: []*tetragon.Filter{},
+		DenyList:  []*tetragon.Filter{},
 		FieldFilters: []*tetragon.FieldFilter{
 			{
 				EventSet: []tetragon.EventType{},
@@ -221,9 +220,6 @@ func TestEmptyFieldFilter(t *testing.T) {
 func TestEmptyFieldFilterTopLevelInformation(t *testing.T) {
 	ev := &tetragon.GetEventsResponse{
 		NodeName: "foobarqux",
-		AggregationInfo: &tetragon.AggregationInfo{
-			Count: 1000,
-		},
 		Time: &timestamppb.Timestamp{
 			Seconds: 1000,
 			Nanos:   1000,
@@ -241,7 +237,6 @@ func TestEmptyFieldFilterTopLevelInformation(t *testing.T) {
 	ev, _ = filter.Filter(ev)
 	assert.NotEmpty(t, ev.NodeName, "node name must not be empty")
 	assert.NotEmpty(t, ev.Time, "timestamp must not be empty")
-	assert.NotEmpty(t, ev.AggregationInfo, "aggregation info must not be empty")
 }
 
 func TestFieldFilterInvertedEventSet(t *testing.T) {

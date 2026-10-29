@@ -257,7 +257,7 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 		summary.JSONEncodingDurationNanos = time.Duration(timingEncoder.totalDuration.Load())
 	}()
 
-	req := tetragon.GetEventsRequest{AllowList: nil, DenyList: nil, AggregationOptions: nil}
+	req := tetragon.GetEventsRequest{AllowList: nil, DenyList: nil}
 	exporter, err := exporter.NewExporter(ctx, &req, processManager.Server, &timingEncoder, writer, nil)
 	if err != nil {
 		return err
