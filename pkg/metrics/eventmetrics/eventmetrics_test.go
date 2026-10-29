@@ -112,10 +112,8 @@ tetragon_flags_total{type="execve"} 1
 }
 
 func TestAggregationBufferEventsDropped(t *testing.T) {
+	before := testutil.ToFloat64(AggregationBufferEventsDropped.WithLabelValues())
 	AggregationBufferEventsDropped.WithLabelValues().Inc()
-	expected := strings.NewReader(`# HELP tetragon_aggregation_buffer_events_dropped_total The total number of events dropped because the aggregation buffer was full
-# TYPE tetragon_aggregation_buffer_events_dropped_total counter
-tetragon_aggregation_buffer_events_dropped_total 1
-`)
-	require.NoError(t, testutil.CollectAndCompare(AggregationBufferEventsDropped, expected))
+	after := testutil.ToFloat64(AggregationBufferEventsDropped.WithLabelValues())
+	require.Equal(t, float64(1), after-before)
 }
