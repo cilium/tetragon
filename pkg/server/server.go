@@ -13,7 +13,6 @@ import (
 	"uuid"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/aggregator"
 	pkgEvent "github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/filters"
@@ -147,30 +146,25 @@ func (s *Server) GetEvents(request *tetragon.GetEventsRequest, server tetragon.F
 	return run()
 }
 
-// GetEventsListener builds the filter and aggregation setup for a GetEvents
+// GetEventsListener builds the filter setup for a GetEvents
 // request, registers the event listener with the notifier and returns a run
 // function that drives the event loop. Registering synchronously ensures that
 // events delivered between the call to GetEventsListener and the start of the
 // returned function are not lost. Separating setup from execution lets callers
-// distinguish setup errors (bad filter config, invalid aggregation options)
-// from runtime errors (send failures, context cancellation). Callers must
-// invoke the returned ListenerFunc to drain events and clean up the listener.
+// distinguish setup errors (bad filter config) from runtime errors (send
+// failures, context cancellation). Callers must invoke the returned
+// ListenerFunc to drain events and clean up the listener.
 func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server tetragon.FineGuidanceSensors_GetEventsServer, closer io.Closer) (ListenerFunc, error) {
 	logger.GetLogger().Debug("Received a GetEvents request",
 		"events.allow_list", request.GetAllowList(),
 		"events.deny_list", request.GetDenyList(),
-		"events.field_filters", request.GetFieldFilters(),
-		"events.aggregation_options", request.GetAggregationOptions())
+		"events.field_filters", request.GetFieldFilters())
 
 	allowList, err := filters.BuildFilterList(s.ctx, request.AllowList, filters.Filters)
 	if err != nil {
 		return nil, err
 	}
 	denyList, err := filters.BuildFilterList(s.ctx, request.DenyList, filters.Filters)
-	if err != nil {
-		return nil, err
-	}
-	agg, err := aggregator.NewAggregator(server, request.AggregationOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -187,9 +181,6 @@ func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server te
 	return func() error {
 		defer s.ctxCleanupWG.Done()
 		defer s.removeNotifierAndDrain(l)
-		if agg != nil {
-			go agg.Run(server.Context())
-		}
 	outerLoop:
 		for {
 			select {
@@ -208,17 +199,8 @@ func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server te
 					event = ev
 				}
 
-				if agg != nil {
-					select {
-					case agg.GetEventChannel() <- event:
-					default:
-						logger.GetLogger().Warn("Aggregator buffer is full. Consider increasing AggregatorOptions.channel_buffer_size.",
-							"request", request)
-					}
-				} else {
-					if err = server.Send(event); err != nil {
-						return err
-					}
+				if err = server.Send(event); err != nil {
+					return err
 				}
 			case <-server.Context().Done():
 				if closer != nil {
