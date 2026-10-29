@@ -67,7 +67,6 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/cilium/tetragon/pkg/certloader"
 )
@@ -872,14 +871,7 @@ func getExporter(ctx context.Context, server *server.Server) (*exporter.Exporter
 	if option.Config.ExportRateLimit > 0 {
 		rateLimiter = ratelimit.NewRateLimiter(ctx, 1*time.Minute, option.Config.ExportRateLimit, encoder)
 	}
-	var aggregationOptions *tetragon.AggregationOptions
-	if option.Config.EnableExportAggregation {
-		aggregationOptions = &tetragon.AggregationOptions{
-			WindowSize:        durationpb.New(option.Config.ExportAggregationWindowSize),
-			ChannelBufferSize: option.Config.ExportAggregationBufferSize,
-		}
-	}
-	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions, FieldFilters: fieldFilters}
+	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, FieldFilters: fieldFilters}
 	log.Info("Configured field filters", "fieldFilters", fieldFilters)
 	log.Info("Starting JSON exporter", "logger", writer, "request", &req)
 	return exporter.NewExporter(ctx, &req, server, encoder, writer, rateLimiter)
