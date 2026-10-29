@@ -8374,6 +8374,18 @@ merge patch.<br/>
 parts of the policy. The state value can hold u64 values.<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>scope</b></td>
+        <td>enum</td>
+        <td>
+          Scope of the state object within this policy. System shares a value across
+all tasks, Process shares a value among a process's threads, and Thread
+keeps a separate value for each thread. Defaults to System.<br/>
+          <br/>
+            <i>Enum</i>: System, Process, Thread<br/>
+            <i>Default</i>: System<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -22492,6 +22504,18 @@ merge patch.<br/>
 parts of the policy. The state value can hold u64 values.<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>scope</b></td>
+        <td>enum</td>
+        <td>
+          Scope of the state object within this policy. System shares a value across
+all tasks, Process shares a value among a process's threads, and Thread
+keeps a separate value for each thread. Defaults to System.<br/>
+          <br/>
+            <i>Enum</i>: System, Process, Thread<br/>
+            <i>Default</i>: System<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
