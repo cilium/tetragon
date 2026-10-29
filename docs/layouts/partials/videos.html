@@ -31,7 +31,7 @@
 
 	<div class="videos__container">
 		<ul class="videos__list">
-			{{ range site.Data.videos.videoContent }}
+			{{ range hugo.Data.videos.videoContent }}
 			<li>
 				<a href="{{ if .youtubeID }}https://www.youtube.com/watch?v={{ .youtubeID }}{{ else }}{{ .url }}{{ end }}"
 					target="_blank" rel="noopener noreferrer">
