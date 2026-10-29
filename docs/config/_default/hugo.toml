@@ -15,6 +15,10 @@ enableGitInfo = true
 # Comment out to enable taxonomies in Docsy
 disableKinds = ["taxonomy"]
 
+[security]
+  # The landing pages are authored as HTML. Keep Org content disabled.
+  allowContent = ['! ^text/org$']
+
 # Configure how URLs look like per section.
 [permalinks]
 blog = "/:section/:year/:month/:day/:slug/"
@@ -22,13 +26,18 @@ blog = "/:section/:year/:month/:day/:slug/"
 # Image processing configuration.
 [imaging]
 resampleFilter = "CatmullRom"
-quality = 75
 anchor = "smart"
+[imaging.jpeg]
+quality = 75
+[imaging.webp]
+quality = 75
+[imaging.avif]
+quality = 75
 
 # Language configuration
 [languages]
 [languages.en]
-languageName ="English"
+label = "English"
 weight = 1
 
 [markup]
