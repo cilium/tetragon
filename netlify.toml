@@ -22,7 +22,7 @@ command = "npm ci && hugo --environment development"
 ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ."
 
 [build.environment]
-HUGO_VERSION = "0.126.2"
+HUGO_VERSION = "0.169.0"
 
 # Hugo has "enableRobotsTXT" to false on the development environment. Here
 # making sure that even the "main" deployment on Netlify (so far available at
