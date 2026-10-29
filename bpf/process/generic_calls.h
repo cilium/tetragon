@@ -1055,9 +1055,6 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 			e->common.flags |= MSG_COMMON_FLAG_USER_STACKTRACE;
 			e->user_stack_id = get_stackid(ctx, &stack_trace_map, BPF_F_USER_STACK);
 		}
-		/* Userspace always writes this word. Read it on every kernel so the
-		 * next selector is not parsed as another action.
-		 */
 		__u32 ima_hash __maybe_unused = actions->act[++i];
 #ifdef __V511_BPF_PROG
 		if (ima_hash)
