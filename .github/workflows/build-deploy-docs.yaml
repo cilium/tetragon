@@ -30,30 +30,11 @@ jobs:
         id: pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
-      - name: Setup Hugo
-        uses: peaceiris/actions-hugo@2752ce1d29631191ea3f27c23495fa06139a5b78 # v3.2.1
-        with:
-          hugo-version: '0.126.2'
-          extended: true
-
-      - name: Setup Node
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '18'
-          cache: 'npm'
-          # The action defaults to search for the dependency file (package-lock.json,
-          # npm-shrinkwrap.json or yarn.lock) in the repository root, and uses its
-          # hash as a part of the cache key.
-          # https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#caching-packages-data
-          cache-dependency-path: '**/package-lock.json'
-
-      - name: Install Node dependencies
-        working-directory: docs
-        run: npm ci
-
       - name: Build the Hugo website
         working-directory: docs
-        run: hugo --minify --baseURL "${{ steps.pages.outputs.base_url }}/"
+        env:
+          BASE_URL: ${{ steps.pages.outputs.base_url }}/
+        run: make build BASE_URL="$BASE_URL"
 
       - name: Upload artifact
         if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'

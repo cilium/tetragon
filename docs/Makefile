@@ -2,11 +2,13 @@
 HUGO_VERSION      = $(shell grep ^HUGO_VERSION ../netlify.toml | tail -n 1 | cut -d '=' -f 2 | tr -d " \"\n")
 CONTAINER_ENGINE ?= docker
 CONTAINER_IMAGE  ?= cilium/tetragon-hugo:v$(HUGO_VERSION)
+CONTAINER_FLAGS ?= --interactive --tty
+BASE_URL        ?= /
 # Mount site inputs individually as read-only
 DOCS_INPUTS      := $(wildcard archetypes assets config content data i18n layouts static)
 DOCS_MOUNTS      = $(foreach path,$(DOCS_INPUTS),--volume "$(CURDIR)/$(path):/src/docs/$(path):ro")
 # Git history lets Docsy display the "last modified" indicator.
-CONTAINER_RUN    ?= "$(CONTAINER_ENGINE)" run --rm --interactive --tty $(DOCS_MOUNTS) --volume "$(abspath $(CURDIR)/..)/.git:/src/.git:ro" --workdir /src/docs
+CONTAINER_RUN    ?= "$(CONTAINER_ENGINE)" run --rm $(CONTAINER_FLAGS) $(DOCS_MOUNTS) --volume "$(abspath $(CURDIR)/..)/.git:/src/.git:ro" --workdir /src/docs
 HUGO_DOCKERFILE  ?= Dockerfile.hugo
 
 # Tracing Policy docs generation settings
@@ -27,6 +29,12 @@ preview: image
 .PHONY: image
 image: ## Build a container image for the preview of the website
 	DOCKER_BUILDKIT=1 $(CONTAINER_ENGINE) build -f ${HUGO_DOCKERFILE} . --network host --tag $(CONTAINER_IMAGE) --build-arg HUGO_VERSION=$(HUGO_VERSION)
+
+.PHONY: build
+build: CONTAINER_FLAGS =
+build: image ## Build the production website into public without a terminal.
+	mkdir -p public
+	$(CONTAINER_RUN) --read-only --mount type=tmpfs,destination=/tmp,tmpfs-mode=01777 --user "$(shell id -u):$(shell id -g)" --env HOME=/home/hugo --volume "$(CURDIR)/public:/src/docs/public" $(CONTAINER_IMAGE) --minify --environment production --baseURL "$(BASE_URL)" --cacheDir /tmp/hugo-cache --noBuildLock
 
 .PHONY: clean
 clean:
