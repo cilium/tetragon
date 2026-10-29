@@ -135,12 +135,6 @@ enum {
 	ACTION_UPDATE_STATE = 15,
 };
 
-// Mirrored by StateOp* in pkg/selectors/kernel.go
-enum {
-	STATE_OP_SET = 0,
-	STATE_OP_DELETE = 1,
-};
-
 enum {
 	FGS_SIGKILL = 9,
 };

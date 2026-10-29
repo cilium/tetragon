@@ -41,7 +41,7 @@ import (
 const (
 	StateValueSize = 8
 
-	// Mirrored by STATE_OP_* in bpf/process/types/basic.h
+	// Mirrored by STATE_OP_* in bpf/process/state.h
 	StateOpSet    = 0
 	StateOpDelete = 1
 

@@ -677,7 +677,7 @@ filter_state_loop(__u32 i, __u8 *f, int section_off)
 
 	section_off += sizeof(__u32) + i * sizeof(struct selector_state_filter);
 	filter = (struct selector_state_filter *)((__u64)f + (section_off & INDEX_MASK));
-	state_value = map_lookup_elem(&tg_state_map, &filter->state_id);
+	state_value = state_lookup(filter->state_id);
 	if (!state_value)
 		return false;
 
