@@ -2,8 +2,11 @@
 HUGO_VERSION      = $(shell grep ^HUGO_VERSION ../netlify.toml | tail -n 1 | cut -d '=' -f 2 | tr -d " \"\n")
 CONTAINER_ENGINE ?= docker
 CONTAINER_IMAGE  ?= cilium/tetragon-hugo:v$(HUGO_VERSION)
-# mount the parent folder to get the git history for Docsy to display the "last modified" indicator
-CONTAINER_RUN    ?= "$(CONTAINER_ENGINE)" run --rm --interactive --tty --volume "$(abspath $(CURDIR)/..):/src" --workdir /src/docs
+# Mount site inputs individually as read-only
+DOCS_INPUTS      := $(wildcard archetypes assets config content data i18n layouts static)
+DOCS_MOUNTS      = $(foreach path,$(DOCS_INPUTS),--volume "$(CURDIR)/$(path):/src/docs/$(path):ro")
+# Git history lets Docsy display the "last modified" indicator.
+CONTAINER_RUN    ?= "$(CONTAINER_ENGINE)" run --rm --interactive --tty $(DOCS_MOUNTS) --volume "$(abspath $(CURDIR)/..)/.git:/src/.git:ro" --workdir /src/docs
 HUGO_DOCKERFILE  ?= Dockerfile.hugo
 
 # Tracing Policy docs generation settings
