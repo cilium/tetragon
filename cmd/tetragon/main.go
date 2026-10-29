@@ -321,10 +321,6 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		return err
 	}
 
-	if option.Config.EnableProcessEnvironmentVariables && !config.EnableLargeProgs() {
-		logger.Fatal(log, "Can't specify --enable-process-environment-variables on early kernels (<v5.3)")
-	}
-
 	// enable extra programs/maps loading debug output
 	if logger.GetLogger().Enabled(ctx, slog.LevelDebug) {
 		option.Config.KeepCollection = true

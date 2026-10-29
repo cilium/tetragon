@@ -68,6 +68,31 @@ func TestValidateExclusiveFlags(t *testing.T) {
 	}
 }
 
+func TestValidateProcessEnvConfig(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name       string
+		c          config
+		largeProgs bool
+		wantErr    bool
+	}{
+		{name: "env vars disabled, small progs", c: config{}},
+		{name: "env vars enabled, large progs", c: config{EnableProcessEnvironmentVariables: true}, largeProgs: true},
+		{name: "env vars enabled, small progs", c: config{EnableProcessEnvironmentVariables: true}, wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := validateProcessEnvConfig(tc.c, func() bool { return tc.largeProgs })
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateServerTLSConfig(t *testing.T) {
 	t.Parallel()
 	const tcp = "0.0.0.0:54321"

@@ -201,13 +201,7 @@ func EnableV61Progs() bool {
 }
 
 func EnableLargeProgs() bool {
-	if option.Config.ForceSmallProgs {
-		return false
-	}
-	if option.Config.ForceLargeProgs {
-		return true
-	}
-	return bpf.HasProgramLargeSize() && bpf.HasSignalHelper()
+	return option.EnableLargeProgs()
 }
 
 func GetRBSize() int {

@@ -400,6 +400,10 @@ func ReadAndSetFlags() error {
 		return err
 	}
 
+	if err := validateProcessEnvConfig(Config, EnableLargeProgs); err != nil {
+		return err
+	}
+
 	// Wire up KeyBpfDebugArea viper config to sliceEnum
 	if viper.GetString(KeyBpfDebugArea) != "" {
 		for _, area := range viper.GetStringSlice(KeyBpfDebugArea) {
@@ -474,6 +478,15 @@ func validateExclusiveFlags(c config) error {
 	}
 	if c.ForceSmallProgs && c.ForceLargeProgs {
 		return fmt.Errorf("--%s cannot be used together with --%s", KeyForceSmallProgs, KeyForceLargeProgs)
+	}
+	return nil
+}
+
+// validateProcessEnvConfig rejects --enable-process-environment-variables
+// when the large BPF programs that read the environment can't be loaded.
+func validateProcessEnvConfig(c config, largeProgs func() bool) error {
+	if c.EnableProcessEnvironmentVariables && !largeProgs() {
+		return fmt.Errorf("--%s needs large BPF programs: kernel v5.3 or later and no --%s", KeyEnableProcessEnvironmentVariables, KeyForceSmallProgs)
 	}
 	return nil
 }
