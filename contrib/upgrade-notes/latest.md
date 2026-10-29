@@ -26,7 +26,11 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Events (protobuf API)
 
-* TBD
+* The `AggregationOptions` and `AggregationInfo` messages were removed, along
+  with the `GetEventsRequest.aggregation_options` and
+  `GetEventsResponse.aggregation_info` fields. The field numbers and names are
+  reserved. Clients sending `aggregation_options` are unaffected on the wire,
+  but code referencing these types or fields needs to be updated.
 
 ### Metrics
 
