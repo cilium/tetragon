@@ -219,8 +219,8 @@ FUNC_INLINE int call_dlopen(struct pt_regs *ctx, struct pending_call *pending_c,
 		revert_ctx(ctx, pending_c, pid_tgid, idx);
 		return 0;
 	}
-	sopath_len &= (SOPATH_MAX - 1);
-	if (sopath_len == 0) {
+
+	if (sopath_len > SOPATH_MAX) {
 		DEBUG_SO("sopath_len too big for %ld, sym_id: %d: %d!", pid_tgid, pending_c->sym_id[idx], regs->sopath_len);
 		revert_ctx(ctx, pending_c, pid_tgid, idx);
 		return 0;
