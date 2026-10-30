@@ -63,9 +63,9 @@
   "pruneStaleBranches": true,
   "baseBranchPatterns": [
     "main",
-    "v1.5",
     "v1.6",
     "v1.7",
+    "v1.8",
   ],
   "vulnerabilityAlerts": {
     "enabled": true
@@ -253,9 +253,9 @@
         "docker.io/library/golang"
       ],
       "matchBaseBranches": [
-        "v1.5",
         "v1.6",
         "v1.7",
+        "v1.8",
       ],
       // postUpgradeTasks is only for when the Go module directives are bumped
       "postUpgradeTasks": {
@@ -331,9 +331,9 @@
       "enabled": false,
       "matchPackageNames": ["*"],
       "matchBaseBranches": [
-        "v1.5",
         "v1.6",
         "v1.7",
+        "v1.8",
       ]
     },
     {
@@ -341,9 +341,9 @@
       "enabled": true,
       "matchPackageNames": ["docker.io/library/alpine"],
       "matchBaseBranches": [
-        "v1.5",
         "v1.6",
         "v1.7",
+        "v1.8",
       ]
     },
     {
@@ -355,9 +355,20 @@
       ],
       "allowedVersions": "/^1\\.26\\.[0-9]+-?(alpine)?$/",
       "matchBaseBranches": [
-        "v1.5",
         "v1.6",
         "v1.7",
+      ]
+    },
+    {
+      // update go patch for 1.27 for stable branches
+      "enabled": true,
+      "matchPackageNames": [
+        "go",
+        "docker.io/library/golang"
+      ],
+      "allowedVersions": "/^1\\.27\\.[0-9]+-?(alpine)?$/",
+      "matchBaseBranches": [
+        "v1.8",
       ]
     },
     {
@@ -369,9 +380,9 @@
         "quay.io/lvh-images/kind"
       ],
       "matchBaseBranches": [
-        "v1.5",
         "v1.6",
         "v1.7",
+        "v1.8",
       ],
       // Any day in the first week of the month.
       "schedule": ["* * 1-7 * *"]
