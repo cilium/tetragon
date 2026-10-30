@@ -2190,7 +2190,9 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
 	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps, stateIDs map[string]uint32) (*KernelSelectorState, error) {
 	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
-		if err := ParseMatchStates(k, selector.MatchStates, stateIDs); err != nil {
+		// matchStates is evaluated by the entry probe only, the return
+		// probe just needs an empty section to keep the layout.
+		if err := ParseMatchStates(k, nil, nil); err != nil {
 			return fmt.Errorf("parseMatchStates error: %w", err)
 		}
 		if err := ParseMatchCmdArgs(k, nil); err != nil {
