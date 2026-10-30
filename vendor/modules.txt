@@ -1,4 +1,4 @@
-# cel.dev/cel-go v0.33.0
+# cel.dev/cel-go v0.33.1
 ## explicit; go 1.23.0
 cel.dev/cel-go/cel
 cel.dev/cel-go/cel/async
@@ -77,7 +77,7 @@ github.com/cilium/ebpf/perf
 github.com/cilium/ebpf/pin
 github.com/cilium/ebpf/ringbuf
 github.com/cilium/ebpf/rlimit
-# github.com/cilium/little-vm-helper v0.0.31
+# github.com/cilium/little-vm-helper v0.0.33
 ## explicit; go 1.26.0
 github.com/cilium/little-vm-helper/pkg/arch
 github.com/cilium/little-vm-helper/pkg/images
