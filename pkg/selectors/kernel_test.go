@@ -1932,3 +1932,45 @@ func TestWritePostfixMaxLength(t *testing.T) {
 		})
 	}
 }
+
+// BPF can address the selector filters only within the first
+// KernelFiltersSize bytes, so policies whose filters go past them must be
+// rejected.
+func TestInitKernelSelectorsFiltersOverflow(t *testing.T) {
+	origForceLargeProgs := option.Config.ForceLargeProgs
+	origForceSmallProgs := option.Config.ForceSmallProgs
+	option.Config.ForceLargeProgs = true
+	option.Config.ForceSmallProgs = false
+	t.Cleanup(func() {
+		option.Config.ForceLargeProgs = origForceLargeProgs
+		option.Config.ForceSmallProgs = origForceSmallProgs
+	})
+
+	args := []v1alpha1.KProbeArg{{Index: 0, Type: "int"}, {Index: 1, Type: "int"}}
+	selectors := func(pids []v1alpha1.PIDSelector) []v1alpha1.KProbeSelector {
+		var sels []v1alpha1.KProbeSelector
+		for range MaxSelectors {
+			sels = append(sels, v1alpha1.KProbeSelector{
+				MatchPIDs: pids,
+				MatchArgs: []v1alpha1.ArgSelector{
+					{Index: 0, Operator: "Equal", Values: []string{"1", "2", "3", "4"}},
+					{Index: 1, Operator: "Equal", Values: []string{"1", "2", "3", "4"}},
+				},
+				MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}},
+			})
+		}
+		return sels
+	}
+
+	// The filters of the last selector end just before KernelFiltersSize.
+	pids := []v1alpha1.PIDSelector{{Operator: "In", Values: []uint32{1, 2, 3}}}
+	k, err := InitKernelSelectorState(&KernelSelectorArgs{Selectors: selectors(pids), Args: args})
+	require.NoError(t, err)
+	require.LessOrEqual(t, len(k.data.e), KernelFiltersSize)
+
+	// One more PID filter per selector (5 * 28 bytes) moves the filters of
+	// the last selector past it.
+	pids = append(pids, v1alpha1.PIDSelector{Operator: "NotIn", Values: []uint32{4, 5, 6, 7}})
+	_, err = InitKernelSelectorState(&KernelSelectorArgs{Selectors: selectors(pids), Args: args})
+	require.ErrorContains(t, err, "selector filters encoding overflow")
+}

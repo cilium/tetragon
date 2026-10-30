@@ -1703,11 +1703,21 @@ func ParseMatchStates(k *KernelSelectorState, states []v1alpha1.StateSelector, s
 	return nil
 }
 
+// KernelFiltersSize is the size of the buffer prefix where the selector filters
+// (i.e., all the sections preceding matchActions) must fit: BPF masks their
+// offsets with INDEX_MASK (0x3ff, see bpf/process/types/basic.h).
+const KernelFiltersSize = 1024
+
 func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table, selIdx int, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, stateIDs map[string]uint32) error {
 	if len(actions) > 3 {
 		return fmt.Errorf("only %d actions are support for selector (current number of values is %d)", 3, len(actions))
 	}
 	loff := AdvanceSelectorLength(&k.data)
+	// The filters of this selector, and of the ones preceding it, end where
+	// its actions start.
+	if loff > KernelFiltersSize {
+		return fmt.Errorf("selector filters encoding overflow: filters end at byte %d, exceeding the %d bytes addressable by BPF", loff, KernelFiltersSize)
+	}
 	for _, a := range actions {
 		if err := ParseMatchAction(k, &a, actionArgTable, selIdx, args, data, stateIDs); err != nil {
 			return err
