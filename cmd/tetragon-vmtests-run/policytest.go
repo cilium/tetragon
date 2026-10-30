@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	policytestsVmResultsDir = "/policytests-results"
+	policytestsVMResultsDir = "/policytests-results"
 )
 
 type PolicyTestConf struct {
@@ -93,7 +93,7 @@ func policyTestCmd() *cobra.Command {
 					&virtIOFilesystem{
 						id:      "results",
 						hostdir: cnf.resultsDir,
-						vmdir:   policytestsVmResultsDir,
+						vmdir:   policytestsVMResultsDir,
 					},
 				)
 			}
@@ -316,7 +316,7 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 		ret = append(ret,
 			images.Action{Op: &images.TarInCommand{
 				TarFile:   tarball,
-				RemoteDir: filepath.Dir(policytestsVmTestProgsDir),
+				RemoteDir: filepath.Dir(policytestsVMTestProgsDir),
 			}})
 	} else {
 		return nil, errors.New("you need to define exactly one of --tester-progs-dir and --tetragon-progs-tarball")

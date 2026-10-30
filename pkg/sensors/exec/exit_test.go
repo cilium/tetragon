@@ -40,7 +40,7 @@ func testExit(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -92,7 +92,7 @@ func testExitLeader(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	if err := jsonchecker.JsonTestCheck(t, checker); err != nil {
+	if err := jsonchecker.JSONTestCheck(t, checker); err != nil {
 		t.Logf("error: %s", err)
 		t.Fail()
 	}
@@ -134,7 +134,7 @@ func testExitZombie(t *testing.T) {
 		ec.NewProcessExecChecker("echo").WithProcess(echoCheck).WithParent(exitTesterCheck),
 	)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -188,7 +188,7 @@ func testExitCode(t *testing.T) {
 		)
 	}
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -229,6 +229,6 @@ func testExitSignal(t *testing.T) {
 		)
 	}
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }

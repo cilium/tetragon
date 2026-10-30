@@ -95,7 +95,7 @@ type uprobeLoadArgs struct {
 
 type genericUprobe struct {
 	loadArgs     uprobeLoadArgs
-	tableId      idtable.EntryID
+	tableID      idtable.EntryID
 	targetPath   string
 	linkPath     string
 	symbol       string
@@ -148,7 +148,7 @@ func populateSelectorRegsMap(m *ebpf.Map, selector *selectors.KernelSelectorStat
 }
 
 func (g *genericUprobe) SetID(id idtable.EntryID) {
-	g.tableId = id
+	g.tableID = id
 }
 
 func (g *genericUprobe) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
@@ -190,9 +190,9 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, errors.New("failed to read process call msg")
 	}
 
-	uprobeEntry, err := genericUprobeTableGet(idtable.EntryID{ID: int(m.FuncId)})
+	uprobeEntry, err := genericUprobeTableGet(idtable.EntryID{ID: int(m.FuncID)})
 	if err != nil {
-		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncId), logfields.Error, err)
+		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncID), logfields.Error, err)
 		return nil, errors.New("failed to match id")
 	}
 
@@ -252,7 +252,7 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 			unix,
 			uprobeEntry.pendingEvents,
 			returnEvent,
-			m.RetProbeId,
+			m.RetProbeID,
 			ktimeEnter,
 			reportMergeError[*tracing.MsgGenericUprobeUnix])
 	}
@@ -630,7 +630,7 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		return errors.New("only a single uprobe symbol can be redirected")
 	}
 
-	if selectors.HasGetUrlOrDnsLookup(spec.Selectors) {
+	if selectors.HasGetURLOrDNSLookup(spec.Selectors) {
 		return errors.New("failed to configure uprobe, GetUrl and DnsLookup actions not supported")
 	}
 
@@ -1378,7 +1378,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 				config:    &eventConfig,
 				selectors: state.selectors,
 			},
-			tableId:           idtable.UninitializedEntryID,
+			tableID:           idtable.UninitializedEntryID,
 			targetPath:        spec.Path,
 			linkPath:          getLinkPath(state.entryFile, spec.Path),
 			symbol:            sym,
@@ -1403,9 +1403,9 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 		}
 
 		uprobeTable.AddEntry(uprobeEntry)
-		id := uprobeEntry.tableId
+		id := uprobeEntry.tableID
 
-		eventConfig.FuncId = uint32(id.ID)
+		eventConfig.FuncID = uint32(id.ID)
 
 		ids = append(ids, id)
 		return nil
@@ -1708,7 +1708,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("%s %s", uprobeEntry.targetPath, uprobeEntry.symbol),
 		"uprobe/generic_uprobe",
-		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, uprobeEntry.symbol),
+		fmt.Sprintf("%d-%s", uprobeEntry.tableID.ID, uprobeEntry.symbol),
 		"generic_uprobe").
 		SetLoaderData(uprobeEntry).
 		SetPolicy(uprobeEntry.policyName)
@@ -1769,7 +1769,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	}
 
 	if uprobeEntry.loadArgs.retprobe {
-		pinRetProg := fmt.Sprintf("%d-%s_return", uprobeEntry.tableId.ID, uprobeEntry.symbol)
+		pinRetProg := fmt.Sprintf("%d-%s_return", uprobeEntry.tableID.ID, uprobeEntry.symbol)
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
 			fmt.Sprintf("%s %s", uprobeEntry.targetPath, uprobeEntry.symbol),

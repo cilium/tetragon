@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestDockerContainerIdEnrichment verifies that LookupContainerId correctly
+// TestDockerContainerIdEnrichment verifies that LookupContainerID correctly
 // extracts container IDs from real Docker cgroup paths.
 // Regression test for https://github.com/cilium/tetragon/issues/4026
 func TestDockerContainerIdEnrichment(t *testing.T) {
@@ -43,7 +43,7 @@ func TestDockerContainerIdEnrichment(t *testing.T) {
 	cgroupData, err := os.ReadFile(cgroupPath)
 	require.NoError(t, err, "failed to read cgroup file: %s", cgroupPath)
 
-	extractedID, offset := procsFindDockerId(string(cgroupData))
+	extractedID, offset := procsFindDockerID(string(cgroupData))
 
 	require.NotEmpty(t, extractedID, "container ID should not be empty")
 	require.True(t, strings.HasPrefix(containerID, extractedID),

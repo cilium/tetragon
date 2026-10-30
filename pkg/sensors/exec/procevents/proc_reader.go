@@ -149,7 +149,7 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 		m.Unix.Process.TID = p.pid
 		m.Unix.Process.NSPID = p.nspid
 		m.Unix.Process.UID = 0
-		m.Unix.Process.AUID = proc.InvalidUid
+		m.Unix.Process.AUID = proc.InvalidUID
 
 		m.Unix.Process.Flags = api.EventProcFS
 		m.Unix.Process.Ktime = p.ktime
@@ -163,7 +163,7 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 
 		m.Unix.Msg.Kube.Cgrpid = 0
 		if p.pid > 0 {
-			m.Unix.Kube.Docker, err = procsDockerId(p.pid)
+			m.Unix.Kube.Docker, err = procsDockerID(p.pid)
 			if err != nil {
 				logger.GetLogger().Warn("Procfs execve event pods/ identifier error", logfields.Error, err)
 			}
@@ -206,7 +206,7 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 		m.Unix.Process.UID = p.uids[1]
 		m.Unix.Process.AUID = p.auid
 		m.Unix.Msg.Creds = processapi.MsgGenericCred{
-			Uid: p.uids[0], Euid: p.uids[1], Suid: p.uids[2], FSuid: p.uids[3],
+			UID: p.uids[0], Euid: p.uids[1], Suid: p.uids[2], FSuid: p.uids[3],
 			Gid: p.gids[0], Egid: p.gids[1], Sgid: p.gids[2], FSgid: p.gids[3],
 			Cap: caps,
 		}
