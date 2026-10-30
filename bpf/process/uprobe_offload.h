@@ -143,36 +143,37 @@ FUNC_INLINE int
 uprobe_offload(struct pt_regs *ctx)
 {
 	__u64 val = 0, id = get_current_pid_tgid();
+	struct offload_data *d = NULL;
 	struct reg_assignment *ass;
 	struct uprobe_regs *regs;
 	__u32 idx = 0, i;
 	bool dyn_pending;
+	int ret = 0;
 	int err;
-	struct offload_data *d;
 
 	// The return from the mmap()/dlopen() detour of an sopath override
 	// continues the resolution started by the selector that matched first.
 	// The main program skips those hits, so nothing is queued for them; any
 	// stale queued entry is dropped.
 	dyn_pending = uprobe_dyn_pending(ctx, &idx);
-
-	d = map_lookup_elem(&sleepable_offload, &id);
-	if (d) {
-		if (!dyn_pending)
-			idx = d->idx;
-		map_delete_elem(&sleepable_offload, &id);
-	} else if (!dyn_pending) {
-		return 0;
+	if (!dyn_pending) {
+		// If this is not a detour of a sopath override,
+		// let's check if we are expected to do anything for this pid_tgid.
+		d = map_lookup_elem(&sleepable_offload, &id);
+		if (!d)
+			return 0;
+		idx = d->idx;
 	}
 
 	regs = map_lookup_elem(&regs_map, &idx);
 	if (!regs)
-		return 0;
+		goto out;
 
-	// We expect to fully override the call to
-	// a dynamically loaded one
-	if (DYNAMIC_SO_ENABLED && regs->sopath_len > 0)
-		return uprobe_dyn_state_machine(ctx, regs, idx);
+	// We expect to fully override the call to a dynamically loaded one
+	if (DYNAMIC_SO_ENABLED && regs->sopath_len > 0) {
+		ret = uprobe_dyn_state_machine(ctx, regs, idx);
+		goto out;
+	}
 
 	for (i = 0; i < REGS_MAX && i < regs->cnt; i++) {
 		ass = &regs->ass[i];
@@ -211,7 +212,11 @@ uprobe_offload(struct pt_regs *ctx)
 			break;
 		}
 	}
-	return 0;
+
+out:
+	if (d)
+		map_delete_elem(&sleepable_offload, &id);
+	return ret;
 }
 #endif /* GENERIC_UPROBE */
 #endif /* __UPROBE_OFFLOAD_H__ */

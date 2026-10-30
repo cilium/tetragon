@@ -40,15 +40,13 @@ tg_tp_cgrp_rmdir(struct bpf_raw_tracepoint_args *ctx)
 		return 0;
 	}
 
-	map_delete_elem(&tg_cgrps_tracking_map, &cgrpid);
-
 	conf = map_lookup_elem(&tg_conf_map, &zero);
-	if (!conf)
-		return 0;
 
 	/* We forward bpf events only under TraceLevel */
-	if (unlikely(conf->loglevel == LOG_TRACE_LEVEL))
+	if (conf && unlikely(conf->loglevel == LOG_TRACE_LEVEL))
 		send_cgrp_event(ctx, cgrp_track, cgrpid, MSG_OP_CGROUP_RMDIR);
 
+	/* cgrp_track points into the map entry, so delete it only after use */
+	map_delete_elem(&tg_cgrps_tracking_map, &cgrpid);
 	return 0;
 }
