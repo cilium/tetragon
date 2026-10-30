@@ -4,7 +4,7 @@ module github.com/cilium/tetragon
 go 1.27.0
 
 require (
-	cel.dev/cel-go v0.33.1
+	cel.dev/cel-go v0.33.2
 	github.com/alecthomas/kong v1.16.1
 	github.com/cilium/ebpf v0.22.1-0.20260708150823-a5b2e206f9ed
 	github.com/cilium/little-vm-helper v0.0.33
