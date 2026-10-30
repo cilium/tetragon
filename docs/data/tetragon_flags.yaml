@@ -68,9 +68,6 @@ options:
       default_value: "true"
       usage: |
         Enable per-event metrics. Enabled by default. Health and resource metrics are always available when --metrics-server is set.
-    - name: enable-export-aggregation
-      default_value: "false"
-      usage: Enable JSON export aggregation
     - name: enable-k8s-api
       default_value: "false"
       usage: |
@@ -129,12 +126,6 @@ options:
       usage: Do not preallocate the entries of execve_map
     - name: execve-map-size
       usage: Set size for execve_map table (allows K/M/G suffix)
-    - name: export-aggregation-buffer-size
-      default_value: "10000"
-      usage: Aggregator channel buffer size
-    - name: export-aggregation-window-size
-      default_value: 15s
-      usage: JSON export aggregation time window
     - name: export-allowlist
       usage: JSON export allowlist
     - name: export-denylist
