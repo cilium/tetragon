@@ -427,7 +427,7 @@ ifeq ($(BEAR_CLI),)
 	@exit 1
 else
 	@echo "Generating compile_commands.json using bear..."
-	@$(BEAR_CLI) $(MAKE) tetragon-bpf LOCAL_CLANG=1 LOCAL_CLANG_FORMAT=1
+	@$(BEAR_CLI) -- $(MAKE) tetragon-bpf LOCAL_CLANG=1 LOCAL_CLANG_FORMAT=1
 endif
 
 
