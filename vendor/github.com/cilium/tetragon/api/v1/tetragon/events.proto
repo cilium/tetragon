@@ -5,7 +5,6 @@ syntax = "proto3";
 
 package tetragon;
 
-import "google/protobuf/duration.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
@@ -142,6 +141,8 @@ message FieldFilter {
 }
 
 message GetEventsRequest {
+  reserved 3;
+  reserved "aggregation_options";
   // allow_list specifies a list of filters to apply to only return certain
   // events. If multiple filters are specified, at least one of them has to
   // match for an event to be included in the results.
@@ -152,31 +153,10 @@ message GetEventsRequest {
   // If both allow_list and deny_list are specified, the results contain the
   // set difference allow_list - deny_list.
   repeated Filter deny_list = 2;
-  // aggregation_options configures aggregation options for this request.
-  // If this field is not set, responses will not be aggregated.
-  // Note that currently only process_accept and process_connect events are
-  // aggregated. Other events remain unaggregated.
-  AggregationOptions aggregation_options = 3;
   // Fields to include or exclude for events in the GetEventsResponse. Omitting this
   // field implies that all fields will be included. Exclusion always takes precedence
   // over inclusion in the case of conflicts.
   repeated FieldFilter field_filters = 4;
-}
-
-// AggregationOptions defines configuration options for aggregating events.
-message AggregationOptions {
-  // Aggregation window size. Defaults to 15 seconds if this field is not set.
-  google.protobuf.Duration window_size = 1;
-  // Size of the buffer for the aggregator to receive incoming events. If the
-  // buffer becomes full, the aggregator will log a warning and start dropping
-  // incoming events.
-  uint64 channel_buffer_size = 2;
-}
-
-// AggregationInfo contains information about aggregation results.
-message AggregationInfo {
-  // Total count of events in this aggregation time window.
-  uint64 count = 1;
 }
 
 message RateLimitInfo {
@@ -197,7 +177,8 @@ message ProcessThrottle {
 }
 
 message GetEventsResponse {
-  reserved 2 to 4, 6 to 8, 13 to 26;
+  reserved 2 to 4, 6 to 8, 13 to 26, 1002;
+  reserved "aggregation_info";
   // The type-specific fields of an event.
   //
   // NOTE: Numbers must stay in sync with enum EventType.
@@ -225,13 +206,7 @@ message GetEventsResponse {
   // Name of the node where this event was observed.
   string node_name = 1000;
   // Timestamp at which this event was observed.
-  // For an aggregated response, this field to set to the timestamp at which
-  // the event was observed for the first time in a given aggregation time window.
   google.protobuf.Timestamp time = 1001;
-
-  // aggregation_info contains information about aggregation results. This field
-  // is set only for aggregated responses.
-  AggregationInfo aggregation_info = 1002;
   // Name of the cluster where this event was observed.
   string cluster_name = 1003;
   // Labels associated with the node where this event was observed.

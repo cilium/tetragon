@@ -981,25 +981,6 @@ Tainted bits to indicate if the kernel was tainted. For further details: https:/
 
 ## tetragon/events.proto
 
-<a name="tetragon-AggregationInfo"></a>
-
-### AggregationInfo
-AggregationInfo contains information about aggregation results.
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| count | [uint64](#uint64) |  | Total count of events in this aggregation time window. |
-
-<a name="tetragon-AggregationOptions"></a>
-
-### AggregationOptions
-AggregationOptions defines configuration options for aggregating events.
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| window_size | [google.protobuf.Duration](#google-protobuf-Duration) |  | Aggregation window size. Defaults to 15 seconds if this field is not set. |
-| channel_buffer_size | [uint64](#uint64) |  | Size of the buffer for the aggregator to receive incoming events. If the buffer becomes full, the aggregator will log a warning and start dropping incoming events. |
-
 <a name="tetragon-CapFilter"></a>
 
 ### CapFilter
@@ -1071,7 +1052,6 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | ----- | ---- | ----- | ----------- |
 | allow_list | [Filter](#tetragon-Filter) | repeated | allow_list specifies a list of filters to apply to only return certain events. If multiple filters are specified, at least one of them has to match for an event to be included in the results. |
 | deny_list | [Filter](#tetragon-Filter) | repeated | deny_list specifies a list of filters to apply to exclude certain events from the results. If multiple filters are specified, at least one of them has to match for an event to be excluded. If both allow_list and deny_list are specified, the results contain the set difference allow_list - deny_list. |
-| aggregation_options | [AggregationOptions](#tetragon-AggregationOptions) |  | aggregation_options configures aggregation options for this request. If this field is not set, responses will not be aggregated. Note that currently only process_accept and process_connect events are aggregated. Other events remain unaggregated. |
 | field_filters | [FieldFilter](#tetragon-FieldFilter) | repeated | Fields to include or exclude for events in the GetEventsResponse. Omitting this field implies that all fields will be included. Exclusion always takes precedence over inclusion in the case of conflicts. |
 
 <a name="tetragon-GetEventsResponse"></a>
@@ -1092,8 +1072,7 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | test | [Test](#tetragon-Test) |  |  |
 | rate_limit_info | [RateLimitInfo](#tetragon-RateLimitInfo) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
-| time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Timestamp at which this event was observed. For an aggregated response, this field to set to the timestamp at which the event was observed for the first time in a given aggregation time window. |
-| aggregation_info | [AggregationInfo](#tetragon-AggregationInfo) |  | aggregation_info contains information about aggregation results. This field is set only for aggregated responses. |
+| time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Timestamp at which this event was observed. |
 | cluster_name | [string](#string) |  | Name of the cluster where this event was observed. |
 | node_labels | [GetEventsResponse.NodeLabelsEntry](#tetragon-GetEventsResponse-NodeLabelsEntry) | repeated | Labels associated with the node where this event was observed. |
 
