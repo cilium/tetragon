@@ -7,11 +7,9 @@ package verify
 
 import (
 	"errors"
-	"fmt"
-	"log"
+	"flag"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -21,25 +19,23 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/selectors"
 )
 
-const (
-	tetragondir = "/var/lib/tetragon"
+var (
+	tetragonDir = flag.String("tetragon-dir", defaults.DefaultTetragonLib, "Directory containing Tetragon BPF objects")
+	debug       = flag.Bool("debug", false, "Enable debug output")
 )
 
 func TestVerifyTetragonPrograms(t *testing.T) {
-
-	tetragonDir := os.Getenv("TETRAGONDIR")
-	if tetragonDir == "" {
-		tetragonDir = tetragondir
-	}
-
-	files, err := os.ReadDir(tetragonDir)
+	files, err := os.ReadDir(*tetragonDir)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		t.Fatalf("error: %v", err)
 	}
+
+	selectedFiles := selectKernelVersionFilesForTest(t, files)
 
 	for _, file := range files {
 		fileName := file.Name()
@@ -52,11 +48,6 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			continue
 		}
 
-		// Globals is just for testing, so ignore it
-		if strings.HasPrefix(fileName, "bpf_alignchecker") {
-			continue
-		}
-
 		// Generic tracepoint needs more complex userspace logic to load, so ignore it
 		if strings.HasPrefix(fileName, "bpf_generic_tracepoint") {
 			continue
@@ -64,49 +55,51 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 
 		// Multi kprobe support is still not widely around, skip the object
 		if strings.HasPrefix(fileName, "bpf_multi_") {
+			t.Logf("%s ⊘ (multi-kprobe)", fileName)
 			continue
 		}
 
 		// Can't load fentry/fexit objects without loader setup
 		if strings.HasPrefix(fileName, "bpf_generic_fentry") ||
 			strings.HasPrefix(fileName, "bpf_generic_fexit") {
-			continue
-		}
-
-		// Skip v6.1 objects check for kernel < 6.1
-		if strings.HasSuffix(fileName, "61.o") && !kernels.MinKernelVersion("6.1") {
-			continue
-		}
-
-		// Skip v5.11 objects check for kernel < 5.11
-		if strings.HasSuffix(fileName, "511.o") && !kernels.MinKernelVersion("5.11") {
+			t.Logf("%s ⊘ (fentry/fexit)", fileName)
 			continue
 		}
 
 		// Skip rhel7 objects, it's special
 		if strings.HasSuffix(fileName, "310.o") {
+			t.Logf("%s ⊘ (rhel7)", fileName)
+			continue
+		}
+
+		// Skip kernel version-specific objects if not selected for current kernel
+		if selectedFiles != nil && extractKernelVersion(fileName) != "" && !selectedFiles[fileName] {
 			continue
 		}
 
 		// Skip bpf_loader for kernel < 5.19
 		if strings.HasPrefix(fileName, "bpf_loader") && !kernels.MinKernelVersion("5.19") {
+			t.Logf("%s ⊘ (requires kernel 5.19)", fileName)
 			continue
 		}
 
 		// Generic LSM BPF needs more complex userspace logic to load, so ignore it
 		if strings.HasPrefix(fileName, "bpf_generic_lsm") {
+			t.Logf("%s ⊘ (lsm)", fileName)
 			continue
 		}
 
 		// Check if bpf_override_return is available
 		if strings.HasPrefix(fileName, "bpf_generic_kprobe") || strings.HasPrefix(fileName, "bpf_enforcer") {
 			if err := features.HaveProgramHelper(ebpf.Kprobe, asm.FnOverrideReturn); err != nil {
+				t.Logf("%s ⊘ (no bpf_override_return)", fileName)
 				continue
 			}
 		}
 
 		// Check if uprobe regs change is available
 		if strings.HasPrefix(fileName, "bpf_generic_uprobe") && !bpf.HasUprobeRegsChange() {
+			t.Logf("%s ⊘ (no uprobe regs change)", fileName)
 			continue
 		}
 
@@ -114,19 +107,13 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		if (strings.HasPrefix(fileName, "bpf_generic_uprobe") ||
 			strings.HasPrefix(fileName, "bpf_generic_usdt")) &&
 			!bpf.HasKfunc("bpf_copy_from_user_str") {
+			t.Logf("%s ⊘ (no bpf_copy_from_user_str)", fileName)
 			continue
 		}
 
-		spec, err := ebpf.LoadCollectionSpec(tetragonDir + "/" + fileName)
+		spec, err := ebpf.LoadCollectionSpec(*tetragonDir + "/" + fileName)
 		require.NoError(t, err, "failed to parse elf file into collection spec")
 		require.NotNil(t, spec, "collection spec should not be nil")
-
-		if isDebugEnabled() {
-			fmt.Printf("[%s]\n", fileName)
-			for _, progSpec := range spec.Programs {
-				fmt.Printf("%s\n", progSpec.Instructions.String())
-			}
-		}
 
 		if strings.HasPrefix(fileName, "bpf_generic_kprobe") {
 			if fileName != "bpf_generic_kprobe.o" { // 4.19 version does not need to be rewritten
@@ -143,21 +130,15 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		collection, err := ebpf.NewCollection(spec)
 		if err != nil {
 			var ve *ebpf.VerifierError
-			if errors.As(err, &ve) {
-				fmt.Printf("%+v\n", ve)
-
-				_, kver, _ := kernels.GetKernelVersion("", "/proc")
-				fmt.Printf("failed object %s, kernel %s\n", fileName, kver)
+			if errors.As(err, &ve) && *debug {
+				t.Logf("%+v", ve)
 			}
+			_, kver, _ := kernels.GetKernelVersion("", "/proc")
+			t.Errorf("%s ✗: failed to load object on kernel %s: %v", fileName, kver, err)
+			continue
 		}
 
-		require.NoError(t, err, "failed to load resources into the kernel")
-
 		collection.Close()
+		t.Logf("%s ✓", fileName)
 	}
-}
-
-func isDebugEnabled() bool {
-	debug, err := strconv.ParseBool(os.Getenv("DEBUG"))
-	return err == nil && debug
 }
