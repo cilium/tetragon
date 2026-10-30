@@ -6,6 +6,8 @@ package procevents
 import (
 	"bytes"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -27,6 +29,13 @@ import (
 const (
 	kernelPid = uint32(0)
 )
+
+type procReader interface {
+	scan(string) ([]procs, map[uint32]struct{}, error)
+	enabled() bool
+}
+
+var procReaders = make(map[string]procReader)
 
 func stringToUTF8(s []byte) []byte {
 	var utf8Cursor int
@@ -69,6 +78,14 @@ type procs struct {
 	cgroupNs          uint32
 	userNs            uint32
 	kernelThread      bool
+	// scanned is set if the process was found by the BPF scan, which also
+	// provides the fields below, otherwise they are read from procfs when
+	// pushing the event.
+	scanned  bool
+	cwd      string
+	cwdFlags uint32
+	dockerId string
+	cgrpid   uint64
 }
 
 func procFilename(p *procs) string {
@@ -124,12 +141,15 @@ func procArgs(p *procs) string {
 	return args.String()
 }
 
-func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
+func pushExecveEvents(procPath string, p procs, inInitTreeMap map[uint32]struct{}) {
 	var err error
 
 	filename := procFilename(&p)
 	args := procArgs(&p)
-	cwd, flags := getCWD(p.pid)
+	cwd, flags := p.cwd, p.cwdFlags
+	if !p.scanned {
+		cwd, flags = getCWD(procPath, p.pid)
+	}
 
 	if p.kernelThread {
 		m := exec.MsgKThreadInitUnix{}
@@ -162,7 +182,11 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 		m.Unix.Msg.Common.Op = ops.MSG_OP_EXECVE
 
 		m.Unix.Msg.Kube.Cgrpid = 0
-		if p.pid > 0 {
+		if p.scanned {
+			m.Unix.Kube.Docker = p.dockerId
+			m.Unix.Msg.Kube.Cgrpid = p.cgrpid
+			m.Unix.Kube.Cgrpid = p.cgrpid
+		} else if p.pid > 0 {
 			m.Unix.Kube.Docker, err = procsDockerId(p.pid)
 			if err != nil {
 				logger.GetLogger().Warn("Procfs execve event pods/ identifier error", logfields.Error, err)
@@ -234,25 +258,38 @@ func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 	}
 }
 
-func pushEvents(ps []procs) {
-	inInitTreeMap := writeExecveMap(ps)
-
+func pushEvents(procPath string, ps []procs, inInitTreeMap map[uint32]struct{}) {
 	sort.Slice(ps, func(i, j int) bool {
 		return ps[i].ppid < ps[j].ppid
 	})
 	ps = append([]procs{procKernel()}, ps...)
 	for _, p := range ps {
-		pushExecveEvents(p, inInitTreeMap)
+		pushExecveEvents(procPath, p, inInitTreeMap)
 	}
 }
 
 func GetRunningProcs() error {
-	procs, err := listRunningProcs(option.Config.ProcFS)
-	if err != nil {
-		logger.GetLogger().Error(fmt.Sprintf("Failed to list running processes from '%s'", option.Config.ProcFS), logfields.Error, err)
-		return err
+	var processes []procs
+	var inInitTreeMap map[uint32]struct{}
+	var err error
+
+	// Prefer the BPF scan, which also fills execve_map, fall back to
+	// procfs if it is not available.
+	sortedKeys := slices.Sorted(maps.Keys(procReaders))
+	for _, key := range sortedKeys {
+		reader := procReaders[key]
+		if !reader.enabled() {
+			continue
+		}
+		processes, inInitTreeMap, err = reader.scan(option.Config.ProcFS)
+		if err == nil {
+			break
+		}
+		logger.GetLogger().Error(fmt.Sprintf("Failed to list running processes via %s from %q", key, option.Config.ProcFS), logfields.Error, err)
 	}
 
-	pushEvents(procs)
-	return nil
+	if err == nil {
+		pushEvents(option.Config.ProcFS, processes, inInitTreeMap)
+	}
+	return err
 }

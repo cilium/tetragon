@@ -20,3 +20,7 @@ func IsFork(p *program.Program) bool {
 func IsExit(p *program.Program) bool {
 	return p.PinName == "event_exit" && p.Policy == sensors.BaseSensorName
 }
+
+func IsProcScan(p *program.Program) bool {
+	return p.PinName == "proc_scan" && p.Policy == sensors.BaseSensorName
+}
