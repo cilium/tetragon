@@ -11,7 +11,7 @@ metadata:
     {{- with .Values.rthooks.extraLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  name: {{ include "tetragon-rthooks.name" . }}
+  name: {{ include "tetragon-rthooks.name" . | quote }}
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
@@ -38,7 +38,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.rthooks.serviceAccount.name }}
-      serviceAccountName: {{ . }}
+      serviceAccountName: {{ . | quote }}
       {{- end }}
       {{- with .Values.rthooks.podSecurityContext }}
       securityContext:

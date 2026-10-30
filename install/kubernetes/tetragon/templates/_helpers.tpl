@@ -98,17 +98,17 @@ ServiceAccounts
 */}}
 {{- define "tetragon.serviceAccount" -}}
 {{- if .Values.serviceAccount.name -}}
-{{- printf "%s" .Values.serviceAccount.name -}}
+{{- printf "%v" .Values.serviceAccount.name | quote -}}
 {{- else -}}
-{{- include "tetragon.name" . -}}
+{{- include "tetragon.name" . | quote -}}
 {{- end -}}
 {{- end }}
 
 {{- define "tetragon-operator.serviceAccount" -}}
 {{- if .Values.tetragonOperator.serviceAccount.name -}}
-{{- printf  "%s" .Values.tetragonOperator.serviceAccount.name -}}
+{{- printf "%v" .Values.tetragonOperator.serviceAccount.name | quote -}}
 {{- else -}}
-{{- printf  "%s-service-account" (include "tetragon-operator.name" .) -}}
+{{- printf "%s-service-account" (include "tetragon-operator.name" .) | quote -}}
 {{- end -}}
 {{- end }}
 

@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ include "tetragon.name" . }}-certgen
+  name: {{ printf "%s-certgen" (include "tetragon.name" .) | quote }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "tetragon-certgen.labels" . | nindent 4 }}
@@ -13,11 +13,11 @@ rules:
   - apiGroups: [""]
     resources: ["secrets"]
     resourceNames:
-      - {{ include "tetragon.grpcTlsSecretName" . }}
+      - {{ include "tetragon.grpcTlsSecretName" . | quote }}
     verbs: ["get", "update"]
   - apiGroups: [""]
     resources: ["secrets"]
     resourceNames:
-      - {{ include "tetragon.caSecretName" . }}
+      - {{ include "tetragon.caSecretName" . | quote }}
     verbs: ["get", "update"]
 {{- end }}
