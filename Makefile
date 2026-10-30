@@ -250,7 +250,7 @@ tarball-clean:
 
 .PHONY: tester-progs-tarball ## Buld Tetragon tester progs tarball
 tester-progs-tarball: tester-progs
-	tar -C contrib/tester-progs -cvzf tester-progs.tar.gz --transform 's:^:tester-progs/:' $(shell make -s -C contrib/tester-progs all-files)
+	tar -C contrib/tester-progs -cvzf tester-progs.tar.gz --owner=0 --group=0 --numeric-owner --transform 's:^:tester-progs/:' $(shell make -s -C contrib/tester-progs all-files)
 
 
 ##@ Test

@@ -189,7 +189,7 @@ jobs:
         run: |
           status=0
           tests=$(tetra policytest list | awk '$1 != "tracepoint-exec" {print $1}')
-          sudo tetra policytest run $tests --output-file /tmp/tetragon.policytest.txt || status=$?
+          sudo tetra policytest run --bindir "$PWD/contrib/tester-progs" $tests --output-file /tmp/tetragon.policytest.txt || status=$?
           cat /tmp/tetragon.policytest.txt
           exit $status
 
