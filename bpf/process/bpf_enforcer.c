@@ -7,6 +7,7 @@ FUNC_INLINE int do_enforcer(void *ctx)
 {
 	__u64 id = get_current_pid_tgid();
 	struct enforcer_data *data;
+	__s16 error;
 
 	data = map_lookup_elem(&enforcer_data, &id);
 	if (!data)
@@ -15,8 +16,10 @@ FUNC_INLINE int do_enforcer(void *ctx)
 	if (data->signal)
 		send_signal(data->signal);
 
+	/* data points into the map entry, so read it before deleting it */
+	error = data->error;
 	map_delete_elem(&enforcer_data, &id);
-	return data->error;
+	return error;
 }
 
 #if defined(__BPF_OVERRIDE_RETURN)

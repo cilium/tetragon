@@ -200,12 +200,14 @@ __attribute__((section("fmod_ret/security_task_prctl"), used)) long
 generic_fmodret_override(void *ctx)
 {
 	__u64 id = get_current_pid_tgid();
-	__s32 *error;
+	__s32 *error, ret;
 
 	error = map_lookup_elem(&override_tasks, &id);
 	if (!error)
 		return 0;
 
+	/* error points into the map entry, so read it before deleting it */
+	ret = *error;
 	map_delete_elem(&override_tasks, &id);
-	return (long)*error;
+	return (long)ret;
 }
