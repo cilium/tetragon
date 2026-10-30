@@ -231,11 +231,11 @@ tarball: tarball-clean image ## Build Tetragon compressed tarball.
 	tar xC $(BUILD_PKG_DIR)/docker/ -f $(BUILD_PKG_DIR)/tetragon-$(VERSION)-$(TARGET_ARCH).tmp.tar
 	sync $(BUILD_PKG_DIR)/docker/manifest.json
 	cat $(BUILD_PKG_DIR)/docker/manifest.json
-	cp "${BUILD_PKG_DIR}/docker/$$(jq -r '.[].Layers[0]' "${BUILD_PKG_DIR}/docker/manifest.json")" ${BUILD_PKG_DIR}/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar
-	@tar -tf ${BUILD_PKG_DIR}/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar | grep "/usr/local/bin/tetragon" - \
-		|| (echo "make: '$@' Error: could not find tetragon inside generated tarball"; exit 1)
+	gzip -dcf "${BUILD_PKG_DIR}/docker/$$(jq -r '.[].Layers[0]' "${BUILD_PKG_DIR}/docker/manifest.json")" > ${BUILD_PKG_DIR}/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar
 	$(QUIET)rm -fr $(BUILD_PKG_DIR)/tetragon-$(VERSION)-$(TARGET_ARCH).tmp.tar
 	gzip -6 $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar
+	@tar -tzf ${BUILD_PKG_DIR}/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz | grep "/usr/local/bin/tetragon" - \
+		|| (echo "make: '$@' Error: could not find tetragon inside generated tarball"; exit 1)
 	@echo "Tetragon tarball is ready: $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz"
 
 .PHONY: tarball-release
