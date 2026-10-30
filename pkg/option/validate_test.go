@@ -34,6 +34,65 @@ func TestValidateProcessCacheConfig(t *testing.T) {
 	}
 }
 
+func TestValidateExclusiveFlags(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		c       config
+		wantErr bool
+	}{
+		{name: "defaults", c: config{}},
+		{name: "rb size only", c: config{RBSize: 1}},
+		{name: "rb size total only", c: config{RBSizeTotal: 1}},
+		{name: "rb size and total", c: config{RBSize: 1, RBSizeTotal: 1}, wantErr: true},
+		{name: "execve map entries only", c: config{ExecveMapEntries: 1}},
+		{name: "execve map size only", c: config{ExecveMapSize: "1M"}},
+		{name: "execve map entries and size", c: config{ExecveMapEntries: 1, ExecveMapSize: "1M"}, wantErr: true},
+		{name: "parents map entries only", c: config{ParentsMapEntries: 1}},
+		{name: "parents map size only", c: config{ParentsMapSize: "1M"}},
+		{name: "parents map entries and size", c: config{ParentsMapEntries: 1, ParentsMapSize: "1M"}, wantErr: true},
+		{name: "small progs only", c: config{ForceSmallProgs: true}},
+		{name: "large progs only", c: config{ForceLargeProgs: true}},
+		{name: "small and large progs", c: config{ForceSmallProgs: true, ForceLargeProgs: true}, wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := validateExclusiveFlags(tc.c)
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateProcessEnvConfig(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name       string
+		c          config
+		largeProgs bool
+		wantErr    bool
+	}{
+		{name: "env vars disabled, small progs", c: config{}},
+		{name: "env vars enabled, large progs", c: config{EnableProcessEnvironmentVariables: true}, largeProgs: true},
+		{name: "env vars enabled, small progs", c: config{EnableProcessEnvironmentVariables: true}, wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := validateProcessEnvConfig(tc.c, func() bool { return tc.largeProgs })
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateServerTLSConfig(t *testing.T) {
 	t.Parallel()
 	const tcp = "0.0.0.0:54321"

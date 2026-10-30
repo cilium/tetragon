@@ -321,22 +321,6 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		return err
 	}
 
-	if option.Config.RBSize != 0 && option.Config.RBSizeTotal != 0 {
-		logger.Fatal(log, "Can't specify --rb-size and --rb-size-total together")
-	}
-
-	if option.Config.ExecveMapEntries != 0 && len(option.Config.ExecveMapSize) != 0 {
-		logger.Fatal(log, "Can't specify --execve-map-entries and --execve-map-size together")
-	}
-
-	if option.Config.ParentsMapEntries != 0 && len(option.Config.ParentsMapSize) != 0 {
-		logger.Fatal(log, "Can't specify --parents-map-entries and --parents-map-size together")
-	}
-
-	if option.Config.EnableProcessEnvironmentVariables && !config.EnableLargeProgs() {
-		logger.Fatal(log, "Can't specify --enable-process-environment-variables on early kernels (<v5.3)")
-	}
-
 	// enable extra programs/maps loading debug output
 	if logger.GetLogger().Enabled(ctx, slog.LevelDebug) {
 		option.Config.KeepCollection = true
@@ -365,10 +349,6 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	defer pidfile.Delete()
 
 	log.Info("Tetragon pid file creation succeeded", "pid", pid, "pidfile", defaults.DefaultPidFile)
-
-	if option.Config.ForceLargeProgs && option.Config.ForceSmallProgs {
-		logger.Fatal(log, "Can't specify --force-small-progs and --force-large-progs together")
-	}
 
 	if option.Config.ForceLargeProgs {
 		log.Info("Force loading large programs")

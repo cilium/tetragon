@@ -396,6 +396,14 @@ func ReadAndSetFlags() error {
 		return err
 	}
 
+	if err := validateExclusiveFlags(Config); err != nil {
+		return err
+	}
+
+	if err := validateProcessEnvConfig(Config, EnableLargeProgs); err != nil {
+		return err
+	}
+
 	// Wire up KeyBpfDebugArea viper config to sliceEnum
 	if viper.GetString(KeyBpfDebugArea) != "" {
 		for _, area := range viper.GetStringSlice(KeyBpfDebugArea) {
@@ -454,6 +462,33 @@ func serverAddressUsesTCP(addr string) bool {
 	// only non-TCP form we accept; everything else is treated as a host
 	// or host:port for net.Listen("tcp", ...).
 	return !strings.HasPrefix(addr, "unix://")
+}
+
+// validateExclusiveFlags rejects flag pairs that set the same thing in two
+// ways, where honoring one would silently ignore the other.
+func validateExclusiveFlags(c config) error {
+	if c.RBSize != 0 && c.RBSizeTotal != 0 {
+		return fmt.Errorf("--%s cannot be used together with --%s", KeyRBSize, KeyRBSizeTotal)
+	}
+	if c.ExecveMapEntries != 0 && c.ExecveMapSize != "" {
+		return fmt.Errorf("--%s cannot be used together with --%s", KeyExecveMapEntries, KeyExecveMapSize)
+	}
+	if c.ParentsMapEntries != 0 && c.ParentsMapSize != "" {
+		return fmt.Errorf("--%s cannot be used together with --%s", KeyParentsMapEntries, KeyParentsMapSize)
+	}
+	if c.ForceSmallProgs && c.ForceLargeProgs {
+		return fmt.Errorf("--%s cannot be used together with --%s", KeyForceSmallProgs, KeyForceLargeProgs)
+	}
+	return nil
+}
+
+// validateProcessEnvConfig rejects --enable-process-environment-variables
+// when the large BPF programs that read the environment can't be loaded.
+func validateProcessEnvConfig(c config, largeProgs func() bool) error {
+	if c.EnableProcessEnvironmentVariables && !largeProgs() {
+		return fmt.Errorf("--%s needs large BPF programs: kernel v5.3 or later and no --%s", KeyEnableProcessEnvironmentVariables, KeyForceSmallProgs)
+	}
+	return nil
 }
 
 // validateProcessCacheConfig rejects --enable-ancestors when the process
