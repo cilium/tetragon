@@ -324,7 +324,7 @@ execve_send_event(struct bpf_raw_tracepoint_args *ctx,
 		/* if this exec event preceds a clone, initialize  capabilities
 		 * and namespaces as well.
 		 */
-		if (curr->flags == EVENT_COMMON_FLAG_CLONE)
+		if (curr->flags & EVENT_COMMON_FLAG_CLONE)
 			init_curr = 1;
 #endif
 		curr->key.pid = p->pid;
