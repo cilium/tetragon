@@ -43,7 +43,7 @@ tetragon:
   image:
     override: ~
     repository: quay.io/cilium/tetragon
-    tag: v1.7.1
+    tag: v1.18.0
   resources: {}
   extraArgs: {}
   extraEnv: []
@@ -422,7 +422,7 @@ tetragonOperator:
   image:
     override: ~
     repository: quay.io/cilium/tetragon-operator
-    tag: v1.7.1
+    tag: v1.18.0
     pullPolicy: IfNotPresent
   # -- Extra volumes for the Tetragon Operator Deployment.
   extraVolumes: []
@@ -594,7 +594,6 @@ rthooks:
     enabled: true
     # -- resources for the exportLogs sidecar.
     resources: {}
-
 # -- cilium-certgen settings used by tetragon.grpc.tls.auto.method=cronJob.
 # Mirrors the same block in cilium/cilium so operators familiar with the
 # hubble TLS workflow find consistent knobs.
