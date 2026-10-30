@@ -78,14 +78,14 @@ void update_mb_task(struct execve_map_value *task, struct binary *bin)
 	if (CONFIG(ITER_NUM)) {
 		bpf_repeat(100000)
 		{
-			parent = __update_mb_task(task, bin);
+			parent = __update_mb_task(parent, bin);
 			if (!parent || parent == last)
 				break;
 			last = parent;
 		}
 	} else {
 		for (int i = 0; i < 1024; i++) {
-			parent = __update_mb_task(task, bin);
+			parent = __update_mb_task(parent, bin);
 			if (!parent || parent == last)
 				break;
 			last = parent;
