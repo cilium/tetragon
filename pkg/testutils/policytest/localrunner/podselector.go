@@ -3,7 +3,7 @@
 
 //go:build !windows
 
-package policytest
+package localrunner
 
 import (
 	"errors"
@@ -12,12 +12,13 @@ import (
 	"sigs.k8s.io/yaml"
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
 var errPodSelectorSet = errors.New("policy already has a podSelector")
 
-func injectPodSelector(tp tracingpolicy.TracingPolicy, labels map[string]string) (Policy, error) {
+func injectPodSelector(tp tracingpolicy.TracingPolicy, labels map[string]string) (policytest.Policy, error) {
 	if tp.TpSpec().PodSelector != nil {
 		return "", errPodSelectorSet
 	}
@@ -26,5 +27,5 @@ func injectPodSelector(tp tracingpolicy.TracingPolicy, labels map[string]string)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal policy: %w", err)
 	}
-	return Policy(out), nil
+	return policytest.Policy(out), nil
 }
