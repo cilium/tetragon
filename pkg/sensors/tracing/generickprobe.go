@@ -818,6 +818,9 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 			if !config.EnableLargeProgs() {
 				logger.GetLogger().Warn("maxData flag is ignored (supported from large programs)")
 			}
+			if a.ReturnCopy {
+				logger.GetLogger().Warn("maxData flag is ignored (not supported with returnCopy)")
+			}
 		}
 		argMValue, err := getMetaValue(a)
 		if err != nil {
@@ -836,11 +839,15 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 		eventConfig.ArgIndex[j] = int32(a.Index)
 		eventConfig.RegArg[j] = regArg
 
+		// With returnCopy, the entry event only carries CharBufSavedForRetprobe
+		// and the buffer is copied on return without maxData. Without large
+		// programs, BPF ignores maxData.
+		maxData := a.MaxData && !argReturnCopy(argMValue) && config.EnableLargeProgs()
 		argP := argPrinter{
 			index:    j,
 			ty:       argType,
 			userType: userArgType,
-			maxData:  a.MaxData,
+			maxData:  maxData,
 			label:    a.Label,
 			data:     data,
 		}
