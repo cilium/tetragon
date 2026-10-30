@@ -525,6 +525,10 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 				argType = findTypeFromBTFType(&arg, lastBTFType)
 			}
 
+			if arg.MaxData {
+				logger.GetLogger().Warn("maxData flag is ignored (not supported for usdts)")
+			}
+
 			if tgtArg.Signed {
 				cfgArg.Signed = 1
 			} else {
