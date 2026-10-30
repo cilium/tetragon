@@ -993,23 +993,58 @@ TracingPolicy object's `spec.state` field.
 
 A missing state matches only the “not” variants of operators, such as `NotEqual`.
 
+The following example uses a decoy secret to trigger enforcement after suspicious
+activity, like opening all files in `/run/secrets/`. Opening `/run/secrets/decoy-key` in a pod labeled `app: canary-demo` sets
+`canary` to `1`. Subsequent `connect(2)` calls from any matching pod on the same node are denied with `EPERM` to hinder secret exfiltration.
+
+See the [UpdateState action](#updatestate-action) section for details on setting
+and deleting state through `matchActions`.
+
 ```yaml
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "kprobe-state"
+  name: "canary-block-connect"
 spec:
+  podSelector:
+    matchLabels:
+      app: "canary-demo"
   state:
-  - name: "deny_open"
+  - name: "canary"
   kprobes:
-  - call: "sys_pwrite64"
+  - call: "security_file_open"
+    syscall: false
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values:
+        - "/run/secrets/decoy-key"
+      matchActions:
+      - action: UpdateState
+        state:
+          name: "canary"
+          operator: Set
+          value: "1"
+      - action: Post
+  - call: "sys_connect"
     syscall: true
     selectors:
     - matchStates:
-      - name: "deny_open"
+      - name: "canary"
         operator: Equal
         value: "1"
+      matchActions:
+      - action: Override
+        argError: -1
 ```
+
+{{< caution >}}
+This example is not a production policy and has obvious gaps in coverage.
+{{< /caution >}}
 
 Currently, `matchStates` supports the following operators:
 `Equal`, `NotEqual`.
