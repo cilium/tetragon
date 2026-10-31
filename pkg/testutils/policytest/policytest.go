@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cast"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/tetragoninfo"
 )
@@ -95,15 +97,29 @@ func formatCLIFlagValue(value any) string {
 }
 
 // cliFlagValuesEqual compares a required CLI flag value with the value reported
-// by the agent, normalizing type differences introduced by protobuf decoding.
+// by the agent. Protobuf decoding changes number types, and viper reports some
+// values, such as those from the config directory, as strings.
 func cliFlagValuesEqual(actual, expected any) bool {
 	if reflect.DeepEqual(actual, expected) {
 		return true
 	}
 	switch expected := expected.(type) {
+	case bool:
+		actualString, ok := actual.(string)
+		if !ok {
+			return false
+		}
+		actualBool, err := strconv.ParseBool(actualString)
+		return err == nil && actualBool == expected
 	case int:
-		actual, ok := actual.(int64)
-		return ok && actual == int64(expected)
+		switch actual := actual.(type) {
+		case int64:
+			return actual == int64(expected)
+		case string:
+			actualInt, err := cast.ToIntE(actual)
+			return err == nil && actualInt == expected
+		}
+		return false
 	case float64:
 		actualString, ok := actual.(string)
 		if !ok {
@@ -119,6 +135,8 @@ func cliFlagValuesEqual(actual, expected any) bool {
 		actualDuration, err := time.ParseDuration(actualString)
 		return err == nil && actualDuration == expected
 	case []int:
+		// viper.GetIntSlice ignores strings such as "42,43", so the agent does
+		// not use them either.
 		actual, ok := actual.([]any)
 		if !ok || len(actual) != len(expected) {
 			return false
