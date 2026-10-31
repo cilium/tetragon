@@ -23,8 +23,19 @@ RUN if [ "$COMPRESS_BPF" = "gzip" ]; then gzip bpf/objs/*.o; fi
 # Second builder (cross-)compile tetragon and tetra
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27.3@sha256:957861185dbf29d93668ace41e011d091c6e779953d47f0316ef2cc58e28fe2b AS tetragon-builder
 WORKDIR /go/src/github.com/cilium/tetragon
-ARG TETRAGON_VERSION TARGETARCH
+ARG TETRAGON_VERSION TARGETARCH BUILDARCH
+RUN apt-get update && apt-get install -y --no-install-recommends openjdk-21-jdk-headless \
+    && if [ "$BUILDARCH" != "$TARGETARCH" ] && [ "$TARGETARCH" = "arm64" ]; then apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu; fi \
+    && if [ "$BUILDARCH" != "$TARGETARCH" ] && [ "$TARGETARCH" = "amd64" ]; then apt-get install -y --no-install-recommends gcc-x86-64-linux-gnu; fi \
+    && rm -rf /var/lib/apt/lists/*
 COPY . .
+RUN if [ "$BUILDARCH" != "$TARGETARCH" ] && [ "$TARGETARCH" = "arm64" ]; then \
+      make -C pkg/javaattach/agent CC=aarch64-linux-gnu-gcc JAVA_HOME="$(dirname $(dirname $(readlink -f $(command -v javac))))"; \
+    elif [ "$BUILDARCH" != "$TARGETARCH" ] && [ "$TARGETARCH" = "amd64" ]; then \
+      make -C pkg/javaattach/agent CC=x86_64-linux-gnu-gcc JAVA_HOME="$(dirname $(dirname $(readlink -f $(command -v javac))))"; \
+    else \
+      make -C pkg/javaattach/agent CC=gcc JAVA_HOME="$(dirname $(dirname $(readlink -f $(command -v javac))))"; \
+    fi
 RUN --mount=type=cache,target=/go/pkg/mod \ 
     --mount=type=cache,target=/root/.cache/go-build \
     make VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH tetragon tetra
@@ -96,11 +107,13 @@ RUN apk add --no-cache bash-completion && \
 FROM docker.io/library/alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS base-build
 RUN apk add --no-cache iproute2
 RUN mkdir /var/lib/tetragon/ && \
+    mkdir -p /usr/lib/tetragon/ && \
     mkdir -p /etc/tetragon/tetragon.conf.d/ && \
     mkdir -p /etc/tetragon/tetragon.tp.d/ && \
     apk add --no-cache --update bash
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetragon /usr/bin/
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/
+COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/pkg/javaattach/agent/tetragon-jvmti.so /usr/lib/tetragon/tetragon-jvmti.so
 COPY --from=gops /gops/gops /usr/bin/
 COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/* /var/lib/tetragon/
 COPY --from=cli-autocomplete /etc/bash/bash_completion.sh /etc/bash/bash_completion.sh
