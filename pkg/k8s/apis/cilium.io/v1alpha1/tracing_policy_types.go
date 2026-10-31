@@ -82,24 +82,30 @@ func (tp *TracingPolicyNamespaced) TpNamespace() string {
 
 type TracingPolicySpec struct {
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=128
 	// A list of kprobe specs.
 	KProbes []KProbeSpec `json:"kprobes,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=128
 	// A list of tracepoint specs.
 	Tracepoints []TracepointSpec `json:"tracepoints,omitempty"`
 	// +kubebuilder:validation:Optional
 	// Enable loader events
 	Loader bool `json:"loader,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=128
 	// A list of uprobe specs.
 	UProbes []UProbeSpec `json:"uprobes,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=128
 	// A list of uprobe specs.
 	LsmHooks []LsmHookSpec `json:"lsmhooks,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=128
 	// A list of usdt specs.
 	Usdts []UsdtSpec `json:"usdts,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=128
 	// A list of fentry specs.
 	Fentries []KProbeSpec `json:"fentries,omitempty"`
 
@@ -146,6 +152,7 @@ type TracingPolicySpec struct {
 	Options []OptionSpec `json:"options,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxProperties=128
 	// SelectorsMacros is used to define selectors macros, which can be used
 	// in probes/hooks selectors by their names.
 	SelectorsMacros map[string]KProbeSelector `json:"selectorsMacros,omitempty"`
