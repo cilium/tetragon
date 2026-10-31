@@ -1,0 +1,62 @@
+version: "2"
+linters:
+  enable:
+    - errorlint
+    - forbidigo
+    - gocritic
+    - godot
+    - misspell
+    - modernize
+    - perfsprint
+    - revive
+    - testifylint
+  settings:
+    forbidigo:
+      forbid:
+        - pattern: ^fmt\.Print.*$
+          msg: Do not commit print statements.
+    gocritic:
+      enable-all: true
+      disabled-checks:
+        - commentFormatting
+        - commentedOutCode
+        - deferInLoop
+        - filepathJoin
+        - hugeParam
+        - importShadow
+        - paramTypeCombine
+        - rangeValCopy
+        - tooManyResultsChecker
+        - unnamedResult
+        - whyNoLint
+    godot:
+      exclude:
+        # Ignore "See: URL".
+        - 'See:'
+      capital: true
+    misspell:
+      locale: US
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    warn-unused: true
+formatters:
+  enable:
+    - gci
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/prometheus/procfs)
+    gofumpt:
+      extra:
+        group-params: true
+    goimports:
+      local-prefixes:
+        - github.com/prometheus/procfs

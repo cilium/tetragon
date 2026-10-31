@@ -497,6 +497,10 @@ crds: ## Generate kubebuilder files.
 	$(MAKE) -C install/kubernetes tetragon/crds-yaml tetragon/schemas
 	$(MAKE) tracing-policy-docs
 
+.PHONY: cel-cost
+cel-cost: crds ## Generate the TracingPolicy CEL cost report.
+	$(GO) run -mod=vendor ./tools/cel-cost/main.go
+
 .PHONY: vendor
 vendor: ## Tidy and vendor Go modules.
 	$(MAKE) -C api vendor
@@ -630,4 +634,3 @@ version: ## Print Tetragon version.
 
 chart-version: ## Print Tetragon OCI Helm chart version.
 	@echo $(VERSION) | sed 's/^v\(.*\)/\1/'
-
