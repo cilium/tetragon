@@ -650,6 +650,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchArgs": {
@@ -1295,6 +1296,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchReturnArgs": {
@@ -1627,6 +1629,7 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "maxItems": 5,
                 "type": "array"
               },
               "syscall": {
@@ -1655,6 +1658,7 @@
             ],
             "additionalProperties": false
           },
+          "maxItems": 128,
           "type": "array"
         },
         "hostSelector": {
@@ -2279,6 +2283,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchArgs": {
@@ -2924,6 +2929,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchReturnArgs": {
@@ -3256,6 +3262,7 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "maxItems": 5,
                 "type": "array"
               },
               "syscall": {
@@ -3284,6 +3291,7 @@
             ],
             "additionalProperties": false
           },
+          "maxItems": 128,
           "type": "array"
         },
         "lists": {
@@ -3632,6 +3640,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchArgs": {
@@ -4277,6 +4286,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchReturnArgs": {
@@ -4609,6 +4619,7 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "maxItems": 5,
                 "type": "array"
               },
               "tags": {
@@ -4626,6 +4637,7 @@
             "type": "object",
             "additionalProperties": false
           },
+          "maxItems": 128,
           "type": "array"
         },
         "nodeSelector": {
@@ -4928,6 +4940,7 @@
                   ],
                   "additionalProperties": false
                 },
+                "maxItems": 3,
                 "type": "array"
               },
               "matchArgs": {
@@ -5573,6 +5586,7 @@
                   ],
                   "additionalProperties": false
                 },
+                "maxItems": 3,
                 "type": "array"
               },
               "matchReturnArgs": {
@@ -5906,6 +5920,7 @@
             "additionalProperties": false
           },
           "description": "SelectorsMacros is used to define selectors macros, which can be used\nin probes/hooks selectors by their names.",
+          "maxProperties": 128,
           "type": "object"
         },
         "state": {
@@ -5914,7 +5929,7 @@
             "properties": {
               "name": {
                 "description": "Name of the state object. Use this name to reference the state in other\nparts of the policy. The state value can hold u64 values.",
-                "maxLength": 255,
+                "maxLength": 64,
                 "minLength": 1,
                 "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
                 "type": "string"
@@ -6241,6 +6256,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchArgs": {
@@ -6886,6 +6902,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchReturnArgs": {
@@ -7218,6 +7235,7 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "maxItems": 5,
                 "type": "array"
               },
               "subsystem": {
@@ -7241,6 +7259,7 @@
             "type": "object",
             "additionalProperties": false
           },
+          "maxItems": 128,
           "type": "array"
         },
         "uprobes": {
@@ -7834,6 +7853,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchArgs": {
@@ -8479,6 +8499,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchReturnArgs": {
@@ -8811,6 +8832,7 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "maxItems": 5,
                 "type": "array"
               },
               "symbols": {
@@ -8845,6 +8867,7 @@
             ],
             "additionalProperties": false
           },
+          "maxItems": 128,
           "type": "array"
         },
         "usdts": {
@@ -9160,6 +9183,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchArgs": {
@@ -9805,6 +9829,7 @@
                         ],
                         "additionalProperties": false
                       },
+                      "maxItems": 3,
                       "type": "array"
                     },
                     "matchReturnArgs": {
@@ -10137,6 +10162,7 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "maxItems": 5,
                 "type": "array"
               },
               "tags": {
@@ -10156,6 +10182,7 @@
             "type": "object",
             "additionalProperties": false
           },
+          "maxItems": 128,
           "type": "array"
         }
       },

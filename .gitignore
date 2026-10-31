@@ -23,6 +23,7 @@ latest.json
 strange.txt
 compile_commands.json
 /release
+/results/
 
 # project tool artifacts
 .vagrant/
