@@ -34,6 +34,22 @@ func TestCheckCLIFlags(t *testing.T) {
 	)
 }
 
+func TestCLIFlagValuesEqualBoolString(t *testing.T) {
+	require.True(t, cliFlagValuesEqual("true", true))
+	require.True(t, cliFlagValuesEqual("false", false))
+	require.False(t, cliFlagValuesEqual("false", true))
+	require.False(t, cliFlagValuesEqual("invalid", true))
+	require.False(t, cliFlagValuesEqual(int64(1), true))
+}
+
+func TestCLIFlagValuesEqualIntString(t *testing.T) {
+	require.True(t, cliFlagValuesEqual(int64(42), 42))
+	require.True(t, cliFlagValuesEqual("42", 42))
+	require.True(t, cliFlagValuesEqual("0x2a", 42))
+	require.False(t, cliFlagValuesEqual("43", 42))
+	require.False(t, cliFlagValuesEqual("invalid", 42))
+}
+
 func TestCLIFlagValuesEqualFloatString(t *testing.T) {
 	require.True(t, cliFlagValuesEqual("0.01", float64(0.01)))
 	require.False(t, cliFlagValuesEqual("0", float64(0.01)))
