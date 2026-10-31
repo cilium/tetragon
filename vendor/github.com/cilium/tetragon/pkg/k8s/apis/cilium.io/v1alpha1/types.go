@@ -60,6 +60,7 @@ type KProbeSpec struct {
 	// Supported actions are: TrackSock;UntrackSock
 	ReturnArgAction string `json:"returnArgAction,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=5
 	// Selectors to apply before producing trace output. Selectors are ORed and short-circuited.
 	Selectors []KProbeSelector `json:"selectors,omitempty"`
 	// +kubebuilder:validation:optional
@@ -132,7 +133,7 @@ type State struct {
 	// Name of the state object. Use this name to reference the state in other
 	// parts of the policy. The state value can hold u64 values.
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=255
+	// +kubebuilder:validation:MaxLength=64
 	// +kubebuilder:validation:Pattern=`^[A-Za-z_][A-Za-z0-9_]*$`
 	Name string `json:"name"`
 }
@@ -169,12 +170,14 @@ type KProbeSelector struct {
 	// A list of argument filters. MatchData are ANDed.
 	MatchData []ArgSelector `json:"matchData,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=3
 	// A list of actions to execute when this selector matches
 	MatchActions []ActionSelector `json:"matchActions,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A list of argument filters. MatchReturnArgs are ANDed.
 	MatchReturnArgs []ArgSelector `json:"matchReturnArgs,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=3
 	// A list of actions to execute when MatchReturnArgs selector matches
 	MatchReturnActions []ActionSelector `json:"matchReturnActions,omitempty"`
 	// +kubebuilder:validation:Optional
@@ -495,6 +498,7 @@ type TracepointSpec struct {
 	// A list of function arguments to include in the trace output.
 	Args []KProbeArg `json:"args,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=5
 	// Selectors to apply before producing trace output. Selectors are ORed.
 	Selectors []KProbeSelector `json:"selectors,omitempty"`
 	// +kubebuilder:validation:optional
@@ -538,6 +542,7 @@ type UProbeSpec struct {
 	// in the event output to inform users what is going on.
 	Message string `json:"message"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=5
 	// Selectors to apply before producing trace output. Selectors are ORed.
 	Selectors []KProbeSelector `json:"selectors,omitempty"`
 	// +kubebuilder:validation:Optional
@@ -592,6 +597,7 @@ type UsdtSpec struct {
 	// A list of function arguments to include in the trace output.
 	Args []KProbeArg `json:"args,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=5
 	// Selectors to apply before producing trace output. Selectors are ORed.
 	Selectors []KProbeSelector `json:"selectors,omitempty"`
 }
@@ -607,6 +613,7 @@ type LsmHookSpec struct {
 	// A list of function arguments to include in the trace output.
 	Args []KProbeArg `json:"args,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=5
 	// Selectors to apply before producing trace output. Selectors are ORed.
 	Selectors []KProbeSelector `json:"selectors,omitempty"`
 	// +kubebuilder:validation:optional

@@ -704,6 +704,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -1276,6 +1277,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -1600,6 +1602,7 @@ spec:
                                 x-kubernetes-map-type: atomic
                             type: object
                         type: object
+                      maxItems: 5
                       type: array
                     syscall:
                       default: true
@@ -1619,6 +1622,7 @@ spec:
                   x-kubernetes-validations:
                   - message: ReturnArg not specified with Return=true.
                     rule: '!has(self.return) || (!self.return || has(self.returnArg))'
+                maxItems: 128
                 type: array
               hostSelector:
                 description: |-
@@ -2270,6 +2274,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -2842,6 +2847,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -3166,6 +3172,7 @@ spec:
                                 x-kubernetes-map-type: atomic
                             type: object
                         type: object
+                      maxItems: 5
                       type: array
                     syscall:
                       default: true
@@ -3185,6 +3192,7 @@ spec:
                   x-kubernetes-validations:
                   - message: ReturnArg not specified with Return=true.
                     rule: '!has(self.return) || (!self.return || has(self.returnArg))'
+                maxItems: 128
                 type: array
               lists:
                 description: A list of list specs.
@@ -3540,6 +3548,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -4112,6 +4121,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -4436,6 +4446,7 @@ spec:
                                 x-kubernetes-map-type: atomic
                             type: object
                         type: object
+                      maxItems: 5
                       type: array
                     tags:
                       description: |-
@@ -4448,6 +4459,7 @@ spec:
                   required:
                   - hook
                   type: object
+                maxItems: 128
                 type: array
               nodeSelector:
                 description: |-
@@ -4762,6 +4774,7 @@ spec:
                             with that action
                           rule: 'self.action == ''UpdateState'' ? has(self.state)
                             : !has(self.state)'
+                      maxItems: 3
                       type: array
                     matchArgs:
                       description: A list of argument filters. MatchArgs are ANDed.
@@ -5327,6 +5340,7 @@ spec:
                             with that action
                           rule: 'self.action == ''UpdateState'' ? has(self.state)
                             : !has(self.state)'
+                      maxItems: 3
                       type: array
                     matchReturnArgs:
                       description: A list of argument filters. MatchReturnArgs are
@@ -5648,6 +5662,7 @@ spec:
                 description: |-
                   SelectorsMacros is used to define selectors macros, which can be used
                   in probes/hooks selectors by their names.
+                maxProperties: 128
                 type: object
               state:
                 description: |-
@@ -5659,7 +5674,7 @@ spec:
                       description: |-
                         Name of the state object. Use this name to reference the state in other
                         parts of the policy. The state value can hold u64 values.
-                      maxLength: 255
+                      maxLength: 64
                       minLength: 1
                       pattern: ^[A-Za-z_][A-Za-z0-9_]*$
                       type: string
@@ -5997,6 +6012,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -6569,6 +6585,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -6893,6 +6910,7 @@ spec:
                                 x-kubernetes-map-type: atomic
                             type: object
                         type: object
+                      maxItems: 5
                       type: array
                     subsystem:
                       description: Tracepoint subsystem
@@ -6910,6 +6928,7 @@ spec:
                   - event
                   - subsystem
                   type: object
+                maxItems: 128
                 type: array
               uprobes:
                 description: A list of uprobe specs.
@@ -7526,6 +7545,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -8098,6 +8118,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -8422,6 +8443,7 @@ spec:
                                 x-kubernetes-map-type: atomic
                             type: object
                         type: object
+                      maxItems: 5
                       type: array
                     symbols:
                       description: List of the traced symbols
@@ -8446,6 +8468,7 @@ spec:
                       && has(self.offsets)) && !(has(self.addrs) && has(self.offsets))'
                   - message: ReturnArg not specified with Return=true.
                     rule: '!has(self.return) || (!self.return || has(self.returnArg))'
+                maxItems: 128
                 type: array
               usdts:
                 description: A list of usdt specs.
@@ -8778,6 +8801,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchArgs:
                             description: A list of argument filters. MatchArgs are
@@ -9350,6 +9374,7 @@ spec:
                                   valid with that action
                                 rule: 'self.action == ''UpdateState'' ? has(self.state)
                                   : !has(self.state)'
+                            maxItems: 3
                             type: array
                           matchReturnArgs:
                             description: A list of argument filters. MatchReturnArgs
@@ -9674,6 +9699,7 @@ spec:
                                 x-kubernetes-map-type: atomic
                             type: object
                         type: object
+                      maxItems: 5
                       type: array
                     tags:
                       description: |-
@@ -9688,6 +9714,7 @@ spec:
                   - path
                   - provider
                   type: object
+                maxItems: 128
                 type: array
             type: object
         required:
