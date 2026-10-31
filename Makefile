@@ -505,7 +505,7 @@ vendor: ## Tidy and vendor Go modules.
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
-	$(MAKE) -C tools tidy
+	$(MAKE) -C tools vendor
 
 .PHONY: clang-format
 ifeq (1,$(LOCAL_CLANG_FORMAT))

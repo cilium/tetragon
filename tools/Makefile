@@ -7,3 +7,7 @@ GO ?= go
 tidy:
 	$(GO) mod tidy
 	$(GO) mod verify
+
+.PHONY: vendor
+vendor: tidy
+	$(GO) mod vendor
