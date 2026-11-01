@@ -497,24 +497,40 @@ func runFwd(
 	cntDropped := 0
 	cntForwaded := 0
 	var outChan chan<- *tetragon.GetEventsResponse
+	// handleCtl applies a control message and reports whether to exit.
+	handleCtl := func(ctl fwdCtl) bool {
+		switch ctl.cmd {
+		case fwdCmdExit:
+			log.Debug("exiting", "forwaded", cntForwaded, "droppped", cntDropped)
+			return true
+		case fwdCmdSetForward:
+			log.Debug("setting output", "out", ctl.fwd)
+			outChan = ctl.fwd
+		}
+		return false
+	}
 	for {
 		select {
 		case res := <-inChan:
-			if outChan != nil {
-				outChan <- res
-				cntForwaded++
-			} else {
+			if outChan == nil {
 				cntDropped++
+				continue
+			}
+			// A checker that is done stops reading, so take control
+			// messages while waiting, or unsetting outChan deadlocks.
+			select {
+			case outChan <- res:
+				cntForwaded++
+			case ctl := <-ctlChan:
+				cntDropped++
+				if handleCtl(ctl) {
+					return
+				}
 			}
 
 		case ctl := <-ctlChan:
-			switch ctl.cmd {
-			case fwdCmdExit:
-				log.Debug("exiting", "forwaded", cntForwaded, "droppped", cntDropped)
+			if handleCtl(ctl) {
 				return
-			case fwdCmdSetForward:
-				log.Debug("setting output", "out", ctl.fwd)
-				outChan = ctl.fwd
 			}
 		}
 	}
