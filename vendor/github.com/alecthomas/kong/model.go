@@ -423,6 +423,7 @@ type Flag struct {
 	*Value
 	Group       *Group // Logical grouping when displaying. May also be used by configuration loaders to group options logically.
 	Xor         []string
+	LastWins    []string
 	And         []string
 	PlaceHolder string
 	Envs        []string
