@@ -12,6 +12,13 @@ FUNC_INLINE int do_enforcer(void *ctx)
 	if (!data)
 		return 0;
 
+	/* drop a record left behind by an exited task with the same pid_tgid */
+	if (data->start_time != enforcer_task_start_time()) {
+		enforcer_update_missed_notifications(data->act_info, ENFORCER_MISSED_STALE);
+		map_delete_elem(&enforcer_data, &id);
+		return 0;
+	}
+
 	if (data->signal)
 		send_signal(data->signal);
 
