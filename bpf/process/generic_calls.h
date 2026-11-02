@@ -1025,7 +1025,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	__u32 index __maybe_unused, value __maybe_unused;
 	int signal __maybe_unused = FGS_SIGKILL;
 	__u64 state_data __maybe_unused;
-	__u32 state_key __maybe_unused;
+	__u32 state_id, state_scope;
 	int action = actions->act[i];
 	struct msg_generic_kprobe *e;
 	heap_key_t key = heap_key();
@@ -1155,11 +1155,12 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		// value contains the state operation
 		value = actions->act[++i];
 
-		state_key = actions->act[++i];
+		state_id = actions->act[++i];
+		state_scope = actions->act[++i];
 		state_data = (__u64)actions->act[++i];
 		state_data |= (__u64)actions->act[++i] << 32;
 
-		err = state_update(state_key, value, state_data);
+		err = state_update(state_id, state_scope, value, state_data);
 		break;
 	default:
 		break;
