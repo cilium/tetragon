@@ -4661,7 +4661,7 @@ func matchBinariesNotInPerfringTest(t *testing.T, values []string) {
 func TestKprobeMatchBinariesEarlyExecNotIn(t *testing.T) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	// create temporary files for tail and cat commands
 	tailFile, err := os.CreateTemp("/tmp", fmt.Sprintf("tetragon.%s.tail.", t.Name()))
@@ -4673,9 +4673,8 @@ func TestKprobeMatchBinariesEarlyExecNotIn(t *testing.T) {
 
 	catRead, catWrite, err := os.Pipe()
 	require.NoError(t, err)
-	// catRead is closed explicitly after catCommand.Start() below (to release
-	// our copy of the pipe's read end); only catWrite needs cleanup.
 	t.Cleanup(func() {
+		catRead.Close()
 		catWrite.Close()
 	})
 
@@ -4697,7 +4696,9 @@ func TestKprobeMatchBinariesEarlyExecNotIn(t *testing.T) {
 	catCommand.Stdin = catRead
 	err = catCommand.Start()
 	require.NoError(t, err)
-	defer catCommand.Process.Kill()
+	t.Cleanup(func() {
+		catCommand.Process.Kill()
+	})
 	catRead.Close()
 
 	if err := observer.InitDataCache(1024); err != nil {
