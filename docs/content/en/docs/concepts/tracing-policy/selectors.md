@@ -996,12 +996,21 @@ Use the `matchStates` field with the `UpdateState` action to define stateful
 policies. Before you reference a state in `matchStates`, declare it in the
 TracingPolicy object's `spec.state` field.
 
+States are can only be shared between probes within the same policy. State names
+must be unique within a policy.
+
+States can be scoped to a `System`, `Process`, or `Thread`.
+`Process` and `Thread` scoped states share a bounded LRU map with 32,768 states
+per policy. A busy system may cause states to be evicted after the state has
+been set but before it can be matched. System state is stored separately and is
+not subject to this eviction.
+
 A missing state matches only the “not” variants of operators, such as `NotEqual`.
 
 The following example uses a decoy secret to trigger enforcement after
 suspicious activity, like opening all files in `/run/secrets/`. Opening
 `/run/secrets/decoy-key` in a pod labeled `app: canary-demo` sets `canary` to
-`1`. Subsequent `connect(2)` calls from any matching pod on the same node are
+`1`. Subsequent `connect(2)` calls from the same process are
 denied with `EPERM` to hinder secret exfiltration.
 
 See the [UpdateState action](#updatestate-action) section for details on setting
@@ -1018,6 +1027,7 @@ spec:
       app: "canary-demo"
   state:
   - name: "canary"
+    scope: Process
   kprobes:
   - call: "security_file_open"
     syscall: false
@@ -1057,6 +1067,11 @@ Currently, `matchStates` supports the following operators:
 `Equal`, `NotEqual`.
 
 `value` supports `u64` integers.
+
+`Scope` defines how the state is shared:
+- `System` (default): by all tasks on the host.
+- `Process`: by all threads of a process. Different processes have separate states.
+- `Thread`: Different threads have separate states.
 
 ## Actions filter
 
@@ -2007,6 +2022,8 @@ Use the `UpdateState` action to set or delete a state declared in the
 TracingPolicy object's `spec.state` field.
 Configure the operation in the action's `state` object, using `name` to
 reference the declared state and `operator` to select the operation.
+For `Process` and `Thread` scoped states, the operation applies to the state
+belonging to the current process or thread.
 
 The `Set` operator assigns an unsigned 64-bit integer to the state:
 
@@ -2036,7 +2053,8 @@ Tetragon updates each state atomically. However, when probes update the same
 state concurrently, the order of the updates is not guaranteed.
 
 Moreover, after a probe has evaluated `matchStates` and before it tries to
-update the state, the state might have been modified by another probe.
+update the state, the state might have been modified by another probe or evicted
+in the case of `Process` and `Thread` scoped states.
 {{< /caution >}}
 
 ## Selector Semantics
