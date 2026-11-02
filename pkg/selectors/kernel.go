@@ -64,8 +64,16 @@ const (
 	ActionTypeUpdateState                 = 15
 )
 
+// Mirrored by STATE_SCOPE_* in bpf/process/state.h.
+const (
+	StateScopeSystem uint32 = iota
+	StateScopeProcess
+	StateScopeThread
+)
+
 type StateInfo struct {
-	ID uint32
+	ID    uint32
+	Scope uint32
 }
 
 var actionTypeTable = map[string]uint32{
