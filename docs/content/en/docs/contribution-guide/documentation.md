@@ -59,7 +59,7 @@ using the [Docsy theme](https://github.com/google/docsy).
 Please refer to dedicated guides on how to install Hugo+extended and how to
 tweak Docsy, but generally, to preview your work, from the `/docs` folder:
 ```shell
-hugo server
+make
 ```
 
 
