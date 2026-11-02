@@ -1616,6 +1616,7 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		}
 		WriteSelectorUint32(&k.data, op)
 		WriteSelectorUint32(&k.data, stateID.ID)
+		WriteSelectorUint32(&k.data, stateID.Scope)
 		WriteSelectorUint64(&k.data, value)
 	default:
 		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
@@ -1708,6 +1709,7 @@ func ParseMatchStates(k *KernelSelectorState, states []v1alpha1.StateSelector, s
 		}
 
 		WriteSelectorUint32(&k.data, stateID.ID)
+		WriteSelectorUint32(&k.data, stateID.Scope)
 		WriteSelectorUint32(&k.data, op)
 		WriteSelectorUint64(&k.data, value)
 	}
@@ -2081,7 +2083,7 @@ type KernelSelectorArgs struct {
 // NCn := [op][valueInt]
 // CAn := [type][op][namespacecap][valueInt]
 // CALn := [depth uint32][BuildIDRef uint32][startRange uint64][endRange uint64]
-// STATEn := [stateID u32][op u32][valueInt u64]
+// STATEn := [stateID u32][scope u32][op u32][valueInt u64]
 // valueGen := [type][len][v]
 // valueInt := [len][v]
 //
