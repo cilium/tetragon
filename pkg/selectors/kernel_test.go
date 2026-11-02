@@ -1134,19 +1134,6 @@ func TestParseUpdateStateAction(t *testing.T) {
 			Value:    &setValue,
 		},
 	}
-	stateIDs := map[string]StateInfo{"state_exists": {ID: 3}}
-	state := &KernelSelectorState{data: KernelSelectorData{}}
-	expectedSet := []byte{
-		0x0f, 0x00, 0x00, 0x00, // Action = "UpdateState"
-		0x00, 0x00, 0x00, 0x00, // State operator = "Set"
-		0x03, 0x00, 0x00, 0x00, // State ID = 3
-		0x00, 0x00, 0x00, 0x00, // Scope = System
-		0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10, // State value
-	}
-	if err := ParseMatchAction(state, setAction, nil, 0, nil, nil, stateIDs); err != nil || !bytes.Equal(expectedSet, state.data.e) {
-		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expectedSet, state.data.e, setAction)
-	}
-
 	deleteAction := &v1alpha1.ActionSelector{
 		Action: "UpdateState",
 		State: &v1alpha1.StateAction{
@@ -1154,18 +1141,45 @@ func TestParseUpdateStateAction(t *testing.T) {
 			Name:     "state_exists",
 		},
 	}
-	state = &KernelSelectorState{data: KernelSelectorData{}}
-	expectedDelete := []byte{
-		0x0f, 0x00, 0x00, 0x00, // Action = "UpdateState"
-		0x01, 0x00, 0x00, 0x00, // State operator = "Delete"
-		0x03, 0x00, 0x00, 0x00, // State ID = 3
-		0x00, 0x00, 0x00, 0x00, // Scope = System
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // State value
-	}
-	if err := ParseMatchAction(state, deleteAction, nil, 0, nil, nil, stateIDs); err != nil || !bytes.Equal(expectedDelete, state.data.e) {
-		t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expectedDelete, state.data.e, deleteAction)
+
+	for _, scope := range []struct {
+		name    string
+		value   uint32
+		encoded byte
+	}{
+		{"System", StateScopeSystem, 0},
+		{"Process", StateScopeProcess, 1},
+		{"Thread", StateScopeThread, 2},
+	} {
+		t.Run(scope.name, func(t *testing.T) {
+			stateIDs := map[string]StateInfo{"state_exists": {ID: 3, Scope: scope.value}}
+			state := &KernelSelectorState{data: KernelSelectorData{}}
+			expectedSet := []byte{
+				0x0f, 0x00, 0x00, 0x00, // Action = "UpdateState"
+				0x00, 0x00, 0x00, 0x00, // State operator = "Set"
+				0x03, 0x00, 0x00, 0x00, // State ID = 3
+				scope.encoded, 0x00, 0x00, 0x00, // Scope
+				0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10, // State value
+			}
+			if err := ParseMatchAction(state, setAction, nil, 0, nil, nil, stateIDs); err != nil || !bytes.Equal(expectedSet, state.data.e) {
+				t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expectedSet, state.data.e, setAction)
+			}
+
+			state = &KernelSelectorState{data: KernelSelectorData{}}
+			expectedDelete := []byte{
+				0x0f, 0x00, 0x00, 0x00, // Action = "UpdateState"
+				0x01, 0x00, 0x00, 0x00, // State operator = "Delete"
+				0x03, 0x00, 0x00, 0x00, // State ID = 3
+				scope.encoded, 0x00, 0x00, 0x00, // Scope
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // State value
+			}
+			if err := ParseMatchAction(state, deleteAction, nil, 0, nil, nil, stateIDs); err != nil || !bytes.Equal(expectedDelete, state.data.e) {
+				t.Errorf("parseMatchAction: error %v expected %v bytes %v parsing %v\n", err, expectedDelete, state.data.e, deleteAction)
+			}
+		})
 	}
 
+	stateIDs := map[string]StateInfo{"state_exists": {ID: 3}}
 	deleteAction.State.Name = "missing"
 	require.ErrorContains(t, ParseMatchAction(&KernelSelectorState{}, deleteAction, nil, 0, nil, nil, stateIDs), "undefined state")
 
@@ -1205,24 +1219,39 @@ func TestParseMatchStates(t *testing.T) {
 		{Name: "authenticated", Operator: "Equal", Value: "42"},
 		{Name: "authorized", Operator: "NotEqual", Value: strconv.FormatUint(math.MaxUint64, 10)},
 	}
+	for _, scope := range []struct {
+		name    string
+		value   uint32
+		encoded byte
+	}{
+		{"System", StateScopeSystem, 0},
+		{"Process", StateScopeProcess, 1},
+		{"Thread", StateScopeThread, 2},
+	} {
+		t.Run(scope.name, func(t *testing.T) {
+			stateIDs := map[string]StateInfo{
+				"authenticated": {ID: 3, Scope: scope.value},
+				"authorized":    {ID: 5, Scope: scope.value},
+			}
+			state := &KernelSelectorState{data: KernelSelectorData{}}
+			expected := []byte{
+				0x2c, 0x00, 0x00, 0x00, // MatchStates length
+				0x03, 0x00, 0x00, 0x00, // State ID = 3
+				scope.encoded, 0x00, 0x00, 0x00, // Scope
+				0x03, 0x00, 0x00, 0x00, // Operator = "Equal"
+				0x2a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Value = 42
+				0x05, 0x00, 0x00, 0x00, // State ID = 5
+				scope.encoded, 0x00, 0x00, 0x00, // Scope
+				0x04, 0x00, 0x00, 0x00, // Operator = "NotEqual"
+				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // Value = math.MaxUint64
+			}
+			if err := ParseMatchStates(state, states, stateIDs); err != nil || !bytes.Equal(expected, state.data.e) {
+				t.Errorf("parseMatchStates: error %v expected %v bytes %v parsing %v\n", err, expected, state.data.e, states)
+			}
+		})
+	}
+
 	stateIDs := map[string]StateInfo{"authenticated": {ID: 3}, "authorized": {ID: 5}}
-	state := &KernelSelectorState{data: KernelSelectorData{}}
-
-	expected := []byte{
-		0x2c, 0x00, 0x00, 0x00, // MatchStates length
-		0x03, 0x00, 0x00, 0x00, // State ID = 3
-		0x00, 0x00, 0x00, 0x00, // Scope = System
-		0x03, 0x00, 0x00, 0x00, // Operator = "Equal"
-		0x2a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Value = 42
-		0x05, 0x00, 0x00, 0x00, // State ID = 5
-		0x00, 0x00, 0x00, 0x00, // Scope = System
-		0x04, 0x00, 0x00, 0x00, // Operator = "NotEqual"
-		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // Value = math.MaxUint64
-	}
-	if err := ParseMatchStates(state, states, stateIDs); err != nil || !bytes.Equal(expected, state.data.e) {
-		t.Errorf("parseMatchStates: error %v expected %v bytes %v parsing %v\n", err, expected, state.data.e, states)
-	}
-
 	require.ErrorContains(t, ParseMatchStates(&KernelSelectorState{}, states[:1], nil), "undefined state")
 	states[0].Operator = "GreaterThan"
 	require.ErrorContains(t, ParseMatchStates(&KernelSelectorState{}, states[:1], stateIDs), "operator")
