@@ -7,7 +7,7 @@
 #include "vmlinux.h"
 #include "compiler.h"
 #include "bpf_helpers.h"
-#include "errno.h"
+#include "errmetrics.h"
 
 // Mirrored by StateScope* and StateOp* in pkg/selectors/kernel.go.
 enum {
@@ -45,35 +45,88 @@ struct {
 	__type(value, struct state_value);
 } tg_scoped_state_map SEC(".maps");
 
-FUNC_INLINE struct state_value *state_lookup(__u32 id)
+FUNC_INLINE int state_scoped_get_key(__u32 id, __u32 scope, struct state_key *key)
 {
-	return map_lookup_elem(&tg_state_map, &id);
+	struct task_struct *task = (struct task_struct *)get_current_task();
+	__u64 pid_tgid = get_current_pid_tgid();
+
+	key->id = id;
+	key->start_time = 0;
+	switch (scope) {
+	case STATE_SCOPE_PROCESS:
+		key->pid = pid_tgid >> 32;
+		/* For process scope, we cannot rely on the task's start_time, because it
+		 * is the start time of the thread currently executing and not the first
+		 * thread of the process. For process scoped states, we need the start
+		 * time of the group leader.
+		 */
+		if (probe_read_kernel(&task, sizeof(task), _(&task->group_leader)))
+			return -EFAULT;
+		break;
+	case STATE_SCOPE_THREAD:
+		key->pid = (__u32)pid_tgid;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	/* Pair the ID with task start_time so recycled threads and processes
+	 * cannot reuse state.
+	 */
+	return probe_read_kernel(&key->start_time, sizeof(key->start_time),
+				 _(&task->start_time));
 }
 
-FUNC_INLINE int state_update(__u32 state_key, __u32 op, __u64 state_data)
+FUNC_INLINE struct state_value *state_lookup(__u32 id, __u32 scope)
 {
-	struct state_value new_state_value;
-	int map_ret;
-	int err = 0;
+	struct state_key key;
+	int err;
+
+	if (scope == STATE_SCOPE_SYSTEM)
+		return map_lookup_elem(&tg_state_map, &id);
+
+	err = state_scoped_get_key(id, scope, &key);
+	if (err) {
+		errmetrics(-err);
+		return 0;
+	}
+	return map_lookup_elem(&tg_scoped_state_map, &key);
+}
+
+FUNC_INLINE int state_update(__u32 id, __u32 scope, __u32 op, __u64 data)
+{
+	struct state_value value = { .data = data };
+	struct state_key key;
+	const void *map_key;
+	void *map;
+	int err;
+
+	switch (scope) {
+	case STATE_SCOPE_SYSTEM:
+		map = &tg_state_map;
+		map_key = &id;
+		break;
+	case STATE_SCOPE_PROCESS:
+	case STATE_SCOPE_THREAD:
+		err = state_scoped_get_key(id, scope, &key);
+		if (err)
+			return err;
+		map = &tg_scoped_state_map;
+		map_key = &key;
+		break;
+	default:
+		return -EINVAL;
+	}
 
 	switch (op) {
-	case STATE_OP_DELETE: {
-		map_ret = map_delete_elem(&tg_state_map, &state_key);
-		if (map_ret != 0 && map_ret != -ENOENT)
-			err = -1;
-		break;
-	}
-	case STATE_OP_SET: {
-		new_state_value.data = state_data;
-		if (map_update_elem(&tg_state_map, &state_key, &new_state_value, BPF_ANY))
-			err = -1;
-		break;
-	}
+	case STATE_OP_DELETE:
+		err = map_delete_elem(map, map_key);
+		return err == -ENOENT ? 0 : err;
+	case STATE_OP_SET:
+		return map_update_elem(map, map_key, &value, BPF_ANY);
 	default:
-		err = -1;
-		break;
+		return -EINVAL;
 	}
-	return err;
 }
 
 #endif /* __STATE_H__ */
