@@ -5,7 +5,7 @@ go 1.27.0
 
 require (
 	cel.dev/cel-go v0.33.2
-	github.com/alecthomas/kong v1.16.1
+	github.com/alecthomas/kong v1.17.0
 	github.com/cilium/lumberjack/v2 v2.4.2
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd/v2 v2.4.2
