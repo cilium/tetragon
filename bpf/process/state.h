@@ -9,10 +9,22 @@
 #include "bpf_helpers.h"
 #include "errno.h"
 
-// Mirrored by StateOp* in pkg/selectors/kernel.go
+// Mirrored by StateScope* and StateOp* in pkg/selectors/kernel.go.
+enum {
+	STATE_SCOPE_SYSTEM = 0,
+	STATE_SCOPE_PROCESS = 1,
+	STATE_SCOPE_THREAD = 2,
+};
+
 enum {
 	STATE_OP_SET = 0,
 	STATE_OP_DELETE = 1,
+};
+
+struct state_key {
+	__u32 id;
+	__u32 pid;
+	__u64 start_time;
 };
 
 struct state_value {
@@ -25,6 +37,13 @@ struct {
 	__type(key, __u32);
 	__type(value, struct state_value);
 } tg_state_map SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 1); // will be resized by agent when needed
+	__type(key, struct state_key);
+	__type(value, struct state_value);
+} tg_scoped_state_map SEC(".maps");
 
 FUNC_INLINE struct state_value *state_lookup(__u32 id)
 {
