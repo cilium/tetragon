@@ -64,6 +64,18 @@ const (
 	ActionTypeUpdateState                 = 15
 )
 
+// Mirrored by STATE_SCOPE_* in bpf/process/state.h.
+const (
+	StateScopeSystem uint32 = iota
+	StateScopeProcess
+	StateScopeThread
+)
+
+type StateInfo struct {
+	ID    uint32
+	Scope uint32
+}
+
 var actionTypeTable = map[string]uint32{
 	"post":                        ActionTypePost,
 	"sigkill":                     ActionTypeSigKill,
@@ -1477,7 +1489,7 @@ func parseRateLimit(str string, scopeStr string) (uint32, uint32, error) {
 	return uint32(rateLimit), scope, nil
 }
 
-func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table, selIdx int, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, stateIDs map[string]uint32) error {
+func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table, selIdx int, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, stateIDs map[string]StateInfo) error {
 	act, ok := actionTypeTable[strings.ToLower(action.Action)]
 	if !ok {
 		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
@@ -1603,7 +1615,7 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 			return errors.New("UpdateState action requires state.operator Set or Delete")
 		}
 		WriteSelectorUint32(&k.data, op)
-		WriteSelectorUint32(&k.data, stateID)
+		WriteSelectorUint32(&k.data, stateID.ID)
 		WriteSelectorUint64(&k.data, value)
 	default:
 		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
@@ -1661,7 +1673,7 @@ func ParseMatchWorkloads(k *KernelSelectorState, workload *v1alpha1.WorkloadsSel
 	return nil
 }
 
-func ParseMatchStates(k *KernelSelectorState, states []v1alpha1.StateSelector, stateIDs map[string]uint32) error {
+func ParseMatchStates(k *KernelSelectorState, states []v1alpha1.StateSelector, stateIDs map[string]StateInfo) error {
 	if !config.EnableLargeProgs() {
 		if len(states) > 0 {
 			return errors.New("matchStates requires kernels supporting large BPF programs (normally versions >= 5.3)")
@@ -1695,7 +1707,7 @@ func ParseMatchStates(k *KernelSelectorState, states []v1alpha1.StateSelector, s
 			return fmt.Errorf("matchStates value %q is not a valid u64: %w", state.Value, err)
 		}
 
-		WriteSelectorUint32(&k.data, stateID)
+		WriteSelectorUint32(&k.data, stateID.ID)
 		WriteSelectorUint32(&k.data, op)
 		WriteSelectorUint64(&k.data, value)
 	}
@@ -1703,7 +1715,7 @@ func ParseMatchStates(k *KernelSelectorState, states []v1alpha1.StateSelector, s
 	return nil
 }
 
-func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table, selIdx int, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, stateIDs map[string]uint32) error {
+func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table, selIdx int, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, stateIDs map[string]StateInfo) error {
 	if len(actions) > 3 {
 		return fmt.Errorf("only %d actions are support for selector (current number of values is %d)", 3, len(actions))
 	}
@@ -2028,7 +2040,7 @@ type KernelSelectorArgs struct {
 	CelExprs               *CelExprFunctions
 	// BinaryPath is used as default binary path for matchCaller selectors.
 	BinaryPath string
-	StateIDs   map[string]uint32
+	StateIDs   map[string]StateInfo
 }
 
 // The byte array storing the selector configuration has the following format
@@ -2188,7 +2200,7 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 }
 
 func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
-	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps, stateIDs map[string]uint32) (*KernelSelectorState, error) {
+	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps, stateIDs map[string]StateInfo) (*KernelSelectorState, error) {
 	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
 		if err := ParseMatchStates(k, selector.MatchStates, stateIDs); err != nil {
 			return fmt.Errorf("parseMatchStates error: %w", err)

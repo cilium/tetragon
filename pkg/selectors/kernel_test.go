@@ -1134,7 +1134,7 @@ func TestParseUpdateStateAction(t *testing.T) {
 			Value:    &setValue,
 		},
 	}
-	stateIDs := map[string]uint32{"state_exists": 3}
+	stateIDs := map[string]StateInfo{"state_exists": {ID: 3}}
 	state := &KernelSelectorState{data: KernelSelectorData{}}
 	expectedSet := []byte{
 		0x0f, 0x00, 0x00, 0x00, // Action = "UpdateState"
@@ -1203,7 +1203,7 @@ func TestParseMatchStates(t *testing.T) {
 		{Name: "authenticated", Operator: "Equal", Value: "42"},
 		{Name: "authorized", Operator: "NotEqual", Value: strconv.FormatUint(math.MaxUint64, 10)},
 	}
-	stateIDs := map[string]uint32{"authenticated": 3, "authorized": 5}
+	stateIDs := map[string]StateInfo{"authenticated": {ID: 3}, "authorized": {ID: 5}}
 	state := &KernelSelectorState{data: KernelSelectorData{}}
 
 	expected := []byte{
