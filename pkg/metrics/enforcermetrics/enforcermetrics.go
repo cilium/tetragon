@@ -78,7 +78,7 @@ type enforcerMissedMapKey struct {
 	Reason uint32
 }
 
-var enforcerMissedNotificationsReasons = []string{"unspecified", "no_action", "overwritten"}
+var enforcerMissedNotificationsReasons = []string{"unspecified", "no_action", "overwritten", "stale_task"}
 
 func (mk *enforcerMissedMapKey) reason() string {
 	// NB: see bpf's enforcer_missed_reason
@@ -87,6 +87,8 @@ func (mk *enforcerMissedMapKey) reason() string {
 		return "overwritten"
 	case 2:
 		return "no_action"
+	case 3:
+		return "stale_task"
 	default:
 		return "unspecified"
 	}

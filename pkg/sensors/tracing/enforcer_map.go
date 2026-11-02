@@ -45,11 +45,13 @@ type EnforcerMapKey struct {
 	PidTgid uint64 // pidtgid
 }
 
+// NB: should match bpf's struct enforcer_data
 type EnforcerMapVal struct {
-	Err    int16
-	Sig    int16
-	FuncID uint32
-	Arg    uint32
+	StartTime uint64
+	Err       int16
+	Sig       int16
+	FuncID    uint32
+	Arg       uint32
 }
 
 func (m EnforcerMap) Dump() (map[EnforcerMapKey]EnforcerMapVal, error) {

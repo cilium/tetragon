@@ -15,6 +15,7 @@ struct enforcer_act_info {
 } __attribute__((packed));
 
 struct enforcer_data {
+	__u64 start_time; /* of the task that wrote the record, guards against pid_tgid reuse */
 	__s16 error;
 	__s16 signal;
 	struct enforcer_act_info act_info;
@@ -30,6 +31,7 @@ struct {
 enum enforcer_missed_reason {
 	ENFORCER_MISSED_OVERWRITTEN = 1,
 	ENFORCER_MISSED_NOACTION = 2,
+	ENFORCER_MISSED_STALE = 3,
 };
 
 struct enforcer_missed_key {
@@ -46,24 +48,28 @@ struct {
 } enforcer_missed_notifications SEC(".maps");
 
 FUNC_INLINE void
-enforcer_update_missed_notifications(struct enforcer_missed_key *key)
+enforcer_update_missed_notifications(struct enforcer_act_info act_info, __u32 reason)
 {
+	struct enforcer_missed_key key = {
+		.act_info = act_info,
+		.reason = reason,
+	};
 	int err;
-	__u32 *counter = map_lookup_elem(&enforcer_missed_notifications, key), one = 1;
+	__u32 *counter = map_lookup_elem(&enforcer_missed_notifications, &key), one = 1;
 
 	if (counter) {
 		lock_add(counter, one);
 		return;
 	}
 
-	err = with_errmetrics(map_update_elem, &enforcer_missed_notifications, key, &one, BPF_NOEXIST);
+	err = with_errmetrics(map_update_elem, &enforcer_missed_notifications, &key, &one, BPF_NOEXIST);
 	if (!err)
 		return;
 
 	/* in case we raced with another thread and an entry was already created, retry to do a
 	 * lookup
 	 */
-	counter = map_lookup_elem(&enforcer_missed_notifications, key);
+	counter = map_lookup_elem(&enforcer_missed_notifications, &key);
 	if (counter) {
 		lock_add(counter, one);
 	}
@@ -76,19 +82,25 @@ FUNC_INLINE void do_enforcer_cleanup(void)
 
 	ptr = map_lookup_elem(&enforcer_data, &id);
 	if (ptr) {
-		struct enforcer_missed_key missed_key = {
-			.act_info = ptr->act_info,
-			.reason = ENFORCER_MISSED_NOACTION,
-		};
-		enforcer_update_missed_notifications(&missed_key);
+		enforcer_update_missed_notifications(ptr->act_info, ENFORCER_MISSED_NOACTION);
 		map_delete_elem(&enforcer_data, &id);
 	}
+}
+
+FUNC_INLINE __u64 enforcer_task_start_time(void)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task();
+	__u64 start_time = 0;
+
+	probe_read_kernel(&start_time, sizeof(start_time), _(&task->start_time));
+	return start_time;
 }
 
 FUNC_INLINE void do_enforcer_action(int error, int signal, struct enforcer_act_info act_info)
 {
 	__u64 id = get_current_pid_tgid();
 	struct enforcer_data *ptr, data = {
+		.start_time = enforcer_task_start_time(),
 		.error = (__s16)error,
 		.signal = (__s16)signal,
 		.act_info = act_info,
@@ -97,11 +109,7 @@ FUNC_INLINE void do_enforcer_action(int error, int signal, struct enforcer_act_i
 	ptr = map_lookup_elem(&enforcer_data, &id);
 	if (ptr) {
 		/* there is another entry already, update enforcer_missed_notifications */
-		struct enforcer_missed_key missed_key = {
-			.act_info = ptr->act_info,
-			.reason = ENFORCER_MISSED_OVERWRITTEN,
-		};
-		enforcer_update_missed_notifications(&missed_key);
+		enforcer_update_missed_notifications(ptr->act_info, ENFORCER_MISSED_OVERWRITTEN);
 		*ptr = data;
 	} else {
 		with_errmetrics(map_update_elem, &enforcer_data, &id, &data, BPF_ANY);
