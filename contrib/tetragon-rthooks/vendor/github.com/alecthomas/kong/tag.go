@@ -44,11 +44,12 @@ type Tag struct {
 	Enum            string
 	Group           string
 	Xor             []string
+	LastWins        []string
 	And             []string
 	Vars            Vars
 	Prefix          string // Optional prefix on anonymous structs. All sub-flags will have this prefix.
 	EnvPrefix       string
-	XorPrefix       string // Optional prefix on XOR/AND groups.
+	XorPrefix       string // Optional prefix on XOR/AND/last-wins groups.
 	Embed           bool
 	Aliases         []string
 	Negatable       string
@@ -248,12 +249,8 @@ func parseTag(parent reflect.Value, ft reflect.StructField) (*Tag, error) {
 
 func hydrateTag(t *Tag, typ reflect.Type) error { //nolint: gocyclo
 	var typeName string
-	var isBool bool
-	var isBoolPtr bool
 	if typ != nil {
 		typeName = typ.Name()
-		isBool = typ.Kind() == reflect.Bool
-		isBoolPtr = typ.Kind() == reflect.Ptr && typ.Elem().Kind() == reflect.Bool
 	}
 	var err error
 	t.Cmd = t.Has("cmd")
@@ -292,6 +289,18 @@ func hydrateTag(t *Tag, typ reflect.Type) error { //nolint: gocyclo
 	for _, xor := range t.GetAll("xor") {
 		t.Xor = append(t.Xor, strings.FieldsFunc(xor, tagSplitFn)...)
 	}
+	for _, lastWins := range t.GetAll("lastwins") {
+		t.LastWins = append(t.LastWins, strings.FieldsFunc(lastWins, tagSplitFn)...)
+	}
+	if len(t.LastWins) > 0 {
+		group := t.LastWins[0]
+		for _, lastWins := range t.LastWins[1:] {
+			if lastWins != group {
+				return fmt.Errorf("lastwins flags can only belong to one group")
+			}
+		}
+		t.LastWins = t.LastWins[:1]
+	}
 	for _, and := range t.GetAll("and") {
 		t.And = append(t.And, strings.FieldsFunc(and, tagSplitFn)...)
 	}
@@ -300,9 +309,6 @@ func hydrateTag(t *Tag, typ reflect.Type) error { //nolint: gocyclo
 	t.XorPrefix = t.Get("xorprefix")
 	t.Embed = t.Has("embed")
 	if t.Has("negatable") {
-		if !isBool && !isBoolPtr {
-			return fmt.Errorf("negatable can only be set on booleans")
-		}
 		negatable := t.Get("negatable")
 		if negatable == "" {
 			negatable = negatableDefault // placeholder for default negation of --no-<flag>
@@ -316,7 +322,7 @@ func hydrateTag(t *Tag, typ reflect.Type) error { //nolint: gocyclo
 	t.Vars = Vars{}
 	for _, set := range t.GetAll("set") {
 		parts := strings.SplitN(set, "=", 2)
-		if len(parts) == 0 {
+		if len(parts) != 2 {
 			return fmt.Errorf("set should be in the form key=value but got %q", set)
 		}
 		t.Vars[parts[0]] = parts[1]

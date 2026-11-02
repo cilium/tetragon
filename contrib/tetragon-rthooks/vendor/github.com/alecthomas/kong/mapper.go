@@ -298,32 +298,36 @@ type boolMapper struct{}
 func (boolMapper) Decode(ctx *DecodeContext, target reflect.Value) error {
 	if ctx.Scan.Peek().Type == FlagValueToken {
 		token := ctx.Scan.Pop()
-		switch v := token.Value.(type) {
-		case string:
-			v = strings.ToLower(v)
-			switch v {
-			case "true", "1", "yes":
-				target.SetBool(true)
-
-			case "false", "0", "no":
-				target.SetBool(false)
-
-			default:
-				return fmt.Errorf("bool value must be true, 1, yes, false, 0 or no but got %q", v)
-			}
-
-		case bool:
-			target.SetBool(v)
-
-		default:
-			return fmt.Errorf("expected bool but got %q (%T)", token.Value, token.Value)
+		value, err := parseBoolToken(token)
+		if err != nil {
+			return err
 		}
+		target.SetBool(value)
 	} else {
 		target.SetBool(true)
 	}
 	return nil
 }
 func (boolMapper) IsBool() bool { return true }
+
+func parseBoolToken(token Token) (bool, error) {
+	switch value := token.Value.(type) {
+	case string:
+		value = strings.ToLower(value)
+		switch value {
+		case "true", "1", "yes":
+			return true, nil
+		case "false", "0", "no":
+			return false, nil
+		default:
+			return false, fmt.Errorf("bool value must be true, 1, yes, false, 0 or no but got %q", value)
+		}
+	case bool:
+		return value, nil
+	default:
+		return false, fmt.Errorf("expected bool but got %q (%T)", token.Value, token.Value)
+	}
+}
 
 func durationDecoder() MapperFunc {
 	return func(ctx *DecodeContext, target reflect.Value) error {
@@ -515,6 +519,9 @@ func mapDecoder(r *Registry) MapperFunc {
 
 			keyScanner := ScanAsType(FlagValueToken, key)
 			keyDecoder := r.ForNamedType(keyTypeName, el.Key())
+			if keyDecoder == nil {
+				return fmt.Errorf("no mapper for key type of %s", target.Type())
+			}
 			keyValue := reflect.New(el.Key()).Elem()
 			if err := keyDecoder.Decode(ctx.WithScanner(keyScanner), keyValue); err != nil {
 				return fmt.Errorf("invalid map key %q", key)
@@ -522,6 +529,9 @@ func mapDecoder(r *Registry) MapperFunc {
 
 			valueScanner := ScanAsType(FlagValueToken, value)
 			valueDecoder := r.ForNamedType(valueTypeName, el.Elem())
+			if valueDecoder == nil {
+				return fmt.Errorf("no mapper for value type of %s", target.Type())
+			}
 			valueValue := reflect.New(el.Elem()).Elem()
 			if err := valueDecoder.Decode(ctx.WithScanner(valueScanner), valueValue); err != nil {
 				return fmt.Errorf("invalid map value %q", value)
