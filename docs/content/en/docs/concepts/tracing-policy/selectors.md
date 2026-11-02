@@ -998,12 +998,34 @@ Use the `matchStates` field with the `UpdateState` action to define stateful
 policies. Before you reference a state in `matchStates`, declare it in the
 TracingPolicy object's `spec.state` field.
 
+States can only be shared between probes within the same policy. State names
+must be unique within a policy.
+
+States can be scoped to a `System`, `Process`, or `Thread`.
+`Process` and `Thread` scoped states share a bounded map with 32,768 entries
+per policy. Each state that is set for a process or thread uses one entry.
+
+When the map is full, setting a new state fails instead of replacing another
+state. Tetragon records such failures in the
+`tetragon_bpf_error_metrics_total` metric with `error_name="E2BIG"`.
+
+{{< caution >}}
+Tetragon does not delete `Process` and `Thread` scoped states when a process or
+thread exits, so you have to delete them yourself with the
+[`UpdateState`](#updatestate-action) `Delete` operator. Otherwise, the entries
+of exited processes and threads stay in the map until it is full.
+
+In kprobe policies, you can delete `Process` scoped states in a hook on
+`acct_process`, which the last exiting thread of a process calls, and `Thread`
+scoped states in a hook on `do_exit`, which every exiting thread calls.
+{{< /caution >}}
+
 A missing state matches only the “not” variants of operators, such as `NotEqual`.
 
 The following example uses a decoy secret to trigger enforcement after
 suspicious activity, like opening all files in `/run/secrets/`. Opening
 `/run/secrets/decoy-key` in a pod labeled `app: canary-demo` sets `canary` to
-`1`. Subsequent `connect(2)` calls from any matching pod on the same node are
+`1`. Subsequent `connect(2)` calls from the same process are
 denied with `EPERM` to hinder secret exfiltration.
 
 See the [UpdateState action](#updatestate-action) section for details on setting
@@ -1020,6 +1042,7 @@ spec:
       app: "canary-demo"
   state:
   - name: "canary"
+    scope: Process
   kprobes:
   - call: "security_file_open"
     syscall: false
@@ -1059,6 +1082,18 @@ Currently, `matchStates` supports the following operators:
 `Equal`, `NotEqual`.
 
 `value` supports `u64` integers.
+
+`scope` defines how the state is shared:
+- `System` (default): by all tasks on the host.
+- `Process`: by all threads of a process. Different processes have separate states.
+- `Thread`: Different threads have separate states.
+
+{{< caution >}}
+When a non-leader thread calls `execve()`, it becomes the leader and takes
+the previous leader's TID and `start_time`. A `Thread` state lookup can
+therefore return the previous leader's state, or no state if its entry is
+absent, rather than the executing thread's previous state.
+{{< /caution >}}
 
 ## Actions filter
 
@@ -2009,6 +2044,8 @@ Use the `UpdateState` action to set or delete a state declared in the
 TracingPolicy object's `spec.state` field.
 Configure the operation in the action's `state` object, using `name` to
 reference the declared state and `operator` to select the operation.
+For `Process` and `Thread` scoped states, the operation applies to the state
+belonging to the current process or thread.
 
 The `Set` operator assigns an unsigned 64-bit integer to the state:
 
