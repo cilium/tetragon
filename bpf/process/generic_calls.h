@@ -1025,12 +1025,13 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	__u32 index __maybe_unused, value __maybe_unused;
 	int signal __maybe_unused = FGS_SIGKILL;
 	__u64 state_data __maybe_unused;
-	__u32 state_key __maybe_unused;
+	__u32 state_id, state_scope;
 	int action = actions->act[i];
 	struct msg_generic_kprobe *e;
 	heap_key_t key = heap_key();
 	__s32 error __maybe_unused;
 	__s64 err = 0;
+	int map_ret;
 	int socki;
 	int argi __maybe_unused;
 	u32 polacct;
@@ -1155,11 +1156,16 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		// value contains the state operation
 		value = actions->act[++i];
 
-		state_key = actions->act[++i];
+		state_id = actions->act[++i];
+		state_scope = actions->act[++i];
 		state_data = (__u64)actions->act[++i];
 		state_data |= (__u64)actions->act[++i] << 32;
 
-		err = state_update(state_key, value, state_data);
+		map_ret = state_update(state_id, state_scope, value, state_data);
+		if (map_ret) {
+			errmetrics(-map_ret);
+			err = -1;
+		}
 		break;
 	default:
 		break;
