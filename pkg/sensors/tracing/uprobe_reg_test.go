@@ -30,12 +30,19 @@ import (
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
-func TestUprobeOverrideAction(t *testing.T) {
+func testUprobeOverrideAction(t *testing.T, single bool) {
 	if !bpf.HasUprobeRegsChange() {
 		t.Skip("skipping regs override action test, regs override is not supported in kernel")
 	}
 
 	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+
+	options := ""
+	if single {
+		options = `  options:
+  - name: "disable-uprobe-multi"
+    value: "1"`
+	}
 
 	// Put uprobe at the beginning of test_1 function and make sure
 	// uprobe overrides test_1 return value (with 123),
@@ -49,6 +56,7 @@ kind: TracingPolicy
 metadata:
   name: "uprobe"
 spec:
+` + options + `
   uprobes:
   - path: "` + testBinary + `"
     symbols:
@@ -101,6 +109,14 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestUprobeOverrideAction(t *testing.T) {
+	testUprobeOverrideAction(t, false)
+}
+
+func TestUprobeOverrideActionSingle(t *testing.T) {
+	testUprobeOverrideAction(t, true)
 }
 
 func TestUprobeOverrideRegsAction(t *testing.T) {
