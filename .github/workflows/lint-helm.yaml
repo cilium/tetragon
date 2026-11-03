@@ -37,8 +37,7 @@ jobs:
       - name: Check if Tetragon Helm chart is up to date
         run: |
           make -C install/kubernetes
-          test -z "$(git status --porcelain)"
-          if [ $? != 0 ]; then
+          if [ -n "$(git status --porcelain)" ]; then
             git status
             git diff
             echo "The Tetragon Helm chart is outdated."
@@ -50,8 +49,7 @@ jobs:
         id: validate_openapi2jsonschema_script
         run: |
           make -C install/kubernetes openapi2jsonschema.py
-          test -z "$(git status --porcelain)"
-          if [ $? != 0 ]; then
+          if [ -n "$(git status --porcelain)" ]; then
             git status
             git diff
             echo "openapi2jsonschema.py seems to be outdated."

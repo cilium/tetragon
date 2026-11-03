@@ -53,8 +53,7 @@ jobs:
           # Don't run 'make protogen' here, as it duplicates linting and vendoring checks.
           make protoc-gen-go-tetragon
           make -C api vendor proto
-          test -z "$(git status --porcelain)"
-          if [ $? != 0 ]; then
+          if [ -n "$(git status --porcelain)" ]; then
             git status
             git diff
             echo "Protobuf API generated files are outdated."

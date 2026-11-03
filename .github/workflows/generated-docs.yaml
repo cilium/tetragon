@@ -50,8 +50,7 @@ jobs:
         run: |
           set -ex
           make generate-flags
-          test -z "$(git status --porcelain)"
-          if [ $? != 0 ]; then
+          if [ -n "$(git status --porcelain)" ]; then
             git status
             git diff
             echo "Generated flags reference is outdated."
@@ -61,8 +60,7 @@ jobs:
         run: |
           set -ex
           make metrics-docs
-          test -z "$(git status --porcelain)"
-          if [ $? != 0 ]; then
+          if [ -n "$(git status --porcelain)" ]; then
             git status
             git diff
             echo "Generated metrics reference is outdated."
@@ -72,8 +70,7 @@ jobs:
         run: |
           set -ex
           make tracing-policy-docs
-          test -z "$(git status --porcelain)"
-          if [ $? != 0 ]; then
+          if [ -n "$(git status --porcelain)" ]; then
             git status
             git diff
             echo "Generated tracing policy reference is outdated."
