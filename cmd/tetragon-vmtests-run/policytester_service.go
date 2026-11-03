@@ -39,7 +39,7 @@ TimeoutStartSec="60min"
 WantedBy=multi-user.target
 `
 
-func makeTetragonPolicyTesterServiceFile(fname string, ptArgs string, environment string) (string, error) {
+func makeTetragonPolicyTesterServiceFile(fname string, tetraBinary string, ptArgs string, environment string) (string, error) {
 	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE, 0722)
 	if err != nil {
 		return "", err
@@ -47,7 +47,7 @@ func makeTetragonPolicyTesterServiceFile(fname string, ptArgs string, environmen
 	defer f.Close()
 
 	data := map[string]string{
-		"tetraBinary":    "/usr/local/bin/tetra",
+		"tetraBinary":    tetraBinary,
 		"resultsDir":     policytestsVmResultsDir,
 		"testerProgsDir": policytestsVmTestProgsDir,
 		"policytestArgs": ptArgs,
@@ -61,8 +61,8 @@ func makeTetragonPolicyTesterServiceFile(fname string, ptArgs string, environmen
 	return fname, nil
 }
 
-func mustMakeTetragonPolicyTesterServiceFile(fname string, ptArgs string, environment string) string {
-	fname, err := makeTetragonPolicyTesterServiceFile(fname, ptArgs, environment)
+func mustMakeTetragonPolicyTesterServiceFile(fname string, tetraBinary string, ptArgs string, environment string) string {
+	fname, err := makeTetragonPolicyTesterServiceFile(fname, tetraBinary, ptArgs, environment)
 	if err != nil {
 		panic(err)
 	}
