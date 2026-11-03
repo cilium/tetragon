@@ -383,7 +383,7 @@ execve_send(struct exec_ctx_struct *ctx __arg_ctx)
 		/* if this exec event preceds a clone, initialize  capabilities
 		 * and namespaces as well.
 		 */
-		if (curr->flags == EVENT_COMMON_FLAG_CLONE)
+		if (curr->flags & EVENT_COMMON_FLAG_CLONE)
 			init_curr = 1;
 #endif
 		curr->key.pid = p->pid;
