@@ -31,8 +31,7 @@ jobs:
           set -ex
           # Don't run 'make crds' here, as it duplicates vendoring checks.
           make -C pkg/k8s vendor generate
-          test -z "$(git status --porcelain)"
-          if [ $? != 0 ]; then
+          if [ -n "$(git status --porcelain)" ]; then
             git status
             git diff
             echo "Kubernetes CRDs generated files are outdated."
