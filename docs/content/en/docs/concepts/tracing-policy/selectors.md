@@ -507,7 +507,7 @@ Match the interpreter instead:
 
 {{< warning >}}
 `matchParentBinaries` selector can be used only with BPF map `parents_map` enabled (option `--parents-map-enabled`), which adds
-additional memory overhead. 
+additional memory overhead.
 {{< /warning >}}
 
 Parent binaries filter provides filtering based on current process parent
@@ -977,6 +977,8 @@ of the entries match.
 3. On amd64 platforms, kernel commit [`cfa7f3d2c526` ("perf,x86: avoid missing caller address in
    stack traces captured in uprobe")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cfa7f3d2c526c224a6271cc78a4a27a0de06f4f0)
    (kernel version >=6.12) is needed to match the immediate caller.
+   When the binary is compiled with CFI, the kernel must also be built with
+   `CONFIG_X86_KERNEL_IBT`.
    Without the commit, setting `depth` to `any` is supported, but the immediate
    caller will not be matched.
 4. arm64 platforms don't support setting `depth` to 1 to match the immediate
@@ -1285,7 +1287,7 @@ uprobes:
       sopath: "/home/test/mymalloc.so"
 ```
 
-Note that it also supports directly providing `argNewAddr` or `argNewOffset` 
+Note that it also supports directly providing `argNewAddr` or `argNewOffset`
 for the symbol within the shared object.
 
 In this case, following restrictions apply:
@@ -1889,7 +1891,7 @@ This policy will set the value of the first argument of the `pizza()` function t
 
 #### USDT
 
-For USDT probes, the `Set` action allows writing a value to a configured probe argument. 
+For USDT probes, the `Set` action allows writing a value to a configured probe argument.
 The argument needs to meet a few conditions:
 
 - It's stored in memory as `USDT deref` argument
@@ -2387,7 +2389,7 @@ For larger sets of values, consider using the `InMap` or `NotInMap`
 operators which store values in a BPF map.
 These are limited only by the amount of available memory.
 
-{{< caution >}} 
+{{< caution >}}
 The `InMap` and `NotInMap` operators also support the range notation described
 for the `InRange` operator. However, using range notation with `InMap` or
 `NotInMap` consumes more memory, because each value in the range is added
