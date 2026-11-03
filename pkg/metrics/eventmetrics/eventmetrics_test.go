@@ -110,3 +110,10 @@ tetragon_flags_total{type="execve"} 1
 `)
 	require.NoError(t, testutil.CollectAndCompare(FlagCount, expected))
 }
+
+func TestAggregationBufferEventsDropped(t *testing.T) {
+	before := testutil.ToFloat64(AggregationBufferEventsDropped.WithLabelValues())
+	AggregationBufferEventsDropped.WithLabelValues().Inc()
+	after := testutil.ToFloat64(AggregationBufferEventsDropped.WithLabelValues())
+	require.Equal(t, float64(1), after-before)
+}

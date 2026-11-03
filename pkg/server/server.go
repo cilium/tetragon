@@ -212,6 +212,7 @@ func (s *Server) GetEventsListener(request *tetragon.GetEventsRequest, server te
 					select {
 					case agg.GetEventChannel() <- event:
 					default:
+						eventmetrics.AggregationBufferEventsDropped.WithLabelValues().Inc()
 						logger.GetLogger().Warn("Aggregator buffer is full. Consider increasing AggregatorOptions.channel_buffer_size.",
 							"request", request)
 					}
