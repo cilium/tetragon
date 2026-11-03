@@ -561,13 +561,21 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, errors.New("failed to configure uprobe, GetUrl and DnsLookup actions not supported")
 	}
 
+	// The Override action carries the regs_map key. A single-attach program
+	// has its own one-entry regs_map populated at key 0; only the multi-attach
+	// program shares one map across uprobes and needs a per-uprobe key.
+	uprobeID := 0
+	if in.useMulti {
+		uprobeID = len(ids)
+	}
+
 	// Parse Filters into kernel filter logic
 	uprobeSelectorState, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,
 		Args:      spec.Args,
 		Data:      spec.Data,
 		IsUprobe:  true,
-		UprobeID:  len(ids),
+		UprobeID:  uprobeID,
 		CelExprs:  in.celExprs,
 		Maps:      in.selMaps,
 	})
