@@ -170,6 +170,8 @@ type config struct {
 
 	BPFDebugAreas *BPFDbgEnum
 	BPFDebugLog   bool
+
+	DisableBpfProcScan bool
 }
 
 // ValidateHeapSize checks that a heap size is positive and fits in the
