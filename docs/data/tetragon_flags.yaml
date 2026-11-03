@@ -39,6 +39,9 @@ options:
     - name: deleted-pod-cache-size
       default_value: "1024"
       usage: Size of the deleted pod cache
+    - name: disable-bpf-proc-scan
+      default_value: "false"
+      usage: Disable BPF-based process scanning
     - name: disable-kprobe-multi
       default_value: "false"
       usage: Allow to disable kprobe multi interface

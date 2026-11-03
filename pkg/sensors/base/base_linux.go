@@ -15,7 +15,7 @@ import (
 // BPFProcScanEnabled returns true if the startup process scan is done by the
 // proc_scan BPF program instead of reading procfs.
 func BPFProcScanEnabled() bool {
-	return config.EnableV61Progs() && bpf.HasTaskIterAllProcs()
+	return config.EnableV61Progs() && bpf.HasTaskIterAllProcs() && !option.Config.DisableBpfProcScan
 }
 
 func GetDefaultPrograms() []*program.Program {
