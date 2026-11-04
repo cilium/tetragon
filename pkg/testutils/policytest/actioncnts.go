@@ -19,11 +19,14 @@ type ActionCounts struct {
 	Set            *uint64
 }
 
-func (ac *ActionCounts) empty() bool {
+// Empty reports whether no action count is expected.
+func (ac *ActionCounts) Empty() bool {
 	return ac.Post == nil && ac.Signal == nil && ac.Override == nil && ac.NotifyEnforcer == nil && ac.Set == nil
 }
 
-func actCountsCheck(
+// CheckActionCounts compares the counters before and after a scenario with
+// the expected counts.
+func CheckActionCounts(
 	monitorMode bool,
 	before, after *tetragon.TracingPolicyActionCounters,
 	expect *ActionCounts,

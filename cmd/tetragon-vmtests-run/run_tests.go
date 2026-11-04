@@ -22,6 +22,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/pkg/vmtests"
+	"github.com/cilium/tetragon/pkg/vmtests/lvh"
 )
 
 type runTestsResults struct {
@@ -35,18 +36,9 @@ func runGoTests(
 	ctx := context.Background()
 	ctx, cancel := signal.NotifyContext(ctx, unix.SIGINT, unix.SIGTERM)
 	defer cancel()
-	qemuCmd := exec.CommandContext(ctx, qemuBin, qemuArgs...)
-
-	// buffer output from qemu's  stdout/stderr to avoid delays
-	bout := bufio.NewWriter(os.Stdout)
-	berr := bufio.NewWriter(os.Stderr)
-	qemuCmd.Stdout = bout
-	qemuCmd.Stderr = berr
-	if err := qemuCmd.Run(); err != nil {
+	if err := lvh.RunQemu(ctx, qemuBin, qemuArgs, os.Stdout, os.Stderr); err != nil {
 		return nil, err
 	}
-	bout.Flush()
-	berr.Flush()
 
 	fmt.Printf("results directory: %s\n", rcnf.testerConf.ResultsDir)
 	resFile := filepath.Join(rcnf.testerConf.ResultsDir, "results.json")

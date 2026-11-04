@@ -6,10 +6,8 @@
 package policytest_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"io"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -20,16 +18,16 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/cilium/tetragon/pkg/testutils/policytest/k8sjob"
+	"github.com/cilium/tetragon/pkg/testutils/policytest"
+	"github.com/cilium/tetragon/pkg/testutils/policytest/k8srunner"
 	"github.com/cilium/tetragon/tests/e2e/flags"
 	"github.com/cilium/tetragon/tests/e2e/helpers"
 	"github.com/cilium/tetragon/tests/e2e/runners"
 )
 
 const (
-	namespace        = "policytest"
-	testerProgsImage = "cilium/tetragon-tester-progs:latest"
-	jobTimeout       = 5 * time.Minute
+	namespace  = "policytest"
+	jobTimeout = 5 * time.Minute
 )
 
 var runner *runners.Runner
@@ -51,44 +49,41 @@ func TestPolicytestInPod(t *testing.T) {
 			cs, err := kubernetes.NewForConfig(cfg.Client().RESTConfig())
 			require.NoError(t, err)
 
-			runCtx, cancel := context.WithTimeout(ctx, jobTimeout)
-			defer cancel()
-			// pinned, so new policy tests do not change what this covers
-			tests := []string{"kprobe-lseek", "tracepoint-exec"}
-			var out bytes.Buffer
-			err = k8sjob.Run(runCtx, cs, k8sjob.Opts{
+			log := slog.New(slog.NewTextHandler(t.Output(), &slog.HandlerOptions{Level: slog.LevelDebug}))
+			k8s, err := k8srunner.New(ctx, log, &k8srunner.Conf{
+				Client:    cs,
 				Namespace: namespace,
-				Image:     testerProgsImage,
-				Args:      append([]string{"--output=json", "--"}, tests...),
-			}, io.MultiWriter(t.Output(), &out))
-			require.NoError(t, err, "policy tests did not pass")
-			require.ElementsMatch(t, tests, ranTests(t, &out), "not every test ran")
+				Image:     k8srunner.DefaultImage,
+				Timeout:   jobTimeout,
+				Logs:      t.Output(),
+			})
+			require.NoError(t, err)
+			defer k8s.Close()
+
+			// pinned, so new policy tests do not change what this covers
+			sel := &policytest.Selection{Names: []string{"kprobe-lseek", "tracepoint-exec"}}
+
+			var results []*policytest.NamedResult
+			var ran []string
+			for res, err := range k8s.Run(ctx, log, sel) {
+				require.NoError(t, err, "policy tests did not run")
+				results = append(results, res)
+				name, _, _ := strings.Cut(res.Name, " ")
+				ran = append(ran, name)
+			}
+			policytest.DumpResults(t.Output(), results)
+			summary := policytest.NewResultsSummary()
+			for _, res := range results {
+				require.Empty(t, res.Result.Skipped, "%s was skipped", res.Name)
+				summary.Update(res.Result)
+			}
+			require.NoError(t, summary.Err(), "policy tests failed")
+			require.ElementsMatch(t, sel.Names, ran, "not every test ran")
 
 			return ctx
 		}).Feature()
 
 	runner.Test(t, feat)
-}
-
-func ranTests(t *testing.T, out *bytes.Buffer) []string {
-	var ran []string
-	for line := range strings.Lines(out.String()) {
-		if !strings.HasPrefix(line, "{") {
-			continue
-		}
-		var res struct {
-			Name   string `json:"name"`
-			Result struct {
-				Skipped string `json:"skipped"`
-			} `json:"result"`
-		}
-		require.NoError(t, json.Unmarshal([]byte(line), &res), "bad result line: %s", line)
-		if res.Result.Skipped == "" {
-			name, _, _ := strings.Cut(res.Name, " ")
-			ran = append(ran, name)
-		}
-	}
-	return ran
 }
 
 func loadImage(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
@@ -99,7 +94,7 @@ func loadImage(ctx context.Context, t *testing.T, cfg *envconf.Config) context.C
 	if cluster == "" {
 		return ctx
 	}
-	ctx, err := envfuncs.LoadDockerImageToCluster(cluster, testerProgsImage)(ctx, cfg)
-	require.NoError(t, err, "failed to load %s into the cluster", testerProgsImage)
+	ctx, err := envfuncs.LoadDockerImageToCluster(cluster, k8srunner.DefaultImage)(ctx, cfg)
+	require.NoError(t, err, "failed to load %s into the cluster", k8srunner.DefaultImage)
 	return ctx
 }

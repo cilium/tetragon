@@ -10,13 +10,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"time"
 
-	"github.com/cilium/little-vm-helper/pkg/arch"
 	"github.com/cilium/little-vm-helper/pkg/runner"
 	"github.com/cilium/little-vm-helper/pkg/slogger"
 	"github.com/spf13/cobra"
+
+	"github.com/cilium/tetragon/pkg/vmtests/lvh"
 )
 
 func goTestCmd() *cobra.Command {
@@ -47,11 +47,11 @@ func goTestCmd() *cobra.Command {
 			// mount cwd as cwd in the VM (this helps with contrib/test-progs paths)
 			// set output to be <cwd>/tester-tetragon.out.
 			if cwd, err := os.Getwd(); err == nil {
-				rcnf.filesystems = append(rcnf.filesystems,
-					&virtIOFilesystem{
-						id:      "tetragon",
-						hostdir: cwd,
-						vmdir:   cwd,
+				rcnf.Filesystems = append(rcnf.Filesystems,
+					&lvh.VirtIOFS{
+						ID:      "tetragon",
+						HostDir: cwd,
+						VMDir:   cwd,
 					},
 				)
 				rcnf.testerConf.TetragonDir = cwd
@@ -60,7 +60,7 @@ func goTestCmd() *cobra.Command {
 				// wants to build an image or use an existing
 				// image to run tests, using a random results
 				// dir will not work.
-				if !rcnf.justBuildImage && !rcnf.dontRebuildImage {
+				if !rcnf.JustBuildImage && !rcnf.DontRebuildImage {
 					rcnf.testerConf.ResultsDir, err = os.MkdirTemp(testingDir, "vmtests-results-")
 					if err != nil {
 						return fmt.Errorf("failed to make results dir: %w", err)
@@ -77,30 +77,24 @@ func goTestCmd() *cobra.Command {
 			}
 
 			err = buildTestImage(log, &rcnf)
-			if err != nil || rcnf.justBuildImage {
+			if err != nil || rcnf.JustBuildImage {
 				return err
 			}
 
-			runtimeArch, err := arch.NewArch(runtime.GOARCH)
+			qemuBin, qemuArgs, err := lvh.QemuCommand(log, rcnf.Conf)
 			if err != nil {
-				return fmt.Errorf("failed to create lvh arch: %w", err)
-			}
-			qemuBin := runtimeArch.QemuBinary()
-
-			qemuArgs, err := buildQemuArgs(log, rcnf.testConf)
-			if err != nil {
-				return fmt.Errorf("failed to build qemu args: %w", err)
+				return err
 			}
 
-			if rcnf.qemuPrint {
-				qemuPrintCmd(qemuBin, qemuArgs)
+			if rcnf.QemuPrint {
+				lvh.QemuPrintCmd(qemuBin, qemuArgs)
 				return nil
 			}
 
 			// if we don't need to run tests, just exec() so that user will be able to
 			// login to the VM.
-			if rcnf.justBoot {
-				return qemuJustBoot(qemuBin, qemuArgs)
+			if rcnf.JustBoot {
+				return lvh.QemuJustBoot(qemuBin, qemuArgs)
 			}
 
 			results, err := runGoTests(&rcnf, qemuBin, qemuArgs)
@@ -129,13 +123,13 @@ func goTestCmd() *cobra.Command {
 		},
 	}
 
-	cmdAddTestConfFlags(cmd, &rcnf.testConf)
+	lvh.AddFlags(cmd, &rcnf.Conf)
 	cmd.Flags().BoolVar(&rcnf.testerConf.NoPowerOff, "no-poweroff", false, "Do not poweroff the VM at the end of the run")
 	cmd.Flags().StringVar(&rcnf.testerConf.TestsFile, "testsfile", "", "list of tests to run")
-	cmd.Flags().StringVar(&rcnf.btfFile, "btf-file", "", "BTF file to use.")
+	cmd.Flags().StringVar(&rcnf.BTFFile, "btf-file", "", "BTF file to use.")
 	cmd.Flags().BoolVar(&rcnf.testerConf.FailFast, "fail-fast", false, "Exit as soon as an error is encountered.")
 	cmd.Flags().BoolVar(&rcnf.keepAllLogs, "keep-all-logs", false, "Normally, logs are kept only for failed tests. This switch keeps all logs.")
-	cmd.Flags().BoolVar(&rcnf.disableUnifiedCgroups, "disable-unified-cgroups", false, "boot with systemd.unified_cgroup_hierarchy=0.")
+	cmd.Flags().BoolVar(&rcnf.DisableUnifiedCgroups, "disable-unified-cgroups", false, "boot with systemd.unified_cgroup_hierarchy=0.")
 	cmd.Flags().StringArrayVarP(&ports, "port", "p", nil, "Forward a port (hostport[:vmport[:tcp|udp]])")
 	cmd.Flags().StringVar(&rcnf.testerConf.KernelVer, "kernel-ver", "", "kenel version")
 	cmd.Flags().BoolVar(&rcnf.detailedResults, "enable-detailed-results", false, "produce detailed results")

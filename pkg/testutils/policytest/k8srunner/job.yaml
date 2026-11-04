@@ -28,6 +28,7 @@ spec:
         - run
         - --bindir=/run/tetragon/policytest-progs
         - --pod-selector=batch.kubernetes.io/controller-uid=$(JOB_UID)
+        - --output=json
         env:
         - name: JOB_UID
           valueFrom:
