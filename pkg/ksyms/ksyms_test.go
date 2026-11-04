@@ -87,3 +87,93 @@ func TestGetFnOffset(t *testing.T) {
 		})
 	}
 }
+
+func TestCleanupSymbolName(t *testing.T) {
+	tests := []struct {
+		name string
+		sym  string
+		want string
+	}{
+		{name: "llvm suffix stripped", sym: "ovl_create.llvm.10133695243223489424", want: "ovl_create"},
+		{name: "plain name untouched", sym: "ovl_create", want: "ovl_create"},
+		{name: "cold fragment kept", sym: "__x64_sys_read.cold", want: "__x64_sys_read.cold"},
+		{name: "isra clone kept", sym: "ovl_lookup.isra.0", want: "ovl_lookup.isra.0"},
+		{name: "static local kept", sym: "ovl_create_real._rs", want: "ovl_create_real._rs"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := cleanupSymbolName(tt.sym); got != tt.want {
+				t.Fatalf("cleanupSymbolName(%q) = %q, want %q", tt.sym, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetKmod(t *testing.T) {
+	// "shared" is deliberately listed after "shared.llvm.1234" so that a
+	// lookup returning the first match would report the wrong module.
+	ksyms := &Ksyms{
+		table: []ksym{
+			{addr: 0x100, name: "wake_up_new_task", ty: "t"},
+			{addr: 0x200, name: "ovl_create.llvm.10133695243223489424", ty: "t", kmod: "overlay"},
+			{addr: 0x300, name: "ovl_create_object", ty: "t", kmod: "overlay"},
+			{addr: 0x400, name: "shared.llvm.1234", ty: "t", kmod: "modb"},
+			{addr: 0x500, name: "shared", ty: "t", kmod: "moda"},
+		},
+	}
+
+	tests := []struct {
+		name    string
+		sym     string
+		want    string
+		wantErr bool
+	}{
+		{name: "lto symbol by source name", sym: "ovl_create", want: "overlay"},
+		{name: "lto symbol by full name", sym: "ovl_create.llvm.10133695243223489424", want: "overlay"},
+		{name: "plain module symbol", sym: "ovl_create_object", want: "overlay"},
+		{name: "exact match wins over stripped", sym: "shared", want: "moda"},
+		{name: "symbol not in a module", sym: "wake_up_new_task", wantErr: true},
+		{name: "unknown symbol", sym: "fake_hook", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ksyms.GetKmod(tt.sym)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("GetKmod(%q) error = %v, wantErr %v", tt.sym, err, tt.wantErr)
+			}
+			if !tt.wantErr && got != tt.want {
+				t.Fatalf("GetKmod(%q) = %q, want %q", tt.sym, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsAvailable(t *testing.T) {
+	ksyms := &Ksyms{
+		table: []ksym{
+			{addr: 0x100, name: "acct_process", ty: "t"},
+			{addr: 0x200, name: "disassociate_ctty.llvm.42", ty: "t"},
+		},
+	}
+
+	tests := []struct {
+		name string
+		sym  string
+		want bool
+	}{
+		{name: "plain symbol", sym: "acct_process", want: true},
+		{name: "lto symbol by source name", sym: "disassociate_ctty", want: true},
+		{name: "lto symbol by full name", sym: "disassociate_ctty.llvm.42", want: true},
+		{name: "unknown symbol", sym: "fake_hook", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ksyms.IsAvailable(tt.sym); got != tt.want {
+				t.Fatalf("IsAvailable(%q) = %v, want %v", tt.sym, got, tt.want)
+			}
+		})
+	}
+}
