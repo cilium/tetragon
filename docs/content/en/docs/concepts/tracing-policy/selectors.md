@@ -974,13 +974,13 @@ of the entries match.
 1. Binaries and all linked libraries in the callstack must have frame pointers
    enabled.
 2. The `matchUserCallers` selector is only supported for `uprobes`.
-3. On amd64 platforms, kernel commit [`cfa7f3d2c526` ("perf,x86: avoid missing caller address in
-   stack traces captured in uprobe")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cfa7f3d2c526c224a6271cc78a4a27a0de06f4f0)
-   (kernel version >=6.12) is needed to match the immediate caller.
-   When the binary is compiled with CFI, the kernel must also be built with
-   `CONFIG_X86_KERNEL_IBT`.
-   Without the commit, setting `depth` to `any` is supported, but the immediate
-   caller will not be matched.
+3. On amd64 platforms, kernel commit [`cfa7f3d2c526` ("perf,x86: avoid missing
+   caller address in stack traces captured in
+   uprobe")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cfa7f3d2c526c224a6271cc78a4a27a0de06f4f0)
+   (kernel version >=6.12) is needed to match the immediate caller.  When the
+   binary is compiled with CFI, the kernel must also be built with
+   `CONFIG_X86_KERNEL_IBT`.  Without the commit, setting `depth` to `any` is
+   supported, but the immediate caller will not be matched.
 4. arm64 platforms don't support setting `depth` to 1 to match the immediate
    caller. Setting `depth` to `any` is supported, but the immediate caller will not
    be matched.
