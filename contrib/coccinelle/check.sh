@@ -5,6 +5,9 @@
 # Run the Coccinelle checks (*.cocci) in this directory on the BPF code, and
 # fail if any of them reports something. Requires spatch, with Python support,
 # see Dockerfile.coccinelle and the check-cocci make target.
+#
+# Each check is first run on its test cases, tests/<check>.c if it exists: the
+# lines ending with a "// REPORT" comment must be reported, and nothing else.
 
 set -euo pipefail
 
@@ -35,6 +38,26 @@ spatch_report() {
 }
 
 ret=0
+
+for cocci in "$dir"/*.cocci; do
+	test="$dir/tests/$(basename "$cocci" .cocci).c"
+	if [ ! -f "$test" ]; then
+		continue
+	fi
+	name=${test#"$root/"}
+	expected=$(grep -n '// REPORT$' "$test" | cut -d: -f1 | sort || true)
+	actual=$(spatch_report "$cocci" "$test" | cut -d: -f2 | sort)
+	missing=$(comm -23 <(echo "$expected") <(echo "$actual"))
+	unexpected=$(comm -13 <(echo "$expected") <(echo "$actual"))
+	for line in $missing; do
+		echo "$name:$line: missing report"
+		ret=1
+	done
+	for line in $unexpected; do
+		echo "$name:$line: unexpected report"
+		ret=1
+	done
+done
 
 for cocci in "$dir"/*.cocci; do
 	# The generated vmlinux headers don't contain any program, skip them.
