@@ -2463,3 +2463,25 @@ function is called, and its `matchReturnArgs` when the function returns.
 - `matchReturnActions` run when the function returns, for the first selector
   whose entry filters and `matchReturnArgs` all match. A selector whose entry
   filters did not match is never used on return.
+
+An uprobe `Override` in `matchReturnActions` replaces the return value with
+`argError` after the return filters match. It preserves the caller's instruction
+pointer and stack, and requires kernel support for uprobe register changes.
+Return Override supports `argError` only; register assignments and function
+redirection options are rejected. For example, this selector replaces a returned
+pointer with NULL when the returned string is exactly `"*"`:
+
+```yaml
+return: true
+returnArg:
+  index: 0
+  type: string
+selectors:
+- matchReturnArgs:
+  - index: 0
+    operator: Equal
+    values: ["*"]
+  matchReturnActions:
+  - action: Override
+    argError: 0
+```
