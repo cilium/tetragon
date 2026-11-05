@@ -1800,6 +1800,12 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
+		// retState is nil when the retprobe is only needed for returnCopy
+		// (spec.Return unset), see initUprobeSelectors. There are no return
+		// selectors then, so don't pin unused selector maps.
+		if retState := getUprobeProgramSelector(loadret, uprobeEntry); retState != nil {
+			maps = append(maps, createSelectorMaps(loadret, retState, len(retState.SubStrings()))...)
+		}
 		maps = append(maps, getHeapMaps("uprobe_", option.Config.UprobeHeapSize, has.uprobeHeapSize, loadret)...)
 
 		if len(polInfo.stateIDs) != 0 {
