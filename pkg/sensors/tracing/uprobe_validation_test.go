@@ -155,6 +155,7 @@ func TestUprobeReturnSensorMaps(t *testing.T) {
 	progs, maps := createUprobeSensorFromEntry(pi, entry, nil, nil, uprobeHas{})
 	// progs[0] is the entry uprobe program, progs[1] its return (uretprobe) program.
 	require.Len(t, progs, 2)
+	require.Contains(t, progs[1].PinMap, "string_maps_0")
 	// The first program to request a policy map owns it. The entry program
 	// must own policy_conf: the owner writes the policy mode while it loads,
 	// and the entry program is attached before the return program loads.
