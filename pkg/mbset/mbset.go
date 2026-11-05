@@ -73,6 +73,8 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 	defer s.mu.Unlock()
 
 	if update == nil {
+		// No execve_map updater (only set when large bpf progs are enabled): still release the ID slot.
+		delete(s.ids, id)
 		return nil
 	}
 
@@ -104,6 +106,11 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 
 		err := mbsetMap.Lookup(path, &val)
 		if err != nil {
+			// Duplicate paths in one selector hit Delete on the first copy;
+			// a second Lookup returns ErrKeyNotExist — continue, do not leak ID.
+			if errors.Is(err, ebpf.ErrKeyNotExist) {
+				continue
+			}
 			return fmt.Errorf("failed to lookup mbset map: %w", err)
 		}
 
