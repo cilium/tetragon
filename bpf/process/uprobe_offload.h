@@ -52,6 +52,8 @@ struct {
 // uprobe_dyn uses `regs_map`; import it after the map has been declared.
 #ifdef __V61_BPF_PROG
 
+volatile const __u8 DYNAMIC_SO_ENABLED;
+
 // While this code only runs for 6.18+,
 // it uses BPF_MAP_TYPE_TASK_STORAGE for tg_dyn_sm map
 // that requires 5.11+. The code gets compiled and verified
@@ -60,6 +62,8 @@ struct {
 #include "uprobe_dyn.h"
 
 #else /* __V61_BPF_PROG */
+
+#define DYNAMIC_SO_ENABLED 0
 
 FUNC_INLINE int
 uprobe_dyn_state_machine(struct pt_regs *ctx, struct uprobe_regs *regs, __u32 sym_id)
@@ -167,7 +171,7 @@ uprobe_offload(struct pt_regs *ctx)
 
 	// We expect to fully override the call to
 	// a dynamically loaded one
-	if (bpf_ksym_exists(bpf_iter_task_vma_new) && regs->sopath_len > 0)
+	if (DYNAMIC_SO_ENABLED && regs->sopath_len > 0)
 		return uprobe_dyn_state_machine(ctx, regs, idx);
 
 	for (i = 0; i < REGS_MAX && i < regs->cnt; i++) {
