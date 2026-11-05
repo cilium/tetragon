@@ -25,11 +25,9 @@ type PodEventSource interface {
 }
 
 var (
-	metricsWithPod      []*prometheus.MetricVec
-	metricsWithPodMutex sync.RWMutex
-	podQueue            workqueue.TypedDelayingInterface[any]
-	podQueueOnce        sync.Once
-	deleteDelay         = 1 * time.Minute
+	podQueue     workqueue.TypedDelayingInterface[any]
+	podQueueOnce sync.Once
+	deleteDelay  = 1 * time.Minute
 )
 
 // RegisterPodDeleteHandler registers a handler for deleting metrics associated
@@ -63,12 +61,6 @@ func DeleteMetricsForPod(pod *corev1.Pod) {
 	}
 }
 
-func ListMetricsWithPod() []*prometheus.MetricVec {
-	// NB: All additions to the list happen when registering metrics, so it's safe to just return
-	// the list here.
-	return metricsWithPod
-}
-
 func StartPodDeleteHandler() {
 	queue := GetPodQueue()
 	for {
@@ -79,78 +71,4 @@ func StartPodDeleteHandler() {
 		DeleteMetricsForPod(pod.(*corev1.Pod))
 		queue.Done(pod)
 	}
-}
-
-// NewCounterVecWithPod is a wrapper around prometheus.NewCounterVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// It should be used only to register metrics that have "pod" and "namespace"
-// labels. Using it for metrics without these labels won't break anything, but
-// might add an unnecessary overhead.
-func NewCounterVecWithPod(opts prometheus.CounterOpts, labels []string) *prometheus.CounterVec {
-	metric := prometheus.NewCounterVec(opts, labels)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
-}
-
-// NewCounterVecWithPodV2 is a wrapper around prometheus.V2.NewCounterVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// See NewCounterVecWithPod for usage notes.
-func NewCounterVecWithPodV2(opts prometheus.CounterVecOpts) *prometheus.CounterVec {
-	metric := prometheus.V2.NewCounterVec(opts)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
-}
-
-// NewGaugeVecWithPod is a wrapper around prometheus.NewGaugeVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// See NewCounterVecWithPod for usage notes.
-func NewGaugeVecWithPod(opts prometheus.GaugeOpts, labels []string) *prometheus.GaugeVec {
-	metric := prometheus.NewGaugeVec(opts, labels)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
-}
-
-// NewGaugeVecWithPodV2 is a wrapper around prometheus.V2.NewGaugeVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// See NewCounterVecWithPod for usage notes.
-func NewGaugeVecWithPodV2(opts prometheus.GaugeVecOpts) *prometheus.GaugeVec {
-	metric := prometheus.V2.NewGaugeVec(opts)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
-}
-
-// NewHistogramVecWithPod is a wrapper around prometheus.NewHistogramVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// See NewCounterVecWithPod for usage notes.
-func NewHistogramVecWithPod(opts prometheus.HistogramOpts, labels []string) *prometheus.HistogramVec {
-	metric := prometheus.NewHistogramVec(opts, labels)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
-}
-
-// NewHistogramVecWithPodV2 is a wrapper around prometheus.V2.NewHistogramVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// See NewCounterVecWithPod for usage notes.
-func NewHistogramVecWithPodV2(opts prometheus.HistogramVecOpts) *prometheus.HistogramVec {
-	metric := prometheus.V2.NewHistogramVec(opts)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
 }
