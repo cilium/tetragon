@@ -249,6 +249,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	msg->sel.curr = 0;
 	msg->tailcall_index_process = 0;
 	msg->tailcall_index_selector = 0;
+	msg->actions_offset = 0;
 #pragma unroll
 	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
 		msg->sel.active[i] = 0;
