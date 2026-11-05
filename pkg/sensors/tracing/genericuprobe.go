@@ -300,7 +300,7 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 	if selector != nil {
 		mapLoad = append(mapLoad, selectorsMaploads(load, selector, 0)...)
 
-		if load.SleepableOffload {
+		if load.SleepableOffload && !load.RetProbe {
 			mapLoad = append(mapLoad,
 				&program.MapLoad{
 					Name: "regs_map",
@@ -420,7 +420,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 		if selector != nil {
 			mapLoad = append(mapLoad, selectorsMaploads(load, selector, uint32(index))...)
 
-			if load.SleepableOffload {
+			if load.SleepableOffload && !load.RetProbe {
 				mapLoad = append(mapLoad,
 					&program.MapLoad{
 						Name: "regs_map",
@@ -491,6 +491,7 @@ type addUprobeIn struct {
 
 type uprobeHas struct {
 	sleepableOffload     bool
+	returnOverride       bool
 	sleepablePreload     bool
 	sleepablePreloadSize int
 	sleepableOffloadSize int
@@ -590,6 +591,19 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		return errors.New("enforcer actions are not supported for uprobes")
 	}
 
+	for _, selector := range spec.Selectors {
+		for _, action := range selector.MatchReturnActions {
+			if strings.EqualFold(action.Action, "Override") {
+				if !spec.Return {
+					return errors.New("uprobe return Override requires return=true")
+				}
+				if len(action.ArgRegs) != 0 || action.ArgNewSymbol != "" || action.ArgNewOffset != 0 || action.ArgNewAddr != 0 || action.SoPath != "" {
+					return errors.New("uprobe return Override only supports argError")
+				}
+			}
+		}
+	}
+
 	state.symbols = len(spec.Symbols)
 	state.offsets = len(spec.Offsets)
 	state.addrs = len(spec.Addrs)
@@ -659,6 +673,16 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 }
 
 func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
+	for _, selector := range spec.Selectors {
+		for _, action := range selector.MatchReturnActions {
+			if strings.EqualFold(action.Action, "Override") {
+				if !bpf.HasUprobeRegsChange() {
+					return errors.New("can't use return override action, no kernel support")
+				}
+				has.returnOverride = true
+			}
+		}
+	}
 	if selectors.HasOverride(spec.Selectors) {
 		if !bpf.HasUprobeRegsChange() {
 			return errors.New("can't use override regs action, no kernel support")
@@ -1657,6 +1681,16 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 			SetLoaderData(multiRetIDs).
 			SetPolicy(polInfo.name)
 
+		loadret.SleepableOffload = has.returnOverride
+		if has.returnOverride {
+			pending := program.MapBuilderProgram("return_override", loadret)
+			size := has.sleepableOffloadSize
+			if size == 0 {
+				size = option.Config.SleepableOffloadSize
+			}
+			pending.SetMaxEntries(size)
+			maps = append(maps, pending)
+		}
 		maps = append(maps, polInfo.policyConfMap(loadret), polInfo.selectorStatsMap(loadret))
 
 		progs = append(progs, loadret)
@@ -1785,6 +1819,16 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 			SetRetProbe(true).
 			SetLoaderData(uprobeEntry).
 			SetPolicy(uprobeEntry.policyName)
+		loadret.SleepableOffload = has.returnOverride
+		if has.returnOverride {
+			pending := program.MapBuilderProgram("return_override", loadret)
+			size := has.sleepableOffloadSize
+			if size == 0 {
+				size = option.Config.SleepableOffloadSize
+			}
+			pending.SetMaxEntries(size)
+			maps = append(maps, pending)
+		}
 		maps = append(maps, polInfo.policyConfMap(loadret), polInfo.selectorStatsMap(loadret))
 
 		progs = append(progs, loadret)

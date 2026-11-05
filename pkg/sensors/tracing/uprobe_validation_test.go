@@ -114,6 +114,34 @@ spec:
 	require.Contains(t, err.Error(), "only a single uprobe symbol can be redirected")
 }
 
+func TestUprobeReturnOverrideValidation(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		action    v1alpha1.ActionSelector
+		wantError bool
+	}{
+		{"value", v1alpha1.ActionSelector{Action: "Override", ArgError: -1}, false},
+		{"registers", v1alpha1.ActionSelector{Action: "Override", ArgRegs: []string{"rax=0"}}, true},
+		{"symbol", v1alpha1.ActionSelector{Action: "Override", ArgNewSymbol: "other"}, true},
+		{"address", v1alpha1.ActionSelector{Action: "Override", ArgNewAddr: 123}, true},
+		{"offset", v1alpha1.ActionSelector{Action: "Override", ArgNewOffset: 123}, true},
+		{"sopath", v1alpha1.ActionSelector{Action: "Override", SoPath: "/lib/other.so"}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			spec := &v1alpha1.UProbeSpec{Symbols: []string{"crypt"}, Return: true,
+				Selectors: []v1alpha1.KProbeSelector{{MatchReturnActions: []v1alpha1.ActionSelector{tc.action}}}}
+			err := validateUprobeSpec(spec, &uprobeConfigState{})
+			if tc.wantError {
+				require.ErrorContains(t, err, "return Override only supports argError")
+			} else {
+				require.NoError(t, err)
+				spec.Return = false
+				require.ErrorContains(t, validateUprobeSpec(spec, &uprobeConfigState{}), "requires return=true")
+			}
+		})
+	}
+}
+
 func TestUprobeReturnOverridePolicyMode(t *testing.T) {
 	for _, tc := range []struct {
 		mode string
@@ -150,20 +178,30 @@ func TestUprobeReturnSensorMaps(t *testing.T) {
 	require.NoError(t, initUprobeSelectors(spec, &addUprobeIn{selMaps: &selectors.KernelSelectorMaps{}}, &state, nil, 0, &uprobeHas{}))
 	defer selectors.CleanupKernelSelectorState(state.selectors.entry)
 	defer selectors.CleanupKernelSelectorState(state.selectors.retrn)
-	pi := &policyInfo{name: "return-override"}
-	entry := &genericUprobe{symbol: "crypt", loadArgs: uprobeLoadArgs{selectors: state.selectors, retprobe: true}}
-	progs, maps := createUprobeSensorFromEntry(pi, entry, nil, nil, uprobeHas{})
-	// progs[0] is the entry uprobe program, progs[1] its return (uretprobe) program.
-	require.Len(t, progs, 2)
-	require.Contains(t, progs[1].PinMap, "string_maps_0")
-	require.Same(t, progs[0], pi.policyConf.Prog)
-	for _, name := range []string{"policy_conf", "selector_stats"} {
-		var users int
-		for _, m := range maps {
-			if m.Name == name && !m.Owner {
-				users++
-			}
+	for _, enabled := range []bool{false, true} {
+		pi := &policyInfo{name: "return-override"}
+		entry := &genericUprobe{symbol: "crypt", loadArgs: uprobeLoadArgs{selectors: state.selectors, retprobe: true}}
+		progs, maps := createUprobeSensorFromEntry(pi, entry, nil, nil, uprobeHas{returnOverride: enabled, sleepableOffloadSize: 17})
+		// progs[0] is the entry uprobe program, progs[1] its return (uretprobe) program.
+		require.Len(t, progs, 2)
+		require.False(t, progs[0].SleepableOffload)
+		require.Equal(t, enabled, progs[1].SleepableOffload)
+		require.Contains(t, progs[1].PinMap, "string_maps_0")
+		require.NotContains(t, progs[1].PinMap, "regs_map")
+		require.Same(t, progs[0], pi.policyConf.Prog)
+		if enabled {
+			require.Equal(t, uint32(17), progs[1].PinMap["return_override"].Entries.Val)
+		} else {
+			require.NotContains(t, progs[1].PinMap, "return_override")
 		}
-		require.Equal(t, 1, users, name)
+		for _, name := range []string{"policy_conf", "selector_stats"} {
+			var users int
+			for _, m := range maps {
+				if m.Name == name && !m.Owner {
+					users++
+				}
+			}
+			require.Equal(t, 1, users, name)
+		}
 	}
 }
