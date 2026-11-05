@@ -144,6 +144,26 @@ func ResolveInterpreter(root Root, binary string) (string, *os.File, error) {
 	return "", nil, fmt.Errorf("interpreter %q for %q: %w", interp, binary, ErrNotFound)
 }
 
+// GlibcSoname is the soname of glibc's libc.
+const GlibcSoname = "libc.so.6"
+
+// ResolveLibc returns the path of the libc binary depends on, along with the
+// opened file. The caller must close the returned file.
+//
+// For glibc binaries, this is the GlibcSoname dependency, resolved with
+// ResolveNeeded. For musl binaries, where libc is also the dynamic loader,
+// this is the program interpreter, resolved with ResolveInterpreter.
+//
+// The returned path may be a symlink: use Root.RealPath to get the actual
+// file.
+func ResolveLibc(root Root, binary string) (string, *os.File, error) {
+	p, f, err := ResolveNeeded(root, binary, GlibcSoname)
+	if errors.Is(err, ErrMusl) {
+		return ResolveInterpreter(root, binary)
+	}
+	return p, f, err
+}
+
 type resolver struct {
 	root   Root
 	binary string
