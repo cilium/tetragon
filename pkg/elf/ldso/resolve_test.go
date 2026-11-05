@@ -361,3 +361,113 @@ func TestResolveNeededHost(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveInterpreter(t *testing.T) {
+	const musl = "/lib/ld-musl-x86_64.so.1"
+	muslExe := elfSpec{interp: musl, needed: []string{"libc.musl-x86_64.so.1"}}
+
+	tests := []struct {
+		name     string
+		files    map[string]any
+		want     string
+		wantReal string
+		wantErr  error
+	}{
+		{
+			name: "alpine",
+			files: map[string]any{
+				"/usr/bin/app":               muslExe,
+				musl:                         lib64,
+				"/lib/libc.musl-x86_64.so.1": "ld-musl-x86_64.so.1",
+			},
+			want:     musl,
+			wantReal: musl,
+		},
+		{
+			name: "symlinked interpreter",
+			files: map[string]any{
+				"/usr/bin/app":                               exe("libc.so.6"),
+				"/lib64/ld-linux-x86-64.so.2":                "../lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+				"/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2": lib64,
+			},
+			want:     "/lib64/ld-linux-x86-64.so.2",
+			wantReal: "/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+		},
+		{
+			name: "unclean interpreter path",
+			files: map[string]any{
+				"/usr/bin/app": elfSpec{interp: "/lib//./ld-musl-x86_64.so.1"},
+				musl:           lib64,
+			},
+			want:     musl,
+			wantReal: musl,
+		},
+		{
+			name: "static binary",
+			files: map[string]any{
+				"/usr/bin/app": elfSpec{typ: elf.ET_EXEC},
+			},
+			wantErr: ErrStaticBinary,
+		},
+		{
+			name: "missing interpreter",
+			files: map[string]any{
+				"/usr/bin/app": muslExe,
+			},
+			wantErr: ErrNotFound,
+		},
+		{
+			name: "incompatible interpreter",
+			files: map[string]any{
+				"/usr/bin/app": muslExe,
+				musl:           elfSpec{machine: elf.EM_AARCH64},
+			},
+			wantErr: ErrNotFound,
+		},
+		{
+			name: "relative interpreter",
+			files: map[string]any{
+				"/usr/bin/app":            elfSpec{interp: "lib/ld-musl-x86_64.so.1"},
+				"lib/ld-musl-x86_64.so.1": lib64,
+			},
+			wantErr: ErrNotFound,
+		},
+		{
+			name:    "missing binary",
+			files:   map[string]any{},
+			wantErr: os.ErrNotExist,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := rootfs(t, tt.files)
+			got, f, err := ResolveInterpreter(root, "/usr/bin/app")
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				require.Nil(t, f)
+				return
+			}
+			require.NoError(t, err)
+			defer f.Close()
+			require.Equal(t, tt.want, got)
+
+			gotReal, err := root.RealPath(got)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantReal, gotReal)
+		})
+	}
+}
+
+// TestResolveInterpreterHost checks the interpreter of host binaries is found.
+func TestResolveInterpreterHost(t *testing.T) {
+	binary := testutils.RepoRootPath("contrib/tester-progs/uprobe-simple")
+	if _, err := os.Stat(binary); err != nil {
+		t.Skipf("%s not available", binary)
+	}
+
+	got, f, err := ResolveInterpreter(HostRoot(), binary)
+	require.NoError(t, err)
+	defer f.Close()
+	require.Contains(t, got, "ld-")
+}
