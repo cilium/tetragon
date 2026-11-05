@@ -73,6 +73,7 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 	msg->sel.pass = false;
 	msg->tailcall_index_process = 0;
 	msg->tailcall_index_selector = 0;
+	msg->actions_offset = 0;
 	generic_path_init(msg);
 	task = (struct task_struct *)get_current_task();
 	/* Initialize namespaces to apply filters on them */
@@ -1359,6 +1360,16 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
 		return 0;
 
+	/* The return heap is fresh (or, for kprobes, may belong to another
+	 * invocation). Restore the entry prefilter results from correlation data.
+	 */
+	memset(&e->sel, 0, sizeof(e->sel));
+#pragma unroll
+	for (int i = 0; i < MAX_SELECTORS; i++)
+		e->sel.active[i] = !!(info.active_selectors & (1U << i));
+	e->sel.active[SELECTORS_ACTIVE] = !!(info.active_selectors & (1U << SELECTORS_ACTIVE));
+	e->tailcall_index_selector = 0;
+
 	*(unsigned long *)e->args = info.ktime_enter;
 	size += sizeof(info.ktime_enter);
 
@@ -1553,6 +1564,13 @@ FUNC_INLINE int filter_args(void *ctx, struct bpf_map_def *tailcalls,
 		if (pass)
 			return pass;
 	}
+	/* Mask right before the access: older verifiers (4.19, 5.4) drop the
+	 * bounds of a masked value spilled to the stack.
+	 */
+	asm volatile("%[selidx] &= %[mask];\n"
+		     : [selidx] "+r"(selidx)
+		     : [mask] "i"(MAX_SELECTORS_MASK));
+	e->sel.active[selidx] = false;
 	return 0;
 }
 
@@ -1599,6 +1617,7 @@ FUNC_INLINE int next_selidx(struct msg_generic_kprobe *e, int selidx)
 FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 				    bool is_entry, int arg)
 {
+	struct retprobe_info *info = NULL;
 	struct msg_generic_kprobe *e;
 	heap_key_t key = heap_key();
 	int selidx, pass;
@@ -1609,11 +1628,52 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 	selidx = e->tailcall_index_selector;
 	pass = filter_args(ctx, tailcalls, e, selidx & MAX_SELECTORS_MASK,
 			   is_entry, arg);
-	if (!pass) {
+
+	/* An entry with a return probe hands its selector state to the return
+	 * program through retprobe_map. The heap itself is released before the
+	 * function returns and cannot carry this state.
+	 */
+	if (is_entry) {
+		struct retprobe_key retkey = {
+			.id = e->func_id,
+			.tid = e->retprobe_id,
+		};
+
+		info = map_lookup_elem(&retprobe_map, &retkey);
+	}
+
+	if (!pass || (info && e->sel.active[SELECTORS_ACTIVE])) {
+		/* Entry actions come from the first matching selector. */
+		if (pass && !e->actions_offset)
+			e->actions_offset = pass;
 		selidx = next_selidx(e, selidx);
 		if (selidx <= MAX_SELECTORS) {
 			e->tailcall_index_selector = selidx;
 			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
+		}
+		if (info) {
+			__u32 active = 0;
+#pragma unroll
+			for (int i = 0; i < MAX_SELECTORS; i++) {
+				/* If the tail call failed, selectors from selidx on
+				 * were not evaluated.
+				 */
+				if (e->sel.active[i] && i < selidx) {
+					/* Account entry actions and the post to the
+					 * first match in the selector stats.
+					 */
+					if (!active)
+						e->tailcall_index_selector = i;
+					active |= 1U << i;
+				}
+			}
+			if (active) {
+				/* Save even if an entry NoPost action suppresses the event. */
+				info->active_selectors = active | (1U << SELECTORS_ACTIVE);
+				if (e->actions_offset > 1)
+					tail_call(ctx, tailcalls, TAIL_CALL_ACTIONS);
+				tail_call(ctx, tailcalls, TAIL_CALL_SEND);
+			}
 		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
 		return filter_args_reject(e->func_id);
