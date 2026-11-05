@@ -1005,6 +1005,15 @@ cel_eval_assignments(struct offload_data *d, struct msg_generic_kprobe *e, __u32
 }
 #endif /* GENERIC_UPROBE && __V61_BPF_PROG */
 
+#ifdef GENERIC_URETPROBE
+FUNC_INLINE void do_uprobe_return_override(__s32 value)
+{
+	__u64 id = get_current_pid_tgid();
+
+	with_errmetrics(map_update_elem, &return_override, &id, &value, BPF_ANY);
+}
+#endif
+
 /**
  * do_action - Execute the action at index i in the action array.
  *
@@ -1106,6 +1115,8 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 			cel_eval_assignments(&d, e, error);
 #endif /* __V61_BPF_PROG */
 			do_uprobe_override(ctx, &d);
+#elif defined(GENERIC_URETPROBE)
+			do_uprobe_return_override(error);
 #else
 			do_override_action(error);
 #endif
