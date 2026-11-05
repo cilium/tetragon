@@ -5,7 +5,8 @@ package filters
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -72,12 +73,12 @@ func ParseFilterList(filters string, enablePidSetFilters bool) ([]*tetragon.Filt
 	if filters == "" {
 		return nil, nil
 	}
-	dec := json.NewDecoder(strings.NewReader(filters))
+	dec := jsontext.NewDecoder(strings.NewReader(filters))
 	var results []*tetragon.Filter
 	for {
 		var result tetragon.Filter
-		if err := dec.Decode(&result); err != nil {
-			if err == io.EOF {
+		if err := json.UnmarshalDecode(dec, &result); err != nil {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, err
