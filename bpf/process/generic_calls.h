@@ -1352,6 +1352,16 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
 		return 0;
 
+	/* The return heap is fresh (or, for kprobes, may belong to another
+	 * invocation). Restore the entry prefilter results from correlation data.
+	 */
+	memset(&e->sel, 0, sizeof(e->sel));
+#pragma unroll
+	for (int i = 0; i < MAX_SELECTORS; i++)
+		e->sel.active[i] = !!(info.active_selectors & (1U << i));
+	e->sel.active[SELECTORS_ACTIVE] = !!(info.active_selectors & (1U << SELECTORS_ACTIVE));
+	e->tailcall_index_selector = info.selector_index;
+
 	*(unsigned long *)e->args = info.ktime_enter;
 	size += sizeof(info.ktime_enter);
 
@@ -1610,6 +1620,30 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
 		return filter_args_reject(e->func_id);
+	}
+
+	if (is_entry) {
+		struct retprobe_key retkey = {
+			.id = e->func_id,
+			.tid = e->retprobe_id,
+		};
+		struct retprobe_info *info = map_lookup_elem(&retprobe_map, &retkey);
+
+		/* Save after entry argument filters succeed, including when an
+		 * entry NoPost action suppresses the event. The heap itself is
+		 * released before the function returns and cannot carry this state.
+		 */
+		if (info) {
+			__u32 active = e->sel.active[SELECTORS_ACTIVE] ? (1U << SELECTORS_ACTIVE) : 0;
+
+#pragma unroll
+			for (int i = 0; i < MAX_SELECTORS; i++) {
+				if (e->sel.active[i])
+					active |= 1U << i;
+			}
+			info->active_selectors = active;
+			info->selector_index = e->tailcall_index_selector;
+		}
 	}
 
 	// If pass >1 then we need to consult the selector actions
