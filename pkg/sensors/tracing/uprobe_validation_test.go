@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/policyconf"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 )
 
 func TestUprobeEventConfigCarriesPolicyID(t *testing.T) {
@@ -109,4 +111,27 @@ spec:
 `)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "only a single uprobe symbol can be redirected")
+}
+
+func TestUprobeReturnOverridePolicyMode(t *testing.T) {
+	for _, tc := range []struct {
+		mode string
+		want policyconf.Mode
+	}{
+		{"", policyconf.EnforceMode},
+		{"enforce", policyconf.EnforceMode},
+		{"monitor", policyconf.MonitorMode},
+	} {
+		t.Run(tc.mode, func(t *testing.T) {
+			spec := &v1alpha1.TracingPolicySpec{UProbes: []v1alpha1.UProbeSpec{{
+				Selectors: []v1alpha1.KProbeSelector{{MatchReturnActions: []v1alpha1.ActionSelector{{Action: "Override"}}}},
+			}}}
+			if tc.mode != "" {
+				spec.Options = []v1alpha1.OptionSpec{{Name: "policy-mode", Value: tc.mode}}
+			}
+			pi, err := newPolicyInfoFromSpec("", "", "return-override", policyfilter.NoFilterID, spec, nil)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, pi.specOpts.policyMode)
+		})
+	}
 }
