@@ -15,6 +15,8 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/testutils"
 )
 
@@ -244,4 +246,42 @@ func TestDynamicSOPopulateUprobeRegs(t *testing.T) {
 	require.Equal(t, uint64(0x3344), regs.MmapAddr)
 	require.Equal(t, uint64(0x5566), regs.DlopenAddr)
 	require.Zero(t, regs.Cnt)
+}
+
+func TestDynamicSOConstant(t *testing.T) {
+	const constName = "DYNAMIC_SO_ENABLED"
+
+	oldKernel, oldSmall := option.Config.KernelVersion, option.Config.ForceSmallProgs
+	t.Cleanup(func() {
+		option.Config.KernelVersion = oldKernel
+		option.Config.ForceSmallProgs = oldSmall
+	})
+	option.Config.ForceSmallProgs = false
+
+	tests := []struct {
+		name        string
+		kernel      string
+		dynamicSO   bool
+		wantEnabled bool
+	}{
+		{"sopath on v61 objects", "6.1.0", true, true},
+		{"no sopath on v61 objects", "6.1.0", false, false},
+		{"sopath on pre v61 objects", "5.11.0", true, false},
+		{"no sopath on pre v61 objects", "5.11.0", false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			option.Config.KernelVersion = tt.kernel
+			load := program.Builder("", "", "", "", "generic_uprobe")
+
+			setDynamicSOConstant(load, uprobeHas{dynamicSO: tt.dynamicSO})
+
+			v, ok := load.RewriteConstants[constName]
+			require.Equal(t, tt.wantEnabled, ok)
+			if tt.wantEnabled {
+				require.Equal(t, uint8(1), v)
+			}
+		})
+	}
 }

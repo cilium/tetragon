@@ -1594,6 +1594,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 
 	load.SleepableOffload = has.sleepableOffload
 	load.SleepablePreload = has.sleepablePreload
+	setDynamicSOConstant(load, has)
 
 	progs = append(progs, load)
 
@@ -1715,6 +1716,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 
 	load.SleepableOffload = has.sleepableOffload
 	load.SleepablePreload = has.sleepablePreload
+	setDynamicSOConstant(load, has)
 
 	progs = append(progs, load)
 
@@ -1802,4 +1804,10 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
 	return progs, maps
+}
+
+func setDynamicSOConstant(load *program.Program, has uprobeHas) {
+	if has.dynamicSO && config.EnableV61Progs() {
+		load.RewriteConstants["DYNAMIC_SO_ENABLED"] = uint8(1)
+	}
 }
