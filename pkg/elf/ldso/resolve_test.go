@@ -592,3 +592,80 @@ func TestResolveInterpreterHost(t *testing.T) {
 	defer f.Close()
 	require.Contains(t, got, "ld-")
 }
+
+func TestResolveLibc(t *testing.T) {
+	const musl = "/lib/ld-musl-x86_64.so.1"
+	muslExe := elfSpec{interp: musl, needed: []string{"libc.musl-x86_64.so.1"}}
+
+	tests := []struct {
+		name     string
+		files    map[string]any
+		want     string
+		wantReal string
+		wantErr  error
+	}{
+		{
+			name: "glibc",
+			files: map[string]any{
+				"/usr/bin/app":     exe(GlibcSoname),
+				"/lib64/libc.so.6": lib64,
+				musl:               lib64,
+			},
+			want:     "/lib64/libc.so.6",
+			wantReal: "/lib64/libc.so.6",
+		},
+		{
+			name: "musl",
+			files: map[string]any{
+				"/usr/bin/app":               muslExe,
+				"/lib/libc.musl-x86_64.so.1": "ld-musl-x86_64.so.1",
+				musl:                         lib64,
+				"/lib64/libc.so.6":           lib64,
+			},
+			want:     musl,
+			wantReal: musl,
+		},
+		{
+			name: "musl without interpreter on disk",
+			files: map[string]any{
+				"/usr/bin/app":     muslExe,
+				"/lib64/libc.so.6": lib64,
+			},
+			wantErr: ErrNotFound,
+		},
+		{
+			name: "glibc binary not linking libc",
+			files: map[string]any{
+				"/usr/bin/app":     exe("libfoo.so.1"),
+				"/lib64/libc.so.6": lib64,
+			},
+			wantErr: ErrNotNeeded,
+		},
+		{
+			name: "static binary",
+			files: map[string]any{
+				"/usr/bin/app": elfSpec{typ: elf.ET_EXEC},
+			},
+			wantErr: ErrStaticBinary,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := rootfs(t, tt.files)
+			got, f, err := ResolveLibc(root, "/usr/bin/app")
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				require.Nil(t, f)
+				return
+			}
+			require.NoError(t, err)
+			defer f.Close()
+			require.Equal(t, tt.want, got)
+
+			gotReal, err := root.RealPath(got)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantReal, gotReal)
+		})
+	}
+}
