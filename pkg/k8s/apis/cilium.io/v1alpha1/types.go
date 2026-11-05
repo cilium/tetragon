@@ -136,6 +136,14 @@ type State struct {
 	// +kubebuilder:validation:MaxLength=255
 	// +kubebuilder:validation:Pattern=`^[A-Za-z_][A-Za-z0-9_]*$`
 	Name string `json:"name"`
+
+	// Scope of the state object within this policy. System shares a value across
+	// all tasks, Process shares a value among a process's threads, and Thread
+	// keeps a separate value for each thread. Defaults to System.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=System;Process;Thread
+	// +kubebuilder:default=System
+	Scope string `json:"scope,omitempty"`
 }
 
 type BinarySelector struct {

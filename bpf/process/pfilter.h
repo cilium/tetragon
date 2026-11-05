@@ -677,9 +677,16 @@ filter_state_loop(__u32 i, __u8 *f, int section_off)
 
 	section_off += sizeof(__u32) + i * sizeof(struct selector_state_filter);
 	filter = (struct selector_state_filter *)((__u64)f + (section_off & INDEX_MASK));
-	state_value = map_lookup_elem(&tg_state_map, &filter->state_id);
-	if (!state_value)
-		return false;
+	state_value = state_lookup(filter->state_id, filter->scope);
+	if (!state_value) {
+		switch (filter->op) {
+		// The Not* operators should match when the state does not exist
+		case op_filter_neq:
+			return true;
+		default:
+			return false;
+		}
+	}
 
 	state_data = state_value->data;
 	filter_value = filter->value;

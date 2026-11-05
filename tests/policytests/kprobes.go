@@ -680,6 +680,10 @@ spec:
         operator: Equal
         values:
         - "-1"
+      matchStates:
+      - name: "test_state"
+        operator: NotEqual
+        value: "1"
       matchActions:
       - action: UpdateState
         state:
@@ -714,7 +718,7 @@ spec:
 		Trigger: policytest.NewMultiCmdTrigger([]policytest.CmdTrigger{
 			// The state does not exist until it is explicitly set.
 			{Bin: helper, Args: []string{"getcpu"}},
-			// The lseek probe creates the state with value 1, but doesn't post.
+			// NotEqual matches the missing state, so lseek creates it without posting.
 			{Bin: helper, Args: []string{"lseek", "-1", "0", "4444"}},
 			// The getcpu probe matches state 1, posts an event, and deletes the state.
 			{Bin: helper, Args: []string{"getcpu"}},
