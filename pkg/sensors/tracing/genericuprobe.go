@@ -1657,6 +1657,8 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 			SetLoaderData(multiRetIDs).
 			SetPolicy(polInfo.name)
 
+		maps = append(maps, polInfo.policyConfMap(loadret), polInfo.selectorStatsMap(loadret))
+
 		progs = append(progs, loadret)
 
 		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
@@ -1770,6 +1772,8 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		maps = append(maps, polInfo.policyStateMap(load))
 	}
 
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
+
 	if uprobeEntry.loadArgs.retprobe {
 		pinRetProg := fmt.Sprintf("%d-%s_return", uprobeEntry.tableId.ID, uprobeEntry.symbol)
 		loadret := program.Builder(
@@ -1781,6 +1785,8 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 			SetRetProbe(true).
 			SetLoaderData(uprobeEntry).
 			SetPolicy(uprobeEntry.policyName)
+		maps = append(maps, polInfo.policyConfMap(loadret), polInfo.selectorStatsMap(loadret))
+
 		progs = append(progs, loadret)
 
 		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
@@ -1800,8 +1806,6 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 			maps = append(maps, polInfo.policyStateMap(loadret))
 		}
 	}
-
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
 	return progs, maps
 }
