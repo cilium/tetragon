@@ -155,6 +155,7 @@ func TestUprobeReturnSensorMaps(t *testing.T) {
 	progs, maps := createUprobeSensorFromEntry(pi, entry, nil, nil, uprobeHas{})
 	// progs[0] is the entry uprobe program, progs[1] its return (uretprobe) program.
 	require.Len(t, progs, 2)
+	require.Contains(t, progs[1].PinMap, "string_maps_0")
 	require.Same(t, progs[0], pi.policyConf.Prog)
 	for _, name := range []string{"policy_conf", "selector_stats"} {
 		var users int
