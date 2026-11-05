@@ -211,8 +211,9 @@ func TestDynamicSOInit(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, lib, dynOv.Library)
 			require.Equal(t, tt.wantAddr, dynOv.Addr)
-			require.NotZero(t, dynOv.offsets.MmapOff)
-			require.NotZero(t, dynOv.offsets.DlopenOff)
+			require.Equal(t, libcName, dynOv.libc.Name)
+			require.NotZero(t, dynOv.libc.MmapOff)
+			require.NotZero(t, dynOv.libc.DlopenOff)
 		})
 	}
 
@@ -227,7 +228,7 @@ func TestDynamicSOPopulateUprobeRegs(t *testing.T) {
 	dynOv := DynamicOverride{
 		Library: "/usr/lib/libfoo.so.1",
 		Addr:    0x1122,
-		offsets: libcOffsets{MmapOff: 0x3344, DlopenOff: 0x5566},
+		libc:    libcInfo{Name: "ld-musl-x86_64.so.1", MmapOff: 0x3344, DlopenOff: 0x5566},
 	}
 
 	regs := dynOv.PopulateUprobeRegs()
@@ -239,6 +240,9 @@ func TestDynamicSOPopulateUprobeRegs(t *testing.T) {
 
 	wantName := []byte("libfoo.so.1\000")
 	require.Equal(t, wantName, regs.SoName[:len(wantName)])
+
+	wantLibc := []byte("ld-musl-x86_64.so.1\000")
+	require.Equal(t, wantLibc, regs.LibcName[:len(wantLibc)])
 
 	require.Equal(t, uint64(0x1122), regs.SymAddr)
 	require.Equal(t, uint64(0x3344), regs.MmapAddr)

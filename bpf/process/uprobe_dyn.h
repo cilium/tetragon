@@ -28,7 +28,8 @@
  * There are the following states:
  *
  * STATE_NONE: uprobe is hit first time
- *      |   - find libc's base base address in the task (see find_library_base()) so that we can find
+ *      |   - find libc's base base address in the task (see find_library_base(), looking for the
+ *      |     `libc_name` file provided by userspace) so that we can find
  *      |     the dlopen and mmap addresses in the process memory.
  *      |   - setup registers/stack so that once we switch to user-space, thread calls mmap() to
  *      |     allocate memory for path argument and after mmap() we will return to the location
@@ -143,7 +144,6 @@ FUNC_INLINE __u64 find_library_base(struct task_struct *task, const char *librar
 
 FUNC_INLINE int call_mmap(struct pt_regs *ctx, struct task_struct *task, __u64 pid_tgid, struct uprobe_regs *regs, __u32 sym_id, __u64 self_exec_id, __s32 idx)
 {
-	static const char libc[SONAME_MAX] = "libc.so.6";
 	struct pending_call *pending_c;
 	__u64 base;
 
@@ -172,7 +172,7 @@ FUNC_INLINE int call_mmap(struct pt_regs *ctx, struct task_struct *task, __u64 p
 	 *    happened so task->self_exec_id has been increased and differs.
 	 */
 	if (pending_c->addrs.libc_exec_id != self_exec_id) {
-		base = find_library_base(task, libc);
+		base = find_library_base(task, regs->libc_name);
 		if (base == 0) {
 			DEBUG_SO("no libc base addr for tid %ld!", pid_tgid);
 			// find_library_base() loop failed to find a libc for the binary;
