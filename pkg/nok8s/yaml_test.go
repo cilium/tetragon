@@ -4,7 +4,7 @@
 package nok8s
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -20,6 +20,7 @@ func TestParseK8sObjErrors(t *testing.T) {
 		{"empty string", ""},
 		{"no kind field", "apiVersion: v1\nmetadata:\n  name: test"},
 		{"empty kind", "kind: \"\"\napiVersion: v1"},
+		{"wrong case kind", "Kind: TracingPolicy\napiVersion: v1"},
 		{"invalid yaml", "invalid: yaml: ["},
 	}
 	for _, tt := range tests {

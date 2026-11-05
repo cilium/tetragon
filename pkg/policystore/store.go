@@ -4,7 +4,8 @@
 package policystore
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"os"
@@ -141,7 +142,7 @@ func (s *Store) Get(id PolicyID) (PolicyWithState, bool) {
 }
 
 func (s *Store) Put(id PolicyID, state PolicyWithState) error {
-	data, err := json.MarshalIndent(state, "", "  ")
+	data, err := json.Marshal(state, jsontext.WithIndent("  "))
 	if err != nil {
 		return fmt.Errorf("encode policy record for %s: %w", id, err)
 	}
