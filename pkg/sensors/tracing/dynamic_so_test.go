@@ -14,27 +14,10 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/elf"
+	"github.com/cilium/tetragon/pkg/elf/ldso"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/testutils"
 )
-
-func TestDynamicSOResolveDep(t *testing.T) {
-	binary := testutils.RepoRootPath("contrib/tester-progs/uprobe-simple")
-
-	libc, err := resolveDep(binary, libcName)
-	require.NoError(t, err)
-	require.True(t, strings.HasSuffix(libc, "/"+libcName), "unexpected libc path %q", libc)
-
-	_, err = resolveDep(binary, "libdoesnotexist.so.1")
-	require.Error(t, err)
-
-	// virtual DSOs have no "=>" in ldd output, so they are not resolved
-	_, err = resolveDep(binary, "linux-vdso.so.1")
-	require.Error(t, err)
-
-	_, err = resolveDep("/does/not/exist", libcName)
-	require.Error(t, err)
-}
 
 func TestDynamicSOIsSODynamic(t *testing.T) {
 	tests := []struct {
@@ -211,7 +194,7 @@ func TestDynamicSOInit(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, lib, dynOv.Library)
 			require.Equal(t, tt.wantAddr, dynOv.Addr)
-			require.Equal(t, libcName, dynOv.libc.Name)
+			require.Equal(t, ldso.GlibcSoname, dynOv.libc.Name)
 			require.NotZero(t, dynOv.libc.MmapOff)
 			require.NotZero(t, dynOv.libc.DlopenOff)
 		})
