@@ -1670,6 +1670,10 @@ func TestUprobeResolveNullMatchNegative(t *testing.T) {
 
 // A return-only action must see the original string, run after the body, and
 // preserve nonmatching results and results in monitor mode.
+func TestUprobeReturnOverrideAction(t *testing.T) {
+	testUprobeReturnEnforcement(t, "Override")
+}
+
 func TestUprobeReturnSigkillAction(t *testing.T) {
 	testUprobeReturnEnforcement(t, "Sigkill")
 }
