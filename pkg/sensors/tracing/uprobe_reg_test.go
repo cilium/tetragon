@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -1665,4 +1666,90 @@ func TestUprobeResolveNullMatchPositive(t *testing.T) {
 
 func TestUprobeResolveNullMatchNegative(t *testing.T) {
 	UprobeResolveNullMatch(t, true, "first")
+}
+
+// A return-only action must see the original string, run after the body, and
+// preserve nonmatching results and results in monitor mode.
+func TestUprobeReturnSigkillAction(t *testing.T) {
+	testUprobeReturnEnforcement(t, "Sigkill")
+}
+
+func testUprobeReturnEnforcement(t *testing.T, action string) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	if action == "Override" && !bpf.HasUprobeRegsChange() {
+		t.Skip("uprobe register changes unavailable; requires kernel support and BPF privileges")
+	}
+	for _, multi := range []bool{false, true} {
+		for _, mode := range []string{"enforce", "monitor"} {
+			t.Run(fmt.Sprintf("multi=%v/%s", multi, mode), func(t *testing.T) {
+				testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+				createCrdFile(t, fmt.Sprintf(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: return-override
+spec:
+  options:
+  - name: disable-uprobe-multi
+    value: "%d"
+  - name: policy-mode
+    value: "%s"
+  uprobes:
+  - path: "%s"
+    symbols: [test_return_string]
+    args:
+    - index: 0
+      type: string
+    return: true
+    returnArg:
+      index: 0
+      type: string
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values: ["never"]
+      matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["*"]
+      matchReturnActions:
+      - action: Sigkill
+    - matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["*"]
+      matchReturnActions:
+      - action: %s
+        argError: 0
+`, map[bool]int{false: 1, true: 0}[multi], mode, testBinary, action))
+				var doneWG, readyWG sync.WaitGroup
+				defer doneWG.Wait()
+				ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+				defer cancel()
+				obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+				require.NoError(t, err)
+				observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+				readyWG.Wait()
+				want := "*"
+				if mode == "enforce" && action == "Override" {
+					want = "NULL"
+				}
+				out, err := exec.Command(testBinary, "4", "*", want).CombinedOutput()
+				if action == "Sigkill" && mode == "enforce" {
+					var exitErr *exec.ExitError
+					require.ErrorAs(t, err, &exitErr, string(out))
+					status := exitErr.Sys().(syscall.WaitStatus)
+					require.True(t, status.Signaled())
+					require.Equal(t, syscall.SIGKILL, status.Signal())
+				} else {
+					require.NoError(t, err, string(out))
+				}
+				out, err = exec.Command(testBinary, "4", "ok", "ok").CombinedOutput()
+				require.NoError(t, err, string(out))
+			})
+		}
+	}
 }

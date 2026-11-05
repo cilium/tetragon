@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define __naked __attribute__((naked))
 #define noinline __attribute__((noinline))
@@ -98,6 +99,14 @@ static unsigned long test_3()
 }
 #endif
 
+static volatile int return_body_ran;
+
+static noinline const char *test_return_string(const char *value)
+{
+	return_body_ran = 1;
+	return value;
+}
+
 int main(int argc, char **argv)
 {
 	unsigned long val;
@@ -117,6 +126,18 @@ int main(int argc, char **argv)
 		return test_2() == val ? 0 : -1;
 	case 3:
 		return test_3();
+	case 4: {
+		const char *value;
+
+		if (argc != 4)
+			return -1;
+		value = test_return_string(argv[2]);
+		if (!return_body_ran)
+			return -1;
+		if (!strcmp(argv[3], "NULL"))
+			return value == NULL ? 0 : -1;
+		return value && !strcmp(value, argv[3]) ? 0 : -1;
+	}
 	}
 
 	return -1;
