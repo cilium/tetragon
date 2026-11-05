@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/selectors"
 )
 
 func TestUprobeEventConfigCarriesPolicyID(t *testing.T) {
@@ -133,5 +134,35 @@ func TestUprobeReturnOverridePolicyMode(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, tc.want, pi.specOpts.policyMode)
 		})
+	}
+}
+
+func TestUprobeReturnSensorMaps(t *testing.T) {
+	spec := &v1alpha1.UProbeSpec{
+		Symbols: []string{"crypt"}, Return: true,
+		ReturnArg: &v1alpha1.KProbeArg{Index: 0, Type: "string"},
+		Selectors: []v1alpha1.KProbeSelector{{
+			MatchReturnArgs:    []v1alpha1.ArgSelector{{Index: 0, Operator: "Equal", Values: []string{"*"}}},
+			MatchReturnActions: []v1alpha1.ActionSelector{{Action: "Override", ArgError: 0}},
+		}},
+	}
+	var state uprobeConfigState
+	require.NoError(t, initUprobeSelectors(spec, &addUprobeIn{selMaps: &selectors.KernelSelectorMaps{}}, &state, nil, 0, &uprobeHas{}))
+	defer selectors.CleanupKernelSelectorState(state.selectors.entry)
+	defer selectors.CleanupKernelSelectorState(state.selectors.retrn)
+	pi := &policyInfo{name: "return-override"}
+	entry := &genericUprobe{symbol: "crypt", loadArgs: uprobeLoadArgs{selectors: state.selectors, retprobe: true}}
+	progs, maps := createUprobeSensorFromEntry(pi, entry, nil, nil, uprobeHas{})
+	// progs[0] is the entry uprobe program, progs[1] its return (uretprobe) program.
+	require.Len(t, progs, 2)
+	require.Same(t, progs[0], pi.policyConf.Prog)
+	for _, name := range []string{"policy_conf", "selector_stats"} {
+		var users int
+		for _, m := range maps {
+			if m.Name == name && !m.Owner {
+				users++
+			}
+		}
+		require.Equal(t, 1, users, name)
 	}
 }
