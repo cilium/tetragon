@@ -31,8 +31,10 @@ var (
 	// ErrNotNeeded is returned when the binary does not directly depend on
 	// the requested library.
 	ErrNotNeeded = errors.New("library is not a direct dependency of the binary")
-	// ErrMusl is returned when the binary is linked against musl libc.
-	ErrMusl = errors.New("musl libc binaries are not supported")
+	// ErrMusl is returned by ResolveNeeded when the binary is linked against
+	// musl libc. Since musl libc is also the dynamic loader, it can be
+	// resolved with ResolveInterpreter.
+	ErrMusl = errors.New("binary is linked against musl libc")
 	// ErrNotFound is returned when no suitable library can be found.
 	ErrNotFound = errors.New("library not found")
 )
@@ -98,6 +100,44 @@ func ResolveNeeded(root Root, binary, soname string) (string, *os.File, error) {
 		return p, f, nil
 	}
 	return "", nil, fmt.Errorf("%q for %q: %w", soname, binary, ErrNotFound)
+}
+
+// ResolveInterpreter returns the path of the program interpreter (PT_INTERP)
+// of binary, i.e. its dynamic loader, along with the opened file. The caller
+// must close the returned file.
+//
+// This is mostly useful for musl binaries, where libc and the dynamic loader
+// are the same object: e.g. on Alpine, the binary depends on
+// libc.musl-x86_64.so.1, a symlink to its interpreter /lib/ld-musl-x86_64.so.1.
+func ResolveInterpreter(root Root, binary string) (string, *os.File, error) {
+	bf, err := root.Open(binary)
+	if err != nil {
+		return "", nil, err
+	}
+	defer bf.Close()
+
+	ef, err := telf.NewSafeELFFile(bf)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to parse %q: %w", binary, err)
+	}
+	defer ef.Close()
+
+	interp, err := interpreter(ef)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to read interpreter of %q: %w", binary, err)
+	}
+	if interp == "" {
+		return "", nil, fmt.Errorf("%q: %w", binary, ErrStaticBinary)
+	}
+	if !path.IsAbs(interp) {
+		return "", nil, fmt.Errorf("interpreter %q of %q is not an absolute path: %w", interp, binary, ErrNotFound)
+	}
+
+	r := resolver{root: root, binary: binary, ef: ef}
+	if p, f, ok := r.try(path.Clean(interp)); ok {
+		return p, f, nil
+	}
+	return "", nil, fmt.Errorf("interpreter %q for %q: %w", interp, binary, ErrNotFound)
 }
 
 type resolver struct {
