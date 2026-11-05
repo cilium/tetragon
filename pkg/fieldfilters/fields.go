@@ -4,7 +4,8 @@
 package fieldfilters
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -30,12 +31,12 @@ func ParseFieldFilterList(filters string) ([]*tetragon.FieldFilter, error) {
 	if err != nil {
 		return nil, err
 	}
-	dec := json.NewDecoder(strings.NewReader(filters))
+	dec := jsontext.NewDecoder(strings.NewReader(filters))
 	var results []*tetragon.FieldFilter
 	for {
 		var result tetragon.FieldFilter
-		if err := dec.Decode(&result); err != nil {
-			if err == io.EOF {
+		if err := json.UnmarshalDecode(dec, &result); err != nil {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, err
@@ -69,14 +70,14 @@ func fixupSnakeCaseString(s string, upper bool) string {
 // JSON.
 func fixupFieldFilterString(s string) (string, error) {
 	builder := &strings.Builder{}
-	dec := json.NewDecoder(strings.NewReader(s))
-	enc := json.NewEncoder(builder)
+	dec := jsontext.NewDecoder(strings.NewReader(s))
+	enc := jsontext.NewEncoder(builder)
 
 	for {
 		var dat map[string]any
-		err := dec.Decode(&dat)
+		err := json.UnmarshalDecode(dec, &dat)
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return "", err
@@ -91,7 +92,7 @@ func fixupFieldFilterString(s string) (string, error) {
 		}
 
 		dat["fields"] = fixupSnakeCaseString(fields, false)
-		enc.Encode(&dat)
+		json.MarshalEncode(enc, &dat)
 	}
 
 	return builder.String(), nil

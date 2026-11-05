@@ -4,7 +4,8 @@
 package jsonchecker
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -74,11 +75,14 @@ func (e *JsonEOFError) Unwrap() error {
 // JsonCheck checks a JSON string using the new eventchecker library.
 func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *slog.Logger) error {
 	count := 0
-	dec := json.NewDecoder(jsonFile)
-	for dec.More() {
+	dec := jsontext.NewDecoder(jsonFile)
+	for {
 		var ev tetragon.GetEventsResponse
-		if err := dec.Decode(&ev); err != nil {
-			if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
+		if err := json.UnmarshalDecode(dec, &ev); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if errors.Is(err, io.ErrUnexpectedEOF) {
 				return &JsonEOFError{
 					count: count,
 					err:   fmt.Errorf("unmarshal failed: %w", err),
