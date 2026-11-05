@@ -6,6 +6,7 @@
 
 #include "bpf_tracing.h"
 #include "errmetrics.h"
+#include "generic.h"
 
 struct retprobe_key {
 	u64 id;
@@ -16,6 +17,7 @@ struct retprobe_info {
 	unsigned long ktime_enter;
 	unsigned long ptr;
 	unsigned long cnt;
+	__u32 active_selectors;
 };
 
 struct {
@@ -85,6 +87,42 @@ retprobe_map_set_iovec(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr,
 	};
 
 	with_errmetrics(map_update_elem, &retprobe_map, &key, &info, BPF_ANY);
+}
+
+/* Save the selectors whose entry filters passed, so the return probe only
+ * considers those. Only selectors below @evaluated were checked; if a tail
+ * call failed, the rest were not and are left out. Returns the first saved
+ * selector, or -1 if none passed.
+ */
+FUNC_INLINE int
+retprobe_info_save_selectors(struct retprobe_info *info,
+			     struct msg_selector_data *sel, int evaluated)
+{
+	__u32 active = 0;
+	int first = -1;
+
+#pragma unroll
+	for (int i = 0; i < MAX_SELECTORS; i++) {
+		if (sel->active[i] && i < evaluated) {
+			if (first < 0)
+				first = i;
+			active |= 1U << i;
+		}
+	}
+	if (active)
+		info->active_selectors = active | (1U << SELECTORS_ACTIVE);
+	return first;
+}
+
+/* Restore the selectors saved by retprobe_info_save_selectors(). */
+FUNC_INLINE void
+retprobe_info_restore_selectors(struct retprobe_info *info,
+				struct msg_selector_data *sel)
+{
+#pragma unroll
+	for (int i = 0; i < MAX_SELECTORS; i++)
+		sel->active[i] = !!(info->active_selectors & (1U << i));
+	sel->active[SELECTORS_ACTIVE] = !!(info->active_selectors & (1U << SELECTORS_ACTIVE));
 }
 
 /**
