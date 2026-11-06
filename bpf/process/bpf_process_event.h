@@ -352,19 +352,22 @@ __event_get_current_cgroup_name(struct cgroup *cgrp, struct msg_k8s *kube)
 }
 
 /**
- * __event_get_cgroup_info() Collect cgroup info from current task.
- * @task: must be current task.
- * @msg: the msg_execve_event where to store collected information.
+ * __event_get_task_cgroup_info() Collect cgroup info from a task.
+ * @task: target task.
+ * @kube: the msg_k8s where to store collected information.
+ * @is_current: true if @task is the current task. Only then the
+ *   bpf_get_current_cgroup_id() helper can be used, otherwise the cgroup id
+ *   is read from the task cgroup.
  *
  * Checks the tg_conf_map BPF map for cgroup and runtime configurations then
- * collects cgroup information from current task. This allows to operate on
+ * collects cgroup information from @task. This allows to operate on
  * different machines and workflows.
  *
  * Return 0 on success, or a bitmask of EVENT_ERROR_* flags on failures.
  *
  */
 FUNC_INLINE __u32
-__event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
+__event_get_task_cgroup_info(struct task_struct *task, struct msg_k8s *kube, bool is_current)
 {
 	__u64 cgrpfs_magic = 0;
 	int zero = 0, subsys_idx = 0;
@@ -387,7 +390,10 @@ __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 		return flags;
 
 	/* Collect event cgroup ID */
-	kube->cgrpid = __tg_get_current_cgroup_id(cgrp, cgrpfs_magic);
+	if (is_current)
+		kube->cgrpid = __tg_get_current_cgroup_id(cgrp, cgrpfs_magic);
+	else
+		kube->cgrpid = get_cgroup_id(cgrp);
 	if (kube->cgrpid)
 		kube->cgrp_tracker_id = cgrp_get_tracker_id(kube->cgrpid);
 	else
@@ -396,6 +402,17 @@ __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 	/* Get the cgroup name of this event. */
 	flags |= __event_get_current_cgroup_name(cgrp, kube);
 	return flags;
+}
+
+/**
+ * __event_get_cgroup_info() Collect cgroup info from current task.
+ * @task: must be current task.
+ * @kube: the msg_k8s where to store collected information.
+ */
+FUNC_INLINE __u32
+__event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
+{
+	return __event_get_task_cgroup_info(task, kube, true);
 }
 
 FUNC_INLINE void
