@@ -16,6 +16,12 @@ import (
 
 const ArgsInRegisters = 6 // Number of arguments passed by register per System V AMD64 ABI
 
+var argIndexRegisters = [ArgsInRegisters]string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
+
+func ArgIndexRegister(argIndex uint32) string {
+	return argIndexRegisters[argIndex]
+}
+
 func parseOverrideRegs(k *KernelSelectorState, selIdx int, values []string, errValue uint64, newOffset int64, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg) error {
 	if _, exists := k.regs[selIdx]; exists {
 		return errors.New("only single instance of regs action is allowed")
@@ -69,21 +75,7 @@ func parseOverrideRegs(k *KernelSelectorState, selIdx int, values []string, errV
 }
 
 func parseSetRegs(k *KernelSelectorState, selIdx int, argIndex uint32, argValue uint64) error {
-	var val string
-	switch argIndex {
-	case 0:
-		val = fmt.Sprintf("rdi=%d", argValue)
-	case 1:
-		val = fmt.Sprintf("rsi=%d", argValue)
-	case 2:
-		val = fmt.Sprintf("rdx=%d", argValue)
-	case 3:
-		val = fmt.Sprintf("rcx=%d", argValue)
-	case 4:
-		val = fmt.Sprintf("r8=%d", argValue)
-	case 5:
-		val = fmt.Sprintf("r9=%d", argValue)
-	}
+	val := fmt.Sprintf("%s=%d", ArgIndexRegister(argIndex), argValue)
 
 	ass, err := asm.ParseAssignment(val)
 	if err != nil {
