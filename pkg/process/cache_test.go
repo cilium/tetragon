@@ -5,7 +5,6 @@ package process
 
 import (
 	"strconv"
-	"strings"
 	"sync"
 	"testing"
 	"testing/synctest"
@@ -76,6 +75,8 @@ func TestProcessCacheGCEarlyDeletion(t *testing.T) {
 		}
 		cache.add(&proc)
 
+		before := testutil.ToFloat64(processCacheEarlyDeletions)
+
 		proc.setColor(deleted)
 		cache.deletePending(&proc)
 
@@ -83,11 +84,8 @@ func TestProcessCacheGCEarlyDeletion(t *testing.T) {
 		// select; under synctest this is deterministic and instant.
 		synctest.Wait()
 
-		expected := strings.NewReader(`# HELP tetragon_process_cache_early_deletions_total Number of times the GC attempted to delete a process already marked as deleted. May indicate the GC is deleting processes too early.
-# TYPE tetragon_process_cache_early_deletions_total counter
-tetragon_process_cache_early_deletions_total 1
-`)
-		require.NoError(t, testutil.CollectAndCompare(processCacheEarlyDeletions, expected))
+		after := testutil.ToFloat64(processCacheEarlyDeletions)
+		require.InDelta(t, float64(1), after-before, 0)
 	})
 }
 
