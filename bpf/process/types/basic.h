@@ -2594,8 +2594,15 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 
 	last_repeat_entry = map_lookup_elem(&ratelimit_map, key);
 	if (last_repeat_entry) {
-		/* ratelimit_interval is in milliseconds. */
-		if (*last_repeat_entry > curr_time - (ratelimit_interval * 1000000)) {
+		__u64 last = *last_repeat_entry;
+
+		/* ratelimit_interval is in milliseconds. Compare the elapsed time
+		 * rather than curr_time - interval: the clock counts from boot, so
+		 * that subtraction wraps while uptime is below the interval and
+		 * nothing is rate limited. A last time ahead of curr_time comes from
+		 * a racing CPU and counts as a repeat.
+		 */
+		if (last > curr_time || curr_time - last < ratelimit_interval * 1000000) {
 			/* This event is too soon after the last matching event. */
 			return true;
 		}
