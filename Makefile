@@ -8,6 +8,7 @@ BINDIR ?= /usr/local/bin
 DOCKER_IMAGE_TAG ?= latest
 LOCAL_CLANG ?= 0
 LOCAL_CLANG_FORMAT ?= 0
+LOCAL_COCCINELLE ?= 0
 FORMAT_FIND_FLAGS ?= -name '*.c' -o -name '*.h'
 NOOPT ?= 0
 CLANG_IMAGE = quay.io/cilium/clang:969f95f8ef7923af36bf657ba6d4c65691f56882@sha256:ff83e52d3ea150b3d93e4ae40ae86620003ac3f6d91fe6e939dcc95469f83ff2
@@ -520,6 +521,21 @@ clang-format:
 	$(CONTAINER_ENGINE) build -f Dockerfile.clang-format -t "cilium/clang-format:${DOCKER_IMAGE_TAG}" .
 	find bpf $(FORMAT_FIND_FLAGS) | xargs -n 1000 \
 		$(CONTAINER_ENGINE) run -v $(shell realpath .):/tetragon "cilium/clang-format:${DOCKER_IMAGE_TAG}" -i -style=file
+endif
+
+COCCINELLE_IMAGE ?= cilium/coccinelle:${DOCKER_IMAGE_TAG}
+
+.PHONY: image-cocci
+image-cocci: ## Build the container image for the Coccinelle checks.
+	$(CONTAINER_ENGINE) build -f Dockerfile.coccinelle -t "$(COCCINELLE_IMAGE)" .
+
+.PHONY: check-cocci
+ifeq (1,$(LOCAL_COCCINELLE))
+check-cocci: ## Run Coccinelle checks on BPF code.
+	contrib/coccinelle/check.sh
+else
+check-cocci: image-cocci
+	$(CONTAINER_ENGINE) run --rm -v $(shell realpath .):/tetragon:ro "$(COCCINELLE_IMAGE)"
 endif
 
 .PHONY: go-format
