@@ -37,6 +37,7 @@ struct uprobe_regs {
 	char sopath[SOPATH_MAX]; // e.g. "/opt/safeguards/libsafemalloc.so"
 	__u32 sopath_len;
 	char soname[SONAME_MAX]; // e.g. "libsafemalloc.so". Computed and filled by userspace to avoid verifier issues
+	char libc_name[SONAME_MAX]; // e.g. "libc.so.6". File name of the libc mapped by the process, filled by userspace
 	__u64 sym_addr; // symbol address without account for sopath base address
 	__u64 mmap_addr; // mmap address without accounting for libc base address
 	__u64 dlopen_addr; // dlopen address without accounting for libc base address
