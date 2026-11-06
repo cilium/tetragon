@@ -162,6 +162,34 @@ spec:
 `)
 	})
 
+	t.Run("substring_map_lsm", func(t *testing.T) {
+		if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() || !bpf.HasKfunc("bpf_strnstr") {
+			t.Skip("skipping, lsm programs or bpf_strnstr kfunc unavailable")
+		}
+
+		run(t, []testMap{
+			{"substring_map", 2},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "substring-map-lsm"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+    - index: 0
+      type: "linux_binprm"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "SubString"
+        values:
+        - test0
+        - test1
+`)
+	})
+
 	t.Run("stack_trace_map", func(t *testing.T) {
 		run(t, []testMap{
 			{"enforcer_data", 1},
