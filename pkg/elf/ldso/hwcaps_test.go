@@ -8,6 +8,7 @@ package ldso
 import (
 	"bufio"
 	"bytes"
+	"debug/elf"
 	"os/exec"
 	"strings"
 	"testing"
@@ -16,6 +17,15 @@ import (
 
 	telf "github.com/cilium/tetragon/pkg/elf"
 )
+
+// setHostHwcaps overrides the glibc-hwcaps subdirectories supported by the
+// host for the duration of the test.
+func setHostHwcaps(t *testing.T, subdirs []string) {
+	t.Helper()
+	orig := hostHwcaps
+	t.Cleanup(func() { hostHwcaps = orig })
+	hostHwcaps = func(_ elf.Machine, _ elf.Class) []string { return subdirs }
+}
 
 // loaderHwcaps returns the glibc-hwcaps subdirectories the given glibc
 // dynamic loader reports as searched, from its --help output.
