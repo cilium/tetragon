@@ -15,7 +15,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-24.04, ubuntu-24.04-arm64, ubuntu-26.04 ]
+        # DO NOT MERGE: discovery run for ubuntu-26.04 only.
+        os: [ ubuntu-26.04 ]
     steps:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -62,10 +63,9 @@ jobs:
         make verify
 
     - name: Run go tests
-      # ubuntu-26.04 ships Rust coreutils behind symlinks, which breaks the
-      # matchBinaries tests expecting /usr/bin paths, see
-      # https://github.com/cilium/tetragon/issues/3583.
-      if: ${{ matrix.os != 'ubuntu-26.04' }}
+      # DO NOT MERGE: discovery run, list every failure on ubuntu-26.04
+      # (-failfast=false overrides the -failfast in `make test`).
+      shell: bash
       env:
         GOPATH: ${{ env.GITHUB_WORKSPACE }}/go
         SUDO: sudo -E
@@ -81,7 +81,18 @@ jobs:
         # Skip them until the kernel is fixed; the vmtests still run them.
         # https://github.com/cilium/tetragon/issues/5846
         make test GO_TEST_TIMEOUT=60m \
-          EXTRA_TESTFLAGS="-skip '^(TestCharBufTracepoint|TestGenericTracepointMeta|TestStringTracepoint)'"
+          EXTRA_TESTFLAGS="-failfast=false -skip '^(TestCharBufTracepoint|TestGenericTracepointMeta|TestStringTracepoint)'" \
+          2>&1 | tee /tmp/gotest-output.txt
+
+    - name: Summarize go test failures
+      if: always()
+      run: |
+        {
+          echo '## Go test failures (${{ matrix.os }})'
+          echo '```'
+          grep -E '^\s*--- FAIL|^FAIL|^panic:' /tmp/gotest-output.txt || echo 'no failures'
+          echo '```'
+        } | tee -a "$GITHUB_STEP_SUMMARY"
 
     # Run some somple nok8s tests in packages where there is meaningful differentiation
     - name: Run nok8s go tests
@@ -98,7 +109,9 @@ jobs:
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: tetragon-json-${{ matrix.os }}
-        path: /tmp/tetragon.gotest*
+        path: |
+          /tmp/tetragon.gotest*
+          /tmp/gotest-output.txt
         retention-days: 5
 
     - name: Upload bugtool dumps
