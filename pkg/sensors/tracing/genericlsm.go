@@ -42,6 +42,8 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
+const lsmCoreLabel = "lsm/generic_lsm_core"
+
 type observerLsmSensor struct {
 	name string
 }
@@ -113,7 +115,9 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		if err != nil {
 			return err
 		}
-		args.Load.MapLoad = append(args.Load.MapLoad, selectorsMaploads(args.Load, gl.selectors, 0)...)
+		if args.Load.Label == lsmCoreLabel {
+			args.Load.MapLoad = append(args.Load.MapLoad, selectorsMaploads(args.Load, gl.selectors, 0)...)
+		}
 		var configData bytes.Buffer
 		binary.Write(&configData, binary.LittleEndian, gl.config)
 		config := &program.MapLoad{
@@ -573,7 +577,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgCoreName),
 		lsmEntry.hook,
-		"lsm/generic_lsm_core",
+		lsmCoreLabel,
 		pinName+"_core",
 		"generic_lsm").
 		SetLoaderData(lsmEntry.tableId).

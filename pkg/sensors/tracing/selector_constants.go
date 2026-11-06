@@ -31,9 +31,6 @@ func rewriteSelectorConstants(load *program.Program, usage selectors.SelectorUsa
 	if !config.EnableLargeProgs() || load.RewriteConstants == nil {
 		return
 	}
-	if load.Type == "generic_lsm" && load.Label != "lsm/generic_lsm_core" {
-		return
-	}
 
 	// preserve FEATURE_MASK from other probes sharing this program
 	featureMask, _ := load.RewriteConstants["FEATURE_MASK"].(uint32)
