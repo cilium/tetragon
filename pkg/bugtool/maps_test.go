@@ -6,6 +6,7 @@
 package bugtool
 
 import (
+	"encoding/json/v2"
 	"os"
 	"testing"
 
@@ -64,4 +65,26 @@ func TestFindMaps(t *testing.T) {
 		}
 	})
 
+}
+
+func TestMapsChecksOutputJSON(t *testing.T) {
+	// zero numbers are omitted, as the json output of "tetra debug maps" always did
+	out := MapsChecksOutput{
+		DiffMaps:       []DiffMap{{ID: 7, Name: "m", Type: "Hash", KeySize: 4}},
+		AggregatedMaps: []AggregatedMap{{Name: "a", Count: 2, PercentOfTotal: 50.5}},
+	}
+	out.MapsStats.Diff = 1
+
+	b, err := json.Marshal(&out)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+		"total_memlock_bytes": {},
+		"maps_stats": {"diff": 1},
+		"diff_maps": [{"id": 7, "name": "m", "type": "Hash", "key_size": 4}],
+		"aggregated_maps": [{"name": "a", "count": 2, "percent_of_total": 50.5}]
+	}`, string(b))
+
+	b, err = json.Marshal(&MapsChecksOutput{})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"total_memlock_bytes": {}, "maps_stats": {}}`, string(b))
 }

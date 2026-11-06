@@ -44,10 +44,10 @@ type MapVal = uint32
 type DumpEntry struct {
 	HelperFunc string `json:"helper_func,omitempty"`
 	FileName   string `json:"file_name,omitempty"`
-	LineNumber uint16 `json:"line_numer,omitempty"`
+	LineNumber uint16 `json:"line_numer,omitzero"`
 	ErrorName  string `json:"error_name,omitempty"`
-	Error      uint16 `json:"error,omitempty"`
-	Count      int    `json:"count,omitempty"`
+	Error      uint16 `json:"error,omitzero"`
+	Count      int    `json:"count,omitzero"`
 }
 
 func (m Map) Dump() ([]DumpEntry, error) {
