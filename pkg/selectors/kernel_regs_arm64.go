@@ -16,6 +16,10 @@ import (
 
 const ArgsInRegisters = 8 // Number of arguments passed by register per AArch64 ABI
 
+func ArgIndexRegister(argIndex uint32) string {
+	return fmt.Sprintf("x%d", argIndex)
+}
+
 func parseOverrideRegs(k *KernelSelectorState, selIdx int, values []string, errValue uint64, newOffset int64, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg) error {
 	if _, exists := k.regs[selIdx]; exists {
 		return errors.New("only single instance of regs action is allowed")
