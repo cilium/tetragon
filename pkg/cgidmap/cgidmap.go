@@ -211,6 +211,11 @@ func (em *entryMap[EntryID]) Get(cgID CgroupID) (EntryID, bool) {
 func (em *entryMap[EntryID]) Update(podID PodID, entryIDs []EntryID, criResolver *criResolver) {
 	tmp := make(map[EntryID]struct{}, len(entryIDs))
 	for _, id := range entryIDs {
+		// avoid sending "" to the CRI - it creates noise
+		if id == "" {
+			continue
+		}
+
 		tmp[id] = struct{}{}
 	}
 
