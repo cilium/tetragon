@@ -52,6 +52,10 @@ const maxInterpLen = 4096
 //  3. /etc/ld.so.cache, unless the binary was linked with -z nodefaultlib
 //  4. default library directories, unless the binary was linked with -z nodefaultlib
 //
+// For directories, the glibc-hwcaps subdirectories supported by the CPU are
+// searched first, in priority order. Likewise, cache entries for supported
+// glibc-hwcaps subdirectories are preferred over regular ones.
+//
 // LD_LIBRARY_PATH is not taken into account, as it depends on the environment
 // of each process. Candidates not matching the binary's ELF class, data
 // encoding and machine are skipped, like the dynamic loader does.
@@ -86,7 +90,7 @@ func ResolveNeeded(root Root, binary, soname string) (string, *os.File, error) {
 		return "", nil, fmt.Errorf("%q does not depend on %q: %w", binary, soname, ErrNotNeeded)
 	}
 
-	r := resolver{root: root, binary: binary, ef: ef}
+	r := resolver{root: root, binary: binary, ef: ef, hwcaps: hostHwcaps(ef.Machine, ef.Class)}
 	if p, f, ok := r.searchDirs(r.runpathDirs, soname); ok {
 		return p, f, nil
 	}
@@ -144,10 +148,17 @@ type resolver struct {
 	root   Root
 	binary string
 	ef     *telf.SafeELFFile
+	// glibc-hwcaps subdirectories to search, in decreasing priority order
+	hwcaps []string
 }
 
 func (r *resolver) searchDirs(dirs func() []string, soname string) (string, *os.File, bool) {
 	for _, dir := range dirs() {
+		for _, sub := range r.hwcaps {
+			if p, f, ok := r.try(path.Join(dir, hwcapsDir, sub, soname)); ok {
+				return p, f, true
+			}
+		}
 		if p, f, ok := r.try(path.Join(dir, soname)); ok {
 			return p, f, true
 		}
@@ -162,11 +173,30 @@ func (r *resolver) searchCache(soname string) (string, *os.File, bool) {
 		// default directories as well.
 		return "", nil, false
 	}
+	// Like ld.so, prefer entries of supported glibc-hwcaps subdirectories,
+	// by priority, then regular entries. Entries of unsupported
+	// subdirectories are skipped.
+	type candidate struct {
+		path     string
+		priority int
+	}
+	var candidates []candidate
 	for _, e := range entries {
 		if e.key != soname || !path.IsAbs(e.value) {
 			continue
 		}
-		if p, f, ok := r.try(e.value); ok {
+		priority := len(r.hwcaps)
+		if e.hwcaps != "" {
+			if priority = slices.Index(r.hwcaps, e.hwcaps); priority < 0 {
+				continue
+			}
+		}
+		candidates = append(candidates, candidate{path: e.value, priority: priority})
+	}
+	slices.SortStableFunc(candidates, func(a, b candidate) int { return a.priority - b.priority })
+
+	for _, c := range candidates {
+		if p, f, ok := r.try(c.path); ok {
 			return p, f, true
 		}
 	}

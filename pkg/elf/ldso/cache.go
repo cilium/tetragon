@@ -20,7 +20,10 @@ import (
 //
 //	[cache_file_new header][file_entry_new...][strings]
 //
-// where string offsets are relative to the start of the header.
+// where string offsets are relative to the start of the header. Entries
+// for glibc-hwcaps subdirectories (glibc >= 2.33) are flagged in their hwcap
+// field, which then holds an index in the list of subdirectory names found in
+// the cache extension section pointed to by the header.
 //
 // The old and compat formats (old format followed by the new one), written
 // by default by older glibc versions, are intentionally not supported: our
@@ -38,11 +41,31 @@ const (
 	// struct cache_file_new: char magic[17]; char version[3]; uint32_t nlibs;
 	// uint32_t len_strings; uint8_t flags; uint8_t padding[3];
 	// uint32_t extension_offset; uint32_t unused[3];
-	newCacheHeaderSize  = 48
-	newCacheNlibsOffset = 20
+	newCacheHeaderSize      = 48
+	newCacheNlibsOffset     = 20
+	newCacheExtensionOffset = 32
 	// struct file_entry_new: int32_t flags; uint32_t key, value;
 	// uint32_t osversion; uint64_t hwcap;
-	newCacheEntrySize = 24
+	newCacheEntrySize        = 24
+	newCacheEntryHwcapOffset = 16
+
+	// struct cache_extension: uint32_t magic; uint32_t count;
+	// struct cache_extension_section sections[];
+	cacheExtensionMagic      = 0xeaa42174
+	cacheExtensionHeaderSize = 8
+	// struct cache_extension_section: uint32_t tag; uint32_t flags;
+	// uint32_t offset; uint32_t size;
+	cacheExtensionSectionSize = 16
+	// The section holds an array of uint32_t string offsets, naming the
+	// glibc-hwcaps subdirectories.
+	cacheExtensionTagGlibcHwcaps = 1
+
+	// DL_CACHE_HWCAP_EXTENSION: if set (and no other bit in the upper 32 bits
+	// but the ISA level ones), the lower 32 bits of hwcap are an index in the
+	// glibc-hwcaps subdirectories.
+	hwcapExtension     = uint64(1) << 62
+	hwcapISALevelMask  = uint64(1)<<10 - 1
+	hwcapExtensionMask = 0xffffffff
 )
 
 var errBadCache = errors.New("malformed ld.so.cache")
@@ -53,6 +76,9 @@ var errBadCache = errors.New("malformed ld.so.cache")
 type cacheEntry struct {
 	key   string
 	value string
+	// hwcaps is the glibc-hwcaps subdirectory the entry belongs to (e.g.
+	// "x86-64-v3"), or "" for regular entries.
+	hwcaps string
 }
 
 // readCache reads and parses the ld.so.cache found in root.
@@ -100,6 +126,8 @@ func parseCache(data []byte) ([]cacheEntry, error) {
 		return string(s), nil
 	}
 
+	hwcaps := parseCacheHwcaps(cache, str)
+
 	entries := make([]cacheEntry, 0, nlibs)
 	for i := range nlibs {
 		e := cache[newCacheHeaderSize+i*newCacheEntrySize:]
@@ -111,7 +139,74 @@ func parseCache(data []byte) ([]cacheEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, cacheEntry{key: key, value: value})
+
+		entry := cacheEntry{key: key, value: value}
+		hwcap := order.Uint64(e[newCacheEntryHwcapOffset:])
+		switch {
+		case (hwcap>>32)&^hwcapISALevelMask == hwcapExtension>>32:
+			idx := hwcap & hwcapExtensionMask
+			if idx >= uint64(len(hwcaps)) {
+				// Missing or broken extension: ld.so ignores the entry.
+				continue
+			}
+			entry.hwcaps = hwcaps[idx]
+		case hwcap != 0:
+			// Legacy hwcaps (e.g. "haswell" or "tls" subdirectories),
+			// removed in glibc 2.37: ignore the entry, distros don't ship
+			// libc there.
+			continue
+		}
+		entries = append(entries, entry)
 	}
 	return entries, nil
+}
+
+// parseCacheHwcaps returns the glibc-hwcaps subdirectory names stored in the
+// cache extension, if any. Like ld.so, a missing or malformed extension is not
+// an error: entries referring to it are just ignored.
+func parseCacheHwcaps(cache []byte, str func(uint32) (string, error)) []string {
+	order := binary.NativeEndian
+	u32 := func(off uint64) (uint32, bool) {
+		if off+4 > uint64(len(cache)) {
+			return 0, false
+		}
+		return order.Uint32(cache[off:]), true
+	}
+
+	ext := uint64(order.Uint32(cache[newCacheExtensionOffset:]))
+	if ext == 0 {
+		return nil
+	}
+	if magic, ok := u32(ext); !ok || magic != cacheExtensionMagic {
+		return nil
+	}
+	count, ok := u32(ext + 4)
+	if !ok || ext+cacheExtensionHeaderSize+uint64(count)*cacheExtensionSectionSize > uint64(len(cache)) {
+		return nil
+	}
+	for i := range uint64(count) {
+		sec := ext + cacheExtensionHeaderSize + i*cacheExtensionSectionSize
+		tag, ok1 := u32(sec)
+		off, ok2 := u32(sec + 8)
+		size, ok3 := u32(sec + 12)
+		if !ok1 || !ok2 || !ok3 {
+			return nil
+		}
+		if tag != cacheExtensionTagGlibcHwcaps {
+			continue
+		}
+		if size%4 != 0 || uint64(off)+uint64(size) > uint64(len(cache)) {
+			return nil
+		}
+		names := make([]string, 0, size/4)
+		for j := uint64(0); j < uint64(size); j += 4 {
+			name, err := str(order.Uint32(cache[uint64(off)+j:]))
+			if err != nil {
+				return nil
+			}
+			names = append(names, name)
+		}
+		return names
+	}
+	return nil
 }

@@ -14,6 +14,8 @@ package ldso
 // --glibc-hwcaps-prepend/--glibc-hwcaps-mask ld.so options, and the
 // glibc.cpu.hwcaps tunable) are not taken into account.
 
+const hwcapsDir = "glibc-hwcaps"
+
 // hostHwcaps returns the glibc-hwcaps subdirectories ld.so searches on this
 // machine for a binary of the given ELF machine and class, in decreasing
 // priority order. The implementation is architecture specific, see

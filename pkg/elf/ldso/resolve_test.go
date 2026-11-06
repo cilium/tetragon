@@ -26,11 +26,14 @@ func TestResolveNeeded(t *testing.T) {
 	libArm := elfSpec{machine: elf.EM_AARCH64}
 	cache := func(entries ...cacheEntry) []byte { return buildCache(entries) }
 
+	v3v2 := []string{"x86-64-v3", "x86-64-v2"}
+
 	tests := []struct {
 		name    string
 		files   map[string]any
 		binary  string
 		soname  string
+		hwcaps  []string // supported glibc-hwcaps subdirectories
 		want    string
 		wantErr error
 	}{
@@ -232,10 +235,128 @@ func TestResolveNeeded(t *testing.T) {
 			files:   map[string]any{},
 			wantErr: os.ErrNotExist,
 		},
+		{
+			name: "glibc-hwcaps subdir of default dir",
+			files: map[string]any{
+				"/usr/bin/app":     exe(libc),
+				"/lib64/libc.so.6": lib64,
+				"/lib64/glibc-hwcaps/x86-64-v3/libc.so.6": lib64,
+			},
+			hwcaps: v3v2,
+			want:   "/lib64/glibc-hwcaps/x86-64-v3/libc.so.6",
+		},
+		{
+			name: "highest supported glibc-hwcaps subdir wins",
+			files: map[string]any{
+				"/usr/bin/app":     exe(libc),
+				"/lib64/libc.so.6": lib64,
+				"/lib64/glibc-hwcaps/x86-64-v4/libc.so.6": lib64,
+				"/lib64/glibc-hwcaps/x86-64-v3/libc.so.6": lib64,
+				"/lib64/glibc-hwcaps/x86-64-v2/libc.so.6": lib64,
+			},
+			hwcaps: v3v2,
+			want:   "/lib64/glibc-hwcaps/x86-64-v3/libc.so.6",
+		},
+		{
+			name: "unsupported glibc-hwcaps subdirs are skipped",
+			files: map[string]any{
+				"/usr/bin/app":     exe(libc),
+				"/lib64/libc.so.6": lib64,
+				"/lib64/glibc-hwcaps/x86-64-v4/libc.so.6": lib64,
+			},
+			hwcaps: v3v2,
+			want:   "/lib64/libc.so.6",
+		},
+		{
+			name: "glibc-hwcaps subdirs are skipped without CPU support",
+			files: map[string]any{
+				"/usr/bin/app":     exe(libc),
+				"/lib64/libc.so.6": lib64,
+				"/lib64/glibc-hwcaps/x86-64-v3/libc.so.6": lib64,
+			},
+			want: "/lib64/libc.so.6",
+		},
+		{
+			name: "earlier dirs win over glibc-hwcaps subdirs of later ones",
+			files: map[string]any{
+				"/usr/bin/app":                            exe(libc),
+				"/lib/x86_64-linux-gnu/libc.so.6":         lib64,
+				"/lib64/glibc-hwcaps/x86-64-v3/libc.so.6": lib64,
+			},
+			hwcaps: v3v2,
+			want:   "/lib/x86_64-linux-gnu/libc.so.6",
+		},
+		{
+			name: "incompatible glibc-hwcaps libraries are skipped",
+			files: map[string]any{
+				"/usr/bin/app":     exe(libc),
+				"/lib64/libc.so.6": lib64,
+				"/lib64/glibc-hwcaps/x86-64-v3/libc.so.6": lib32,
+				"/lib64/glibc-hwcaps/x86-64-v2/libc.so.6": lib64,
+			},
+			hwcaps: v3v2,
+			want:   "/lib64/glibc-hwcaps/x86-64-v2/libc.so.6",
+		},
+		{
+			name: "glibc-hwcaps subdir of runpath",
+			files: map[string]any{
+				"/usr/bin/app":           func() elfSpec { s := exe(libc); s.runpath = "/opt/app/lib"; return s }(),
+				"/opt/app/lib/libc.so.6": lib64,
+				"/opt/app/lib/glibc-hwcaps/x86-64-v2/libc.so.6": lib64,
+				"/lib64/glibc-hwcaps/x86-64-v3/libc.so.6":       lib64,
+			},
+			hwcaps: v3v2,
+			want:   "/opt/app/lib/glibc-hwcaps/x86-64-v2/libc.so.6",
+		},
+		{
+			name: "supported glibc-hwcaps cache entries win",
+			files: map[string]any{
+				"/usr/bin/app":         exe(libc),
+				"/usr/lib64/libc.so.6": lib64,
+				"/usr/lib64/glibc-hwcaps/x86-64-v2/libc.so.6": lib64,
+				"/usr/lib64/glibc-hwcaps/x86-64-v3/libc.so.6": lib64,
+				"/usr/lib64/glibc-hwcaps/x86-64-v4/libc.so.6": lib64,
+				"/etc/ld.so.cache": cache(
+					cacheEntry{key: libc, value: "/usr/lib64/libc.so.6"},
+					cacheEntry{key: libc, value: "/usr/lib64/glibc-hwcaps/x86-64-v2/libc.so.6", hwcaps: "x86-64-v2"},
+					cacheEntry{key: libc, value: "/usr/lib64/glibc-hwcaps/x86-64-v4/libc.so.6", hwcaps: "x86-64-v4"},
+					cacheEntry{key: libc, value: "/usr/lib64/glibc-hwcaps/x86-64-v3/libc.so.6", hwcaps: "x86-64-v3"},
+				),
+			},
+			hwcaps: v3v2,
+			want:   "/usr/lib64/glibc-hwcaps/x86-64-v3/libc.so.6",
+		},
+		{
+			name: "unsupported glibc-hwcaps cache entries are skipped",
+			files: map[string]any{
+				"/usr/bin/app":         exe(libc),
+				"/usr/lib64/libc.so.6": lib64,
+				"/usr/lib64/glibc-hwcaps/x86-64-v3/libc.so.6": lib64,
+				"/etc/ld.so.cache": cache(
+					cacheEntry{key: libc, value: "/usr/lib64/glibc-hwcaps/x86-64-v3/libc.so.6", hwcaps: "x86-64-v3"},
+					cacheEntry{key: libc, value: "/usr/lib64/libc.so.6"},
+				),
+			},
+			want: "/usr/lib64/libc.so.6",
+		},
+		{
+			name: "missing glibc-hwcaps cache entries fall back to regular ones",
+			files: map[string]any{
+				"/usr/bin/app":         exe(libc),
+				"/usr/lib64/libc.so.6": lib64,
+				"/etc/ld.so.cache": cache(
+					cacheEntry{key: libc, value: "/usr/lib64/glibc-hwcaps/x86-64-v3/libc.so.6", hwcaps: "x86-64-v3"},
+					cacheEntry{key: libc, value: "/usr/lib64/libc.so.6"},
+				),
+			},
+			hwcaps: v3v2,
+			want:   "/usr/lib64/libc.so.6",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			setHostHwcaps(t, tt.hwcaps)
 			root := rootfs(t, tt.files)
 			binary := tt.binary
 			if binary == "" {
