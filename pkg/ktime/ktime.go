@@ -15,8 +15,8 @@ func ToProto(ktime uint64) *timestamppb.Timestamp {
 	return ToProtoOpt(ktime, true)
 }
 
-func ToProtoOpt(ktime uint64, monotonic bool) *timestamppb.Timestamp {
-	decodedTime, err := DecodeKtime(int64(ktime), monotonic)
+func ToProtoOpt(ktime uint64, fromBPF bool) *timestamppb.Timestamp {
+	decodedTime, err := DecodeKtime(int64(ktime), fromBPF)
 	if err != nil {
 		logger.GetLogger().Warn("Failed to decode ktime", "ktime", ktime)
 		return timestamppb.Now()
