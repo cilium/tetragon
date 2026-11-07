@@ -1932,3 +1932,15 @@ func TestWritePostfixMaxLength(t *testing.T) {
 		})
 	}
 }
+
+func TestHasEnforcementActionReturn(t *testing.T) {
+	for _, action := range []string{"Sigkill", "Signal", "NotifyEnforcer", "Override", "Set", "override", "Post", "NoPost"} {
+		t.Run(action, func(t *testing.T) {
+			want := action != "Post" && action != "NoPost"
+			a := []v1alpha1.ActionSelector{{Action: action}}
+			require.Equal(t, want, HasEnforcementAction([]v1alpha1.KProbeSelector{{MatchReturnActions: a}}))
+			require.Equal(t, want, HasEnforcementAction([]v1alpha1.KProbeSelector{{MatchActions: a}}))
+		})
+	}
+	require.False(t, HasEnforcementAction(nil))
+}

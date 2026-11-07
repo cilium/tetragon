@@ -2445,3 +2445,30 @@ instead.
 Return actions filters are a list of actions that execute when an return selector
 matches. They are defined under `matchReturnActions` and currently support all
 the [Actions filter](#actions-filter) `action` types.
+
+
+For uprobes, `return: true` adds a return probe. Entry filters such as `matchArgs`
+gate `matchActions`; `matchReturnArgs` gates `matchReturnActions`. A return
+filter does not gate actions executed at function entry.
+
+An uprobe `Override` in `matchReturnActions` replaces the return value with
+`argError` after the return filters match. It preserves the caller's instruction
+pointer and stack, and requires kernel support for uprobe register changes.
+Return Override supports `argError` only; register assignments and function
+redirection options are rejected. For example, this selector replaces a returned
+pointer with NULL when the returned string is exactly `"*"`:
+
+```yaml
+return: true
+returnArg:
+  index: 0
+  type: string
+selectors:
+- matchReturnArgs:
+  - index: 0
+    operator: Equal
+    values: ["*"]
+  matchReturnActions:
+  - action: Override
+    argError: 0
+```

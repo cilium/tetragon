@@ -2338,7 +2338,7 @@ func HasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
 
 func HasEnforcementAction(selectors []v1alpha1.KProbeSelector) bool {
 	for _, s := range selectors {
-		for _, action := range s.MatchActions {
+		for _, action := range slices.Concat(s.MatchActions, s.MatchReturnActions) {
 			act := actionTypeTable[strings.ToLower(action.Action)]
 			if act == ActionTypeSigKill || act == ActionTypeSignal || act == ActionTypeNotifyEnforcer || act == ActionTypeOverride || act == ActionTypeSet {
 				return true

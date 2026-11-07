@@ -638,6 +638,8 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	maps = append(maps, overrideTasksMap)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
+	// The output program counts posted events in the selector stats.
+	maps = append(maps, polInfo.selectorStatsMap(loadOutput))
 	if len(polInfo.stateIDs) != 0 {
 		maps = append(maps, polInfo.policyStateMap(load))
 	}

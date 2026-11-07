@@ -9,11 +9,14 @@ char *return_string(char *param)
     return tmp;
 }
 
-void fill_string(char *param)
+// Returns the number of bytes written (including the NUL terminator) so a
+// uretprobe with returnCopy can use the return value as the buffer size.
+__attribute__((noinline)) int fill_string(char *param)
 {
     strcpy(param, "filled");
     // Keep param alive to avoid pagefault.
     printf("%s\n", param);
+    return strlen(param) + 1;
 }
 
 int main(int argc, char **argv)
