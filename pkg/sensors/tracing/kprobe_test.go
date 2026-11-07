@@ -4661,7 +4661,7 @@ func matchBinariesNotInPerfringTest(t *testing.T, values []string) {
 func TestKprobeMatchBinariesEarlyExecNotIn(t *testing.T) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
+	t.Cleanup(cancel)
 
 	// create temporary files for tail and cat commands
 	tailFile, err := os.CreateTemp("/tmp", fmt.Sprintf("tetragon.%s.tail.", t.Name()))
@@ -4673,25 +4673,32 @@ func TestKprobeMatchBinariesEarlyExecNotIn(t *testing.T) {
 
 	catRead, catWrite, err := os.Pipe()
 	require.NoError(t, err)
-	// catRead is closed explicitly after catCommand.Start() below (to release
-	// our copy of the pipe's read end); only catWrite needs cleanup.
 	t.Cleanup(func() {
+		catRead.Close()
 		catWrite.Close()
 	})
 
 	// execute commands before Tetragon starts
 	// tail is in the NotIn list, so its events should be filtered out
-	tailCommand := exec.Command("/usr/bin/tail", "-f", tailFile.Name())
+	tailCommand := exec.CommandContext(ctx, "/usr/bin/tail", "-f", tailFile.Name())
+	tailPipes, err := testutils.NewCmdBufferedPipes(tailCommand)
+	require.NoError(t, err)
+	t.Cleanup(tailPipes.Close)
 	err = tailCommand.Start()
 	require.NoError(t, err)
-	defer tailCommand.Process.Kill()
+	t.Cleanup(func() {
+		tailCommand.Process.Kill()
+		tailCommand.Wait()
+	})
 
 	// cat is NOT in the NotIn list, so its events should be allowed
 	catCommand := exec.Command("/usr/bin/cat")
 	catCommand.Stdin = catRead
 	err = catCommand.Start()
 	require.NoError(t, err)
-	defer catCommand.Process.Kill()
+	t.Cleanup(func() {
+		catCommand.Process.Kill()
+	})
 	catRead.Close()
 
 	if err := observer.InitDataCache(1024); err != nil {
@@ -4737,12 +4744,38 @@ func TestKprobeMatchBinariesEarlyExecNotIn(t *testing.T) {
 		})
 	}
 
-	ops := func() {
-		// Trigger read events for both processes
-		tailFile.WriteString("trigger tail!\n")
-		catWrite.WriteString("trigger cat!\n")
+	ops := func() error {
+		// Trigger read events for both processes and wait until they are
+		// calling sys_read again.
+		_, err := tailFile.WriteString("trigger tail!\n")
+		if err != nil {
+			return fmt.Errorf("writing tail input: %w", err)
+		}
+		tailOutput, err := tailPipes.StdoutRd.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("reading tail output: %w", err)
+		}
+		if tailOutput != "trigger tail!\n" {
+			return fmt.Errorf("unexpected tail output: got %q, want %q", tailOutput, "trigger tail!\n")
+		}
+
+		_, err = catWrite.WriteString("trigger cat!\n")
+		if err != nil {
+			return fmt.Errorf("writing cat input: %w", err)
+		}
+		if err := catWrite.Close(); err != nil {
+			return fmt.Errorf("closing cat input: %w", err)
+		}
+		if err := catCommand.Wait(); err != nil {
+			return fmt.Errorf("waiting for cat: %w", err)
+		}
+		return nil
 	}
-	events := perfring.RunTestEvents(t, ctx, ops)
+	opsErr := make(chan error, 1)
+	events := perfring.RunTestEvents(t, ctx, func() {
+		opsErr <- ops()
+	})
+	require.NoError(t, <-opsErr)
 
 	catEventExist := false
 	syscallName := arch.AddSyscallPrefixTestHelper(t, "sys_read")
