@@ -483,7 +483,7 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 type addUprobeIn struct {
 	policyName        string
 	policyID          policyfilter.PolicyID
-	stateIDs          map[string]uint32
+	stateIDs          map[string]selectors.StateInfo
 	celExprs          *selectors.CelExprFunctions
 	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32
@@ -1640,7 +1640,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 	if len(polInfo.stateIDs) != 0 {
-		maps = append(maps, polInfo.policyStateMap(load))
+		maps = append(maps, polInfo.policyStateMaps(load)...)
 	}
 
 	filterMap.SetMaxEntries(len(multiIDs))
@@ -1677,7 +1677,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		maps = append(maps, getHeapMaps("uprobe_", option.Config.UprobeHeapSize, has.uprobeHeapSize, loadret)...)
 
 		if len(polInfo.stateIDs) != 0 {
-			maps = append(maps, polInfo.policyStateMap(loadret))
+			maps = append(maps, polInfo.policyStateMaps(loadret)...)
 		}
 	}
 
@@ -1767,7 +1767,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 	if len(polInfo.stateIDs) != 0 {
-		maps = append(maps, polInfo.policyStateMap(load))
+		maps = append(maps, polInfo.policyStateMaps(load)...)
 	}
 
 	if uprobeEntry.loadArgs.retprobe {
@@ -1797,7 +1797,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		maps = append(maps, getHeapMaps("uprobe_", option.Config.UprobeHeapSize, has.uprobeHeapSize, loadret)...)
 
 		if len(polInfo.stateIDs) != 0 {
-			maps = append(maps, polInfo.policyStateMap(loadret))
+			maps = append(maps, polInfo.policyStateMaps(loadret)...)
 		}
 	}
 
