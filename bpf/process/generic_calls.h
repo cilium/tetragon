@@ -955,7 +955,7 @@ do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_
 #define do_set_action(ctx, idx, arg_idx, arg_value)
 #endif
 
-FUNC_LOCAL __u32
+FUNC_LOCAL __s64
 do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool enforce_mode)
 {
 	__u32 index __maybe_unused, value __maybe_unused;
@@ -967,13 +967,13 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	int newfdi, oldfdi;
 	int socki;
 	int argi __maybe_unused;
-	int err = 0;
+	__s64 err = 0;
 	int zero = 0;
 	u32 polacct;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
-		return 0;
+		return -ENOENT;
 
 	polacct = POLICY_INVALID_ACT_;
 	switch (action) {
@@ -1088,15 +1088,17 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		break;
 	}
 
+	if (err < 0) {
+		errmetrics(-err);
+		return ++i;
+	}
+
 	if (polacct != POLICY_INVALID_ACT_) {
 		policy_stats_update(polacct);
 	}
 
-	if (!err) {
-		e->action = action;
-		return ++i;
-	}
-	return 0;
+	e->action = action;
+	return ++i;
 }
 
 FUNC_INLINE bool
@@ -1115,6 +1117,7 @@ do_actions(void *ctx, struct selector_action *actions)
 	__u32 l, i = 0, zero = 0;
 	struct policy_conf *pcnf;
 	bool enforce_mode = true;
+	__s64 next;
 
 	/* check if policy is in monitor (non-enforcement) mode and, if it is, skip enforcement
 	 * actions
@@ -1129,7 +1132,12 @@ do_actions(void *ctx, struct selector_action *actions)
 	for (l = 0; l < MAX_ACTIONS; l++) {
 		if (!has_action(actions, i))
 			break;
-		i = do_action(ctx, i, actions, &post, enforce_mode);
+		next = do_action(ctx, i, actions, &post, enforce_mode);
+		if (next < 0) {
+			errmetrics(-next);
+			break;
+		}
+		i = next;
 	}
 
 	return post;
