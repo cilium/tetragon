@@ -1314,8 +1314,15 @@ generic_output(void *ctx, u8 op)
 		     "if %[total] < 9000 goto +1\n;"
 		     "%[total] = 9000;\n"
 		     : [total] "+r"(total));
+#if defined(GENERIC_KRETPROBE) || defined(GENERIC_URETPROBE) || defined(GENERIC_FEXIT)
+	/* Userspace merges the entry and return messages into one event,
+	 * which the entry program already counted as posted.
+	 */
+	event_output_metric(ctx, op, e, total);
+#else
 	if (event_output_metric(ctx, op, e, total))
 		policy_selector_stats_update(POLICY_POST, generic_selector_stats_id(e));
+#endif
 	return 0;
 }
 
