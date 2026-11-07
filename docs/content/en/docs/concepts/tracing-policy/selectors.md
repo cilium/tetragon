@@ -2445,3 +2445,21 @@ instead.
 Return actions filters are a list of actions that execute when an return selector
 matches. They are defined under `matchReturnActions` and currently support all
 the [Actions filter](#actions-filter) `action` types.
+
+`matchReturnArgs` and `matchReturnActions` require `return: true`. A policy that
+uses them on a hook without a return probe fails to load.
+
+When a hook has a return probe, each selector's filters are checked at two
+points: its entry filters (such as `matchArgs` or `matchBinaries`) when the
+function is called, and its `matchReturnArgs` when the function returns.
+
+- `matchActions` run when the function is called, for the first selector whose
+  entry filters match. The return value is not known yet, so a selector can't
+  combine `matchActions` with `matchReturnArgs`; use `matchReturnActions` for
+  actions that depend on the return value. For the same reason, a selector
+  can't have `matchActions` if an earlier selector has `matchReturnArgs`:
+  whether that earlier selector matches is only known when the function
+  returns.
+- `matchReturnActions` run when the function returns, for the first selector
+  whose entry filters and `matchReturnArgs` all match. A selector whose entry
+  filters did not match is never used on return.
