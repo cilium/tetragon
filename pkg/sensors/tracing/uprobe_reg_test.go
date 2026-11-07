@@ -1753,3 +1753,83 @@ spec:
 		}
 	}
 }
+
+// Selector 0 matches the entry but not the return. Selector 1 matches the
+// return, so it must only act if its entry matchArgs also match.
+func TestUprobeReturnSelectorFallthrough(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	for _, tc := range []struct {
+		name       string
+		sel1Arg    string
+		wantKilled bool
+	}{
+		{"selector 1 entry mismatch", "never", false},
+		{"selector 1 entry match", "a", true},
+	} {
+		for _, multi := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/multi=%v", tc.name, multi), func(t *testing.T) {
+				testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+				createCrdFile(t, fmt.Sprintf(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: return-fallthrough
+spec:
+  options:
+  - name: disable-uprobe-multi
+    value: "%d"
+  uprobes:
+  - path: "%s"
+    symbols: [test_return_string]
+    args:
+    - index: 0
+      type: string
+    return: true
+    returnArg:
+      index: 0
+      type: string
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values: ["a"]
+      matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["never"]
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values: ["%s"]
+      matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["a"]
+      matchReturnActions:
+      - action: Sigkill
+`, map[bool]int{false: 1, true: 0}[multi], testBinary, tc.sel1Arg))
+				var doneWG, readyWG sync.WaitGroup
+				defer doneWG.Wait()
+				ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+				defer cancel()
+				obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+				require.NoError(t, err)
+				observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+				readyWG.Wait()
+
+				out, err := exec.Command(testBinary, "4", "a", "a").CombinedOutput()
+				if tc.wantKilled {
+					var exitErr *exec.ExitError
+					require.ErrorAs(t, err, &exitErr, string(out))
+					status := exitErr.Sys().(syscall.WaitStatus)
+					require.True(t, status.Signaled())
+					require.Equal(t, syscall.SIGKILL, status.Signal())
+				} else {
+					require.NoError(t, err, "killed by a selector whose matchArgs did not match: %s", out)
+				}
+			})
+		}
+	}
+}
