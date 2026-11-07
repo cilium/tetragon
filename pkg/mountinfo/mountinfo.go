@@ -142,3 +142,21 @@ func isMountFS(mountInfos []*MountInfo, mntType string, mapRoot string) (bool, b
 func IsMountFS(infos []*MountInfo, mntType string, mapRoot string) (bool, bool) {
 	return isMountFS(infos, mntType, mapRoot)
 }
+
+// Cgroup2SuperOptions returns the superblock options of the first cgroup2 mount in infos that has any, minus rw/ro.
+func Cgroup2SuperOptions(infos []*MountInfo) string {
+	for _, info := range infos {
+		if info.FilesystemType == FilesystemTypeCgroup2 && info.SuperOptions != "" {
+			var opts []string
+			for opt := range strings.SplitSeq(info.SuperOptions, ",") {
+				if opt != "" && opt != "rw" && opt != "ro" {
+					opts = append(opts, opt)
+				}
+			}
+			if len(opts) > 0 {
+				return strings.Join(opts, ",")
+			}
+		}
+	}
+	return ""
+}

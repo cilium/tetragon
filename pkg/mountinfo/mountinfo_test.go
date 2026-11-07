@@ -88,6 +88,102 @@ func TestIsMountFS(t *testing.T) {
 	}
 }
 
+func TestCgroup2SuperOptions(t *testing.T) {
+	tests := []struct {
+		name     string
+		infos    []*MountInfo
+		expected string
+	}{
+		{
+			name: "cgroup2 with nsdelegate and memory_recursiveprot",
+			infos: []*MountInfo{
+				{
+					FilesystemType: FilesystemTypeCgroup2,
+					SuperOptions:   "rw,nsdelegate,memory_recursiveprot",
+				},
+			},
+			expected: "nsdelegate,memory_recursiveprot",
+		},
+		{
+			name: "cgroup2 with ro and other flags",
+			infos: []*MountInfo{
+				{
+					FilesystemType: FilesystemTypeCgroup2,
+					SuperOptions:   "ro,nsdelegate",
+				},
+			},
+			expected: "nsdelegate",
+		},
+		{
+			name: "cgroup2 only rw",
+			infos: []*MountInfo{
+				{
+					FilesystemType: FilesystemTypeCgroup2,
+					SuperOptions:   "rw",
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "cgroup2 with empty SuperOptions",
+			infos: []*MountInfo{
+				{
+					FilesystemType: FilesystemTypeCgroup2,
+					SuperOptions:   "",
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "multiple cgroup2 entries uses the first cgroup2 entry",
+			infos: []*MountInfo{
+				{
+					FilesystemType: FilesystemTypeCgroup2,
+					SuperOptions:   "rw,nsdelegate",
+				},
+				{
+					FilesystemType: FilesystemTypeCgroup2,
+					SuperOptions:   "rw,other_opt",
+				},
+			},
+			expected: "nsdelegate",
+		},
+		{
+			name: "no cgroup2 entry",
+			infos: []*MountInfo{
+				{
+					FilesystemType: FilesystemTypeBPFFS,
+					SuperOptions:   "rw,relatime",
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "skips cgroup2 entry with only rw and picks the one with options",
+			infos: []*MountInfo{
+				{
+					FilesystemType: FilesystemTypeCgroup2,
+					SuperOptions:   "rw",
+				},
+				{
+					FilesystemType: FilesystemTypeCgroup2,
+					SuperOptions:   "rw,nsdelegate,memory_recursiveprot",
+				},
+			},
+			expected: "nsdelegate,memory_recursiveprot",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Cgroup2SuperOptions(tt.infos)
+			if got != tt.expected {
+				t.Errorf("Cgroup2SuperOptions() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}
+
 // Copied from pkg/bpf/bpffs_linux.go. The reason it was not exported inside
 // and used here is because importing that package would introduce an import
 // cycle.
