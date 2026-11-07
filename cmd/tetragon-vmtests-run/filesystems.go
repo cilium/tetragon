@@ -24,11 +24,11 @@ func (fs *virtIOFilesystem) vmMountpoint() string {
 }
 
 func (fs *virtIOFilesystem) qemuArgs() []string {
-	fsId := fs.id + "_id"
+	fsID := fs.id + "_id"
 	tag := fs.id + "_tag"
 	return []string{
-		"-fsdev", fmt.Sprintf("local,id=%s,path=%s,security_model=none", fsId, fs.hostdir),
-		"-device", fmt.Sprintf("virtio-9p-pci,fsdev=%s,mount_tag=%s", fsId, tag),
+		"-fsdev", fmt.Sprintf("local,id=%s,path=%s,security_model=none", fsID, fs.hostdir),
+		"-device", fmt.Sprintf("virtio-9p-pci,fsdev=%s,mount_tag=%s", fsID, tag),
 	}
 }
 

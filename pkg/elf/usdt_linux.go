@@ -165,8 +165,8 @@ func (se *SafeELFFile) UsdtTargets() ([]*UsdtTarget, error) {
 
 			target := &UsdtTarget{
 				Spec:    &spec,
-				IpAbs:   ipAbs,
-				IpRel:   ipRel,
+				IPAbs:   ipAbs,
+				IPRel:   ipRel,
 				SemaOff: semaOff,
 			}
 

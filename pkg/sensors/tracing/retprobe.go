@@ -14,7 +14,7 @@ import (
 )
 
 type pendingEventKey struct {
-	eventId    uint64
+	eventID    uint64
 	ktimeEnter uint64
 }
 
@@ -82,11 +82,11 @@ func retprobeMerge[T evtNameArgsRetriever](prev pendingEvent[T], curr pendingEve
 }
 
 func retprobeMergeEvents[T evtNameArgsRetriever](unix T, pendingEvents *lru.Cache[pendingEventKey, pendingEvent[T]],
-	returnEvent bool, retprobeId, ktimeEnter uint64, onMergeError reportMergeErrorFn[T]) (bool, T, T) {
+	returnEvent bool, retprobeID, ktimeEnter uint64, onMergeError reportMergeErrorFn[T]) (bool, T, T) {
 	// if an event exist already, try to merge them. Otherwise, add
 	// the one we have in the map.
 	curr := pendingEvent[T]{ev: unix, returnEvent: returnEvent}
-	key := pendingEventKey{eventId: retprobeId, ktimeEnter: ktimeEnter}
+	key := pendingEventKey{eventID: retprobeID, ktimeEnter: ktimeEnter}
 
 	if prev, exists := pendingEvents.Get(key); exists {
 		pendingEvents.Remove(key)

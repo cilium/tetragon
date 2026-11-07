@@ -35,7 +35,7 @@ import (
 var (
 	TetragonContainerName         = "tetragon"
 	TetragonOperatorContainerName = "tetragon-operator"
-	TetragonJsonPathname          = "/var/log/tetragon/tetragon.log"
+	TetragonJSONPathname          = "/var/log/tetragon/tetragon.log"
 )
 
 type TestEnvFunc = func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error)
@@ -74,7 +74,7 @@ func DumpInfo(ctx context.Context, cfg *envconf.Config) (context.Context, error)
 	}
 
 	for _, pod := range podList.Items {
-		if err := extractJson(&pod, exportDir); err != nil {
+		if err := extractJSON(&pod, exportDir); err != nil {
 			klog.ErrorS(err, "Failed to extract json events")
 		}
 		if err := extractLogs(&pod, TetragonContainerName, exportDir, true); err != nil {
@@ -139,11 +139,11 @@ func GetExportDir(ctx context.Context) (string, error) {
 	return exportDir, nil
 }
 
-func extractJson(pod *corev1.Pod, exportDir string) error {
+func extractJSON(pod *corev1.Pod, exportDir string) error {
 	return kubectlCp(pod.Namespace,
 		pod.Name,
 		TetragonContainerName,
-		TetragonJsonPathname,
+		TetragonJSONPathname,
 		filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.json", pod.Name)))
 }
 

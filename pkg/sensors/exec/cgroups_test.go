@@ -124,7 +124,7 @@ func logTetragonConfig(t *testing.T, mapDir string) error {
 	}
 
 	t.Logf("Test %s tetragon configuration: cgroup.magic=%s  logLevel=%d  cgroup.hierarchyID=%d  cgroup.subsysIdx=%d  cgroup.trackinglevel=%d  cgroup.ID=%d",
-		t.Name(), cgroups.CgroupFsMagicStr(conf.CgrpFsMagic), conf.LogLevel, conf.TgCgrpHierarchy, conf.TgCgrpv1SubsysIdx, conf.TgCgrpLevel, conf.TgCgrpId)
+		t.Name(), cgroups.CgroupFsMagicStr(conf.CgrpFsMagic), conf.LogLevel, conf.TgCgrpHierarchy, conf.TgCgrpv1SubsysIdx, conf.TgCgrpLevel, conf.TgCgrpID)
 
 	return nil
 }
@@ -307,7 +307,7 @@ func getCgroupEventOpAndPath(t *testing.T, msg *grpcexec.MsgCgroupEventUnix, cgr
 		"cgroup.IDTracker", msg.CgrpidTracker,
 		"cgroup.ID", msg.Cgrpid,
 		"cgroup.state", st,
-		"cgroup.hierarchyID", msg.CgrpData.HierarchyId,
+		"cgroup.hierarchyID", msg.CgrpData.HierarchyID,
 		"cgroup.level", msg.CgrpData.Level,
 		"cgroup.path", cgrpPath)
 
@@ -419,7 +419,7 @@ func assertCgroupv1Events(ctx context.Context, t *testing.T, selectedController 
 
 					// Get cgroup id from path
 					targetPath := filepath.Join(cgroups.GetCgroupFSPath(), controller, cgrpPath)
-					id, err := cgroups.GetCgroupIdFromPath(targetPath)
+					id, err := cgroups.GetCgroupIDFromPath(targetPath)
 					require.NoErrorf(t, err, "failed to get cgroup ID from path %s", targetPath)
 					// Assert that received cgroup id from event is same as the id from the cgroup fs
 					require.Equal(t, msg.CgrpidTracker, id)
@@ -481,7 +481,7 @@ func assertCgroupv2Events(ctx context.Context, t *testing.T, cgroupRoot string, 
 
 					// Get cgroup id from path
 					targetPath := filepath.Join(cgroupRoot, cgrpPath)
-					id, err := cgroups.GetCgroupIdFromPath(targetPath)
+					id, err := cgroups.GetCgroupIDFromPath(targetPath)
 					require.NoErrorf(t, err, "failed to get cgroup ID from path %s", targetPath)
 					require.NoError(t, err)
 					// Assert that received cgroup id from event is same as the id from the cgroup fs
@@ -546,9 +546,9 @@ func changeTestCgrpController(t *testing.T, trackingCgrpLevel, traceLevel uint32
 
 	for _, ctrl := range cgroups.CgroupControllers {
 		if ctrl.Name == selectedController && ctrl.Active {
-			setupTgRuntimeConf(t, trackingCgrpLevel, traceLevel, ctrl.Id, ctrl.Idx)
+			setupTgRuntimeConf(t, trackingCgrpLevel, traceLevel, ctrl.ID, ctrl.Idx)
 			t.Logf("SetupTgRuntimeConf() with cgroup.controller.name=%s  cgroup.controller.hierarchyID=%d  cgroup.controller.index=%d",
-				ctrl.Name, ctrl.Id, ctrl.Idx)
+				ctrl.Name, ctrl.ID, ctrl.Idx)
 			return ctrl.Name
 		}
 	}
@@ -556,7 +556,7 @@ func changeTestCgrpController(t *testing.T, trackingCgrpLevel, traceLevel uint32
 	return ""
 }
 
-func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, subSysIdx uint32) {
+func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyID, subSysIdx uint32) {
 	val, err := testutils.GetTgRuntimeConf()
 	if err != nil {
 		t.Fatalf("GetTgRuntimeConf() failed: %v", err)
@@ -570,8 +570,8 @@ func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, 
 		val.TgCgrpLevel = trackingCgrpLevel
 	}
 
-	if hierarchyId != invalidValue {
-		val.TgCgrpHierarchy = hierarchyId
+	if hierarchyID != invalidValue {
+		val.TgCgrpHierarchy = hierarchyID
 	}
 
 	if subSysIdx != invalidValue {
@@ -722,7 +722,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	rmdir := false
 	cgrpMap := testsensor.GetCgroupsTrackingMap()
 	cgrpMapPath := filepath.Join(bpf.MapPrefixPath(), cgrpMap.Name)
-	cgrpTrackingId := uint64(0)
+	cgrpTrackingID := uint64(0)
 	events := perfring.RunTestEvents(t, ctx, trigger)
 	for _, ev := range events {
 		if msg, ok := ev.(*grpcexec.MsgCgroupEventUnix); ok {
@@ -755,7 +755,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 						assert.Equal(t, t.Name(), cgrpName)
 
 						mkdir = true
-						cgrpTrackingId = msg.CgrpidTracker
+						cgrpTrackingID = msg.CgrpidTracker
 					}
 				case ops.MSG_OP_CGROUP_RMDIR:
 					// Match only our test
@@ -772,10 +772,10 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	// Ensure that we received proper events
 	assert.True(t, mkdir)
 	assert.True(t, rmdir)
-	assert.NotZero(t, cgrpTrackingId)
+	assert.NotZero(t, cgrpTrackingID)
 
 	// Should be removed from the tracking map
-	_, err = cgrouptrackmap.LookupTrackingCgroup(cgrpMapPath, cgrpTrackingId)
+	_, err = cgrouptrackmap.LookupTrackingCgroup(cgrpMapPath, cgrpTrackingID)
 	require.Error(t, err)
 }
 
@@ -943,7 +943,7 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 			}
 			/* We expect docker field here */
 			if dir.expectedDocker == "yes" {
-				docker, _ := procevents.LookupContainerId(dir.path, true, false)
+				docker, _ := procevents.LookupContainerID(dir.path, true, false)
 				require.NotEmpty(t, docker)
 				kubeCgroupHierarchy[i].expectedDocker = docker
 			}
@@ -1173,7 +1173,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 			}
 			/* We expect docker field here, so let's properly set it */
 			if dir.expectedDocker == "yes" {
-				docker, _ := procevents.LookupContainerId(dir.path, true, false)
+				docker, _ := procevents.LookupContainerID(dir.path, true, false)
 				require.NotEmpty(t, docker)
 				kubeCgroupHierarchiesMap[usedController][i].expectedDocker = docker
 			}
@@ -1381,7 +1381,7 @@ func TestCgroupMissedTrackingErrMetrics(t *testing.T) {
 	require.NoError(t, err)
 
 	// Get the cgroup ID
-	cgrpID, err := cgroups.GetCgroupIdFromPath(finalPath)
+	cgrpID, err := cgroups.GetCgroupIDFromPath(finalPath)
 	require.NoError(t, err)
 	require.NotZero(t, cgrpID)
 

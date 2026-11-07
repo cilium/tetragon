@@ -89,7 +89,7 @@ func WithKeepCollection() TestOption {
 }
 
 // Filter for a container id by prefix in event export
-func WithContainerId(id string) TestOption {
+func WithContainerID(id string) TestOption {
 	return func(o *TestOptions) {
 		o.exporter.allowList = append(o.exporter.allowList, &tetragon.Filter{
 			ContainerId: []string{"^" + id},

@@ -45,7 +45,7 @@ func TestGetURLClosesResponseBody(t *testing.T) {
 	http.DefaultClient.Transport = transport
 	t.Cleanup(func() { http.DefaultClient.Transport = oldTransport })
 
-	getUrl("http://canary.example")
+	getURL("http://canary.example")
 	require.True(t, transport.called)
 	require.True(t, body.closed)
 }

@@ -16,12 +16,12 @@ import (
 // Returns the container ID and nil on success, or an empty string if it fails to identify
 // the container ID or if an error happens. If the pid is unavailable, an error will be
 // returned.
-func procsDockerId(pid uint32) (string, error) {
+func procsDockerID(pid uint32) (string, error) {
 	pidstr := strconv.FormatUint(uint64(pid), 10)
 	cgroups, err := os.ReadFile(filepath.Join(option.Config.ProcFS, pidstr, "cgroup"))
 	if err != nil {
 		return "", err
 	}
-	off, _ := procsFindDockerId(string(cgroups))
+	off, _ := procsFindDockerID(string(cgroups))
 	return off, nil
 }

@@ -114,7 +114,7 @@ type MsgK8sUnix struct {
 }
 
 type MsgGenericCred struct {
-	Uid        uint32
+	UID        uint32
 	Gid        uint32
 	Suid       uint32
 	Sgid       uint32
@@ -191,7 +191,7 @@ type MsgNamespaces struct {
 
 type MsgUserNamespace struct {
 	Level  int32
-	Uid    uint32
+	UID    uint32
 	Gid    uint32
 	NsInum uint32
 }
@@ -235,7 +235,7 @@ type MsgExitEvent struct {
 // BPF side on various cgroup events.
 type MsgCgroupData struct {
 	State       int32                    `align:"state"`        // State of cgroup
-	HierarchyId uint32                   `align:"hierarchy_id"` // Unique id for the hierarchy
+	HierarchyID uint32                   `align:"hierarchy_id"` // Unique id for the hierarchy
 	Level       uint32                   `align:"level"`        // The depth this cgroup is at
 	Pad         uint32                   `align:"pad"`
 	Name        [CGROUP_NAME_LENGTH]byte `align:"name"` // Cgroup kernfs_node name
@@ -267,7 +267,7 @@ type KernelStats struct {
 }
 
 type CgroupRateKey struct {
-	Id uint64
+	ID uint64
 }
 
 type CgroupRateValue struct {

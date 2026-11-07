@@ -66,7 +66,7 @@ const (
 	KeyTracingPolicy     = "tracing-policy"
 	KeyTracingPolicyDir  = "tracing-policy-dir"
 
-	KeyCpuProfile = "cpuprofile"
+	KeyCPUProfile = "cpuprofile"
 	KeyMemProfile = "memprofile"
 	KeyPprofAddr  = "pprof-address"
 
@@ -294,7 +294,7 @@ func ReadAndSetFlags() error {
 	}
 	Config.ExportFilePerm = viper.GetString(KeyExportFilePerm)
 
-	Config.CpuProfile = viper.GetString(KeyCpuProfile)
+	Config.CPUProfile = viper.GetString(KeyCPUProfile)
 	Config.MemProfile = viper.GetString(KeyMemProfile)
 	Config.PprofAddr = viper.GetString(KeyPprofAddr)
 
@@ -573,8 +573,8 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyTracingPolicyDir, defaults.DefaultTpDir, "Directory from where to load Tracing Policies")
 
 	// Options for debugging/development, not visible to users
-	flags.String(KeyCpuProfile, "", "Store CPU profile into provided file")
-	flags.MarkHidden(KeyCpuProfile)
+	flags.String(KeyCPUProfile, "", "Store CPU profile into provided file")
+	flags.MarkHidden(KeyCPUProfile)
 
 	flags.String(KeyMemProfile, "", "Store MEM profile into provided file")
 	flags.MarkHidden(KeyMemProfile)

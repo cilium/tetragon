@@ -54,14 +54,14 @@ func TestCgroupNameFromCStr(t *testing.T) {
 		want string
 	}
 
-	containerId := "docker-713516e64fa59fc6c7216b29b25d395a606083232bdaf07e53540cd8252ea3f7.scope"
+	containerID := "docker-713516e64fa59fc6c7216b29b25d395a606083232bdaf07e53540cd8252ea3f7.scope"
 	cgroupPath := "/system.slice/docker-713516e64fa59fc6c7216b29b25d395a606083232bdaf07e53540cd8252ea3f7.scope"
 	bempty := []byte{0x00}
-	emptycontainerId := []byte(containerId)
-	emptycontainerId[0] = 0x00
-	bcontainerId := []byte(containerId)
-	cidx := strings.Index(containerId, "6e")
-	bcontainerId[cidx] = 0x00
+	emptycontainerID := []byte(containerID)
+	emptycontainerID[0] = 0x00
+	bcontainerID := []byte(containerID)
+	cidx := strings.Index(containerID, "6e")
+	bcontainerID[cidx] = 0x00
 	pidx := strings.LastIndex(cgroupPath, "/")
 	bcgroupPath := []byte(cgroupPath)
 	bcgroupPath[pidx] = 0x00
@@ -76,20 +76,20 @@ func TestCgroupNameFromCStr(t *testing.T) {
 			want: "",
 		},
 		{
-			in:   emptycontainerId,
+			in:   emptycontainerID,
 			want: "",
 		},
 		{
-			in:   []byte(containerId),
-			want: containerId,
+			in:   []byte(containerID),
+			want: containerID,
 		},
 		{
 			in:   []byte(cgroupPath),
 			want: cgroupPath,
 		},
 		{
-			in:   bcontainerId,
-			want: containerId[:cidx],
+			in:   bcontainerID,
+			want: containerID[:cidx],
 		},
 		{
 			in:   bcgroupPath,
@@ -121,7 +121,7 @@ perf_event	8	2	1
 	err := os.WriteFile(file, []byte(invalidCgroupv1Controllers), 0644)
 	require.NoError(t, err)
 
-	err = parseCgroupv1SubSysIds(file)
+	err = parseCgroupv1SubSysIDs(file)
 	require.Error(t, err)
 }
 
@@ -153,15 +153,15 @@ misc	10	1	1
 	err := os.WriteFile(file, []byte(d.data), 0644)
 	require.NoError(t, err)
 
-	err = parseCgroupv1SubSysIds(file)
+	err = parseCgroupv1SubSysIDs(file)
 	require.NoError(t, err)
 	for _, c := range CgroupControllers {
 		if strings.Contains(d.used, c.Name) {
 			require.True(t, c.Active)
-			require.NotZero(t, c.Id)
+			require.NotZero(t, c.ID)
 		} else {
 			require.False(t, c.Active)
-			require.Zero(t, c.Id)
+			require.Zero(t, c.ID)
 		}
 	}
 }
@@ -296,7 +296,7 @@ func TestDiscoverCgroupv1SubSysIdsDefault(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, CGROUP_UNDEF, fs)
 
-	err = DiscoverSubSysIds()
+	err = DiscoverSubSysIDs()
 	require.NoError(t, err)
 
 	accessFs := false
@@ -314,7 +314,7 @@ func TestDiscoverCgroupv1SubSysIdsDefault(t *testing.T) {
 
 	for _, controller := range CgroupControllers {
 		if accessFs {
-			assert.NotEqualValues(t, 0, controller.Id, "Cgroupv1 Controller '%s' hierarchy ID should not be zero", controller.Name)
+			assert.NotEqualValues(t, 0, controller.ID, "Cgroupv1 Controller '%s' hierarchy ID should not be zero", controller.Name)
 		}
 
 		if controller.Active {
@@ -335,7 +335,7 @@ func TestGetCgroupIdFromPath(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, CGROUP_UNDEF, mode)
 
-	err = DiscoverSubSysIds()
+	err = DiscoverSubSysIDs()
 	require.NoError(t, err)
 
 	pid := os.Getpid()
@@ -343,7 +343,7 @@ func TestGetCgroupIdFromPath(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, path)
 
-	id, err := GetCgroupIdFromPath(path)
+	id, err := GetCgroupIDFromPath(path)
 	require.NoError(t, err)
 	assert.NotZero(t, id)
 
