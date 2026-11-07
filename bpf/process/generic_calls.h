@@ -1004,7 +1004,22 @@ cel_eval_assignments(struct offload_data *d, struct msg_generic_kprobe *e, __u32
 }
 #endif /* GENERIC_UPROBE && __V61_BPF_PROG */
 
-FUNC_LOCAL __u32
+/**
+ * do_action - Execute the action at index i in the action array.
+ *
+ * @ctx: The BPF context.
+ * @i: The current index in the action array.
+ * @actions: The selector action structure containing the actions to perform.
+ * @post: Pointer to a boolean indicating whether to post the event.
+ * @enforce_mode: Boolean indicating if enforcement mode is active.
+ *
+ * Returns the index of the next action on success or a negative value when
+ * do_action() couldn't access the heap. If it can access the heap but during
+ * the execution of the action an error occurs, we record an errmetric and return
+ * the index for the the next action so that the other actions are still
+ * executed.
+ */
+FUNC_LOCAL __s64
 do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool enforce_mode)
 {
 	struct state_value new_state_value __maybe_unused;
@@ -1016,15 +1031,14 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	struct msg_generic_kprobe *e;
 	heap_key_t key = heap_key();
 	__s32 error __maybe_unused;
-	int map_ret;
+	__s64 err = 0;
 	int socki;
 	int argi __maybe_unused;
-	int err = 0;
 	u32 polacct;
 
 	e = map_lookup_elem(&process_call_heap, &key);
 	if (!e)
-		return 0;
+		return -ENOENT;
 
 	polacct = POLICY_INVALID_ACT_;
 	switch (action) {
@@ -1148,19 +1162,18 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 
 		switch (value) {
 		case STATE_OP_DELETE: {
-			map_ret = map_delete_elem(&tg_state_map, &state_key);
-			if (map_ret != 0 && map_ret != -ENOENT)
-				err = -1;
+			err = map_delete_elem(&tg_state_map, &state_key);
+			if (err == -ENOENT)
+				err = 0;
 			break;
 		}
 		case STATE_OP_SET: {
 			new_state_value.data = state_data;
-			if (map_update_elem(&tg_state_map, &state_key, &new_state_value, BPF_ANY))
-				err = -1;
+			err = map_update_elem(&tg_state_map, &state_key, &new_state_value, BPF_ANY);
 			break;
 		}
 		default:
-			err = -1;
+			err = -EINVAL;
 			break;
 		}
 		break;
@@ -1168,15 +1181,17 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		break;
 	}
 
+	if (err < 0) {
+		errmetrics(-err);
+		return ++i;
+	}
+
 	if (polacct != POLICY_INVALID_ACT_) {
 		policy_selector_stats_update(polacct, generic_selector_stats_id(e));
 	}
 
-	if (!err) {
-		e->action = action;
-		return ++i;
-	}
-	return 0;
+	e->action = action;
+	return ++i;
 }
 
 FUNC_INLINE bool
@@ -1195,6 +1210,7 @@ do_actions(void *ctx, struct selector_action *actions)
 	__u32 l, i = 0, zero = 0;
 	struct policy_conf *pcnf;
 	bool enforce_mode = true;
+	__s64 next;
 
 	/* check if policy is in monitor (non-enforcement) mode and, if it is, skip enforcement
 	 * actions
@@ -1209,7 +1225,12 @@ do_actions(void *ctx, struct selector_action *actions)
 	for (l = 0; l < MAX_ACTIONS; l++) {
 		if (!has_action(actions, i))
 			break;
-		i = do_action(ctx, i, actions, &post, enforce_mode);
+		next = do_action(ctx, i, actions, &post, enforce_mode);
+		if (next < 0) {
+			errmetrics(-next);
+			break;
+		}
+		i = next;
 	}
 
 	return post;
