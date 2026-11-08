@@ -1670,6 +1670,13 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 			if (active) {
 				/* Save even if an entry NoPost action suppresses the event. */
 				info->active_selectors = active | (1U << SELECTORS_ACTIVE);
+				/* The entry filters don't include matchReturnArgs, so this
+				 * selector may still have return filters left to check. That
+				 * is fine: validation rejects matchActions on a selector with
+				 * matchReturnArgs, so its actions list is empty and running it
+				 * only posts the event. actions_offset > 1 does not mean that
+				 * matchActions is set, only where the selector's actions start.
+				 */
 				if (e->actions_offset > 1)
 					tail_call(ctx, tailcalls, TAIL_CALL_ACTIONS);
 				tail_call(ctx, tailcalls, TAIL_CALL_SEND);

@@ -31,6 +31,18 @@ func validateSubStringSelectorFeatures(selectorSpecs []v1alpha1.KProbeSelector) 
 	return nil
 }
 
+// validateReturnArgsActions rejects selectors that combine matchActions with
+// matchReturnArgs: matchActions run at function entry, before the return
+// value is known, so matchReturnArgs can't gate them.
+func validateReturnArgsActions(selectorSpecs []v1alpha1.KProbeSelector) error {
+	for i := range selectorSpecs {
+		if len(selectorSpecs[i].MatchReturnArgs) > 0 && len(selectorSpecs[i].MatchActions) > 0 {
+			return fmt.Errorf("selectors[%d]: matchActions can't be combined with matchReturnArgs because they run before the return value is known, use matchReturnActions instead", i)
+		}
+	}
+	return nil
+}
+
 func selectorsMaploads(load *program.Program, ks *selectors.KernelSelectorState, index uint32) []*program.MapLoad {
 	rewriteSelectorConstants(load, ks.Usage())
 	selBuff := ks.CopyToFixedBuffer()

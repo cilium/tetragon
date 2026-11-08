@@ -1039,6 +1039,9 @@ func createGenericUprobeSensor(
 		if err = validateSubStringSelectorFeatures(uprobe.Selectors); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
+		if err = validateReturnArgsActions(uprobe.Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
 
 		in.selectorStatsBase = selectorStatsBase
 		selectorStatsBase += uint32(len(uprobe.Selectors))
