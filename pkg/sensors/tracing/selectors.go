@@ -42,6 +42,27 @@ func validateSignalActions(selectorSpecs []v1alpha1.KProbeSelector) error {
 	return nil
 }
 
+// validateReturnArgsActions rejects a hook that combines matchActions with
+// matchReturnArgs, in the same or in different selectors. matchActions run at
+// function entry, before the return value is known, so matchReturnArgs can't
+// gate them, and whether a selector with matchReturnArgs is the first match is
+// only known when the function returns.
+func validateReturnArgsActions(selectorSpecs []v1alpha1.KProbeSelector) error {
+	actionsIdx, retArgsIdx := -1, -1
+	for i := range selectorSpecs {
+		if actionsIdx < 0 && len(selectorSpecs[i].MatchActions) > 0 {
+			actionsIdx = i
+		}
+		if retArgsIdx < 0 && len(selectorSpecs[i].MatchReturnArgs) > 0 {
+			retArgsIdx = i
+		}
+	}
+	if actionsIdx >= 0 && retArgsIdx >= 0 {
+		return fmt.Errorf("selectors[%d]: matchActions can't be combined with matchReturnArgs in the same hook (selectors[%d] has matchReturnArgs) because they run before the return value is known, use matchReturnActions instead", actionsIdx, retArgsIdx)
+	}
+	return nil
+}
+
 func selectorsMaploads(load *program.Program, ks *selectors.KernelSelectorState, index uint32) []*program.MapLoad {
 	rewriteSelectorConstants(load, ks.Usage())
 	selBuff := ks.CopyToFixedBuffer()
