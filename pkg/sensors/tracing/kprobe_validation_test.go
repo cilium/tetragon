@@ -81,6 +81,76 @@ func TestValidateSubStringSelectorFeatures(t *testing.T) {
 	}
 }
 
+func TestValidateReturnArgsActions(t *testing.T) {
+	returnArgs := []v1alpha1.ArgSelector{{Index: 0, Operator: "Equal", Values: []string{"0"}}}
+	actions := []v1alpha1.ActionSelector{{Action: "Sigkill"}}
+	tests := []struct {
+		name          string
+		selectorSpecs []v1alpha1.KProbeSelector
+		macros        map[string]v1alpha1.KProbeSelector
+		wantErr       string
+	}{
+		{
+			name:          "matchReturnArgs with matchActions",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs, MatchActions: actions}},
+			wantErr:       "selectors[0]: matchActions can't be combined with matchReturnArgs",
+		},
+		{
+			name:          "matchActions added by macro",
+			selectorSpecs: []v1alpha1.KProbeSelector{{}, {MatchReturnArgs: returnArgs, Macros: []string{"kill"}}},
+			macros:        map[string]v1alpha1.KProbeSelector{"kill": {MatchActions: actions}},
+			wantErr:       "selectors[1]: matchActions can't be combined with matchReturnArgs",
+		},
+		{
+			name:          "matchReturnArgs with matchReturnActions",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs, MatchReturnActions: actions}},
+		},
+		{
+			name:          "matchActions and matchReturnArgs in different selectors",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchActions: actions}, {MatchReturnArgs: returnArgs}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.NoError(t, appendMacrosSelectors(test.selectorSpecs, test.macros))
+			err := validateReturnArgsActions(test.selectorSpecs)
+			if test.wantErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, test.wantErr)
+			}
+		})
+	}
+}
+
+func TestKprobeValidationReturnArgsWithActions(t *testing.T) {
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "return-args-actions"
+spec:
+  kprobes:
+  - call: "sys_getcpu"
+    syscall: true
+    return: true
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["0"]
+      matchActions:
+      - action: Post
+`
+
+	err := checkCrd(t, crd)
+	require.ErrorContains(t, err, "selectors[0]: matchActions can't be combined with matchReturnArgs")
+}
+
 func TestKprobeValidationListWrongSyscallName(t *testing.T) {
 	// messed up syscall name in the list
 	crd := `

@@ -43,6 +43,31 @@ spec:
 	require.Contains(t, err.Error(), "enforcer actions are not supported")
 }
 
+func TestUprobeValidationReturnArgsWithActions(t *testing.T) {
+	err := checkCrd(t, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-return-args-actions"
+spec:
+  uprobes:
+  - path: "/proc/self/exe"
+    symbols: ["main"]
+    return: true
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["0"]
+      matchActions:
+      - action: Post
+`)
+	require.ErrorContains(t, err, "selectors[0]: matchActions can't be combined with matchReturnArgs")
+}
+
 func TestUprobeValidationStackTraceRequiresPost(t *testing.T) {
 	tests := []struct {
 		name       string
