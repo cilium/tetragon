@@ -84,6 +84,16 @@ func TestUretprobeGeneric(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "uretprobe-generic", nil)
 }
 
+func TestUretprobeOverride(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uretprobe-override", nil)
+}
+
+func TestUretprobeOverrideNoMulti(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uretprobe-override", map[string]any{
+		"DisableUprobeMulti": true,
+	})
+}
+
 // The purpose of the GetUrl and DnsLookup tests is to check that Tetragon does
 // not crash, and instead returns an error, if a GetUrl or DnsLookup action is
 // specified in a uprobe policy.
