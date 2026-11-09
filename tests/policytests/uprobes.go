@@ -109,6 +109,100 @@ spec:
 	}
 }).RegisterAtInit()
 
+// A return Override must replace the result for both multi and single uprobe
+// attachment. Only the matching middle selector may act: the selectors before
+// and after it don't match and would kill the process if their actions ran.
+var _ = policytest.NewBuilder("uretprobe-override").WithLabels("uprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
+			return "uprobes cannot change registers"
+		}
+		if si.ParamValues["DisableUprobeMulti"] != true && !si.AgentInfo.Probes[bpf.UprobeMultiProbe] {
+			return "need uprobe multi support"
+		}
+		return ""
+	}).WithParameter(policytest.Parameter{
+	Name:    "DisableUprobeMulti",
+	Default: false,
+	Values:  []any{false, true},
+	Help:    "value of the disable-uprobe-multi policy option",
+}).WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uretprobe-override"
+spec:
+  options:
+  - name: "disable-uprobe-multi"
+    value: "{{ .DisableUprobeMulti }}"
+  uprobes:
+  - path: {{ testBinary "uretprobe" }}
+    symbols:
+    - return_string
+    return: true
+    returnArg:
+      index: 0
+      type: "string"
+    selectors:
+      - matchReturnArgs:
+          - index: 0
+            operator: "Equal"
+            values:
+              - "no match before"
+        matchReturnActions:
+        - action: Sigkill
+      - matchBinaries:
+        - operator: "Postfix"
+          values:
+            - "uretprobe"
+        matchReturnArgs:
+          - index: 0
+            operator: "Equal"
+            values:
+              - "ret input"
+        matchReturnActions:
+        - action: Override
+          argError: 0
+      - matchReturnArgs:
+          - index: 0
+            operator: "Equal"
+            values:
+              - "no match after"
+        matchReturnActions:
+        - action: Sigkill
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uretprobe")
+	upChecker := ec.NewProcessUprobeChecker("URETPROBE_OVERRIDE").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("return_string")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("ret input")),
+			))
+
+	// uretprobe exits with 1 when return_string's result is replaced with NULL,
+	// and is killed if a non-matching selector's Sigkill runs.
+	exitCode := 1
+	if c.TestConf != nil && c.TestConf.MonitorMode {
+		exitCode = 0
+	}
+	postCnt := uint64(1)
+	overrideCnt := uint64(1)
+	signalCnt := uint64(0)
+	return &policytest.Scenario{
+		Name:         "execute uretprobe, check only the matching selector overrides the return value",
+		Trigger:      policytest.NewCmdTrigger(bin).ExpectExitCode(exitCode),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Post:     &postCnt,
+			Signal:   &signalCnt,
+			Override: &overrideCnt,
+		},
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("uprobe-override").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
