@@ -1629,8 +1629,12 @@ FUNC_INLINE int next_selidx(struct msg_generic_kprobe *e, int selidx)
 	return idx;
 }
 
-FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
-				    bool is_entry, int arg)
+/* Generated CEL programs retry selectors directly, without paying for the
+ * shared dispatcher again. Actions and output still use the shared calls.
+ */
+FUNC_INLINE long generic_filter_arg_with_retry(void *ctx, struct bpf_map_def *tailcalls,
+					       bool is_entry, int arg,
+					       struct bpf_map_def *retry_calls, __u32 retry_index)
 {
 	struct retprobe_info *info = NULL;
 	struct msg_generic_kprobe *e;
@@ -1674,7 +1678,7 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 		selidx = next_selidx(e, selidx);
 		if (selidx <= MAX_SELECTORS) {
 			e->tailcall_index_selector = selidx;
-			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
+			tail_call(ctx, retry_calls, retry_index);
 		}
 		if (info) {
 			/* Save before the actions run, even if an entry NoPost
@@ -1714,5 +1718,12 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 
 	tail_call(ctx, tailcalls, TAIL_CALL_SEND);
 	return 0;
+}
+
+FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
+				    bool is_entry, int arg)
+{
+	return generic_filter_arg_with_retry(ctx, tailcalls, is_entry, arg,
+					     tailcalls, TAIL_CALL_ARGS);
 }
 #endif /* __GENERIC_CALLS_H__ */

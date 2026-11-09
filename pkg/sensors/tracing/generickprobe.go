@@ -12,9 +12,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"math"
 	"net"
 	"net/http"
+	"os"
 	"path"
 	"runtime"
 	"slices"
@@ -1817,6 +1819,8 @@ type multiKprobeResources struct {
 	load    *multiKprobeLoadData
 	scopes  []uint32
 	entries []multiKprobeMapEntry
+	cel     *program.Program
+	celDir  string
 }
 
 func (r *multiKprobeResources) Unload(unpin bool) error {
@@ -1841,6 +1845,16 @@ func (r *multiKprobeResources) Unload(unpin bool) error {
 	wg.Wait()
 	errs := errors.Join(deleteErrors...)
 	r.entries = nil
+	if r.cel != nil {
+		errs = errors.Join(errs, r.cel.Unload(true))
+		r.cel = nil
+	}
+	if r.celDir != "" {
+		if err := os.Remove(r.celDir); err != nil && !errors.Is(err, os.ErrNotExist) {
+			errs = errors.Join(errs, err)
+		}
+		r.celDir = ""
+	}
 	if errs != nil {
 		r.load.retainScopes()
 	}
@@ -1886,4 +1900,47 @@ func (r *multiKprobeResources) publish(scope uint32, local map[string]*program.M
 		}
 	}
 	return nil
+}
+
+func (r *multiKprobeResources) loadCEL(functions *selectors.CelExprFunctions, bpfDir string, load *program.Program, verbose int) error {
+	if functions == nil || len(*functions) == 0 {
+		return nil
+	}
+	cel := program.Builder(load.Name, load.Attach, "kprobe.multi/generic_kprobe_cel", "multi_cel", load.Type).SetPolicy(load.Policy)
+	cel.PinPath = path.Join(load.PinPath, "cel")
+	// createDirs normally prepares program directories, but this optional
+	// generated program is loaded as part of the policy's main attachment.
+	if err := os.MkdirAll(path.Join(bpfDir, cel.PinPath), 0755); err != nil {
+		return err
+	}
+	r.celDir = path.Join(bpfDir, cel.PinPath)
+	cel.RewriteProg = map[string]func(*ebpf.ProgramSpec) error{"generic_kprobe_cel": functions.RewriteProg}
+	r.cel = cel // also unwind failures after a program has been loaded
+	maps.Copy(cel.PinMap, r.shared.load.PinMap)
+	return program.LoadProgramOpts(bpfDir, cel, &program.LoadOpts{
+		Open: func(spec *ebpf.CollectionSpec) error {
+			for name := range spec.Programs {
+				if name != "generic_kprobe_cel" {
+					delete(spec.Programs, name)
+				}
+			}
+			// Replacements are still populated from ELF initializers by the
+			// collection loader. Never reinstall the shared tail calls here.
+			for _, m := range spec.Maps {
+				if m.Type == ebpf.ProgramArray {
+					m.Contents = nil
+				}
+			}
+			return nil
+		},
+		Attach: func(_ *ebpf.Collection, _ *ebpf.CollectionSpec, prog *ebpf.Program, _ *ebpf.ProgramSpec) (unloader.Unloader, error) {
+			for _, scope := range r.scopes {
+				if err := r.update(r.shared.maps["multi_cel"].MapHandle, scope, prog); err != nil {
+					prog.Close()
+					return nil, err
+				}
+			}
+			return unloader.ProgUnloader{Prog: prog}, nil
+		},
+	}, verbose)
 }
