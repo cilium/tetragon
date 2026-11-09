@@ -84,9 +84,10 @@ type TracingAttachData struct {
 }
 
 type MultiKprobeAttachData struct {
-	Symbols   []string
-	Cookies   []uint64
-	Overrides []string
+	Symbols         []string
+	Cookies         []uint64
+	Overrides       []string
+	OverrideCookies []uint64
 }
 
 type UprobeAttachData struct {
