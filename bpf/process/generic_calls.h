@@ -1379,6 +1379,17 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	memset(&e->sel, 0, sizeof(e->sel));
 	retprobe_info_restore_selectors(&info, &e->sel);
 	e->tailcall_index_selector = 0;
+#ifdef SHARED_KPROBE
+	/* Restore entry process state and clear stale action and argument data. */
+	e->current = info.current;
+	e->action = 0;
+	e->actions_offset = 0;
+#pragma unroll
+	for (int i = 0; i < MAX_POSSIBLE_ARGS; i++) {
+		e->arg_status[i] = 0;
+		e->argsoff[i] = 0;
+	}
+#endif
 
 	*(unsigned long *)e->args = info.ktime_enter;
 	size += sizeof(info.ktime_enter);
@@ -1643,7 +1654,11 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 			.tid = e->retprobe_id,
 		};
 
-		info = map_lookup_elem(&retprobe_map, &retkey);
+		info = policy_lookup(&retprobe_map, &retkey);
+#ifdef SHARED_KPROBE
+		if (info)
+			info->current = e->current;
+#endif
 	}
 
 	/* Evaluate the next selector if:
