@@ -739,6 +739,7 @@ func AttachSharedMultiKprobe(bpfDir string, load, shared *Program, override *ebp
 	attached = append(attached, u)
 	load.unloader = append(unloader.ChainUnloader{cleanup}, attached...)
 	load.Prog = prog
+	load.SharedStats = true
 	return nil
 }
 

@@ -141,7 +141,7 @@ func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
 	var list []ProgOverhead
 
 	for _, p := range s.Progs {
-		if p.Prog == nil {
+		if p.Prog == nil || p.SharedStats {
 			continue
 		}
 		stats, err := p.Prog.Stats()
