@@ -18,6 +18,11 @@ struct retprobe_info {
 	unsigned long ktime_enter;
 	unsigned long ptr;
 	unsigned long cnt;
+#ifdef SHARED_KPROBE
+	__u32 active_selectors;
+	__u32 selector_index;
+	struct msg_execve_key current;
+#endif
 };
 
 POLICY_MAP(retprobe_map,

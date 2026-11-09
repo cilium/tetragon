@@ -1354,6 +1354,22 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
 		return 0;
 
+#ifdef SHARED_KPROBE
+	/* Do not inherit selector or process state from another return event. */
+	e->tailcall_index_selector = info.selector_index;
+#pragma unroll
+	for (int i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
+		e->sel.active[i] = !!(info.active_selectors & (1U << i));
+	e->current = info.current;
+	e->action = 0;
+	e->actions_offset = 0;
+#pragma unroll
+	for (int i = 0; i < MAX_POSSIBLE_ARGS; i++) {
+		e->arg_status[i] = 0;
+		e->argsoff[i] = 0;
+	}
+#endif
+
 	*(unsigned long *)e->args = info.ktime_enter;
 	size += sizeof(info.ktime_enter);
 
@@ -1591,6 +1607,29 @@ FUNC_INLINE int next_selidx(struct msg_generic_kprobe *e, int selidx)
 	return idx;
 }
 
+#ifdef SHARED_KPROBE
+/* Return probes run with their own heap and may execute on another CPU.
+ * Save the entry selector state in the per-invocation return record.
+ */
+FUNC_INLINE void retprobe_save_state(struct msg_generic_kprobe *e)
+{
+	struct retprobe_key key = { .id = e->func_id, .tid = e->retprobe_id };
+	struct retprobe_info *info = policy_lookup(&retprobe_map, &key);
+	__u32 active = 0;
+	int i;
+
+	if (!info)
+		return;
+#pragma unroll
+	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
+		if (e->sel.active[i])
+			active |= 1U << i;
+	info->active_selectors = active;
+	info->selector_index = e->tailcall_index_selector;
+	info->current = e->current;
+}
+#endif
+
 FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 				    bool is_entry, int arg)
 {
@@ -1613,6 +1652,11 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 		// reject if we did not attempt to tailcall, or if tailcall failed.
 		return filter_args_reject(e->func_id);
 	}
+
+#ifdef SHARED_KPROBE
+	if (is_entry)
+		retprobe_save_state(e);
+#endif
 
 	// If pass >1 then we need to consult the selector actions
 	// otherwise pass==1 indicates using default action.
