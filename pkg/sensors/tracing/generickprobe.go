@@ -370,6 +370,12 @@ type hasMaps struct {
 func hasMapsSetup(spec *v1alpha1.TracingPolicySpec, kprobes []v1alpha1.KProbeSpec, fentry bool) hasMaps {
 	has := hasMaps{fentry: fentry}
 	for _, kprobe := range kprobes {
+		for _, selector := range kprobe.Selectors {
+			for _, action := range selector.MatchReturnActions {
+				has.stackTrace = has.stackTrace || action.KernelStackTrace || action.UserStackTrace
+				has.rateLimit = has.rateLimit || action.RateLimit != ""
+			}
+		}
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
 		has.rateLimit = has.rateLimit || selectors.HasRateLimit(kprobe.Selectors)
 		has.sockTrack = has.sockTrack || selectors.HasSockTrack(&kprobe)
