@@ -141,8 +141,24 @@ generic_kprobe_process_filter_2(void *ctx)
 __attribute__((section(COMMON), used)) int
 generic_kprobe_filter_arg(void *ctx)
 {
+#ifdef SHARED_KPROBE
+	/* Generated CEL code is the only policy-specific program. Most policies
+	 * use the shared argument filter directly.
+	 */
+	tail_call(ctx, &multi_cel, multi_kprobe_scope());
+#endif
 	return generic_filter_arg(ctx, (struct bpf_map_def *)&kprobe_calls, true, __FILTER_ARG_ALL);
 }
+
+#ifdef SHARED_KPROBE
+__attribute__((section("kprobe.multi/generic_kprobe_cel"), used)) int
+generic_kprobe_cel(void *ctx)
+{
+	return generic_filter_arg_with_retry(ctx, (struct bpf_map_def *)&kprobe_calls,
+					     true, __FILTER_ARG_ALL,
+					     (struct bpf_map_def *)&multi_cel, multi_kprobe_scope());
+}
+#endif
 #else
 __attribute__((section(COMMON), used)) int
 generic_kprobe_filter_arg(void *ctx)
