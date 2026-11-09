@@ -2323,12 +2323,13 @@ func HasSet(selectors []v1alpha1.KProbeSelector) bool {
 	return ok
 }
 
-func HasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
-	for i := range kspec.Selectors {
-		s := &kspec.Selectors[i]
-		for j := range s.MatchActions {
-			act := strings.ToLower(s.MatchActions[j].Action)
-			if act == "sigkill" {
+// HasSignalAction returns true if any selector sends a signal (Sigkill or
+// Signal), in either matchActions or matchReturnActions.
+func HasSignalAction(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
+		for _, action := range slices.Concat(s.MatchActions, s.MatchReturnActions) {
+			switch actionTypeTable[strings.ToLower(action.Action)] {
+			case ActionTypeSigKill, ActionTypeSignal:
 				return true
 			}
 		}
