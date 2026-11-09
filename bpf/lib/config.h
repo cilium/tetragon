@@ -77,7 +77,10 @@ volatile const __u8 BPF_DEBUG_ENABLED;
  * eBPF code related to specific selectors.
  * In non-__LARGE_BPF_PROG programs, we always have all selectors enabled.
  */
-#ifdef __LARGE_BPF_PROG
+#if defined(__MULTI_KPROBE) && (defined(GENERIC_KPROBE) || defined(GENERIC_KRETPROBE))
+/* Shared programs must handle selectors in policies added after loading. */
+#define FEATURE_MASK 0xFFFFFFFF
+#elif defined(__LARGE_BPF_PROG)
 volatile const __u32 FEATURE_MASK = 0xFFFFFFFF;
 #else
 #define FEATURE_MASK 0xFFFFFFFF

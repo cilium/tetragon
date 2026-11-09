@@ -10,7 +10,8 @@
  * selects its map layout, not an additional attachment mode. Uprobes and
  * enforcers also use __MULTI_KPROBE, but retain their own map layout.
  */
-#if defined(SHARED_KPROBE)
+#if defined(__MULTI_KPROBE) && (defined(GENERIC_KPROBE) || defined(GENERIC_KRETPROBE))
+#define SHARED_KPROBE
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);

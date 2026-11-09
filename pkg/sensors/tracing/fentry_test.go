@@ -81,6 +81,9 @@ spec:` + opts + `
 	findHeapMaps := func(sens []*sensors.Sensor) map[string][]*program.Map {
 		maps := make(map[string][]*program.Map)
 		for _, s := range sens {
+			if s.Name != "generic_fentry" {
+				continue
+			}
 			for _, m := range s.Maps {
 				for _, name := range heapMapNames {
 					if m.Name == name {

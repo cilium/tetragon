@@ -8,6 +8,7 @@ package test
 import (
 	"context"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"           // NB: needed so that the exec sensor can load the execve probe on its init
@@ -74,6 +76,13 @@ func TestModeSigKill(t *testing.T) {
 
 	pft.AddPolicy(t, ctx, tp)
 
+	// Shared entry and return programs both count their posts, which are
+	// merged into one event in userspace.
+	posts := uint64(1)
+	if bpf.HasKprobeMulti() && !option.Config.DisableKprobeMulti {
+		posts = 2
+	}
+
 	getcpuProg := testutils.RepoRootPath("contrib/tester-progs/getcpu")
 	var progOut string
 	var progErr error
@@ -84,7 +93,7 @@ func TestModeSigKill(t *testing.T) {
 
 	checkEnforce := func() {
 		statsChecker := tups.NewChecker(t, tp, tups.ExpectedPolicyActions{
-			Post:   1,
+			Post:   posts,
 			Signal: 1,
 		})
 
@@ -106,7 +115,7 @@ func TestModeSigKill(t *testing.T) {
 
 	checkMonitor := func() {
 		statsChecker := tups.NewChecker(t, tp, tups.ExpectedPolicyActions{
-			Post:          1,
+			Post:          posts,
 			MonitorSignal: 1,
 		})
 
@@ -186,6 +195,12 @@ func TestModeEnforcer(t *testing.T) {
 	pft.AddPolicy(t, ctx, tp)
 
 	pid := pft.ProgTester.Cmd.Process.Pid
+	// ARM64 uses single kprobes for override actions. Shared multi-kprobes
+	// count both the entry and return posts, including in monitor mode.
+	posts := uint64(1)
+	if runtime.GOARCH != "arm64" && bpf.HasKprobeMulti() && !option.Config.DisableKprobeMulti {
+		posts = 2
+	}
 
 	var cmdOut string
 	var cmdErr error
@@ -196,7 +211,7 @@ func TestModeEnforcer(t *testing.T) {
 
 	checkEnforce := func() {
 		statsChecker := tups.NewChecker(t, tp, tups.ExpectedPolicyActions{
-			Post:           1,
+			Post:           posts,
 			Override:       1,
 			NotifyEnforcer: 1,
 		})
@@ -232,7 +247,7 @@ func TestModeEnforcer(t *testing.T) {
 
 	checkMonitor := func() {
 		statsChecker := tups.NewChecker(t, tp, tups.ExpectedPolicyActions{
-			Post:                  1,
+			Post:                  posts,
 			MonitorOverride:       1,
 			MonitorNotifyEnforcer: 1,
 		})
