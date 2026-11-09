@@ -4,6 +4,8 @@
 #ifndef STRING_MAPS_H__
 #define STRING_MAPS_H__
 
+#include "multi_kprobe.h"
+
 #include "heap.h"
 
 #define STRING_MAPS_OUTER_MAX_ENTRIES 8
@@ -69,9 +71,9 @@ _Static_assert(STRING_MAPS_HEAP_SIZE <= HEAP_RO_SIZE,
 
 #define DEFINE_ARRAY_OF_STRING_MAPS(N)                                   \
 	struct {                                                         \
-		__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);                \
+		__uint(type, MULTI_OUTER_TYPE);                          \
 		__uint(max_entries, STRING_MAPS_OUTER_MAX_ENTRIES);      \
-		__type(key, __u32);                                      \
+		__type(key, MULTI_KEY_TYPE);                             \
 		__array(                                                 \
 			values, struct {                                 \
 				__uint(type, BPF_MAP_TYPE_HASH);         \
@@ -150,9 +152,9 @@ _Static_assert(sizeof(struct string_prefix_lpm_trie) <= HEAP_RO_SIZE,
 	       "heap_ro_value's value must fit struct string_prefix_lpm_trie");
 
 struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(type, MULTI_OUTER_TYPE);
 	__uint(max_entries, STRING_MAPS_OUTER_MAX_ENTRIES);
-	__type(key, __u32);
+	__type(key, MULTI_KEY_TYPE);
 	__array(
 		values, struct {
 			__uint(type, BPF_MAP_TYPE_LPM_TRIE);
@@ -223,9 +225,9 @@ _Static_assert(sizeof(struct string_postfix_lpm_trie) <= HEAP_RO_SIZE,
 	       "heap_ro_value's value must fit struct string_postfix_lpm_trie");
 
 struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(type, MULTI_OUTER_TYPE);
 	__uint(max_entries, STRING_MAPS_OUTER_MAX_ENTRIES);
-	__type(key, __u32);
+	__type(key, MULTI_KEY_TYPE);
 	__array(
 		values, struct {
 			__uint(type, BPF_MAP_TYPE_LPM_TRIE);

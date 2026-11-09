@@ -4,6 +4,8 @@
 #ifndef __BASIC_H__
 #define __BASIC_H__
 
+#include "multi_kprobe.h"
+
 #include "operations.h"
 #include "bpf_task.h"
 #include "bpf_cred.h"
@@ -661,29 +663,29 @@ FUNC_INLINE void *get_string_map(int index, __u32 map_idx)
 {
 	switch (index) {
 	case 0:
-		return map_lookup_elem(&string_maps_0, &map_idx);
+		return multi_lookup(&string_maps_0, &map_idx);
 	case 1:
-		return map_lookup_elem(&string_maps_1, &map_idx);
+		return multi_lookup(&string_maps_1, &map_idx);
 	case 2:
-		return map_lookup_elem(&string_maps_2, &map_idx);
+		return multi_lookup(&string_maps_2, &map_idx);
 	case 3:
-		return map_lookup_elem(&string_maps_3, &map_idx);
+		return multi_lookup(&string_maps_3, &map_idx);
 	case 4:
-		return map_lookup_elem(&string_maps_4, &map_idx);
+		return multi_lookup(&string_maps_4, &map_idx);
 	case 5:
-		return map_lookup_elem(&string_maps_5, &map_idx);
+		return multi_lookup(&string_maps_5, &map_idx);
 #ifdef __LARGE_BPF_PROG
 	case 6:
-		return map_lookup_elem(&string_maps_6, &map_idx);
+		return multi_lookup(&string_maps_6, &map_idx);
 	case 7:
-		return map_lookup_elem(&string_maps_7, &map_idx);
+		return multi_lookup(&string_maps_7, &map_idx);
 #ifdef __V511_BPF_PROG
 	case 8:
-		return map_lookup_elem(&string_maps_8, &map_idx);
+		return multi_lookup(&string_maps_8, &map_idx);
 	case 9:
-		return map_lookup_elem(&string_maps_9, &map_idx);
+		return multi_lookup(&string_maps_9, &map_idx);
 	case 10:
-		return map_lookup_elem(&string_maps_10, &map_idx);
+		return multi_lookup(&string_maps_10, &map_idx);
 #endif
 #endif
 	}
@@ -786,7 +788,7 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	__u32 map_idx = *(__u32 *)&filter->value;
 	struct string_prefix_lpm_trie *arg;
 
-	addrmap = map_lookup_elem(&string_prefix_maps, &map_idx);
+	addrmap = multi_lookup(&string_prefix_maps, &map_idx);
 	if (!addrmap || !arg_len)
 		return 0;
 
@@ -889,7 +891,7 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 	struct string_postfix_lpm_trie *arg;
 	uint orig_len = arg_len;
 
-	addrmap = map_lookup_elem(&string_postfix_maps, &map_idx);
+	addrmap = multi_lookup(&string_postfix_maps, &map_idx);
 	if (!addrmap || !arg_len)
 		return 0;
 
@@ -1196,7 +1198,7 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 	switch (family) {
 	case AF_INET:
 		map_idx = map_idxs[0];
-		addrmap = map_lookup_elem(&addr4lpm_maps, &map_idx);
+		addrmap = multi_lookup(&addr4lpm_maps, &map_idx);
 		if (!addrmap)
 			return filter_addr_op_mod(filter->op, 0);
 		arg4.prefix = 32;
@@ -1205,7 +1207,7 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 		break;
 	case AF_INET6:
 		map_idx = map_idxs[1];
-		addrmap = map_lookup_elem(&addr6lpm_maps, &map_idx);
+		addrmap = multi_lookup(&addr6lpm_maps, &map_idx);
 		if (!addrmap)
 			return filter_addr_op_mod(filter->op, 0);
 		arg6.prefix = 128;
@@ -1594,7 +1596,7 @@ filter_8ty_map(struct selector_arg_filter *filter, char *args)
 	void *argmap;
 	__u32 map_idx = filter->value;
 
-	argmap = map_lookup_elem(&argfilter_maps, &map_idx);
+	argmap = multi_lookup(&argfilter_maps, &map_idx);
 	if (!argmap)
 		return 0;
 
@@ -1679,7 +1681,7 @@ filter_16ty_map(struct selector_arg_filter *filter, char *args)
 	void *argmap;
 	__u32 map_idx = filter->value;
 
-	argmap = map_lookup_elem(&argfilter_maps, &map_idx);
+	argmap = multi_lookup(&argfilter_maps, &map_idx);
 	if (!argmap)
 		return 0;
 
@@ -1710,7 +1712,7 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args)
 	void *argmap;
 	__u32 map_idx = filter->value;
 
-	argmap = map_lookup_elem(&argfilter_maps, &map_idx);
+	argmap = multi_lookup(&argfilter_maps, &map_idx);
 	if (!argmap)
 		return 0;
 
@@ -1927,7 +1929,7 @@ filter_32ty_map(struct selector_arg_filter *filter, char *args)
 	void *argmap;
 	__u32 map_idx = filter->value;
 
-	argmap = map_lookup_elem(&argfilter_maps, &map_idx);
+	argmap = multi_lookup(&argfilter_maps, &map_idx);
 	if (!argmap)
 		return 0;
 
@@ -2108,9 +2110,9 @@ struct {
 } tg_mb_sel_opts SEC(".maps");
 
 struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(type, MULTI_OUTER_TYPE);
 	__uint(max_entries, MB_MAX_ENTRIES);
-	__type(key, __u32);
+	__type(key, MULTI_KEY_TYPE);
 	__array(
 		values, struct {
 			__uint(type, BPF_MAP_TYPE_HASH);
@@ -2168,7 +2170,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 				break;
 			}
 
-			path_map = map_lookup_elem(&tg_mb_paths, &key);
+			path_map = multi_lookup(&tg_mb_paths, &key);
 			if (!path_map)
 				return 0;
 			found_key = map_lookup_elem(path_map, bin->path);
@@ -2176,7 +2178,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 #ifdef __LARGE_BPF_PROG
 		case op_filter_str_prefix:
 		case op_filter_str_notprefix:
-			path_map = map_lookup_elem(&string_prefix_maps, &selector_options->map_id);
+			path_map = multi_lookup(&string_prefix_maps, &selector_options->map_id);
 			if (!path_map)
 				return 0;
 			// prepare the key to perform lookup in the LPM_TRIE
@@ -2191,7 +2193,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 			break;
 		case op_filter_str_postfix:
 		case op_filter_str_notpostfix:
-			path_map = map_lookup_elem(&string_postfix_maps, &selector_options->map_id);
+			path_map = multi_lookup(&string_postfix_maps, &selector_options->map_id);
 			if (!path_map)
 				return 0;
 			if (bin->path_length < STRING_POSTFIX_MAX_MATCH_LENGTH)
