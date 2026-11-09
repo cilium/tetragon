@@ -82,7 +82,9 @@ type kprobeLoadArgs struct {
 
 // internal genericKprobe info
 type genericKprobe struct {
-	loadArgs          kprobeLoadArgs
+	loadArgs kprobeLoadArgs
+	// Index 0 is function entry; index 1 is function return.
+	multiMaps         [2]map[string]*program.Map
 	argSigPrinters    []argPrinter
 	argReturnPrinters []argPrinter
 	funcName          string
@@ -1580,6 +1582,25 @@ type sharedMultiKprobe struct {
 	override *ebpf.Program
 }
 
+type multiKprobeLoadData struct {
+	entryIDs  []idtable.EntryID
+	returnIDs []idtable.EntryID
+	scopes    []uint32
+	// Keep the reservation if pins are preserved or cleanup fails.
+	retained bool
+}
+
+func (d *multiKprobeLoadData) releaseScopes() {
+	if d != nil && !d.retained {
+		multiKprobeScopes.release(d.scopes)
+		d.scopes = nil
+	}
+}
+
+func (d *multiKprobeLoadData) retainScopes() {
+	d.retained = true
+}
+
 type sharedMultiKprobeSensor struct {
 	sensor sensors.Sensor
 	probes [2]*sharedMultiKprobe
@@ -1732,4 +1753,137 @@ func (shared *sharedMultiKprobe) loadProgram(bpfDir string, maps []*program.Map,
 			return u, nil
 		},
 	}, verbose)
+}
+
+// These Program values provide map metadata and pin paths only. One pair of
+// policy links attaches all hooks to the preloaded programs.
+func createMultiKprobeHookMaps(load *program.Program, gk *genericKprobe) []*program.Map {
+	index := 0
+	if load.RetProbe {
+		index = 1
+	}
+
+	source := program.Builder(
+		load.Name,
+		gk.funcName,
+		load.Label,
+		path.Join(load.PinName, multiKprobePinName("hook", gk.funcName, uint64(gk.tableId.ID))),
+		load.Type).
+		SetRetProbe(load.RetProbe).
+		SetPolicy(load.Policy)
+
+	var maps []*program.Map
+	state := getProgramSelector(load, gk)
+	if state != nil && gk.hasSelector {
+		maps = append(maps, createSelectorMaps(source, state, len(state.SubStrings()))...)
+		if !load.RetProbe {
+			maps = append(maps, program.MapBuilderProgram("tg_mb_sel_opts", source))
+			maps = append(maps, program.MapBuilderProgram("workloads_map", source))
+		}
+	}
+	gk.multiMaps[index] = source.PinMap
+	return maps
+}
+
+// The ELF describes shared registries. Instantiate the policy map from its
+// inner template, preserving sizes and flags selected by the policy builder.
+func configureMultiKprobeMap(m *program.Map) {
+	m.Configure = func(spec *ebpf.MapSpec) error {
+		if multiPolicyMaps[m.Name] {
+			if spec.InnerMap == nil {
+				return fmt.Errorf("missing inner template for %s", m.Name)
+			}
+			*spec = *spec.InnerMap.Copy()
+			spec.Name = m.Name
+		} else if isMultiSelectorMap(m.Name) {
+			spec.Type = ebpf.ArrayOfMaps
+			spec.Key, spec.KeySize = nil, 4
+		}
+		if maximum, ok := m.GetMaxEntries(); ok {
+			spec.MaxEntries = maximum
+		}
+		spec.Flags |= m.GetFlags()
+		return nil
+	}
+}
+
+type multiKprobeMapEntry struct {
+	m   *ebpf.Map
+	key any
+}
+
+type multiKprobeResources struct {
+	shared  *sharedMultiKprobe
+	load    *multiKprobeLoadData
+	scopes  []uint32
+	entries []multiKprobeMapEntry
+}
+
+func (r *multiKprobeResources) Unload(unpin bool) error {
+	if !unpin {
+		r.load.retainScopes()
+		return nil
+	}
+	// Map-in-map deletion waits for an RCU grace period. Overlap those waits
+	// with a bounded number of workers instead of paying for each in turn.
+	deleteErrors := make([]error, min(8, len(r.entries)))
+	var wg sync.WaitGroup
+	for worker := range deleteErrors {
+		wg.Go(func() {
+			for i := worker; i < len(r.entries); i += len(deleteErrors) {
+				entry := r.entries[i]
+				if err := entry.m.Delete(entry.key); err != nil && !errors.Is(err, ebpf.ErrKeyNotExist) {
+					deleteErrors[worker] = errors.Join(deleteErrors[worker], err)
+				}
+			}
+		})
+	}
+	wg.Wait()
+	errs := errors.Join(deleteErrors...)
+	r.entries = nil
+	if errs != nil {
+		r.load.retainScopes()
+	}
+	return errs
+}
+
+func (r *multiKprobeResources) update(m *ebpf.Map, key, value any) error {
+	if err := m.Update(key, value, ebpf.UpdateAny); err != nil {
+		return err
+	}
+	r.entries = append(r.entries, multiKprobeMapEntry{m, key})
+	return nil
+}
+
+// Register actual policy maps and only populated selector-map references.
+func (r *multiKprobeResources) publish(scope uint32, local map[string]*program.Map) error {
+	for name, m := range local {
+		target := r.shared.maps[name]
+		if target == nil || m.MapHandle == nil {
+			continue
+		}
+		if multiPolicyMaps[name] {
+			if err := r.update(target.MapHandle, scope, m.MapHandle); err != nil {
+				return fmt.Errorf("registering %s: %w", name, err)
+			}
+			continue
+		}
+		if !isMultiSelectorMap(name) {
+			continue
+		}
+		var key uint32
+		var inner *ebpf.Map
+		iter := m.MapHandle.Iterate()
+		for iter.Next(&key, &inner) {
+			err := r.update(target.MapHandle, multiKprobeCookie(scope, key), inner)
+			inner.Close()
+			if err != nil {
+				return fmt.Errorf("publishing %s (capacity %d): %w", name, target.MapHandle.MaxEntries(), err)
+			}
+		}
+		if err := iter.Err(); err != nil {
+			return fmt.Errorf("iterating %s: %w", name, err)
+		}
+	}
+	return nil
 }
