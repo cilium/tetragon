@@ -92,13 +92,6 @@ struct {
 	__type(value, struct filter_map_value);
 } filter_map SEC(".maps");
 
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct event_config);
-} config_map SEC(".maps");
-
 struct state_value {
 	__u64 data;
 };

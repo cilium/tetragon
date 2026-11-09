@@ -80,6 +80,13 @@ struct event_config {
 	struct config_reg_arg reg_arg[EVENT_CONFIG_MAX_REG_ARG];
 } __attribute__((packed));
 
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct event_config);
+} config_map SEC(".maps");
+
 FUNC_INLINE int arg_idx(int index)
 {
 	struct msg_generic_kprobe *e;
