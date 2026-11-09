@@ -4,6 +4,8 @@
 #ifndef __EVENT_CONFIG_H__
 #define __EVENT_CONFIG_H__
 
+#include "multi_kprobe.h"
+
 #include "process/generic_maps.h"
 
 // We do one tail-call per selector, we can have up to 5 selectors.
@@ -80,12 +82,12 @@ struct event_config {
 	struct config_reg_arg reg_arg[EVENT_CONFIG_MAX_REG_ARG];
 } __attribute__((packed));
 
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct event_config);
-} config_map SEC(".maps");
+POLICY_MAP(config_map,
+	   __uint(type, BPF_MAP_TYPE_ARRAY);
+	   __uint(map_flags, POLICY_ARRAY_FLAGS);
+	   __uint(max_entries, 1);
+	   POLICY_KEY(__u32);
+	   POLICY_VALUE(struct event_config););
 
 FUNC_INLINE int arg_idx(int index)
 {
@@ -97,7 +99,7 @@ FUNC_INLINE int arg_idx(int index)
 	if (!e)
 		return -1;
 
-	config = map_lookup_elem(&config_map, &e->idx);
+	config = policy_lookup(&config_map, &e->idx);
 	if (!config)
 		return -1;
 

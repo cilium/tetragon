@@ -281,11 +281,11 @@ FUNC_INLINE void *string_postfix_maps_heap_get(void)
 
 #endif /* USE_HASH_HEAP */
 
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, char[100]);
-} substring_map SEC(".maps");
+POLICY_MAP(substring_map,
+	   __uint(type, BPF_MAP_TYPE_ARRAY);
+	   __uint(map_flags, POLICY_ARRAY_FLAGS);
+	   __uint(max_entries, 1);
+	   POLICY_KEY(__u32);
+	   POLICY_VALUE(char[100]););
 
 #endif // STRING_MAPS_H__

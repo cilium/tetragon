@@ -4,6 +4,8 @@
 #ifndef __GENERIC_MAPS_H__
 #define __GENERIC_MAPS_H__
 
+#include "multi_kprobe.h"
+
 #include "lib/data_msg.h"
 #include "lib/bpf_d_path.h"
 #include "errmetrics.h"
@@ -57,12 +59,11 @@ FUNC_INLINE bool heap_update(heap_key_t key)
 
 #endif /* USE_HASH_HEAP */
 
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 1); // will be resized by agent when needed
-	__type(key, __u64);
-	__type(value, __s32);
-} override_tasks SEC(".maps");
+POLICY_MAP(override_tasks,
+	   __uint(type, BPF_MAP_TYPE_HASH);
+	   __uint(max_entries, 1); // will be resized by agent when needed
+	   POLICY_KEY(__u64);
+	   POLICY_VALUE(__s32););
 
 #ifdef __LARGE_BPF_PROG
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_UPROBE)
@@ -85,23 +86,22 @@ struct filter_map_value {
 };
 
 /* Arrays of size 1 will be rewritten to direct loads in verifier */
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, int);
-	__type(value, struct filter_map_value);
-} filter_map SEC(".maps");
+POLICY_MAP(filter_map,
+	   __uint(type, BPF_MAP_TYPE_ARRAY);
+	   __uint(map_flags, POLICY_ARRAY_FLAGS);
+	   __uint(max_entries, 1);
+	   POLICY_KEY(__u32);
+	   POLICY_VALUE(struct filter_map_value););
 
 struct state_value {
 	__u64 data;
 };
 
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 1); // will be resized by agent when needed
-	__type(key, __u32);
-	__type(value, struct state_value);
-} tg_state_map SEC(".maps");
+POLICY_MAP(tg_state_map,
+	   __uint(type, BPF_MAP_TYPE_HASH);
+	   __uint(max_entries, 1); // will be resized by agent when needed
+	   POLICY_KEY(__u32);
+	   POLICY_VALUE(struct state_value););
 
 #ifdef GENERIC_USDT
 struct write_offload_data {

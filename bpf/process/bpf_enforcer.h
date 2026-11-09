@@ -4,6 +4,8 @@
 #ifndef __ENFORCER_H__
 #define __ENFORCER_H__
 
+#include "multi_kprobe.h"
+
 #include "vmlinux.h"
 #include "bpf_helpers.h"
 #include "errmetrics.h"
@@ -20,12 +22,24 @@ struct enforcer_data {
 	struct enforcer_act_info act_info;
 } __attribute__((packed));
 
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 1);
-	__type(key, __u64);
-	__type(value, struct enforcer_data);
-} enforcer_data SEC(".maps");
+/* Match the separately created enforcer map's BTF-derived timer metadata
+ * for Linux 6.1 map-in-map compatibility checks. The anonymous wrapper
+ * forces complete BTF instead of a forward declaration in the inner map.
+ */
+#ifdef SHARED_KPROBE
+#define ENFORCER_DATA_MAP_VALUE            \
+	struct {                           \
+		struct enforcer_data data; \
+	}
+#else
+#define ENFORCER_DATA_MAP_VALUE struct enforcer_data
+#endif
+
+POLICY_MAP(enforcer_data,
+	   __uint(type, BPF_MAP_TYPE_HASH);
+	   __uint(max_entries, 1);
+	   __type(key, __u64);
+	   __type(value, ENFORCER_DATA_MAP_VALUE););
 
 enum enforcer_missed_reason {
 	ENFORCER_MISSED_OVERWRITTEN = 1,
@@ -38,32 +52,31 @@ struct enforcer_missed_key {
 } __attribute__((packed));
 
 /* map to keep track of missed notifications */
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 128);
-	__type(key, struct enforcer_missed_key);
-	__type(value, __u32);
-} enforcer_missed_notifications SEC(".maps");
+POLICY_MAP(enforcer_missed_notifications,
+	   __uint(type, BPF_MAP_TYPE_HASH);
+	   __uint(max_entries, 128);
+	   POLICY_KEY(struct enforcer_missed_key);
+	   POLICY_VALUE(__u32););
 
 FUNC_INLINE void
 enforcer_update_missed_notifications(struct enforcer_missed_key *key)
 {
 	int err;
-	__u32 *counter = map_lookup_elem(&enforcer_missed_notifications, key), one = 1;
+	__u32 *counter = policy_lookup(&enforcer_missed_notifications, key), one = 1;
 
 	if (counter) {
 		lock_add(counter, one);
 		return;
 	}
 
-	err = with_errmetrics(map_update_elem, &enforcer_missed_notifications, key, &one, BPF_NOEXIST);
+	err = with_errmetrics_helper(policy_update, map_update_elem, &enforcer_missed_notifications, key, &one, BPF_NOEXIST);
 	if (!err)
 		return;
 
 	/* in case we raced with another thread and an entry was already created, retry to do a
 	 * lookup
 	 */
-	counter = map_lookup_elem(&enforcer_missed_notifications, key);
+	counter = policy_lookup(&enforcer_missed_notifications, key);
 	if (counter) {
 		lock_add(counter, one);
 	}
@@ -74,14 +87,14 @@ FUNC_INLINE void do_enforcer_cleanup(void)
 	struct enforcer_data *ptr;
 	__u64 id = get_current_pid_tgid();
 
-	ptr = map_lookup_elem(&enforcer_data, &id);
+	ptr = policy_lookup(&enforcer_data, &id);
 	if (ptr) {
 		struct enforcer_missed_key missed_key = {
 			.act_info = ptr->act_info,
 			.reason = ENFORCER_MISSED_NOACTION,
 		};
 		enforcer_update_missed_notifications(&missed_key);
-		map_delete_elem(&enforcer_data, &id);
+		policy_delete(&enforcer_data, &id);
 	}
 }
 
@@ -94,7 +107,7 @@ FUNC_INLINE void do_enforcer_action(int error, int signal, struct enforcer_act_i
 		.act_info = act_info,
 	};
 
-	ptr = map_lookup_elem(&enforcer_data, &id);
+	ptr = policy_lookup(&enforcer_data, &id);
 	if (ptr) {
 		/* there is another entry already, update enforcer_missed_notifications */
 		struct enforcer_missed_key missed_key = {
@@ -104,7 +117,7 @@ FUNC_INLINE void do_enforcer_action(int error, int signal, struct enforcer_act_i
 		enforcer_update_missed_notifications(&missed_key);
 		*ptr = data;
 	} else {
-		with_errmetrics(map_update_elem, &enforcer_data, &id, &data, BPF_ANY);
+		with_errmetrics_helper(policy_update, map_update_elem, &enforcer_data, &id, &data, BPF_ANY);
 	}
 }
 

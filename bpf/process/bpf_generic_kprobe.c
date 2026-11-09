@@ -184,12 +184,12 @@ generic_kprobe_override(void *ctx)
 	__u64 id = get_current_pid_tgid();
 	__s32 *error;
 
-	error = map_lookup_elem(&override_tasks, &id);
+	error = policy_lookup(&override_tasks, &id);
 	if (!error)
 		return 0;
 
 	override_return(ctx, *error);
-	map_delete_elem(&override_tasks, &id);
+	policy_delete(&override_tasks, &id);
 	return 0;
 }
 
@@ -202,12 +202,12 @@ generic_fmodret_override(void *ctx)
 	__u64 id = get_current_pid_tgid();
 	__s32 *error, ret;
 
-	error = map_lookup_elem(&override_tasks, &id);
+	error = policy_lookup(&override_tasks, &id);
 	if (!error)
 		return 0;
 
 	/* error points into the map entry, so read it before deleting it */
 	ret = *error;
-	map_delete_elem(&override_tasks, &id);
+	policy_delete(&override_tasks, &id);
 	return (long)ret;
 }
