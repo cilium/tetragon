@@ -1874,6 +1874,23 @@ func TestHasEnforcerAction(t *testing.T) {
 	}
 }
 
+func TestHasSignalAction(t *testing.T) {
+	sel := func(a v1alpha1.ActionSelector) []v1alpha1.KProbeSelector {
+		return []v1alpha1.KProbeSelector{{MatchActions: []v1alpha1.ActionSelector{a}}}
+	}
+	for _, action := range []string{"Sigkill", "sigkill", "Signal", "signal"} {
+		require.True(t, HasSignalAction(sel(v1alpha1.ActionSelector{Action: action})), action)
+	}
+	require.True(t, HasSignalAction([]v1alpha1.KProbeSelector{
+		{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}}},
+		{MatchReturnActions: []v1alpha1.ActionSelector{{Action: "Sigkill"}}},
+	}))
+	for _, action := range []string{"Post", "NoPost", "Override", "NotifyEnforcer", "Set"} {
+		require.False(t, HasSignalAction(sel(v1alpha1.ActionSelector{Action: action})), action)
+	}
+	require.False(t, HasSignalAction(nil))
+}
+
 // The BPF side reverse-copies at most STRING_POSTFIX_MAX_MATCH_LENGTH-1 bytes
 // of the argument before the LPM lookup (see __copy_reverse in
 // bpf/process/types/basic.h), so a longer postfix value is loaded but can
