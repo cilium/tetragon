@@ -59,25 +59,28 @@ errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr, __u64 helper_id)
 	} while (0)
 
 // To be used for bpf helpers that on failure return <0 errno-style return code.
-#define with_errmetrics(bpf_helper, ...) ({                                    \
+#define with_errmetrics_helper(call, bpf_helper, ...) ({                       \
 	__u16 fileid = get_fileid__(__FILE_NAME__);                            \
 	if (!__builtin_constant_p(fileid) || !fileid)                          \
 		compile_error(__FILE_NAME__, __COUNTER__);                     \
-	__auto_type _err = bpf_helper(__VA_ARGS__);                            \
+	__auto_type _err = call(__VA_ARGS__);                                  \
 	if (_err < 0)                                                          \
 		errmetrics_update(-_err, fileid, __LINE__, (__u64)bpf_helper); \
 	_err;                                                                  \
 })
 
-#define with_errmetrics_ptr(bpf_helper, ...) ({                                                         \
+#define with_errmetrics_ptr_helper(call, bpf_helper, ...) ({                                            \
 	__u16 fileid = get_fileid__(__FILE_NAME__);                                                     \
 	if (!__builtin_constant_p(fileid) || !fileid)                                                   \
 		compile_error(__FILE_NAME__, __COUNTER__);                                              \
-	__auto_type _err = bpf_helper(__VA_ARGS__);                                                     \
+	__auto_type _err = call(__VA_ARGS__);                                                           \
 	if (IS_ERR_OR_NULL(_err))                                                                       \
 		errmetrics_update(_err ? -PTR_ERR(_err) : ENOENT, fileid, __LINE__, (__u64)bpf_helper); \
 	_err;                                                                                           \
 })
+
+#define with_errmetrics(helper, ...)	 with_errmetrics_helper(helper, helper, __VA_ARGS__)
+#define with_errmetrics_ptr(helper, ...) with_errmetrics_ptr_helper(helper, helper, __VA_ARGS__)
 
 // To be used on error paths with a >=0 error value.
 #define errmetrics(error) ({                                   \
