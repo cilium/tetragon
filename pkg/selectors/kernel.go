@@ -401,6 +401,13 @@ func ParseMatchPid(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
 }
 
 func ParseMatchPids(k *KernelSelectorState, matchPids []v1alpha1.PIDSelector) error {
+	maxPidFilters := 1 // should match the value of NUM_PID_FILTERS in pfilter.h
+	if config.EnableLargeProgs() {
+		maxPidFilters = 4
+	}
+	if len(matchPids) > maxPidFilters {
+		return fmt.Errorf("matchPIDs supports up to %d filters (current number of filters is %d)", maxPidFilters, len(matchPids))
+	}
 	loff := AdvanceSelectorLength(&k.data)
 	for _, p := range matchPids {
 		if err := ParseMatchPid(k, &p); err != nil {
