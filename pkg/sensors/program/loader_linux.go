@@ -93,7 +93,7 @@ func TracepointAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
-func RawTracepointAttach(load *Program) AttachFunc {
+func RawTracepointAttach(load *Program, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		var lnk link.Link
@@ -109,6 +109,11 @@ func RawTracepointAttach(load *Program) AttachFunc {
 		})
 		if err != nil {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		err = LinkPin(lnk, bpfDir, load)
+		if err != nil {
+			lnk.Close()
+			return nil, err
 		}
 		return unloader.ChainUnloader{
 			unloader.ProgUnloader{
@@ -666,7 +671,7 @@ func LoadTracepointProgram(bpfDir string, load *Program, maps []*Map, verbose in
 
 func LoadRawTracepointProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
-		Attach: RawTracepointAttach(load),
+		Attach: RawTracepointAttach(load, bpfDir),
 		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
