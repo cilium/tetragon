@@ -1831,9 +1831,6 @@ func ParseMatchNamespaceChange(k *KernelSelectorState, action *v1alpha1.Namespac
 }
 
 func ParseMatchNamespaceChanges(k *KernelSelectorState, actions []v1alpha1.NamespaceChangesSelector) error {
-	if len(actions) > 1 {
-		return fmt.Errorf("matchNamespaceChanges supports only a single filter (current number of filters is %d)", len(actions))
-	}
 	if (len(actions) == 1) && !config.EnableLargeProgs() {
 		return errors.New("matchNamespaceChanges is only supported in kernels >= 5.3")
 	}
