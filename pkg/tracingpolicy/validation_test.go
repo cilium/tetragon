@@ -399,3 +399,67 @@ spec:
 		require.ErrorContains(t, err, "state names must be unique")
 	})
 }
+
+func TestMatchBinariesValuesSchemaValidation(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		operator string
+	}{
+		{name: "In, empty values refused", operator: "In"},
+		{name: "NotIn, empty values refused", operator: "NotIn"},
+		{name: "Prefix, empty values refused", operator: "Prefix"},
+		{name: "Postfix, empty values refused", operator: "Postfix"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, selector := range []string{"matchBinaries", "matchParentBinaries"} {
+				_, err := FromYAML(fmt.Sprintf(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: match-binaries-values
+spec:
+  kprobes:
+  - call: security_file_permission
+    selectors:
+    - %s:
+      - operator: %s
+        values: []
+`, selector, tc.operator))
+				require.Error(t, err, selector)
+			}
+		})
+	}
+}
+
+func TestMatchBinariesEmptyStringSchemaValidation(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		operator string
+		values   string
+	}{
+		{name: "In, empty string refused", operator: "In", values: `[""]`},
+		{name: "In, empty string among values refused", operator: "In", values: `["/usr/bin/true", ""]`},
+		{name: "NotIn, empty string refused", operator: "NotIn", values: `[""]`},
+		{name: "Prefix, empty string refused", operator: "Prefix", values: `[""]`},
+		{name: "Postfix, empty string refused", operator: "Postfix", values: `[""]`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, selector := range []string{"matchBinaries", "matchParentBinaries"} {
+				_, err := FromYAML(fmt.Sprintf(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: match-binaries-values
+spec:
+  kprobes:
+  - call: security_file_permission
+    selectors:
+    - %s:
+      - operator: %s
+        values: %s
+`, selector, tc.operator, tc.values))
+				require.Error(t, err, selector)
+			}
+		})
+	}
+}
