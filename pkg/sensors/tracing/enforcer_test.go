@@ -31,6 +31,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -746,6 +747,8 @@ func testEnforcerPersistentKeep(t *testing.T, builder func() *EnforcerSpecBuilde
 
 	// Remove all servers - simulate tetragon exit with KeepSensorsOnExit
 	mgr.RemoveAllSensors(ctx)
+	require.NoError(t, base.GetInitialSensorTest(t).Unload(false))
+	defer os.RemoveAll(bpf.MapPrefixPath())
 
 	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
 	// (if for some reason it's gone)
