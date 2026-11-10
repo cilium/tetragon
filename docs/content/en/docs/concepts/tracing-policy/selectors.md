@@ -370,6 +370,13 @@ The available operators for `matchPIDs` are:
 - `In`
 - `NotIn`
 
+**Limitations**
+
+1. We can have up to 4 `values` inside a single filter.
+2. We can have a single filter under `matchPIDs` in Linux kernel < 5.3. In
+   Linux >= 5.3 we can have up to 4 filters, which are logically `AND` together
+   (see [Multiple operators](#multiple-operators)).
+
 **Further examples**
 
 Another example can be to collect all processes not associated with a
@@ -2144,7 +2151,7 @@ selectors:
 ```
 then we would build the following expression on the BPF side:
 ```yaml
-(pid == 0[following forks]) && (pid != 1[following forks])
+(pid == pid1[following forks]) && (pid != pid2[following forks])
 ```
 
 In case of having multiple `matchArgs`:
