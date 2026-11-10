@@ -416,6 +416,15 @@ struct nc_filter {
  */
 #define NUM_NS_FILTERS_SMALL 4
 
+/* If you update the value of NUM_PID_FILTERS below you should
+ * also update ParseMatchPids() in kernel.go
+ */
+#ifdef __LARGE_BPF_PROG
+#define NUM_PID_FILTERS 4
+#else
+#define NUM_PID_FILTERS 1
+#endif
+
 #ifdef __LARGE_BPF_PROG
 
 #define CMD_ARGS_MAX 32
@@ -759,25 +768,32 @@ selector_process_filter_2(void *ctx, __u32 *f, __u32 index, struct execve_map_va
 	/* (sizeof(pid1) + sizeof(pid2) + ... + 4) */
 	len = *(__u32 *)((__u64)f + (index & INDEX_MASK));
 	index += 4; /* 4: pid header */
+	len -= 4;
 
-	/* we can have only matchNamespace */
-	if (len > 4) {
-		pid = (struct pid_filter *)((u64)f + (index & INDEX_MASK));
-		/* 12: op, flags, length */
-		index += sizeof(struct pid_filter);
-		struct selector_filter sel = {
-			.index = index,
-			.ty = pid->op,
-			.flags = pid->flags,
-			.len = pid->len,
-		};
-		if (HAS_MATCH_PIDS)
-			res = selector_match(f, &sel, enter, msg, &process_filter_pid);
-		/* now index points at the end of PID filter */
-		index += ((pid->len * sizeof(pid->val[0])) & VALUES_MASK);
+#ifndef __LARGE_BPF_PROG
+#pragma unroll
+#endif
+	for (i = 0; i < NUM_PID_FILTERS; i++) {
+		if (len > 0) {
+			pid = (struct pid_filter *)((u64)f + (index & INDEX_MASK));
+			/* 12: op, flags, length */
+			index += sizeof(struct pid_filter);
+			struct selector_filter sel = {
+				.index = index,
+				.ty = pid->op,
+				.flags = pid->flags,
+				.len = pid->len,
+			};
+			if (HAS_MATCH_PIDS)
+				res = selector_match(f, &sel, enter, msg, &process_filter_pid);
+			/* now index points at the end of PID filter */
+			index += ((pid->len * sizeof(pid->val[0])) & VALUES_MASK);
+			len -= (sizeof(struct pid_filter) + (pid->len * sizeof(pid->val[0])));
+		}
+		if (res == PFILTER_REJECT)
+			return res;
 	}
-	if (res == PFILTER_REJECT)
-		return res;
+	index &= INDEX_MASK; /* reduce the number of states the verifier must track */
 
 	/* matchNamespace */
 	/* (sizeof(ns1) + sizeof(ns2) + ... + 4) */
