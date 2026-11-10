@@ -77,11 +77,6 @@ spec:
           values:
             - "CAP_CHOWN"
             - "CAP_NET_RAW"
-        - type: Inheritable
-          operator: NotIn
-          values:
-            - "CAP_SETPCAP"
-            - "CAP_SYS_ADMIN"
         matchCapabilityChanges:
         - type: Effective
           operator: In
@@ -157,12 +152,6 @@ var expectedWrite = GenericTracingPolicy{
 								Operator:              "In",
 								IsNamespaceCapability: true,
 								Values:                []string{"CAP_CHOWN", "CAP_NET_RAW"},
-							},
-							{
-								Type:                  "Inheritable",
-								Operator:              "NotIn",
-								IsNamespaceCapability: false,
-								Values:                []string{"CAP_SETPCAP", "CAP_SYS_ADMIN"},
 							},
 						},
 						MatchCapabilityChanges: []v1alpha1.CapabilitiesSelector{
