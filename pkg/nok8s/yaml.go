@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // Helpers to parse YAML files for K8s API objects, without the k8s libraries.
