@@ -186,7 +186,7 @@ $(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
 $(DEPSDIR)bpf_multi_retuprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retuprobe.c
 $(DEPSDIR)bpf_multi_usdt_$$(VAR).d: $(PROCESSDIR)bpf_generic_usdt.c
 
-ifneq (,$(filter $1,v53 v511 v61))
+ifneq (,$(filter $1,v61))
 $(DEPSDIR)bpf_execve_event_$1.d: $(PROCESSDIR)bpf_execve_event_notc.c
 	$$(call rule_d,$$(CFLAGS_$1))
 endif
