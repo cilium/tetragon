@@ -24,6 +24,11 @@ Depending on your setup, changes listed here might require a manual intervention
 
 * The TracingPolicy CRD now limits the number of hooks that can be defined within a single policy to a maximum of 128. If this limit is exceeded, the policy will be rejected by the Kubernetes API server. To resolve this, split your hooks across multiple TracingPolicies.
 
+* `matchBinaries` and `matchParentBinaries` selectors must now have at least one
+  entry in `values`, and entries must not be empty strings. Policies with an
+  empty `values` list or an empty entry are rejected by the Kubernetes API
+  server, and by the agent when loaded through gRPC or from a file.
+
 ### Events (protobuf API)
 
 * The `AggregationOptions` and `AggregationInfo` messages were removed, along
