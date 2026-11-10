@@ -1932,3 +1932,104 @@ func TestWritePostfixMaxLength(t *testing.T) {
 		})
 	}
 }
+
+func TestParseMatchBinaryValidValues(t *testing.T) {
+	origForceLargeProgs := option.Config.ForceLargeProgs
+	origForceSmallProgs := option.Config.ForceSmallProgs
+	t.Cleanup(func() {
+		option.Config.ForceLargeProgs = origForceLargeProgs
+		option.Config.ForceSmallProgs = origForceSmallProgs
+	})
+	// Prefix/Postfix operators need large programs.
+	option.Config.ForceLargeProgs = true
+	option.Config.ForceSmallProgs = false
+
+	tests := []struct {
+		name     string
+		operator string
+		values   []string
+	}{
+		{name: "In, one value accepted", operator: "In", values: []string{"/usr/bin/true"}},
+		{name: "In, multiple values accepted", operator: "In", values: []string{"/usr/bin/true", "/usr/bin/false"}},
+		{name: "NotIn, one value accepted", operator: "NotIn", values: []string{"/usr/bin/true"}},
+		{name: "NotIn, multiple values accepted", operator: "NotIn", values: []string{"/usr/bin/true", "/usr/bin/false"}},
+		{name: "Prefix, one value accepted", operator: "Prefix", values: []string{"/usr/bin/"}},
+		{name: "Prefix, multiple values accepted", operator: "Prefix", values: []string{"/usr/bin/", "/usr/sbin/"}},
+		{name: "NotPrefix, one value accepted", operator: "NotPrefix", values: []string{"/usr/bin/"}},
+		{name: "NotPrefix, multiple values accepted", operator: "NotPrefix", values: []string{"/usr/bin/", "/usr/sbin/"}},
+		{name: "Postfix, one value accepted", operator: "Postfix", values: []string{"true"}},
+		{name: "Postfix, multiple values accepted", operator: "Postfix", values: []string{"true", "false"}},
+		{name: "NotPostfix, one value accepted", operator: "NotPostfix", values: []string{"true"}},
+		{name: "NotPostfix, multiple values accepted", operator: "NotPostfix", values: []string{"true", "false"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, selType := range []genericMatchBinariesSelector{matchBinaries, matchParentBinaries} {
+				ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
+				binary := v1alpha1.BinarySelector{Operator: tc.operator, Values: tc.values}
+				require.NoError(t, ParseMatchBinary(ks, &binary, 0, selType), "%s", selType)
+			}
+		})
+	}
+}
+
+func TestParseMatchBinariesEmptyValuesRejected(t *testing.T) {
+	tests := []struct {
+		name           string
+		operator       string
+		values         []string
+		followChildren bool
+	}{
+		{name: "In, empty values refused", operator: "In", values: []string{}},
+		{name: "In, nil values refused", operator: "In", values: nil},
+		{name: "In, followChildren, empty values refused", operator: "In", values: []string{}, followChildren: true},
+		{name: "NotIn, empty values refused", operator: "NotIn", values: []string{}},
+		{name: "NotIn, followChildren, empty values refused", operator: "NotIn", values: []string{}, followChildren: true},
+		{name: "Prefix, empty values refused", operator: "Prefix", values: []string{}},
+		{name: "NotPrefix, empty values refused", operator: "NotPrefix", values: []string{}},
+		{name: "Postfix, empty values refused", operator: "Postfix", values: []string{}},
+		{name: "NotPostfix, empty values refused", operator: "NotPostfix", values: []string{}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, selType := range []genericMatchBinariesSelector{matchBinaries, matchParentBinaries} {
+				ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
+				binary := v1alpha1.BinarySelector{
+					Operator:       tc.operator,
+					Values:         tc.values,
+					FollowChildren: tc.followChildren,
+				}
+				err := ParseMatchBinary(ks, &binary, 0, selType)
+				require.ErrorContains(t, err, "values must not be empty", "%s", selType)
+			}
+		})
+	}
+}
+
+func TestParseMatchBinariesEmptyStringRejected(t *testing.T) {
+	tests := []struct {
+		name     string
+		operator string
+		values   []string
+	}{
+		{name: "In, empty string refused", operator: "In", values: []string{""}},
+		{name: "In, empty string among values refused", operator: "In", values: []string{"/usr/bin/true", ""}},
+		{name: "NotIn, empty string refused", operator: "NotIn", values: []string{""}},
+		{name: "NotIn, empty string among values refused", operator: "NotIn", values: []string{"/usr/bin/true", ""}},
+		{name: "Prefix, empty string refused", operator: "Prefix", values: []string{""}},
+		{name: "Prefix, empty string among values refused", operator: "Prefix", values: []string{"/usr/bin/", ""}},
+		{name: "NotPrefix, empty string refused", operator: "NotPrefix", values: []string{""}},
+		{name: "Postfix, empty string refused", operator: "Postfix", values: []string{""}},
+		{name: "NotPostfix, empty string refused", operator: "NotPostfix", values: []string{""}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, selType := range []genericMatchBinariesSelector{matchBinaries, matchParentBinaries} {
+				ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
+				binary := v1alpha1.BinarySelector{Operator: tc.operator, Values: tc.values}
+				err := ParseMatchBinary(ks, &binary, 0, selType)
+				require.ErrorContains(t, err, "values must not contain empty strings", "%s", selType)
+			}
+		})
+	}
+}
