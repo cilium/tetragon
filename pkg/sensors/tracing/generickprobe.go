@@ -192,7 +192,6 @@ type kpValidateInfo struct {
 func validateOverride(
 	f *v1alpha1.KProbeSpec,
 	funcName string,
-	useMulti bool,
 ) error {
 	isSecurityFunc := strings.HasPrefix(funcName, "security_")
 
@@ -200,10 +199,6 @@ func validateOverride(
 		// LSM functions
 		if !bpf.HasModifyReturn() {
 			return errors.New("override action not supported on security_ hooks, fmod_ret not available")
-		}
-
-		if useMulti {
-			return fmt.Errorf("can't override '%s' function with kprobe_multi, use --%s option", funcName, option.KeyDisableKprobeMulti)
 		}
 	} else if f.Syscall {
 		if !bpf.HasOverrideHelper() {
@@ -409,7 +404,6 @@ func createGenericKprobeSensor(
 	var progs []*program.Program
 	var maps []*program.Map
 	var ids []idtable.EntryID
-	var useMulti bool
 	var celExprs *selectors.CelExprFunctions
 	var kprobes []v1alpha1.KProbeSpec
 	var statuses []*tetragon.HookStatus
@@ -428,20 +422,23 @@ func createGenericKprobeSensor(
 		has.fentryHeapSize = polInfo.specOpts.FentryHeapSize
 	}
 
-	// use multi kprobe only if:
-	// - it's not disabled by spec option
-	// - it's not disabled by command line option
-	// - there's support detected
-	if !polInfo.specOpts.DisableKprobeMulti {
-		useMulti = !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
-
-		// arm does not override on top of kprobe.multi
-		if isArm() && (has.enforcer || has.override) {
+	// Multi always attaches to the base runtime shared across policies.
+	useMulti := !fentry && kprobeMultiEnabled(polInfo.specOpts.DisableKprobeMulti)
+	if useMulti && isArm() {
+		// ARM cannot use bpf_override_return with kprobe.multi. Security
+		// hooks use a separate fmod_ret program and can still share kprobes.
+		if has.enforcer {
 			useMulti = false
 		}
-		// there's no multi support yet
-		if fentry {
-			useMulti = false
+		for i, probe := range kprobes {
+			if !selectors.HasOverride(probe.Selectors) {
+				continue
+			}
+			for _, call := range valInfo[i].calls {
+				if !strings.HasPrefix(call, "security_") {
+					useMulti = false
+				}
+			}
 		}
 	}
 
@@ -604,7 +601,7 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 	}
 
 	if selectors.HasOverride(f.Selectors) {
-		if err := validateOverride(f, funcName, in.useMulti); err != nil {
+		if err := validateOverride(f, funcName); err != nil {
 			return errFn(fmt.Errorf("override validation failed: %w", err))
 		}
 	}
@@ -1276,6 +1273,10 @@ func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 
 const defaultMultiKprobeMapEntries = 65536
 
+func kprobeMultiEnabled(policyDisabled bool) bool {
+	return !policyDisabled && !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
+}
+
 func multiKprobeMapCapacity() (uint32, error) {
 	entries := option.Config.MultiKprobeMapEntries
 	if entries == 0 {
@@ -1377,6 +1378,7 @@ type sharedMultiKprobe struct {
 	maps     map[string]*program.Map
 	override *ebpf.Program
 	err      error
+	fmodret  sharedFmodretPrograms
 }
 
 var sharedMultiKprobes [2]*sharedMultiKprobe
@@ -1386,7 +1388,7 @@ func init() {
 }
 
 func extendBaseWithMultiKprobes(sensor *sensors.Sensor) (*sensors.Sensor, error) {
-	if option.Config.DisableKprobeMulti || !bpf.HasKprobeMulti() {
+	if !kprobeMultiEnabled(false) {
 		return sensor, nil
 	}
 
@@ -1429,13 +1431,14 @@ func extendBaseWithMultiKprobes(sensor *sensors.Sensor) (*sensors.Sensor, error)
 
 		for mapName := range spec.Maps {
 			registry := multiPolicyMaps[mapName] || isMultiSelectorMap(mapName)
+			handoff := mapName == "fmodret_targets" || mapName == "fmodret_tasks"
 			if !registry && mapName != "multi_scope" && mapName != "multi_cel" &&
-				mapName != "kprobe_calls" && mapName != "retkprobe_calls" && mapName != "process_call_heap" {
+				mapName != "kprobe_calls" && mapName != "retkprobe_calls" && mapName != "process_call_heap" && !handoff {
 				continue
 			}
 
 			m := program.MapBuilderProgram(mapName, load)
-			if registry || mapName == "multi_cel" {
+			if registry || mapName == "multi_cel" || handoff {
 				m.SetMaxEntries(int(capacity))
 				if registry {
 					m.SetFlags(bpf.BPF_F_NO_PREALLOC)
@@ -1550,11 +1553,12 @@ type multiKprobeMapEntry struct {
 }
 
 type multiKprobeResources struct {
-	shared  *sharedMultiKprobe
 	scopes  []uint32
 	entries []multiKprobeMapEntry
 	cel     *program.Program
 	celDir  string
+	shared  *sharedMultiKprobe
+	fmodret []*sharedFmodretProgram
 }
 
 func (r *multiKprobeResources) Unload(unpin bool) error {
@@ -1578,6 +1582,10 @@ func (r *multiKprobeResources) Unload(unpin bool) error {
 	wg.Wait()
 	errs := errors.Join(deleteErrors...)
 	r.entries = nil
+	for _, target := range r.fmodret {
+		errs = errors.Join(errs, r.shared.releaseFmodret(target))
+	}
+	r.fmodret = nil
 	if r.cel != nil {
 		errs = errors.Join(errs, r.cel.Unload(true))
 		r.cel = nil
@@ -1863,8 +1871,19 @@ func attachMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program
 		data.Symbols = append(data.Symbols, gk.funcName)
 		data.Cookies = append(data.Cookies, cookie)
 		if gk.hasOverride && !load.RetProbe {
-			data.Overrides = append(data.Overrides, gk.funcName)
-			data.OverrideCookies = append(data.OverrideCookies, cookie)
+			if strings.HasPrefix(gk.funcName, "security_") {
+				target, binding, err := shared.acquireFmodret(bpfDir, gk.funcName, verbose)
+				if err != nil {
+					return fmt.Errorf("loading shared fmod_ret for %s: %w", gk.funcName, err)
+				}
+				resources.fmodret = append(resources.fmodret, target)
+				if err := resources.update(shared.maps["fmodret_targets"].MapHandle, scope, binding); err != nil {
+					return err
+				}
+			} else {
+				data.Overrides = append(data.Overrides, gk.funcName)
+				data.OverrideCookies = append(data.OverrideCookies, cookie)
+			}
 		}
 	}
 	if err := resources.loadCEL(celFunctions, bpfDir, load, verbose); err != nil {
