@@ -33,6 +33,10 @@ Depending on your setup, changes listed here might require a manual intervention
   after an index (`a[0]b`) were accepted before and are now rejected. Write
   them as `mm.pgd`, `file.f_path` and `a[0].b`.
 
+* `matchBinaries` and `matchParentBinaries` selectors must now have at least one
+  entry in `values`, and entries must not be empty strings. Policies that
+  do not meet these requirements are rejected.
+
 ### Events (protobuf API)
 
 * The `AggregationOptions` and `AggregationInfo` messages were removed, along
