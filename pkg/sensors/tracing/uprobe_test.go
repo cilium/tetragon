@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -47,6 +48,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -216,11 +218,29 @@ spec:
 	require.NoError(t, err)
 }
 
+type uprobePidFilter struct {
+	operator string
+	pid      uint32
+}
+
 func uprobePidMatch(t *testing.T, pid uint32) error {
+	return uprobePidsMatch(t, []uprobePidFilter{{operator: "In", pid: pid}}, "")
+}
+
+// uprobePidsMatch checks whether a uprobe event is generated for a selector
+// with the given matchPIDs filters, followed by the extraSelector filters.
+func uprobePidsMatch(t *testing.T, pidFilters []uprobePidFilter, extraSelector string) error {
 	path, err := os.Executable()
 	require.NoError(t, err)
 
-	pidStr := strconv.Itoa(int(pid))
+	var matchPIDs strings.Builder
+	for _, f := range pidFilters {
+		fmt.Fprintf(&matchPIDs, `      - operator: %s
+        followForks: true
+        values:
+        - %d
+`, f.operator, f.pid)
+	}
 
 	pathHook := `
 apiVersion: cilium.io/v1alpha1
@@ -234,11 +254,7 @@ spec:
     - "uprobe_test_func"
     selectors:
     - matchPIDs:
-      - operator: In
-        followForks: true
-        values:
-        - ` + pidStr + `
-`
+` + matchPIDs.String() + extraSelector
 
 	createCrdFile(t, pathHook)
 
@@ -274,6 +290,65 @@ func TestUprobePidMatch(t *testing.T) {
 func TestUprobePidMatchNot(t *testing.T) {
 	err := uprobePidMatch(t, observertesthelper.GetMyPid()+1)
 	require.Error(t, err)
+}
+
+func TestUprobeMultiplePidsMatch(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("multiple matchPIDs filters require kernels supporting large BPF programs")
+	}
+	myPid := observertesthelper.GetMyPid()
+	pidNs, err := namespace.GetPidNsInode(myPid, "pid")
+	require.NoError(t, err)
+	matchPidNs := func(op string) string {
+		return fmt.Sprintf(`      matchNamespaces:
+      - namespace: Pid
+        operator: %s
+        values:
+        - "%d"
+`, op, pidNs)
+	}
+
+	for _, tc := range []struct {
+		name          string
+		pidFilters    []uprobePidFilter
+		extraSelector string
+		match         bool
+	}{
+		{
+			name:       "all filters match",
+			pidFilters: []uprobePidFilter{{"In", myPid}, {"NotIn", myPid + 1}, {"NotIn", myPid + 2}, {"NotIn", myPid + 3}},
+			match:      true,
+		},
+		{
+			name:       "last filter does not match",
+			pidFilters: []uprobePidFilter{{"In", myPid}, {"NotIn", myPid + 1}, {"NotIn", myPid + 2}, {"NotIn", myPid}},
+		},
+		{
+			name:       "first filter does not match",
+			pidFilters: []uprobePidFilter{{"In", myPid + 1}, {"In", myPid}},
+		},
+		// check that the filters following matchPIDs are found at the right offset
+		{
+			name:          "following filter matches",
+			pidFilters:    []uprobePidFilter{{"In", myPid}, {"NotIn", myPid + 1}},
+			extraSelector: matchPidNs("In"),
+			match:         true,
+		},
+		{
+			name:          "following filter does not match",
+			pidFilters:    []uprobePidFilter{{"In", myPid}, {"NotIn", myPid + 1}},
+			extraSelector: matchPidNs("NotIn"),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := uprobePidsMatch(t, tc.pidFilters, tc.extraSelector)
+			if tc.match {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
 }
 
 func uprobeBinariesMatch(t *testing.T, execBinary string) error {

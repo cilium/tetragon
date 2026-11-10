@@ -948,7 +948,23 @@ func TestParseMatchArg(t *testing.T) {
 	}
 }
 
+// forceProgsSize forces the use of large or small BPF programs for the
+// duration of the test.
+func forceProgsSize(t *testing.T, large bool) {
+	origForceLargeProgs := option.Config.ForceLargeProgs
+	origForceSmallProgs := option.Config.ForceSmallProgs
+	option.Config.ForceLargeProgs = large
+	option.Config.ForceSmallProgs = !large
+	t.Cleanup(func() {
+		option.Config.ForceLargeProgs = origForceLargeProgs
+		option.Config.ForceSmallProgs = origForceSmallProgs
+	})
+}
+
 func TestParseMatchPid(t *testing.T) {
+	// multiple matchPIDs filters require large programs
+	forceProgsSize(t, true)
+
 	pid1 := &v1alpha1.PIDSelector{Operator: "In", Values: []uint32{1, 2, 3}, IsNamespacePID: true, FollowForks: true}
 	k := &KernelSelectorState{data: KernelSelectorData{}}
 	d := &k.data
@@ -987,6 +1003,36 @@ func TestParseMatchPid(t *testing.T) {
 	d = &ks.data
 	if err := ParseMatchPids(ks, pid3); err != nil || bytes.Equal(expected3, d.e) == false {
 		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e, pid3)
+	}
+}
+
+func TestParseMatchPidsMaxFilters(t *testing.T) {
+	pids := func(n int) []v1alpha1.PIDSelector {
+		ret := make([]v1alpha1.PIDSelector, n)
+		for i := range ret {
+			ret[i] = v1alpha1.PIDSelector{Operator: "NotIn", Values: []uint32{uint32(i + 1)}}
+		}
+		return ret
+	}
+
+	for _, tc := range []struct {
+		name       string
+		large      bool
+		maxFilters int
+	}{
+		{name: "small", large: false, maxFilters: 1},
+		{name: "large", large: true, maxFilters: 4},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			forceProgsSize(t, tc.large)
+
+			k := &KernelSelectorState{data: KernelSelectorData{}}
+			require.NoError(t, ParseMatchPids(k, pids(tc.maxFilters)))
+
+			k = &KernelSelectorState{data: KernelSelectorData{}}
+			err := ParseMatchPids(k, pids(tc.maxFilters+1))
+			require.ErrorContains(t, err, fmt.Sprintf("matchPIDs supports up to %d filters", tc.maxFilters))
+		})
 	}
 }
 
@@ -1358,14 +1404,28 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expectedSelsizeSmall := []byte{
-		0x14, 0x01, 0x00, 0x00, // size = pids + args + matchCallers + actions + namespaces + capabilities  + 4
+		0xf8, 0x00, 0x00, 0x00, // size = pids + args + matchCallers + actions + namespaces + capabilities  + 4
 	}
 
 	expectedSelsizeLarge := []byte{
 		0x64, 0x01, 0x00, 0x00, // size = pids + args + cmdArgs + matchCallers + state + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
-	expectedFilters := []byte{
+	// small programs support a single matchPIDs filter
+	expectedPidsSmall := []byte{
+		// pid header
+		28, 0x00, 0x00, 0x00, // size = sizeof(pid1) + 4
+
+		//pid1 size = 24
+		0x05, 0x00, 0x00, 0x00, // op == In
+		0x03, 0x00, 0x00, 0x00, // flags == 0x3
+		0x03, 0x00, 0x00, 0x00, // length == 0x3
+		0x01, 0x00, 0x00, 0x00, // Values[0] == 1
+		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
+		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
+	}
+
+	expectedPidsLarge := []byte{
 		// pid header
 		56, 0x00, 0x00, 0x00, // size = sizeof(pid2) + sizeof(pid1) + 4
 
@@ -1385,7 +1445,9 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 		0x04, 0x00, 0x00, 0x00, // Values[2] == 3
+	}
 
+	expectedFilters := []byte{
 		// namespace header
 		44, 0x00, 0x00, 0x00, // size = sizeof(ns1) + sizeof(ns2) + 4
 
@@ -1551,6 +1613,7 @@ func TestInitKernelSelectors(t *testing.T) {
 	expected := expectedHeader
 	if config.EnableLargeProgs() {
 		expected = append(expected, expectedSelsizeLarge...)
+		expected = append(expected, expectedPidsLarge...)
 		expected = append(expected, expectedFilters...)
 		expected = append(expected, expectedChanges...)
 		expected = append(expected, expectedMatchStates...)
@@ -1558,6 +1621,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		expected = append(expected, expectedLastLarge...)
 	} else {
 		expected = append(expected, expectedSelsizeSmall...)
+		expected = append(expected, expectedPidsSmall...)
 		expected = append(expected, expectedFilters...)
 		expected = append(expected, expectedChangesEmpty...)
 		expected = append(expected, expectedLastSmall...)
@@ -1565,7 +1629,10 @@ func TestInitKernelSelectors(t *testing.T) {
 
 	pid1 := &v1alpha1.PIDSelector{Operator: "In", Values: []uint32{1, 2, 3}, IsNamespacePID: true, FollowForks: true}
 	pid2 := &v1alpha1.PIDSelector{Operator: "NotIn", Values: []uint32{1, 2, 3, 4}, IsNamespacePID: false, FollowForks: false}
-	matchPids := []v1alpha1.PIDSelector{*pid1, *pid2}
+	matchPids := []v1alpha1.PIDSelector{*pid1}
+	if config.EnableLargeProgs() {
+		matchPids = append(matchPids, *pid2)
+	}
 	ns1 := &v1alpha1.NamespaceSelector{Namespace: "Pid", Operator: "In", Values: []string{"1", "2", "3"}}
 	ns2 := &v1alpha1.NamespaceSelector{Namespace: "Net", Operator: "NotIn", Values: []string{"1"}}
 	matchNamespaces := []v1alpha1.NamespaceSelector{*ns1, *ns2}
