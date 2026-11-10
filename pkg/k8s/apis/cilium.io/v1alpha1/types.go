@@ -142,6 +142,8 @@ type BinarySelector struct {
 	// +kubebuilder:validation:Enum=In;NotIn;Prefix;NotPrefix;Postfix;NotPostfix
 	// Filter operation.
 	Operator string `json:"operator"`
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:items:MinLength=1
 	// Value to compare the argument against.
 	Values []string `json:"values"`
 	// In addition to binaries, match children processes of specified binaries.
