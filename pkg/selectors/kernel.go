@@ -1942,9 +1942,12 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 		return fmt.Errorf("%s error: %w", selectorType, err)
 	}
 
-	// ignore matchBinaries selectors with no values
 	if len(b.Values) == 0 {
-		return nil
+		return fmt.Errorf("%s error: values must not be empty", selectorType)
+	}
+
+	if slices.Contains(b.Values, "") {
+		return fmt.Errorf("%s error: values must not contain empty strings", selectorType)
 	}
 
 	// prepare the selector options
