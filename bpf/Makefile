@@ -31,7 +31,7 @@ ALIGNCHECKER = bpf_alignchecker.o
 # generic sensors
 PROCESS = bpf_loader.o \
 	  bpf_cgroup.o \
-	  bpf_enforcer.o bpf_multi_enforcer.o bpf_fmodret_enforcer.o \
+	  bpf_enforcer.o bpf_multi_enforcer.o bpf_fmodret_enforcer.o bpf_shared_fmodret.o \
 	  bpf_map_test_p1.o bpf_map_test_p2.o bpf_map_test_p3.o \
 	  bpf_prog_iter.o
 
@@ -153,6 +153,7 @@ CFLAGS_v61  = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG
 # Define extra CFLAGS for objects
 CFLAGS_bpf_enforcer.o           = -D__BPF_OVERRIDE_RETURN
 CFLAGS_bpf_multi_enforcer.o     = -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE
+CFLAGS_bpf_shared_fmodret.o     = -DGENERIC_FMODRET
 CFLAGS_bpf_generic_lsm_core.o   = -D__LARGE_BPF_PROG
 CFLAGS_bpf_generic_lsm_output.o = -D__LARGE_BPF_PROG
 

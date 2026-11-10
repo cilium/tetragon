@@ -5,6 +5,7 @@
 #define __GENERIC_CALLS_H__
 
 #include "multi_kprobe.h"
+#include "fmodret.h"
 
 #include "bpf_tracing.h"
 #include "pfilter.h"
@@ -878,6 +879,32 @@ do_override_action(__s32 error)
 	__u64 id;
 
 	id = get_current_pid_tgid();
+
+#ifdef SHARED_KPROBE
+	__u32 scope = multi_kprobe_scope();
+	struct fmodret_binding *binding = map_lookup_elem(&fmodret_targets, &scope);
+
+	if (binding) {
+		/* A zero fmod_ret result means "continue", so it must not replace
+		 * another policy's denial for the same invocation.
+		 */
+		if (!error)
+			return;
+
+		struct fmodret_key key = { .pid_tgid = id, .target = binding->target };
+		struct fmodret_action action = {
+			.scope = scope,
+			.error = error,
+			.generation = binding->generation,
+		};
+
+		/* Every matching deny replaces the previous deny for this invocation.
+		 * A policy that does not match never clears another policy's action.
+		 */
+		with_errmetrics(map_update_elem, &fmodret_tasks, &key, &action, BPF_ANY);
+		return;
+	}
+#endif
 
 	error_p = policy_lookup(&override_tasks, &id);
 	if (error_p) {
