@@ -263,24 +263,35 @@ func TestProcessCgroup(t *testing.T) {
 }
 
 func TestParseCgroupRate(t *testing.T) {
-	var opt option.CgroupRate
-
-	// ok
-	opt = option.ParseCgroupRate("1,1s")
-	assert.Equal(t, option.CgroupRate{Events: 1, Interval: 1000000000}, opt)
-
-	opt = option.ParseCgroupRate("1,1m")
-	assert.Equal(t, option.CgroupRate{Events: 1, Interval: 60000000000}, opt)
-
-	// fail
-	empty := option.CgroupRate{Events: 0, Interval: 0}
-
-	opt = option.ParseCgroupRate("10")
-	assert.Equal(t, empty, opt)
-
-	opt = option.ParseCgroupRate("sure,1s")
-	assert.Equal(t, empty, opt)
-
-	opt = option.ParseCgroupRate("1,nope")
-	assert.Equal(t, empty, opt)
+	for _, tt := range []struct {
+		rate    string
+		want    option.CgroupRate
+		wantErr bool
+	}{
+		{rate: ""},
+		{rate: "1,1s", want: option.CgroupRate{Events: 1, Interval: uint64(time.Second)}},
+		{rate: "1,1m", want: option.CgroupRate{Events: 1, Interval: uint64(time.Minute)}},
+		{rate: "0,0s"},
+		{rate: ","},
+		{rate: ",1s", want: option.CgroupRate{Interval: uint64(time.Second)}},
+		{rate: "1,", want: option.CgroupRate{Events: 1}},
+		{rate: "10", wantErr: true},
+		{rate: "1,1s,extra", wantErr: true},
+		{rate: "sure,1s", wantErr: true},
+		{rate: "1,nope", wantErr: true},
+		{rate: "-1,1s", wantErr: true},
+		{rate: "1,-1s", wantErr: true},
+		{rate: "999999999999999999999,1s", wantErr: true},
+		{rate: "1,999999999999999999999s", wantErr: true},
+	} {
+		t.Run(tt.rate, func(t *testing.T) {
+			got, err := option.ParseCgroupRate(tt.rate)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
