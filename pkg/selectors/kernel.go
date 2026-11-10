@@ -1942,9 +1942,15 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 		return fmt.Errorf("%s error: %w", selectorType, err)
 	}
 
-	// ignore matchBinaries selectors with no values
+	// An empty list or an empty entry would match every binary. The CRD
+	// schema rejects both already, but this check is kept for policies that
+	// skip schema validation.
 	if len(b.Values) == 0 {
-		return nil
+		return fmt.Errorf("%s error: values must not be empty", selectorType)
+	}
+
+	if slices.Contains(b.Values, "") {
+		return fmt.Errorf("%s error: values must not contain empty strings", selectorType)
 	}
 
 	// prepare the selector options
