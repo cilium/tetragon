@@ -437,3 +437,27 @@ spec:
 		require.ErrorContains(t, err, "state names must be unique")
 	})
 }
+
+func TestMatchBinariesEmptyValuesSchemaValidation(t *testing.T) {
+	policy := func(values string) string {
+		return fmt.Sprintf(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: match-binaries-values
+spec:
+  kprobes:
+  - call: security_file_permission
+    selectors:
+    - matchBinaries:
+      - operator: In
+        values: %s
+`, values)
+	}
+
+	_, err := FromYAML(policy(`[]`))
+	require.Error(t, err)
+
+	_, err = FromYAML(policy(`[""]`))
+	require.Error(t, err)
+}
