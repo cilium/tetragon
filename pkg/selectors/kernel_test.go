@@ -1961,3 +1961,13 @@ func TestHasEnforcementActionReturn(t *testing.T) {
 	}
 	require.False(t, HasEnforcementAction(nil))
 }
+
+func TestParseMatchBinaryEmptyValues(t *testing.T) {
+	ks := NewKernelSelectorState(nil, nil, false, 0, nil, nil)
+	err := ParseMatchBinary(ks, &v1alpha1.BinarySelector{Operator: "In", Values: []string{}}, 0, matchBinaries)
+	require.ErrorContains(t, err, "values must not be empty")
+
+	ks = NewKernelSelectorState(nil, nil, false, 0, nil, nil)
+	err = ParseMatchBinary(ks, &v1alpha1.BinarySelector{Operator: "In", Values: []string{""}}, 0, matchBinaries)
+	require.ErrorContains(t, err, "values must not contain empty strings")
+}
