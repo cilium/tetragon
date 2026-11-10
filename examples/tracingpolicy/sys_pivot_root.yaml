@@ -18,9 +18,5 @@ spec:
         followForks: true
         isNamespacePID: true
         values:
-        - 1
-      - operator: NotIn
-        followForks: true
-        isNamespacePID: true
-        values:
         - 0
+        - 1
