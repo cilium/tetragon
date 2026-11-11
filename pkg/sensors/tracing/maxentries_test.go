@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -70,6 +71,35 @@ func run(t *testing.T, maps []testMap, config string) {
 			}
 		}
 	})
+}
+
+func TestStateScopedMapSize(t *testing.T) {
+	oldSize := option.Config.StateScopedMapSize
+	option.Config.StateScopedMapSize = 1024
+	t.Cleanup(func() { option.Config.StateScopedMapSize = oldSize })
+
+	run(t, []testMap{
+		{"tg_scoped_state", 1024},
+	}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "state-map-size"
+spec:
+  state:
+  - name: "state"
+    scope: Process
+  kprobes:
+  - call: "sys_read"
+    syscall: true
+    selectors:
+    - matchActions:
+      - action: UpdateState
+        state:
+          name: "state"
+          operator: Set
+          value: "1"
+`)
 }
 
 func TestMaxEntries(t *testing.T) {
