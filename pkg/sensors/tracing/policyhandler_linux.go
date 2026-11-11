@@ -191,6 +191,9 @@ func (pi *policyInfo) policyStateMaps(prog *program.Program) []*program.Map {
 	for _, state := range pi.stateIDs {
 		if state.Scope != selectors.StateScopeSystem {
 			scopedSize = option.Config.StateScopedMapSize
+			if pi.specOpts.StateScopedMapSize != 0 {
+				scopedSize = pi.specOpts.StateScopedMapSize
+			}
 			break
 		}
 	}

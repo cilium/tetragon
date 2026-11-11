@@ -1004,7 +1004,9 @@ must be unique within a policy.
 States can be scoped to a `System`, `Process`, or `Thread`.
 `Process` and `Thread` scoped states share a bounded map with 32,768 entries
 per policy by default. Each state that is set for a process or thread uses one
-entry. Configure the map capacity globally with `--state-scoped-map-size`.
+entry. Configure the map capacity globally with `--state-scoped-map-size`, or
+override it for one policy using the
+[`state-scoped-map-size` option](../options/#state-scoped-map-size).
 
 When the map is full, setting a new state fails instead of replacing another
 state. Tetragon records such failures in the
