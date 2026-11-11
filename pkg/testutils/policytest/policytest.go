@@ -136,14 +136,25 @@ func cliFlagValuesEqual(actual, expected any) bool {
 		return err == nil && actualDuration == expected
 	case []int:
 		// viper.GetIntSlice ignores strings such as "42,43", so the agent does
-		// not use them either.
+		// not use them either. It does parse lists of strings. Tetragon keeps
+		// each config directory value as one string, but an agent built on
+		// Tetragon may split it into a list, such as ["42", "43"].
 		actual, ok := actual.([]any)
 		if !ok || len(actual) != len(expected) {
 			return false
 		}
 		for i, value := range actual {
-			number, ok := value.(float64)
-			if !ok || number != float64(expected[i]) {
+			switch value := value.(type) {
+			case float64:
+				if value != float64(expected[i]) {
+					return false
+				}
+			case string:
+				number, err := cast.ToIntE(value)
+				if err != nil || number != expected[i] {
+					return false
+				}
+			default:
 				return false
 			}
 		}
