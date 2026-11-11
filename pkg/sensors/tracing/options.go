@@ -132,7 +132,7 @@ var opts = map[string]opt{
 			if err != nil {
 				return err
 			}
-			if err := option.ValidateHeapSize(option.KeyUprobeHeapSize, size); err != nil {
+			if err := option.ValidateMapSize(option.KeyUprobeHeapSize, size); err != nil {
 				return err
 			}
 			options.UprobeHeapSize = size
@@ -145,7 +145,7 @@ var opts = map[string]opt{
 			if err != nil {
 				return err
 			}
-			if err := option.ValidateHeapSize(option.KeyFentryHeapSize, size); err != nil {
+			if err := option.ValidateMapSize(option.KeyFentryHeapSize, size); err != nil {
 				return err
 			}
 			options.FentryHeapSize = size
@@ -158,7 +158,7 @@ var opts = map[string]opt{
 			if err != nil {
 				return err
 			}
-			if err := option.ValidateHeapSize(option.KeyLsmHeapSize, size); err != nil {
+			if err := option.ValidateMapSize(option.KeyLsmHeapSize, size); err != nil {
 				return err
 			}
 			options.LsmHeapSize = size
