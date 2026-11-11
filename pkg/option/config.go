@@ -138,6 +138,8 @@ type config struct {
 	ParentsMapEntries int
 	ParentsMapSize    string
 
+	StateScopedMapSize int
+
 	RetprobesCacheSize int
 
 	SleepablePreloadSize int
@@ -207,6 +209,9 @@ var (
 
 		// Set default value for {k,u}retprobes lru events cache
 		RetprobesCacheSize: defaults.DefaultRetprobesCacheSize,
+
+		// Set default capacity for each policy's process/thread-scoped state map.
+		StateScopedMapSize: defaults.DefaultStateScopedMapSize,
 
 		// Set default value for sleepable preload maps.
 		SleepablePreloadSize: defaults.DefaultSleepablePreloadSize,

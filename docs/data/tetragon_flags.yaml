@@ -298,6 +298,10 @@ options:
       default_value: "32768"
       usage: |
         Set the maximum number of entries in the sleepable preload map
+    - name: state-scoped-map-size
+      default_value: "32768"
+      usage: |
+        Set the maximum number of process/thread-scoped state entries per tracing policy (must be positive)
     - name: tracing-policy
       usage: Tracing policy file to load at startup
     - name: tracing-policy-dir

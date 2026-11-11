@@ -1002,10 +1002,11 @@ States can only be shared between probes within the same policy. State names
 must be unique within a policy.
 
 States can be scoped to a `System`, `Process`, or `Thread`.
-`Process` and `Thread` scoped states share a bounded LRU map with 32,768 states
-per policy. A busy system may cause states to be evicted after the state has
-been set but before it can be matched. System state is stored separately and is
-not subject to this eviction.
+`Process` and `Thread` scoped states share a bounded LRU map with 32,768 entries
+per policy by default. Configure its capacity globally with
+`--state-scoped-map-size`. A busy system may cause states to be evicted after
+the state has been set but before it can be matched. System state is stored
+separately and is not subject to this eviction.
 
 A missing state matches only the “not” variants of operators, such as `NotEqual`.
 

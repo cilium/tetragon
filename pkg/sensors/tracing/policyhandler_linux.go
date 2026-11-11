@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/policystats"
@@ -183,21 +184,20 @@ func indexPolicyStates(states []v1alpha1.State) (map[string]selectors.StateInfo,
 }
 
 func (pi *policyInfo) policyStateMaps(prog *program.Program) []*program.Map {
-	const scopedStateMaxEntries = 32768
 	if pi.stateMap != nil {
 		return []*program.Map{program.MapUserFrom(pi.stateMap), program.MapUserFrom(pi.scopedStateMap)}
 	}
-	scopedEntries := 1
+	scopedSize := 1
 	for _, state := range pi.stateIDs {
 		if state.Scope != selectors.StateScopeSystem {
-			scopedEntries = scopedStateMaxEntries
+			scopedSize = option.Config.StateScopedMapSize
 			break
 		}
 	}
 	pi.stateMap = program.MapBuilderPolicy("tg_state_map", prog)
 	pi.stateMap.SetMaxEntries(len(pi.stateIDs))
 	pi.scopedStateMap = program.MapBuilderPolicy("tg_scoped_state_map", prog)
-	pi.scopedStateMap.SetMaxEntries(scopedEntries)
+	pi.scopedStateMap.SetMaxEntries(scopedSize)
 	return []*program.Map{pi.stateMap, pi.scopedStateMap}
 }
 

@@ -72,6 +72,10 @@ const (
 	// defaults for the {k,u}retprobes lru cache
 	DefaultRetprobesCacheSize = 4096
 
+	// DefaultStateScopedMapSize is the default capacity of each policy's
+	// process/thread-scoped state map.
+	DefaultStateScopedMapSize = 32768
+
 	// DefaultSleepablePreloadSize is the default maximum number of entries in the sleepable preload map.
 	DefaultSleepablePreloadSize = 32768
 
