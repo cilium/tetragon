@@ -215,8 +215,6 @@ func (rc *NoNetworkCommand) ToSteps(s *images.StepConf) ([]step.Step, error) {
 }
 
 func buildTestImage(log slogger.Logger, rcnf *GoTestConf) error {
-	imagesDir, baseImage := filepath.Split(rcnf.baseImageFilename)
-
 	tmpDir, err := os.MkdirTemp("", "tetragon-vmtests-")
 	if err != nil {
 		return err
@@ -238,30 +236,39 @@ func buildTestImage(log slogger.Logger, rcnf *GoTestConf) error {
 		return err
 	}
 
-	actions := []images.Action{
+	actions := append(fsActions, testerActions...)
+	actions = append(actions, netActions...)
+	return buildVMImage(log, &rcnf.testConf, actions, !rcnf.dontRebuildImage)
+}
+
+func buildVMImage(log slogger.Logger, cnf *testConf, actions []images.Action, forceRebuild bool) error {
+	imagesDir, baseImage := filepath.Split(cnf.baseImageFilename)
+	baseActions := []images.Action{
 		{Op: &NoNetworkCommand{}},
-		{Op: &images.SetHostnameCommand{Hostname: rcnf.vmName}},
+		{Op: &images.SetHostnameCommand{Hostname: cnf.vmName}},
 		{Op: &images.AppendLineCommand{
 			File: "/etc/sysctl.d/local.conf",
 			Line: "kernel.panic_on_rcu_stall=1",
 		}},
+		{Op: &images.AppendLineCommand{
+			File: "/etc/sysctl.d/local.conf",
+			Line: "net.core.bpf_jit_harden=2",
+		}},
 	}
-	actions = append(actions, fsActions...)
-	actions = append(actions, testerActions...)
-	actions = append(actions, netActions...)
+	actions = append(baseActions, actions...)
 
-	cnf := images.ImagesConf{
+	imageConf := images.ImagesConf{
 		Dir: imagesDir,
 		// TODO: might be useful to modify the images builder so that
 		// we can build this image using qemu-img -b
 		Images: []images.ImgConf{{
-			Name:    rcnf.testImageFilename(),
+			Name:    cnf.testImageFilename(),
 			Parent:  baseImage,
 			Actions: actions,
 		}},
 	}
 
-	forest, err := images.NewImageForest(&cnf, false)
+	forest, err := images.NewImageForest(&imageConf, false)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -269,7 +276,7 @@ func buildTestImage(log slogger.Logger, rcnf *GoTestConf) error {
 	res := forest.BuildAllImages(&images.BuildConf{
 		Log:          log,
 		DryRun:       false,
-		ForceRebuild: !rcnf.dontRebuildImage,
+		ForceRebuild: forceRebuild,
 		MergeSteps:   true,
 	})
 

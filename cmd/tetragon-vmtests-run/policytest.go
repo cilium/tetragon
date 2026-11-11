@@ -348,7 +348,6 @@ func buildTetragonActions(ptConf *PolicyTestConf, tmpDir string) ([]images.Actio
 }
 
 func buildPolicyTestImage(log slogger.Logger, ptConf *PolicyTestConf, tmpDir string) error {
-	imagesDir, baseImage := filepath.Split(ptConf.baseImageFilename)
 	fsActions, err := buildFilesystemActions(ptConf.filesystems, tmpDir)
 	if err != nil {
 		return err
@@ -364,43 +363,9 @@ func buildPolicyTestImage(log slogger.Logger, ptConf *PolicyTestConf, tmpDir str
 		return err
 	}
 
-	actions := []images.Action{
-		{Op: &NoNetworkCommand{}},
-		{Op: &images.SetHostnameCommand{Hostname: ptConf.vmName}},
-		{Op: &images.AppendLineCommand{
-			File: "/etc/sysctl.d/local.conf",
-			Line: "kernel.panic_on_rcu_stall=1",
-		}},
-	}
-
-	actions = append(actions, tetragonActions...)
-	actions = append(actions, fsActions...)
+	actions := append(tetragonActions, fsActions...)
 	actions = append(actions, netActions...)
-
-	cnf := images.ImagesConf{
-		Dir: imagesDir,
-		// TODO: might be useful to modify the images builder so that
-		// we can build this image using qemu-img -b
-		Images: []images.ImgConf{{
-			Name:    ptConf.testImageFilename(),
-			Parent:  baseImage,
-			Actions: actions,
-		}},
-	}
-
-	forest, err := images.NewImageForest(&cnf, false)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	res := forest.BuildAllImages(&images.BuildConf{
-		Log:          log,
-		DryRun:       false,
-		ForceRebuild: true,
-		MergeSteps:   true,
-	})
-
-	return res.Err()
+	return buildVMImage(log, &ptConf.testConf, actions, true)
 }
 
 func runPolicyTests(
