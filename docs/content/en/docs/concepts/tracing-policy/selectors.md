@@ -1313,7 +1313,7 @@ original symbol will be redirected to the symbol from the newly loaded library.
 
 {{< warning >}}
 `sopath` is experimental, and may be removed in the future. As with all the other
-uprobe override actions, it might cause the traced application to crash os misbehave.
+uprobe override actions, it might cause the traced application to crash or misbehave.
 {{< /warning >}}
 
 In that case, `sopath` should be set to the shared object path:
@@ -1336,8 +1336,9 @@ In this case, following restrictions apply:
 - uprobe is attached to the beginning of the user space function;
 - user space function is called via `call` instruction;
 - kernel support to manipulate raw registers is available from 6.18+;
-- the executable must dynamically link libc.so.6;
-- libc.so.6 must offer `dlopen` function, incorporating `libdl` ([libc.so.6 >= 2.34](https://lists.gnu.org/archive/html/info-gnu/2021-08/msg00001.html));
+- the executable must be dynamically linked against libc, either:
+  - glibc, as a direct `libc.so.6` dependency; glibc must offer the `dlopen` function, incorporating `libdl` ([glibc >= 2.34](https://lists.gnu.org/archive/html/info-gnu/2021-08/msg00001.html));
+  - musl (e.g. Alpine based images);
 - Intel CET (Control-flow Enforcement Technology) and AMD Shadow Stack are not supported;
 - floating point argument functions are not supported;
 - new symbol must have the same signature as the original symbol.
@@ -1346,6 +1347,22 @@ In this case, following restrictions apply:
 Since tetragon enforces no verification for the last point, this can lead to
 crashing the traced application.
 {{< /warning >}}
+
+Tetragon locates the libc of the executable when the policy is loaded, without running
+any external tool. For glibc executables, `libc.so.6` is looked up following the
+dynamic loader search order:
+1. the executable `DT_RPATH`/`DT_RUNPATH` entries;
+2. `/etc/ld.so.cache`;
+3. the default library directories (e.g. `/lib64`, or `/lib/x86_64-linux-gnu` on Debian based systems).
+
+Like the dynamic loader, the `glibc-hwcaps` subdirectories supported by the CPU (e.g.
+`/usr/lib64/glibc-hwcaps/x86-64-v3`) are preferred, so that the same optimized libc build is
+picked.
+
+For musl executables, libc is the executable's program interpreter (e.g. `/lib/ld-musl-x86_64.so.1`).
+
+Since `LD_LIBRARY_PATH` depends on the environment of each process, it is not taken
+into account: executables relying on it to load a different libc are not supported.
 
 It's possible to override specific registers with arbitrary value with `argRegs`
 argument, like:

@@ -307,6 +307,7 @@ type UprobeRegs struct {
 	Sopath     [SOPATH_MAX]byte
 	SopathLen  uint32
 	SoName     [SONAME_MAX]byte
+	LibcName   [SONAME_MAX]byte
 	SymAddr    uint64
 	MmapAddr   uint64
 	DlopenAddr uint64
