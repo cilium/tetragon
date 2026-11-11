@@ -250,6 +250,10 @@ func buildVMImage(log slogger.Logger, cnf *testConf, actions []images.Action, fo
 			File: "/etc/sysctl.d/local.conf",
 			Line: "kernel.panic_on_rcu_stall=1",
 		}},
+		{Op: &images.AppendLineCommand{
+			File: "/etc/sysctl.d/local.conf",
+			Line: "net.core.bpf_jit_harden=2",
+		}},
 	}
 	actions = append(baseActions, actions...)
 

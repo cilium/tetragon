@@ -3,6 +3,9 @@
 This directory is used for multi-kernel testing using litte-vm-helper
 (https://github.com/cilium/little-vm-helper/).
 
+VM tests enable `net.core.bpf_jit_harden=2` so that privileged BPF program loads
+exercise JIT hardening. This applies to both Go tests and policy tests.
+
 ### Usage
 
 NOTE: For now, commands need to be executed from the top-level tetragon directory.
