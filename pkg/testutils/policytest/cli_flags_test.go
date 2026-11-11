@@ -50,6 +50,15 @@ func TestCLIFlagValuesEqualIntString(t *testing.T) {
 	require.False(t, cliFlagValuesEqual("invalid", 42))
 }
 
+func TestCLIFlagValuesEqualIntSliceStrings(t *testing.T) {
+	require.True(t, cliFlagValuesEqual([]any{"42", "43"}, []int{42, 43}))
+	require.True(t, cliFlagValuesEqual([]any{"0x2a"}, []int{42}))
+	require.False(t, cliFlagValuesEqual([]any{"42", "44"}, []int{42, 43}))
+	require.False(t, cliFlagValuesEqual([]any{"42"}, []int{42, 43}))
+	require.False(t, cliFlagValuesEqual([]any{"invalid"}, []int{42}))
+	require.False(t, cliFlagValuesEqual("42,43", []int{42, 43}))
+}
+
 func TestCLIFlagValuesEqualFloatString(t *testing.T) {
 	require.True(t, cliFlagValuesEqual("0.01", float64(0.01)))
 	require.False(t, cliFlagValuesEqual("0", float64(0.01)))
