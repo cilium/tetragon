@@ -366,16 +366,16 @@ func ReadAndSetFlags() error {
 	Config.SleepableOffloadSize = viper.GetInt(KeySleepableOffloadSize)
 
 	Config.UprobeHeapSize = viper.GetInt(KeyUprobeHeapSize)
-	if err := ValidateHeapSize(KeyUprobeHeapSize, Config.UprobeHeapSize); err != nil {
+	if err := ValidateMapSize(KeyUprobeHeapSize, Config.UprobeHeapSize); err != nil {
 		return err
 	}
 	Config.FentryHeapSize = viper.GetInt(KeyFentryHeapSize)
-	if err := ValidateHeapSize(KeyFentryHeapSize, Config.FentryHeapSize); err != nil {
+	if err := ValidateMapSize(KeyFentryHeapSize, Config.FentryHeapSize); err != nil {
 		return err
 	}
 
 	Config.LsmHeapSize = viper.GetInt(KeyLsmHeapSize)
-	if err := ValidateHeapSize(KeyLsmHeapSize, Config.LsmHeapSize); err != nil {
+	if err := ValidateMapSize(KeyLsmHeapSize, Config.LsmHeapSize); err != nil {
 		return err
 	}
 	Config.EnableGRPCDeprecatedTP = viper.GetBool(KeyEnableDeprecatedTPGRPC)
