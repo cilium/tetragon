@@ -45,6 +45,7 @@ func overrideMethodParse(s string) OverrideMethod {
 type specOptions struct {
 	DisableKprobeMulti   bool
 	DisableUprobeMulti   bool
+	StateScopedMapSize   int
 	SleepablePreloadSize int
 	SleepableOffloadSize int
 	UprobeHeapSize       int
@@ -97,6 +98,19 @@ var opts = map[string]opt{
 				return err
 			}
 			options.policyMode = mode
+			return nil
+		},
+	},
+	option.KeyStateScopedMapSize: {
+		set: func(str string, options *specOptions) (err error) {
+			size, err := strconv.Atoi(str)
+			if err != nil {
+				return err
+			}
+			if err := option.ValidateMapSize(option.KeyStateScopedMapSize, size); err != nil {
+				return err
+			}
+			options.StateScopedMapSize = size
 			return nil
 		},
 	},

@@ -1004,9 +1004,11 @@ must be unique within a policy.
 States can be scoped to a `System`, `Process`, or `Thread`.
 `Process` and `Thread` scoped states share a bounded LRU map with 32,768 entries
 per policy by default. Configure its capacity globally with
-`--state-scoped-map-size`. A busy system may cause states to be evicted after
-the state has been set but before it can be matched. System state is stored
-separately and is not subject to this eviction.
+`--state-scoped-map-size`, or override it for one policy using the
+[`state-scoped-map-size` option](../options/#state-scoped-map-size).
+A busy system may cause states to be evicted after the state has been set but
+before it can be matched. System state is stored separately and is not subject
+to this eviction.
 
 A missing state matches only the “not” variants of operators, such as `NotEqual`.
 

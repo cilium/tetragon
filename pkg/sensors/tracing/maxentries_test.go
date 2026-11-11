@@ -78,14 +78,33 @@ func TestStateScopedMapSize(t *testing.T) {
 	option.Config.StateScopedMapSize = 1024
 	t.Cleanup(func() { option.Config.StateScopedMapSize = oldSize })
 
-	run(t, []testMap{
-		{"tg_scoped_state", 1024},
-	}, `
+	const scopedStateMapName = "tg_scoped_state"
+
+	tests := []struct {
+		name    string
+		options string
+		want    int
+	}{
+		{name: "global fallback", want: 1024},
+		{
+			name: "policy override",
+			options: `
+  options:
+  - name: "state-scoped-map-size"
+    value: "2048"`,
+			want: 2048,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			run(t, []testMap{
+				{scopedStateMapName, tt.want},
+			}, `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "state-map-size"
-spec:
+spec:`+tt.options+`
   state:
   - name: "state"
     scope: Process
@@ -100,6 +119,9 @@ spec:
           operator: Set
           value: "1"
 `)
+			assert.Equal(t, 1024, option.Config.StateScopedMapSize)
+		})
+	}
 }
 
 func TestMaxEntries(t *testing.T) {
