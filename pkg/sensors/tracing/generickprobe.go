@@ -12,12 +12,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net"
 	"net/http"
 	"path"
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/cilium/ebpf"
 	ciliumbtf "github.com/cilium/ebpf/btf"
@@ -1468,4 +1470,72 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose, false)
+}
+
+const defaultMultiKprobeMapEntries = 65536
+
+func multiKprobeMapCapacity() (uint32, error) {
+	entries := option.Config.MultiKprobeMapEntries
+	if entries == 0 {
+		entries = defaultMultiKprobeMapEntries
+	}
+	if entries < 2 || uint64(entries) > math.MaxUint32 {
+		return 0, fmt.Errorf("%s must be between 2 and %d", option.KeyMultiKprobeMapEntries, uint64(math.MaxUint32))
+	}
+	return uint32(entries), nil
+}
+
+// A scope belongs to one hook attachment, not a whole policy. Recycle it only
+// after detaching its links and deleting all its registry entries.
+type multiKprobeScopeAllocator struct {
+	sync.Mutex
+	next uint32
+	free []uint32
+}
+
+var multiKprobeScopes = multiKprobeScopeAllocator{next: 1}
+
+func (a *multiKprobeScopeAllocator) allocate(limit uint32) (uint32, error) {
+	a.Lock()
+	defer a.Unlock()
+	if n := len(a.free); n != 0 {
+		scope := a.free[n-1]
+		a.free = a.free[:n-1]
+		return scope, nil
+	}
+	if a.next >= limit {
+		return 0, errors.New("multi-kprobe hook capacity exceeded")
+	}
+	scope := a.next
+	a.next++
+	return scope, nil
+}
+
+func allocateMultiKprobeScope() (uint32, error) {
+	limit, err := multiKprobeMapCapacity()
+	if err != nil {
+		return 0, err
+	}
+	return multiKprobeScopes.allocate(limit)
+}
+
+func releaseMultiKprobeScope(scope uint32) {
+	multiKprobeScopes.Lock()
+	defer multiKprobeScopes.Unlock()
+	multiKprobeScopes.free = append(multiKprobeScopes.free, scope)
+}
+
+func multiKprobeCookie(scope, index uint32) uint64 {
+	return uint64(scope)<<32 | uint64(index)
+}
+
+// Keep the function visible while preserving uniqueness after sanitizing or
+// truncating long symbols to fit a bpffs filename component.
+func multiKprobePinName(kind, symbol string, id uint64) string {
+	prefix, suffix := kind+"_", fmt.Sprintf("_%d", id)
+	symbol = strings.ReplaceAll(symbol, ".", "_")
+	if limit := 255 - len(prefix) - len(suffix); len(symbol) > limit {
+		symbol = symbol[:limit]
+	}
+	return prefix + symbol + suffix
 }
