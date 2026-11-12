@@ -534,7 +534,11 @@ match_cmd_arg(__u8 *f, __u32 section_off, __u32 filter_off, __u8 *arg_offsets,
  * and 0 when the section is malformed, arguments are unavailable, or any
  * filter does not match.
  */
+#ifdef SHARED_KPROBE
+FUNC_LOCAL int
+#else
 FUNC_INLINE int
+#endif
 match_cmd_args(__u8 *f, __u32 selidx, struct args *cached_args)
 {
 	__u32 filter_off, section_off, reloaded_argc, nuloff, key;
