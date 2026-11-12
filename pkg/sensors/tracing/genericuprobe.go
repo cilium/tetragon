@@ -483,7 +483,7 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 type addUprobeIn struct {
 	policyName        string
 	policyID          policyfilter.PolicyID
-	stateIDs          map[string]uint32
+	stateIDs          map[string]selectors.StateInfo
 	celExprs          *selectors.CelExprFunctions
 	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32
