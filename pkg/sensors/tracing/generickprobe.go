@@ -497,7 +497,7 @@ type addKprobeIn struct {
 	customHandler eventhandler.Handler
 	selMaps       *selectors.KernelSelectorMaps
 	celExprs      *selectors.CelExprFunctions
-	stateIDs      map[string]uint32
+	stateIDs      map[string]selectors.StateInfo
 	selStatsBase  uint32
 }
 

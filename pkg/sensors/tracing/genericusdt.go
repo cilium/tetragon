@@ -110,7 +110,7 @@ type addUsdtIn struct {
 	sensorPath        string
 	policyName        string
 	policyID          policyfilter.PolicyID
-	stateIDs          map[string]uint32
+	stateIDs          map[string]selectors.StateInfo
 	useMulti          bool
 	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32

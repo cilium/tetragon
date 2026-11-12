@@ -292,7 +292,7 @@ type addLsmIn struct {
 	sensorPath        string
 	policyName        string
 	policyID          policyfilter.PolicyID
-	stateIDs          map[string]uint32
+	stateIDs          map[string]selectors.StateInfo
 	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32
 }
