@@ -6,6 +6,7 @@
 package tracing
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -414,6 +415,42 @@ func TestAppendMacrosSelectors(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		"matchCEL in macro and in selector": {
+			selectors: []v1alpha1.KProbeSelector{
+				{
+					MatchCEL: &v1alpha1.CELExprSelector{Expr: "arg0 == 1"},
+					Macros:   []string{"testMacro"},
+				},
+			},
+			macros: map[string]v1alpha1.KProbeSelector{
+				"testMacro": {
+					MatchCEL: &v1alpha1.CELExprSelector{Expr: "arg0 == 2"},
+				},
+			},
+			expectErr: true,
+		},
+		"matchCEL and matchWorkloads in selector kept with a macro": {
+			selectors: []v1alpha1.KProbeSelector{
+				{
+					MatchCEL:       &v1alpha1.CELExprSelector{Expr: "arg0 == 1"},
+					MatchWorkloads: &v1alpha1.WorkloadsSelector{},
+					Macros:         []string{"testMacro"},
+				},
+			},
+			macros: map[string]v1alpha1.KProbeSelector{
+				"testMacro": {
+					MatchPIDs: []v1alpha1.PIDSelector{{Operator: "In", Values: []uint32{1}}},
+				},
+			},
+			expectedSelectors: []v1alpha1.KProbeSelector{
+				{
+					MatchPIDs:      []v1alpha1.PIDSelector{{Operator: "In", Values: []uint32{1}}},
+					MatchCEL:       &v1alpha1.CELExprSelector{Expr: "arg0 == 1"},
+					MatchWorkloads: &v1alpha1.WorkloadsSelector{},
+					Macros:         []string{"testMacro"},
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -427,4 +464,34 @@ func TestAppendMacrosSelectors(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestAppendMacrosSelectorsAllFields fails when appendMacrosSelectors misses
+// a selector field.
+func TestAppendMacrosSelectorsAllFields(t *testing.T) {
+	var macro v1alpha1.KProbeSelector
+	mv := reflect.ValueOf(&macro).Elem()
+	for i := range mv.NumField() {
+		f := mv.Field(i)
+		name := mv.Type().Field(i).Name
+		if name == "Macros" {
+			continue
+		}
+		switch f.Kind() {
+		case reflect.String:
+			f.SetString("x")
+		case reflect.Slice:
+			f.Set(reflect.MakeSlice(f.Type(), 1, 1))
+		case reflect.Pointer:
+			f.Set(reflect.New(f.Type().Elem()))
+		default:
+			t.Fatalf("field %s has kind %s: teach this test and appendMacrosSelectors about it", name, f.Kind())
+		}
+	}
+
+	selectors := []v1alpha1.KProbeSelector{{Macros: []string{"m"}}}
+	require.NoError(t, appendMacrosSelectors(selectors, map[string]v1alpha1.KProbeSelector{"m": macro}))
+
+	macro.Macros = []string{"m"}
+	require.Equal(t, macro, selectors[0])
 }
