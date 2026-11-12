@@ -266,7 +266,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
 	if len(polInfo.stateIDs) != 0 {
-		maps = append(maps, polInfo.policyStateMap(load))
+		maps = append(maps, polInfo.policyStateMaps(load)...)
 	}
 
 	if len(multiRetIDs) != 0 {
@@ -310,7 +310,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
 
 		if len(polInfo.stateIDs) != 0 {
-			maps = append(maps, polInfo.policyStateMap(loadret))
+			maps = append(maps, polInfo.policyStateMaps(loadret)...)
 		}
 	}
 
@@ -1111,7 +1111,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 	if len(polInfo.stateIDs) != 0 {
-		maps = append(maps, polInfo.policyStateMap(load))
+		maps = append(maps, polInfo.policyStateMaps(load)...)
 	}
 
 	if kprobeEntry.loadArgs.retprobe {
@@ -1182,7 +1182,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		}
 
 		if len(polInfo.stateIDs) != 0 {
-			maps = append(maps, polInfo.policyStateMap(loadret))
+			maps = append(maps, polInfo.policyStateMaps(loadret)...)
 		}
 	}
 
