@@ -12,12 +12,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net"
 	"net/http"
 	"path"
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/cilium/ebpf"
 	ciliumbtf "github.com/cilium/ebpf/btf"
@@ -1476,4 +1478,67 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose, false)
+}
+
+const defaultMultiKprobeMapEntries = 65536
+
+func multiKprobeMapCapacity() (uint32, error) {
+	entries := option.Config.MultiKprobeMapEntries
+	if entries == 0 {
+		entries = defaultMultiKprobeMapEntries
+	}
+	if entries < 2 || uint64(entries) > math.MaxUint32 {
+		return 0, fmt.Errorf("%s must be between 2 and %d", option.KeyMultiKprobeMapEntries, uint64(math.MaxUint32))
+	}
+	return uint32(entries), nil
+}
+
+// Reserve one scope per hook for the lifetime of its policy.
+type multiKprobeScopeAllocator struct {
+	sync.Mutex
+	next uint32
+	free []uint32
+}
+
+var multiKprobeScopes = multiKprobeScopeAllocator{next: 1} // Scope zero is reserved.
+
+func (a *multiKprobeScopeAllocator) reserve(limit uint32, count uint64) ([]uint32, error) {
+	a.Lock()
+	defer a.Unlock()
+	available := uint64(limit-a.next) + uint64(len(a.free))
+	if count > available {
+		return nil, fmt.Errorf("need %d scopes, %d available", count, available)
+	}
+	scopes := make([]uint32, count)
+	for i := range scopes {
+		if n := len(a.free); n != 0 {
+			scopes[i] = a.free[n-1]
+			a.free = a.free[:n-1]
+		} else {
+			scopes[i] = a.next
+			a.next++
+		}
+	}
+	return scopes, nil
+}
+
+func (a *multiKprobeScopeAllocator) release(scopes []uint32) {
+	a.Lock()
+	defer a.Unlock()
+	a.free = append(a.free, scopes...)
+}
+
+func multiKprobeCookie(scope, index uint32) uint64 {
+	return uint64(scope)<<32 | uint64(index)
+}
+
+// Keep the function visible while preserving uniqueness after sanitizing or
+// truncating long symbols to fit a bpffs filename component.
+func multiKprobePinName(kind, symbol string, id uint64) string {
+	prefix, suffix := kind+"_", fmt.Sprintf("_%d", id)
+	symbol = strings.ReplaceAll(symbol, ".", "_")
+	if limit := 255 - len(prefix) - len(suffix); len(symbol) > limit {
+		symbol = symbol[:limit]
+	}
+	return prefix + symbol + suffix
 }

@@ -138,6 +138,8 @@ type config struct {
 	ParentsMapEntries int
 	ParentsMapSize    string
 
+	MultiKprobeMapEntries int
+
 	RetprobesCacheSize int
 
 	SleepablePreloadSize int
