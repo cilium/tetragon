@@ -51,6 +51,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/sensors/unloader"
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 )
@@ -1538,4 +1539,150 @@ func multiKprobePinName(kind, symbol string, id uint64) string {
 		symbol = symbol[:limit]
 	}
 	return prefix + symbol + suffix
+}
+
+// Actual data lives in policy-owned maps, created only when used. These shared
+// registries contain references to those maps, including config/filter arrays.
+var multiPolicyMaps = map[string]bool{
+	"config_map":                    true,
+	"filter_map":                    true,
+	"tg_mb_sel_opts":                true,
+	"workloads_map":                 true,
+	"substring_map":                 true,
+	"stack_trace_map":               true,
+	"policy_conf":                   true,
+	"selector_stats":                true,
+	"tg_state_map":                  true,
+	"retprobe_map":                  true,
+	"socktrack_map":                 true,
+	"ratelimit_map":                 true,
+	"override_tasks":                true,
+	"enforcer_data":                 true,
+	"enforcer_missed_notifications": true,
+}
+
+// Selector outer maps cannot be nested. Only their populated references are
+// published, with a (hook scope, local map ID) key. Values are never copied.
+func isMultiSelectorMap(name string) bool {
+	switch name {
+	case "argfilter_maps", "addr4lpm_maps", "addr6lpm_maps", "string_prefix_maps", "string_postfix_maps", "tg_mb_paths":
+		return true
+	}
+	return strings.HasPrefix(name, "string_maps_") && name != "string_maps_heap"
+}
+
+type sharedMultiKprobe struct {
+	load     *program.Program
+	maps     map[string]*program.Map
+	override *ebpf.Program
+	err      error
+}
+
+var sharedMultiKprobes [2]*sharedMultiKprobe
+
+func extendBaseWithMultiKprobes(sensor *sensors.Sensor) (*sensors.Sensor, error) {
+	if option.Config.DisableKprobeMulti || !bpf.HasKprobeMulti() {
+		return sensor, nil
+	}
+
+	capacity, capacityErr := multiKprobeMapCapacity()
+	entry, ret := config.GenericKprobeObjs(true)
+	for i, obj := range []string{entry, ret} {
+		name, label := "multi_kprobe", "kprobe.multi/generic_kprobe"
+		if i == 1 {
+			name, label = "multi_retkprobe", "kprobe.multi/generic_retkprobe"
+		}
+
+		load := program.Builder(
+			path.Join(option.Config.HubbleLib, obj),
+			"shared multi kprobes",
+			label,
+			name,
+			"generic_kprobe").
+			SetPolicy(sensors.BaseSensorName)
+
+		shared := &sharedMultiKprobe{load: load, maps: make(map[string]*program.Map), err: capacityErr}
+		load.LoaderData = shared
+		if shared.err != nil {
+			sensor.Progs = append(sensor.Progs, load)
+			return sensor, nil
+		}
+
+		file, err := config.FindProgramFile(load.Name)
+		if err != nil {
+			sensor.Progs = append(sensor.Progs, load)
+			return sensor, nil
+		}
+
+		load.Name = file
+		spec, err := ebpf.LoadCollectionSpec(load.Name)
+		if err != nil {
+			shared.err = err // propagate through Load; base extension errors are otherwise ignored
+			sensor.Progs = append(sensor.Progs, load)
+			return sensor, nil
+		}
+
+		for mapName := range spec.Maps {
+			registry := multiPolicyMaps[mapName] || isMultiSelectorMap(mapName)
+			if !registry && mapName != "multi_scope" && mapName != "multi_cel" &&
+				mapName != "kprobe_calls" && mapName != "retkprobe_calls" && mapName != "process_call_heap" {
+				continue
+			}
+
+			m := program.MapBuilderProgram(mapName, load)
+			if registry || mapName == "multi_cel" {
+				m.SetMaxEntries(int(capacity))
+				if registry {
+					m.SetFlags(bpf.BPF_F_NO_PREALLOC)
+				}
+			}
+			shared.maps[mapName] = m
+			sensor.Maps = append(sensor.Maps, m)
+		}
+
+		for _, m := range sensor.Maps {
+			if m.Type == program.MapTypeGlobal && shared.maps[m.Name] == nil && spec.Maps[m.Name] != nil {
+				load.PinMap[m.Name] = m
+			}
+		}
+		sharedMultiKprobes[i] = shared
+		sensor.Progs = append(sensor.Progs, load)
+	}
+	return sensor, nil
+}
+
+func (shared *sharedMultiKprobe) loadProgram(bpfDir string, maps []*program.Map, verbose int) error {
+	if shared.err != nil {
+		return shared.err
+	}
+
+	emptyCEL := selectors.CelExprFunctions{}
+	shared.load.RewriteProg = map[string]func(*ebpf.ProgramSpec) error{"generic_kprobe_filter_arg": emptyCEL.RewriteProg}
+	return program.LoadProgramOpts(bpfDir, shared.load, &program.LoadOpts{
+		Maps: maps,
+		Open: func(spec *ebpf.CollectionSpec) error {
+			delete(spec.Programs, "generic_kprobe_cel")
+			delete(spec.Programs, "generic_fmodret_override")
+			if !bpf.HasOverrideHelper() || isArm() {
+				delete(spec.Programs, "generic_kprobe_override")
+			}
+			return nil
+		},
+		Attach: func(coll *ebpf.Collection, _ *ebpf.CollectionSpec, prog *ebpf.Program, _ *ebpf.ProgramSpec) (unloader.Unloader, error) {
+			u := unloader.ChainUnloader{unloader.ProgUnloader{Prog: prog}}
+			if override := coll.Programs["generic_kprobe_override"]; override != nil {
+				cloned, err := override.Clone()
+				if err != nil {
+					return nil, err
+				}
+				if err := cloned.Pin(path.Join(bpfDir, shared.load.PinPath, "prog_override")); err != nil {
+					cloned.Close()
+					return nil, err
+				}
+				shared.override = cloned
+				u = append(u, unloader.ProgUnloader{Prog: cloned})
+			}
+			return u, nil
+		},
+	}, verbose)
 }
