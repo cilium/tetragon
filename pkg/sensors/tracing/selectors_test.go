@@ -461,27 +461,37 @@ func TestMatchCmdArgs(t *testing.T) {
 		t.Skip("matchCmdArgs requires large BPF programs")
 	}
 
+	cmdArgs := []v1alpha1.CmdArgSelector{
+		{
+			Index:    1,
+			Operator: "Equal",
+			Values:   []string{"download"},
+		},
+	}
+	macros := map[string]v1alpha1.KProbeSelector{"download": {MatchCmdArgs: cmdArgs}}
+	for name, selector := range map[string]v1alpha1.KProbeSelector{
+		"inline": {MatchCmdArgs: cmdArgs},
+		"macro":  {Macros: []string{"download"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			testMatchCmdArgs(t, macros, selector)
+		})
+	}
+}
+
+func testMatchCmdArgs(t *testing.T, macros map[string]v1alpha1.KProbeSelector, selector v1alpha1.KProbeSelector) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
 	const event = "sys_enter_getcpu"
 	loadGenericSensorTest(t, &v1alpha1.TracingPolicySpec{
+		SelectorsMacros: macros,
 		Tracepoints: []v1alpha1.TracepointSpec{
 			{
 				Subsystem: "syscalls",
 				Event:     event,
-				Selectors: []v1alpha1.KProbeSelector{
-					{
-						MatchCmdArgs: []v1alpha1.CmdArgSelector{
-							{
-								Index:    1,
-								Operator: "Equal",
-								Values:   []string{"download"},
-							},
-						},
-					},
-				},
+				Selectors: []v1alpha1.KProbeSelector{selector},
 			},
 		},
 	})
