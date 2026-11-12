@@ -379,17 +379,6 @@ struct {
 	__type(value, struct binary);
 } tg_binary_heap SEC(".maps");
 
-// Parent binaries map is used for saving actual immediate parents
-// for processes to get check them in matchParentBinaries selector.
-// If multiple execs are called in same process without fork, the map
-// stores process binary itself instead of its parent binary.
-struct {
-	__uint(type, BPF_MAP_TYPE_LRU_HASH);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct binary);
-} tg_parents_bin SEC(".maps");
-
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 1);
@@ -432,30 +421,6 @@ struct {
 	__type(key, __s32);
 	__type(value, struct execve_heap);
 } execve_heap SEC(".maps");
-
-/* The tg_execve_joined_info_map allows to join and combine
- * exec info that is gathered during different hooks
- * through the execve call. The list of current hooks is:
- *   1. kprobe/security_bprm_committing_creds
- *      For details check tg_kp_bprm_committing_creds bpf program.
- *   2. raw_tracepoint/sys_execve
- *      For details see event_execve bpf program.
- *
- * Important: the information stored here is complementary
- * information only, the core logic should not depend on entries
- * of this map to be present.
- *
- * tgid+tid is key as execve is a complex syscall where failures
- * may happen at different levels and hooks, also the thread
- * that triggered and succeeded at execve will be the only new
- * and main thread.
- */
-struct {
-	__uint(type, BPF_MAP_TYPE_LRU_HASH);
-	__uint(max_entries, 8192);
-	__type(key, __u64);
-	__type(value, struct execve_info);
-} tg_execve_joined_info_map SEC(".maps");
 
 /* The tg_execve_joined_info_map_stats will hold stats about
  * entries and map update errors.
@@ -543,46 +508,35 @@ FUNC_INLINE void execve_map_delete(__u32 pid)
 	}
 }
 
-FUNC_INLINE void execve_joined_info_map_set(__u64 tid, struct execve_info *info)
-{
-	int err;
-
-	err = map_update_elem(&tg_execve_joined_info_map, &tid, info, BPF_ANY);
-	if (!err) {
-		STATS_INC(tg_execve_joined_info_map_stats, COUNT);
-	} else {
-		/* -EBUSY or -ENOMEM with the help of the cntr error
-		 * on the stats map this can be a good indication of
-		 * long running workloads and if we have to make the
-		 * map size bigger for such cases.
-		 */
-		STATS_INC(tg_execve_joined_info_map_stats, EUPDATE);
-	}
-}
-
-/* Clear up some space for next threads */
-FUNC_INLINE void execve_joined_info_map_clear(__u64 tid)
-{
-	int err;
-
-	err = map_delete_elem(&tg_execve_joined_info_map, &tid);
-	if (!err) {
-		STATS_DEC(tg_execve_joined_info_map_stats, COUNT);
-	} else {
-		STATS_INC(tg_execve_joined_info_map_stats, EDELETE);
-	}
-	/* We don't care here about -ENOENT as there is no guarantee entries
-	 * will be present anyway.
-	 */
-}
-
-/* Returns an execve_info if found. A missing entry is perfectly fine as it
- * could mean we are not interested into storing more information about this task.
+/* Parent binaries map (tg_parents_bin) is used for saving actual immediate
+ * parents for processes to get check them in matchParentBinaries selector.
+ * If multiple execs are called in same process without fork, the map
+ * stores process binary itself instead of its parent binary.
+ *
+ * The tg_execve_joined_info_map allows to join and combine
+ * exec info that is gathered during different hooks
+ * through the execve call. The list of current hooks is:
+ *   1. kprobe/security_bprm_committing_creds
+ *      For details check tg_kp_bprm_committing_creds bpf program.
+ *   2. raw_tracepoint/sys_execve
+ *      For details see event_execve bpf program.
+ *
+ * Important: the information stored here is complementary
+ * information only, the core logic should not depend on entries
+ * of this map to be present.
+ *
+ * Both maps and their helpers are defined either on top of task storage or
+ * of hash maps, depending on the kernel support.
+ *
+ * NOTE: this include can't be moved to the top of the file, as the storage
+ * headers depend on definitions above: struct binary, struct execve_info,
+ * tg_execve_joined_info_map_stats and the STATS_INC/STATS_DEC macros.
  */
-FUNC_INLINE struct execve_info *execve_joined_info_map_get(__u64 tid)
-{
-	return map_lookup_elem(&tg_execve_joined_info_map, &tid);
-}
+#ifdef __TASK_STORAGE
+#include "process_storage_task.h"
+#else
+#include "process_storage_hash.h"
+#endif
 
 _Static_assert(sizeof(struct execve_map_value) % 8 == 0,
 	       "struct execve_map_value should have size multiple of 8 bytes");

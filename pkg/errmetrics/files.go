@@ -36,6 +36,8 @@ var Files = map[uint8]string{
 	27: "generic_maps.h",
 	28: "uprobe_dyn.h",
 	29: "uprobe_dyn_x86.h",
+	30: "process_storage_hash.h",
+	31: "process_storage_task.h",
 }
 
 func BPFFileName(id uint8) string {
