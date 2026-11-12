@@ -2594,8 +2594,11 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 
 	last_repeat_entry = map_lookup_elem(&ratelimit_map, key);
 	if (last_repeat_entry) {
-		/* ratelimit_interval is in milliseconds. */
-		if (*last_repeat_entry > curr_time - (ratelimit_interval * 1000000)) {
+		/* The interval is in milliseconds. Compare with the last timestamp's
+		 * expiry: subtracting from the boot-relative clock wraps before uptime
+		 * reaches the interval. A concurrent newer timestamp counts as a repeat.
+		 */
+		if (curr_time < *last_repeat_entry + ratelimit_interval * 1000000) {
 			/* This event is too soon after the last matching event. */
 			return true;
 		}

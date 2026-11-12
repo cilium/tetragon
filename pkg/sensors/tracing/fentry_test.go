@@ -455,12 +455,17 @@ func TestFentryWriteMaxDataFull(t *testing.T) {
 
 func TestFentryNoRateLimit(t *testing.T) {
 	checkFentry(t)
-	testKprobeRateLimit(t, false, true)
+	testKprobeRateLimit(t, "", true)
 }
 
 func TestFentryRateLimit(t *testing.T) {
 	checkFentry(t)
-	testKprobeRateLimit(t, true, true)
+	testKprobeRateLimit(t, "5", true)
+}
+
+func TestFentryRateLimitLongerThanUptime(t *testing.T) {
+	checkFentry(t)
+	testKprobeRateLimit(t, "1193h", true)
 }
 
 func TestFentryListSyscallDupsRange(t *testing.T) {

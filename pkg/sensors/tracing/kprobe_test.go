@@ -5257,7 +5257,9 @@ func TestKprobeWriteMaxDataFull(t *testing.T) {
 	testKprobeWriteMaxDataFull(t, false)
 }
 
-func testKprobeRateLimit(t *testing.T, rateLimit, fentry bool) {
+// testKprobeRateLimit sends 5 datagrams through ip_send_skb. An empty
+// rateLimit posts all 5. Any other value must post exactly 1.
+func testKprobeRateLimit(t *testing.T, rateLimit string, fentry bool) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -5290,11 +5292,11 @@ spec:
         - "IPPROTO_UDP"
 `
 
-	if rateLimit {
+	if rateLimit != "" {
 		hook += `
       matchActions:
       - action: Post
-        rateLimit: "5"
+        rateLimit: "` + rateLimit + `"
         rateLimitScope: "global"
 `
 	}
@@ -5366,8 +5368,8 @@ spec:
 
 	actualCount := eventCounts["ip_send_skb_event"]
 
-	if rateLimit {
-		// With rate limit of 5, we should have exactly 1 event (first one passes, rest are rate limited)
+	if rateLimit != "" {
+		// With a rate limit, we should have exactly 1 event (first one passes, rest are rate limited)
 		require.Equal(t, 1, actualCount, "With rate limit enabled, expected exactly 1 event, got %d", actualCount)
 	} else {
 		// Without rate limit, we should have exactly 5 events (one for each UDP packet)
@@ -5380,7 +5382,7 @@ func TestKprobeNoRateLimit(t *testing.T) {
 		t.Skip("Test requires kernel 5.4")
 	}
 
-	testKprobeRateLimit(t, false, false)
+	testKprobeRateLimit(t, "", false)
 }
 
 func TestKprobeRateLimit(t *testing.T) {
@@ -5388,7 +5390,18 @@ func TestKprobeRateLimit(t *testing.T) {
 		t.Skip("Test requires kernel 5.4")
 	}
 
-	testKprobeRateLimit(t, true, false)
+	testKprobeRateLimit(t, "5", false)
+}
+
+// The rate-limit clock counts from boot. An interval longer than the uptime
+// used to wrap the comparison and post every event. About 49 days is the
+// largest interval, so this covers any test VM booted since then.
+func TestKprobeRateLimitLongerThanUptime(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("Test requires kernel 5.4")
+	}
+
+	testKprobeRateLimit(t, "1193h", false)
 }
 
 func testKprobeListSyscallDupsRange(t *testing.T, fentry bool) {
