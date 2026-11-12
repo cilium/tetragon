@@ -670,7 +670,7 @@ func createGenericTracepointSensor(
 
 		maps = append(maps, polInfo.policyConfMap(prog0), polInfo.selectorStatsMap(prog0))
 		if len(polInfo.stateIDs) != 0 {
-			maps = append(maps, polInfo.policyStateMap(prog0))
+			maps = append(maps, polInfo.policyStateMaps(prog0)...)
 		}
 	}
 

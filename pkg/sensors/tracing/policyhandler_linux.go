@@ -163,13 +163,13 @@ func indexPolicyStates(states []v1alpha1.State) map[string]uint32 {
 	return stateIDs
 }
 
-func (pi *policyInfo) policyStateMap(prog *program.Program) *program.Map {
+func (pi *policyInfo) policyStateMaps(prog *program.Program) []*program.Map {
 	if pi.stateMap != nil {
-		return program.MapUserFrom(pi.stateMap)
+		return []*program.Map{program.MapUserFrom(pi.stateMap)}
 	}
 	pi.stateMap = program.MapBuilderPolicy("tg_state_map", prog)
 	pi.stateMap.SetMaxEntries(len(pi.stateIDs))
-	return pi.stateMap
+	return []*program.Map{pi.stateMap}
 }
 
 func (pi *policyInfo) selectorStatsMap(prog *program.Program) *program.Map {

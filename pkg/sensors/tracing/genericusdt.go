@@ -302,7 +302,7 @@ func createMultiUsdtSensor(
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 	if len(polInfo.stateIDs) != 0 {
-		maps = append(maps, polInfo.policyStateMap(load))
+		maps = append(maps, polInfo.policyStateMaps(load)...)
 	}
 
 	return progs, maps, nil
@@ -382,7 +382,7 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 	if len(polInfo.stateIDs) != 0 {
-		maps = append(maps, polInfo.policyStateMap(load))
+		maps = append(maps, polInfo.policyStateMaps(load)...)
 	}
 
 	return progs, maps
