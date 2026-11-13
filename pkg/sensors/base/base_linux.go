@@ -37,7 +37,7 @@ func GetDefaultMaps() []*program.Map {
 		ErrMetricsMap,
 	}
 
-	if !config.EnableLargeProgs() {
+	if !config.EnableV61Progs() {
 		maps = append(maps, ExecveTailCallsMap)
 	}
 
