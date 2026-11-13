@@ -1646,6 +1646,7 @@ func TestLookupStackTraces(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			require.NoError(t, stackMap.Put(uint32(0), &trace))
 			var logs []string
 			logAttrs := func(_ slog.Level, msg string, _ ...slog.Attr) {
 				logs = append(logs, msg)

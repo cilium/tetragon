@@ -57,6 +57,8 @@ func lookupStackTraces(
 			logAttrs(slog.LevelWarn, "failed to retrieve kernel stacktrace", slog.Any("errno", m.KernelStackID))
 		} else if err := data.stackTraceMap.MapHandle.Lookup(uint32(m.KernelStackID), destinations.kernel); err != nil {
 			logAttrs(slog.LevelWarn, "failed to lookup kernel stacktrace", slog.Any(logfields.Error, err))
+		} else if !hasUser || m.UserStackID != m.KernelStackID {
+			data.stackTraceMap.MapHandle.Delete(uint32(m.KernelStackID))
 		}
 	}
 	if hasUser {
@@ -64,6 +66,8 @@ func lookupStackTraces(
 			logAttrs(slog.LevelDebug, "failed to retrieve user stacktrace", slog.Any("errno", m.UserStackID))
 		} else if err := data.stackTraceMap.MapHandle.Lookup(uint32(m.UserStackID), destinations.user); err != nil {
 			logAttrs(slog.LevelWarn, "failed to lookup user stacktrace", slog.Any(logfields.Error, err))
+		} else {
+			data.stackTraceMap.MapHandle.Delete(uint32(m.UserStackID))
 		}
 	}
 }
