@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 
 	ebtf "github.com/cilium/ebpf/btf"
@@ -109,53 +110,70 @@ func getHeapMaps(prefix string, size, userSize int, load ...*program.Program) []
 // Input   : my.super.field[123].my.sub.field
 // Output  : []string{"my", "super", "field", "[123]", "my", "sub", "field"}
 func formatBTFPath(resolvePath string) ([]string, error) {
-	var path []string
-	var buffer strings.Builder
-	inBracket := false
-	invalidFormat := false
+	var pathToFind []string
 
-	for i, r := range resolvePath {
-		switch r {
-		case '.':
-			if inBracket || i > 0 && resolvePath[i-1] == '.' {
-				invalidFormat = true
-				break
-			}
-			if buffer.Len() > 0 {
-				path = append(path, buffer.String())
-				buffer.Reset()
-			}
-		case '[':
-			if inBracket || i > 0 && resolvePath[i-1] == '.' {
-				invalidFormat = true
-				break
-			}
-			if buffer.Len() > 0 {
-				path = append(path, buffer.String())
-				buffer.Reset()
-			}
-			inBracket = true
-			buffer.WriteRune(r)
-		case ']':
-			if !inBracket || i > 0 && resolvePath[i-1] == '[' {
-				invalidFormat = true
-				break
-			}
-			buffer.WriteRune(r)
-			inBracket = false
-			path = append(path, buffer.String())
-			buffer.Reset()
-		default:
-			buffer.WriteRune(r)
+	for i, step := range strings.Split(resolvePath, ".") {
+		if step == "" {
+			return nil, fmt.Errorf("invalid resolve path %q: empty segment", resolvePath)
 		}
+		if i > 0 && step[0] == '[' {
+			return nil, fmt.Errorf("invalid resolve path %q: dot before '['", resolvePath)
+		}
+
+		tokens, err := parseIdentAndIndexes(step)
+		if err != nil {
+			return nil, fmt.Errorf("invalid resolve path %q: %w", resolvePath, err)
+		}
+		pathToFind = append(pathToFind, tokens...)
 	}
-	if invalidFormat || inBracket {
-		return []string{}, fmt.Errorf("invalid format for resolve path: %q", resolvePath)
+
+	return pathToFind, nil
+}
+
+// parseIndexes parses zero or more "[N]" indexes from s, e.g. "[0][1]" → ["[0]", "[1]"].
+// N must be a decimal uint32.
+func parseIndexes(s string) ([]string, error) {
+	var tokens []string
+	for len(s) > 0 {
+		if s[0] != '[' {
+			return nil, fmt.Errorf("unexpected character %q, expected '['", s[0])
+		}
+		inner, rest, found := strings.Cut(s[1:], "]")
+		if !found {
+			return nil, fmt.Errorf("unclosed bracket: %q", s)
+		}
+		if inner == "" {
+			return nil, errors.New("empty bracket")
+		}
+		if _, err := strconv.ParseUint(inner, 10, 32); err != nil {
+			return nil, fmt.Errorf("invalid bracket content %q: must be a decimal uint32", inner)
+		}
+		tokens = append(tokens, "["+inner+"]")
+		s = rest
 	}
-	if buffer.Len() > 0 {
-		path = append(path, buffer.String())
+	return tokens, nil
+}
+
+// parseIdentAndIndexes parses an optional identifier followed by optional "[N]"
+// indexes, e.g. "field[0][1]" → ["field", "[0]", "[1]"] or "[0]" → ["[0]"].
+func parseIdentAndIndexes(s string) ([]string, error) {
+	ident, indexes := s, ""
+	if i := strings.IndexByte(s, '['); i >= 0 {
+		ident, indexes = s[:i], s[i:]
 	}
-	return path, nil
+
+	if strings.ContainsAny(ident, "()[]") {
+		return nil, fmt.Errorf("invalid identifier: %q", ident)
+	}
+
+	tokens, err := parseIndexes(indexes)
+	if err != nil {
+		return nil, err
+	}
+	if ident == "" {
+		return tokens, nil
+	}
+	return append([]string{ident}, tokens...), nil
 }
 
 // First argument is added to enforce the method to be called on a pointer type
