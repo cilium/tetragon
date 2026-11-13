@@ -4,7 +4,7 @@
 package common
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"os"
 	"time"
@@ -49,7 +49,7 @@ func readActiveServerAddressFromFile(fname string) (string, error) {
 	var info struct {
 		ServerAddr string `json:"server_address"`
 	}
-	if err := json.NewDecoder(f).Decode(&info); err != nil {
+	if err := json.UnmarshalRead(f, &info); err != nil {
 		return "", fmt.Errorf("failed to decode init info file: %w", err)
 	}
 

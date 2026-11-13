@@ -5,7 +5,8 @@ package exporter
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"os"
@@ -128,8 +129,8 @@ func TestExporter_Send(t *testing.T) {
 }
 
 type jsonEvent struct {
-	Event         json.RawMessage `json:"process_exec"`
-	RateLimitInfo json.RawMessage `json:"rate_limit_info"`
+	Event         jsontext.Value `json:"process_exec"`
+	RateLimitInfo jsontext.Value `json:"rate_limit_info"`
 }
 
 const nodeName = "test-node-name"

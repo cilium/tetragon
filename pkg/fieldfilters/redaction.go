@@ -4,7 +4,9 @@
 package fieldfilters
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -31,12 +33,12 @@ func ParseRedactionFilterList(filters string) (*RedactionFilterList, error) {
 	if filters == "" {
 		return nil, nil
 	}
-	dec := json.NewDecoder(strings.NewReader(filters))
+	dec := jsontext.NewDecoder(strings.NewReader(filters))
 	var results []*tetragon.RedactionFilter
 	for {
 		var result tetragon.RedactionFilter
-		if err := dec.Decode(&result); err != nil {
-			if err == io.EOF {
+		if err := json.UnmarshalDecode(dec, &result); err != nil {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, fmt.Errorf("failed to parse redaction filter list: %w", err)

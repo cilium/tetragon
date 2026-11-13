@@ -4,7 +4,7 @@
 package nok8s
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 
@@ -22,7 +22,7 @@ func yamlToJSON(yamlBytes []byte) ([]byte, error) {
 	if err := yaml.Unmarshal(yamlBytes, &data); err != nil {
 		return nil, err
 	}
-	return json.Marshal(data)
+	return json.Marshal(data, json.Deterministic(true))
 }
 
 // kindDetector is a minimal struct to detect the Kind field from YAML
