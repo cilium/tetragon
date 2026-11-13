@@ -9,6 +9,12 @@
 #include "data_event.h"
 #include "config.h"
 
+#ifdef __LARGE_BPF_PROG
+#define EXECVE_STAGE static __attribute__((noinline)) __attribute__((__unused__))
+#else
+#define EXECVE_STAGE FUNC_LOCAL
+#endif
+
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
@@ -206,7 +212,7 @@ read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 	execve_joined_info_map_clear(pid);
 }
 
-FUNC_LOCAL void
+EXECVE_STAGE void
 execve_event_init(struct bpf_raw_tracepoint_args *ctx,
 		  struct msg_execve_event *event)
 {
@@ -273,7 +279,7 @@ execve_event_init(struct bpf_raw_tracepoint_args *ctx,
 	event->cleanup_key = (struct msg_execve_key){ 0 };
 }
 
-FUNC_LOCAL bool
+EXECVE_STAGE bool
 execve_rate_check(void *ctx, struct msg_execve_event *msg)
 {
 #ifndef __RHEL7_BPF_PROG
@@ -292,7 +298,7 @@ execve_rate_check(void *ctx, struct msg_execve_event *msg)
  * execve event that has already been collected, then send it to the perf
  * buffer.
  */
-FUNC_LOCAL int
+EXECVE_STAGE int
 execve_send_event(struct bpf_raw_tracepoint_args *ctx,
 		  struct msg_execve_event *event)
 {
