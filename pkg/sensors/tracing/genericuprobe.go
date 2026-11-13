@@ -1187,6 +1187,10 @@ func initUprobeArgs(spec *v1alpha1.UProbeSpec, has *uprobeHas, in *addUprobeIn, 
 func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgConfig, error) {
 	var cfg uprobeArgConfig
 	var preloadArgsCounter int
+	userBTFSpec, err := loadUserBTFSpec(spec.BTFPath)
+	if err != nil {
+		return cfg, err
+	}
 
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
 		var preloadArg bool
@@ -1225,7 +1229,7 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 		} else {
 			// Args specific config
 			if a.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(a, spec.BTFPath)
+				lastBTFType, btfArg, err := resolveUserBTFArg(a, userBTFSpec)
 				if err != nil {
 					return err
 				}

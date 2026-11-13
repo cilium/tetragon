@@ -443,6 +443,11 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		return nil, err
 	}
 
+	userBTFSpec, err := loadUserBTFSpec(spec.BTFPath)
+	if err != nil {
+		return nil, err
+	}
+
 	var found bool
 	var preloadArgsCounter int
 
@@ -516,7 +521,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 
 			argType := gt.GenericTypeFromString(arg.Type)
 			if arg.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(&arg, spec.BTFPath)
+				lastBTFType, btfArg, err := resolveUserBTFArg(&arg, userBTFSpec)
 				if err != nil {
 					return ids, err
 				}

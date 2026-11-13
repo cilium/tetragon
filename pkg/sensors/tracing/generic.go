@@ -252,7 +252,7 @@ func hasPtRegsSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "pt_regs"
 }
 
-func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type, spec *ebtf.Spec) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
 	pathBase, err := formatBTFPath(arg.Resolve)
 	if err != nil {
@@ -263,23 +263,37 @@ func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.Max
 		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
 
-	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path)
+	lastBTFType, err := btf.ResolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path, spec)
 	return lastBTFType, btfArg, err
 }
 
-func resolveUserBTFArg(arg *v1alpha1.KProbeArg, btfPath string) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
-	spec, err := ebtf.LoadSpec(btfPath)
-	if err != nil {
-		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
+// resolveUserBTFArg resolves an argument using the user-provided BTF information.
+// Usually, this is used for uprobes where the user provides a BTF file for the
+// target binary, loaded once per spec from btfPath.
+// Also see resolveBTFArg().
+func resolveUserBTFArg(arg *v1alpha1.KProbeArg, userBTFSpec *ebtf.Spec) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+	if userBTFSpec == nil {
+		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, fmt.Errorf("resolve %q requires btfPath to be set", arg.Resolve)
 	}
 
 	var st *ebtf.Struct
-	err = spec.TypeByName(arg.BTFType, &st)
-	if err != nil {
-		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
+	if err := userBTFSpec.TypeByName(arg.BTFType, &st); err != nil {
+		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, fmt.Errorf("failed to find btfType %q in user BTF: %w", arg.BTFType, err)
 	}
-	ty := ebtf.Type(st)
-	return resolveBTFType(arg, ty)
+	return resolveBTFType(arg, ebtf.Type(st), userBTFSpec)
+}
+
+// loadUserBTFSpec loads the BTF file given by btfPath, or returns nil if
+// btfPath is empty.
+func loadUserBTFSpec(btfPath string) (*ebtf.Spec, error) {
+	if btfPath == "" {
+		return nil, nil
+	}
+	spec, err := ebtf.LoadSpec(btfPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load user BTF spec %q: %w", btfPath, err)
+	}
+	return spec, nil
 }
 
 func findBTFTypeStruct(hook string, arg *v1alpha1.KProbeArg) (*ebtf.Struct, error) {
@@ -306,11 +320,23 @@ func findBTFTypeStruct(hook string, arg *v1alpha1.KProbeArg) (*ebtf.Struct, erro
 	return nil, fmt.Errorf("failed to find BTF type %q in kernel BTF or module %q: %w", arg.BTFType, module, errors.Join(err, moduleErr))
 }
 
+// resolveBTFArg resolves an argument using the kernel BTF information.
+// Usually, this is used for kprobes where the kernel provides the BTF information.
+// Also see resolveUserBTFArg().
 func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	// tracepoints have extra first internal argument, so we need to adjust the index
 	index := int(arg.Index)
 	if tp {
 		index++
+	}
+
+	// The kernel BTF is only needed to look up the types named in casts.
+	var spec *ebtf.Spec
+	if strings.Contains(arg.Resolve, "as(") {
+		var err error
+		if spec, err = btf.NewBTF(); err != nil {
+			return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
+		}
 	}
 
 	var ty ebtf.Type
@@ -345,11 +371,7 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 			}
 		}
 	}
-	return resolveBTFType(arg, ty)
-}
-
-func resolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType ebtf.Type, path []string) (*ebtf.Type, error) {
-	return btf.ResolveBTFPath(btfArg, rootType, path, nil)
+	return resolveBTFType(arg, ty, spec)
 }
 
 func findTypeFromBTFType(arg *v1alpha1.KProbeArg, btfType *ebtf.Type) int {
