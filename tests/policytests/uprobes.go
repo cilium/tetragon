@@ -375,6 +375,59 @@ spec:
 	}
 }).RegisterAtInit()
 
+var _ = policytest.NewBuilder("uprobe-resolve-casts").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-resolve-casts"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-resolve" }}
+    btfPath: {{ testBinary "uprobe-resolve.btf" }}
+    symbols:
+    - "func"
+    args:
+    - index: 1
+      type: "uint32"
+      btfType: "mystruct"
+      resolve: "subvoid.as(struct mysubstruct *).v32"
+    - index: 1
+      type: "int32"
+      btfType: "mystruct"
+      resolve: "subvoid.as(struct mysubstruct *).v32.as(int32)"
+    - index: 1
+      type: "uint32"
+      btfType: "mystruct"
+      resolve: "subvoid.as(uint32 *)[3]"
+    - index: 1
+      type: "int32"
+      btfType: "mystruct"
+      resolve: "subvoid.as(uint32 *)[3].as(int32)"
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+		return "need 5.3 or newer kernel"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-resolve")
+	checker := ec.NewProcessUprobeChecker("uprobe-resolve-casts").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("func")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithUintArg(1<<31),
+				ec.NewKprobeArgumentChecker().WithIntArg(-1<<31),
+				ec.NewKprobeArgumentChecker().WithUintArg(1<<31),
+				ec.NewKprobeArgumentChecker().WithIntArg(-1<<31),
+			))
+	return &policytest.Scenario{
+		Name:         "resolve void pointer, indexed and terminal casts",
+		Trigger:      policytest.NewCmdTrigger(bin, "subvoid.as(struct mysubstruct *).v32", "2147483648").ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(checker),
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("uprobe-multiple-targets").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
