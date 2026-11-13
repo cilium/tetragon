@@ -531,6 +531,55 @@ func TestKprobeObjectRead(t *testing.T) {
 	testKprobeObjectRead(t, false)
 }
 
+// TestKprobeObjectReadReturnCopyMaxData checks that maxData does not break
+// the parsing of a returnCopy argument, which is copied on return without it.
+func TestKprobeObjectReadReturnCopyMaxData(t *testing.T) {
+	fd, fd2, fdString := createTestFile(t)
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	readHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-read"
+spec:
+  kprobes:
+  - call: "sys_read"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "char_buf"
+      returnCopy: true
+      maxData: true
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + fdString + `"`
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(100),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeObjectRead(t, readHook, checker, fd, fd2, false)
+}
+
 func testKprobeObjectReadIdxMismatch(t *testing.T, fentry bool) {
 	fd, fd2, fdString := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))

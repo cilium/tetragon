@@ -1247,6 +1247,9 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 		if argType == gt.GenericInvalidType {
 			return fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
+		if a.MaxData {
+			logger.GetLogger().Warn("maxData flag is ignored (not supported for uprobes)")
+		}
 		argMValue, err := getUserMetaValue(a, preloadArg)
 		if err != nil {
 			return err
