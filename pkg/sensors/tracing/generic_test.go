@@ -114,6 +114,84 @@ func TestFormatBTFPath(t *testing.T) {
 			want:    []string{},
 			wantErr: true,
 		},
+		{
+			name:    "cast at start",
+			input:   "as(char **).field",
+			want:    []string{"as(char **)", "field"},
+			wantErr: false,
+		},
+		{
+			name:    "cast at end",
+			input:   "field.as(struct task_struct *)",
+			want:    []string{"field", "as(struct task_struct *)"},
+			wantErr: false,
+		},
+		{
+			name:    "cast followed by index",
+			input:   "field.as(char *)[16]",
+			want:    []string{"field", "as(char *)", "[16]"},
+			wantErr: false,
+		},
+		{
+			name:    "multiple casts",
+			input:   "field.as(char *)[8].as(struct task_struct *).comm",
+			want:    []string{"field", "as(char *)", "[8]", "as(struct task_struct *)", "comm"},
+			wantErr: false,
+		},
+		{
+			name:    "empty cast",
+			input:   "as()",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "unclosed cast",
+			input:   "as(char *",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "identifier after cast",
+			input:   "as(char *)field",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "junk after cast",
+			input:   "field.as(char *)junk",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "unbalanced cast parenthesis",
+			input:   "field.as(char *))",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "parenthesis in cast type",
+			input:   "field.as(int (*)(void))",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "cast without as",
+			input:   "field.(char *)",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "consecutive casts at end",
+			input:   "field.as(char *).as(int32 *)",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "consecutive casts at start",
+			input:   "as(char *).as(int32 *).field",
+			want:    []string{},
+			wantErr: true,
+		},
 	}
 
 	for _, test := range tests {
@@ -127,6 +205,12 @@ func TestFormatBTFPath(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBTFPathDepthDoesNotCountCasts(t *testing.T) {
+	path, err := formatBTFPath("field.as(char *)[8].as(struct task_struct *).comm")
+	require.NoError(t, err)
+	assert.Equal(t, 3, btfPathDepth(path))
 }
 
 // This test attempt to test the Resolve flag in tracing policies.

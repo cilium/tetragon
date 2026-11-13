@@ -106,9 +106,12 @@ func getHeapMaps(prefix string, size, userSize int, load ...*program.Program) []
 	return maps
 }
 
-// Takes arg.Resolve as input and return the path in []string
-// Input   : my.super.field[123].my.sub.field
-// Output  : []string{"my", "super", "field", "[123]", "my", "sub", "field"}
+// formatBTFPath parses resolvePath into a token slice for the BTF resolver.
+//
+// Example:
+//
+//	input:  "my.super.field.as(char *)[123].as(struct my_struct *).sub.field"
+//	output: []string{"my", "super", "field", "as(char *)", "[123]", "as(struct my_struct *)", "sub", "field"}
 func formatBTFPath(resolvePath string) ([]string, error) {
 	var pathToFind []string
 
@@ -120,11 +123,30 @@ func formatBTFPath(resolvePath string) ([]string, error) {
 			return nil, fmt.Errorf("invalid resolve path %q: dot before '['", resolvePath)
 		}
 
-		tokens, err := parseIdentAndIndexes(step)
+		var head, rest string
+		var err error
+		if strings.HasPrefix(step, "as(") {
+			head, rest, err = parseCast(step)
+		} else {
+			head, rest, err = parseIdent(step)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("invalid resolve path %q: %w", resolvePath, err)
 		}
-		pathToFind = append(pathToFind, tokens...)
+		indexes, err := parseIndexes(rest)
+		if err != nil {
+			return nil, fmt.Errorf("invalid resolve path %q: %w", resolvePath, err)
+		}
+
+		// A cast only reinterprets the location reached so far. A second cast
+		// right after it would silently discard the first one.
+		if len(pathToFind) > 0 && strings.HasPrefix(pathToFind[len(pathToFind)-1], "as(") && strings.HasPrefix(head, "as(") {
+			return nil, fmt.Errorf("invalid resolve path %q: a cast cannot directly follow another cast", resolvePath)
+		}
+		if head != "" {
+			pathToFind = append(pathToFind, head)
+		}
+		pathToFind = append(pathToFind, indexes...)
 	}
 
 	return pathToFind, nil
@@ -154,26 +176,41 @@ func parseIndexes(s string) ([]string, error) {
 	return tokens, nil
 }
 
-// parseIdentAndIndexes parses an optional identifier followed by optional "[N]"
-// indexes, e.g. "field[0][1]" → ["field", "[0]", "[1]"] or "[0]" → ["[0]"].
-func parseIdentAndIndexes(s string) ([]string, error) {
-	ident, indexes := s, ""
+// parseIdent parses an optional identifier at the start of s, e.g.
+// "field[0][1]" → ("field", "[0][1]") or "[0]" → ("", "[0]").
+func parseIdent(s string) (ident, rest string, err error) {
+	ident, rest = s, ""
 	if i := strings.IndexByte(s, '['); i >= 0 {
-		ident, indexes = s[:i], s[i:]
+		ident, rest = s[:i], s[i:]
 	}
 
 	if strings.ContainsAny(ident, "()[]") {
-		return nil, fmt.Errorf("invalid identifier: %q", ident)
+		return "", "", fmt.Errorf("invalid identifier: %q", ident)
+	}
+	return ident, rest, nil
+}
+
+// parseCast parses the as(type) operation at the start of s, e.g.
+// "as(char *)[16]" → ("as(char *)", "[16]").
+func parseCast(s string) (cast, rest string, err error) {
+	if !strings.HasPrefix(s, "as(") {
+		return "", "", fmt.Errorf("invalid cast %q: expected as(type)", s)
 	}
 
-	tokens, err := parseIndexes(indexes)
-	if err != nil {
-		return nil, err
+	// Type expressions never contain parentheses, so the first ')' closes
+	// the cast.
+	typeExpr, rest, found := strings.Cut(s[len("as("):], ")")
+	if !found {
+		return "", "", fmt.Errorf("unclosed cast: %q", s)
 	}
-	if ident == "" {
-		return tokens, nil
+	if strings.ContainsAny(typeExpr, "()") {
+		return "", "", fmt.Errorf("invalid cast type: %q", typeExpr)
 	}
-	return append([]string{ident}, tokens...), nil
+	typeExpr = strings.TrimSpace(typeExpr)
+	if typeExpr == "" {
+		return "", "", errors.New("empty cast type")
+	}
+	return "as(" + typeExpr + ")", rest, nil
 }
 
 // First argument is added to enforce the method to be called on a pointer type
@@ -195,6 +232,18 @@ func addPaddingOnNestedPtr(ty ebtf.Type, path []string) []string {
 	return path
 }
 
+// btfPathDepth returns the number of path elements that take a BTFArg slot.
+// Casts are resolved at load time and take none.
+func btfPathDepth(path []string) int {
+	depth := 0
+	for _, step := range path {
+		if !strings.HasPrefix(step, "as(") {
+			depth++
+		}
+	}
+	return depth
+}
+
 func hasCurrentTaskSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "current_task"
 }
@@ -210,7 +259,7 @@ func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.Max
 		return nil, btfArg, err
 	}
 	path := addPaddingOnNestedPtr(ty, pathBase)
-	if len(path) > api.MaxBTFArgDepth {
+	if btfPathDepth(path) > api.MaxBTFArgDepth {
 		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
 
