@@ -428,6 +428,46 @@ spec:
 	}
 }).RegisterAtInit()
 
+var _ = policytest.NewBuilder("uprobe-resolve-stack-cast").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-resolve-stack-cast"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-stack" }}
+    symbols:
+    - "uprobe_stack_probe"
+    data:
+    - index: 0
+      type: "uint64"
+      source: "pt_regs"
+      # *sp is &ms, ms.sub is its first member, and sub->arr[8] is the 10th
+      # uint64 of struct mysubstruct.
+      resolve: "sp.as(uint64 ***)[0][0][9]"
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if runtime.GOARCH != "amd64" && runtime.GOARCH != "arm64" {
+		return "uprobe-stack only has a probe point on amd64 and arm64"
+	}
+	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+		return "need 5.3 or newer kernel"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("uprobe-stack")
+	checker := ec.NewProcessUprobeChecker("uprobe-resolve-stack-cast").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("uprobe_stack_probe")).
+		WithData(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(ec.NewKprobeArgumentChecker().WithSizeArg(1337)))
+	return &policytest.Scenario{
+		Name:         "read a value through pointers stored on the stack",
+		Trigger:      policytest.NewCmdTrigger(bin, "1337").ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(checker),
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("uprobe-multiple-targets").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy

@@ -60,3 +60,4 @@ null-mount
 resolve-nested-anon-struct
 resolve-nested-anon-struct.btf
 cel-regs-override
+uprobe-stack
