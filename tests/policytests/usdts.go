@@ -14,6 +14,63 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 )
 
+var _ = policytest.NewBuilder("usdt-resolve-casts").WithLabels("usdt").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdt-resolve-casts"
+spec:
+  usdts:
+  - path: {{ testBinary "usdt-resolve" }}
+    btfPath: {{ testBinary "usdt-resolve.btf" }}
+    provider: "tetragon"
+    name: "test"
+    args:
+    - index: 1
+      type: "uint32"
+      btfType: "mystruct"
+      resolve: "sub.as(struct mysubstruct).v32"
+    - index: 1
+      type: "int32"
+      btfType: "mystruct"
+      resolve: "sub.v32.as(int32)"
+    - index: 1
+      type: "uint32"
+      btfType: "mystruct"
+      resolve: "sub.as(uint32[4])[3]"
+    - index: 1
+      type: "int32"
+      btfType: "mystruct"
+      resolve: "sub.as(uint32[4])[3].as(int32)"
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+		return "need 5.3 or newer kernel"
+	}
+	if !si.AgentInfo.Probes[bpf.UprobeRefCtrOffsetProbe] {
+		return "need uprobe ref_ctr_off support"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("usdt-resolve")
+	checker := ec.NewProcessUsdtChecker("usdt-resolve-casts").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(bin))).
+		WithProvider(sm.Full("tetragon")).
+		WithName(sm.Full("test")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithUintArg(1<<31),
+				ec.NewKprobeArgumentChecker().WithIntArg(-1<<31),
+				ec.NewKprobeArgumentChecker().WithUintArg(1<<31),
+				ec.NewKprobeArgumentChecker().WithIntArg(-1<<31),
+			))
+	return &policytest.Scenario{
+		Name:         "resolve struct, indexed and terminal casts",
+		Trigger:      policytest.NewCmdTrigger(bin, "sub.v32", "2147483648").ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(checker),
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("usdt-set").WithLabels("usdt").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
