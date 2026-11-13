@@ -13,6 +13,7 @@ import (
 	"path"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -28,6 +29,8 @@ import (
 
 var (
 	btfFile string
+
+	errNotACast = errors.New("not a cast")
 )
 
 func btfFileExists(file string) error {
@@ -302,8 +305,9 @@ func ResolveBTFPath(
 	}
 
 	resolver := btfResolver{
-		btfArgs:    btfArgs,
-		pathToFind: pathToFind,
+		btfArgs: btfArgs,
+		// parseBTFTypeCast removes cast tokens in place, so work on a copy.
+		pathToFind: slices.Clone(pathToFind),
 		spec:       spec,
 	}
 	return resolver.resolve(currentType, 0)
@@ -314,6 +318,26 @@ func (r *btfResolver) resolve(
 	i int,
 ) (*btf.Type, error) {
 	currentType = ResolveNestedTypes(currentType)
+	if castType, err := r.parseBTFTypeCast(i); !errors.Is(err, errNotACast) {
+		if err != nil {
+			return nil, err
+		}
+		if i == len(r.pathToFind) {
+			castType = ResolveNestedTypes(castType)
+			if i == 0 {
+				return &castType, nil
+			}
+			switch t := castType.(type) {
+			case *btf.Pointer:
+				r.btfArgs[i-1].IsPointer = uint16(1)
+				castType = t.Target
+			case *btf.Int, *btf.Enum:
+				r.btfArgs[i-1].IsPointer = uint16(1)
+			}
+			return &castType, nil
+		}
+		return r.resolve(castType, i)
+	}
 	switch t := currentType.(type) {
 	case *btf.Struct:
 		return r.processMembers(currentType, t.Members, i)
@@ -434,4 +458,32 @@ func (r *btfResolver) processArray(
 		r.btfArgs[i].IsPointer = uint16(1)
 	}
 	return &targetType, nil
+}
+
+func (r *btfResolver) parseBTFTypeCast(i int) (btf.Type, error) {
+	pathElem := r.pathToFind[i]
+
+	if !strings.HasPrefix(pathElem, "as(") {
+		if strings.ContainsAny(pathElem, "()") {
+			return nil, fmt.Errorf("invalid BTF type cast %q (must be: \"as(type)\")", pathElem)
+		}
+		return nil, errNotACast
+	}
+	if !strings.HasSuffix(pathElem, ")") {
+		return nil, fmt.Errorf("invalid BTF type cast %q (must be: \"as(type)\")", pathElem)
+	}
+
+	typeExpr := strings.TrimSpace(pathElem[3 : len(pathElem)-1])
+	if typeExpr == "" {
+		return nil, errors.New("empty BTF type cast")
+	}
+
+	ty, err := ParseBTFType(r.spec, typeExpr)
+	if err != nil {
+		return nil, err
+	}
+
+	r.pathToFind = append(r.pathToFind[:i], r.pathToFind[i+1:]...)
+
+	return ty, nil
 }

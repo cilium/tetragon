@@ -681,6 +681,148 @@ func TestParseArrayIdxStr(t *testing.T) {
 	}
 }
 
+func TestParseBTFTypeCast(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantErr  bool
+		wantCast bool
+	}{
+		{
+			name:     "Valid cast - char pointer",
+			input:    "as(char*)",
+			wantCast: true,
+		},
+		{
+			name:     "Valid cast - pointer to char array",
+			input:    "as(char*[64])",
+			wantCast: true,
+		},
+		{
+			name:  "Not a cast",
+			input: "field",
+		},
+		{
+			name:    "Invalid format - trailing token",
+			input:   "as(char*)junk",
+			wantErr: true,
+		},
+		{
+			name:    "Invalid type name",
+			input:   "as(-_char*)",
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - legacy cast",
+			input:   "(char*)",
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - unclosed cast",
+			input:   "as(char*",
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - empty cast",
+			input:   "as()",
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - blank cast",
+			input:   "as( )",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Every cast here uses a primitive type, which needs no spec.
+			resolver := btfResolver{pathToFind: []string{tt.input}}
+
+			_, err := resolver.parseBTFTypeCast(0)
+
+			switch {
+			case tt.wantErr:
+				require.Error(t, err)
+				require.NotErrorIs(t, err, errNotACast)
+			case tt.wantCast:
+				require.NoError(t, err)
+				assert.Empty(t, resolver.pathToFind)
+			default:
+				require.ErrorIs(t, err, errNotACast)
+			}
+		})
+	}
+}
+
+func TestResolveBTFPathCasts(t *testing.T) {
+	target := &btf.Struct{
+		Name: "target",
+		Size: 8,
+		Members: []btf.Member{
+			{Name: "value", Type: &btf.Int{Name: "int", Size: 4, Encoding: btf.Signed}, Offset: btf.Bits(32)},
+		},
+	}
+	root := &btf.Struct{
+		Name: "root",
+		Size: 16,
+		Members: []btf.Member{
+			{Name: "value", Type: &btf.Int{Name: "int", Size: 4, Encoding: btf.Signed}},
+			{Name: "payload", Type: &btf.Pointer{Target: &btf.Void{}}, Offset: btf.Bits(64)},
+		},
+	}
+	spec := specFromBTFTypes(t, []btf.Type{target})
+
+	tests := []struct {
+		name     string
+		path     []string
+		wantType string
+		wantArgs []api.ConfigBTFArg
+	}{
+		{
+			name:     "struct cast then field",
+			path:     []string{"payload", "as(struct target *)", "value"},
+			wantType: "int",
+			wantArgs: []api.ConfigBTFArg{
+				{Offset: 8, IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			// The index uses the element size of the cast type: 2 * 4 bytes.
+			name:     "pointer cast then index",
+			path:     []string{"payload", "as(int32 *)", "[2]"},
+			wantType: "int32",
+			wantArgs: []api.ConfigBTFArg{
+				{Offset: 8, IsPointer: 1, IsInitialized: 1},
+				{Offset: 8, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			// A trailing cast only changes the reported type.
+			name:     "terminal cast",
+			path:     []string{"value", "as(uint32)"},
+			wantType: "uint32",
+			wantArgs: []api.ConfigBTFArg{
+				{IsPointer: 1, IsInitialized: 1},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var btfArgs, wantArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+			copy(wantArgs[:], tt.wantArgs)
+
+			ty, err := ResolveBTFPath(&btfArgs, root, tt.path, spec)
+			require.NoError(t, err)
+			require.NotNil(t, ty)
+			assert.Equal(t, tt.wantType, (*ty).TypeName())
+			assert.Equal(t, wantArgs, btfArgs)
+		})
+	}
+}
+
 func TestResolveBTFPathZeroLengthArray(t *testing.T) {
 	u8Ty := &btf.Int{Name: "unsigned char", Size: 1}
 	root := &btf.Struct{
