@@ -58,7 +58,7 @@ var (
 )
 
 type genericUsdt struct {
-	tableId idtable.EntryID
+	tableID idtable.EntryID
 	config  *api.EventConfig
 	path    string
 	target  *elf.UsdtTarget
@@ -75,7 +75,7 @@ type genericUsdt struct {
 }
 
 func (g *genericUsdt) SetID(id idtable.EntryID) {
-	g.tableId = id
+	g.tableID = id
 }
 
 func (g *genericUsdt) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
@@ -329,7 +329,7 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 
 	attachData := &program.UprobeAttachData{
 		Path:         usdtEntry.path,
-		Address:      usdtEntry.target.IpRel,
+		Address:      usdtEntry.target.IPRel,
 		RefCtrOffset: usdtEntry.target.SemaOff,
 	}
 
@@ -337,7 +337,7 @@ func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("%s %s %s", usdtEntry.path, usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name),
 		"uprobe/generic_usdt",
-		fmt.Sprintf("%s_%s_%d", usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name, usdtEntry.tableId.ID),
+		fmt.Sprintf("%s_%s_%d", usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name, usdtEntry.tableID.ID),
 		"generic_usdt").
 		SetAttachData(attachData).
 		SetLoaderData(usdtEntry).
@@ -422,7 +422,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 			"policy-name", in.policyName)
 	}
 
-	if selectors.HasGetUrlOrDnsLookup(spec.Selectors) {
+	if selectors.HasGetURLOrDNSLookup(spec.Selectors) {
 		return ids, fmt.Errorf("failed to configure usdt '%s/%s', GetUrl and DnsLookup actions not supported", spec.Provider, spec.Name)
 	}
 
@@ -555,7 +555,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 		config.BTFArg = allBTFArgs
 
 		usdtEntry := &genericUsdt{
-			tableId:     idtable.UninitializedEntryID,
+			tableID:     idtable.UninitializedEntryID,
 			config:      config,
 			path:        spec.Path,
 			target:      target,
@@ -568,8 +568,8 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 
 		usdtTable.AddEntry(usdtEntry)
 
-		id := usdtEntry.tableId
-		config.FuncId = uint32(id.ID)
+		id := usdtEntry.tableID
+		config.FuncID = uint32(id.ID)
 
 		ids = append(ids, id)
 	}
@@ -678,7 +678,7 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 			attach = &program.MultiUprobeAttachSymbolsCookies{}
 		}
 
-		attach.Addresses = append(attach.Addresses, usdtEntry.target.IpRel)
+		attach.Addresses = append(attach.Addresses, usdtEntry.target.IPRel)
 		attach.RefCtrOffsets = append(attach.RefCtrOffsets, usdtEntry.target.SemaOff)
 		attach.Cookies = append(attach.Cookies, uint64(index))
 
@@ -705,9 +705,9 @@ func handleGenericUsdt(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, errors.New("failed to read process call msg")
 	}
 
-	uprobeUsdt, err := genericUsdtTableGet(idtable.EntryID{ID: int(m.FuncId)})
+	uprobeUsdt, err := genericUsdtTableGet(idtable.EntryID{ID: int(m.FuncID)})
 	if err != nil {
-		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncId), logfields.Error, err)
+		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncID), logfields.Error, err)
 		return nil, errors.New("failed to match id")
 	}
 

@@ -111,7 +111,7 @@ spec:
 		WithCaps(myECaps).
 		WithUserNs(myUserns)
 
-	kpChangeUidChecker := ec.NewProcessKprobeChecker("").
+	kpChangeUIDChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("commit_creds")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -174,8 +174,8 @@ spec:
 		t.Fatalf("setgid(0) error: %s", err)
 	}
 
-	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUidChecker, kpPrivilegedChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUIDChecker, kpPrivilegedChecker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -265,7 +265,7 @@ spec:
 		WithCaps(myECaps).
 		WithUserNs(myUserns)
 
-	kpChangeUidChecker := ec.NewProcessKprobeChecker("").
+	kpChangeUIDChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("commit_creds")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -336,8 +336,8 @@ spec:
 		t.Fatalf("setgid(0) error: %s", err)
 	}
 
-	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUidChecker, kpPrivilegedChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUIDChecker, kpPrivilegedChecker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -445,7 +445,7 @@ spec:
 		WithBinary(sm.Full(testDrop)).
 		WithProcessCredentials(cachedTetragonCreds)
 
-	kpCurrentUid := ec.NewProcessKprobeChecker("").
+	kpCurrentUID := ec.NewProcessKprobeChecker("").
 		WithProcess(processChecker).
 		WithFunctionName(sm.Full("security_bprm_committed_creds")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
@@ -466,8 +466,8 @@ spec:
 		t.Fatalf("setgid(0) error: %s", err)
 	}
 
-	checker := ec.NewUnorderedEventChecker(kpCurrentUid)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	checker := ec.NewUnorderedEventChecker(kpCurrentUID)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -552,7 +552,7 @@ spec:
 		WithBinary(sm.Full(testDrop)).
 		WithProcessCredentials(cachedTetragonCreds)
 
-	kpCurrentUid := ec.NewProcessKprobeChecker("").
+	kpCurrentUID := ec.NewProcessKprobeChecker("").
 		WithProcess(processChecker).
 		WithFunctionName(sm.Full("security_bprm_committed_creds")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
@@ -572,8 +572,8 @@ spec:
 		t.Fatalf("setgid(0) error: %s", err)
 	}
 
-	checker := ec.NewUnorderedEventChecker(kpCurrentUid)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	checker := ec.NewUnorderedEventChecker(kpCurrentUID)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -664,7 +664,7 @@ spec:
 		WithBinary(sm.Full(testDrop)).
 		WithProcessCredentials(cachedTetragonCreds)
 
-	kpCurrentUid := ec.NewProcessKprobeChecker("").
+	kpCurrentUID := ec.NewProcessKprobeChecker("").
 		WithProcess(processChecker).
 		WithFunctionName(sm.Full("security_bprm_committed_creds")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
@@ -684,8 +684,8 @@ spec:
 		t.Fatalf("setgid(0) error: %s", err)
 	}
 
-	checker := ec.NewUnorderedEventChecker(kpCurrentUid)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	checker := ec.NewUnorderedEventChecker(kpCurrentUID)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -779,7 +779,7 @@ spec:
 		WithBinary(sm.Full(testDrop)).
 		WithProcessCredentials(cachedTetragonCreds)
 
-	kpCurrentUid := ec.NewProcessKprobeChecker("").
+	kpCurrentUID := ec.NewProcessKprobeChecker("").
 		WithProcess(processChecker).
 		WithFunctionName(sm.Full("security_bprm_committed_creds")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
@@ -799,7 +799,7 @@ spec:
 		t.Fatalf("setgid(0) error: %s", err)
 	}
 
-	checker := ec.NewUnorderedEventChecker(kpCurrentUid)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	checker := ec.NewUnorderedEventChecker(kpCurrentUID)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }

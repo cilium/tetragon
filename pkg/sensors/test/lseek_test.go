@@ -56,7 +56,7 @@ func TestSensorLseekLoad(t *testing.T) {
 	readyWG.Wait()
 	unix.Seek(BogusFd, 0, BogusWhenceVal)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -89,6 +89,6 @@ func TestSensorLseekEnable(t *testing.T) {
 	readyWG.Wait()
 	unix.Seek(BogusFd, 0, BogusWhenceVal)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
