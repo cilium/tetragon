@@ -947,6 +947,54 @@ fails to load the policy.
 If `btfTypeModule` is omitted, Tetragon searches the main kernel BTF first. For
 hooks that belong to a loaded module, Tetragon also tries that hook's module BTF.
 
+#### Type casts
+
+A `resolve` path can contain `as(type)` casts. A cast reinterprets the location
+reached so far as `type`, and resolution continues from that type. This is what
+makes an untyped pointer usable: a `void *` field says nothing about what it
+points to, but the policy author may know which structure is stored there at
+runtime.
+
+```yaml
+args:
+- index: 1
+  type: "uint32"
+  btfType: "mystruct"
+  resolve: "subvoid.as(struct mysubstruct *).v32"
+```
+
+This reads `subvoid` as a `struct mysubstruct *` and reports its `v32` field.
+A pointer cast followed by an index reads an array element, e.g.
+`buffer.as(char *)[12]`, and casts can be chained, e.g.
+`field.as(char *)[8].as(struct task_struct *).comm`.
+
+`type` is one of the following, optionally with `*` and `[N]` modifiers:
+- a primitive: `bool`, `char`, `int8`, `uint8`, `int16`, `uint16`, `int32`,
+  `uint32`, `int64` or `uint64`,
+- a typedef name,
+- a BTF type prefixed by its kind: `struct task_struct`, `union foo` or
+  `enum bar`.
+
+{{< note >}}
+Primitive types need no BTF. Other type names used in casts are looked up in:
+- `btfPath`, for the arguments of uprobes and USDT probes and for `pt_regs` in
+  uprobes,
+- the kernel BTF, for everything else, including `current_task` data.
+{{< /note >}}
+
+Casts also make `pt_regs`
+[data](/docs/concepts/tracing-policy/selectors/#data-filter) resolvable. A register holds no type information, so a path that reads through
+it must start with a cast to a pointer type, followed by the field or index to
+read:
+
+```yaml
+data:
+- index: 0
+  type: "uint32"
+  source: "pt_regs"
+  resolve: "rdi.as(struct file *).f_flags"
+```
+
 ## Data
 
 Kprobes allow definition of `data` fields and following `matchData` selector
