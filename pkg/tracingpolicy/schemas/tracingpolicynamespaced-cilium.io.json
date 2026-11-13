@@ -99,7 +99,7 @@
                 "items": {
                   "properties": {
                     "btfType": {
-                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                       "type": "string"
                     },
                     "btfTypeModule": {
@@ -224,7 +224,7 @@
                 "items": {
                   "properties": {
                     "btfType": {
-                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                       "type": "string"
                     },
                     "btfTypeModule": {
@@ -364,7 +364,7 @@
                 "description": "A return argument to include in the trace output.",
                 "properties": {
                   "btfType": {
-                    "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                    "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                     "type": "string"
                   },
                   "btfTypeModule": {
@@ -1732,7 +1732,7 @@
                 "items": {
                   "properties": {
                     "btfType": {
-                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                       "type": "string"
                     },
                     "btfTypeModule": {
@@ -1857,7 +1857,7 @@
                 "items": {
                   "properties": {
                     "btfType": {
-                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                       "type": "string"
                     },
                     "btfTypeModule": {
@@ -1997,7 +1997,7 @@
                 "description": "A return argument to include in the trace output.",
                 "properties": {
                   "btfType": {
-                    "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                    "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                     "type": "string"
                   },
                   "btfTypeModule": {
@@ -3348,7 +3348,7 @@
                 "items": {
                   "properties": {
                     "btfType": {
-                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                       "type": "string"
                     },
                     "btfTypeModule": {
@@ -5959,7 +5959,7 @@
                 "items": {
                   "properties": {
                     "btfType": {
-                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                       "type": "string"
                     },
                     "btfTypeModule": {
@@ -7279,7 +7279,7 @@
                 "items": {
                   "properties": {
                     "btfType": {
-                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                       "type": "string"
                     },
                     "btfTypeModule": {
@@ -7411,7 +7411,7 @@
                 "items": {
                   "properties": {
                     "btfType": {
-                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                       "type": "string"
                     },
                     "btfTypeModule": {
@@ -7571,7 +7571,7 @@
                 "description": "A return argument to include in the trace output.",
                 "properties": {
                   "btfType": {
-                    "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                    "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                     "type": "string"
                   },
                   "btfTypeModule": {
@@ -8879,7 +8879,7 @@
                 "items": {
                   "properties": {
                     "btfType": {
-                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.",
+                      "description": "Type to use as the initial resolve type. For kprobe args it looks up the named struct\nfrom the kernel BTF, casting the argument's type before traversing the resolve path.\nFor UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,\nwhich is required to resolve their arguments.",
                       "type": "string"
                     },
                     "btfTypeModule": {

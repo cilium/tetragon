@@ -121,7 +121,8 @@ type KProbeArg struct {
 	// +kubebuilder:validation:Optional
 	// Type to use as the initial resolve type. For kprobe args it looks up the named struct
 	// from the kernel BTF, casting the argument's type before traversing the resolve path.
-	// For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath.
+	// For UprobeSpecs and UsdtSpecs it looks up the type from the BTF file defined by BTFPath,
+	// which is required to resolve their arguments.
 	BTFType string `json:"btfType,omitempty"`
 	// +kubebuilder:validation:Optional
 	// Kernel module that contains the BTFType. This is used only for kprobe args.
