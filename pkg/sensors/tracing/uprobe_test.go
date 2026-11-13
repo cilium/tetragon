@@ -1626,6 +1626,17 @@ func TestLookupStackTraces(t *testing.T) {
 			wantKernel:        trace,
 		},
 		{
+			name: "shared kernel and user stack ID",
+			msg: api.MsgGenericKprobe{
+				Common: processapi.MsgCommon{Flags: processapi.MSG_COMMON_FLAG_KERNEL_STACKTRACE | processapi.MSG_COMMON_FLAG_USER_STACKTRACE},
+			},
+			data:              data,
+			kernelDestination: true,
+			userDestination:   true,
+			wantKernel:        trace,
+			wantUser:          trace,
+		},
+		{
 			name: "unsupported kernel destination",
 			msg: api.MsgGenericKprobe{
 				Common:        processapi.MsgCommon{Flags: processapi.MSG_COMMON_FLAG_KERNEL_STACKTRACE},
@@ -1662,6 +1673,10 @@ func TestLookupStackTraces(t *testing.T) {
 			}
 
 			lookupStackTraces(&test.msg, test.data, destinations, logAttrs)
+
+			var leftover [constants.PERF_MAX_STACK_DEPTH]uint64
+			wantDeleted := test.wantKernel != leftover || test.wantUser != leftover
+			assert.Equal(t, wantDeleted, stackMap.Lookup(uint32(0), &leftover) != nil, "stack_trace_map entry deleted")
 
 			assert.Equal(t, test.wantKernel, kernelDestination)
 			assert.Equal(t, test.wantUser, userDestination)
