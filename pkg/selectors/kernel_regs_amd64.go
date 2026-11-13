@@ -16,6 +16,10 @@ import (
 
 const ArgsInRegisters = 6 // Number of arguments passed by register per System V AMD64 ABI
 
+const overrideIPReg = "rip"
+
+var defaultOverrideRegs = []string{"rax", "rip", "rsp"}
+
 var argIndexRegisters = [ArgsInRegisters]string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 
 func ArgIndexRegister(argIndex uint32) string {

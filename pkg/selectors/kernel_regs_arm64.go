@@ -16,6 +16,10 @@ import (
 
 const ArgsInRegisters = 8 // Number of arguments passed by register per AArch64 ABI
 
+const overrideIPReg = "pc"
+
+var defaultOverrideRegs = []string{"x0", "pc"}
+
 func ArgIndexRegister(argIndex uint32) string {
 	return fmt.Sprintf("x%d", argIndex)
 }
