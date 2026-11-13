@@ -6,12 +6,16 @@
 package tracing
 
 import (
+	"runtime"
 	"testing"
 
+	ebtf "github.com/cilium/ebpf/btf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/btf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -372,6 +376,41 @@ func TestResolveBTFArgWithBTFTypeModule(t *testing.T) {
 
 	_, _, err := resolveBTFArg("security_socket_connect", &arg, false)
 	require.ErrorContains(t, err, `failed to find BTF type "sockaddr_un" in module "tetragon_test_module_that_does_not_exist"`)
+}
+
+// TestResolvePtRegsArgKernelBTFCast checks that a register cast can name a
+// kernel type when given the kernel BTF, as kprobes do.
+func TestResolvePtRegsArgKernelBTFCast(t *testing.T) {
+	if !bpf.HasProgramLargeSize() {
+		t.Skip("need large BPF programs")
+	}
+
+	reg := "rdi"
+	if runtime.GOARCH == "arm64" {
+		reg = "x0"
+	}
+
+	spec, err := btf.NewBTF()
+	require.NoError(t, err)
+	var task *ebtf.Struct
+	require.NoError(t, spec.TypeByName("task_struct", &task))
+	var pid *ebtf.Member
+	for i := range task.Members {
+		if task.Members[i].Name == "pid" {
+			pid = &task.Members[i]
+		}
+	}
+	require.NotNil(t, pid, "task_struct has no direct pid member")
+
+	_, btfArg, hasBTFArg, err := resolvePtRegsArg(reg+".as(struct task_struct *).pid", spec)
+	require.NoError(t, err)
+	require.True(t, hasBTFArg)
+	require.Equal(t, [api.MaxBTFArgDepth]api.ConfigBTFArg{
+		{Offset: pid.Offset.Bytes(), IsPointer: 1, IsInitialized: 1},
+	}, btfArg)
+
+	_, _, _, err = resolvePtRegsArg(reg+".as(struct task_struct *).pid", nil)
+	require.ErrorContains(t, err, "no BTF spec provided")
 }
 
 func TestAppendMacrosSelectors(t *testing.T) {

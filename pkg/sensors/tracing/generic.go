@@ -15,6 +15,8 @@ import (
 	ebtf "github.com/cilium/ebpf/btf"
 
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/asm"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	conf "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/constants"
@@ -250,6 +252,67 @@ func hasCurrentTaskSource(arg *v1alpha1.KProbeArg) bool {
 
 func hasPtRegsSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "pt_regs"
+}
+
+func resolvePtRegsArg(resolve string, spec *ebtf.Spec) (api.ConfigRegArg, [api.MaxBTFArgDepth]api.ConfigBTFArg, bool, error) {
+	var (
+		regArg api.ConfigRegArg
+		btfArg [api.MaxBTFArgDepth]api.ConfigBTFArg
+	)
+
+	path, err := formatBTFPath(resolve)
+	if err != nil {
+		return regArg, btfArg, false, err
+	}
+	if len(path) == 0 {
+		return regArg, btfArg, false, errors.New("empty register argument resolve path")
+	}
+
+	var ok bool
+	regArg.Offset, regArg.Size, ok = asm.RegOffsetSize(path[0])
+	if !ok {
+		return regArg, btfArg, false, fmt.Errorf("failed to retrieve register argument %q", resolve)
+	}
+
+	reg := path[0]
+	path = path[1:]
+	if len(path) == 0 {
+		return regArg, btfArg, false, nil
+	}
+	// The register value is used as an address, which needs all 64 bits.
+	if regArg.Size != 8 {
+		return regArg, btfArg, false, fmt.Errorf("invalid resolve path %q: register %q is %d bytes wide, only 64-bit registers can be resolved through", resolve, reg, regArg.Size)
+	}
+
+	// A register holds no type information, so the path must start by
+	// casting it to a pointer.
+	if !strings.HasPrefix(path[0], "as(") {
+		return regArg, btfArg, false, fmt.Errorf("invalid resolve path %q: a register must be cast to a pointer type before it is resolved, e.g. %s.as(uint64 *)[0]", resolve, reg)
+	}
+	castType, err := btf.ParseBTFType(spec, strings.TrimSuffix(strings.TrimPrefix(path[0], "as("), ")"))
+	if err != nil {
+		return regArg, btfArg, false, fmt.Errorf("failed to resolve pt_regs path %q: %w", resolve, err)
+	}
+	ptr, ok := btf.ResolveNestedTypes(castType).(*ebtf.Pointer)
+	if !ok {
+		return regArg, btfArg, false, fmt.Errorf("invalid resolve path %q: a register can only be cast to a pointer type", resolve)
+	}
+	path = path[1:]
+	if len(path) == 0 {
+		// The register already holds the value: a cast with nothing after it
+		// would neither dereference nor change what is reported.
+		return regArg, btfArg, false, fmt.Errorf("invalid resolve path %q: a cast on a register must be followed by a field or an index, e.g. %s[0]", resolve, resolve)
+	}
+
+	if !bpf.HasProgramLargeSize() {
+		return regArg, btfArg, false, errors.New("resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
+	}
+
+	_, btfArg, err = resolveBTFPathFromRoot(resolve, ptr, path, spec)
+	if err != nil {
+		return regArg, btfArg, false, fmt.Errorf("failed to resolve pt_regs path %q: %w", resolve, err)
+	}
+	return regArg, btfArg, true, nil
 }
 
 func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type, spec *ebtf.Spec) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
