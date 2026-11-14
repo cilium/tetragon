@@ -13,6 +13,7 @@ import (
 	cfg "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
@@ -152,9 +153,6 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 			// all process event programs
 			{Name: "tcpmon_map", Progs: []uint{0, 1, 2}},
 
-			// exit and fork
-			{Name: "execve_map_stats", Progs: []uint{1, 2}},
-
 			// event_wake_up_new_task
 			{Name: "execve_val", Progs: []uint{2}},
 
@@ -201,8 +199,21 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 	}
 
 	if cfg.EnableLargeProgs() {
-		// all programs
-		baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4}})
+		if base.BPFProcScanEnabled() {
+			// 5: proc_scan
+			baseProgs = append(baseProgs, SensorProg{Name: "proc_scan", Type: ebpf.Syscall})
+			baseMaps = append(baseMaps, SensorMap{Name: "tg_proc_scan_map", Progs: []uint{5}})
+
+			// all programs
+			baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 5}})
+			// exit, fork and proc_scan
+			baseMaps = append(baseMaps, SensorMap{Name: "execve_map_stats", Progs: []uint{1, 2, 5}})
+		} else {
+			// all programs
+			baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4}})
+			// exit and fork
+			baseMaps = append(baseMaps, SensorMap{Name: "execve_map_stats", Progs: []uint{1, 2}})
+		}
 
 		// execve_map_update
 		baseMaps = append(baseMaps, SensorMap{Name: "execve_map_update_data", Progs: []uint{4}})
@@ -216,7 +227,12 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 		// event_exit no longer references tg_conf_map: it only used it via
 		// event_output(), which now reads CONFIG(USE_PERF_RING_BUF) instead
 		// of tg_conf_map.
-		baseMaps = append(baseMaps, SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2}})
+		confProgs := []uint{0, 2}
+		if base.BPFProcScanEnabled() {
+			// proc_scan reads the cgroup configuration
+			confProgs = append(confProgs, 5)
+		}
+		baseMaps = append(baseMaps, SensorMap{Name: "tg_conf_map", Progs: confProgs})
 	} else {
 		progs := []uint{2, 5}
 		if cfg.EnableLargeProgs() {

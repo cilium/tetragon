@@ -87,6 +87,8 @@ PROCESS += bpf_generic_lsm_core_v511.o bpf_generic_lsm_output_v511.o \
 # v6.1
 # base sensor
 PROCESS += bpf_execve_event_v61.o
+# startup process scan
+PROCESS += bpf_proc_scan_v61.o
 # generic probes
 PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 	   bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \

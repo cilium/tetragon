@@ -11,6 +11,8 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/cilium/tetragon/pkg/sensors/base"
+
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
@@ -37,6 +39,9 @@ func runConfig(t *testing.T, config string, fn func(string, int)) {
 
 	for _, sensor := range sens {
 		for _, load := range sensor.Progs {
+			if base.IsProcScan(load) {
+				continue
+			}
 			c := load.LC
 			for _, p := range c.Programs {
 				for _, id := range p.MapIDs {
