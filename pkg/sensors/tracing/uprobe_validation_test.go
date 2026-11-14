@@ -184,6 +184,29 @@ func TestUprobeReturnOverrideValidation(t *testing.T) {
 	}
 }
 
+func TestUprobeEntryOverrideWithReturnValidation(t *testing.T) {
+	override := []v1alpha1.ActionSelector{{Action: "Override", ArgError: -1}}
+	for _, tc := range []struct {
+		name      string
+		hasReturn bool
+		wantErr   string
+	}{
+		{"with return", true, "selectors[1]: uprobe Override in matchActions can't be used with return=true"},
+		{"without return", false, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			spec := &v1alpha1.UProbeSpec{Symbols: []string{"crypt"}, Return: tc.hasReturn,
+				Selectors: []v1alpha1.KProbeSelector{{}, {MatchActions: override}}}
+			err := validateUprobeSpec(spec, &uprobeConfigState{})
+			if tc.wantErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestUprobeReturnOverridePolicyMode(t *testing.T) {
 	for _, tc := range []struct {
 		mode string
