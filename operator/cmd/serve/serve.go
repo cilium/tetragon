@@ -14,6 +14,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -73,6 +75,14 @@ func New() *cobra.Command {
 				LeaseDuration:                 &operatorOption.Config.LeaderElectionLeaseDuration,
 				RenewDeadline:                 &operatorOption.Config.LeaderElectionRenewDeadline,
 				RetryPeriod:                   &operatorOption.Config.LeaderElectionRetryPeriod,
+				// Cached reads wait until the cache has observed this
+				// operator's earlier writes, so a pod update that arrives
+				// right after a PodInfo write does not act on a stale PodInfo.
+				Client: client.Options{
+					Cache: &client.CacheOptions{EnableReadYourWritesConsistency: new(true)},
+				},
+				// Only the Reconcile context bounds that wait.
+				Controller: config.Controller{ReconciliationTimeout: 30 * time.Second},
 			})
 			if err != nil {
 				return fmt.Errorf("unable to start manager: %w", err)
