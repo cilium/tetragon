@@ -333,6 +333,11 @@ func appendMacrosSelectors(selectors []v1alpha1.KProbeSelector, macros map[strin
 				return err
 			}
 
+			selector.MatchCmdArgs, err = useMacro(selector.MatchCmdArgs, macro.MatchCmdArgs)
+			if err != nil {
+				return err
+			}
+
 			selector.MatchData, err = useMacro(selector.MatchData, macro.MatchData)
 			if err != nil {
 				return err
@@ -383,12 +388,22 @@ func appendMacrosSelectors(selectors []v1alpha1.KProbeSelector, macros map[strin
 				return err
 			}
 
+			selector.MatchWorkloads, err = useMacroPtr(selector.MatchWorkloads, macro.MatchWorkloads)
+			if err != nil {
+				return err
+			}
+
 			selector.MatchUserCallers, err = useMacro(selector.MatchUserCallers, macro.MatchUserCallers)
 			if err != nil {
 				return err
 			}
 
 			selector.MatchStates, err = useMacro(selector.MatchStates, macro.MatchStates)
+			if err != nil {
+				return err
+			}
+
+			selector.MatchCEL, err = useMacroPtr(selector.MatchCEL, macro.MatchCEL)
 			if err != nil {
 				return err
 			}
@@ -403,6 +418,16 @@ func useMacro[T any](filters []T, macrosFilters []T) ([]T, error) {
 		return nil, fmt.Errorf("%T: field is defined in multiple macros and/or policy selectors", filters[0])
 	}
 	return append(filters, macrosFilters...), nil
+}
+
+func useMacroPtr[T any](filter *T, macroFilter *T) (*T, error) {
+	if filter != nil && macroFilter != nil {
+		return nil, fmt.Errorf("%T: field is defined in multiple macros and/or policy selectors", filter)
+	}
+	if filter != nil {
+		return filter, nil
+	}
+	return macroFilter, nil
 }
 
 type InstanceID int
