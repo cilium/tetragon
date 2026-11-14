@@ -109,6 +109,21 @@ func TestValidateReturnArgsActions(t *testing.T) {
 			name:          "matchActions and matchReturnArgs in different selectors",
 			selectorSpecs: []v1alpha1.KProbeSelector{{MatchActions: actions}, {MatchReturnArgs: returnArgs}},
 		},
+		{
+			name:          "matchActions after matchReturnArgs",
+			selectorSpecs: []v1alpha1.KProbeSelector{{}, {MatchReturnArgs: returnArgs}, {}, {MatchActions: actions}},
+			wantErr:       "selectors[3]: matchActions can't follow selectors[1], which has matchReturnArgs",
+		},
+		{
+			name:          "matchActions added by macro after matchReturnArgs",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs}, {Macros: []string{"kill"}}},
+			macros:        map[string]v1alpha1.KProbeSelector{"kill": {MatchActions: actions}},
+			wantErr:       "selectors[1]: matchActions can't follow selectors[0], which has matchReturnArgs",
+		},
+		{
+			name:          "matchReturnActions after matchReturnArgs",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs}, {MatchReturnActions: actions}},
+		},
 	}
 
 	for _, test := range tests {
@@ -149,6 +164,35 @@ spec:
 
 	err := checkCrd(t, crd)
 	require.ErrorContains(t, err, "selectors[0]: matchActions can't be combined with matchReturnArgs")
+}
+
+func TestKprobeValidationActionsAfterReturnArgs(t *testing.T) {
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "actions-after-return-args"
+spec:
+  kprobes:
+  - call: "sys_getcpu"
+    syscall: true
+    return: true
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["0"]
+      matchReturnActions:
+      - action: Post
+    - matchActions:
+      - action: Post
+`
+
+	err := checkCrd(t, crd)
+	require.ErrorContains(t, err, "selectors[1]: matchActions can't follow selectors[0], which has matchReturnArgs")
 }
 
 func TestValidateReturnSelectors(t *testing.T) {
