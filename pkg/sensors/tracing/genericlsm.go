@@ -296,7 +296,7 @@ type addLsmIn struct {
 	sensorPath        string
 	policyName        string
 	policyID          policyfilter.PolicyID
-	stateIDs          map[string]uint32
+	stateIDs          map[string]selectors.StateInfo
 	selMaps           *selectors.KernelSelectorMaps
 	selectorStatsBase uint32
 }
@@ -643,7 +643,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 	if len(polInfo.stateIDs) != 0 {
-		maps = append(maps, polInfo.policyStateMap(load))
+		maps = append(maps, polInfo.policyStateMaps(load)...)
 	}
 
 	if option.Config.EnableCgTrackerID {

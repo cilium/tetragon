@@ -8,6 +8,7 @@
 #include "lib/bpf_d_path.h"
 #include "errmetrics.h"
 #include "heap.h"
+#include "state.h"
 
 /*
  * The uprobe/usdt probes path in kernel do not disable preemption,
@@ -98,17 +99,6 @@ struct {
 	__type(key, __u32);
 	__type(value, struct event_config);
 } config_map SEC(".maps");
-
-struct state_value {
-	__u64 data;
-};
-
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 1); // will be resized by agent when needed
-	__type(key, __u32);
-	__type(value, struct state_value);
-} tg_state_map SEC(".maps");
 
 #ifdef GENERIC_USDT
 struct write_offload_data {

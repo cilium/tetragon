@@ -15,13 +15,39 @@ spec:
       value: "10"
 ```
 
-Options array is passed and processed by each hook used in the spec file that
-supports options. At the moment it's availabe for kprobe, uprobe, fentry and lsm hooks.
+Options are processed per tracing policy. Some options apply to all hooks in the
+policy; others apply only to specific hook types.
 
+- [`Policy options`](#policy-options): options shared by all hook types.
 - [`Kprobe Options`](#kprobe-options): options for kprobe hooks.
 - [`Uprobe Options`](#uprobe-options): options for uprobe hooks.
 - [`Fentry Options`](#fentry-options): options for fentry hooks.
 - [`Lsm Options`](#lsm-options): options for lsm hooks.
+
+## Policy options
+
+- [`state-scoped-map-size`](#state-scoped-map-size): set the scoped state map size
+
+### state-scoped-map-size
+
+This option sets the maximum number of entries in the policy's LRU map for
+non-`System` scoped states. These states share one map across all hooks
+in the policy. `System` scoped states are stored separately and are not affected.
+
+When not set, the map is sized by the `--state-scoped-map-size` daemon flag
+(default `32768`). Setting this option overrides the capacity for this policy
+without changing other policies.
+
+It takes a positive integer up to `4294967295` as value.
+
+Example:
+
+```yaml
+spec:
+  options:
+    - name: "state-scoped-map-size"
+      value: "65536"
+```
 
 ## Kprobe options
 
