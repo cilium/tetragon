@@ -754,8 +754,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
@@ -1129,8 +1131,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
@@ -2387,8 +2391,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
@@ -2762,8 +2768,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
@@ -3744,8 +3752,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
@@ -4119,8 +4129,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
@@ -5044,8 +5056,10 @@
                     "values": {
                       "description": "Value to compare the argument against.",
                       "items": {
+                        "minLength": 1,
                         "type": "string"
                       },
+                      "minItems": 1,
                       "type": "array"
                     }
                   },
@@ -5419,8 +5433,10 @@
                     "values": {
                       "description": "Value to compare the argument against.",
                       "items": {
+                        "minLength": 1,
                         "type": "string"
                       },
+                      "minItems": 1,
                       "type": "array"
                     }
                   },
@@ -6360,8 +6376,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
@@ -6735,8 +6753,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
@@ -7957,8 +7977,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
@@ -8332,8 +8354,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
@@ -9287,8 +9311,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
@@ -9662,8 +9688,10 @@
                           "values": {
                             "description": "Value to compare the argument against.",
                             "items": {
+                              "minLength": 1,
                               "type": "string"
                             },
+                            "minItems": 1,
                             "type": "array"
                           }
                         },
