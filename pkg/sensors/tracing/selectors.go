@@ -43,6 +43,23 @@ func validateReturnArgsActions(selectorSpecs []v1alpha1.KProbeSelector) error {
 	return nil
 }
 
+// validateReturnSelectors rejects matchReturnArgs and matchReturnActions on a
+// hook without a return probe, where they would never be evaluated.
+func validateReturnSelectors(selectorSpecs []v1alpha1.KProbeSelector, hasReturn bool) error {
+	if hasReturn {
+		return nil
+	}
+	for i := range selectorSpecs {
+		if len(selectorSpecs[i].MatchReturnArgs) > 0 {
+			return fmt.Errorf("selectors[%d]: matchReturnArgs requires return: true", i)
+		}
+		if len(selectorSpecs[i].MatchReturnActions) > 0 {
+			return fmt.Errorf("selectors[%d]: matchReturnActions requires return: true", i)
+		}
+	}
+	return nil
+}
+
 func selectorsMaploads(load *program.Program, ks *selectors.KernelSelectorState, index uint32) []*program.MapLoad {
 	rewriteSelectorConstants(load, ks.Usage())
 	selBuff := ks.CopyToFixedBuffer()

@@ -622,6 +622,9 @@ func createGenericKprobeSensor(
 		if err := validateReturnArgsActions(kprobes[i].Selectors); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
+		if err := validateReturnSelectors(kprobes[i].Selectors, kprobes[i].Return); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
 
 		in.selStatsBase = selectorStatsBase
 		selectorStatsBase += uint32(len(kprobes[i].Selectors))
