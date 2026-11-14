@@ -591,7 +591,7 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		return errors.New("enforcer actions are not supported for uprobes")
 	}
 
-	for _, selector := range spec.Selectors {
+	for i, selector := range spec.Selectors {
 		for _, action := range selector.MatchReturnActions {
 			if strings.EqualFold(action.Action, "Override") {
 				if !spec.Return {
@@ -601,6 +601,12 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 					return errors.New("uprobe return Override only supports argError")
 				}
 			}
+		}
+		// An entry Override skips the rest of the function, and with it the
+		// uretprobe, so the entry event would wait for a return event that
+		// never comes and nothing would be posted.
+		if spec.Return && selectors.HasOverride([]v1alpha1.KProbeSelector{selector}) {
+			return fmt.Errorf("selectors[%d]: uprobe Override in matchActions can't be used with return=true because the return probe doesn't run after it, use Override in matchReturnActions instead", i)
 		}
 	}
 

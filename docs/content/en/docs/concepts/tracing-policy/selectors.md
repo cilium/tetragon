@@ -2485,3 +2485,7 @@ selectors:
   - action: Override
     argError: 0
 ```
+
+An uprobe `Override` in `matchActions` can't be used with `return: true`. It
+skips the rest of the function, so the return probe never runs and no event is
+posted. Use `Override` in `matchReturnActions` instead.
