@@ -68,6 +68,23 @@ spec:
 	require.ErrorContains(t, err, "selectors[0]: matchActions can't be combined with matchReturnArgs")
 }
 
+func TestUprobeValidationReturnSelectorsWithoutReturn(t *testing.T) {
+	err := checkCrd(t, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-return-selectors-without-return"
+spec:
+  uprobes:
+  - path: "/proc/self/exe"
+    symbols: ["main"]
+    selectors:
+    - matchReturnActions:
+      - action: Post
+`)
+	require.ErrorContains(t, err, "selectors[0]: matchReturnActions requires return: true")
+}
+
 func TestUprobeValidationStackTraceRequiresPost(t *testing.T) {
 	tests := []struct {
 		name       string
