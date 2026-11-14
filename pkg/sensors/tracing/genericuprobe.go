@@ -300,7 +300,7 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 	if selector != nil {
 		mapLoad = append(mapLoad, selectorsMaploads(load, selector, 0)...)
 
-		if load.SleepableOffload {
+		if load.SleepableOffload && !load.RetProbe {
 			mapLoad = append(mapLoad,
 				&program.MapLoad{
 					Name: "regs_map",
@@ -420,7 +420,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 		if selector != nil {
 			mapLoad = append(mapLoad, selectorsMaploads(load, selector, uint32(index))...)
 
-			if load.SleepableOffload {
+			if load.SleepableOffload && !load.RetProbe {
 				mapLoad = append(mapLoad,
 					&program.MapLoad{
 						Name: "regs_map",
@@ -491,6 +491,7 @@ type addUprobeIn struct {
 
 type uprobeHas struct {
 	sleepableOffload     bool
+	returnOverride       bool
 	sleepablePreload     bool
 	sleepablePreloadSize int
 	sleepableOffloadSize int
@@ -590,6 +591,25 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		return errors.New("enforcer actions are not supported for uprobes")
 	}
 
+	for i, selector := range spec.Selectors {
+		for _, action := range selector.MatchReturnActions {
+			if strings.EqualFold(action.Action, "Override") {
+				if !spec.Return {
+					return errors.New("uprobe return Override requires return=true")
+				}
+				if len(action.ArgRegs) != 0 || action.ArgNewSymbol != "" || action.ArgNewOffset != 0 || action.ArgNewAddr != 0 || action.SoPath != "" {
+					return errors.New("uprobe return Override only supports argError")
+				}
+			}
+		}
+		// An entry Override skips the rest of the function, and with it the
+		// uretprobe, so the entry event would wait for a return event that
+		// never comes and nothing would be posted.
+		if spec.Return && selectors.HasOverride([]v1alpha1.KProbeSelector{selector}) {
+			return fmt.Errorf("selectors[%d]: uprobe Override in matchActions can't be used with return=true because the return probe doesn't run after it, use Override in matchReturnActions instead", i)
+		}
+	}
+
 	state.symbols = len(spec.Symbols)
 	state.offsets = len(spec.Offsets)
 	state.addrs = len(spec.Addrs)
@@ -659,6 +679,16 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 }
 
 func validateUprobeFeatures(spec *v1alpha1.UProbeSpec, has *uprobeHas) error {
+	for _, selector := range spec.Selectors {
+		for _, action := range selector.MatchReturnActions {
+			if strings.EqualFold(action.Action, "Override") {
+				if !bpf.HasUprobeRegsChange() {
+					return errors.New("can't use return override action, no kernel support")
+				}
+				has.returnOverride = true
+			}
+		}
+	}
 	if selectors.HasOverride(spec.Selectors) {
 		if !bpf.HasUprobeRegsChange() {
 			return errors.New("can't use override regs action, no kernel support")
@@ -1037,6 +1067,12 @@ func createGenericUprobeSensor(
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
 		if err = validateSubStringSelectorFeatures(uprobe.Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
+		if err = validateReturnArgsActions(uprobe.Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
+		if err = validateReturnSelectors(uprobe.Selectors, uprobe.Return); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
 
@@ -1657,6 +1693,18 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 			SetLoaderData(multiRetIDs).
 			SetPolicy(polInfo.name)
 
+		loadret.SleepableOffload = has.returnOverride
+		if has.returnOverride {
+			pending := program.MapBuilderProgram("return_override", loadret)
+			size := has.sleepableOffloadSize
+			if size == 0 {
+				size = option.Config.SleepableOffloadSize
+			}
+			pending.SetMaxEntries(size)
+			maps = append(maps, pending)
+		}
+		maps = append(maps, polInfo.policyConfMap(loadret), polInfo.selectorStatsMap(loadret))
+
 		progs = append(progs, loadret)
 
 		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
@@ -1770,6 +1818,8 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		maps = append(maps, polInfo.policyStateMap(load))
 	}
 
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
+
 	if uprobeEntry.loadArgs.retprobe {
 		pinRetProg := fmt.Sprintf("%d-%s_return", uprobeEntry.tableId.ID, uprobeEntry.symbol)
 		loadret := program.Builder(
@@ -1781,6 +1831,18 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 			SetRetProbe(true).
 			SetLoaderData(uprobeEntry).
 			SetPolicy(uprobeEntry.policyName)
+		loadret.SleepableOffload = has.returnOverride
+		if has.returnOverride {
+			pending := program.MapBuilderProgram("return_override", loadret)
+			size := has.sleepableOffloadSize
+			if size == 0 {
+				size = option.Config.SleepableOffloadSize
+			}
+			pending.SetMaxEntries(size)
+			maps = append(maps, pending)
+		}
+		maps = append(maps, polInfo.policyConfMap(loadret), polInfo.selectorStatsMap(loadret))
+
 		progs = append(progs, loadret)
 
 		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
@@ -1794,14 +1856,18 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
+		// retState is nil when the retprobe is only needed for returnCopy
+		// (spec.Return unset), see initUprobeSelectors. There are no return
+		// selectors then, so don't pin unused selector maps.
+		if retState := getUprobeProgramSelector(loadret, uprobeEntry); retState != nil {
+			maps = append(maps, createSelectorMaps(loadret, retState, len(retState.SubStrings()))...)
+		}
 		maps = append(maps, getHeapMaps("uprobe_", option.Config.UprobeHeapSize, has.uprobeHeapSize, loadret)...)
 
 		if len(polInfo.stateIDs) != 0 {
 			maps = append(maps, polInfo.policyStateMap(loadret))
 		}
 	}
-
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
 
 	return progs, maps
 }

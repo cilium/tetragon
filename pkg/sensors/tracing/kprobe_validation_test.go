@@ -81,6 +81,191 @@ func TestValidateSubStringSelectorFeatures(t *testing.T) {
 	}
 }
 
+func TestValidateReturnArgsActions(t *testing.T) {
+	returnArgs := []v1alpha1.ArgSelector{{Index: 0, Operator: "Equal", Values: []string{"0"}}}
+	actions := []v1alpha1.ActionSelector{{Action: "Sigkill"}}
+	tests := []struct {
+		name          string
+		selectorSpecs []v1alpha1.KProbeSelector
+		macros        map[string]v1alpha1.KProbeSelector
+		wantErr       string
+	}{
+		{
+			name:          "matchReturnArgs with matchActions",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs, MatchActions: actions}},
+			wantErr:       "selectors[0]: matchActions can't be combined with matchReturnArgs",
+		},
+		{
+			name:          "matchActions added by macro",
+			selectorSpecs: []v1alpha1.KProbeSelector{{}, {MatchReturnArgs: returnArgs, Macros: []string{"kill"}}},
+			macros:        map[string]v1alpha1.KProbeSelector{"kill": {MatchActions: actions}},
+			wantErr:       "selectors[1]: matchActions can't be combined with matchReturnArgs",
+		},
+		{
+			name:          "matchReturnArgs with matchReturnActions",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs, MatchReturnActions: actions}},
+		},
+		{
+			name:          "matchActions and matchReturnArgs in different selectors",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchActions: actions}, {MatchReturnArgs: returnArgs}},
+		},
+		{
+			name:          "matchActions after matchReturnArgs",
+			selectorSpecs: []v1alpha1.KProbeSelector{{}, {MatchReturnArgs: returnArgs}, {}, {MatchActions: actions}},
+			wantErr:       "selectors[3]: matchActions can't follow selectors[1], which has matchReturnArgs",
+		},
+		{
+			name:          "matchActions added by macro after matchReturnArgs",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs}, {Macros: []string{"kill"}}},
+			macros:        map[string]v1alpha1.KProbeSelector{"kill": {MatchActions: actions}},
+			wantErr:       "selectors[1]: matchActions can't follow selectors[0], which has matchReturnArgs",
+		},
+		{
+			name:          "matchReturnActions after matchReturnArgs",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs}, {MatchReturnActions: actions}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.NoError(t, appendMacrosSelectors(test.selectorSpecs, test.macros))
+			err := validateReturnArgsActions(test.selectorSpecs)
+			if test.wantErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, test.wantErr)
+			}
+		})
+	}
+}
+
+func TestKprobeValidationReturnArgsWithActions(t *testing.T) {
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "return-args-actions"
+spec:
+  kprobes:
+  - call: "sys_getcpu"
+    syscall: true
+    return: true
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["0"]
+      matchActions:
+      - action: Post
+`
+
+	err := checkCrd(t, crd)
+	require.ErrorContains(t, err, "selectors[0]: matchActions can't be combined with matchReturnArgs")
+}
+
+func TestKprobeValidationActionsAfterReturnArgs(t *testing.T) {
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "actions-after-return-args"
+spec:
+  kprobes:
+  - call: "sys_getcpu"
+    syscall: true
+    return: true
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["0"]
+      matchReturnActions:
+      - action: Post
+    - matchActions:
+      - action: Post
+`
+
+	err := checkCrd(t, crd)
+	require.ErrorContains(t, err, "selectors[1]: matchActions can't follow selectors[0], which has matchReturnArgs")
+}
+
+func TestValidateReturnSelectors(t *testing.T) {
+	returnArgs := []v1alpha1.ArgSelector{{Index: 0, Operator: "Equal", Values: []string{"0"}}}
+	actions := []v1alpha1.ActionSelector{{Action: "Post"}}
+	tests := []struct {
+		name          string
+		selectorSpecs []v1alpha1.KProbeSelector
+		macros        map[string]v1alpha1.KProbeSelector
+		hasReturn     bool
+		wantErr       string
+	}{
+		{
+			name:          "matchReturnArgs without return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{}, {MatchReturnArgs: returnArgs}},
+			wantErr:       "selectors[1]: matchReturnArgs requires return: true",
+		},
+		{
+			name:          "matchReturnActions without return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnActions: actions}},
+			wantErr:       "selectors[0]: matchReturnActions requires return: true",
+		},
+		{
+			name:          "matchReturnArgs added by macro without return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{Macros: []string{"ret"}}},
+			macros:        map[string]v1alpha1.KProbeSelector{"ret": {MatchReturnArgs: returnArgs}},
+			wantErr:       "selectors[0]: matchReturnArgs requires return: true",
+		},
+		{
+			name:          "return selectors with return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs, MatchReturnActions: actions}},
+			hasReturn:     true,
+		},
+		{
+			name:          "entry selectors without return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchActions: actions}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.NoError(t, appendMacrosSelectors(test.selectorSpecs, test.macros))
+			err := validateReturnSelectors(test.selectorSpecs, test.hasReturn)
+			if test.wantErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, test.wantErr)
+			}
+		})
+	}
+}
+
+func TestKprobeValidationReturnSelectorsWithoutReturn(t *testing.T) {
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "return-selectors-without-return"
+spec:
+  kprobes:
+  - call: "sys_getcpu"
+    syscall: true
+    selectors:
+    - matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["0"]
+`
+
+	err := checkCrd(t, crd)
+	require.ErrorContains(t, err, "selectors[0]: matchReturnArgs requires return: true")
+}
+
 func TestKprobeValidationListWrongSyscallName(t *testing.T) {
 	// messed up syscall name in the list
 	crd := `

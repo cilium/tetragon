@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -28,6 +29,7 @@ import (
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
+	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
@@ -1665,4 +1667,237 @@ func TestUprobeResolveNullMatchPositive(t *testing.T) {
 
 func TestUprobeResolveNullMatchNegative(t *testing.T) {
 	UprobeResolveNullMatch(t, true, "first")
+}
+
+// A return-only action must see the original string, run after the body, and
+// preserve nonmatching results and results in monitor mode.
+func TestUprobeReturnOverrideAction(t *testing.T) {
+	testUprobeReturnEnforcement(t, "Override")
+}
+
+func TestUprobeReturnSigkillAction(t *testing.T) {
+	testUprobeReturnEnforcement(t, "Sigkill")
+}
+
+func testUprobeReturnEnforcement(t *testing.T, action string) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	if action == "Override" && !bpf.HasUprobeRegsChange() {
+		t.Skip("uprobe register changes unavailable; requires kernel support and BPF privileges")
+	}
+	for _, multi := range []bool{false, true} {
+		for _, mode := range []string{"enforce", "monitor"} {
+			t.Run(fmt.Sprintf("multi=%v/%s", multi, mode), func(t *testing.T) {
+				testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+				createCrdFile(t, fmt.Sprintf(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: return-override
+spec:
+  options:
+  - name: disable-uprobe-multi
+    value: "%d"
+  - name: policy-mode
+    value: "%s"
+  uprobes:
+  - path: "%s"
+    symbols: [test_return_string]
+    args:
+    - index: 0
+      type: string
+    return: true
+    returnArg:
+      index: 0
+      type: string
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values: ["never"]
+      matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["*"]
+      matchReturnActions:
+      - action: Sigkill
+    - matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["*"]
+      matchReturnActions:
+      - action: %s
+        argError: 0
+`, map[bool]int{false: 1, true: 0}[multi], mode, testBinary, action))
+				var doneWG, readyWG sync.WaitGroup
+				defer doneWG.Wait()
+				ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+				defer cancel()
+				obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+				require.NoError(t, err)
+				observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+				readyWG.Wait()
+				want := "*"
+				if mode == "enforce" && action == "Override" {
+					want = "NULL"
+				}
+				out, err := exec.Command(testBinary, "4", "*", want).CombinedOutput()
+				if action == "Sigkill" && mode == "enforce" {
+					var exitErr *exec.ExitError
+					require.ErrorAs(t, err, &exitErr, string(out))
+					status := exitErr.Sys().(syscall.WaitStatus)
+					require.True(t, status.Signaled())
+					require.Equal(t, syscall.SIGKILL, status.Signal())
+				} else {
+					require.NoError(t, err, string(out))
+				}
+				out, err = exec.Command(testBinary, "4", "ok", "ok").CombinedOutput()
+				require.NoError(t, err, string(out))
+			})
+		}
+	}
+}
+
+// Selector 0 matches the entry but not the return. Selector 1 matches the
+// return, so it must only act if its entry matchArgs also match.
+func TestUprobeReturnSelectorFallthrough(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	for _, tc := range []struct {
+		name       string
+		sel1Arg    string
+		wantKilled bool
+	}{
+		{"selector 1 entry mismatch", "never", false},
+		{"selector 1 entry match", "a", true},
+	} {
+		for _, multi := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/multi=%v", tc.name, multi), func(t *testing.T) {
+				testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+				createCrdFile(t, fmt.Sprintf(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: return-fallthrough
+spec:
+  options:
+  - name: disable-uprobe-multi
+    value: "%d"
+  uprobes:
+  - path: "%s"
+    symbols: [test_return_string]
+    args:
+    - index: 0
+      type: string
+    return: true
+    returnArg:
+      index: 0
+      type: string
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values: ["a"]
+      matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["never"]
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values: ["%s"]
+      matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["a"]
+      matchReturnActions:
+      - action: Sigkill
+`, map[bool]int{false: 1, true: 0}[multi], testBinary, tc.sel1Arg))
+				var doneWG, readyWG sync.WaitGroup
+				defer doneWG.Wait()
+				ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+				defer cancel()
+				obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+				require.NoError(t, err)
+				observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+				readyWG.Wait()
+
+				out, err := exec.Command(testBinary, "4", "a", "a").CombinedOutput()
+				if tc.wantKilled {
+					var exitErr *exec.ExitError
+					require.ErrorAs(t, err, &exitErr, string(out))
+					status := exitErr.Sys().(syscall.WaitStatus)
+					require.True(t, status.Signaled())
+					require.Equal(t, syscall.SIGKILL, status.Signal())
+				} else {
+					require.NoError(t, err, "killed by a selector whose matchArgs did not match: %s", out)
+				}
+			})
+		}
+	}
+}
+
+// Both selectors match the entry. The entry event's post must be counted on
+// the first match, not on the last selector the entry program evaluated.
+func TestUprobeReturnSelectorStats(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+	createCrdFile(t, fmt.Sprintf(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: return-selector-stats
+spec:
+  uprobes:
+  - path: "%s"
+    symbols: [test_return_string]
+    args:
+    - index: 0
+      type: string
+    return: true
+    returnArg:
+      index: 0
+      type: string
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values: ["a"]
+      matchReturnArgs:
+      - index: 0
+        operator: Equal
+        values: ["a"]
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values: ["a"]
+`, testBinary))
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	out, err := exec.Command(testBinary, "4", "a", "a").CombinedOutput()
+	require.NoError(t, err, string(out))
+
+	list, err := observer.GetSensorManager().ListTracingPolicies(ctx, "")
+	require.NoError(t, err)
+	posts := map[uint32]uint64{}
+	for _, pol := range list.Policies {
+		if pol.Name != "return-selector-stats" {
+			continue
+		}
+		for _, c := range pol.GetStats().GetSelectorActionCounters() {
+			posts[c.GetSelectorIndex().GetValue()] = c.GetActionCounters().GetPost()
+		}
+	}
+	require.Equal(t, map[uint32]uint64{0: 1}, posts)
 }

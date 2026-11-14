@@ -279,6 +279,8 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 			SetRetProbe(true).
 			SetLoaderData(multiRetIDs).
 			SetPolicy(polInfo.name)
+		maps = append(maps, polInfo.policyConfMap(loadret), polInfo.selectorStatsMap(loadret))
+
 		progs = append(progs, loadret)
 
 		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
@@ -615,6 +617,12 @@ func createGenericKprobeSensor(
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
 		if err := validateSubStringSelectorFeatures(kprobes[i].Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
+		if err := validateReturnArgsActions(kprobes[i].Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
+		if err := validateReturnSelectors(kprobes[i].Selectors, kprobes[i].Return); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
 
@@ -1149,6 +1157,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		loadret.SetRetProbe(true)
 		loadret.SetLoaderData(kprobeEntry.tableId)
 		loadret.SetPolicy(kprobeEntry.policyName)
+		maps = append(maps, polInfo.policyConfMap(loadret), polInfo.selectorStatsMap(loadret))
 
 		progs = append(progs, loadret)
 

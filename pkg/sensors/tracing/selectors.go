@@ -31,6 +31,46 @@ func validateSubStringSelectorFeatures(selectorSpecs []v1alpha1.KProbeSelector) 
 	return nil
 }
 
+// validateReturnArgsActions rejects matchActions on a selector that has
+// matchReturnArgs or comes after one. matchActions run at function entry,
+// before the return value is known, so matchReturnArgs can't gate them, and
+// an earlier selector with matchReturnArgs may still turn out to be the first
+// match on return.
+func validateReturnArgsActions(selectorSpecs []v1alpha1.KProbeSelector) error {
+	retArgsIdx := -1
+	for i := range selectorSpecs {
+		if len(selectorSpecs[i].MatchActions) > 0 {
+			if len(selectorSpecs[i].MatchReturnArgs) > 0 {
+				return fmt.Errorf("selectors[%d]: matchActions can't be combined with matchReturnArgs because they run before the return value is known, use matchReturnActions instead", i)
+			}
+			if retArgsIdx >= 0 {
+				return fmt.Errorf("selectors[%d]: matchActions can't follow selectors[%d], which has matchReturnArgs, because they run before it is known whether selectors[%d] matches, use matchReturnActions instead", i, retArgsIdx, retArgsIdx)
+			}
+		}
+		if retArgsIdx < 0 && len(selectorSpecs[i].MatchReturnArgs) > 0 {
+			retArgsIdx = i
+		}
+	}
+	return nil
+}
+
+// validateReturnSelectors rejects matchReturnArgs and matchReturnActions on a
+// hook without a return probe, where they would never be evaluated.
+func validateReturnSelectors(selectorSpecs []v1alpha1.KProbeSelector, hasReturn bool) error {
+	if hasReturn {
+		return nil
+	}
+	for i := range selectorSpecs {
+		if len(selectorSpecs[i].MatchReturnArgs) > 0 {
+			return fmt.Errorf("selectors[%d]: matchReturnArgs requires return: true", i)
+		}
+		if len(selectorSpecs[i].MatchReturnActions) > 0 {
+			return fmt.Errorf("selectors[%d]: matchReturnActions requires return: true", i)
+		}
+	}
+	return nil
+}
+
 func selectorsMaploads(load *program.Program, ks *selectors.KernelSelectorState, index uint32) []*program.MapLoad {
 	rewriteSelectorConstants(load, ks.Usage())
 	selBuff := ks.CopyToFixedBuffer()

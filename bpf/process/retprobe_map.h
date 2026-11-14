@@ -16,6 +16,7 @@ struct retprobe_info {
 	unsigned long ktime_enter;
 	unsigned long ptr;
 	unsigned long cnt;
+	__u32 active_selectors;
 };
 
 struct {
