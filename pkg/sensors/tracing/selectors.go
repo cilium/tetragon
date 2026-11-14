@@ -13,6 +13,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/mbset"
@@ -27,6 +28,16 @@ func validateSubStringSelectorFeatures(selectorSpecs []v1alpha1.KProbeSelector) 
 	}
 	if selectors.HasOperator(selectorSpecs, selectors.SelectorOpSubStringIgnCase) && !bpf.HasKfunc("bpf_strncasestr") {
 		return errors.New("can't use SubStringIgnCase operator, no kernel support")
+	}
+	return nil
+}
+
+// validateSignalActions rejects Sigkill and Signal actions when large BPF
+// programs are not enabled. The small BPF programs don't send signals at all,
+// so these actions would silently do nothing.
+func validateSignalActions(selectorSpecs []v1alpha1.KProbeSelector) error {
+	if selectors.HasSignalAction(selectorSpecs) && !config.EnableLargeProgs() {
+		return errors.New("sigkill and signal actions require large progs support")
 	}
 	return nil
 }

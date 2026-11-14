@@ -81,6 +81,90 @@ func TestValidateSubStringSelectorFeatures(t *testing.T) {
 	}
 }
 
+// Without large programs (old kernels or --force-small-progs), the BPF objects
+// can't send signals, so Sigkill and Signal actions must be rejected instead of
+// silently ignored.
+func TestValidateSignalActionsSmallProgs(t *testing.T) {
+	forceSmallProgs := option.Config.ForceSmallProgs
+	option.Config.ForceSmallProgs = true
+	t.Cleanup(func() { option.Config.ForceSmallProgs = forceSmallProgs })
+
+	tests := []struct {
+		name    string
+		spec    string
+		wantErr bool
+	}{
+		{"kprobe Sigkill", `
+  kprobes:
+  - call: "sys_getcpu"
+    syscall: true
+    selectors:
+    - matchActions:
+      - action: Sigkill`, true},
+		{"kprobe Signal", `
+  kprobes:
+  - call: "sys_getcpu"
+    syscall: true
+    selectors:
+    - matchActions:
+      - action: Signal
+        argSig: 9`, true},
+		{"kprobe return Sigkill", `
+  kprobes:
+  - call: "sys_getcpu"
+    syscall: true
+    return: true
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - matchReturnActions:
+      - action: Sigkill`, true},
+		{"kprobe Sigkill from macro", `
+  selectorsMacros:
+    kill:
+      matchActions:
+      - action: Sigkill
+  kprobes:
+  - call: "sys_getcpu"
+    syscall: true
+    selectors:
+    - macros: ["kill"]`, true},
+		{"uprobe Sigkill", `
+  uprobes:
+  - path: "/proc/self/exe"
+    symbols: ["main"]
+    selectors:
+    - matchActions:
+      - action: Sigkill`, true},
+		{"tracepoint Sigkill", `
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    selectors:
+    - matchActions:
+      - action: Sigkill`, true},
+		{"kprobe Post", `
+  kprobes:
+  - call: "sys_getcpu"
+    syscall: true
+    selectors:
+    - matchActions:
+      - action: Post`, false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := checkCrd(t, "apiVersion: cilium.io/v1alpha1\nkind: TracingPolicy\nmetadata:\n  name: signal-actions\nspec:"+test.spec+"\n")
+			if test.wantErr {
+				require.ErrorContains(t, err, "sigkill and signal actions require large progs support")
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestKprobeValidationListWrongSyscallName(t *testing.T) {
 	// messed up syscall name in the list
 	crd := `

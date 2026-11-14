@@ -404,10 +404,6 @@ func preValidateKprobe(
 		}
 	}
 
-	if selectors.HasSigkillAction(f) && !config.EnableLargeProgs() {
-		return nil, errors.New("sigkill action requires kernel >= 5.3.0")
-	}
-
 	retCalls := make([]string, 0, len(calls))
 	ignored := 0
 	for idx, call := range calls {
@@ -615,6 +611,9 @@ func createGenericKprobeSensor(
 			return nil, fmt.Errorf("append macros selectors: %w", err)
 		}
 		if err := validateSubStringSelectorFeatures(kprobes[i].Selectors); err != nil {
+			return nil, fmt.Errorf("validate selectors: %w", err)
+		}
+		if err := validateSignalActions(kprobes[i].Selectors); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
 

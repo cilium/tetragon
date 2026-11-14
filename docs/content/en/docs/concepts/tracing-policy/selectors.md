@@ -1092,6 +1092,8 @@ matches the appropriate selectors from the kernel. In the example below, every
 `sys_write` system call with a PID not equal to 1 or 0 attempting to write to
 `/etc/passwd` will be terminated. Indeed when using `kubectl exec`, a new
 process is spawned in the container PID namespace and is not a child of PID 1.
+The `Sigkill` action requires support for large BPF programs, normally
+available on Linux kernel version 5.3 and later.
 
 ```yaml
 - call: "sys_write"
@@ -1129,7 +1131,8 @@ this action for enforcement.
 ### Signal action
 
 `Signal` action sends specified signal to current process. The signal number
-is specified with `argSig` value.
+is specified with `argSig` value. The `Signal` action requires support for
+large BPF programs, normally available on Linux kernel version 5.3 and later.
 
 Following example is equivalent to the Sigkill action example above.
 The difference is to use the signal action with `SIGKILL(9)` signal.
