@@ -439,10 +439,10 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 			attach = &program.MultiUprobeAttachSymbolsCookies{}
 		}
 
+		symbol, offset := resolveSymbol(uprobeEntry.symbol)
 		if uprobeEntry.address != 0 {
-			attach.Addresses = append(attach.Addresses, uprobeEntry.address)
-		} else if uprobeEntry.symbol != "" {
-			symbol, offset := resolveSymbol(uprobeEntry.symbol)
+			attach.Addresses = append(attach.Addresses, uprobeEntry.address+offset)
+		} else if symbol != "" {
 			attach.Symbols = append(attach.Symbols, symbol)
 			attach.Offsets = append(attach.Offsets, offset)
 		}
