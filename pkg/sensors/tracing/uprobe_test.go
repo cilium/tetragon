@@ -62,6 +62,10 @@ func TestUprobePclntab(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-pclntab", nil)
 }
 
+func TestUprobePclntabCgo(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-pclntab-cgo", nil)
+}
+
 func TestUprobeMultipleTargets(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-multiple-targets", nil)
 }
@@ -1742,7 +1746,7 @@ spec:
   - name: "disable-uprobe-multi"
     value: "true"
   uprobes:
-  - path: "/proc/self/exe"
+  - path: "` + testutils.RepoRootPath("contrib/tester-progs/nop") + `"
     symbols:
     - "foo_lala"
     - "foo.lala"

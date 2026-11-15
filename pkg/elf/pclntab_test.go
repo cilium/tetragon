@@ -9,21 +9,25 @@ import (
 	"debug/elf"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 
 	telf "github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/testutils"
 )
 
-func pclntabSkipIfNoBins(t *testing.T) (stripped, unstripped string) {
+// pclntab-test built plain, as PIE and with cgo, where .text starts with C code
+var pclntabProgs = []string{"pclntab", "pclntab-pie", "pclntab-cgo"}
+
+func pclntabSkipIfNoBins(t *testing.T, prog string) (stripped, unstripped string) {
 	t.Helper()
-	stripped = testutils.RepoRootPath("contrib/tester-progs/pclntab-stripped")
-	unstripped = testutils.RepoRootPath("contrib/tester-progs/pclntab-unstripped")
+	stripped = testutils.RepoRootPath("contrib/tester-progs/" + prog + "-stripped")
+	unstripped = testutils.RepoRootPath("contrib/tester-progs/" + prog + "-unstripped")
 	if _, err := os.Stat(stripped); err != nil {
-		t.Skipf("pclntab-stripped not found: %v", err)
+		t.Skipf("%s-stripped not found: %v", prog, err)
 	}
 	if _, err := os.Stat(unstripped); err != nil {
-		t.Skipf("pclntab-unstripped not found: %v", err)
+		t.Skipf("%s-unstripped not found: %v", prog, err)
 	}
 	return stripped, unstripped
 }
@@ -39,13 +43,16 @@ func openSafe(t *testing.T, path string) *telf.SafeELFFile {
 }
 
 func TestIsStrippedGoBinary(t *testing.T) {
-	stripped, unstripped := pclntabSkipIfNoBins(t)
-
-	if !openSafe(t, stripped).IsStrippedGoBinary() {
-		t.Fatal("expected stripped binary to be detected as stripped Go binary")
-	}
-	if openSafe(t, unstripped).IsStrippedGoBinary() {
-		t.Fatal("expected unstripped binary to NOT be detected as stripped")
+	for _, prog := range pclntabProgs {
+		t.Run(prog, func(t *testing.T) {
+			stripped, unstripped := pclntabSkipIfNoBins(t, prog)
+			if !openSafe(t, stripped).IsStrippedGoBinary() {
+				t.Fatal("expected stripped binary to be detected as stripped Go binary")
+			}
+			if openSafe(t, unstripped).IsStrippedGoBinary() {
+				t.Fatal("expected unstripped binary to NOT be detected as stripped")
+			}
+		})
 	}
 	if f, err := telf.OpenSafeELFFile("/bin/sh"); err == nil {
 		defer f.Close()
@@ -56,7 +63,7 @@ func TestIsStrippedGoBinary(t *testing.T) {
 }
 
 func TestPclntabAllFuncs(t *testing.T) {
-	stripped, _ := pclntabSkipIfNoBins(t)
+	stripped, _ := pclntabSkipIfNoBins(t, "pclntab")
 	f := openSafe(t, stripped)
 	tbl, err := f.Pclntab()
 	if err != nil {
@@ -80,7 +87,7 @@ func TestPclntabAllFuncs(t *testing.T) {
 }
 
 func TestPclntabOffsetByNameDedup(t *testing.T) {
-	stripped, unstripped := pclntabSkipIfNoBins(t)
+	stripped, unstripped := pclntabSkipIfNoBins(t, "pclntab")
 
 	f := openSafe(t, stripped)
 	tbl, err := f.Pclntab()
@@ -128,6 +135,28 @@ func TestPclntabOffsetByNameDedup(t *testing.T) {
 	}
 }
 
+func TestStrippedGoOffset(t *testing.T) {
+	stripped, unstripped := pclntabSkipIfNoBins(t, "pclntab-cgo")
+	sf, uf := openSafe(t, stripped), openSafe(t, unstripped)
+
+	// Go functions from .gopclntab, C functions from .dynsym
+	for _, name := range []string{"main.main", "main.double", "add"} {
+		want, err := uf.Offset(name)
+		if err != nil {
+			t.Fatalf("%s: unstripped Offset: %v", name, err)
+		}
+		if got, err := sf.StrippedGoOffset(name); err != nil || got != want {
+			t.Errorf("%s: StrippedGoOffset = 0x%x, %v; want 0x%x", name, got, err, want)
+		}
+	}
+	// undefined .dynsym import (address 0) and unknown name
+	for _, name := range []string{"free", "no_such_func"} {
+		if _, err := sf.StrippedGoOffset(name); err == nil || !strings.Contains(err.Error(), "in neither .gopclntab nor .dynsym") {
+			t.Errorf("%s: StrippedGoOffset error = %v, want not found", name, err)
+		}
+	}
+}
+
 func TestPclntabOpenNotGo(t *testing.T) {
 	f, err := telf.OpenSafeELFFile("/bin/sh")
 	if err != nil {
@@ -141,7 +170,13 @@ func TestPclntabOpenNotGo(t *testing.T) {
 }
 
 func TestPclntabOffsetsMatchELFSymtab(t *testing.T) {
-	stripped, unstripped := pclntabSkipIfNoBins(t)
+	for _, prog := range pclntabProgs {
+		t.Run(prog, func(t *testing.T) { testPclntabOffsetsMatchELFSymtab(t, prog) })
+	}
+}
+
+func testPclntabOffsetsMatchELFSymtab(t *testing.T, prog string) {
+	stripped, unstripped := pclntabSkipIfNoBins(t, prog)
 
 	// build ground truth from the unstripped binary's ELF symtab
 	ef, err := elf.Open(unstripped)
