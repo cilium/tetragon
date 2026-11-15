@@ -1411,7 +1411,7 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 		return nil
 	}
 
-	if state.symbols != 0 && f.IsStrippedPureGoBinary() {
+	if state.symbols != 0 && f.IsStrippedGoBinary() {
 		for idx, sym := range spec.Symbols {
 			name, _, err := parseSymbol(sym)
 			if err != nil {

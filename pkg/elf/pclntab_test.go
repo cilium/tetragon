@@ -38,18 +38,18 @@ func openSafe(t *testing.T, path string) *telf.SafeELFFile {
 	return f
 }
 
-func TestIsStrippedPureGoBinary(t *testing.T) {
+func TestIsStrippedGoBinary(t *testing.T) {
 	stripped, unstripped := pclntabSkipIfNoBins(t)
 
-	if !openSafe(t, stripped).IsStrippedPureGoBinary() {
+	if !openSafe(t, stripped).IsStrippedGoBinary() {
 		t.Fatal("expected stripped binary to be detected as stripped Go binary")
 	}
-	if openSafe(t, unstripped).IsStrippedPureGoBinary() {
+	if openSafe(t, unstripped).IsStrippedGoBinary() {
 		t.Fatal("expected unstripped binary to NOT be detected as stripped")
 	}
 	if f, err := telf.OpenSafeELFFile("/bin/sh"); err == nil {
 		defer f.Close()
-		if f.IsStrippedPureGoBinary() {
+		if f.IsStrippedGoBinary() {
 			t.Fatal("expected /bin/sh to NOT be detected as stripped Go binary")
 		}
 	}

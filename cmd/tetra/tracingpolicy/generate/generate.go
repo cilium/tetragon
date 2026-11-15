@@ -175,7 +175,7 @@ func New() *cobra.Command {
 					log.Fatalf("failed to open ELF file '%s': %v", uprobesBinary, err)
 				}
 				defer file.Close()
-				if file.IsStrippedPureGoBinary() {
+				if file.IsStrippedGoBinary() {
 					tbl, pclnErr := file.Pclntab()
 					if pclnErr != nil {
 						log.Fatalf("failed to parse pclntab for '%s': %v", uprobesBinary, pclnErr)
