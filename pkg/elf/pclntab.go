@@ -72,6 +72,27 @@ func (t *GoPclntab) AllFuncs() []UprobeOffset {
 	return out
 }
 
+// Returns the file offset of name in a stripped Go binary: Go functions
+// through .gopclntab and the rest, such as cgo's C functions, through .dynsym.
+// A .gopclntab that does not parse, such as one from before Go 1.18, still
+// resolves C functions.
+func (se *SafeELFFile) StrippedGoOffset(name string) (uint64, error) {
+	tbl, err := se.Pclntab()
+	if err == nil {
+		if off, ok := tbl.OffsetByName(name); ok {
+			return off, nil
+		}
+	}
+	// Undefined .dynsym entries (library imports) have address 0
+	if addr, dynErr := se.DynamicAddress(name); dynErr == nil && addr != 0 {
+		return se.OffsetFromAddr(addr)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("%q not in .dynsym (.gopclntab: %w)", name, err)
+	}
+	return 0, fmt.Errorf("%q in neither .gopclntab nor .dynsym", name)
+}
+
 // Returns the ABI-deduped file offset for the named function
 func (t *GoPclntab) OffsetByName(name string) (uint64, bool) {
 	fn, ok := t.byName[name]

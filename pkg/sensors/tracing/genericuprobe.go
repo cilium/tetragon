@@ -1412,20 +1412,16 @@ func addUprobeEntries(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, state *u
 	}
 
 	if state.symbols != 0 && f.IsStrippedPureGoBinary() {
-		tbl, err := f.Pclntab()
-		if err != nil {
-			return ids, fmt.Errorf("failed to parse pclntab: %w", err)
-		}
 		for idx, sym := range spec.Symbols {
-			if err := checkSymbol(sym); err != nil {
+			name, _, err := parseSymbol(sym)
+			if err != nil {
 				return ids, fmt.Errorf("failed to parse symbol: %w", err)
 			}
-			off, ok := tbl.OffsetByName(sym)
-			if !ok {
+			off, err := f.StrippedGoOffset(name)
+			if err != nil {
 				return ids, fmt.Errorf("failed to resolve symbol: %w", err)
 			}
-			err = addUprobeEntry(sym, off, idx)
-			if err != nil {
+			if err := addUprobeEntry(sym, off, idx); err != nil {
 				return ids, err
 			}
 		}

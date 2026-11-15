@@ -102,7 +102,7 @@ func (se *SafeELFFile) DynamicAddress(name string) (uint64, error) {
 }
 
 // Offset returns the file offset for the named symbol, for uprobe attachment.
-// Resolves via ELF symtab only. For stripped Go binaries, use Pclntab().OffsetByName instead.
+// Resolves via ELF symtab only. For stripped Go binaries, use StrippedGoOffset instead.
 func (se *SafeELFFile) Offset(name string) (uint64, error) {
 	symbols, err := se.Symbols()
 	if err != nil {
