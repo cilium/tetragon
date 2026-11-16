@@ -6,6 +6,8 @@
 package tracing
 
 import (
+	"fmt"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -179,6 +181,76 @@ func TestUprobeReturnOverrideValidation(t *testing.T) {
 				require.NoError(t, err)
 				spec.Return = false
 				require.ErrorContains(t, validateUprobeSpec(spec, &uprobeConfigState{}), "requires return=true")
+			}
+		})
+	}
+}
+
+func TestUprobeValidationRegisterOverlap(t *testing.T) {
+	reg0 := selectors.ArgIndexRegister(0)
+
+	// catch an error that only hits for arm64
+	defaultOverlapErr := ""
+	if runtime.GOARCH == "arm64" {
+		defaultOverlapErr = fmt.Sprintf("register %q", reg0)
+	}
+
+	tests := []struct {
+		name       string
+		actions    []v1alpha1.ActionSelector
+		wantErrMsg string
+	}{
+		{
+			name: "Override argRegs and Set target the same register",
+			actions: []v1alpha1.ActionSelector{
+				{Action: "Override", ArgRegs: []string{reg0 + "=1"}},
+				{Action: "Set", ArgIndex: 0, ArgValue: 42},
+			},
+			wantErrMsg: fmt.Sprintf("register %q", reg0),
+		},
+		{
+			name: "Override argRegs and Set target different registers",
+			actions: []v1alpha1.ActionSelector{
+				{Action: "Override", ArgRegs: []string{reg0 + "=1"}},
+				{Action: "Set", ArgIndex: 1, ArgValue: 42},
+			},
+		},
+		{
+			name: "two Set actions target the same argIndex",
+			actions: []v1alpha1.ActionSelector{
+				{Action: "Set", ArgIndex: 0, ArgValue: 1},
+				{Action: "Set", ArgIndex: 0, ArgValue: 2},
+			},
+			wantErrMsg: fmt.Sprintf("register %q", reg0),
+		},
+		{
+			name: "Override multiple register writes",
+			actions: []v1alpha1.ActionSelector{
+				{Action: "Override", ArgRegs: []string{reg0 + "=4", reg0 + "=cel(4+3)"}},
+			},
+		},
+		{
+			name: "default Override and Set on argument 0",
+			actions: []v1alpha1.ActionSelector{
+				{Action: "Override", ArgError: -1},
+				{Action: "Set", ArgIndex: 0, ArgValue: 42},
+			},
+			wantErrMsg: defaultOverlapErr,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			spec := &v1alpha1.UProbeSpec{
+				Symbols:   []string{"main"},
+				Selectors: []v1alpha1.KProbeSelector{{MatchActions: test.actions}},
+			}
+			err := validateUprobeSpec(spec, &uprobeConfigState{})
+			if test.wantErrMsg != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), test.wantErrMsg)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
