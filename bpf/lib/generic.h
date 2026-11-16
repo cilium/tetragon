@@ -22,6 +22,9 @@
 #define MAX_POSSIBLE_SELECTORS	 31
 #define SELECTORS_ACTIVE	 31
 #define MAX_CONFIGURED_SELECTORS MAX_POSSIBLE_SELECTORS + 1
+// We do one tail-call per selector, we can have up to 5 selectors.
+#define MAX_SELECTORS	   5
+#define MAX_SELECTORS_MASK 7
 // This constant is mirrored in Go in `ParseMatchCaller()`.
 // If you adjust this constant, you must also adjust the Go code.
 #define MAX_STACK_DEPTH 16
