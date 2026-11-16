@@ -169,7 +169,7 @@ func (r *CgroupRate) processCgroups() {
 		return
 	}
 
-	last, err := ktime.Monotonic()
+	last, err := ktime.Now()
 	if err != nil {
 		return
 	}
