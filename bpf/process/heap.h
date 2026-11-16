@@ -52,7 +52,8 @@ typedef __u64 heap_key_t;
  * The interrupt context detection needs ksyms, which cilium/ebpf fails
  * to load when kallsyms addresses are restricted (kptr_restrict), until
  * we get https://github.com/cilium/ebpf/pull/2130. The loader sets this
- * and drops the ksym references in such case.
+ * and drops the ksym references in such case. KSYMS_MISSING provides the
+ * same fallback when context symbols are unavailable.
  */
 volatile const __u8 KSYMS_RESTRICTED;
 
@@ -63,6 +64,9 @@ volatile const __u8 KSYMS_RESTRICTED;
  * (attached to a kernel function called from a helper of the outer program)
  * gets the same key and overwrites the outer entry, the outer event is lost
  * (counted as EEXIST in errmetrics). Lsm programs have no recursion check.
+ * With KSYMS_RESTRICTED or KSYMS_MISSING, ctx stays zero, so different
+ * interrupt levels can also collide. EEXIST only records the collision; it
+ * does not prevent overwriting or subsequent cleanup of the outer entry.
  */
 static inline __attribute__((always_inline)) heap_key_t get_context_key(void)
 {
@@ -70,7 +74,7 @@ static inline __attribute__((always_inline)) heap_key_t get_context_key(void)
 	__u64 cpu = get_smp_processor_id();
 	__u64 ctx = 0;
 
-	if (!KSYMS_RESTRICTED)
+	if (!KSYMS_RESTRICTED && !CONFIG(KSYMS_MISSING))
 		ctx = interrupt_context_level();
 
 	return tid << 32 | (cpu & 0xffffff) << 8 | ctx;
