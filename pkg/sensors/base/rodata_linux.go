@@ -21,7 +21,8 @@ type rodataConfig struct {
 	EnvVarsEnabled    uint8
 	ParentsMapEnabled uint8
 	BpfDebugEnabled   uint8
-	Pad               [3]uint8
+	KsymsMissing      uint8
+	Pad               [2]uint8
 }
 
 func b2u8(b bool) uint8 {
@@ -49,12 +50,16 @@ func rodataCurrent() rodataConfig {
 	// bpf debug match enabled by --bpf-debug
 	bpfDebugEnabled := option.Config.BPFDebugAreas.ToBPFConfig()
 
+	// kernel kallsyms table may omit symbols when CONFIG_KALLSYMS_ALL=n
+	ksymsMissing := b2u8(program.KsymsMissing())
+
 	return rodataConfig{
 		IterNum:           iterNum,
 		UsePerfRingBuf:    usePerfRingBuf,
 		EnvVarsEnabled:    envVarsEnabled,
 		ParentsMapEnabled: parentsMapEnabled,
 		BpfDebugEnabled:   bpfDebugEnabled,
+		KsymsMissing:      ksymsMissing,
 	}
 }
 

@@ -38,6 +38,7 @@ const (
 	CONFIG_FTRACE_SYSCALLS        Config = "CONFIG_FTRACE_SYSCALLS"
 	CONFIG_HAVE_BPF_JIT           Config = "CONFIG_HAVE_BPF_JIT"
 	CONFIG_HAVE_EBPF_JIT          Config = "CONFIG_HAVE_EBPF_JIT"
+	CONFIG_KALLSYMS_ALL           Config = "CONFIG_KALLSYMS_ALL"
 	CONFIG_SECURITY               Config = "CONFIG_SECURITY"
 )
 
@@ -58,6 +59,7 @@ var (
 		CONFIG_FTRACE_SYSCALLS:        "n",
 		CONFIG_HAVE_BPF_JIT:           "n",
 		CONFIG_HAVE_EBPF_JIT:          "n",
+		CONFIG_KALLSYMS_ALL:           "n",
 		CONFIG_SECURITY:               "n",
 	}
 )

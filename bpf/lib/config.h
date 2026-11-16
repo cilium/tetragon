@@ -34,7 +34,8 @@ struct rodata_config {
 	__u8 ENV_VARS_ENABLED;
 	__u8 PARENTS_MAP_ENABLED;
 	__u8 BPF_DEBUG_ENABLED;
-	__u8 pad[3];
+	__u8 KSYMS_MISSING;
+	__u8 pad[2];
 };
 
 volatile const struct rodata_config rodata_config
