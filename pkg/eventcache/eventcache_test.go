@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/defaults"
@@ -85,7 +86,7 @@ func TestEventCache(t *testing.T) {
 		require.NoError(t, err)
 
 		// Add an event without a processInternal to let the cache trigger a retry internally after 5ms
-		ec.Add(nil, tetragonEvent, uint64(time.Now().UnixNano()), uint64(time.Now().UnixNano()-5), &msg)
+		ec.Add(nil, tetragonEvent, timestamppb.Now(), uint64(time.Now().UnixNano()-5), &msg)
 		synctest.Sleep(time.Millisecond * 6)
 
 		// not called

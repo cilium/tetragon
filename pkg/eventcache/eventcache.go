@@ -9,8 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
@@ -38,7 +39,7 @@ type Expirer interface {
 type CacheObj struct {
 	internal  *process.ProcessInternal
 	event     notify.Event
-	timestamp uint64
+	eventTime *timestamppb.Timestamp
 	startTime uint64
 	color     int
 	msg       notify.Message
@@ -189,7 +190,7 @@ func (ec *Cache) handleEvents() {
 		if event.msg.Notify() {
 			processedEvent := &tetragon.GetEventsResponse{
 				Event: event.event.Encapsulate(),
-				Time:  ktime.ToProto(event.timestamp),
+				Time:  event.eventTime,
 			}
 
 			ec.notifier.NotifyListener(event.msg, processedEvent)
@@ -284,13 +285,15 @@ func (ec *Cache) NeededAncestors(parent *process.ProcessInternal, ancestors []*p
 	return false
 }
 
+// Add holds msg for retries. t is the time its event is sent with, nil when
+// msg does not Notify.
 func (ec *Cache) Add(internal *process.ProcessInternal,
 	e notify.Event,
-	t uint64,
+	t *timestamppb.Timestamp,
 	s uint64,
 	msg notify.Message) {
 	select {
-	case ec.objsChan <- CacheObj{internal: internal, event: e, timestamp: t, startTime: s, msg: msg}:
+	case ec.objsChan <- CacheObj{internal: internal, event: e, eventTime: t, startTime: s, msg: msg}:
 	case <-ec.done:
 	}
 }
