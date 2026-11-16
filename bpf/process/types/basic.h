@@ -2382,8 +2382,15 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 	seloff = 4; /* start of the relative offsets */
 	seloff += (selidx * 4); /* relative offset for this selector */
 
+	/* The compiler can prove a C mask redundant here and drop it, but older
+	 * verifiers (4.19, 5.4) lose the bounds of selidx if it was spilled to
+	 * the stack. Mask right before the access.
+	 */
+	asm volatile("%[seloff] &= %[mask];\n"
+		     : [seloff] "+r"(seloff)
+		     : [mask] "i"(INDEX_MASK));
 	/* selector section offset by reading the relative offset in the array */
-	seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+	seloff += *(__u32 *)((__u64)f + seloff);
 
 	/* skip the selector size field */
 	seloff += 4;
