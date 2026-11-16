@@ -19,7 +19,7 @@ func NanoTimeSince(ktime int64) (time.Duration, error) {
 	return time.Duration(diff), nil
 }
 
-func Monotonic() (time.Duration, error) {
+func Now() (time.Duration, error) {
 	clk := int32(unix.CLOCK_MONOTONIC)
 	currentTime := unix.Timespec{}
 	if err := unix.ClockGettime(clk, &currentTime); err != nil {
