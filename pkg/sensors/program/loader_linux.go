@@ -941,7 +941,7 @@ func doLoadProgram(
 		return nil, fmt.Errorf("loading collection spec failed: %w", err)
 	}
 
-	if err := handleKsymsRestricted(spec); err != nil {
+	if err := handleKsyms(spec); err != nil {
 		return nil, err
 	}
 
