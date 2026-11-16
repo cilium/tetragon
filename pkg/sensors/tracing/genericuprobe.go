@@ -655,6 +655,8 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 	}
 
 	for sid, s := range spec.Selectors {
+		regsWritten := map[uint16]int{}
+
 		for mid, action := range s.MatchActions {
 			if action.KernelStackTrace {
 				return fmt.Errorf("kernelStackTrace is not supported for uprobes: got kernelStackTrace enabled in selectors[%d].matchActions[%d]", sid, mid)
@@ -668,6 +670,19 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 			if action.ArgIndex >= selectors.ArgsInRegisters {
 				return fmt.Errorf("uprobe Set action argIndex %d out of range", action.ArgIndex)
 			}
+
+			reg := selectors.ArgIndexRegister(action.ArgIndex)
+
+			off, ok := asm.RegOffset(reg)
+			if !ok {
+				return fmt.Errorf("selectors[%d].matchActions[%d]: unknown register %q", sid, mid, reg)
+			}
+
+			if prev, ok := regsWritten[off]; ok {
+				return fmt.Errorf("selectors[%d]: matchActions[%d] and matchActions[%d] both overwrite register %q", sid, prev, mid, reg)
+			}
+
+			regsWritten[off] = mid
 		}
 	}
 
