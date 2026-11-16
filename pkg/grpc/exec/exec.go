@@ -6,9 +6,11 @@ package exec
 import (
 	"errors"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cgroups"
@@ -95,7 +97,7 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 			(ec.Needed(tetragonProcess) ||
 				(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
 				(option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors))) {
-			ec.Add(proc, tetragonEvent, event.Unix.Msg.Common.Ktime, event.Unix.Process.Ktime, event)
+			ec.Add(proc, tetragonEvent, event.eventTime(), event.Unix.Process.Ktime, event)
 			return nil
 		}
 	}
@@ -288,10 +290,16 @@ func (msg *MsgExecveEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	if e := GetProcessExec(msg, true); e != nil {
 		res = &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: e},
-			Time:  ktime.ToProto(msg.Unix.Msg.Common.Ktime),
+			Time:  msg.eventTime(),
 		}
 	}
 	return res
+}
+
+// eventTime decodes the event's ktime, which procfs exec events take from
+// their process's procfs start time.
+func (msg *MsgExecveEventUnix) eventTime() *timestamppb.Timestamp {
+	return ktime.ToProtoOpt(msg.Unix.Msg.Common.Ktime, msg.Unix.Process.Flags&api.EventProcFS == 0)
 }
 
 func (msg *MsgExecveEventUnix) Cast(o any) notify.Message {
@@ -383,7 +391,7 @@ func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	if ec := eventcache.Get(); ec != nil {
 		if proc == nil {
 			// adding to the cache due to missing parent
-			ec.Add(nil, nil, msg.Common.Ktime, msg.Ktime, msg)
+			ec.Add(nil, nil, nil, msg.Ktime, msg)
 			return nil
 		}
 
@@ -392,7 +400,7 @@ func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 		if ec.Needed(proc.UnsafeGetProcess()) ||
 			option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors) {
 			// adding to the cache due to missing pod info or ancestors
-			ec.Add(proc, nil, msg.Common.Ktime, msg.Ktime, msg)
+			ec.Add(proc, nil, nil, msg.Ktime, msg)
 			return nil
 		}
 	}
@@ -496,7 +504,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
 			(option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors))) {
-		ec.Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
+		ec.Add(nil, tetragonEvent, tetragonEvent.Time, event.ProcessKey.Ktime, event)
 		return nil
 	}
 
@@ -698,7 +706,7 @@ func (msg *MsgProcessCleanupEventUnix) HandleMessage() *tetragon.GetEventsRespon
 		(proc == nil ||
 			parent == nil ||
 			option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors)) {
-		ec.Add(nil, nil, msg.Ktime, msg.Ktime, msg)
+		ec.Add(nil, nil, nil, msg.Ktime, msg)
 		return nil
 	}
 

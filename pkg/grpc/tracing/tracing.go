@@ -396,7 +396,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
 			(option.Config.EnableProcessKprobeAncestors && ec.NeededAncestors(parent, ancestors))) {
-		ec.Add(nil, tetragonEvent, event.Msg.Common.Ktime, event.Msg.ProcessKey.Ktime, event)
+		ec.Add(nil, tetragonEvent, ktime.ToProto(event.Msg.Common.Ktime), event.Msg.ProcessKey.Ktime, event)
 		return nil
 	}
 
@@ -704,7 +704,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
 			(option.Config.EnableProcessTracepointAncestors && ec.NeededAncestors(parent, ancestors))) {
-		ec.Add(nil, tetragonEvent, msg.Msg.Common.Ktime, msg.Msg.ProcessKey.Ktime, msg)
+		ec.Add(nil, tetragonEvent, ktime.ToProto(msg.Msg.Common.Ktime), msg.Msg.ProcessKey.Ktime, msg)
 		return nil
 	}
 
@@ -829,7 +829,7 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 		(ec.Needed(tetragonProcess) ||
 			((tetragonProcess.Pid.Value > 1) && ec.Needed(tetragonParent)) ||
 			(option.Config.EnableProcessLoaderAncestors && ec.NeededAncestors(parent, ancestors))) {
-		ec.Add(nil, tetragonEvent, msg.Msg.Common.Ktime, msg.Msg.ProcessKey.Ktime, msg)
+		ec.Add(nil, tetragonEvent, ktime.ToProto(msg.Msg.Common.Ktime), msg.Msg.ProcessKey.Ktime, msg)
 		return nil
 	}
 
@@ -957,7 +957,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
 			(option.Config.EnableProcessUprobeAncestors && ec.NeededAncestors(parent, ancestors))) {
-		ec.Add(nil, tetragonEvent, event.Msg.Common.Ktime, event.Msg.ProcessKey.Ktime, event)
+		ec.Add(nil, tetragonEvent, ktime.ToProto(event.Msg.Common.Ktime), event.Msg.ProcessKey.Ktime, event)
 		return nil
 	}
 
@@ -1062,7 +1062,7 @@ func GetProcessUsdt(event *MsgGenericUsdtUnix) *tetragon.ProcessUsdt {
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
 			(option.Config.EnableProcessUsdtAncestors && ec.NeededAncestors(parent, ancestors))) {
-		ec.Add(nil, tetragonEvent, event.Msg.Common.Ktime, event.Msg.ProcessKey.Ktime, event)
+		ec.Add(nil, tetragonEvent, ktime.ToProto(event.Msg.Common.Ktime), event.Msg.ProcessKey.Ktime, event)
 		return nil
 	}
 
@@ -1203,7 +1203,7 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
 			(option.Config.EnableProcessLsmAncestors && ec.NeededAncestors(parent, ancestors))) {
-		ec.Add(nil, tetragonEvent, event.Msg.Common.Ktime, event.Msg.ProcessKey.Ktime, event)
+		ec.Add(nil, tetragonEvent, ktime.ToProto(event.Msg.Common.Ktime), event.Msg.ProcessKey.Ktime, event)
 		return nil
 	}
 
