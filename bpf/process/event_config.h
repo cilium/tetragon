@@ -6,10 +6,6 @@
 
 #include "process/generic_maps.h"
 
-// We do one tail-call per selector, we can have up to 5 selectors.
-#define MAX_SELECTORS	   5
-#define MAX_SELECTORS_MASK 7
-
 struct config_btf_arg {
 	__u32 offset;
 	__u16 is_pointer;
