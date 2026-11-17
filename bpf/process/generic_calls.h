@@ -1519,7 +1519,7 @@ FUNC_INLINE int generic_process_filter(void *ctx, int stage)
 		sel->pass |= true;
 	}
 	sel->curr++;
-	if (sel->curr > selectors)
+	if (sel->curr >= selectors)
 		return process_filter_done(sel, enter, current);
 	return PFILTER_CONTINUE; /* will iterate to the next selector */
 }
