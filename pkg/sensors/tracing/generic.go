@@ -258,12 +258,29 @@ func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type, spec *ebtf.Spec) (*eb
 	if err != nil {
 		return nil, btfArg, err
 	}
-	path := addPaddingOnNestedPtr(ty, pathBase)
-	if btfPathDepth(path) > api.MaxBTFArgDepth {
-		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
+	return resolveBTFPathFromRoot(arg.Resolve, ty, pathBase, spec)
+}
+
+// resolveBTFPathFromRoot resolves path starting from a first BTF type
+func resolveBTFPathFromRoot(resolve string, root ebtf.Type, path []string, spec *ebtf.Spec) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
+	if len(path) == 0 {
+		return nil, btfArg, fmt.Errorf("unable to resolve %q: empty path", resolve)
 	}
 
-	lastBTFType, err := btf.ResolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path, spec)
+	// The value already holds the root pointer, so the path starts from its
+	// target, unless the path indexes the pointer. Any further pointer levels
+	// need an explicit dereference.
+	root = btf.ResolveNestedTypes(root)
+	if ptr, ok := root.(*ebtf.Pointer); ok && !isPointerToIndexedArray(ptr, path[0]) {
+		root = btf.ResolveNestedTypes(ptr.Target)
+	}
+	path = addPaddingOnNestedPtr(root, path)
+	if btfPathDepth(path) > api.MaxBTFArgDepth {
+		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", resolve, api.MaxBTFArgDepth)
+	}
+
+	lastBTFType, err := btf.ResolveBTFPath(&btfArg, root, path, spec)
 	return lastBTFType, btfArg, err
 }
 
@@ -363,13 +380,6 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 		}
 
 		ty = param.Type
-		if ptr, isPointer := param.Type.(*ebtf.Pointer); isPointer {
-			if !isPointerToIndexedArray(ptr, arg.Resolve) {
-				// If we are going to dereference the pointer by index,
-				// there is no need to force-dereference it.
-				ty = ptr.Target
-			}
-		}
 	}
 	return resolveBTFType(arg, ty, spec)
 }
