@@ -1505,8 +1505,9 @@ FUNC_INLINE int generic_process_filter(void *ctx, int stage)
 
 	pass = selector_process_filter(ctx, f, sel->curr, enter, msg, stage);
 	if (stage == GENERIC_FILTER_STAGE_1) {
+		/* continue in the TAIL_CALL_FILTER_2 program */
 		if (pass == PFILTER_ACCEPT)
-			return PFILTER_ACCEPT;
+			return PFILTER_STAGE_2;
 	} else if (pass) {
 		/* Verify lost that msg is not null here so recheck */
 		int curr = sel->curr;
@@ -1523,19 +1524,23 @@ FUNC_INLINE int generic_process_filter(void *ctx, int stage)
 	return PFILTER_CONTINUE; /* will iterate to the next selector */
 }
 
-// generic_process_filter_stage runs the process filter and tail calls the
-// supplied programs for a selector continuation or a successful match.
+// generic_process_filter_stage runs the process filter and tail calls:
+//  - TAIL_CALL_FILTER to process the next selector,
+//  - TAIL_CALL_FILTER_2 to run stage 2 for the current selector,
+//  - @done when all selectors were processed and the event is accepted.
 FUNC_INLINE int
-generic_process_filter_stage(void *ctx, int stage, __u32 fail, __u32 pass,
+generic_process_filter_stage(void *ctx, int stage, __u32 done,
 			     struct bpf_map_def *calls)
 {
 	int ret;
 
 	ret = generic_process_filter(ctx, stage);
 	if (ret == PFILTER_CONTINUE)
-		tail_call(ctx, calls, fail);
+		tail_call(ctx, calls, TAIL_CALL_FILTER);
+	else if (ret == PFILTER_STAGE_2)
+		tail_call(ctx, calls, TAIL_CALL_FILTER_2);
 	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, calls, pass);
+		tail_call(ctx, calls, done);
 	return PFILTER_REJECT;
 }
 

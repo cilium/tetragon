@@ -81,6 +81,7 @@ filter_pidsets(__u64 ty, __u64 flags, __u64 sel, struct execve_map_value *enter)
 
 // generic_process_filter return value
 enum {
+	PFILTER_STAGE_2 = 4, // selector passed stage 1, run stage 2
 	PFILTER_ERROR = 3, // these should never happen
 	PFILTER_CONTINUE = 2, // filter check continue
 	PFILTER_ACCEPT = 1, // filter check passed
