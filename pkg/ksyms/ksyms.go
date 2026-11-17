@@ -231,6 +231,28 @@ func (k *Ksyms) getFnOffset(addr uint64) (*FnOffset, error) {
 	}, nil
 }
 
+// HasSymbol is a lighter alternative to KernelSymbols().IsAvailable(name). It
+// scans the kallsyms file at path line by line and stops at the first symbol
+// called name, without keeping the symbol table in memory.
+func HasSymbol(path, name string) (bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	want := []byte(name)
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		// Each line is "<address> <type> <name>" with an optional "[<module>]".
+		fields := bytes.Fields(s.Bytes())
+		if len(fields) >= 3 && bytes.Equal(fields[2], want) {
+			return true, nil
+		}
+	}
+	return false, s.Err()
+}
+
 func (k *Ksyms) IsAvailable(name string) bool {
 	for _, sym := range k.table {
 		if sym.name == name {
