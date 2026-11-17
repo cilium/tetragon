@@ -4,6 +4,8 @@
 package ksyms
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -85,5 +87,67 @@ func TestGetFnOffset(t *testing.T) {
 				t.Fatalf("Symbol offset (%x) did not match expected value (%x) for %v", got.Offset, tt.want.Offset, tt.name)
 			}
 		})
+	}
+}
+
+func TestHasSymbol(t *testing.T) {
+	const kallsyms = `ffffffff81000000 T _stext
+ffffffff81001000 t do_one_initcall
+ffffffff81234560 T acct_process
+ffffffff81234570 T disassociate_ctty_x
+ffffffffc0a01000 t mod_helper	[some_module]
+ffffffffc0a02000 T acct_process_mod	[some_module]
+`
+	path := filepath.Join(t.TempDir(), "kallsyms")
+	if err := os.WriteFile(path, []byte(kallsyms), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name   string
+		symbol string
+		want   bool
+	}{
+		{"present", "acct_process", true},
+		{"present, first line", "_stext", true},
+		{"present in a module", "mod_helper", true},
+		{"absent", "disassociate_ctty", false},
+		{"shorter name is not a match", "acct", false},
+		{"longer name is not a match", "acct_process_mod2", false},
+		{"address is not a symbol", "ffffffff81234560", false},
+		{"type is not a symbol", "T", false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := HasSymbol(path, tc.symbol)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != tc.want {
+				t.Fatalf("HasSymbol(%q) = %v, want %v", tc.symbol, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestHasSymbolIgnoresMalformedLines(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "kallsyms")
+	content := "garbage\n\nffffffff81000000 T\nffffffff81234560 T acct_process\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := HasSymbol(path, "acct_process")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got {
+		t.Fatal("HasSymbol(acct_process) = false, want true")
+	}
+}
+
+func TestHasSymbolMissingFile(t *testing.T) {
+	if _, err := HasSymbol(filepath.Join(t.TempDir(), "does-not-exist"), "acct_process"); err == nil {
+		t.Fatal("HasSymbol on a missing file returned no error")
 	}
 }
