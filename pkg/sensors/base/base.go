@@ -130,24 +130,32 @@ func GetExecveEntries(configEntries int, configSize string) int {
 	return entries
 }
 
+func setExitProbe(kallsyms string) {
+	// Prefer acct_process over disassociate_ctty.
+	hasAcctProcess, err := ksyms.HasSymbol(kallsyms, "acct_process")
+	if err != nil {
+		return
+	}
+	if hasAcctProcess {
+		Exit.Attach = "acct_process"
+		Exit.Label = "kprobe/acct_process"
+		return
+	}
+
+	hasDisassociateCtty, err := ksyms.HasSymbol(kallsyms, "disassociate_ctty")
+	if err != nil {
+		return
+	}
+	if !hasDisassociateCtty {
+		log.Fatal("Failed to detect exit probe symbol.")
+	}
+	Exit.Attach = "disassociate_ctty"
+	Exit.Label = "kprobe/disassociate_ctty"
+}
+
 func setupSensor() {
 	// exit program function
-	ks, err := ksyms.KernelSymbols()
-	if err == nil {
-		hasAcctProcess := ks.IsAvailable("acct_process")
-		hasDisassociateCtty := ks.IsAvailable("disassociate_ctty")
-
-		/* Preffer acct_process over disassociate_ctty */
-		if hasAcctProcess {
-			Exit.Attach = "acct_process"
-			Exit.Label = "kprobe/acct_process"
-		} else if hasDisassociateCtty {
-			Exit.Attach = "disassociate_ctty"
-			Exit.Label = "kprobe/disassociate_ctty"
-		} else {
-			log.Fatal("Failed to detect exit probe symbol.")
-		}
-	}
+	setExitProbe(option.Config.ProcFS + "/kallsyms")
 	logger.GetLogger().Info("Exit probe on " + Exit.Attach)
 
 	entries := GetExecveEntries(option.Config.ExecveMapEntries, option.Config.ExecveMapSize)
