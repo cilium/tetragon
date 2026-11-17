@@ -31,6 +31,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -291,7 +292,7 @@ func Check(kube *processapi.MsgK8s, ktime uint64) {
 	cq := &cgroupQueue{
 		id:    kube.Cgrpid,
 		ktime: ktime,
-		name:  string(kube.Docker[:]),
+		name:  cgroups.CgroupNameFromCStr(kube.Docker[:]),
 	}
 
 	glSt.handle.ch <- cq
