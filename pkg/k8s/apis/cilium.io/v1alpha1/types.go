@@ -157,6 +157,7 @@ type KProbeSelector struct {
 	// Human-readable selector label used in status and metrics.
 	Label string `json:"label,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=1
 	// A list of process ID filters. MatchPIDs are ANDed.
 	MatchPIDs []PIDSelector `json:"matchPIDs,omitempty"`
 	// +kubebuilder:validation:Optional
@@ -192,12 +193,15 @@ type KProbeSelector struct {
 	// A list of namespaces and IDs
 	MatchNamespaces []NamespaceSelector `json:"matchNamespaces,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=1
 	// IDs for namespace changes
 	MatchNamespaceChanges []NamespaceChangesSelector `json:"matchNamespaceChanges,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=1
 	// A list of capabilities and IDs
 	MatchCapabilities []CapabilitiesSelector `json:"matchCapabilities,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=1
 	// IDs for capabilities changes
 	MatchCapabilityChanges []CapabilitiesSelector `json:"matchCapabilityChanges,omitempty"`
 	// +kubebuilder:validation:Optional

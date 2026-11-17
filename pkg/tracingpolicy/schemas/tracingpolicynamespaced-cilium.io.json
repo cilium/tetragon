@@ -825,6 +825,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCapabilityChanges": {
@@ -869,6 +870,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCmdArgs": {
@@ -1016,6 +1018,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchNamespaces": {
@@ -1103,6 +1106,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchParentBinaries": {
@@ -2458,6 +2462,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCapabilityChanges": {
@@ -2502,6 +2507,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCmdArgs": {
@@ -2649,6 +2655,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchNamespaces": {
@@ -2736,6 +2743,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchParentBinaries": {
@@ -3815,6 +3823,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCapabilityChanges": {
@@ -3859,6 +3868,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCmdArgs": {
@@ -4006,6 +4016,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchNamespaces": {
@@ -4093,6 +4104,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchParentBinaries": {
@@ -5115,6 +5127,7 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "maxItems": 1,
                 "type": "array"
               },
               "matchCapabilityChanges": {
@@ -5159,6 +5172,7 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "maxItems": 1,
                 "type": "array"
               },
               "matchCmdArgs": {
@@ -5306,6 +5320,7 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "maxItems": 1,
                 "type": "array"
               },
               "matchNamespaces": {
@@ -5393,6 +5408,7 @@
                   "type": "object",
                   "additionalProperties": false
                 },
+                "maxItems": 1,
                 "type": "array"
               },
               "matchParentBinaries": {
@@ -6431,6 +6447,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCapabilityChanges": {
@@ -6475,6 +6492,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCmdArgs": {
@@ -6622,6 +6640,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchNamespaces": {
@@ -6709,6 +6728,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchParentBinaries": {
@@ -8028,6 +8048,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCapabilityChanges": {
@@ -8072,6 +8093,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCmdArgs": {
@@ -8219,6 +8241,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchNamespaces": {
@@ -8306,6 +8329,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchParentBinaries": {
@@ -9358,6 +9382,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCapabilityChanges": {
@@ -9402,6 +9427,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchCmdArgs": {
@@ -9549,6 +9575,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchNamespaces": {
@@ -9636,6 +9663,7 @@
                         "type": "object",
                         "additionalProperties": false
                       },
+                      "maxItems": 1,
                       "type": "array"
                     },
                     "matchParentBinaries": {
