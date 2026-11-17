@@ -889,15 +889,6 @@ selector_process_filter_2(void *ctx, __u32 *f, __u32 index, struct execve_map_va
 }
 
 FUNC_INLINE int
-selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_value *enter,
-			struct msg_generic_kprobe *msg, int stage)
-{
-	if (stage == GENERIC_FILTER_STAGE_1)
-		return selector_process_filter_1(f, index, enter);
-	return selector_process_filter_2(ctx, f, index, enter, msg);
-}
-
-FUNC_INLINE int
 process_filter_done(struct msg_selector_data *sel,
 		    struct execve_map_value *enter,
 		    struct msg_execve_key *current)

@@ -158,8 +158,10 @@ enum {
 	TAIL_CALL_FILTER_2 = 9,
 };
 
-#define GENERIC_FILTER_STAGE_1 1
-#define GENERIC_FILTER_STAGE_2 2
+/* Process filter stages, see filter_run_stage_1/2(). */
+#define GENERIC_FILTER_STAGE_1	 (1 << 0) /* workloads, binaries, parent binaries, cmd args */
+#define GENERIC_FILTER_STAGE_2	 (1 << 1) /* pids, namespaces, capabilities, namespace changes */
+#define GENERIC_FILTER_STAGE_ALL (GENERIC_FILTER_STAGE_1 | GENERIC_FILTER_STAGE_2)
 
 struct selector_action {
 	__u32 actionlen;

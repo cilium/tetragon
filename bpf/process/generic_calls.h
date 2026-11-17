@@ -1430,9 +1430,33 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	return 1;
 }
 
-// generic_process_filter performs process filtering in two stages. The first
-// stage performs the inexpensive filters before handing the current selector
-// to stage 2.
+// The TAIL_CALL_FILTER program asks for GENERIC_FILTER_STAGE_ALL and the
+// TAIL_CALL_FILTER_2 program for GENERIC_FILTER_STAGE_2. What runs depends on
+// the mode:
+//  - single mode (ITER_NUM): all filters of a selector fit one program, so
+//    TAIL_CALL_FILTER runs both stages and TAIL_CALL_FILTER_2 is never reached
+//  - split mode: TAIL_CALL_FILTER runs only stage 1 and hands the selector
+//    to TAIL_CALL_FILTER_2 for stage 2, to fit the verifier budget on kernels
+//    without numeric iterators (< 6.9)
+//
+// Call these right where the result is tested. CONFIG() is then read next to
+// the branch, so the verifier prunes the unused mode without tracking a stage
+// value across the whole program (see bpf/lib/config.h).
+FUNC_INLINE bool filter_run_stage_1(int stage)
+{
+	return stage & GENERIC_FILTER_STAGE_1;
+}
+
+FUNC_INLINE bool filter_run_stage_2(int stage)
+{
+	/* split mode runs stage 2 in the TAIL_CALL_FILTER_2 program */
+	if (stage == GENERIC_FILTER_STAGE_ALL && !CONFIG(ITER_NUM))
+		return false;
+	return stage & GENERIC_FILTER_STAGE_2;
+}
+
+// generic_process_filter runs the process filter stages of the current
+// selector, see filter_run_stage_1/2().
 FUNC_INLINE int generic_process_filter(void *ctx, int stage)
 {
 	int selectors, pass;
@@ -1477,12 +1501,16 @@ FUNC_INLINE int generic_process_filter(void *ctx, int stage)
 	if (selectors <= sel->curr)
 		return process_filter_done(sel, enter, current);
 
-	pass = selector_process_filter(ctx, f, sel->curr, enter, msg, stage);
-	if (stage == GENERIC_FILTER_STAGE_1) {
-		/* continue in the TAIL_CALL_FILTER_2 program */
-		if (pass == PFILTER_ACCEPT)
+	pass = PFILTER_ACCEPT;
+	if (filter_run_stage_1(stage)) {
+		pass = selector_process_filter_1(f, sel->curr, enter);
+		/* split mode: continue in the TAIL_CALL_FILTER_2 program */
+		if (pass == PFILTER_ACCEPT && !filter_run_stage_2(stage))
 			return PFILTER_STAGE_2;
-	} else if (pass) {
+	}
+	if (pass && filter_run_stage_2(stage))
+		pass = selector_process_filter_2(ctx, f, sel->curr, enter, msg);
+	if (pass) {
 		/* Verify lost that msg is not null here so recheck */
 		int curr = sel->curr;
 
