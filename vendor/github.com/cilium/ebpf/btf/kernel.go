@@ -52,7 +52,7 @@ func LoadKernelSpec() (*Spec, error) {
 			return nil, fmt.Errorf("load vmlinux: %w", err)
 		}
 
-		runtime.AddCleanup(spec.decoder.sharedBuf, func(b []byte) {
+		runtime.AddCleanup(spec.d.sharedBuf, func(b []byte) {
 			_ = unix.Munmap(b)
 		}, raw)
 

@@ -1,7 +1,6 @@
 package btf
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"hash/maphash"
@@ -45,6 +44,12 @@ type decoder struct {
 	legacyBitfields map[TypeID][2]Bits // offset, size
 }
 
+// len returns the number of types in the decoder, including Void for
+// non-split BTF.
+func (d *decoder) len() int {
+	return len(d.offsets)
+}
+
 func newDecoder(raw []byte, bo binary.ByteOrder, strings *stringTable, base *decoder) (*decoder, error) {
 	firstTypeID := TypeID(0)
 	if base != nil {
@@ -56,7 +61,7 @@ func newDecoder(raw []byte, bo binary.ByteOrder, strings *stringTable, base *dec
 			return nil, fmt.Errorf("can't use split BTF as base")
 		}
 
-		firstTypeID = TypeID(len(base.offsets))
+		firstTypeID = TypeID(base.len())
 	}
 
 	var header btfType
@@ -112,13 +117,7 @@ func newDecoder(raw []byte, bo binary.ByteOrder, strings *stringTable, base *dec
 		}
 
 		if len(name) > 0 {
-			if i := bytes.Index(name, []byte("___")); i != -1 {
-				// Flavours are rare. It's cheaper to find the first index for some
-				// reason.
-				i = bytes.LastIndex(name, []byte("___"))
-				name = name[:i]
-			}
-
+			name = name[:essentialNameLen(name)]
 			namedTypes.Add(name, id)
 		}
 
@@ -174,15 +173,7 @@ func allBtfTypeOffsets(buf []byte, bo binary.ByteOrder, header *btfType) iter.Se
 	}
 }
 
-// Copy performs a deep copy of a decoder and its base.
-func (d *decoder) Copy() *decoder {
-	if d == nil {
-		return nil
-	}
-
-	return d.copy(nil)
-}
-
+// copy performs a deep copy of a decoder and its base.
 func (d *decoder) copy(copiedTypes map[Type]Type) *decoder {
 	if d == nil {
 		return nil
@@ -217,8 +208,8 @@ func (d *decoder) copy(copiedTypes map[Type]Type) *decoder {
 	}
 }
 
-// TypeID returns the ID for a Type previously obtained via [TypeByID].
-func (d *decoder) TypeID(typ Type) (TypeID, error) {
+// typeID returns the ID for a Type previously obtained via [TypeByID].
+func (d *decoder) typeID(typ Type) (TypeID, error) {
 	if _, ok := typ.(*Void); ok {
 		// Equality is weird for void, since it is a zero sized type.
 		return 0, nil
@@ -235,13 +226,13 @@ func (d *decoder) TypeID(typ Type) (TypeID, error) {
 	return id, nil
 }
 
-// TypesByName returns all types which have the given essential name.
+// typesByName returns all types which have the given essential name.
 //
 // Returns ErrNotFound if no matching Type exists.
-func (d *decoder) TypesByName(name essentialName) ([]Type, error) {
+func (d *decoder) typesByName(name essentialName) ([]Type, error) {
 	var types []Type
 	for id := range d.namedTypes.Find(string(name)) {
-		typ, err := d.TypeByID(id)
+		typ, err := d.typeByID(id)
 		if err != nil {
 			return nil, err
 		}
@@ -261,8 +252,8 @@ func (d *decoder) TypesByName(name essentialName) ([]Type, error) {
 	return types, nil
 }
 
-// TypeByID decodes a type and any of its descendants.
-func (d *decoder) TypeByID(id TypeID) (Type, error) {
+// typeByID decodes a type and any of its descendants.
+func (d *decoder) typeByID(id TypeID) (Type, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -356,7 +347,7 @@ func (d *decoder) inflateType(id TypeID) (typ Type, err error) {
 	}
 
 	idx := int(id - d.firstTypeID)
-	if idx >= len(d.offsets) {
+	if idx >= d.len() {
 		return nil, fmt.Errorf("type id %v: %w", id, ErrNotFound)
 	}
 

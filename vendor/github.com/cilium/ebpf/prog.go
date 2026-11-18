@@ -225,9 +225,25 @@ func (ps *ProgramSpec) targetsKernelModule() bool {
 }
 
 // VerifierError is returned by [NewProgram] and [NewProgramWithOptions] if a
-// program is rejected by the verifier.
+// program is rejected by the verifier. It contains information obtained from
+// the eBPF verifier log. It can be string-formatted in different ways to
+// control the type and volume of information being displayed.
 //
-// Use [errors.As] to access the error.
+// Some examples of typical use cases:
+//
+//	ve, _ := errors.AsType[*ebpf.VerifierError](err)
+//	fmt.Printf("%s", ve) // Single-line summary from diagnostics (if any) or logs, no stats.
+//	fmt.Printf("%+v", ve) // Display the full log from start to finish, including diagnostics and stats.
+//	fmt.Printf("%-10v", ve) // Display the last 10 log lines, diagnostics (if any) and stats.
+//	fmt.Printf("%+5v", ve) // Display the first 5 log lines, diagnostics (if any) and stats.
+//	fmt.Printf("%d", ve) // Display only the diagnostics, if any.
+//
+// Diagnostics were introduced in Linux 7.3 and include human-readable advice
+// for solving or working around the verifier error. Stats are a single line of
+// the format 'processed X insns ...`.
+//
+// If <n> is specified, diagnostics and stats will always be included on top of
+// the specified amount of verifier log lines.
 type VerifierError = internal.VerifierError
 
 // Program represents BPF program loaded into the kernel.
@@ -1196,7 +1212,7 @@ func findProgramTargetInKernel(name string, progType ProgramType, attachType Att
 		typeName = name
 		featureName = "struct_ops " + name
 		target = (*btf.Struct)(nil)
-	case match{LSM, AttachLSMMac}:
+	case match{LSM, AttachLSMMac}, match{LSM, AttachLSMCgroup}:
 		typeName = "bpf_lsm_" + name
 		featureName = name + " LSM hook"
 		target = (*btf.Func)(nil)
@@ -1287,6 +1303,10 @@ func findTargetInKernel[T btf.Type](typeName string, target *T, cache *btf.Cache
 //
 // Returns btf.ErrNotFound if the target can't be found in any module.
 func findTargetInModule[T btf.Type](typeName string, target *T, cache *btf.Cache) (*btf.Spec, *btf.Handle, error) {
+	if notInCachedModules(typeName, *target, cache) {
+		return nil, nil, btf.ErrNotFound
+	}
+
 	it := new(btf.HandleIterator)
 	defer it.Handle.Close()
 
@@ -1320,6 +1340,27 @@ func findTargetInModule[T btf.Type](typeName string, target *T, cache *btf.Cache
 	}
 
 	return nil, nil, btf.ErrNotFound
+}
+
+// notInCachedModules returns true if no cached module BTF contains typeName.
+func notInCachedModules[T btf.Type](typeName string, target T, cache *btf.Cache) bool {
+	modules, err := cache.Modules()
+	if err != nil {
+		return false
+	}
+
+	for _, name := range modules {
+		spec, err := cache.Module(name)
+		if err != nil {
+			return false
+		}
+
+		if err := spec.TypeByName(typeName, &target); !errors.Is(err, btf.ErrNotFound) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // find an attach target type in a program.
