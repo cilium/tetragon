@@ -372,7 +372,7 @@ You can define multiple uprobes in the same policy, or in different policies.
 You can also combine uprobes with kprobes and tracepoints to get a
 comprehensive view of the system behavior.
 
-Here is an example of a policy that defines an uprobe for the readline
+Here is an example of a policy that defines a uprobe for the readline
 function in the bash executable, and applies it to all processes that use the
 bash binary:
 
