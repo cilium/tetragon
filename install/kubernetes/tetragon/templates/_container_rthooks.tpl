@@ -12,7 +12,14 @@
     - --oci-hooks.local-dir={{ include "container.tetragonOCIHookSetup.hooksPath" . }}
     - --daemonize
     - hook-args
+    {{- /* The hook does not support TLS yet, so it always dials a unix socket:
+    tetragon.grpc.address when it is unix://, otherwise the socket the agent
+    serves next to its TCP listener at /var/run/tetragon/tetragon.sock. */}}
+    {{- if hasPrefix "unix://" .Values.tetragon.grpc.address }}
     - {{ printf "--grpc-address=%v" .Values.tetragon.grpc.address | quote }}
+    {{- else }}
+    - "--grpc-address=unix:///var/run/tetragon/tetragon.sock"
+    {{- end }}
     - --fail-allow-namespaces
     - {{ if .Values.rthooks.failAllowNamespaces }}{{ printf "%v,%v" .Release.Namespace .Values.rthooks.failAllowNamespaces | quote }}{{ else }}{{ .Release.Namespace | quote }}{{ end }}
    {{- range .Values.rthooks.failAllowNamespacesRegex }}
