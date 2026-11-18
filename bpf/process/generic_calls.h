@@ -468,6 +468,12 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	if (orig_off >= 16383 - min_size)
 		return 0;
 
+	/* Path arguments can be NULL, e.g. a file for an anonymous mmap. */
+	if ((type == file_ty || type == kiocb_type || type == linux_binprm_type ||
+	     type == path_ty || type == dentry_type) &&
+	    !arg)
+		e->arg_status[index & MAX_POSSIBLE_ARGS_MASK] = -1;
+
 	orig_off = write_arg_status(e, orig_off, e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	/* Cache args offset for filter use later */
 	e->argsoff[index & MAX_POSSIBLE_ARGS_MASK] = orig_off;
@@ -659,7 +665,10 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		extract_arg(config, index, &a, false, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	}
 
-	if (should_offload_path(ty))
+	if (should_offload_path(ty) &&
+	    !((ty == file_ty || ty == kiocb_type || ty == linux_binprm_type ||
+	       ty == path_ty || ty == dentry_type) &&
+	      !a))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
 #endif
 
