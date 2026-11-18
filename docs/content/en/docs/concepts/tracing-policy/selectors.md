@@ -25,7 +25,7 @@ Each selector comprises a set of filters:
 - [`matchWorkloads`](#workloads-filter): filter on Kubernetes workloads.
 - [`matchCEL`](#matchcel): filter on the value of CEL expressions
 - [`matchUserCallers`](#matchusercallers): filter on the user space callstack of the hooked function.
-- [`matchStates`](#matchStates): filter on the value of state entries.
+- [`matchStates`](#matchstates): filter on the value of state entries.
 
 And a set of actions that will be performed if the specified filters match:
 - [`matchActions`](#actions-filter): apply an action on selector matching.
