@@ -1,0 +1,9 @@
+# Renders a startupProbe set by the user, which replaces the default probe of
+# the agent container.
+tetragon:
+  startupProbe:
+    grpc:
+      port: 6789
+      service: startup
+    periodSeconds: 5
+    failureThreshold: 12

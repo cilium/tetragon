@@ -40,6 +40,8 @@ JSON_SCHEMAS := $(ROOT_DIR)/pkg/tracingpolicy/schemas
 # Shared by every scenario, so the upstream schemas are fetched once, not once
 # per scenario.
 SCHEMAS_CACHE := $(ROOT_DIR)/install/kubernetes/schemas-cache
+# The least periodSeconds * failureThreshold of the default startup probe.
+STARTUP_PROBE_MIN_SECONDS = 600
 
 #
 # -- Commands
@@ -104,6 +106,21 @@ check-images-tags: ## Verify all image:tag references in values.yaml exist in th
 			exit 1; \
 		fi; \
 	done;
+
+.PHONY: check-startup-probe
+check-startup-probe: ## Verify the startup probe rendered for the agent container
+	@set -e; \
+	probe() { \
+		$(HELM) template $(TETRAGON_CHART) . --show-only templates/daemonset.yaml "$$@" \
+			| yq -o json '.spec.template.spec.containers[] | select(.name == "tetragon") | .startupProbe | sort_keys(..)'; \
+	}; \
+	got=$$(probe); \
+	printf '%s\n' "$$got" | yq -e '.periodSeconds * .failureThreshold >= $(STARTUP_PROBE_MIN_SECONDS)' >/dev/null 2>&1 || \
+		{ echo "The default startupProbe allows less than $(STARTUP_PROBE_MIN_SECONDS)s: $$got" >&2; exit 1; }; \
+	want=$$(yq -o json '.tetragon.startupProbe | sort_keys(..)' $(HELM_VALUES_DIR)/startup-probe.yaml); \
+	got=$$(probe -f /$(HELM_VALUES_DIR)/startup-probe.yaml); \
+	[ "$$got" = "$$want" ] || \
+		{ echo "tetragon.startupProbe does not replace the default probe: got $$got, want $$want" >&2; exit 1; }
 
 .PHONY: $(TETRAGON_CHART)/schemas
 $(TETRAGON_CHART)/schemas: $(TETRAGON_CHART)/crds-yaml openapi2jsonschema.py ## generate json schema from crds
