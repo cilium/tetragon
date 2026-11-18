@@ -415,11 +415,13 @@ in the event output to inform users what is going on.<br/>
         <td>false</td>
       </tr><tr>
         <td><b>returnArgAction</b></td>
-        <td>string</td>
+        <td>enum</td>
         <td>
           An action to perform on the return value.
 Use returnArg to include the return value in the event output.
 Supported actions are: TrackSock;UntrackSock<br/>
+          <br/>
+            <i>Enum</i>: TrackSock, UntrackSock<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2624,11 +2626,13 @@ in the event output to inform users what is going on.<br/>
         <td>false</td>
       </tr><tr>
         <td><b>returnArgAction</b></td>
-        <td>string</td>
+        <td>enum</td>
         <td>
           An action to perform on the return value.
 Use returnArg to include the return value in the event output.
 Supported actions are: TrackSock;UntrackSock<br/>
+          <br/>
+            <i>Enum</i>: TrackSock, UntrackSock<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -14533,11 +14537,13 @@ in the event output to inform users what is going on.<br/>
         <td>false</td>
       </tr><tr>
         <td><b>returnArgAction</b></td>
-        <td>string</td>
+        <td>enum</td>
         <td>
           An action to perform on the return value.
 Use returnArg to include the return value in the event output.
 Supported actions are: TrackSock;UntrackSock<br/>
+          <br/>
+            <i>Enum</i>: TrackSock, UntrackSock<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -16742,11 +16748,13 @@ in the event output to inform users what is going on.<br/>
         <td>false</td>
       </tr><tr>
         <td><b>returnArgAction</b></td>
-        <td>string</td>
+        <td>enum</td>
         <td>
           An action to perform on the return value.
 Use returnArg to include the return value in the event output.
 Supported actions are: TrackSock;UntrackSock<br/>
+          <br/>
+            <i>Enum</i>: TrackSock, UntrackSock<br/>
         </td>
         <td>false</td>
       </tr><tr>

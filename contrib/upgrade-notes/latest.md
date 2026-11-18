@@ -23,6 +23,11 @@ Depending on your setup, changes listed here might require a manual intervention
 ### TracingPolicy (k8s CRD)
 
 * The TracingPolicy CRD now limits the number of hooks that can be defined within a single policy to a maximum of 128. If this limit is exceeded, the policy will be rejected by the Kubernetes API server. To resolve this, split your hooks across multiple TracingPolicies.
+* The TracingPolicy CRD now restricts `returnArgAction` to `TrackSock` and
+  `UntrackSock`. Since v1.8.0 the agent fails to load a policy with any other
+  action; now the Kubernetes API server and the agent's policy parser reject
+  it up front. The check is case-sensitive, so change spellings such as
+  `tracksock` and remove an empty `returnArgAction: ""`.
 
 ### Events (protobuf API)
 

@@ -36,6 +36,44 @@ spec:
 	require.Contains(t, err.Error(), "ReturnArg not specified with Return=true.")
 }
 
+func TestKprobeValidationReturnArgAction(t *testing.T) {
+	tests := []struct {
+		action string
+		valid  bool
+	}{
+		{"TrackSock", true},
+		{"UntrackSock", true},
+		{"Post", false},
+		{"tracksock", false},
+		{"Bogus", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.action, func(t *testing.T) {
+			_, err := FromYAML(fmt.Sprintf(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "return-arg-action"
+spec:
+  kprobes:
+  - call: "sk_alloc"
+    syscall: false
+    return: true
+    returnArg:
+      index: 0
+      type: "sock"
+    returnArgAction: %q
+`, tt.action))
+			if tt.valid {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorContains(t, err, "returnArgAction")
+		})
+	}
+}
+
 func testUprobeValidationSymbolsAddrsOffsets(t *testing.T, withSymbol, withAdrr, withOff bool) {
 	crd := `
 apiVersion: cilium.io/v1alpha1
