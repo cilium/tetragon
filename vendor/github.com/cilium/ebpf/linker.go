@@ -8,8 +8,6 @@ import (
 	"io"
 	"io/fs"
 	"math"
-	"slices"
-	"strings"
 
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/btf"
@@ -352,8 +350,15 @@ fixups:
 			return nil, err
 		}
 
+		// bpf_ksym_exists() will result in an ldimm64 with a kfunc reference.
+		// Populate it with the (non-zero) BTF ID to make the subsequent
+		// branching instruction work.
 		ins.Constant = int64(id)
-		ins.Offset = int16(idx)
+
+		// Verifier only allows offsets on CALL instructions.
+		if ins.OpCode.JumpOp() == asm.Call {
+			ins.Offset = int16(idx)
+		}
 
 		if !iter.Next() {
 			break
@@ -498,39 +503,32 @@ func applyUntypedKsymFixups(fixups []ksymFixup) error {
 		return nil
 	}
 
-	symbols := make(map[string]uint64)
+	symbols := make(map[string]kallsyms.KsymAddress)
 	for _, fixup := range fixups {
-		symbols[fixup.Name] = 0
+		symbols[fixup.Name] = kallsyms.KsymAddress{}
 	}
 
 	err := kallsyms.AssignAddresses(symbols)
-	// Tolerate ErrRestrictedKernel during initial lookup, user may have all weak
-	// ksyms and a fallback path.
-	if err != nil && !errors.Is(err, ErrRestrictedKernel) {
+	if err != nil {
 		return fmt.Errorf("resolve ksyms: %w", err)
 	}
 
-	var missing []string
+	var ksymErrs []error
 	for _, fixup := range fixups {
-		addr := symbols[fixup.Name]
+		addr, err := symbols[fixup.Name].Address()
 		// A weak ksym variable in eBPF C means its resolution is optional.
-		if addr == 0 && fixup.Binding != elf.STB_WEAK {
-			if !slices.Contains(missing, fixup.Name) {
-				missing = append(missing, fixup.Name)
+		if fixup.Binding != elf.STB_WEAK {
+			if err != nil {
+				ksymErrs = append(ksymErrs, fmt.Errorf("%s: %w", fixup.Name, err))
+				continue
 			}
-			continue
 		}
 
 		fixup.Constant = int64(addr)
 	}
 
-	if len(missing) > 0 {
-		if err != nil {
-			// Program contains required ksyms, return the error from above.
-			return fmt.Errorf("resolve required ksyms: %s: %w", strings.Join(missing, ","), err)
-		}
-
-		return fmt.Errorf("kernel is missing symbol: %s", strings.Join(missing, ","))
+	if len(ksymErrs) > 0 {
+		return fmt.Errorf("resolve required ksyms: %w", errors.Join(ksymErrs...))
 	}
 
 	return nil

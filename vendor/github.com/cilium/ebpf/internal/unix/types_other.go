@@ -154,6 +154,10 @@ func Statfs(path string, buf *Statfs_t) error {
 	return errNonLinux()
 }
 
+func FinitModule(fd int, params string, flags int) error {
+	return errNonLinux()
+}
+
 func Close(fd int) (err error) {
 	return errNonLinux()
 }
@@ -295,6 +299,8 @@ func SetsockoptInt(fd, level, opt, value int) error {
 type CPUSet struct{}
 
 func (*CPUSet) Set(int) {}
+
+func (s *CPUSet) IsSet(cpu int) bool { return false }
 
 func SchedSetaffinity(pid int, set *CPUSet) error {
 	return errNonLinux()

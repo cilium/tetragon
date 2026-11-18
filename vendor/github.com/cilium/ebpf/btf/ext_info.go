@@ -64,7 +64,7 @@ func loadExtInfos(r io.ReaderAt, bo binary.ByteOrder, spec *Spec) (*ExtInfos, er
 	}
 
 	buf := internal.NewBufferedSectionReader(r, extHeader.funcInfoStart(), int64(extHeader.FuncInfoLen))
-	btfFuncInfos, err := parseFuncInfos(buf, bo, spec.strings)
+	btfFuncInfos, err := parseFuncInfos(buf, bo, spec.strings())
 	if err != nil {
 		return nil, fmt.Errorf("parsing BTF function info: %w", err)
 	}
@@ -78,14 +78,14 @@ func loadExtInfos(r io.ReaderAt, bo binary.ByteOrder, spec *Spec) (*ExtInfos, er
 	}
 
 	buf = internal.NewBufferedSectionReader(r, extHeader.lineInfoStart(), int64(extHeader.LineInfoLen))
-	btfLineInfos, err := parseLineInfos(buf, bo, spec.strings)
+	btfLineInfos, err := parseLineInfos(buf, bo, spec.strings())
 	if err != nil {
 		return nil, fmt.Errorf("parsing BTF line info: %w", err)
 	}
 
 	lineInfos := make(map[string]LineOffsets, len(btfLineInfos))
 	for section, blis := range btfLineInfos {
-		lineInfos[section], err = newLineInfos(blis, spec.strings)
+		lineInfos[section], err = newLineInfos(blis, spec.strings())
 		if err != nil {
 			return nil, fmt.Errorf("section %s: line infos: %w", section, err)
 		}
@@ -97,14 +97,14 @@ func loadExtInfos(r io.ReaderAt, bo binary.ByteOrder, spec *Spec) (*ExtInfos, er
 
 	var btfCORERelos map[string][]bpfCORERelo
 	buf = internal.NewBufferedSectionReader(r, extHeader.coreReloStart(coreHeader), int64(coreHeader.COREReloLen))
-	btfCORERelos, err = parseCORERelos(buf, bo, spec.strings)
+	btfCORERelos, err = parseCORERelos(buf, bo, spec.strings())
 	if err != nil {
 		return nil, fmt.Errorf("parsing CO-RE relocation info: %w", err)
 	}
 
 	coreRelos := make(map[string]CORERelocationOffsets, len(btfCORERelos))
 	for section, brs := range btfCORERelos {
-		coreRelos[section], err = newRelocationInfos(brs, spec, spec.strings)
+		coreRelos[section], err = newRelocationInfos(brs, spec, spec.strings())
 		if err != nil {
 			return nil, fmt.Errorf("section %s: CO-RE relocations: %w", section, err)
 		}
@@ -526,7 +526,7 @@ func LoadLineInfos(reader io.Reader, bo binary.ByteOrder, recordNum uint32, spec
 		return LineOffsets{}, fmt.Errorf("parsing BTF line info: %w", err)
 	}
 
-	return newLineInfos(lis, spec.strings)
+	return newLineInfos(lis, spec.strings())
 }
 
 func newLineInfo(li bpfLineInfo, strings *stringTable) (LineOffset, error) {

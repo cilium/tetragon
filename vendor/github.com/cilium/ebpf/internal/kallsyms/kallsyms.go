@@ -15,15 +15,32 @@ import (
 
 var errAmbiguousKsym = errors.New("multiple kernel symbols with the same name")
 
-var symAddrs cache[string, uint64]
+var symAddrs cache[string, KsymAddress]
+
+// KsymAddress represents the address of a symbol in /proc/kallsyms
+type KsymAddress struct {
+	address uint64
+	// the err field is either ErrRestrictedKernel if we are in a restricted setting
+	// or it is os.ErrNotExist if the symbol was not found
+	err error
+}
+
+// Address returns the address of a symbol if it exists in kallsyms
+// and its address was available and not zero.
+func (s KsymAddress) Address() (uint64, error) {
+	if s.err != nil {
+		return 0, s.err
+	}
+
+	return s.address, nil
+}
 
 // AssignAddresses looks up the addresses of the requested symbols in the kernel
 // and assigns them to their corresponding values in the symbols map. Results
 // of all lookups are cached, successful or otherwise.
 //
-// Any symbols missing in the kernel are ignored. Returns an error if multiple
-// addresses were found for a symbol.
-func AssignAddresses(symbols map[string]uint64) error {
+// Returns an error if multiple addresses were found for a symbol.
+func AssignAddresses(symbols map[string]KsymAddress) error {
 	if !platform.IsLinux {
 		return fmt.Errorf("read /proc/kallsyms: %w", internal.ErrNotSupportedOnOS)
 	}
@@ -33,15 +50,15 @@ func AssignAddresses(symbols map[string]uint64) error {
 	}
 
 	// Attempt to fetch symbols from cache.
-	request := make(map[string]uint64)
+	request := make(map[string]KsymAddress)
 	for name := range symbols {
-		if addr, ok := symAddrs.Load(name); ok {
-			symbols[name] = addr
+		if kaddr, ok := symAddrs.Load(name); ok {
+			symbols[name] = kaddr
 			continue
 		}
 
 		// Mark the symbol to be read from /proc/kallsyms.
-		request[name] = 0
+		request[name] = KsymAddress{}
 	}
 	if len(request) == 0 {
 		// All symbols satisfied from cache.
@@ -60,9 +77,9 @@ func AssignAddresses(symbols map[string]uint64) error {
 
 	// Update the cache with the new symbols. Cache all requested symbols even if
 	// they weren't found, to avoid repeated lookups.
-	for name, addr := range request {
-		symAddrs.Store(name, addr)
-		symbols[name] = addr
+	for name, kaddr := range request {
+		symAddrs.Store(name, kaddr)
+		symbols[name] = kaddr
 	}
 
 	return nil
@@ -71,10 +88,17 @@ func AssignAddresses(symbols map[string]uint64) error {
 // assignAddresses assigns kernel symbol addresses read from f to values
 // requested by symbols. Always scans the whole input to make sure the user
 // didn't request an ambiguous symbol.
-func assignAddresses(f io.Reader, symbols map[string]uint64) error {
+func assignAddresses(f io.Reader, symbols map[string]KsymAddress) error {
 	if len(symbols) == 0 {
 		return nil
 	}
+
+	// seed the request values such that symbols not found have the correct
+	// error set
+	for name := range symbols {
+		symbols[name] = KsymAddress{address: 0, err: os.ErrNotExist}
+	}
+
 	r := newReader(f)
 	for r.Line() {
 		s, err, skip := parseSymbol(r, nil)
@@ -86,13 +110,14 @@ func assignAddresses(f io.Reader, symbols map[string]uint64) error {
 		}
 
 		existing, requested := symbols[string(s.name)]
-		if existing != 0 {
-			// Multiple addresses for a symbol have been found. Return a friendly
+		if requested && existing.err != os.ErrNotExist {
+			// Multiple entries for a symbol have been found. Return a friendly
 			// error to avoid silently attaching to the wrong symbol. libbpf also
 			// rejects referring to ambiguous symbols.
-			return fmt.Errorf("symbol %s(0x%x): duplicate found at address 0x%x: %w", s.name, existing, s.addr, errAmbiguousKsym)
+			return fmt.Errorf("symbol %s(0x%x): duplicate found at address 0x%x: %w", s.name, existing.address, s.addr, errAmbiguousKsym)
 		}
 		if requested {
+			var ksymErr error
 			// Reading a symbol with a zero address is a strong indication that
 			// kptr_restrict is set and the process doesn't have CAP_SYSLOG, or
 			// kptr_restrict is set to 2 (never show addresses).
@@ -102,11 +127,15 @@ func assignAddresses(f io.Reader, symbols map[string]uint64) error {
 			// This memory is unlikely to contain anything useful, and production
 			// machines are unlikely to run without KASLR.
 			//
-			// Return a helpful error instead of silently returning zero addresses.
+			// Set error to `ErrRestrictedKernel` to indicate we are in a restricted environment
 			if s.addr == 0 {
-				return fmt.Errorf("symbol %s: %w", s.name, internal.ErrRestrictedKernel)
+				ksymErr = internal.ErrRestrictedKernel
 			}
-			symbols[string(s.name)] = s.addr
+
+			symbols[string(s.name)] = KsymAddress{
+				address: s.addr,
+				err:     ksymErr,
+			}
 		}
 	}
 	if err := r.Err(); err != nil {

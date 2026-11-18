@@ -6,7 +6,7 @@ go 1.27.0
 require (
 	cel.dev/cel-go v0.33.2
 	github.com/alecthomas/kong v1.17.0
-	github.com/cilium/ebpf v0.22.1-0.20260708150823-a5b2e206f9ed
+	github.com/cilium/ebpf v0.22.1-0.20261102151504-1aaba10f17a8
 	github.com/cilium/little-vm-helper v0.0.33
 	github.com/cilium/lumberjack/v2 v2.4.2
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000

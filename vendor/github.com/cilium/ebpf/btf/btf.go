@@ -2,6 +2,7 @@ package btf
 
 import (
 	"debug/elf"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -43,10 +44,20 @@ type elfSymbol struct {
 // Spec allows querying a set of Types and loading the set into the
 // kernel.
 type Spec struct {
-	*decoder
+	d *decoder
 
 	// Additional data from ELF, may be nil.
 	elf *elfData
+}
+
+// byteOrder returns the byte order of the encoded BTF.
+func (s *Spec) byteOrder() binary.ByteOrder {
+	return s.d.byteOrder
+}
+
+// strings returns the string table of the encoded BTF.
+func (s *Spec) strings() *stringTable {
+	return s.d.strings
 }
 
 // LoadSpec opens file and calls LoadSpecFromReader on it.
@@ -179,8 +190,8 @@ func loadSpecFromELF(file *internal.SafeELFFile) (*Spec, error) {
 		return nil, err
 	}
 
-	if spec.decoder.byteOrder != file.ByteOrder {
-		return nil, fmt.Errorf("BTF byte order %s does not match ELF byte order %s", spec.decoder.byteOrder, file.ByteOrder)
+	if spec.byteOrder() != file.ByteOrder {
+		return nil, fmt.Errorf("BTF byte order %s does not match ELF byte order %s", spec.byteOrder(), file.ByteOrder)
 	}
 
 	spec.elf = &elfData{
@@ -200,8 +211,8 @@ func loadRawSpec(btf []byte, base *Spec) (*Spec, error) {
 	)
 
 	if base != nil {
-		baseDecoder = base.decoder
-		baseStrings = base.strings
+		baseDecoder = base.d
+		baseStrings = base.d.strings
 	}
 
 	header, _, bo, err := parseBTFHeader(btf)
@@ -350,7 +361,7 @@ func (s *Spec) Copy() *Spec {
 	}
 
 	cpy := &Spec{
-		s.decoder.Copy(),
+		s.d.copy(nil),
 		nil,
 	}
 
@@ -370,7 +381,7 @@ func (s *Spec) Copy() *Spec {
 // Returns an error wrapping ErrNotFound if a Type with the given ID
 // does not exist in the Spec.
 func (s *Spec) TypeByID(id TypeID) (Type, error) {
-	typ, err := s.decoder.TypeByID(id)
+	typ, err := s.d.typeByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("inflate type: %w", err)
 	}
@@ -386,7 +397,7 @@ func (s *Spec) TypeByID(id TypeID) (Type, error) {
 //
 // Returns an error wrapping [ErrNotFound] if the type isn't part of the Spec.
 func (s *Spec) TypeID(typ Type) (TypeID, error) {
-	return s.decoder.TypeID(typ)
+	return s.d.typeID(typ)
 }
 
 // AnyTypesByName returns a list of BTF Types with the given name.
@@ -397,20 +408,23 @@ func (s *Spec) TypeID(typ Type) (TypeID, error) {
 //
 // Returns an error wrapping ErrNotFound if no matching Type exists in the Spec.
 func (s *Spec) AnyTypesByName(name string) ([]Type, error) {
-	types, err := s.TypesByName(newEssentialName(name))
+	types, err := s.d.typesByName(newEssentialName(name))
 	if err != nil {
 		return nil, err
 	}
 
-	for i := 0; i < len(types); i++ {
+	types = slices.DeleteFunc(types, func(typ Type) bool {
 		// Match against the full name, not just the essential one
 		// in case the type being looked up is a struct flavor.
-		if types[i].TypeName() != name {
-			types = slices.Delete(types, i, i+1)
-			continue
-		}
+		return typ.TypeName() != name
+	})
 
-		if err := s.elf.fixupDatasec(types[i]); err != nil {
+	if len(types) == 0 {
+		return nil, ErrNotFound
+	}
+
+	for _, typ := range types {
+		if err := s.elf.fixupDatasec(typ); err != nil {
 			return nil, err
 		}
 	}
@@ -530,7 +544,7 @@ func LoadSplitSpecFromReader(r io.ReaderAt, base *Spec) (*Spec, error) {
 // All iterates over all types.
 func (s *Spec) All() iter.Seq2[Type, error] {
 	return func(yield func(Type, error) bool) {
-		for id := s.firstTypeID; ; id++ {
+		for id := s.d.firstTypeID; ; id++ {
 			typ, err := s.TypeByID(id)
 			if errors.Is(err, ErrNotFound) {
 				return
