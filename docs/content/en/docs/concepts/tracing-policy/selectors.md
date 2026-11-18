@@ -1281,7 +1281,7 @@ uprobes:
   selectors:
   - matchActions:
     - action: Override
-      argNewOffset: "0x0000115c"
+      argNewOffset: 0x0000115c
 ```
 
 or:
@@ -1294,7 +1294,7 @@ uprobes:
   selectors:
   - matchActions:
     - action: Override
-      argNewAddr: "0x00001137"
+      argNewAddr: 0x00001137
 ```
 
 There are, however, some restrictions:
