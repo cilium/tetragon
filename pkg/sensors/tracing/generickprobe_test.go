@@ -232,7 +232,6 @@ func Test_validateOverride(t *testing.T) {
 		name     string
 		f        *v1alpha1.KProbeSpec
 		funcName string
-		useMulti bool
 		wantErr  bool
 	}{
 		{
@@ -260,7 +259,6 @@ func Test_validateOverride(t *testing.T) {
 				},
 			},
 			funcName: "sys_execve",
-			useMulti: false,
 			wantErr:  !bpf.HasOverrideHelper(),
 		},
 		{
@@ -288,36 +286,7 @@ func Test_validateOverride(t *testing.T) {
 				},
 			},
 			funcName: "security_bprm_creds_for_exec",
-			useMulti: false,
 			wantErr:  !bpf.HasModifyReturn(),
-		},
-		{
-			name: "override on lsm funcs with multi-kprobe enabled should be denied",
-			f: &v1alpha1.KProbeSpec{
-				Call:    "security_bprm_creds_for_exec",
-				Return:  false,
-				Syscall: false,
-				Message: "",
-				Args: []v1alpha1.KProbeArg{
-					{
-						Index: 0,
-						Type:  "linux_binprm",
-					},
-				},
-				Selectors: []v1alpha1.KProbeSelector{
-					{
-						MatchActions: []v1alpha1.ActionSelector{
-							{
-								Action:   "Override",
-								ArgError: -1,
-							},
-						},
-					},
-				},
-			},
-			funcName: "security_bprm_creds_for_exec",
-			useMulti: true,
-			wantErr:  true,
 		},
 		{
 			name: "override on non-lsm and non-syscall functions should be denied",
@@ -344,13 +313,12 @@ func Test_validateOverride(t *testing.T) {
 				},
 			},
 			funcName: "dentry_open",
-			useMulti: true,
 			wantErr:  true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotErr := validateOverride(tt.f, tt.funcName, tt.useMulti)
+			gotErr := validateOverride(tt.f, tt.funcName)
 			if gotErr != nil {
 				if !tt.wantErr {
 					t.Errorf("validateOverride() failed: %v", gotErr)
