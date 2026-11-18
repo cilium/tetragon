@@ -1,0 +1,10 @@
+# Renders the rthooks DaemonSet, which the default values leave out, with the
+# runtime hook arguments for a gRPC TLS listener.
+tetragon:
+  grpc:
+    address: localhost:54321
+    tls:
+      enabled: true
+rthooks:
+  enabled: true
+  interface: nri-hook
