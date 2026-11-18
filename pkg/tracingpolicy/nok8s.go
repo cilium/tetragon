@@ -166,6 +166,33 @@ func validateObjectName(name string) error {
 	return nil
 }
 
+// applyDefaults sets schema defaults on missing or null members, as the API
+// server's defaulting does. No copy is needed: all defaults are scalars.
+func applyDefaults(v any, s *jsonschema.Schema) {
+	if s == nil {
+		return
+	}
+	switch v := v.(type) {
+	case map[string]any:
+		for k, prop := range s.Properties {
+			if prop.Default != nil && v[k] == nil {
+				v[k] = *prop.Default
+			}
+		}
+		for k, member := range v {
+			prop, ok := s.Properties[k]
+			if !ok {
+				prop, _ = s.AdditionalProperties.(*jsonschema.Schema)
+			}
+			applyDefaults(member, prop)
+		}
+	case []any:
+		for _, item := range v {
+			applyDefaults(item, s.Items2020)
+		}
+	}
+}
+
 // FromYAML parses a YAML string into a TracingPolicy -- !k8s version
 func FromYAML(data string) (TracingPolicy, error) {
 	kind, jsonBytes, err := nok8s.ParseK8sObj(data)
@@ -175,6 +202,17 @@ func FromYAML(data string) (TracingPolicy, error) {
 
 	switch kind {
 	case v1alpha1.TPKindDefinition:
+		m, err := bytesToMap(jsonBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert TracingPolicy to map: %w", err)
+		}
+
+		applyDefaults(m, tpSchema)
+		// sorted keys keep the first decode error stable
+		if jsonBytes, err = json.Marshal(m, json.Deterministic(true)); err != nil {
+			return nil, fmt.Errorf("failed to marshal TracingPolicy: %w", err)
+		}
+
 		var gtp GenericTracingPolicy
 		if err := json.Unmarshal(jsonBytes, &gtp, json.RejectUnknownMembers(true)); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal TracingPolicy: %w", err)
@@ -182,11 +220,6 @@ func FromYAML(data string) (TracingPolicy, error) {
 
 		if err := validateObjectName(gtp.Metadata.Name); err != nil {
 			return nil, fmt.Errorf("failed to validate TracingPolicy: %w", err)
-		}
-
-		m, err := bytesToMap(jsonBytes)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert TracingPolicy to map: %w", err)
 		}
 
 		if err = tpSchema.Validate(m); err != nil {
