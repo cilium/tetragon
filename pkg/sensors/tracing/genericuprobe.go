@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+	ebtf "github.com/cilium/ebpf/btf"
 	lru "github.com/hashicorp/golang-lru/v2"
 
 	"github.com/cilium/tetragon/pkg/celbpf"
@@ -1185,10 +1186,6 @@ func initUprobeArgs(spec *v1alpha1.UProbeSpec, has *uprobeHas, in *addUprobeIn, 
 func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgConfig, error) {
 	var cfg uprobeArgConfig
 	var preloadArgsCounter int
-	userBTFSpec, err := loadUserBTFSpec(spec.BTFPath)
-	if err != nil {
-		return cfg, err
-	}
 
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
 		var preloadArg bool
@@ -1197,7 +1194,9 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 		if data {
 			// Data specific config
 			if hasPtRegsSource(a) {
-				reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve, userBTFSpec)
+				reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve, func() (*ebtf.Spec, error) {
+					return loadUserBTFSpec(spec.BTFPath)
+				})
 				if err != nil {
 					return fmt.Errorf("error resolving pt_regs argument %q: %w", a.Resolve, err)
 				}
@@ -1229,7 +1228,7 @@ func getUprobeArgConfig(spec *v1alpha1.UProbeSpec, has *uprobeHas) (uprobeArgCon
 		} else {
 			// Args specific config
 			if a.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(a, userBTFSpec)
+				lastBTFType, btfArg, err := resolveUserBTFArg(a, spec.BTFPath)
 				if err != nil {
 					return err
 				}

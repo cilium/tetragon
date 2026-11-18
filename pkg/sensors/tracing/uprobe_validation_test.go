@@ -29,20 +29,7 @@ func TestUprobeArgConfigPtRegsCasts(t *testing.T) {
 		reg, reg32 = "sp", "w0"
 	}
 
-	builder, err := btf.NewBuilder([]btf.Type{&btf.Struct{
-		Name: "register_payload",
-		Size: 16,
-		Members: []btf.Member{{
-			Name:   "value",
-			Type:   &btf.Int{Name: "uint64", Size: 8},
-			Offset: 64,
-		}},
-	}}, nil)
-	require.NoError(t, err)
-	raw, err := builder.Marshal(nil, nil)
-	require.NoError(t, err)
-	btfPath := filepath.Join(t.TempDir(), "register.btf")
-	require.NoError(t, os.WriteFile(btfPath, raw, 0o600))
+	btfPath := writeRegisterPayloadBTF(t)
 
 	tests := []struct {
 		name    string
@@ -140,6 +127,111 @@ func TestUprobeArgConfigPtRegsCasts(t *testing.T) {
 			require.Equal(t, uint8(8), cfg.regArg[0].Size)
 		})
 	}
+}
+
+// writeRegisterPayloadBTF writes a BTF file holding struct register_payload,
+// which has a uint64 value at offset 8, and returns its path.
+func writeRegisterPayloadBTF(t *testing.T) string {
+	t.Helper()
+	builder, err := btf.NewBuilder([]btf.Type{&btf.Struct{
+		Name: "register_payload",
+		Size: 16,
+		Members: []btf.Member{{
+			Name:   "value",
+			Type:   &btf.Int{Name: "uint64", Size: 8},
+			Offset: 64,
+		}},
+	}}, nil)
+	require.NoError(t, err)
+	raw, err := builder.Marshal(nil, nil)
+	require.NoError(t, err)
+	btfPath := filepath.Join(t.TempDir(), "register.btf")
+	require.NoError(t, os.WriteFile(btfPath, raw, 0o600))
+	return btfPath
+}
+
+func TestUprobeArgConfigRootCasts(t *testing.T) {
+	btfPath := writeRegisterPayloadBTF(t)
+
+	tests := []struct {
+		name    string
+		resolve string
+		want    [api.MaxBTFArgDepth]api.ConfigBTFArg
+		wantErr string
+	}{
+		{
+			name:    "pointer cast",
+			resolve: "as(struct register_payload *).value",
+			want: [api.MaxBTFArgDepth]api.ConfigBTFArg{
+				{Offset: 8, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			// The argument points to a pointer, which needs a dereference of
+			// its own before the field is read.
+			name:    "pointer to pointer cast",
+			resolve: "as(struct register_payload **).value",
+			want: [api.MaxBTFArgDepth]api.ConfigBTFArg{
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 8, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name:    "non-pointer cast",
+			resolve: "as(struct register_payload).value",
+			wantErr: "the argument can only be cast to a pointer type",
+		},
+		{
+			// This would only report the argument value under another type.
+			name:    "cast without access",
+			resolve: "as(uint64 *)",
+			wantErr: "a cast on the argument must be followed by a field or an index",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := getUprobeArgConfig(&v1alpha1.UProbeSpec{
+				BTFPath: btfPath,
+				Args: []v1alpha1.KProbeArg{{
+					Type:    "uint64",
+					BTFType: "register_payload",
+					Resolve: tt.resolve,
+				}},
+			}, &uprobeHas{})
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.want, cfg.allBTFArgs[0])
+		})
+	}
+}
+
+func TestUprobeArgConfigLoadsUserBTFLazily(t *testing.T) {
+	reg := "rdi"
+	if runtime.GOARCH == "arm64" {
+		reg = "x0"
+	}
+	missing := filepath.Join(t.TempDir(), "missing.btf")
+
+	// Nothing reads the user BTF, so an unreadable btfPath is not an error.
+	_, err := getUprobeArgConfig(&v1alpha1.UProbeSpec{
+		BTFPath: missing,
+		Args:    []v1alpha1.KProbeArg{{Type: "uint64"}},
+		Data:    []v1alpha1.KProbeArg{{Type: "uint64", Source: "pt_regs", Resolve: reg}},
+	}, &uprobeHas{})
+	require.NoError(t, err)
+
+	_, err = getUprobeArgConfig(&v1alpha1.UProbeSpec{
+		BTFPath: missing,
+		Args: []v1alpha1.KProbeArg{{
+			Type:    "uint64",
+			BTFType: "register_payload",
+			Resolve: "value",
+		}},
+	}, &uprobeHas{})
+	require.ErrorContains(t, err, "failed to load user BTF spec")
 }
 
 func TestUprobeEventConfigCarriesPolicyID(t *testing.T) {

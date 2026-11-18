@@ -737,9 +737,7 @@ func TestParseBTFTypeCast(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Every cast here uses a primitive type, which needs no spec.
-			resolver := btfResolver{pathToFind: []string{tt.input}}
-
-			_, err := resolver.parseBTFTypeCast(0)
+			_, err := ParseBTFTypeCast(nil, tt.input)
 
 			switch {
 			case tt.wantErr:
@@ -747,7 +745,6 @@ func TestParseBTFTypeCast(t *testing.T) {
 				require.NotErrorIs(t, err, errNotACast)
 			case tt.wantCast:
 				require.NoError(t, err)
-				assert.Empty(t, resolver.pathToFind)
 			default:
 				require.ErrorIs(t, err, errNotACast)
 			}
@@ -765,10 +762,11 @@ func TestResolveBTFPathCasts(t *testing.T) {
 	}
 	root := &btf.Struct{
 		Name: "root",
-		Size: 16,
+		Size: 24,
 		Members: []btf.Member{
 			{Name: "value", Type: &btf.Int{Name: "int", Size: 4, Encoding: btf.Signed}},
 			{Name: "payload", Type: &btf.Pointer{Target: &btf.Void{}}, Offset: btf.Bits(64)},
+			{Name: "pp", Type: &btf.Pointer{Target: &btf.Pointer{Target: target}}, Offset: btf.Bits(128)},
 		},
 	}
 	spec := specFromBTFTypes(t, []btf.Type{target})
@@ -799,6 +797,38 @@ func TestResolveBTFPathCasts(t *testing.T) {
 			},
 		},
 		{
+			// Each pointer level past the first needs its own dereference,
+			// which takes a BTFArg slot like an explicit [0] index.
+			name:     "pointer to pointer cast then field",
+			path:     []string{"payload", "as(struct target **)", "value"},
+			wantType: "int",
+			wantArgs: []api.ConfigBTFArg{
+				{Offset: 8, IsPointer: 1, IsInitialized: 1},
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name:     "pointer to pointer cast then explicit index",
+			path:     []string{"payload", "as(struct target **)", "[0]", "value"},
+			wantType: "int",
+			wantArgs: []api.ConfigBTFArg{
+				{Offset: 8, IsPointer: 1, IsInitialized: 1},
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name:     "pointer to pointer member then field",
+			path:     []string{"pp", "value"},
+			wantType: "int",
+			wantArgs: []api.ConfigBTFArg{
+				{Offset: 16, IsPointer: 1, IsInitialized: 1},
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
 			// A trailing cast only changes the reported type.
 			name:     "terminal cast",
 			path:     []string{"value", "as(uint32)"},
@@ -821,6 +851,36 @@ func TestResolveBTFPathCasts(t *testing.T) {
 			assert.Equal(t, wantArgs, btfArgs)
 		})
 	}
+}
+
+func TestResolveBTFPathCastErrors(t *testing.T) {
+	intTy := &btf.Int{Name: "int", Size: 4, Encoding: btf.Signed}
+	target := &btf.Struct{
+		Name:    "target",
+		Size:    4,
+		Members: []btf.Member{{Name: "value", Type: intTy}},
+	}
+
+	t.Run("cast at the start of the path", func(t *testing.T) {
+		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+		_, err := ResolveBTFPath(&btfArgs, target, []string{"as(uint32)"}, nil)
+		require.ErrorContains(t, err, "a cast at the start of a resolve path")
+	})
+
+	t.Run("nested pointers past the maximum depth", func(t *testing.T) {
+		var ty btf.Type = target
+		for range api.MaxBTFArgDepth {
+			ty = &btf.Pointer{Target: ty}
+		}
+		root := &btf.Struct{
+			Name:    "root",
+			Size:    8,
+			Members: []btf.Member{{Name: "p", Type: ty}},
+		}
+		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+		_, err := ResolveBTFPath(&btfArgs, root, []string{"p", "value"}, nil)
+		require.ErrorContains(t, err, "the maximum depth allowed is")
+	})
 }
 
 func TestResolveBTFPathZeroLengthArray(t *testing.T) {

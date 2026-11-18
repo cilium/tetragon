@@ -968,6 +968,10 @@ A pointer cast followed by an index reads an array element, e.g.
 `buffer.as(char *)[12]`, and casts can be chained, e.g.
 `field.as(char *)[8].as(struct task_struct *).comm`.
 
+A cast at the start of a path reinterprets the argument value itself, so it
+must be a pointer type and be followed by a field or an index, e.g.
+`as(struct mysubstruct *).v32`.
+
 `type` is one of the following, optionally with `*` and `[N]` modifiers:
 - a primitive: `bool`, `char`, `int8`, `uint8`, `int16`, `uint16`, `int32`,
   `uint32`, `int64` or `uint64`,

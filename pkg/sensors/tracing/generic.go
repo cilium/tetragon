@@ -117,7 +117,14 @@ func getHeapMaps(prefix string, size, userSize int, load ...*program.Program) []
 func formatBTFPath(resolvePath string) ([]string, error) {
 	var pathToFind []string
 
-	for i, step := range strings.Split(resolvePath, ".") {
+	// Before casts were added, the parser ignored a leading and a trailing
+	// dot. Keep accepting them so that existing policies still load.
+	trimmed := strings.TrimSuffix(strings.TrimPrefix(resolvePath, "."), ".")
+	if trimmed == "" {
+		return nil, fmt.Errorf("invalid resolve path %q: empty path", resolvePath)
+	}
+
+	for i, step := range strings.Split(trimmed, ".") {
 		if step == "" {
 			return nil, fmt.Errorf("invalid resolve path %q: empty segment", resolvePath)
 		}
@@ -125,57 +132,61 @@ func formatBTFPath(resolvePath string) ([]string, error) {
 			return nil, fmt.Errorf("invalid resolve path %q: dot before '['", resolvePath)
 		}
 
-		var head, rest string
-		var err error
+		parse := parseIdent
 		if strings.HasPrefix(step, "as(") {
-			head, rest, err = parseCast(step)
-		} else {
-			head, rest, err = parseIdent(step)
+			parse = parseCast
 		}
-		if err != nil {
-			return nil, fmt.Errorf("invalid resolve path %q: %w", resolvePath, err)
-		}
-		indexes, err := parseIndexes(rest)
-		if err != nil {
-			return nil, fmt.Errorf("invalid resolve path %q: %w", resolvePath, err)
-		}
+		// The old parser also accepted an identifier right after an index,
+		// e.g. "a[0]b" for "a[0].b", so a segment can hold several of them.
+		// Casts must still be separated by dots.
+		for step != "" {
+			head, rest, err := parse(step)
+			if err != nil {
+				return nil, fmt.Errorf("invalid resolve path %q: %w", resolvePath, err)
+			}
+			indexes, rest, err := parseIndexes(rest)
+			if err != nil {
+				return nil, fmt.Errorf("invalid resolve path %q: %w", resolvePath, err)
+			}
+			if rest != "" && len(indexes) == 0 {
+				return nil, fmt.Errorf("invalid resolve path %q: unexpected character %q, expected '['", resolvePath, rest[0])
+			}
 
-		// A cast only reinterprets the location reached so far. A second cast
-		// right after it would silently discard the first one.
-		if len(pathToFind) > 0 && strings.HasPrefix(pathToFind[len(pathToFind)-1], "as(") && strings.HasPrefix(head, "as(") {
-			return nil, fmt.Errorf("invalid resolve path %q: a cast cannot directly follow another cast", resolvePath)
+			// A cast only reinterprets the location reached so far. A second cast
+			// right after it would silently discard the first one.
+			if len(pathToFind) > 0 && strings.HasPrefix(pathToFind[len(pathToFind)-1], "as(") && strings.HasPrefix(head, "as(") {
+				return nil, fmt.Errorf("invalid resolve path %q: a cast cannot directly follow another cast", resolvePath)
+			}
+			if head != "" {
+				pathToFind = append(pathToFind, head)
+			}
+			pathToFind = append(pathToFind, indexes...)
+			step, parse = rest, parseIdent
 		}
-		if head != "" {
-			pathToFind = append(pathToFind, head)
-		}
-		pathToFind = append(pathToFind, indexes...)
 	}
 
 	return pathToFind, nil
 }
 
-// parseIndexes parses zero or more "[N]" indexes from s, e.g. "[0][1]" → ["[0]", "[1]"].
-// N must be a decimal uint32.
-func parseIndexes(s string) ([]string, error) {
+// parseIndexes parses zero or more "[N]" indexes at the start of s, e.g.
+// "[0][1]b" → (["[0]", "[1]"], "b"). N must be a decimal uint32.
+func parseIndexes(s string) ([]string, string, error) {
 	var tokens []string
-	for len(s) > 0 {
-		if s[0] != '[' {
-			return nil, fmt.Errorf("unexpected character %q, expected '['", s[0])
-		}
+	for len(s) > 0 && s[0] == '[' {
 		inner, rest, found := strings.Cut(s[1:], "]")
 		if !found {
-			return nil, fmt.Errorf("unclosed bracket: %q", s)
+			return nil, "", fmt.Errorf("unclosed bracket: %q", s)
 		}
 		if inner == "" {
-			return nil, errors.New("empty bracket")
+			return nil, "", errors.New("empty bracket")
 		}
 		if _, err := strconv.ParseUint(inner, 10, 32); err != nil {
-			return nil, fmt.Errorf("invalid bracket content %q: must be a decimal uint32", inner)
+			return nil, "", fmt.Errorf("invalid bracket content %q: must be a decimal uint32", inner)
 		}
 		tokens = append(tokens, "["+inner+"]")
 		s = rest
 	}
-	return tokens, nil
+	return tokens, s, nil
 }
 
 // parseIdent parses an optional identifier at the start of s, e.g.
@@ -234,18 +245,6 @@ func addPaddingOnNestedPtr(ty ebtf.Type, path []string) []string {
 	return path
 }
 
-// btfPathDepth returns the number of path elements that take a BTFArg slot.
-// Casts are resolved at load time and take none.
-func btfPathDepth(path []string) int {
-	depth := 0
-	for _, step := range path {
-		if !strings.HasPrefix(step, "as(") {
-			depth++
-		}
-	}
-	return depth
-}
-
 func hasCurrentTaskSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "current_task"
 }
@@ -254,7 +253,9 @@ func hasPtRegsSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "pt_regs"
 }
 
-func resolvePtRegsArg(resolve string, spec *ebtf.Spec) (api.ConfigRegArg, [api.MaxBTFArgDepth]api.ConfigBTFArg, bool, error) {
+// resolvePtRegsArg resolves a pt_regs data argument. loadSpec returns the BTF
+// to look up cast types in, it is only called when the path has a cast.
+func resolvePtRegsArg(resolve string, loadSpec func() (*ebtf.Spec, error)) (api.ConfigRegArg, [api.MaxBTFArgDepth]api.ConfigBTFArg, bool, error) {
 	var (
 		regArg api.ConfigRegArg
 		btfArg [api.MaxBTFArgDepth]api.ConfigBTFArg
@@ -289,19 +290,13 @@ func resolvePtRegsArg(resolve string, spec *ebtf.Spec) (api.ConfigRegArg, [api.M
 	if !strings.HasPrefix(path[0], "as(") {
 		return regArg, btfArg, false, fmt.Errorf("invalid resolve path %q: a register must be cast to a pointer type before it is resolved, e.g. %s.as(uint64 *)[0]", resolve, reg)
 	}
-	castType, err := btf.ParseBTFType(spec, strings.TrimSuffix(strings.TrimPrefix(path[0], "as("), ")"))
+	spec, err := loadSpec()
 	if err != nil {
 		return regArg, btfArg, false, fmt.Errorf("failed to resolve pt_regs path %q: %w", resolve, err)
 	}
-	ptr, ok := btf.ResolveNestedTypes(castType).(*ebtf.Pointer)
-	if !ok {
-		return regArg, btfArg, false, fmt.Errorf("invalid resolve path %q: a register can only be cast to a pointer type", resolve)
-	}
-	path = path[1:]
-	if len(path) == 0 {
-		// The register already holds the value: a cast with nothing after it
-		// would neither dereference nor change what is reported.
-		return regArg, btfArg, false, fmt.Errorf("invalid resolve path %q: a cast on a register must be followed by a field or an index, e.g. %s[0]", resolve, resolve)
+	ptr, path, err := resolveRootCast(resolve, "a register", path, spec)
+	if err != nil {
+		return regArg, btfArg, false, err
 	}
 
 	if !bpf.HasProgramLargeSize() {
@@ -331,6 +326,13 @@ func resolveBTFPathFromRoot(resolve string, root ebtf.Type, path []string, spec 
 		return nil, btfArg, fmt.Errorf("unable to resolve %q: empty path", resolve)
 	}
 
+	if strings.HasPrefix(path[0], "as(") {
+		var err error
+		if root, path, err = resolveRootCast(resolve, "the argument", path, spec); err != nil {
+			return nil, btfArg, err
+		}
+	}
+
 	// The value already holds the root pointer, so the path starts from its
 	// target, unless the path indexes the pointer. Any further pointer levels
 	// need an explicit dereference.
@@ -339,7 +341,7 @@ func resolveBTFPathFromRoot(resolve string, root ebtf.Type, path []string, spec 
 		root = btf.ResolveNestedTypes(ptr.Target)
 	}
 	path = addPaddingOnNestedPtr(root, path)
-	if btfPathDepth(path) > api.MaxBTFArgDepth {
+	if btf.PathDepth(path) > api.MaxBTFArgDepth {
 		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", resolve, api.MaxBTFArgDepth)
 	}
 
@@ -347,11 +349,36 @@ func resolveBTFPathFromRoot(resolve string, root ebtf.Type, path []string, spec 
 	return lastBTFType, btfArg, err
 }
 
+// resolveRootCast resolves the cast at the start of path. Such a cast
+// reinterprets the value itself, e.g. a register or an argument, so it must be
+// a pointer type and be followed by a field or an index. what names the value
+// in error messages. It returns the cast type and the rest of the path.
+func resolveRootCast(resolve, what string, path []string, spec *ebtf.Spec) (*ebtf.Pointer, []string, error) {
+	castType, err := btf.ParseBTFTypeCast(spec, path[0])
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to resolve path %q: %w", resolve, err)
+	}
+	ptr, ok := btf.ResolveNestedTypes(castType).(*ebtf.Pointer)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid resolve path %q: %s can only be cast to a pointer type", resolve, what)
+	}
+	if len(path) == 1 {
+		// The value would neither be dereferenced nor change what is
+		// reported.
+		return nil, nil, fmt.Errorf("invalid resolve path %q: a cast on %s must be followed by a field or an index, e.g. %s[0]", resolve, what, resolve)
+	}
+	return ptr, path[1:], nil
+}
+
 // resolveUserBTFArg resolves an argument using the user-provided BTF information.
 // Usually, this is used for uprobes where the user provides a BTF file for the
-// target binary, loaded once per spec from btfPath.
+// target binary in btfPath.
 // Also see resolveBTFArg().
-func resolveUserBTFArg(arg *v1alpha1.KProbeArg, userBTFSpec *ebtf.Spec) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolveUserBTFArg(arg *v1alpha1.KProbeArg, btfPath string) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+	userBTFSpec, err := loadUserBTFSpec(btfPath)
+	if err != nil {
+		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
+	}
 	if userBTFSpec == nil {
 		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, fmt.Errorf("resolve %q requires btfPath to be set", arg.Resolve)
 	}
@@ -364,7 +391,8 @@ func resolveUserBTFArg(arg *v1alpha1.KProbeArg, userBTFSpec *ebtf.Spec) (*ebtf.T
 }
 
 // loadUserBTFSpec loads the BTF file given by btfPath, or returns nil if
-// btfPath is empty.
+// btfPath is empty. Callers load it only when an argument needs it, so a
+// policy that never needs the user BTF loads even if btfPath can't be read.
 func loadUserBTFSpec(btfPath string) (*ebtf.Spec, error) {
 	if btfPath == "" {
 		return nil, nil

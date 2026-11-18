@@ -306,7 +306,7 @@ func ResolveBTFPath(
 
 	resolver := btfResolver{
 		btfArgs: btfArgs,
-		// parseBTFTypeCast removes cast tokens in place, so work on a copy.
+		// resolve removes cast tokens in place, so work on a copy.
 		pathToFind: slices.Clone(pathToFind),
 		spec:       spec,
 	}
@@ -318,15 +318,21 @@ func (r *btfResolver) resolve(
 	i int,
 ) (*btf.Type, error) {
 	currentType = ResolveNestedTypes(currentType)
-	if castType, err := r.parseBTFTypeCast(i); !errors.Is(err, errNotACast) {
+	if castType, err := ParseBTFTypeCast(r.spec, r.pathToFind[i]); !errors.Is(err, errNotACast) {
 		if err != nil {
 			return nil, err
 		}
+		// The cast takes no BTFArg slot, so drop it to keep the path index
+		// aligned with btfArgs.
+		r.pathToFind = slices.Delete(r.pathToFind, i, i+1)
+		if i == 0 {
+			// The caller strips the root pointer before resolving, so a cast
+			// here would apply to the pointee instead of the argument. Callers
+			// must resolve a leading cast against the argument type first.
+			return nil, errors.New("a cast at the start of a resolve path must be applied to the argument type before resolving")
+		}
 		if i == len(r.pathToFind) {
 			castType = ResolveNestedTypes(castType)
-			if i == 0 {
-				return &castType, nil
-			}
 			switch t := castType.(type) {
 			case *btf.Pointer:
 				r.btfArgs[i-1].IsPointer = uint16(1)
@@ -348,6 +354,15 @@ func (r *btfResolver) resolve(
 			// To avoid adding an extra BTFArg entry only for doing this
 			// dereferencing, we mark the previous element as pointer.
 			r.btfArgs[i-1].IsPointer = uint16(1)
+		}
+		if _, ok := ResolveNestedTypes(t.Target).(*btf.Pointer); ok && !strings.HasPrefix(r.pathToFind[i], "[") {
+			// The dereference above only reaches the next pointer, and
+			// reading through that one needs its own BTFArg slot. Resolve
+			// it as if the path had an explicit [0] index here.
+			r.pathToFind = slices.Insert(r.pathToFind, i, "[0]")
+			if depth := PathDepth(r.pathToFind); depth > api.MaxBTFArgDepth {
+				return nil, fmt.Errorf("dereferencing nested pointers needs a depth of %d, the maximum depth allowed is %d", depth, api.MaxBTFArgDepth)
+			}
 		}
 		if idx, err := parseArrayIdxStr(r.pathToFind[i]); err == nil {
 			// To stay ahead on the dereferecing, we mark the current btfArg as pointer
@@ -460,9 +475,21 @@ func (r *btfResolver) processArray(
 	return &targetType, nil
 }
 
-func (r *btfResolver) parseBTFTypeCast(i int) (btf.Type, error) {
-	pathElem := r.pathToFind[i]
+// PathDepth returns the number of resolve path elements that take a BTFArg
+// slot. Casts are resolved at load time and take none.
+func PathDepth(path []string) int {
+	depth := 0
+	for _, step := range path {
+		if !strings.HasPrefix(step, "as(") {
+			depth++
+		}
+	}
+	return depth
+}
 
+// ParseBTFTypeCast parses an "as(type)" resolve path element and returns the
+// type it casts to. It returns errNotACast if pathElem is not a cast.
+func ParseBTFTypeCast(spec *btf.Spec, pathElem string) (btf.Type, error) {
 	if !strings.HasPrefix(pathElem, "as(") {
 		if strings.ContainsAny(pathElem, "()") {
 			return nil, fmt.Errorf("invalid BTF type cast %q (must be: \"as(type)\")", pathElem)
@@ -478,12 +505,5 @@ func (r *btfResolver) parseBTFTypeCast(i int) (btf.Type, error) {
 		return nil, errors.New("empty BTF type cast")
 	}
 
-	ty, err := ParseBTFType(r.spec, typeExpr)
-	if err != nil {
-		return nil, err
-	}
-
-	r.pathToFind = append(r.pathToFind[:i], r.pathToFind[i+1:]...)
-
-	return ty, nil
+	return ParseBTFType(spec, typeExpr)
 }

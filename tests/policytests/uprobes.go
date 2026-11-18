@@ -428,6 +428,15 @@ spec:
 	}
 }).RegisterAtInit()
 
+// stackPointerReg is the 64-bit stack pointer register name. On amd64, "sp"
+// names the 16-bit register.
+func stackPointerReg() string {
+	if runtime.GOARCH == "amd64" {
+		return "rsp"
+	}
+	return "sp"
+}
+
 var _ = policytest.NewBuilder("uprobe-resolve-stack-cast").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -444,7 +453,7 @@ spec:
       source: "pt_regs"
       # *sp is &ms, ms.sub is its first member, and sub->arr[8] is the 10th
       # uint64 of struct mysubstruct.
-      resolve: "sp.as(uint64 ***)[0][0][9]"
+      resolve: "` + stackPointerReg() + `.as(uint64 ***)[0][0][9]"
 `).WithSkip(func(si *policytest.SkipInfo) string {
 	if runtime.GOARCH != "amd64" && runtime.GOARCH != "arm64" {
 		return "uprobe-stack only has a probe point on amd64 and arm64"

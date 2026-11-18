@@ -787,15 +787,8 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 
 		if hasPtRegsSource(a) {
 			// Casts on kprobe registers name kernel types. The kernel BTF is
-			// only needed, and loaded, when the path has a cast.
-			var kernelBTF *ciliumbtf.Spec
-			if strings.Contains(a.Resolve, "as(") {
-				var err error
-				if kernelBTF, err = btf.NewBTF(); err != nil {
-					return fmt.Errorf("error resolving pt_regs argument %q: %w", a.Resolve, err)
-				}
-			}
-			reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve, kernelBTF)
+			// only loaded when the path has a cast.
+			reg, btfArg, hasBTFArg, err := resolvePtRegsArg(a.Resolve, btf.NewBTF)
 			if err != nil {
 				return fmt.Errorf("error resolving pt_regs argument %q: %w", a.Resolve, err)
 			}

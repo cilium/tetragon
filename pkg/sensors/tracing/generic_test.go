@@ -95,14 +95,53 @@ func TestFormatBTFPath(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			// Accepted for compatibility with the parser before casts.
 			name:    "leading dot",
 			input:   ".my.field",
+			want:    []string{"my", "field"},
+			wantErr: false,
+		},
+		{
+			// Accepted for compatibility with the parser before casts.
+			name:    "trailing dot",
+			input:   "my.field.",
+			want:    []string{"my", "field"},
+			wantErr: false,
+		},
+		{
+			name:    "leading and trailing dot",
+			input:   ".my.field[0].",
+			want:    []string{"my", "field", "[0]"},
+			wantErr: false,
+		},
+		{
+			name:    "only a dot",
+			input:   ".",
 			want:    []string{},
 			wantErr: true,
 		},
 		{
-			name:    "trailing dot",
-			input:   "my.field.",
+			name:    "two leading dots",
+			input:   "..my.field",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "two trailing dots",
+			input:   "my.field..",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			// Accepted for compatibility with the parser before casts.
+			name:    "identifier right after index",
+			input:   "my.field[0]sub[1]leaf.x",
+			want:    []string{"my", "field", "[0]", "sub", "[1]", "leaf", "x"},
+			wantErr: false,
+		},
+		{
+			name:    "cast right after index",
+			input:   "my.field[0]as(char *)[1]",
 			want:    []string{},
 			wantErr: true,
 		},
@@ -214,7 +253,7 @@ func TestFormatBTFPath(t *testing.T) {
 func TestBTFPathDepthDoesNotCountCasts(t *testing.T) {
 	path, err := formatBTFPath("field.as(char *)[8].as(struct task_struct *).comm")
 	require.NoError(t, err)
-	assert.Equal(t, 3, btfPathDepth(path))
+	assert.Equal(t, 3, btf.PathDepth(path))
 }
 
 // This test attempt to test the Resolve flag in tracing policies.
@@ -402,14 +441,14 @@ func TestResolvePtRegsArgKernelBTFCast(t *testing.T) {
 	}
 	require.NotNil(t, pid, "task_struct has no direct pid member")
 
-	_, btfArg, hasBTFArg, err := resolvePtRegsArg(reg+".as(struct task_struct *).pid", spec)
+	_, btfArg, hasBTFArg, err := resolvePtRegsArg(reg+".as(struct task_struct *).pid", func() (*ebtf.Spec, error) { return spec, nil })
 	require.NoError(t, err)
 	require.True(t, hasBTFArg)
 	require.Equal(t, [api.MaxBTFArgDepth]api.ConfigBTFArg{
 		{Offset: pid.Offset.Bytes(), IsPointer: 1, IsInitialized: 1},
 	}, btfArg)
 
-	_, _, _, err = resolvePtRegsArg(reg+".as(struct task_struct *).pid", nil)
+	_, _, _, err = resolvePtRegsArg(reg+".as(struct task_struct *).pid", func() (*ebtf.Spec, error) { return nil, nil })
 	require.ErrorContains(t, err, "no BTF spec provided")
 }
 
