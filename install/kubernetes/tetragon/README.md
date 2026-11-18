@@ -163,7 +163,7 @@ Helm chart for Tetragon
 | tetragon.securityContext.capabilities.add[4] | string | `"SYSLOG"` |  |
 | tetragon.securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | tetragon.securityContext.privileged | bool | `false` |  |
-| tetragon.startupProbe | object | `{}` | Overrides the default startupProbe for the tetragon container. |
+| tetragon.startupProbe | object | `{}` | Overrides the default startupProbe for the tetragon container. The default probe gives the agent about 10 minutes to start and load its static tracing policies. A value set here replaces the whole default probe. |
 | tetragon.usePerfRingBuffer | bool | `false` |  |
 | tetragonOperator.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.labelSelector.matchLabels."app.kubernetes.io/name" | string | `"tetragon-operator"` |  |
 | tetragonOperator.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.topologyKey | string | `"kubernetes.io/hostname"` |  |

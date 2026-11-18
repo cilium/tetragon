@@ -77,7 +77,9 @@ tetragon:
   livenessProbe: {}
   #  grpc:
   #    port: 54321
-  # -- Overrides the default startupProbe for the tetragon container.
+  # -- Overrides the default startupProbe for the tetragon container. The
+  # default probe gives the agent about 10 minutes to start and load its
+  # static tracing policies. A value set here replaces the whole default probe.
   startupProbe: {}
   #  grpc:
   #    port: 54321

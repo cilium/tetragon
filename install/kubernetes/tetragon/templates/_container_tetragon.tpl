@@ -102,7 +102,11 @@
   {{- toYaml .Values.tetragon.startupProbe | nindent 4 }}
 {{- else if .Values.tetragon.healthGrpc.enabled }}
   startupProbe:
+     {{- /* Allow about 10 minutes: the agent loads static tracing policies
+     before it reports that it started, which takes minutes on some kernels. */}}
      timeoutSeconds: 60
+     periodSeconds: 10
+     failureThreshold: 60
      grpc:
       port: {{ .Values.tetragon.healthGrpc.port | int64 }}
       service: "startup"

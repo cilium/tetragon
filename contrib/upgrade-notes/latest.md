@@ -18,7 +18,13 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Helm Values
 
-* TBD
+* The default startup probe of the `tetragon` container now sets
+  `periodSeconds: 10` and `failureThreshold: 60`, which gives the agent about
+  10 minutes to start. The probe added in v1.8.0 used the Kubernetes defaults,
+  about 30 seconds, and the kubelet kept restarting an agent that needed longer
+  to load static tracing policies, for example on a kernel without kprobe
+  multi. If you set `tetragon.startupProbe` to work around that, you can remove
+  the value. A value set there still replaces the whole default probe.
 
 ### TracingPolicy (k8s CRD)
 
