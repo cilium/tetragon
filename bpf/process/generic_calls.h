@@ -4,6 +4,8 @@
 #ifndef __GENERIC_CALLS_H__
 #define __GENERIC_CALLS_H__
 
+#include "multi_kprobe.h"
+
 #include "bpf_tracing.h"
 #include "pfilter.h"
 #include "policy_filter.h"
@@ -32,7 +34,7 @@ generic_selector_stats_id(struct msg_generic_kprobe *e)
 {
 	struct event_config *config;
 
-	config = map_lookup_elem(&config_map, &e->idx);
+	config = policy_lookup(&config_map, &e->idx);
 	if (!config)
 		return -1;
 
@@ -56,7 +58,7 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 
 	/* setup index, check policy filter, and setup function id */
 	msg->idx = get_index(ctx);
-	config = map_lookup_elem(&config_map, &msg->idx);
+	config = policy_lookup(&config_map, &msg->idx);
 	if (!config)
 		return 0;
 	if (!policy_filter_check(config->policy_id))
@@ -600,7 +602,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(&config_map, &e->idx);
+	config = policy_lookup(&config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -746,7 +748,7 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(&config_map, &e->idx);
+	config = policy_lookup(&config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -877,7 +879,7 @@ do_override_action(__s32 error)
 
 	id = get_current_pid_tgid();
 
-	error_p = map_lookup_elem(&override_tasks, &id);
+	error_p = policy_lookup(&override_tasks, &id);
 	if (error_p) {
 		/* A stale entry means the override program did not
 		 * execute and consume the previous entry.
@@ -885,7 +887,7 @@ do_override_action(__s32 error)
 		errmetrics(EEXIST);
 		*error_p = error;
 	} else {
-		map_update_elem(&override_tasks, &id, &error, BPF_ANY);
+		policy_update(&override_tasks, &id, &error, BPF_ANY);
 	}
 }
 #else
@@ -933,7 +935,7 @@ do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_
 	unsigned long val;
 	int err = -1;
 
-	config = map_lookup_elem(&config_map, &e->idx);
+	config = policy_lookup(&config_map, &e->idx);
 	if (!config)
 		return;
 
@@ -1064,14 +1066,14 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 			// old one was overwritten).
 			//
 			// Here we just signal that there was a collision returning -EEXIST.
-			e->kernel_stack_id = get_stackid(ctx, &stack_trace_map, 0);
+			e->kernel_stack_id = policy_stackid(ctx, &stack_trace_map, 0);
 		}
 
 		__u32 user_stack_trace = actions->act[++i];
 
 		if (user_stack_trace) {
 			e->common.flags |= MSG_COMMON_FLAG_USER_STACKTRACE;
-			e->user_stack_id = get_stackid(ctx, &stack_trace_map, BPF_F_USER_STACK);
+			e->user_stack_id = policy_stackid(ctx, &stack_trace_map, BPF_F_USER_STACK);
 		}
 		__u32 ima_hash __maybe_unused = actions->act[++i];
 #ifdef __V511_BPF_PROG
@@ -1162,14 +1164,14 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 
 		switch (value) {
 		case STATE_OP_DELETE: {
-			err = map_delete_elem(&tg_state_map, &state_key);
+			err = policy_delete(&tg_state_map, &state_key);
 			if (err == -ENOENT)
 				err = 0;
 			break;
 		}
 		case STATE_OP_SET: {
 			new_state_value.data = state_data;
-			err = map_update_elem(&tg_state_map, &state_key, &new_state_value, BPF_ANY);
+			err = policy_update(&tg_state_map, &state_key, &new_state_value, BPF_ANY);
 			break;
 		}
 		default:
@@ -1215,7 +1217,7 @@ do_actions(void *ctx, struct selector_action *actions)
 	/* check if policy is in monitor (non-enforcement) mode and, if it is, skip enforcement
 	 * actions
 	 */
-	pcnf = map_lookup_elem(&policy_conf, &zero);
+	pcnf = policy_lookup(&policy_conf, &zero);
 	if (pcnf && pcnf->mode != POLICY_MODE_ENFORCE)
 		enforce_mode = false;
 
@@ -1253,7 +1255,7 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 	if (e->actions_offset <= 1)
 		return 0;
 
-	f = map_lookup_elem(&filter_map, &e->idx);
+	f = policy_lookup(&filter_map, &e->idx);
 	if (!f)
 		return 0;
 
@@ -1340,7 +1342,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 
 	e->idx = get_index(ctx);
 
-	config = map_lookup_elem(&config_map, &e->idx);
+	config = policy_lookup(&config_map, &e->idx);
 	if (!config)
 		return 0;
 
@@ -1351,6 +1353,22 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 
 	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
 		return 0;
+
+#ifdef SHARED_KPROBE
+	/* Do not inherit selector or process state from another return event. */
+	e->tailcall_index_selector = info.selector_index;
+#pragma unroll
+	for (int i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
+		e->sel.active[i] = !!(info.active_selectors & (1U << i));
+	e->current = info.current;
+	e->action = 0;
+	e->actions_offset = 0;
+#pragma unroll
+	for (int i = 0; i < MAX_POSSIBLE_ARGS; i++) {
+		e->arg_status[i] = 0;
+		e->argsoff[i] = 0;
+	}
+#endif
 
 	*(unsigned long *)e->args = info.ktime_enter;
 	size += sizeof(info.ktime_enter);
@@ -1372,10 +1390,10 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 			owner.pid = e->current.pid;
 			owner.tid = e->tid;
 			owner.ktime = e->current.ktime;
-			map_update_elem(&socktrack_map, &ret, &owner, BPF_ANY);
+			policy_update(&socktrack_map, &ret, &owner, BPF_ANY);
 			break;
 		case ACTION_UNTRACKSOCK:
-			map_delete_elem(&socktrack_map, &ret);
+			policy_delete(&socktrack_map, &ret);
 			break;
 		}
 #endif
@@ -1456,7 +1474,7 @@ FUNC_INLINE int generic_process_filter(void *ctx, int stage)
 		msg->common.flags |= MSG_COMMON_FLAG_PROCESS_NOT_FOUND;
 	}
 
-	f = map_lookup_elem(&filter_map, &msg->idx);
+	f = policy_lookup(&filter_map, &msg->idx);
 	if (!f)
 		return PFILTER_ERROR;
 
@@ -1525,7 +1543,7 @@ FUNC_INLINE int filter_args(void *ctx, struct bpf_map_def *tailcalls,
 	__u8 *f;
 
 	/* No filters and no selectors so just accepts */
-	f = map_lookup_elem(&filter_map, &e->idx);
+	f = policy_lookup(&filter_map, &e->idx);
 	if (!f)
 		return 1;
 
@@ -1589,8 +1607,35 @@ FUNC_INLINE int next_selidx(struct msg_generic_kprobe *e, int selidx)
 	return idx;
 }
 
-FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
-				    bool is_entry, int arg)
+#ifdef SHARED_KPROBE
+/* Return probes run with their own heap and may execute on another CPU.
+ * Save the entry selector state in the per-invocation return record.
+ */
+FUNC_INLINE void retprobe_save_state(struct msg_generic_kprobe *e)
+{
+	struct retprobe_key key = { .id = e->func_id, .tid = e->retprobe_id };
+	struct retprobe_info *info = policy_lookup(&retprobe_map, &key);
+	__u32 active = 0;
+	int i;
+
+	if (!info)
+		return;
+#pragma unroll
+	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
+		if (e->sel.active[i])
+			active |= 1U << i;
+	info->active_selectors = active;
+	info->selector_index = e->tailcall_index_selector;
+	info->current = e->current;
+}
+#endif
+
+/* Generated CEL programs retry selectors directly, without paying for the
+ * shared dispatcher again. Actions and output still use the shared calls.
+ */
+FUNC_INLINE long generic_filter_arg_with_retry(void *ctx, struct bpf_map_def *tailcalls,
+					       bool is_entry, int arg,
+					       struct bpf_map_def *retry_calls, __u32 retry_index)
 {
 	struct msg_generic_kprobe *e;
 	heap_key_t key = heap_key();
@@ -1606,11 +1651,16 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 		selidx = next_selidx(e, selidx);
 		if (selidx <= MAX_SELECTORS) {
 			e->tailcall_index_selector = selidx;
-			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
+			tail_call(ctx, retry_calls, retry_index);
 		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
 		return filter_args_reject(e->func_id);
 	}
+
+#ifdef SHARED_KPROBE
+	if (is_entry)
+		retprobe_save_state(e);
+#endif
 
 	// If pass >1 then we need to consult the selector actions
 	// otherwise pass==1 indicates using default action.
@@ -1621,5 +1671,12 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 
 	tail_call(ctx, tailcalls, TAIL_CALL_SEND);
 	return 0;
+}
+
+FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
+				    bool is_entry, int arg)
+{
+	return generic_filter_arg_with_retry(ctx, tailcalls, is_entry, arg,
+					     tailcalls, TAIL_CALL_ARGS);
 }
 #endif /* __GENERIC_CALLS_H__ */

@@ -6,15 +6,18 @@
 package tracing
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/cilium/ebpf"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
@@ -36,19 +39,45 @@ func runConfig(t *testing.T, config string, fn func(string, int)) {
 	}
 
 	for _, sensor := range sens {
+		if sensor.Name == sensors.BaseSensorName {
+			continue
+		}
 		for _, load := range sensor.Progs {
-			c := load.LC
-			for _, p := range c.Programs {
+			if load.SharedStats {
+				index := 0
+				if load.RetProbe {
+					index = 1
+				}
+				shared := sharedMultiKprobes[index]
+				for _, cookie := range load.AttachData.(*program.MultiKprobeAttachData).Cookies {
+					scope := uint32(cookie >> 32)
+					// Inspect the maps selected by BPF, not local stand-ins.
+					for name, registry := range shared.maps {
+						if !multiPolicyMaps[name] {
+							continue
+						}
+						var inner *ebpf.Map
+						err := registry.MapHandle.Lookup(scope, &inner)
+						if errors.Is(err, ebpf.ErrKeyNotExist) {
+							fn(name, 0)
+							continue
+						}
+						require.NoError(t, err)
+						fn(name, int(inner.MaxEntries()))
+						require.NoError(t, inner.Close())
+					}
+				}
+				continue
+			}
+			require.NotNil(t, load.LC)
+			for _, p := range load.LC.Programs {
 				for _, id := range p.MapIDs {
 					m, err := ebpf.NewMapFromID(id)
-					if err != nil {
-						t.Fatalf("can't open map id %d: %s\n", id, err)
-					}
+					require.NoError(t, err)
 					info, err := m.Info()
-					if err != nil {
-						t.Fatalf("can't get map info: %s\n", err)
-					}
+					require.NoError(t, err)
 					fn(info.Name, int(info.MaxEntries))
+					require.NoError(t, m.Close())
 				}
 			}
 		}
@@ -61,15 +90,28 @@ func runConfig(t *testing.T, config string, fn func(string, int)) {
 	sensors.UnloadSensors(sensi)
 }
 
-func run(t *testing.T, maps []testMap, config string) {
-	runConfig(t, config, func(name string, entries int) {
+func run(t *testing.T, maps []testMap, policy string) {
+	seen := make(map[string]bool)
+	runConfig(t, policy, func(name string, entries int) {
 		for _, m := range maps {
-			if name == m.name {
-				t.Logf("checking '%s' expected entries: %d\n", m.name, m.entries)
-				assert.Equal(t, m.entries, entries)
+			if name != m.name {
+				continue
 			}
+			seen[name] = true
+			// Shared programs need no dummy inner map for a disabled feature.
+			if entries == 0 && m.entries == 1 && (name == "stack_trace_map" || name == "enforcer_data" || name == "override_tasks") {
+				continue
+			}
+			assert.Equal(t, m.entries, entries, name)
 		}
 	})
+	for _, m := range maps {
+		// Small BPF programs do not reference the rate-limit map.
+		if m.name == "ratelimit_map" && !config.EnableLargeProgs() {
+			continue
+		}
+		require.True(t, seen[m.name], "map %s was not inspected", m.name)
+	}
 }
 
 func TestMaxEntries(t *testing.T) {
@@ -129,7 +171,7 @@ spec:
 		}
 
 		run(t, []testMap{
-			{"substring_map", 2},
+			{"substring_map", 1}, // Each hook owns its substring map.
 		}, `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -355,6 +397,10 @@ spec:
 }
 
 func TestRateLimitMaxEntries(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("rate limiting requires large BPF programs")
+	}
+
 	t.Run("kprobe", func(t *testing.T) {
 		run(t, []testMap{
 			{"enforcer_data", 1},

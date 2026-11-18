@@ -220,6 +220,10 @@ options:
         Comma-separated list of enabled metrics labels. Unknown labels will be ignored.
     - name: metrics-server
       usage: Metrics server address (e.g. ':2112'). Disabled by default
+    - name: multi-kprobe-map-entries
+      default_value: "65536"
+      usage: |
+        Maximum entries per shared multi-kprobe map (limits active hooks and filter-map references; 0 uses the default)
     - name: netns-dir
       default_value: /var/run/docker/netns/
       usage: Network namespace dir

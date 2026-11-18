@@ -50,6 +50,10 @@ struct {
 __attribute__((section((MAIN)), used)) int
 BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 {
+#ifdef SHARED_KPROBE
+	if (!multi_kprobe_setup(ctx))
+		return 0;
+#endif
 	return generic_retprobe(ctx, (struct bpf_map_def *)&retkprobe_calls, ret);
 }
 

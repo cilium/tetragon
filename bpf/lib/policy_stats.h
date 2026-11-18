@@ -4,6 +4,8 @@
 #ifndef BPF_POLICYSTATS_H__
 #define BPF_POLICYSTATS_H__
 
+#include "multi_kprobe.h"
+
 #include "errmetrics.h"
 #include "policy_conf.h"
 
@@ -44,20 +46,20 @@ struct policy_stats {
 };
 
 #if defined(HAS_POLICY_STATS)
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct policy_stats);
-} selector_stats SEC(".maps");
+POLICY_MAP(selector_stats,
+	   __uint(type, BPF_MAP_TYPE_ARRAY);
+	   __uint(map_flags, POLICY_ARRAY_FLAGS);
+	   __uint(max_entries, 1);
+	   POLICY_KEY(__u32);
+	   POLICY_VALUE(struct policy_stats););
 
 FUNC_INLINE void
 policy_selector_stats_update(int act, __u32 selector_stats_id)
 {
 	struct policy_stats *pstats;
 
-	pstats = with_errmetrics_ptr(map_lookup_elem, &selector_stats,
-				     &selector_stats_id);
+	pstats = with_errmetrics_ptr_helper(policy_lookup, map_lookup_elem, &selector_stats,
+					    &selector_stats_id);
 	if (pstats)
 		lock_add(&pstats->act_cnt[act], 1);
 }

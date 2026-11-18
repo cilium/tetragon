@@ -4,6 +4,8 @@
 #ifndef __RATELIMIT_MAPS_H__
 #define __RATELIMIT_MAPS_H__
 
+#include "multi_kprobe.h"
+
 #include "heap.h"
 
 /* The number of bytes per argument to include in the key
@@ -35,12 +37,11 @@ struct ratelimit_value {
 	__u64 ktime;
 };
 
-struct {
-	__uint(type, BPF_MAP_TYPE_LRU_HASH);
-	__uint(max_entries, 1); // Agent is resizing this if the feature is needed during kprobe load
-	__type(key, struct ratelimit_key);
-	__type(value, struct ratelimit_value);
-} ratelimit_map SEC(".maps");
+POLICY_MAP(ratelimit_map,
+	   __uint(type, BPF_MAP_TYPE_LRU_HASH);
+	   __uint(max_entries, 1); // Agent is resizing this if the feature is needed during kprobe load
+	   POLICY_KEY(struct ratelimit_key);
+	   POLICY_VALUE(struct ratelimit_value););
 
 // The ratelimit_heap value has extra headroom to allow copying argument data without
 // upsetting the verifier. This is not hashed when the key is used in the ratelimit_map.
