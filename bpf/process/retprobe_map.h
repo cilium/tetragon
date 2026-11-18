@@ -110,11 +110,14 @@ retprobe_info_save_selectors(struct retprobe_info *info,
 		}
 	}
 	if (active)
-		info->active_selectors = active | (1U << SELECTORS_ACTIVE);
+		info->active_selectors = active;
 	return first;
 }
 
-/* Restore the selectors saved by retprobe_info_save_selectors(). */
+/* Restore the selectors saved by retprobe_info_save_selectors(). Only
+ * passing selectors are saved, so any saved selector means the return probe
+ * has selectors to evaluate.
+ */
 FUNC_INLINE void
 retprobe_info_restore_selectors(struct retprobe_info *info,
 				struct msg_selector_data *sel)
@@ -122,7 +125,7 @@ retprobe_info_restore_selectors(struct retprobe_info *info,
 #pragma unroll
 	for (int i = 0; i < MAX_SELECTORS; i++)
 		sel->active[i] = !!(info->active_selectors & (1U << i));
-	sel->active[SELECTORS_ACTIVE] = !!(info->active_selectors & (1U << SELECTORS_ACTIVE));
+	sel->active[SELECTORS_ACTIVE] = !!info->active_selectors;
 }
 
 /**
