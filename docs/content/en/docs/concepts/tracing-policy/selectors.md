@@ -2466,7 +2466,7 @@ function is called, and its `matchReturnArgs` when the function returns.
   whose entry filters and `matchReturnArgs` all match. A selector whose entry
   filters did not match is never used on return.
 
-An uprobe `Override` in `matchReturnActions` replaces the return value with
+A uprobe `Override` in `matchReturnActions` replaces the return value with
 `argError` after the return filters match. It preserves the caller's instruction
 pointer and stack, and requires kernel support for uprobe register changes.
 Return Override supports `argError` only; register assignments and function
@@ -2488,6 +2488,6 @@ selectors:
     argError: 0
 ```
 
-An uprobe `Override` in `matchActions` can't be used with `return: true`. It
+A uprobe `Override` in `matchActions` can't be used with `return: true`. It
 skips the rest of the function, so the return probe never runs and no event is
 posted. Use `Override` in `matchReturnActions` instead.
