@@ -480,6 +480,10 @@
               },
               "returnArgAction": {
                 "description": "An action to perform on the return value.\nUse returnArg to include the return value in the event output.\nSupported actions are: TrackSock;UntrackSock",
+                "enum": [
+                  "TrackSock",
+                  "UntrackSock"
+                ],
                 "type": "string"
               },
               "selectors": {
@@ -2113,6 +2117,10 @@
               },
               "returnArgAction": {
                 "description": "An action to perform on the return value.\nUse returnArg to include the return value in the event output.\nSupported actions are: TrackSock;UntrackSock",
+                "enum": [
+                  "TrackSock",
+                  "UntrackSock"
+                ],
                 "type": "string"
               },
               "selectors": {

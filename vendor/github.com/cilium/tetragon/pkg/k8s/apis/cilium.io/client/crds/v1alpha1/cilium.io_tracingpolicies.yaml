@@ -520,6 +520,9 @@ spec:
                         An action to perform on the return value.
                         Use returnArg to include the return value in the event output.
                         Supported actions are: TrackSock;UntrackSock
+                      enum:
+                      - TrackSock
+                      - UntrackSock
                       type: string
                     selectors:
                       description: Selectors to apply before producing trace output.
@@ -2090,6 +2093,9 @@ spec:
                         An action to perform on the return value.
                         Use returnArg to include the return value in the event output.
                         Supported actions are: TrackSock;UntrackSock
+                      enum:
+                      - TrackSock
+                      - UntrackSock
                       type: string
                     selectors:
                       description: Selectors to apply before producing trace output.
