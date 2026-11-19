@@ -84,6 +84,42 @@ func TestFormatBTFPath(t *testing.T) {
 			want:    []string{},
 			wantErr: true,
 		},
+		{
+			name:    "empty path",
+			input:   "",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "leading dot",
+			input:   ".my.field",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "trailing dot",
+			input:   "my.field.",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "negative index",
+			input:   "my.field[-1]",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "parenthesis in identifier",
+			input:   "my(field)[123]",
+			want:    []string{},
+			wantErr: true,
+		},
+		{
+			name:    "identifier right after index",
+			input:   "my.field[0]sub",
+			want:    []string{},
+			wantErr: true,
+		},
 	}
 
 	for _, test := range tests {
