@@ -79,7 +79,7 @@ FUNC_INLINE void relax_verifier(void)
 {
 	/* Calling get_smp_processor_id() in asm saves an instruction as we
 	 * don't have to store the result to ensure the call takes place.
-	 * However, we have to specifiy the call target by number and not
+	 * However, we have to specify the call target by number and not
 	 * name, hence 'call 8'. This is unlikely to change, though, so this
 	 * isn't a big issue.
 	 */
