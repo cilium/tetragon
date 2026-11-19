@@ -947,6 +947,27 @@ fails to load the policy.
 If `btfTypeModule` is omitted, Tetragon searches the main kernel BTF first. For
 hooks that belong to a loaded module, Tetragon also tries that hook's module BTF.
 
+#### Path syntax
+
+This section defines `resolve` paths. The grammar uses EBNF:
+`{ x }` repeats `x` zero or more times, and `|` separates alternatives.
+
+```text
+path       = first-step { "." step } ;
+first-step = step | index { index } ;
+step       = field { index } ;
+field      = identifier ;
+index      = "[" uint32 "]" ;
+```
+
+A `field` is a member name as written in the C definition of the struct or
+union reached so far. A `.` also follows pointers, like `->` in C, so
+`mm.owner.comm` reads through the pointers `mm` and `owner`. A path can start
+with an index when the argument itself points to an array, e.g. `[1]` on the
+`int *fildes` argument of `do_pipe2`.
+
+A path can have at most 10 fields and indexes.
+
 ## Data
 
 Kprobes allow definition of `data` fields and following `matchData` selector
