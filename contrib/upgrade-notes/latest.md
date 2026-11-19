@@ -28,6 +28,10 @@ Depending on your setup, changes listed here might require a manual intervention
   action; now the Kubernetes API server and the agent's policy parser reject
   it up front. The check is case-sensitive, so change spellings such as
   `tracksock` and remove an empty `returnArgAction: ""`.
+* `resolve` paths are now checked more strictly when a policy is loaded. A
+  leading or trailing dot (`.mm.pgd`, `file.f_path.`) and a field name right
+  after an index (`a[0]b`) were accepted before and are now rejected. Write
+  them as `mm.pgd`, `file.f_path` and `a[0].b`.
 
 ### Events (protobuf API)
 
