@@ -13,6 +13,7 @@ import (
 	"path"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -285,7 +286,8 @@ type btfResolver struct {
 //
 // @btfArgs: dest array for storing btf informations to reach the target on the
 // bpf side.
-// @currentType: The current type being proccessed, starts with root type.
+// @currentType: The current type being proccessed, starts with root type. A
+// pointer root is the value itself, so the path starts at its target.
 // @pathToFind: The string representation of the path to reach in the
 // structures.
 //
@@ -300,8 +302,10 @@ func ResolveBTFPath(
 	}
 
 	resolver := btfResolver{
-		btfArgs:    btfArgs,
-		pathToFind: pathToFind,
+		btfArgs: btfArgs,
+		// resolve inserts implicit [0] indexes in place, so work on a
+		// copy.
+		pathToFind: slices.Clone(pathToFind),
 	}
 	return resolver.resolve(currentType, 0)
 }
@@ -321,6 +325,16 @@ func (r *btfResolver) resolve(
 			// To avoid adding an extra BTFArg entry only for doing this
 			// dereferencing, we mark the previous element as pointer.
 			r.btfArgs[i-1].IsPointer = uint16(1)
+		}
+		if _, ok := ResolveNestedTypes(t.Target).(*btf.Pointer); ok && !strings.HasPrefix(r.pathToFind[i], "[") {
+			// The dereference above only reaches the next pointer,
+			// and reading through that one needs its own BTFArg
+			// slot. Resolve it as if the path had an explicit [0]
+			// index here.
+			r.pathToFind = slices.Insert(r.pathToFind, i, "[0]")
+			if depth := len(r.pathToFind); depth > api.MaxBTFArgDepth {
+				return nil, fmt.Errorf("dereferencing nested pointers needs a depth of %d, the maximum depth allowed is %d", depth, api.MaxBTFArgDepth)
+			}
 		}
 		if idx, err := parseArrayIdxStr(r.pathToFind[i]); err == nil {
 			// To stay ahead on the dereferecing, we mark the current btfArg as pointer

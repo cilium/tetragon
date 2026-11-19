@@ -681,6 +681,117 @@ func TestParseArrayIdxStr(t *testing.T) {
 	}
 }
 
+func TestResolveBTFPathNestedPointers(t *testing.T) {
+	target := &btf.Struct{
+		Name: "target",
+		Size: 8,
+		Members: []btf.Member{
+			{Name: "value", Type: &btf.Int{Name: "int", Size: 4, Encoding: btf.Signed}, Offset: btf.Bits(32)},
+		},
+	}
+	ptr := func(ty btf.Type) btf.Type { return &btf.Pointer{Target: ty} }
+	holder := &btf.Struct{
+		Name:    "holder",
+		Size:    8,
+		Members: []btf.Member{{Name: "pp", Type: ptr(ptr(target))}},
+	}
+	tooDeep := btf.Type(target)
+	for range api.MaxBTFArgDepth + 1 {
+		tooDeep = ptr(tooDeep)
+	}
+
+	tests := []struct {
+		name     string
+		root     btf.Type
+		path     []string
+		wantArgs []api.ConfigBTFArg
+		wantErr  bool
+	}{
+		{
+			// The value is the pointer, so the field is read right
+			// away.
+			name:     "pointer",
+			root:     ptr(target),
+			path:     []string{"value"},
+			wantArgs: []api.ConfigBTFArg{{Offset: 4, IsPointer: 1, IsInitialized: 1}},
+		},
+		{
+			// Each pointer level past the first needs its own
+			// dereference, which takes a BTFArg slot like an
+			// explicit [0] index.
+			name: "pointer to pointer",
+			root: ptr(ptr(target)),
+			path: []string{"value"},
+			wantArgs: []api.ConfigBTFArg{
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name: "pointer to pointer to pointer",
+			root: ptr(ptr(ptr(target))),
+			path: []string{"value"},
+			wantArgs: []api.ConfigBTFArg{
+				{IsPointer: 1, IsInitialized: 1},
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name: "indexed pointer to pointer",
+			root: ptr(ptr(target)),
+			path: []string{"[1]", "value"},
+			wantArgs: []api.ConfigBTFArg{
+				{Offset: 8, IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name: "pointer to pointer member",
+			root: holder,
+			path: []string{"pp", "value"},
+			wantArgs: []api.ConfigBTFArg{
+				{IsPointer: 1, IsInitialized: 1},
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name: "pointer to pointer member with explicit index",
+			root: holder,
+			path: []string{"pp", "[0]", "value"},
+			wantArgs: []api.ConfigBTFArg{
+				{IsPointer: 1, IsInitialized: 1},
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name:    "nested pointers past the maximum depth",
+			root:    tooDeep,
+			path:    []string{"value"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var btfArgs, wantArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+			copy(wantArgs[:], tt.wantArgs)
+
+			ty, err := ResolveBTFPath(&btfArgs, tt.root, tt.path)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, ty)
+			assert.Equal(t, "int", (*ty).TypeName())
+			assert.Equal(t, wantArgs, btfArgs)
+		})
+	}
+}
+
 func TestResolveBTFPathZeroLengthArray(t *testing.T) {
 	u8Ty := &btf.Int{Name: "unsigned char", Size: 1}
 	root := &btf.Struct{
