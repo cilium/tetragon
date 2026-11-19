@@ -15,6 +15,9 @@ Depending on your setup, changes listed here might require a manual intervention
   upgrading. If they are set in a configuration file, a configuration directory
   (such as the `tetragon-config` ConfigMap), or a `TETRAGON_` environment
   variable, they are ignored.
+* Tetragon now rejects a `--field-filters` entry that repeats a key, for
+  example two `fields` members in one filter, and fails to start. Earlier
+  versions kept the last value. Remove the duplicate before upgrading.
 
 ### Helm Values
 

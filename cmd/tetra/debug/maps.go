@@ -4,7 +4,7 @@
 package debug
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"text/tabwriter"
 
