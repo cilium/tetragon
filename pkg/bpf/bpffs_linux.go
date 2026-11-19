@@ -150,7 +150,7 @@ func checkOrMountCgroupDefaultLocation() error {
 	// If /run/tetragon/cgroup2/ is not mounted at all, we should mount
 	// cgroup2 there.
 	if !mounted {
-		_ = os.Mkdir(cgroup2Root, os.ModeDir)
+		_ = os.Mkdir(cgroup2Root, 0o755)
 		return mountFS(cgroup2Root, mountinfo.FilesystemTypeCgroup2)
 	}
 	if !cgroupInstance {
