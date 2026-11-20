@@ -1932,7 +1932,7 @@ func (s genericMatchBinariesSelector) keyFromSelectorID(selectorID int) int {
 	return selectorID + offset
 }
 
-func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx int, selectorType genericMatchBinariesSelector) error {
+func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx int, selectorType genericMatchBinariesSelector) (retErr error) {
 	if selectorType != matchBinaries && selectorType != matchParentBinaries {
 		return errors.New("selector must be either matchBinaries or matchParentBinaries")
 	}
@@ -1960,14 +1960,28 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 		if err != nil {
 			return fmt.Errorf("%s followChildren: failed to allocate ID: %w", selectorType, err)
 		}
+		// The selector is not stored in k until the very end, so
+		// CleanupKernelSelectorState can't see the ID if we bail out.
+		defer func() {
+			if retErr != nil {
+				mbset.ReleaseID(sel.MBSetID)
+			}
+		}()
 	}
 
 	switch op {
 	case SelectorOpIn, SelectorOpNotIn:
+		// Skip duplicates, otherwise the same path ends up multiple times
+		// in matchBinariesPaths and mbset.RemoveID walks it more than once.
+		seen := make(map[string]struct{}, len(b.Values))
 		for _, s := range b.Values {
 			if len(s) > processapi.BINARY_PATH_MAX_LEN-1 {
 				return fmt.Errorf("%s error: Binary names > %d chars not supported", selectorType, processapi.BINARY_PATH_MAX_LEN-1)
 			}
+			if _, ok := seen[s]; ok {
+				continue
+			}
+			seen[s] = struct{}{}
 			k.WriteMatchBinariesPath(selectorType.keyFromSelectorID(selIdx), s)
 		}
 	case SelectorOpPrefix, SelectorOpNotPrefix:
@@ -2119,14 +2133,28 @@ func createKernelSelectorState(
 		WriteSelectorLength(&state.data, soff[i])
 		loff := AdvanceSelectorLength(&state.data)
 		if err := parseSelector(state, &s, i); err != nil {
+			releaseMBSetIDs(state)
 			return nil, err
 		}
 		WriteSelectorLength(&state.data, loff)
 	}
 	if len(state.data.e) > KernelBufferSize {
+		releaseMBSetIDs(state)
 		return nil, fmt.Errorf("selector encoding overflow: %d bytes exceeds %d byte buffer", len(state.data.e), KernelBufferSize)
 	}
 	return state, nil
+}
+
+// releaseMBSetIDs gives back the followChildren IDs of a state that is thrown
+// away before it was loaded. Nothing has been written to the mbset map for
+// them at this point (that happens at load time), so there is nothing else to
+// clean up.
+func releaseMBSetIDs(state *KernelSelectorState) {
+	for _, sel := range state.MatchBinaries() {
+		if sel.MBSetID != mbset.InvalidID {
+			mbset.ReleaseID(sel.MBSetID)
+		}
+	}
 }
 
 func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, error) {
