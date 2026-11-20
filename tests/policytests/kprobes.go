@@ -728,6 +728,111 @@ spec:
 	}
 }).RegisterAtInit()
 
+// scopedStatePolicy returns a policy in which lseek(-1, ...) sets a state with
+// the given scope and getcpu posts an event if the state is set.
+func scopedStatePolicy(name, scope string) string {
+	return `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "` + name + `"
+spec:
+  state:
+  - name: "test_state"
+    scope: ` + scope + `
+  kprobes:
+  - call: "sys_lseek"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchBinaries:
+      - operator: In
+        values:
+        - {{ testBinary "test-helper" }}
+      matchArgs: # ignore lseeks not triggered by us
+      - index: 0
+        operator: Equal
+        values:
+        - "-1"
+      matchActions:
+      - action: UpdateState
+        state:
+          name: "test_state"
+          operator: Set
+          value: "1"
+      - action: NoPost
+  - call: "sys_getcpu"
+    syscall: true
+    selectors:
+    - matchBinaries:
+      - operator: In
+        values:
+        - {{ testBinary "test-helper" }}
+      matchStates:
+      - name: "test_state"
+        operator: Equal
+        value: "1"
+`
+}
+
+func skipWithoutLargeProgs(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+		return "matchStates requires large BPF program support"
+	}
+	return ""
+}
+
+func getcpuEventChecker(helper string) *ec.ProcessKprobeChecker {
+	return ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Suffix("sys_getcpu")).
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(helper)))
+}
+
+// In the scenarios below, test-helper runs all commands of one invocation on
+// the same thread, except for commands with the "thread " prefix, which run
+// on another thread of the same process.
+
+var _ = policytest.NewBuilder("kprobe-state-process").
+	WithLabels("kprobes").
+	WithSkip(skipWithoutLargeProgs).
+	WithPolicyTemplate(scopedStatePolicy("kprobe-state-process", "Process")).
+	AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+		helper := c.TestBinary("test-helper")
+		postCnt := uint64(1)
+		return &policytest.Scenario{
+			Name: "process state is shared by the threads of a process only",
+			// The process sets the state. A child process, which runs while
+			// the parent is alive, does not see it. Another thread of the
+			// parent does: one event.
+			Trigger:      policytest.NewCmdTrigger(helper, "lseek -1 0 0\nexec "+helper+" getcpu\nthread getcpu").ExpectExitCode(0),
+			EventChecker: ec.NewUnorderedEventChecker(getcpuEventChecker(helper)),
+			ActCountChecker: policytest.ActionCounts{
+				Post: &postCnt,
+			},
+		}
+	}).RegisterAtInit()
+
+var _ = policytest.NewBuilder("kprobe-state-thread").
+	WithLabels("kprobes").
+	WithSkip(skipWithoutLargeProgs).
+	WithPolicyTemplate(scopedStatePolicy("kprobe-state-thread", "Thread")).
+	AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+		helper := c.TestBinary("test-helper")
+		postCnt := uint64(1)
+		return &policytest.Scenario{
+			Name: "thread state is not shared between threads",
+			// One thread sets the state. Another thread of the same process
+			// does not see it, the thread that set it does: one event.
+			Trigger:      policytest.NewCmdTrigger(helper, "lseek -1 0 0\nthread getcpu\ngetcpu").ExpectExitCode(0),
+			EventChecker: ec.NewUnorderedEventChecker(getcpuEventChecker(helper)),
+			ActCountChecker: policytest.ActionCounts{
+				Post: &postCnt,
+			},
+		}
+	}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("cel-byte-order").
 	WithLabels("kprobes", "cel").
 	WithSkip(func(si *policytest.SkipInfo) string {

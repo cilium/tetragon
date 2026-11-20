@@ -45,6 +45,7 @@ func overrideMethodParse(s string) OverrideMethod {
 type specOptions struct {
 	DisableKprobeMulti   bool
 	DisableUprobeMulti   bool
+	StateScopedMapSize   int
 	SleepablePreloadSize int
 	SleepableOffloadSize int
 	UprobeHeapSize       int
@@ -100,6 +101,19 @@ var opts = map[string]opt{
 			return nil
 		},
 	},
+	option.KeyStateScopedMapSize: {
+		set: func(str string, options *specOptions) (err error) {
+			size, err := strconv.Atoi(str)
+			if err != nil {
+				return err
+			}
+			if err := option.ValidateMapSize(option.KeyStateScopedMapSize, size); err != nil {
+				return err
+			}
+			options.StateScopedMapSize = size
+			return nil
+		},
+	},
 	option.KeySleepablePreloadSize: {
 		set: func(str string, options *specOptions) (err error) {
 			size, err := strconv.Atoi(str)
@@ -132,7 +146,7 @@ var opts = map[string]opt{
 			if err != nil {
 				return err
 			}
-			if err := option.ValidateHeapSize(option.KeyUprobeHeapSize, size); err != nil {
+			if err := option.ValidateMapSize(option.KeyUprobeHeapSize, size); err != nil {
 				return err
 			}
 			options.UprobeHeapSize = size
@@ -145,7 +159,7 @@ var opts = map[string]opt{
 			if err != nil {
 				return err
 			}
-			if err := option.ValidateHeapSize(option.KeyFentryHeapSize, size); err != nil {
+			if err := option.ValidateMapSize(option.KeyFentryHeapSize, size); err != nil {
 				return err
 			}
 			options.FentryHeapSize = size
@@ -158,7 +172,7 @@ var opts = map[string]opt{
 			if err != nil {
 				return err
 			}
-			if err := option.ValidateHeapSize(option.KeyLsmHeapSize, size); err != nil {
+			if err := option.ValidateMapSize(option.KeyLsmHeapSize, size); err != nil {
 				return err
 			}
 			options.LsmHeapSize = size

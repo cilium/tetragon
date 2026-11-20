@@ -673,7 +673,7 @@ func createGenericTracepointSensor(
 
 		maps = append(maps, polInfo.policyConfMap(prog0), polInfo.selectorStatsMap(prog0))
 		if len(polInfo.stateIDs) != 0 {
-			maps = append(maps, polInfo.policyStateMap(prog0))
+			maps = append(maps, polInfo.policyStateMaps(prog0)...)
 		}
 	}
 
@@ -708,7 +708,7 @@ func createGenericTracepointSensor(
 	return ret, nil
 }
 
-func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec, stateIDs map[string]uint32) error {
+func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec, stateIDs map[string]selectors.StateInfo) error {
 	if tp.selectors != nil {
 		return errors.New("InitKernelSelectors: selectors already initialized")
 	}

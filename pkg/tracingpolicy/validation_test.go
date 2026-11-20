@@ -373,6 +373,63 @@ metadata:
 	}
 }
 
+func TestStateScopeValidation(t *testing.T) {
+	for _, kind := range []string{"TracingPolicy", "TracingPolicyNamespaced"} {
+		t.Run(kind, func(t *testing.T) {
+			namespace := ""
+			if kind == "TracingPolicyNamespaced" {
+				build.SkipIfK8sDisabled(t)
+				namespace = "  namespace: default\n"
+			}
+			for _, tt := range []struct {
+				scope string
+				valid bool
+			}{
+				{"", true},
+				{"System", true},
+				{"Process", true},
+				{"Thread", true},
+				{"system", false},
+				{"process", false},
+				{"thread", false},
+				{"Global", false},
+				{"global", false},
+				{"System,Process,Thread", false},
+				{"Process ", false},
+			} {
+				t.Run(tt.scope, func(t *testing.T) {
+					scopeField := ""
+					if tt.scope != "" {
+						scopeField = fmt.Sprintf("    scope: %q\n", tt.scope)
+					}
+					policy, err := FromYAML(fmt.Sprintf(`
+apiVersion: cilium.io/v1alpha1
+kind: %s
+metadata:
+  name: state-scope
+%sspec:
+  state:
+  - name: test
+%s`, kind, namespace, scopeField))
+					if !tt.valid {
+						require.ErrorContains(t, err, "scope")
+						return
+					}
+					require.NoError(t, err)
+					if tt.scope == "" {
+						t.Run("default", func(t *testing.T) {
+							build.SkipIfK8sDisabled(t)
+							require.Equal(t, "System", policy.TpSpec().States[0].Scope)
+						})
+					} else {
+						require.Equal(t, tt.scope, policy.TpSpec().States[0].Scope)
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestStateNamesUnique(t *testing.T) {
 	base := `
 apiVersion: cilium.io/v1alpha1

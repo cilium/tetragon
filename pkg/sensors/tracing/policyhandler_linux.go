@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/policystats"
@@ -30,14 +31,14 @@ type policyInfo struct {
 
 	// These maps are used to store policy-scoped information and are shared
 	// between all hook types.
-	policyConf    *program.Map
-	policyStats   *program.Map
-	selectorStats *program.Map
-	stateMap      *program.Map
+	policyConf     *program.Map
+	policyStats    *program.Map
+	selectorStats  *program.Map
+	stateMap       *program.Map
+	scopedStateMap *program.Map
 
-	// stateIDs maps state names from the yaml to their corresponding IDs as
-	// used in eBPF.
-	stateIDs map[string]uint32
+	// stateIDs maps state names from the yaml to their IDs and scopes in eBPF.
+	stateIDs map[string]selectors.StateInfo
 
 	selectorCount int
 	specOpts      *specOptions
@@ -127,6 +128,11 @@ func newPolicyInfoFromSpec(
 		return nil, err
 	}
 
+	stateIDs, err := indexPolicyStates(spec.States)
+	if err != nil {
+		return nil, err
+	}
+
 	// If enforcement is not allowed, force monitor only
 	if !hasEnforcementActions(spec) {
 		if opts.policyMode == policyconf.EnforceMode {
@@ -149,27 +155,53 @@ func newPolicyInfoFromSpec(
 		policyStats:   nil,
 		selectorStats: nil,
 		stateMap:      nil,
-		stateIDs:      indexPolicyStates(spec.States),
+		stateIDs:      stateIDs,
 		selectorCount: countSelectors(spec),
 		specOpts:      opts,
 	}, nil
 }
 
-func indexPolicyStates(states []v1alpha1.State) map[string]uint32 {
-	stateIDs := make(map[string]uint32, len(states))
+func indexPolicyStates(states []v1alpha1.State) (map[string]selectors.StateInfo, error) {
+	stateIDs := make(map[string]selectors.StateInfo, len(states))
 	for stateID, state := range states {
-		stateIDs[state.Name] = uint32(stateID)
+		var scope uint32
+		switch state.Scope {
+		case "", "System":
+			scope = selectors.StateScopeSystem
+		case "Process":
+			scope = selectors.StateScopeProcess
+		case "Thread":
+			scope = selectors.StateScopeThread
+		default:
+			return nil, fmt.Errorf("state %q has invalid scope %q: expected System, Process or Thread", state.Name, state.Scope)
+		}
+		if _, exists := stateIDs[state.Name]; exists {
+			return nil, fmt.Errorf("duplicate state name %q", state.Name)
+		}
+		stateIDs[state.Name] = selectors.StateInfo{ID: uint32(stateID), Scope: scope}
 	}
-	return stateIDs
+	return stateIDs, nil
 }
 
-func (pi *policyInfo) policyStateMap(prog *program.Program) *program.Map {
+func (pi *policyInfo) policyStateMaps(prog *program.Program) []*program.Map {
 	if pi.stateMap != nil {
-		return program.MapUserFrom(pi.stateMap)
+		return []*program.Map{program.MapUserFrom(pi.stateMap), program.MapUserFrom(pi.scopedStateMap)}
+	}
+	scopedSize := 1
+	for _, state := range pi.stateIDs {
+		if state.Scope != selectors.StateScopeSystem {
+			scopedSize = option.Config.StateScopedMapSize
+			if pi.specOpts.StateScopedMapSize != 0 {
+				scopedSize = pi.specOpts.StateScopedMapSize
+			}
+			break
+		}
 	}
 	pi.stateMap = program.MapBuilderPolicy("tg_state_map", prog)
 	pi.stateMap.SetMaxEntries(len(pi.stateIDs))
-	return pi.stateMap
+	pi.scopedStateMap = program.MapBuilderPolicy("tg_scoped_state_map", prog)
+	pi.scopedStateMap.SetMaxEntries(scopedSize)
+	return []*program.Map{pi.stateMap, pi.scopedStateMap}
 }
 
 func (pi *policyInfo) selectorStatsMap(prog *program.Program) *program.Map {

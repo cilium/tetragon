@@ -138,6 +138,8 @@ type config struct {
 	ParentsMapEntries int
 	ParentsMapSize    string
 
+	StateScopedMapSize int
+
 	RetprobesCacheSize int
 
 	SleepablePreloadSize int
@@ -172,9 +174,9 @@ type config struct {
 	BPFDebugLog   bool
 }
 
-// ValidateHeapSize checks that a heap size is positive and fits in the
-// uint32 map capacity field.
-func ValidateHeapSize(name string, size int) error {
+// ValidateMapSize checks that a map's maximum entry count is positive and fits
+// in the uint32 map capacity field.
+func ValidateMapSize(name string, size int) error {
 	if size <= 0 {
 		return fmt.Errorf("%s must be positive, got %d", name, size)
 	}
@@ -207,6 +209,9 @@ var (
 
 		// Set default value for {k,u}retprobes lru events cache
 		RetprobesCacheSize: defaults.DefaultRetprobesCacheSize,
+
+		// Set default capacity for each policy's process/thread-scoped state map.
+		StateScopedMapSize: defaults.DefaultStateScopedMapSize,
 
 		// Set default value for sleepable preload maps.
 		SleepablePreloadSize: defaults.DefaultSleepablePreloadSize,
