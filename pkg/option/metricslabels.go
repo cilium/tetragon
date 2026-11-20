@@ -48,5 +48,6 @@ func CreateProcessLabels(namespace, workload, pod, binary, nodeName string) *met
 	if !Config.MetricsLabelFilter["node_name"] {
 		nodeName = ""
 	}
+	metrics.TrackBinary(binary)
 	return metrics.NewProcessLabels(namespace, workload, pod, binary, nodeName)
 }
