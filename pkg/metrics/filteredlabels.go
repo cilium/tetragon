@@ -5,6 +5,7 @@ package metrics
 
 import (
 	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/strutils"
 )
 
 type FilteredLabels interface {
@@ -46,8 +47,14 @@ func (l ProcessLabels) Keys() []string {
 	return []string{"namespace", "workload", "pod", "binary", "node_name"}
 }
 
+// Values replaces invalid UTF-8 with U+FFFD: the prometheus client panics on
+// such label values, and a binary path can hold any bytes.
 func (l ProcessLabels) Values() []string {
-	return []string{l.Namespace, l.Workload, l.Pod, l.Binary, l.NodeName}
+	values := []string{l.Namespace, l.Workload, l.Pod, l.Binary, l.NodeName}
+	for i, v := range values {
+		values[i] = strutils.ToValidUTF8(v)
+	}
+	return values
 }
 
 func (l ProcessLabels) Example() FilteredLabels {
