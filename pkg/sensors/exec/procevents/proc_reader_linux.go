@@ -28,6 +28,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
+	"github.com/cilium/tetragon/pkg/strutils"
 )
 
 const (
@@ -71,7 +72,7 @@ func getCWD(pid uint32) (string, uint32) {
 		return "", flags
 	}
 
-	return cwd, flags
+	return strutils.UTF8FromBPFBytes([]byte(cwd)), flags
 }
 
 func updateExecveMapStats(procs int64) {
@@ -328,8 +329,8 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			pid:               uint32(pid),
 			tid:               uint32(pid), // Read dir does not return threads and we only track tgid
 			nspid:             nspid,
-			exe:               stringToUTF8([]byte(execPath)),
-			cmdline:           stringToUTF8(cmdline),
+			exe:               []byte(execPath),
+			cmdline:           cmdline,
 			flags:             api.EventProcFS | api.EventNeedsCWD,
 			ktime:             ktime,
 			permitted:         permitted,
