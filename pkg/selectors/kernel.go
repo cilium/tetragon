@@ -1871,10 +1871,17 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 
 	switch op {
 	case SelectorOpIn, SelectorOpNotIn:
+		// Skip duplicates, otherwise the same path ends up multiple times
+		// in matchBinariesPaths and mbset.RemoveID walks it more than once.
+		seen := make(map[string]struct{}, len(b.Values))
 		for _, s := range b.Values {
 			if len(s) > processapi.BINARY_PATH_MAX_LEN-1 {
 				return fmt.Errorf("%s error: Binary names > %d chars not supported", selectorType, processapi.BINARY_PATH_MAX_LEN-1)
 			}
+			if _, ok := seen[s]; ok {
+				continue
+			}
+			seen[s] = struct{}{}
 			k.WriteMatchBinariesPath(selectorType.keyFromSelectorID(selIdx), s)
 		}
 	case SelectorOpPrefix, SelectorOpNotPrefix:
