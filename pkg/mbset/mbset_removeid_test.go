@@ -172,3 +172,16 @@ func TestAllocIDReclaimsOnlyUnusedStaleIDs(t *testing.T) {
 	_, err = s.AllocID()
 	require.Error(t, err)
 }
+
+func TestReleaseID(t *testing.T) {
+	s, err := newState()
+	require.NoError(t, err)
+
+	id, err := s.AllocID()
+	require.NoError(t, err)
+	s.ReleaseID(id)
+
+	id2, err := s.AllocID()
+	require.NoError(t, err)
+	require.Equal(t, id, id2)
+}

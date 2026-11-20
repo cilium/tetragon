@@ -95,6 +95,15 @@ func (s *state) AllocID() (uint32, error) {
 	return id, nil
 }
 
+// ReleaseID gives back an ID that was allocated but never written to the
+// mbset map (i.e. UpdateMap was not called for it), for example because the
+// rest of the policy failed to parse. Use RemoveID for everything else.
+func (s *state) ReleaseID(id uint32) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.ids, id)
+}
+
 // reclaimStale releases stale IDs whose bit is not set in any execve_map
 // entry anymore, s.mu must be held.
 //
@@ -333,6 +342,14 @@ func RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
 		return err
 	}
 	return s.RemoveID(id, paths)
+}
+
+func ReleaseID(id uint32) {
+	s, err := getState()
+	if err != nil {
+		return
+	}
+	s.ReleaseID(id)
 }
 
 func UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
