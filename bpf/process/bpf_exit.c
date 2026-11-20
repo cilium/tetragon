@@ -95,7 +95,7 @@ FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 	}
 
 	/* enter points into the execve_map entry, so use it before deleting it */
-	map_delete_elem(&tg_parents_bin, &enter->key.pid);
+	parents_bin_delete(enter->key.pid);
 	execve_map_delete(tgid);
 }
 
