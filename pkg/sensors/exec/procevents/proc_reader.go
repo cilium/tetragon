@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -27,18 +26,6 @@ import (
 const (
 	kernelPid = uint32(0)
 )
-
-func stringToUTF8(s []byte) []byte {
-	var utf8Cursor int
-	var i int
-
-	for i < len(s) {
-		r, size := utf8.DecodeRune(s[i:])
-		utf8Cursor += utf8.EncodeRune(s[utf8Cursor:], r)
-		i += size
-	}
-	return s
-}
 
 type procs struct {
 	ppid              uint32
@@ -72,7 +59,7 @@ type procs struct {
 }
 
 func procFilename(p *procs) string {
-	filename := string(p.exe)
+	filename := strutils.UTF8FromBPFBytes(p.exe)
 
 	// If this is a kernel thread, we use its filename as process name
 	// similarly to what ps reports.
