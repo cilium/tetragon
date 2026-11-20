@@ -138,7 +138,7 @@ github.com/modern-go/reflect2
 # github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 ## explicit
 github.com/munnerz/goautoneg
-# github.com/pandatix/go-abnf v0.5.3
+# github.com/pandatix/go-abnf v0.5.5
 ## explicit; go 1.26.0
 github.com/pandatix/go-abnf
 # github.com/prometheus/client_golang v1.25.0
@@ -153,7 +153,7 @@ github.com/prometheus/client_golang/prometheus/promhttp/internal
 # github.com/prometheus/client_model v0.6.3
 ## explicit; go 1.23
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.73.1
+# github.com/prometheus/common v0.74.0
 ## explicit; go 1.26.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/model
@@ -183,7 +183,7 @@ go.opentelemetry.io/otel/semconv/v1.43.0
 go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
-# go.yaml.in/yaml/v2 v2.4.4
+# go.yaml.in/yaml/v2 v2.4.5
 ## explicit; go 1.15
 go.yaml.in/yaml/v2
 # go.yaml.in/yaml/v3 v3.0.6
