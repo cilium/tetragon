@@ -30,7 +30,7 @@ const (
 var mountOnce sync.Once
 
 // mountFS mounts the BPFFS filesystem into the desired mapRoot directory.
-func mountFS(root, kind string) error {
+func mountFS(root, kind, data string) error {
 	mapRootStat, err := os.Stat(root)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -45,7 +45,7 @@ func mountFS(root, kind string) error {
 		return fmt.Errorf("%s is a file which is not a directory", root)
 	}
 
-	if err := syscall.Mount(root, root, kind, 0, ""); err != nil {
+	if err := syscall.Mount(root, root, kind, 0, data); err != nil {
 		return fmt.Errorf("failed to mount %s %s: %w", root, kind, err)
 	}
 	return nil
@@ -85,7 +85,7 @@ func checkOrMountCustomLocation(bpfRoot string) error {
 	// If the custom location has no mount, let's mount BPFFS there.
 	if !mounted {
 		SetMapRoot(bpfRoot)
-		return mountFS(mapRoot, mountinfo.FilesystemTypeBPFFS)
+		return mountFS(mapRoot, mountinfo.FilesystemTypeBPFFS, "")
 	}
 
 	// If the custom location already has a mount with some other filesystem than
@@ -111,7 +111,7 @@ func checkOrMountDebugFSDefaultLocations() error {
 	// If /sys/kernel/debug is not mounted at all, we should mount
 	// DebugFS there.
 	if !mounted {
-		return mountFS(debugFSRoot, mountinfo.FilesystemTypeDebugFS)
+		return mountFS(debugFSRoot, mountinfo.FilesystemTypeDebugFS, "")
 	}
 	if !debugfsInstance {
 		return errors.New("instance exists with other type")
@@ -130,7 +130,7 @@ func checkOrMountTraceFSDefaultLocations() error {
 	// If /sys/kernel/tracing is not mounted at all, we should mount
 	// traceFS there.
 	if !mounted {
-		return mountFS(traceFSRoot, mountinfo.FilesystemTypeTraceFS)
+		return mountFS(traceFSRoot, mountinfo.FilesystemTypeTraceFS, "")
 	}
 	if !tracefsInstance {
 		return errors.New("instance exists with other type")
@@ -151,7 +151,8 @@ func checkOrMountCgroupDefaultLocation() error {
 	// cgroup2 there.
 	if !mounted {
 		_ = os.Mkdir(cgroup2Root, os.ModeDir)
-		return mountFS(cgroup2Root, mountinfo.FilesystemTypeCgroup2)
+		opts := mountinfo.Cgroup2SuperOptions(infos)
+		return mountFS(cgroup2Root, mountinfo.FilesystemTypeCgroup2, opts)
 	}
 	if !cgroupInstance {
 		return errors.New("instance exists with other type")
@@ -183,7 +184,7 @@ func checkOrMountDefaultLocations() error {
 	// If /sys/fs/bpf is not mounted at all, we should mount
 	// BPFFS there.
 	if !mounted {
-		return mountFS(mapRoot, mountinfo.FilesystemTypeBPFFS)
+		return mountFS(mapRoot, mountinfo.FilesystemTypeBPFFS, "")
 	}
 
 	if !bpffsInstance {
@@ -210,7 +211,7 @@ func checkOrMountDefaultLocations() error {
 
 		cMounted, cBpffsInstance := mountinfo.IsMountFS(infos, mountinfo.FilesystemTypeBPFFS, mapRoot)
 		if !cMounted {
-			if err := mountFS(mapRoot, mountinfo.FilesystemTypeBPFFS); err != nil {
+			if err := mountFS(mapRoot, mountinfo.FilesystemTypeBPFFS, ""); err != nil {
 				return err
 			}
 		} else if !cBpffsInstance {
