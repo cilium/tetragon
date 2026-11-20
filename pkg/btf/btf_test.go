@@ -432,11 +432,12 @@ func buildPathFromString(t *testing.T, rootType btf.Type, pathStr string) []stri
 	return path
 }
 
-func buildResolveBTFConfig(t *testing.T, rootType btf.Type, pathStr string) [api.MaxBTFArgDepth]api.ConfigBTFArg {
+// buildResolveBTFConfig resolves pathStr from the argument type argType, the
+// way the sensors do.
+func buildResolveBTFConfig(t *testing.T, argType btf.Type, pathStr string) [api.MaxBTFArgDepth]api.ConfigBTFArg {
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 
-	path := buildPathFromString(t, rootType, pathStr)
-	_, err := ResolveBTFPath(&btfArgs, rootType, path, 0)
+	_, err := ResolveBTFPath(&btfArgs, argType, strings.Split(pathStr, "."))
 	fatalOnError(t, err)
 
 	return btfArgs
@@ -447,11 +448,11 @@ func buildExpectedBTFConfig(t *testing.T, rootType btf.Type, pathStr string) [ap
 	return manuallyResolveBTFPath(t, rootType, path)
 }
 
-func testPathIsAccessible(rootType btf.Type, strPath string) (*[api.MaxBTFArgDepth]api.ConfigBTFArg, *btf.Type, error) {
+func testPathIsAccessible(argType btf.Type, strPath string) (*[api.MaxBTFArgDepth]api.ConfigBTFArg, *btf.Type, error) {
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 	path := strings.Split(strPath, ".")
 
-	lastBTFType, err := ResolveBTFPath(&btfArgs, ResolveNestedTypes(rootType), path, 0)
+	lastBTFType, err := ResolveBTFPath(&btfArgs, argType, path)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -475,21 +476,21 @@ func testAssertEqualPath(spec *btf.Spec) func(*testing.T) {
 		path := "file.f_path.dentry.d_name.name"
 		assert.Equal(t,
 			buildExpectedBTFConfig(t, bprmTy, path),
-			buildResolveBTFConfig(t, bprmTy, path),
+			buildResolveBTFConfig(t, funcParamTy.Type, path),
 		)
 
 		// Test anonymous struct
 		path = "mm.arg_start"
 		assert.Equal(t,
 			buildExpectedBTFConfig(t, bprmTy, path),
-			buildResolveBTFConfig(t, bprmTy, path),
+			buildResolveBTFConfig(t, funcParamTy.Type, path),
 		)
 
 		// Test Union
 		path = "file.f_inode.i_dir_seq"
 		assert.Equal(t,
 			buildExpectedBTFConfig(t, bprmTy, path),
-			buildResolveBTFConfig(t, bprmTy, path),
+			buildResolveBTFConfig(t, funcParamTy.Type, path),
 		)
 
 		// Test if param is double ptr
@@ -505,7 +506,7 @@ func testAssertEqualPath(spec *btf.Spec) func(*testing.T) {
 		path = "uid.val"
 		assert.Equal(t,
 			buildExpectedBTFConfig(t, newTy, path),
-			buildResolveBTFConfig(t, newTy, path),
+			buildResolveBTFConfig(t, funcParamTy.Type, path),
 		)
 	}
 }
@@ -517,12 +518,7 @@ func testAssertPathIsAccessible(spec *btf.Spec) func(*testing.T) {
 		funcParamTy, err := findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
 		fatalOnError(t, err)
 
-		taskStructTy := funcParamTy.Type
-		if ty, ok := taskStructTy.(*btf.Pointer); ok {
-			taskStructTy = ty.Target
-		}
-
-		_, _, err = testPathIsAccessible(taskStructTy, "sched_task_group.css.id")
+		_, _, err = testPathIsAccessible(funcParamTy.Type, "sched_task_group.css.id")
 		require.NoError(t, err)
 
 		hook = "security_bprm_check"
@@ -530,12 +526,7 @@ func testAssertPathIsAccessible(spec *btf.Spec) func(*testing.T) {
 		funcParamTy, err = findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
 		fatalOnError(t, err)
 
-		bprmTy := funcParamTy.Type
-		if ty, ok := bprmTy.(*btf.Pointer); ok {
-			bprmTy = ty.Target
-		}
-
-		_, _, err = testPathIsAccessible(bprmTy, "mm.pgd.pgd")
+		_, _, err = testPathIsAccessible(funcParamTy.Type, "mm.pgd.pgd")
 		require.NoError(t, err)
 	}
 }
@@ -548,9 +539,6 @@ func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
 		fatalOnError(t, err)
 
 		rootType := funcParamTy.Type
-		if rootTy, ok := rootType.(*btf.Pointer); ok {
-			rootType = rootTy.Target
-		}
 
 		// Assert an error is raised when attribute does not exists
 		_, _, err = testPathIsAccessible(rootType, "fail")
@@ -681,6 +669,132 @@ func TestParseArrayIdxStr(t *testing.T) {
 	}
 }
 
+func TestResolveBTFPathNestedPointers(t *testing.T) {
+	target := &btf.Struct{
+		Name: "target",
+		Size: 8,
+		Members: []btf.Member{
+			{Name: "value", Type: &btf.Int{Name: "int", Size: 4, Encoding: btf.Signed}, Offset: btf.Bits(32)},
+		},
+	}
+	ptr := func(ty btf.Type) btf.Type { return &btf.Pointer{Target: ty} }
+	holder := &btf.Struct{
+		Name: "holder",
+		Size: 16,
+		Members: []btf.Member{
+			{Name: "pp", Type: ptr(ptr(target))},
+			{Name: "tp", Type: ptr(target), Offset: btf.Bits(64)},
+		},
+	}
+	tooDeep := btf.Type(target)
+	for range api.MaxBTFArgDepth + 1 {
+		tooDeep = ptr(tooDeep)
+	}
+
+	tests := []struct {
+		name     string
+		root     btf.Type
+		path     []string
+		wantArgs []api.ConfigBTFArg
+		wantErr  bool
+	}{
+		{
+			// The value is the pointer, so the field is read right
+			// away.
+			name:     "pointer",
+			root:     ptr(target),
+			path:     []string{"value"},
+			wantArgs: []api.ConfigBTFArg{{Offset: 4, IsPointer: 1, IsInitialized: 1}},
+		},
+		{
+			// Each pointer level past the first needs its own
+			// dereference, which takes a BTFArg slot like an
+			// explicit [0] index.
+			name: "pointer to pointer",
+			root: ptr(ptr(target)),
+			path: []string{"value"},
+			wantArgs: []api.ConfigBTFArg{
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name: "pointer to pointer to pointer",
+			root: ptr(ptr(ptr(target))),
+			path: []string{"value"},
+			wantArgs: []api.ConfigBTFArg{
+				{IsPointer: 1, IsInitialized: 1},
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name: "indexed pointer to pointer",
+			root: ptr(ptr(target)),
+			path: []string{"[1]", "value"},
+			wantArgs: []api.ConfigBTFArg{
+				{Offset: 8, IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name: "pointer to pointer member",
+			root: holder,
+			path: []string{"pp", "value"},
+			wantArgs: []api.ConfigBTFArg{
+				{IsPointer: 1, IsInitialized: 1},
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name: "pointer to pointer member with explicit index",
+			root: holder,
+			path: []string{"pp", "[0]", "value"},
+			wantArgs: []api.ConfigBTFArg{
+				{IsPointer: 1, IsInitialized: 1},
+				{IsPointer: 1, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			// An index on a pointer to structs selects the element
+			// itself, which must not be read as a pointer.
+			name: "pointer to struct index then field",
+			root: holder,
+			path: []string{"tp", "[1]", "value"},
+			wantArgs: []api.ConfigBTFArg{
+				{Offset: 8, IsPointer: 1, IsInitialized: 1},
+				{Offset: 8, IsInitialized: 1},
+				{Offset: 4, IsPointer: 1, IsInitialized: 1},
+			},
+		},
+		{
+			name:    "nested pointers past the maximum depth",
+			root:    tooDeep,
+			path:    []string{"value"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var btfArgs, wantArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+			copy(wantArgs[:], tt.wantArgs)
+
+			ty, err := ResolveBTFPath(&btfArgs, tt.root, tt.path)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, ty)
+			assert.Equal(t, "int", (*ty).TypeName())
+			assert.Equal(t, wantArgs, btfArgs)
+		})
+	}
+}
+
 func TestResolveBTFPathZeroLengthArray(t *testing.T) {
 	u8Ty := &btf.Int{Name: "unsigned char", Size: 1}
 	root := &btf.Struct{
@@ -709,7 +823,7 @@ func TestResolveBTFPathZeroLengthArray(t *testing.T) {
 		t.Run(tt.path, func(t *testing.T) {
 			var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 
-			ty, err := ResolveBTFPath(&btfArgs, root, []string{"sa_data", tt.path}, 0)
+			ty, err := ResolveBTFPath(&btfArgs, root, []string{"sa_data", tt.path})
 			require.NoError(t, err)
 			require.NotNil(t, ty)
 
@@ -764,7 +878,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		}
 
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
-		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, 0)
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"})
 		require.Error(t, err)
 		assert.ErrorContains(t, err, `attribute "y" not found in structure "inner"`)
 	})
@@ -801,7 +915,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 		// Two-element path: "x" is not the last child, so finding it in anon2 triggers
 		// ResolveBTFPath(int, path, 1) which returns a non-resolveError.
-		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, 0)
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"})
 		require.Error(t, err)
 		assert.ErrorContains(t, err, `unexpected type : "x" has type "int"`)
 	})
@@ -843,7 +957,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		}
 
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
-		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"}, 0)
+		_, err := ResolveBTFPath(&btfArgs, outer, []string{"x", "y"})
 		require.Error(t, err)
 		assert.ErrorContains(t, err, `attribute "y" not found in structure "inner"`)
 	})
@@ -876,7 +990,7 @@ func TestProcessMembersErrorPrecedence(t *testing.T) {
 		}
 
 		var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
-		ty, err := ResolveBTFPath(&btfArgs, outer, []string{"x"}, 0)
+		ty, err := ResolveBTFPath(&btfArgs, outer, []string{"x"})
 		require.NoError(t, err)
 		require.NotNil(t, ty)
 	})
@@ -908,7 +1022,7 @@ func TestResolveBTFPathTypeTag(t *testing.T) {
 	}
 
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
-	ty, err := ResolveBTFPath(&btfArgs, root, []string{"owner", "comm"}, 0)
+	ty, err := ResolveBTFPath(&btfArgs, root, []string{"owner", "comm"})
 
 	require.NoError(t, err)
 	require.NotNil(t, ty)

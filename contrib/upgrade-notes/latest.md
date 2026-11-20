@@ -23,6 +23,10 @@ Depending on your setup, changes listed here might require a manual intervention
 ### TracingPolicy (k8s CRD)
 
 * The TracingPolicy CRD now limits the number of hooks that can be defined within a single policy to a maximum of 128. If this limit is exceeded, the policy will be rejected by the Kubernetes API server. To resolve this, split your hooks across multiple TracingPolicies.
+* `resolve` paths are now checked more strictly when a policy is loaded. A
+  leading or trailing dot (`.mm.pgd`, `file.f_path.`) and a field name right
+  after an index (`a[0]b`) were accepted before and are now rejected. Write
+  them as `mm.pgd`, `file.f_path` and `a[0].b`.
 
 ### Events (protobuf API)
 
