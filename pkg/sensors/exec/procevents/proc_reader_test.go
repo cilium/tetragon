@@ -6,7 +6,10 @@
 package procevents
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -17,6 +20,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper/docker"
+	"github.com/cilium/tetragon/pkg/strutils"
 )
 
 func TestListRunningProcs(t *testing.T) {
@@ -29,6 +33,45 @@ func TestListRunningProcs(t *testing.T) {
 		require.NotZero(t, p.pid)
 		require.Equal(t, p.pid, p.tid)
 	}
+}
+
+// TestListRunningProcsInvalidUTF8 checks that the /proc walk copes with a
+// process whose exe path, argv and cwd are not valid UTF-8: the raw bytes are
+// kept for the BPF maps and the strings used in events are valid UTF-8.
+func TestListRunningProcsInvalidUTF8(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "d\xb5ir")
+	require.NoError(t, os.Mkdir(dir, 0o755))
+	// A copy of sh: coreutils can be a multi-call binary that refuses to
+	// run under another name.
+	exe := filepath.Join(dir, "s\xb5h")
+	data, err := os.ReadFile("/bin/sh")
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(exe, data, 0o755))
+
+	// read blocks on the open stdin pipe until the process is killed.
+	cmd := exec.Command(exe, "-c", "read x", "a\xb5rg")
+	cmd.Dir = dir
+	_, err = cmd.StdinPipe()
+	require.NoError(t, err)
+	require.NoError(t, cmd.Start())
+	t.Cleanup(func() {
+		cmd.Process.Kill()
+		cmd.Wait()
+	})
+	pid := uint32(cmd.Process.Pid)
+
+	ps, err := listRunningProcs("/proc")
+	require.NoError(t, err)
+	idx := slices.IndexFunc(ps, func(p procs) bool { return p.pid == pid })
+	require.NotEqual(t, -1, idx, "pid %d not found", pid)
+	p := ps[idx]
+
+	require.Equal(t, []byte(exe), p.exe)
+	require.Equal(t, []byte(exe+"\x00-c\x00read x\x00a\xb5rg\x00"), p.cmdline)
+	require.Equal(t, strutils.UTF8FromBPFBytes([]byte(exe)), procFilename(&p))
+	require.Equal(t, `-c "read x" a�rg`, procArgs(&p))
+	cwd, _ := getCWD(pid)
+	require.Equal(t, strutils.UTF8FromBPFBytes([]byte(dir)), cwd)
 }
 
 func TestProcToKeyValueArgsExcludeArgv0(t *testing.T) {
