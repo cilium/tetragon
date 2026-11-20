@@ -1,4 +1,4 @@
-# cel.dev/cel-go v0.33.2
+# cel.dev/cel-go v0.33.4
 ## explicit; go 1.23.0
 cel.dev/cel-go/cel
 cel.dev/cel-go/cel/async
@@ -86,13 +86,14 @@ github.com/moby/sys/mountinfo
 # github.com/moby/sys/userns v0.2.1
 ## explicit; go 1.21
 github.com/moby/sys/userns
-# github.com/opencontainers/cgroups v0.1.0
-## explicit; go 1.24.0
+# github.com/opencontainers/cgroups v0.1.1
+## explicit; go 1.25.0
 github.com/opencontainers/cgroups
 github.com/opencontainers/cgroups/devices/config
 github.com/opencontainers/cgroups/fs
 github.com/opencontainers/cgroups/fs2
 github.com/opencontainers/cgroups/fscommon
+github.com/opencontainers/cgroups/internal/delegate
 github.com/opencontainers/cgroups/internal/path
 github.com/opencontainers/cgroups/systemd
 # github.com/opencontainers/go-digest v1.0.0
