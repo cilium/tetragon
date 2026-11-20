@@ -337,8 +337,6 @@ func (r *btfResolver) resolve(
 			}
 		}
 		if idx, err := parseArrayIdxStr(r.pathToFind[i]); err == nil {
-			// To stay ahead on the dereferecing, we mark the current btfArg as pointer
-			r.btfArgs[i].IsPointer = uint16(1)
 			return r.processArray(t.Target, i, idx)
 		}
 		return r.resolve(t.Target, i)
