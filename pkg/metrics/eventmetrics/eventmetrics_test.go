@@ -74,6 +74,11 @@ func TestHandleProcessedEvent(t *testing.T) {
 		}},
 	})
 
+	// invalid UTF-8
+	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{
+		Process: &tetragon.Process{Binary: "binary_\xb5"},
+	}}})
+
 	expected := strings.NewReader(`# HELP tetragon_events_total The total number of Tetragon events
 # TYPE tetragon_events_total counter
 tetragon_events_total{binary="",event_type="PROCESS_KPROBE",namespace="",node_name="",pod="",workload=""} 1
@@ -90,6 +95,7 @@ tetragon_events_total{binary="binary_c",event_type="PROCESS_TRACEPOINT",namespac
 tetragon_events_total{binary="binary_e",event_type="PROCESS_EXIT",namespace="",node_name="",pod="",workload=""} 1
 tetragon_events_total{binary="binary_e",event_type="PROCESS_EXIT",namespace="namespace_e",node_name="",pod="pod_e",workload="workload_e"} 1
 tetragon_events_total{binary="binary_f",event_type="PROCESS_KPROBE",namespace="",node_name="node_a",pod="",workload=""} 1
+tetragon_events_total{binary="binary_�",event_type="PROCESS_KPROBE",namespace="",node_name="",pod="",workload=""} 1
 `)
 	require.NoError(t, testutil.CollectAndCompare(EventsProcessed, expected))
 }

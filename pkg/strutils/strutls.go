@@ -35,6 +35,16 @@ func UTF8FromBPFBytes(b []byte) string {
 	return strings.ToValidUTF8(string(b), replacementChar)
 }
 
+// ToValidUTF8 is UTF8FromBPFBytes for strings.
+func ToValidUTF8(s string) string {
+	// fast path
+	if utf8.ValidString(s) {
+		return s
+	}
+
+	return strings.ToValidUTF8(s, replacementChar)
+}
+
 func WriteUTF8FromBPFBytes(b *strings.Builder, data []byte) {
 	if utf8.Valid(data) {
 		// fast path, does not materialise a temp string
