@@ -44,6 +44,7 @@ import (
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -509,6 +510,9 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 
 		if option.Config.EnableEventMetrics {
 			metricsconfig.InitEventsMetrics(reg)
+			if err := metrics.InitBinaryCache(option.Config.MetricsBinaryCacheSize); err != nil {
+				return err
+			}
 		}
 
 		initK8sMetrics()
