@@ -42,6 +42,9 @@ The chart generates a CA and a server certificate with a wildcard SAN over
 `/var/lib/tetragon/tls/` inside each agent pod. Clients must override SNI to
 match this domain (see [Connect with `tetra`](#connect-with-tetra)).
 
+[Runtime hooks]({{< ref "/docs/installation/runtime-hooks" >}}) do not support
+TLS. With TLS enabled, they connect to the agent over the unix socket.
+
 ## Enable mTLS
 
 mTLS makes the agent reject TCP connections that do not present a client
