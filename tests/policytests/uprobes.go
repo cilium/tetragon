@@ -54,6 +54,35 @@ spec:
 	}
 }).RegisterAtInit()
 
+// uprobe-pclntab-cgo: probes a Go function and a C function of a stripped cgo
+// binary on one uprobe link. aligned(64) places sub 64 bytes after add, and
+// main calls sub but never add, so the add+64 probe fires only if its offset
+// is kept.
+var _ = policytest.NewBuilder("uprobe-pclntab-cgo").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-pclntab-cgo"
+spec:
+  uprobes:
+  - path: {{ testBinary "pclntab-cgo-stripped" }}
+    symbols:
+    - "main.double"
+    - "add+64"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("pclntab-cgo-stripped")
+	checker := func(sym string) *ec.ProcessUprobeChecker {
+		return ec.NewProcessUprobeChecker("UPROBE_PCLNTAB_CGO").
+			WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(bin))).
+			WithSymbol(sm.Full(sym))
+	}
+	return &policytest.Scenario{
+		Name:         "execute stripped cgo binary, verify Go and C+offset uprobes",
+		Trigger:      policytest.NewCmdTrigger(bin),
+		EventChecker: ec.NewUnorderedEventChecker(checker("main.double"), checker("add+64")),
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("uprobe-generic").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
