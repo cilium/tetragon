@@ -32,11 +32,11 @@ type note struct {
 // KernelBuildIDSize is the size of all buildIDs in the kernel.
 const KernelBuildIDSize = 20
 
-// ParseBuildIdFromNotes returns the GNU build ID found in a raw ELF notes blob,
+// ParseBuildIDFromNotes returns the GNU build ID found in a raw ELF notes blob,
 // decoded with the given byte order. Callers holding notes without an ELF
 // container around them, such as the running kernel's /sys/kernel/notes, can use
 // this directly; ParseBuildId wraps it for a parsed ELF file.
-func ParseBuildIdFromNotes(dat []byte, order binary.ByteOrder) ([]byte, bool) {
+func ParseBuildIDFromNotes(dat []byte, order binary.ByteOrder) ([]byte, bool) {
 	var note note
 
 	dr := bytes.NewReader(dat)
@@ -75,7 +75,7 @@ func (se *SafeELFFile) ParseBuildID() ([]byte, error) {
 			continue
 		}
 
-		if bid, ok := ParseBuildIdFromNotes(dat, se.ByteOrder); ok {
+		if bid, ok := ParseBuildIDFromNotes(dat, se.ByteOrder); ok {
 			return bid, nil
 		}
 	}

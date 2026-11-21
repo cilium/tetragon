@@ -88,7 +88,7 @@ type config struct {
 	ExportRateLimit            int
 	ExportFilePerm             string
 
-	CpuProfile string
+	CPUProfile string
 	MemProfile string
 	PprofAddr  string
 

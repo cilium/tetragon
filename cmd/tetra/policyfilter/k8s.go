@@ -51,7 +51,7 @@ func listPoliciesForContainer() *cobra.Command {
 				logger.GetLogger().Info("cgroup", "path", fullCgroupPath)
 			}
 
-			cgID, err := cgroups.GetCgroupIdFromPath(fullCgroupPath)
+			cgID, err := cgroups.GetCgroupIDFromPath(fullCgroupPath)
 			if err != nil {
 				logger.Fatal(logger.GetLogger(), "Failed to parse cgroup", logfields.Error, err)
 			}
@@ -73,7 +73,7 @@ func listPoliciesForContainer() *cobra.Command {
 				return err
 			}
 
-			policyIds, ok := data.Cgroup[policyfilter.CgroupID(cgID)]
+			policyIDs, ok := data.Cgroup[policyfilter.CgroupID(cgID)]
 			if !ok {
 				return nil
 			}
@@ -90,7 +90,7 @@ func listPoliciesForContainer() *cobra.Command {
 			}
 
 			common.PrintTracingPolicies(os.Stdout, res.Policies, func(pol *tetragon.TracingPolicyStatus) bool {
-				_, ok := policyIds[policyfilter.PolicyID(pol.FilterId)]
+				_, ok := policyIDs[policyfilter.PolicyID(pol.FilterId)]
 				return !ok
 			})
 

@@ -16,7 +16,7 @@ var Opts = Flags{
 		Wait:             true,
 		DaemonSetName:    "tetragon",
 		HelmChart:        "cilium/tetragon",
-		HelmRepoUrl:      "https://helm.cilium.io",
+		HelmRepoURL:      "https://helm.cilium.io",
 		HelmChartVersion: "9999.9999.9999-dev",
 		Namespace:        "kube-system",
 		ValuesFile:       "",
@@ -46,9 +46,9 @@ func init() {
 		Opts.Helm.HelmChart,
 		"Name of the helm chart from which to install Tetragon")
 
-	flag.StringVar(&Opts.Helm.HelmRepoUrl,
+	flag.StringVar(&Opts.Helm.HelmRepoURL,
 		"tetragon.helm.url",
-		Opts.Helm.HelmRepoUrl,
+		Opts.Helm.HelmRepoURL,
 		"Name of the helm repo where we find Tetragon")
 
 	flag.StringVar(&Opts.Helm.HelmChartVersion,
@@ -110,7 +110,7 @@ type HelmOptions struct {
 	// Name of the helm chart
 	HelmChart string
 	// Url of the helm repo
-	HelmRepoUrl string
+	HelmRepoURL string
 	// Version of the helm chart
 	HelmChartVersion string
 	// Namespace to install Tetragon

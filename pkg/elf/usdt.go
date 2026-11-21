@@ -38,7 +38,7 @@ type UsdtSpec struct {
 
 type UsdtTarget struct {
 	Spec    *UsdtSpec
-	IpAbs   uint64
-	IpRel   uint64
+	IPAbs   uint64
+	IPRel   uint64
 	SemaOff uint64
 }

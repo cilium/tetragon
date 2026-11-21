@@ -32,7 +32,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func miniTcpNopServerWithPort(c chan<- bool, port int, ipv6 bool) {
+func miniTCPNopServerWithPort(c chan<- bool, port int, ipv6 bool) {
 	var conn net.Listener
 	var err error
 	if !ipv6 {
@@ -195,7 +195,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9919, false)
+	go miniTCPNopServerWithPort(tcpReady, 9919, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
 	suite.Require().NoError(err)
@@ -214,7 +214,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -275,7 +275,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9920, false)
+	go miniTCPNopServerWithPort(tcpReady, 9920, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9920")
 	suite.Require().NoError(err)
@@ -294,7 +294,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -359,7 +359,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9921, false)
+	go miniTCPNopServerWithPort(tcpReady, 9921, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9921")
 	suite.Require().NoError(err)
@@ -378,7 +378,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -439,7 +439,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9922, false)
+	go miniTCPNopServerWithPort(tcpReady, 9922, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9922")
 	suite.Require().NoError(err)
@@ -458,7 +458,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -515,7 +515,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 1020, false)
+	go miniTCPNopServerWithPort(tcpReady, 1020, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:1020")
 	suite.Require().NoError(err)
@@ -534,7 +534,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -591,7 +591,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9933, false)
+	go miniTCPNopServerWithPort(tcpReady, 9933, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9933")
 	suite.Require().NoError(err)
@@ -610,7 +610,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -671,7 +671,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9934, false)
+	go miniTCPNopServerWithPort(tcpReady, 9934, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9934")
 	suite.Require().NoError(err)
@@ -690,7 +690,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -751,7 +751,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9935, false)
+	go miniTCPNopServerWithPort(tcpReady, 9935, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9935")
 	suite.Require().NoError(err)
@@ -770,7 +770,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -835,7 +835,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9936, false)
+	go miniTCPNopServerWithPort(tcpReady, 9936, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9936")
 	suite.Require().NoError(err)
@@ -854,7 +854,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -926,7 +926,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9937, false)
+	go miniTCPNopServerWithPort(tcpReady, 9937, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9937")
 	suite.Require().NoError(err)
@@ -946,7 +946,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1011,7 +1011,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9938, false)
+	go miniTCPNopServerWithPort(tcpReady, 9938, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9938")
 	suite.Require().NoError(err)
@@ -1031,7 +1031,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1100,7 +1100,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9939, false)
+	go miniTCPNopServerWithPort(tcpReady, 9939, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9939")
 	suite.Require().NoError(err)
@@ -1122,7 +1122,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1208,7 +1208,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1269,7 +1269,7 @@ spec:
 	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServerWithPort(tcpReady, 9940, true)
+	go miniTCPNopServerWithPort(tcpReady, 9940, true)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "[::1]:9940")
 	suite.Require().NoError(err)
@@ -1288,7 +1288,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err = jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1374,7 +1374,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1453,7 +1453,7 @@ spec:
 		)
 
 	checker := ec.NewUnorderedEventChecker(kpFS, kpAbs)
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 
 }
@@ -1539,7 +1539,7 @@ spec:
 		)
 
 	checker := ec.NewUnorderedEventChecker(kpFS, kpAbs)
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1611,7 +1611,7 @@ spec:
 		)
 
 	checker := ec.NewUnorderedEventChecker(kpFS, kpAbs)
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1672,7 +1672,7 @@ spec:
 		)
 
 	checker := ec.NewUnorderedEventChecker(kpAbs)
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
 
@@ -1723,6 +1723,6 @@ spec:
 		)
 
 	checker := ec.NewUnorderedEventChecker(kp)
-	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	err := jsonchecker.JSONTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }

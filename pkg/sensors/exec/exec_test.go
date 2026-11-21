@@ -129,7 +129,7 @@ func TestObserverEnvs(t *testing.T) {
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
 	event := processapi.MsgExecveEvent{}
-	idLength := procevents.BpfContainerIdLength
+	idLength := procevents.BpfContainerIDLength
 
 	// Minikube has "docker-" prefix.
 	prefix := "docker-"
@@ -230,7 +230,7 @@ func TestNamespaces(t *testing.T) {
 
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -300,7 +300,7 @@ func testEventExitThreads(t *testing.T) {
 
 	checker := testsensor.NewTestChecker(&checker_)
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 
 	require.True(t, seenAll, "did not see all exit events")
@@ -324,7 +324,7 @@ func testEventExecve(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -362,7 +362,7 @@ func testEventExecveWithUsername(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -431,7 +431,7 @@ func testEventExecveLongPath(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -465,7 +465,7 @@ func testEventExecveLongArgs(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -550,7 +550,7 @@ func testEventExecveLongPathLongArgs(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -598,7 +598,7 @@ func TestDocker(t *testing.T) {
 			WithProcess(ncSrvChecker),
 	)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -618,7 +618,7 @@ func TestInInitTree(t *testing.T) {
 	// match only on the first 24 bytes.
 	trimmedContainerID := sm.Prefix(containerID[:24])
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithContainerId(containerID[:24]))
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithContainerID(containerID[:24]))
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -678,7 +678,7 @@ func TestInInitTree(t *testing.T) {
 			WithParent(ec.NewProcessChecker().WithInInitTree(false)),
 	)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -837,8 +837,8 @@ func TestExecParse(t *testing.T) {
 		// - no args
 		// - cwd (string)
 
-		id := dataapi.DataEventId{Pid: 1, Time: 1}
-		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(filename[:])), Id: id}
+		id := dataapi.DataEventID{Pid: 1, Time: 1}
+		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(filename[:])), ID: id}
 		err = observer.DataAdd(id, filename)
 		require.NoError(t, err)
 
@@ -873,8 +873,8 @@ func TestExecParse(t *testing.T) {
 		var args []byte
 		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2', 0)
 
-		id := dataapi.DataEventId{Pid: 1, Time: 2}
-		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), Id: id}
+		id := dataapi.DataEventID{Pid: 1, Time: 2}
+		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), ID: id}
 		err = observer.DataAdd(id, args)
 		require.NoError(t, err)
 
@@ -942,8 +942,8 @@ func TestExecParse(t *testing.T) {
 		var args []byte
 		args = append(args, 'a', 'r', 'g', '1', 0, 0)
 
-		id := dataapi.DataEventId{Pid: 1, Time: 2}
-		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), Id: id}
+		id := dataapi.DataEventID{Pid: 1, Time: 2}
+		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), ID: id}
 		err = observer.DataAdd(id, args)
 		require.NoError(t, err)
 
@@ -1011,8 +1011,8 @@ func TestExecParse(t *testing.T) {
 		var args []byte
 		args = append(args, 0)
 
-		id := dataapi.DataEventId{Pid: 1, Time: 2}
-		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), Id: id}
+		id := dataapi.DataEventID{Pid: 1, Time: 2}
+		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), ID: id}
 		err = observer.DataAdd(id, args)
 		require.NoError(t, err)
 
@@ -1045,16 +1045,16 @@ func TestExecParse(t *testing.T) {
 		// - args (data event)
 		// - cwd (string)
 
-		id1 := dataapi.DataEventId{Pid: 1, Time: 1}
-		desc1 := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(filename[:])), Id: id1}
+		id1 := dataapi.DataEventID{Pid: 1, Time: 1}
+		desc1 := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(filename[:])), ID: id1}
 		err = observer.DataAdd(id1, filename)
 		require.NoError(t, err)
 
 		var args []byte
 		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2', 0)
 
-		id2 := dataapi.DataEventId{Pid: 1, Time: 2}
-		desc2 := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), Id: id2}
+		id2 := dataapi.DataEventID{Pid: 1, Time: 2}
+		desc2 := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), ID: id2}
 		err = observer.DataAdd(id2, args)
 		require.NoError(t, err)
 
@@ -1092,8 +1092,8 @@ func TestExecParse(t *testing.T) {
 		filename := []byte{'p', 'i', 'z', 'z', 'a', '-', '\xc3', '\x28'}
 		cwd := []byte{'/', 'h', 'o', 'm', 'e', '/', '\xc3', '\x28'}
 
-		id := dataapi.DataEventId{Pid: 1, Time: 2}
-		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), Id: id}
+		id := dataapi.DataEventID{Pid: 1, Time: 2}
+		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), ID: id}
 		err = observer.DataAdd(id, args)
 		require.NoError(t, err)
 
@@ -1276,7 +1276,7 @@ func testExecProcessCredentials(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(execChecker, execGidChecker, exitChecker, exitGidChecker)
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1322,7 +1322,7 @@ func testExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(execNoPrivilegesChangedChecker, execSetuidRootNoPrivilegesChangedChecker)
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1427,7 +1427,7 @@ func testExecProcessCredentialsSetgidChanges(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(execNoGidsCredsChangedChecker, execSetgidRootChecker, exitSetgidRootChecker, execSetgidNoRootChecker, exitSetgidNoRootChecker)
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1513,7 +1513,7 @@ func testExecProcessCredentialsSetuidChanges(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(execSetuidNoRootChecker, exitSetuidNoRootChecker, execSetuidRootChecker, exitSetuidRootChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1563,13 +1563,13 @@ func testExecProcessCredentialsFileCapChanges(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(execChecker, exitChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
 func testExecInodeNotDeleted(t *testing.T) {
-	strId := "tetragon-test-memfd"
-	if err := exec.Command("/bin/true", strId).Run(); err != nil {
+	strID := "tetragon-test-memfd"
+	if err := exec.Command("/bin/true", strID).Run(); err != nil {
 		t.Fatalf("command failed: %s", err)
 	}
 
@@ -1577,18 +1577,18 @@ func testExecInodeNotDeleted(t *testing.T) {
 		ec.NewProcessExecChecker("exec").
 			WithProcess(ec.NewProcessChecker().
 				WithBinary(sm.Suffix("/bin/true")).
-				WithArguments(sm.Full(strId)).
+				WithArguments(sm.Full(strID)).
 				WithBinaryProperties(nil)),
 	)
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
 func testExecDeletedBinaryMemfd(t *testing.T) {
 	// Get an anonymous shm
-	strId := "tetragon-test-memfd"
-	fd, err := unix.MemfdCreate(strId, 0)
+	strID := "tetragon-test-memfd"
+	fd, err := unix.MemfdCreate(strID, 0)
 	if err != nil {
 		t.Fatalf("MemfdCreate() error: %s", err)
 	}
@@ -1615,7 +1615,7 @@ func testExecDeletedBinaryMemfd(t *testing.T) {
 	}
 
 	// Execute from memory
-	if err := exec.Command(execPath, strId).Run(); err != nil {
+	if err := exec.Command(execPath, strID).Run(); err != nil {
 		t.Fatalf("command failed: %s", err)
 	}
 
@@ -1623,7 +1623,7 @@ func testExecDeletedBinaryMemfd(t *testing.T) {
 		ec.NewProcessExecChecker("exec").
 			WithProcess(ec.NewProcessChecker().
 				WithBinary(sm.Suffix(execPath)).
-				WithArguments(sm.Full(strId)).
+				WithArguments(sm.Full(strID)).
 				WithBinaryProperties(ec.NewBinaryPropertiesChecker().
 					WithFile(ec.NewFilePropertiesChecker().
 						WithInode(ec.NewInodePropertiesChecker().
@@ -1635,7 +1635,7 @@ func testExecDeletedBinaryMemfd(t *testing.T) {
 			),
 	)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1673,8 +1673,8 @@ func testExecDeletedBinary(t *testing.T) {
 	}
 
 	// Execute from fd
-	strId := "tetragon-test-execfd-deleted-inode"
-	if err := exec.Command(execPath, strId).Run(); err != nil {
+	strID := "tetragon-test-execfd-deleted-inode"
+	if err := exec.Command(execPath, strID).Run(); err != nil {
 		t.Fatalf("command failed: %s", err)
 	}
 
@@ -1682,7 +1682,7 @@ func testExecDeletedBinary(t *testing.T) {
 		ec.NewProcessExecChecker("exec").
 			WithProcess(ec.NewProcessChecker().
 				WithBinary(sm.Suffix(execPath)).
-				WithArguments(sm.Full(strId)).
+				WithArguments(sm.Full(strID)).
 				WithBinaryProperties(ec.NewBinaryPropertiesChecker().
 					WithFile(ec.NewFilePropertiesChecker().
 						WithInode(ec.NewInodePropertiesChecker().
@@ -1694,7 +1694,7 @@ func testExecDeletedBinary(t *testing.T) {
 			),
 	)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1737,7 +1737,7 @@ func testThrottle(t *testing.T) {
 	// and calm down to get THROTTLE STOP
 	time.Sleep(8 * time.Second)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1772,7 +1772,7 @@ func testEventExecveEnvs(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1803,7 +1803,7 @@ func testEventExecveEnvsFilter(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err := jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1839,7 +1839,7 @@ func testEventExecveEnvsFilterRedact(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 
 	fieldfilters.RedactionFilters = nil

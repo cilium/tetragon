@@ -22,8 +22,8 @@ type TokenGroups struct {
 }
 
 type TokenStatistics struct {
-	TokenId            windows.LUID
-	AuthenticationId   windows.LUID
+	TokenID            windows.LUID
+	AuthenticationID   windows.LUID
 	ExpirationTime     int64
 	TokenType          uint32
 	ImpersonationLevel uint32
@@ -31,7 +31,7 @@ type TokenStatistics struct {
 	DynamicAvailable   uint32
 	GroupCount         uint32
 	PrivilegeCount     uint32
-	ModifiedId         windows.LUID
+	ModifiedID         windows.LUID
 }
 
 func getIDFromSID(strSID string) (string, error) {
@@ -59,7 +59,7 @@ func getStrLuidFromToken(token windows.Token) (string, error) {
 	// Cast buffer to TOKEN_STATISTICS
 	stats := (*TokenStatistics)(unsafe.Pointer(&buffer[0]))
 
-	luid := *(*uint64)(unsafe.Pointer(&stats.AuthenticationId))
+	luid := *(*uint64)(unsafe.Pointer(&stats.AuthenticationID))
 	strLUID := strconv.FormatUint(luid, 10)
 	return strLUID, nil
 
@@ -112,7 +112,7 @@ func getTokenInfo(t syscall.Token, class uint32, initSize int) (unsafe.Pointer, 
 	}
 }
 
-func fillLoginUid(hProc windows.Handle, status *Status) error {
+func fillLoginUID(hProc windows.Handle, status *Status) error {
 	var token syscall.Token
 	err := syscall.OpenProcessToken(syscall.Handle(hProc), syscall.TOKEN_QUERY, &token)
 	if err != nil {
@@ -139,7 +139,7 @@ func fillLoginUid(hProc windows.Handle, status *Status) error {
 	if err != nil {
 		return err
 	}
-	status.LoginUid = strSID
+	status.LoginUID = strSID
 	return nil
 }
 
@@ -151,8 +151,8 @@ func GetStatusFromHandle(hProc windows.Handle) (*Status, error) {
 		return nil, err
 	}
 	// Fill login UID as sid and change below
-	status.LoginUid = status.Uids[0]
-	fillLoginUid(hProc, &status)
+	status.LoginUID = status.Uids[0]
+	fillLoginUID(hProc, &status)
 	return &status, nil
 }
 
