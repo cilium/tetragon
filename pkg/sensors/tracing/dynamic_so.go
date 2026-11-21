@@ -6,15 +6,13 @@
 package tracing
 
 import (
-	"bufio"
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"slices"
-	"strings"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/elf"
+	"github.com/cilium/tetragon/pkg/elf/ldso"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/selectors"
@@ -24,13 +22,17 @@ import (
 const (
 	mmapName   = "mmap"
 	dlopenName = "dlopen"
-	libcName   = "libc.so.6"
 )
 
-// LibcOffsets holds symbol values relative to load bias (i.e., NOT yet
-// adjusted for a specific process's ASLR base). These are stable for a
-// given libc binary on disk, so we cache them by file identity.
-type libcOffsets struct {
+// libcInfo describes the libc used by the traced binary.
+//
+// Offsets are symbol values relative to load bias (i.e., NOT yet adjusted
+// for a specific process's ASLR base). These are stable for a given libc
+// binary on disk.
+type libcInfo struct {
+	// Name is the file name of the libc mapped in the process, used by the
+	// bpf side to find the libc base address among the process mappings.
+	Name      string
 	MmapOff   uint64
 	DlopenOff uint64
 }
@@ -38,62 +40,42 @@ type libcOffsets struct {
 type DynamicOverride struct {
 	Library string
 	Addr    uint64
-	offsets libcOffsets
+	libc    libcInfo
 }
 
-func resolveDep(binaryPath, depName string) (string, error) {
-	cmd := exec.Command("ldd", binaryPath)
-	output, err := cmd.Output()
+func (info *libcInfo) load(binary string) error {
+	root := ldso.HostRoot()
+	libcPath, libc, err := ldso.ResolveLibc(root, binary)
 	if err != nil {
-		return "", fmt.Errorf("failed to trace dependencies for %q: %w", binaryPath, err)
+		return fmt.Errorf("failed to resolve libc: %w", err)
+	}
+	defer libc.Close()
+
+	// The process mappings are named after the actual file, not after the
+	// symlink we may have resolved.
+	realPath, err := root.RealPath(libcPath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve real path of %q: %w", libcPath, err)
+	}
+	info.Name = filepath.Base(realPath)
+	// -1 to account for null terminator
+	if len(info.Name) > processapi.SONAME_MAX-1 {
+		return fmt.Errorf("libc file name %q exceeds maximum length of %d", info.Name, processapi.SONAME_MAX-1)
 	}
 
-	scanner := bufio.NewScanner(strings.NewReader(string(output)))
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		// We don't handle direct paths like the interpreter: /lib64/ld-linux-x86-64.so.2 (0x000...)
-		// or virtual DSOs like linux-vdso.so.1
-		if line == "" || !strings.Contains(line, "=>") {
-			continue
-		}
-
-		// Handle the standard format: libname.so.N => /path/to/lib.so.N (0x000...)
-		if strings.Contains(line, "=>") {
-			parts := strings.Split(line, "=>")
-			libName := strings.TrimSpace(parts[0])
-			if libName == depName {
-				// The right side contains the path and the memory address
-				rightSide := strings.TrimSpace(parts[1])
-				pathParts := strings.Fields(rightSide)
-				if len(pathParts) > 0 {
-					libPath := pathParts[0]
-					// Skip entries like "not found"
-					if libPath != "not" {
-						return libPath, nil
-					}
-				}
-			}
-		}
-	}
-	return "", fmt.Errorf("failed to resolve dependency %q in binary %q", depName, binaryPath)
-}
-
-func (offsets *libcOffsets) load(binary string) error {
-	hostLibc, err := resolveDep(binary, libcName)
+	f, err := elf.NewSafeELFFile(libc)
 	if err != nil {
-		return err
-	}
-	f, err := elf.OpenSafeELFFile(hostLibc)
-	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse %q: %w", libcPath, err)
 	}
 	defer f.Close()
 
-	if offsets.MmapOff, err = f.DynamicAddress(mmapName); err != nil {
-		return err
+	if info.MmapOff, err = f.DynamicAddress(mmapName); err != nil {
+		return fmt.Errorf("%q: %w", libcPath, err)
 	}
-	if offsets.DlopenOff, err = f.DynamicAddress(dlopenName); err != nil {
-		return err
+	// dlopen moved from libdl into libc with glibc 2.34, while musl always
+	// had it.
+	if info.DlopenOff, err = f.DynamicAddress(dlopenName); err != nil {
+		return fmt.Errorf("%q does not export %s (glibc < 2.34?): %w", libcPath, dlopenName, err)
 	}
 	return nil
 }
@@ -155,7 +137,7 @@ func IsSODynamic(selectors []v1alpha1.KProbeSelector) bool {
 }
 
 func (dynOv *DynamicOverride) Init(act *v1alpha1.ActionSelector, binary string) error {
-	if err := dynOv.offsets.load(binary); err != nil {
+	if err := dynOv.libc.load(binary); err != nil {
 		return err
 	}
 
@@ -194,9 +176,15 @@ func (dynOv *DynamicOverride) PopulateUprobeRegs() processapi.UprobeRegs {
 	// This will be adjusted to so base address in the kernel
 	uprobeRegs.SymAddr = dynOv.Addr
 
+	libcFile := dynOv.libc.Name + "\000"
+	n = copy(uprobeRegs.LibcName[:], libcFile)
+	if n != len(libcFile) {
+		logger.GetLogger().Warn("register libc name count mismatch", "len libc name", len(libcFile))
+	}
+
 	// They will be adjusted to ASLR libc base address in the kernel
-	uprobeRegs.MmapAddr = dynOv.offsets.MmapOff
-	uprobeRegs.DlopenAddr = dynOv.offsets.DlopenOff
+	uprobeRegs.MmapAddr = dynOv.libc.MmapOff
+	uprobeRegs.DlopenAddr = dynOv.libc.DlopenOff
 	return uprobeRegs
 }
 
