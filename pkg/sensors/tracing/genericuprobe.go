@@ -655,6 +655,8 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 	}
 
 	for sid, s := range spec.Selectors {
+		regsWritten := map[uint16]int{}
+
 		for mid, action := range s.MatchActions {
 			if action.KernelStackTrace {
 				return fmt.Errorf("kernelStackTrace is not supported for uprobes: got kernelStackTrace enabled in selectors[%d].matchActions[%d]", sid, mid)
@@ -662,11 +664,37 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 			if action.UserStackTrace && action.Action != "Post" {
 				return fmt.Errorf("userStackTrace can only be used along Post action: got userStackTrace enabled in selectors[%d].matchActions[%d] with action '%s'", sid, mid, action.Action)
 			}
-			if action.Action != "Set" {
+
+			var regs []string
+			switch action.Action {
+			case "Set":
+				if action.ArgIndex >= selectors.ArgsInRegisters {
+					return fmt.Errorf("uprobe Set action argIndex %d out of range", action.ArgIndex)
+				}
+				regs = []string{selectors.ArgIndexRegister(action.ArgIndex)}
+			case "Override":
+				var err error
+				regs, err = selectors.OverrideWrittenRegs(action)
+				if err != nil {
+					return fmt.Errorf("selectors[%d].matchActions[%d]: %w", sid, mid, err)
+				}
+			default:
 				continue
 			}
-			if action.ArgIndex >= selectors.ArgsInRegisters {
-				return fmt.Errorf("uprobe Set action argIndex %d out of range", action.ArgIndex)
+
+			for _, reg := range regs {
+				off, ok := asm.RegOffset(reg)
+				if !ok {
+					return fmt.Errorf("selectors[%d].matchActions[%d]: unknown register %q", sid, mid, reg)
+				}
+
+				// don't return policy error for an override with multiple
+				// assignments on the same register
+				if prev, ok := regsWritten[off]; ok && prev != mid {
+					return fmt.Errorf("selectors[%d]: matchActions[%d] and matchActions[%d] both overwrite register %q", sid, prev, mid, reg)
+				}
+
+				regsWritten[off] = mid
 			}
 		}
 	}

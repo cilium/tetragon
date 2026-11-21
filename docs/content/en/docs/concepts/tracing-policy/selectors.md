@@ -1399,6 +1399,9 @@ signed/unsigned 64-bit integer.
 `cel()` assignments share a pool of eight compiled expressions with `matchCEL`
 selectors across the whole policy.
 
+A `Set` action in the same selector cannot write any of the registers the
+`Override` action writes; see [Set action](#set-action).
+
 ### GetUrl action
 
 The `GetUrl` action can be used to perform a remote interaction such as
@@ -1933,6 +1936,29 @@ spec:
         argValue: 42
 ```
 This policy will set the value of the first argument of the `pizza()` function to `42`.
+
+Within a selector, a `Set` action must not write a register that another `Set`
+or `Override` action also writes. Such policies are rejected at load time.
+
+Note that an `Override` without `argRegs` or a new target writes the
+return-value register, which on `arm64` is `x0`, the same register as
+`argIndex: 0`. For example, the following policy is rejected on `arm64` but not
+`amd64`:
+
+```yaml
+spec:
+  uprobes:
+  - path: my-binary
+    symbols:
+    - "pizza"
+    selectors:
+    - matchActions:
+      - action: Set
+        argIndex: 0
+        argValue: 42
+      - action: Override
+        argError: 7
+```
 
 #### USDT
 
