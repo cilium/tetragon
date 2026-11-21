@@ -29,6 +29,10 @@ Depending on your setup, changes listed here might require a manual intervention
   it up front. The check is case-sensitive, so change spellings such as
   `tracksock` and remove an empty `returnArgAction: ""`.
 
+* `matchBinaries` and `matchParentBinaries` selectors must now have at least one
+  entry in `values`, and entries must not be empty strings. Policies that
+  do not meet these requirements are rejected.
+
 ### Events (protobuf API)
 
 * The `AggregationOptions` and `AggregationInfo` messages were removed, along
