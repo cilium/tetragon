@@ -1335,10 +1335,29 @@ generic_output(void *ctx, u8 op)
 		     "%[total] = 9000;\n"
 		     : [total] "+r"(total));
 #if defined(GENERIC_KRETPROBE) || defined(GENERIC_URETPROBE) || defined(GENERIC_FEXIT)
-	/* Userspace merges the entry and return messages into one event,
-	 * which the entry program already counted as posted.
+	/* Userspace merges the entry and return messages into one event, so
+	 * count it once both halves were sent, for the selector that matched
+	 * on return.
 	 */
-	event_output_metric(ctx, op, e, total);
+	if (event_output_metric(ctx, op, e, total) && e->ret.entry_posted)
+		policy_selector_stats_update(POLICY_POST, generic_selector_stats_id(e));
+#elif defined(GENERIC_KPROBE) || defined(GENERIC_UPROBE) || defined(GENERIC_FENTRY)
+	if (event_output_metric(ctx, op, e, total)) {
+		struct retprobe_key retkey = {
+			.id = e->func_id,
+			.tid = e->retprobe_id,
+		};
+		struct retprobe_info *info;
+
+		/* With a return probe, the return program counts the post
+		 * if it sends its half too.
+		 */
+		info = map_lookup_elem(&retprobe_map, &retkey);
+		if (info)
+			info->entry_posted = 1;
+		else
+			policy_selector_stats_update(POLICY_POST, generic_selector_stats_id(e));
+	}
 #else
 	if (event_output_metric(ctx, op, e, total))
 		policy_selector_stats_update(POLICY_POST, generic_selector_stats_id(e));
@@ -1389,6 +1408,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	 * invocation's.
 	 */
 	e->action = 0;
+	e->ret.entry_posted = !!info.entry_posted;
 
 	*(unsigned long *)e->args = info.ktime_enter;
 	size += sizeof(info.ktime_enter);
@@ -1679,8 +1699,8 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 			int first = retprobe_info_save_selectors(info, &e->sel, selidx);
 
 			if (first >= 0) {
-				/* Account entry actions and the post to the first
-				 * match in the selector stats.
+				/* Account entry actions to the first match in the
+				 * selector stats. The return program accounts the post.
 				 */
 				e->tailcall_index_selector = first;
 				/* Entry actions may run with a return probe: a hook can have

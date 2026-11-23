@@ -102,6 +102,9 @@ struct msg_generic_kprobe {
 		struct {
 			bool post; // true if event needs to be posted
 		} lsm;
+		struct {
+			bool entry_posted; // the entry sent its half of the event
+		} ret;
 	};
 	struct execve_map_value curr;
 	struct heap_exe exe;

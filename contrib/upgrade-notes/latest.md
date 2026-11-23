@@ -43,4 +43,9 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Metrics
 
-* TBD
+* For hooks with `return: true` (or a `returnCopy` argument), the `post`
+  action of `tetragon_tracingpolicy_selector_actions_total` and of the policy
+  stats is now counted when the function returns, once both halves of the
+  event were sent, and for the selector that matched on return. It used to be
+  counted when the function was called, for the first selector whose entry
+  filters matched, even if the return selectors then dropped the event.
