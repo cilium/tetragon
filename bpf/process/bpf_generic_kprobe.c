@@ -58,6 +58,13 @@ struct {
 #define MAIN	 "kprobe.multi/generic_kprobe"
 #define OVERRIDE "kprobe.multi/generic_kprobe_override"
 #define COMMON	 "kprobe.multi"
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+	__uint(max_entries, 1024);
+	__type(key, __u32);
+	__type(value, __u32);
+} multi_cel SEC(".maps");
 #else
 #define MAIN	 "kprobe/generic_kprobe"
 #define OVERRIDE "kprobe/generic_kprobe_override"
@@ -198,14 +205,23 @@ __attribute__((section(OVERRIDE), used)) int
 generic_kprobe_override(void *ctx)
 {
 	__u64 id = get_current_pid_tgid();
+	void *tasks = &override_tasks;
 	__s32 *error;
 
-	error = policy_lookup(&override_tasks, &id);
+#ifdef SHARED_KPROBE
+	/* The override attachment gets its scope from its own cookie. */
+	__u32 scope = get_attach_cookie(ctx) >> 32;
+
+	tasks = map_lookup_elem(&override_tasks, &scope);
+	if (!tasks)
+		return 0;
+#endif
+	error = map_lookup_elem(tasks, &id);
 	if (!error)
 		return 0;
 
 	override_return(ctx, *error);
-	policy_delete(&override_tasks, &id);
+	map_delete_elem(tasks, &id);
 	return 0;
 }
 

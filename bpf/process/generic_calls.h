@@ -29,6 +29,18 @@
 
 #define MAX_TOTAL 9000
 
+FUNC_INLINE void generic_init_cookie(void *ctx, struct msg_generic_kprobe *e)
+{
+#ifdef SHARED_KPROBE
+	__u64 cookie = get_attach_cookie(ctx);
+
+	e->idx = (__u32)cookie;
+	e->scope = cookie >> 32;
+#else
+	e->idx = get_index(ctx);
+#endif
+}
+
 FUNC_INLINE __u32
 generic_selector_stats_id(struct msg_generic_kprobe *e)
 {
@@ -57,7 +69,7 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 		return 0;
 
 	/* setup index, check policy filter, and setup function id */
-	msg->idx = get_index(ctx);
+	generic_init_cookie(ctx, msg);
 	config = policy_lookup(&config_map, &msg->idx);
 	if (!config)
 		return 0;
@@ -1359,7 +1371,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	if (!e)
 		return 0;
 
-	e->idx = get_index(ctx);
+	generic_init_cookie(ctx, e);
 
 	config = policy_lookup(&config_map, &e->idx);
 	if (!config)

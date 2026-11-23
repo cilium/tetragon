@@ -4925,11 +4925,15 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 }
 
 func loadTestCrd() error {
+	// The BPF attribute and command tests need an actual program load.
 	testHook := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
  name: "sys-write"
 spec:
+ options:
+ - name: "disable-kprobe-multi"
+   value: "1"
  kprobes:
  - call: "sys_write"
    syscall: true
@@ -6497,7 +6501,7 @@ spec:
 	expected := strings.NewReader(` # HELP tetragon_missed_prog_probes_total The total number of Tetragon probe missed by program.
 # TYPE tetragon_missed_prog_probes_total counter
 tetragon_missed_prog_probes_total{attach="acct_process",policy="__base__"} 0
-tetragon_missed_prog_probes_total{attach="kprobe_multi (2 functions)",policy="syswritepsswd"} 1
+tetragon_missed_prog_probes_total{attach="shared multi kprobes",policy="__base__"} 1
 tetragon_missed_prog_probes_total{attach="sched/sched_process_exec",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="socket",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="security_bprm_committing_creds",policy="__base__"} 0

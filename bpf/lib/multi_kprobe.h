@@ -10,31 +10,10 @@
  * selects its map layout, not an additional attachment mode. Uprobes and
  * enforcers also use __MULTI_KPROBE, but retain their own map layout.
  */
-#if defined(SHARED_KPROBE)
+#if defined(__MULTI_KPROBE) && (defined(GENERIC_KPROBE) || defined(GENERIC_KRETPROBE))
+#define SHARED_KPROBE
 
-struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, __u32);
-} multi_scope SEC(".maps");
-
-FUNC_INLINE bool multi_kprobe_setup(void *ctx)
-{
-	__u32 zero = 0, *scope = map_lookup_elem(&multi_scope, &zero);
-
-	if (!scope)
-		return false;
-	*scope = get_attach_cookie(ctx) >> 32;
-	return true;
-}
-
-FUNC_INLINE __u32 multi_kprobe_scope(void)
-{
-	__u32 zero = 0, *scope = map_lookup_elem(&multi_scope, &zero);
-
-	return scope ? *scope : 0;
-}
+FUNC_INLINE __u32 multi_kprobe_scope(void);
 
 /* Selector maps already contain maps, so another level of map-in-map is
  * impossible. Namespace their local keys with the attachment's scope instead.

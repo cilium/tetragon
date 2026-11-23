@@ -6,6 +6,7 @@
 
 #include "common.h"
 #include "msg_types.h"
+#include "multi_kprobe.h"
 #include "process.h"
 #include "vmlinux.h"
 #include "../process/heap.h"
@@ -95,6 +96,9 @@ struct msg_generic_kprobe {
 	arg_status_t arg_status[MAX_POSSIBLE_ARGS];
 	struct msg_selector_data sel;
 	__u32 idx; // attach cookie index
+#ifdef SHARED_KPROBE
+	__u32 scope; // attach cookie scope
+#endif
 	__u32 tailcall_index_process; // recursion index for generic_process_event
 	__u32 tailcall_index_selector; // recursion index for filter_read_arg
 	int actions_offset; // do_action expects this value to be the offset where matchActions begin or zero if there was the selector did not match (and no action will be taken).

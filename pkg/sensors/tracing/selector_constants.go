@@ -6,6 +6,8 @@
 package tracing
 
 import (
+	"strings"
+
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -28,6 +30,11 @@ const (
 )
 
 func rewriteSelectorConstants(load *program.Program, usage selectors.SelectorUsage) {
+	if load.Type == "generic_kprobe" && strings.HasPrefix(load.Label, "kprobe.multi/") {
+		// Generic multi programs have every feature compiled in. They are
+		// shared by policies that may use different selectors later.
+		return
+	}
 	if !config.EnableLargeProgs() || load.RewriteConstants == nil {
 		return
 	}

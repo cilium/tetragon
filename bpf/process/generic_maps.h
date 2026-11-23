@@ -59,6 +59,16 @@ FUNC_INLINE bool heap_update(heap_key_t key)
 
 #endif /* USE_HASH_HEAP */
 
+#ifdef SHARED_KPROBE
+FUNC_INLINE __u32 multi_kprobe_scope(void)
+{
+	heap_key_t key = heap_key();
+	struct msg_generic_kprobe *e = map_lookup_elem(&process_call_heap, &key);
+
+	return e ? e->scope : 0;
+}
+#endif
+
 POLICY_MAP(override_tasks,
 	   __uint(type, BPF_MAP_TYPE_HASH);
 	   __uint(max_entries, 1); // will be resized by agent when needed
