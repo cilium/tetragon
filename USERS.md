@@ -46,6 +46,11 @@ Example entry:
 
 ## Users (Alphabetically)
 
+    * N: Exaqube
+      D: Exaqube runs Tetragon on its production Kubernetes platform (Talos Linux on Hetzner Cloud) for runtime security observability, alongside Cilium
+      U: Runtime security, Process monitoring, File access monitoring, Network monitoring
+      L: https://exaqube.com
+
     * N: FRSCA - Factory for Repeatable Secure Creation of Artifacts
       D: FRSCA is utilizing Tetragon integrated with Tekton to create runtime attestation to attest artifact and builder attributes
       U: Runtime security 
