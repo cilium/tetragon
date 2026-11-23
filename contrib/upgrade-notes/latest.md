@@ -32,6 +32,13 @@ Depending on your setup, changes listed here might require a manual intervention
   leading or trailing dot (`.mm.pgd`, `file.f_path.`) and a field name right
   after an index (`a[0]b`) were accepted before and are now rejected. Write
   them as `mm.pgd`, `file.f_path` and `a[0].b`.
+* Hooks with `return: true` can no longer have `matchActions`, and the agent
+  fails to load a policy that has them. These actions run when the function
+  is called, before the return value is known. Move them to
+  `matchReturnActions` (`rateLimit` now works there too), or remove
+  `return: true` and `returnArg` if they don't need the return value. Kprobe
+  `Override` only works in `matchActions`, so hooks that use it need
+  `return: true` removed.
 
 ### Events (protobuf API)
 

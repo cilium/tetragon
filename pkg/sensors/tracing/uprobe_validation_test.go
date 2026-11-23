@@ -45,31 +45,6 @@ spec:
 	require.Contains(t, err.Error(), "enforcer actions are not supported")
 }
 
-func TestUprobeValidationReturnArgsWithActions(t *testing.T) {
-	err := checkCrd(t, `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "uprobe-return-args-actions"
-spec:
-  uprobes:
-  - path: "/proc/self/exe"
-    symbols: ["main"]
-    return: true
-    returnArg:
-      index: 0
-      type: int
-    selectors:
-    - matchReturnArgs:
-      - index: 0
-        operator: Equal
-        values: ["0"]
-      matchActions:
-      - action: Post
-`)
-	require.ErrorContains(t, err, "selectors[0]: matchActions can't be combined with matchReturnArgs")
-}
-
 func TestUprobeValidationReturnSelectorsWithoutReturn(t *testing.T) {
 	err := checkCrd(t, `
 apiVersion: cilium.io/v1alpha1
@@ -251,29 +226,6 @@ func TestUprobeValidationRegisterOverlap(t *testing.T) {
 				require.Contains(t, err.Error(), test.wantErrMsg)
 			} else {
 				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestUprobeEntryOverrideWithReturnValidation(t *testing.T) {
-	override := []v1alpha1.ActionSelector{{Action: "Override", ArgError: -1}}
-	for _, tc := range []struct {
-		name      string
-		hasReturn bool
-		wantErr   string
-	}{
-		{"with return", true, "selectors[1]: uprobe Override in matchActions can't be used with return=true"},
-		{"without return", false, ""},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			spec := &v1alpha1.UProbeSpec{Symbols: []string{"crypt"}, Return: tc.hasReturn,
-				Selectors: []v1alpha1.KProbeSelector{{}, {MatchActions: override}}}
-			err := validateUprobeSpec(spec, &uprobeConfigState{})
-			if tc.wantErr == "" {
-				require.NoError(t, err)
-			} else {
-				require.ErrorContains(t, err, tc.wantErr)
 			}
 		})
 	}

@@ -1737,7 +1737,6 @@ generate any event about that.
 
 ```yaml
 - call: "sys_openat"
-  return: true
   syscall: true
   args:
   - index: 0
@@ -1745,9 +1744,6 @@ generate any event about that.
   - index: 1
     type: "string"
   - index: 2
-    type: "int"
-  returnArg:
-    index: 0
     type: "int"
   selectors:
   - matchPIDs:
@@ -2486,15 +2482,15 @@ When a hook has a return probe, each selector's filters are checked at two
 points: its entry filters (such as `matchArgs` or `matchBinaries`) when the
 function is called, and its `matchReturnArgs` when the function returns.
 
-- `matchActions` run when the function is called, for the first selector whose
-  entry filters match. The return value is not known yet, so a hook can't
-  combine `matchActions` with `matchReturnArgs`, even in different selectors:
-  whether a selector with `matchReturnArgs` is the first match is only known
-  when the function returns. Use `matchReturnActions` for actions that depend
-  on the return value.
 - `matchReturnActions` run when the function returns, for the first selector
   whose entry filters and `matchReturnArgs` all match. A selector whose entry
   filters did not match is never used on return.
+- `matchActions` can't be used with `return: true`. They would run when the
+  function is called, before the return value is known and before the return
+  selectors are evaluated. Use `matchReturnActions` instead, or remove
+  `return: true` if the actions don't need the return value. For example, a
+  kprobe `Override` only works in `matchActions`, so its hook can't have
+  `return: true`.
 
 A uprobe `Override` in `matchReturnActions` replaces the return value with
 `argError` after the return filters match. It preserves the caller's instruction
@@ -2517,7 +2513,3 @@ selectors:
   - action: Override
     argError: 0
 ```
-
-A uprobe `Override` in `matchActions` can't be used with `return: true`. It
-skips the rest of the function, so the return probe never runs and no event is
-posted. Use `Override` in `matchReturnActions` instead.

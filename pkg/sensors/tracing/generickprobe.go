@@ -620,10 +620,10 @@ func createGenericKprobeSensor(
 		if err := validateSignalActions(kprobes[i].Selectors); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
-		if err := validateReturnArgsActions(kprobes[i].Selectors); err != nil {
+		if err := validateReturnSelectors(kprobes[i].Selectors, kprobes[i].Return); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
-		if err := validateReturnSelectors(kprobes[i].Selectors, kprobes[i].Return); err != nil {
+		if err := validateReturnEntryActions(kprobes[i].Selectors, kprobes[i].Return); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
 

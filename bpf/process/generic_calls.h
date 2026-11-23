@@ -1703,13 +1703,12 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 				 * selector stats. The return program accounts the post.
 				 */
 				e->tailcall_index_selector = first;
-				/* Entry actions may run with a return probe: a hook can have
-				 * matchActions as long as none of its selectors has
-				 * matchReturnArgs. If it does, validation rejects matchActions
-				 * in all its selectors, so the actions list is empty and
-				 * running it only posts the event. actions_offset > 1 does not
-				 * mean that matchActions is set, only where the selector's
-				 * actions start.
+				/* With return: true, validation rejects matchActions, so the
+				 * actions list is empty and running it only posts the event.
+				 * A return probe for a returnCopy argument without
+				 * return: true can still have matchActions. actions_offset > 1
+				 * does not mean that matchActions is set, only where the
+				 * selector's actions start.
 				 */
 				if (e->actions_offset > 1)
 					tail_call(ctx, tailcalls, TAIL_CALL_ACTIONS);

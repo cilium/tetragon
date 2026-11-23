@@ -32,6 +32,6 @@ spec:
           operator: NotIn
           values:
           - "host_ns"
-        matchActions:
+        matchReturnActions:
           - action: Post
             rateLimit: "1m"  # Rate limit messages to 1min
