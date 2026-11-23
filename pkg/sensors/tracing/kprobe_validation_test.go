@@ -165,6 +165,77 @@ func TestValidateSignalActionsSmallProgs(t *testing.T) {
 	}
 }
 
+func TestValidateReturnEntryActions(t *testing.T) {
+	post := []v1alpha1.ActionSelector{{Action: "Post"}}
+	returnArgs := []v1alpha1.ArgSelector{{Index: 0, Operator: "Equal", Values: []string{"0"}}}
+	tests := []struct {
+		name          string
+		selectorSpecs []v1alpha1.KProbeSelector
+		macros        map[string]v1alpha1.KProbeSelector
+		hasReturn     bool
+		wantErr       string
+	}{
+		{
+			name:          "matchActions with return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnActions: post}, {MatchActions: post}},
+			hasReturn:     true,
+			wantErr:       "selectors[1]: matchActions can't be used with return: true",
+		},
+		{
+			name:          "matchActions added by macro with return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs, Macros: []string{"post"}}},
+			macros:        map[string]v1alpha1.KProbeSelector{"post": {MatchActions: post}},
+			hasReturn:     true,
+			wantErr:       "selectors[0]: matchActions can't be used with return: true",
+		},
+		{
+			name:          "matchReturnActions with return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs, MatchReturnActions: post}},
+			hasReturn:     true,
+		},
+		{
+			name:          "matchActions without return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchActions: post}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require.NoError(t, appendMacrosSelectors(test.selectorSpecs, test.macros))
+			err := validateReturnEntryActions(test.selectorSpecs, test.hasReturn)
+			if test.wantErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, test.wantErr)
+			}
+		})
+	}
+}
+
+func TestKprobeValidationReturnEntryActions(t *testing.T) {
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "return-entry-actions"
+spec:
+  kprobes:
+  - call: "sys_getcpu"
+    syscall: true
+    return: true
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - matchActions:
+      - action: Override
+        argError: -1
+`
+
+	err := checkCrd(t, crd)
+	require.ErrorContains(t, err, "selectors[0]: matchActions can't be used with return: true")
+}
+
 func TestValidateReturnSelectors(t *testing.T) {
 	returnArgs := []v1alpha1.ArgSelector{{Index: 0, Operator: "Equal", Values: []string{"0"}}}
 	actions := []v1alpha1.ActionSelector{{Action: "Post"}}

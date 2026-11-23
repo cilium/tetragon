@@ -45,6 +45,31 @@ spec:
 	require.Contains(t, err.Error(), "enforcer actions are not supported")
 }
 
+// An entry Override skips the rest of the function, so the uretprobe would
+// never run.
+func TestUprobeValidationReturnEntryActions(t *testing.T) {
+	err := checkCrd(t, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-return-entry-actions"
+spec:
+  uprobes:
+  - path: "/proc/self/exe"
+    symbols: ["main"]
+    return: true
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - {}
+    - matchActions:
+      - action: Override
+        argError: -1
+`)
+	require.ErrorContains(t, err, "selectors[1]: matchActions can't be used with return: true")
+}
+
 func TestUprobeValidationReturnSelectorsWithoutReturn(t *testing.T) {
 	err := checkCrd(t, `
 apiVersion: cilium.io/v1alpha1
