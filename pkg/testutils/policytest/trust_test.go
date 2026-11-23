@@ -43,7 +43,35 @@ func TestCheckTrustedBinsDir(t *testing.T) {
 		_, bins := trustTestDir(t)
 		require.NoError(t, os.Mkdir(filepath.Join(bins, "go"), 0o755))
 		require.NoError(t, os.Symlink("nop", filepath.Join(bins, "nop-link")))
+		sub := filepath.Join(bins, "sub", "dir")
+		require.NoError(t, os.MkdirAll(sub, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(sub, "nop"), []byte("#!/bin/sh\n"), 0o755))
 		require.NoError(t, CheckTrustedBinsDir(bins))
+	})
+
+	t.Run("group-writable sub-folder", func(t *testing.T) {
+		_, bins := trustTestDir(t)
+		sub := filepath.Join(bins, "sub", "dir")
+		require.NoError(t, os.MkdirAll(sub, 0o755))
+		require.NoError(t, os.Chmod(sub, 0o775))
+		require.NoError(t, os.WriteFile(filepath.Join(sub, "nop"), []byte("#!/bin/sh\n"), 0o755))
+		require.ErrorContains(t, CheckTrustedBinsDir(bins), sub+" is writable by group or other")
+	})
+
+	t.Run("group-writable binary in sub-folder", func(t *testing.T) {
+		_, bins := trustTestDir(t)
+		sub := filepath.Join(bins, "sub")
+		require.NoError(t, os.Mkdir(sub, 0o755))
+		bin := filepath.Join(sub, "nop")
+		require.NoError(t, os.WriteFile(bin, []byte("#!/bin/sh\n"), 0o755))
+		require.NoError(t, os.Chmod(bin, 0o775))
+		require.ErrorContains(t, CheckTrustedBinsDir(bins), bin+" is writable by group or other")
+	})
+
+	t.Run("symlink to directory", func(t *testing.T) {
+		base, bins := trustTestDir(t)
+		require.NoError(t, os.Symlink(base, filepath.Join(bins, "dir-link")))
+		require.ErrorContains(t, CheckTrustedBinsDir(bins), "refusing symlink to a directory")
 	})
 
 	t.Run("relative", func(t *testing.T) {
