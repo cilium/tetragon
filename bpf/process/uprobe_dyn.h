@@ -214,19 +214,15 @@ FUNC_INLINE int call_dlopen(struct pt_regs *ctx, struct pending_call *pending_c,
 	}
 
 	sopath_len = regs->sopath_len;
-	if (sopath_len == 0) {
-		DEBUG_SO("empty sopath_len set for %ld, sym_id: %d!", pid_tgid, pending_c->sym_id[idx]);
-		revert_ctx(ctx, pending_c, pid_tgid, idx);
-		return 0;
-	}
-	sopath_len &= (SOPATH_MAX - 1);
-	if (sopath_len == 0) {
-		DEBUG_SO("sopath_len too big for %ld, sym_id: %d: %d!", pid_tgid, pending_c->sym_id[idx], regs->sopath_len);
+	if (sopath_len == 0 || sopath_len > SOPATH_MAX) {
+		DEBUG_SO("invalid sopath_len for %ld, sym_id: %d: %d!", pid_tgid, pending_c->sym_id[idx], sopath_len);
 		revert_ctx(ctx, pending_c, pid_tgid, idx);
 		return 0;
 	}
 
-	with_errmetrics(probe_write_user, (void *)scratch, regs->sopath, sopath_len);
+	// The entire map value is initialized, including the path's NUL terminator.
+	// Use a fixed size so the verifier can prove this read is never zero-sized.
+	with_errmetrics(probe_write_user, (void *)scratch, regs->sopath, sizeof(regs->sopath));
 
 	pending_c->stage[idx] = STAGE_DLOPEN_PENDING;
 
