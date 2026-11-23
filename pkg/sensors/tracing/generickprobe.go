@@ -239,11 +239,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	}
 
 	if config.EnableLargeProgs() {
-		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
-		if has.rateLimit {
-			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
-		}
-		maps = append(maps, ratelimitMap)
+		maps = append(maps, rateLimitMaps(has.rateLimit, has.returnRateLimit, load)...)
 	}
 
 	if has.enforcer {
@@ -304,6 +300,10 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 			socktrack.SetMaxEntries(socktrackMapMaxEntries)
 		}
 		maps = append(maps, socktrack)
+
+		if config.EnableLargeProgs() {
+			maps = append(maps, rateLimitMaps(has.rateLimit, has.returnRateLimit, loadret)...)
+		}
 
 		tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
 		maps = append(maps, tailCalls)
@@ -500,13 +500,14 @@ type addKprobeIn struct {
 }
 
 type hasMaps struct {
-	stackTrace bool
-	rateLimit  bool
-	enforcer   bool
-	override   bool
-	sockTrack  bool
-	selector   bool
-	fentry     bool
+	stackTrace      bool
+	rateLimit       bool
+	returnRateLimit bool
+	enforcer        bool
+	override        bool
+	sockTrack       bool
+	selector        bool
+	fentry          bool
 
 	// fentry process_call_heap (and friends) size override
 	fentryHeapSize int
@@ -519,6 +520,7 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec, kprobes []v1alpha1.KProbeSpe
 	for _, kprobe := range kprobes {
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
 		has.rateLimit = has.rateLimit || selectors.HasRateLimit(kprobe.Selectors)
+		has.returnRateLimit = has.returnRateLimit || (kprobe.Return && selectors.HasReturnRateLimit(kprobe.Selectors))
 		has.sockTrack = has.sockTrack || selectors.HasSockTrack(&kprobe)
 		has.override = has.override || selectors.HasOverride(kprobe.Selectors)
 		has.selector = has.selector || selectors.HasSelector(&kprobe)
@@ -913,6 +915,9 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 		eventConfig.ArgReturn = int32(argType)
 		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
 		argReturnPrinters = append(argReturnPrinters, argP)
+		if selectors.HasReturnRateLimit(f.Selectors) {
+			eventConfig.Flags |= api.EventConfigFlagReturnRateLimit
+		}
 	} else {
 		eventConfig.ArgReturn = int32(gt.GenericUnsetType)
 	}
@@ -1093,13 +1098,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 
 	if config.EnableLargeProgs() {
-		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
-		if has.rateLimit {
-			// similarly as for stacktrace, we expand the max size only if
-			// needed to reduce the memory footprint when unused
-			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
-		}
-		maps = append(maps, ratelimitMap)
+		maps = append(maps, rateLimitMaps(has.rateLimit, has.returnRateLimit, load)...)
 	}
 
 	if has.enforcer {
@@ -1187,6 +1186,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 				socktrack.SetMaxEntries(socktrackMapMaxEntries)
 			}
 			maps = append(maps, socktrack)
+			maps = append(maps, rateLimitMaps(has.rateLimit, has.returnRateLimit, loadret)...)
 		}
 
 		if len(polInfo.stateIDs) != 0 {

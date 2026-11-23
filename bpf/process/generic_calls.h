@@ -1292,6 +1292,14 @@ generic_output(void *ctx, u8 op)
 	if (!e)
 		return 0;
 
+#if defined(__LARGE_BPF_PROG) && (defined(GENERIC_KPROBE) || defined(GENERIC_UPROBE) || defined(GENERIC_FENTRY))
+	/* With a return probe, the entry only sends after its selectors were
+	 * saved for the return probe, so the arguments are saved for the same
+	 * calls.
+	 */
+	rate_limit_save_args(e);
+#endif
+
 /* We don't need this data in return kprobe event */
 #if !defined(GENERIC_KRETPROBE) && !defined(GENERIC_URETPROBE) && !defined(GENERIC_FEXIT)
 #ifdef __NS_CHANGES_FILTER
@@ -1377,6 +1385,10 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	memset(&e->sel, 0, sizeof(e->sel));
 	retprobe_info_restore_selectors(&info, &e->sel);
 	e->tailcall_index_selector = 0;
+	/* The rate limit key includes the action, so don't keep another
+	 * invocation's.
+	 */
+	e->action = 0;
 
 	*(unsigned long *)e->args = info.ktime_enter;
 	size += sizeof(info.ktime_enter);

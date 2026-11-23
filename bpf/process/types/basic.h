@@ -2533,6 +2533,72 @@ FUNC_INLINE void do_action_signal(int signal)
 #endif /* __LARGE_BPF_PROG */
 
 #ifdef __LARGE_BPF_PROG
+/* Copy up to KEY_BYTES_PER_ARG bytes of each entry argument, with its read
+ * status, into the cleared @dst. @dst needs 128 bytes of headroom past
+ * RATELIMIT_ARGS_SIZE for the verifier.
+ */
+FUNC_INLINE void
+rate_limit_args(struct msg_generic_kprobe *e, __u8 *dst)
+{
+	__u32 index = 0;
+	__u32 key_index = 0;
+	int arg_size;
+	int i;
+
+	for (i = 0; i < MAX_POSSIBLE_ARGS; i++) {
+		if (arg_idx(i) == -1)
+			break;
+		if (e->argsoff[i] >= e->common.size)
+			break;
+		if (i < MAX_POSSIBLE_ARGS - 1 && arg_idx(i + 1) != -1)
+			arg_size = e->argsoff[i + 1] - e->argsoff[i];
+		else
+			arg_size = e->common.size - e->argsoff[i] + sizeof(arg_status_t);
+		if (arg_size > 0) {
+			key_index = (e->argsoff[i] - sizeof(arg_status_t)) & 16383;
+			if (arg_size > KEY_BYTES_PER_ARG)
+				arg_size = KEY_BYTES_PER_ARG;
+			asm volatile("%[arg_size] &= 0x3f;\n" // ensure this mask is greater than KEY_BYTES_PER_ARG
+				     : [arg_size] "+r"(arg_size)
+				     :);
+			asm volatile("%[index] &= 0xff;\n"
+				     : [index] "+r"(index)
+				     :);
+			probe_read(&dst[index], arg_size, &e->args[key_index]);
+			index += arg_size;
+		}
+	}
+}
+
+#if defined(GENERIC_KPROBE) || defined(GENERIC_UPROBE) || defined(GENERIC_FENTRY)
+/* Save the entry arguments' part of the rate limit key for the return probe,
+ * if a return selector rate limits.
+ */
+FUNC_INLINE void
+rate_limit_save_args(struct msg_generic_kprobe *e)
+{
+	struct retprobe_key retkey = {
+		.id = e->func_id,
+		.tid = e->retprobe_id,
+	};
+	struct event_config *config;
+	struct ratelimit_key *key;
+	void *ro_heap;
+	__u32 zero = 0;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config || !(config->flags & EVENT_CONFIG_FLAG_RETURN_RATE_LIMIT))
+		return;
+	key = ratelimit_heap_get();
+	if (!key)
+		return;
+	ro_heap = map_lookup_elem(&heap_ro_zero, &zero);
+	probe_read(key->data, RATELIMIT_ARGS_SIZE, ro_heap);
+	rate_limit_args(e, key->data);
+	map_update_elem(&ratelimit_args_map, &retkey, key->data, BPF_ANY);
+}
+#endif
+
 FUNC_INLINE bool
 rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_kprobe *e)
 {
@@ -2541,11 +2607,6 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	struct ratelimit_key *key;
 	void *ro_heap;
 	__u32 zero = 0;
-	__u32 index = 0;
-	__u32 key_index = 0;
-	int arg_size;
-	int i;
-	__u8 *dst;
 
 	if (!ratelimit_interval)
 		return false;
@@ -2572,32 +2633,41 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	}
 
 	// Clean the heap
-	probe_read(key->data, MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG, ro_heap);
-	dst = key->data;
+	probe_read(key->data, sizeof(key->data), ro_heap);
+#if defined(GENERIC_KRETPROBE) || defined(GENERIC_URETPROBE) || defined(GENERIC_FEXIT)
+	{
+		struct retprobe_key retkey = {
+			.id = e->func_id,
+			.tid = e->retprobe_id,
+		};
+		__u8 *args;
+		int ret_size;
 
-	for (i = 0; i < MAX_POSSIBLE_ARGS; i++) {
-		if (arg_idx(i) == -1)
-			break;
-		if (e->argsoff[i] >= e->common.size)
-			break;
-		if (i < MAX_POSSIBLE_ARGS - 1 && arg_idx(i + 1) != -1)
-			arg_size = e->argsoff[i + 1] - e->argsoff[i];
-		else
-			arg_size = e->common.size - e->argsoff[i] + sizeof(arg_status_t);
-		if (arg_size > 0) {
-			key_index = (e->argsoff[i] - sizeof(arg_status_t)) & 16383;
-			if (arg_size > KEY_BYTES_PER_ARG)
-				arg_size = KEY_BYTES_PER_ARG;
-			asm volatile("%[arg_size] &= 0x3f;\n" // ensure this mask is greater than KEY_BYTES_PER_ARG
-				     : [arg_size] "+r"(arg_size)
+		/* Without the entry arguments, events that differ in them
+		 * would be treated as repeats, so don't rate limit.
+		 */
+		args = map_lookup_elem(&ratelimit_args_map, &retkey);
+		if (!args)
+			return false;
+		probe_read(key->data, RATELIMIT_ARGS_SIZE, args);
+		map_delete_elem(&ratelimit_args_map, &retkey);
+
+		/* The return message starts with the entry ktime, followed by
+		 * the return value.
+		 */
+		ret_size = (int)e->common.size - (int)sizeof(__u64);
+		if (ret_size > 0) {
+			if (ret_size > KEY_BYTES_PER_ARG)
+				ret_size = KEY_BYTES_PER_ARG;
+			asm volatile("%[ret_size] &= 0x3f;\n"
+				     : [ret_size] "+r"(ret_size)
 				     :);
-			asm volatile("%[index] &= 0xff;\n"
-				     : [index] "+r"(index)
-				     :);
-			probe_read(&dst[index], arg_size, &e->args[key_index]);
-			index += arg_size;
+			probe_read(&key->data[RATELIMIT_ARGS_SIZE], ret_size, &e->args[sizeof(__u64)]);
 		}
 	}
+#else
+	rate_limit_args(e, key->data);
+#endif
 
 	last_repeat_entry = map_lookup_elem(&ratelimit_map, key);
 	if (last_repeat_entry) {

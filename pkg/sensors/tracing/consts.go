@@ -19,4 +19,7 @@ const (
 	overrideMapMaxEntries      = 32768
 	sleepableOffloadMaxEntries = 32768
 	socktrackMapMaxEntries     = 32000
+	// ratelimit_args_map holds one entry per call in flight, like
+	// retprobe_map.
+	ratelimitArgsMapMaxEntries = 1024
 )

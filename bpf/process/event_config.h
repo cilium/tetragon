@@ -51,6 +51,11 @@ _Static_assert(EVENT_CONFIG_MAX_USDT_ARG - 1 <= EVENT_CONFIG_MAX_USDT_ARG_MASK, 
 #define EVENT_CONFIG_MAX_REG_ARG_MASK 0x7
 _Static_assert(EVENT_CONFIG_MAX_REG_ARG - 1 <= EVENT_CONFIG_MAX_REG_ARG_MASK, "Need to update EVENT_CONFIG_MAX_REG_ARG_MASK");
 
+/* A return selector rate limits, so the entry saves the arguments' part of the
+ * rate limit key for the return probe.
+ */
+#define EVENT_CONFIG_FLAG_RETURN_RATE_LIMIT 0x1
+
 struct event_config {
 	__u32 func_id;
 	__s32 arg[MAX_POSSIBLE_ARGS];
@@ -69,6 +74,7 @@ struct event_config {
 	 * that the hook always applies and no check will be performed.
 	 */
 	__u32 policy_id;
+	/* EVENT_CONFIG_FLAG_* */
 	__u32 flags;
 	__u32 selector_stats_base;
 	struct config_btf_arg btf_arg[MAX_POSSIBLE_ARGS][MAX_BTF_ARG_DEPTH];

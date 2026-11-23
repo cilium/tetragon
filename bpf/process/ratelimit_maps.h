@@ -5,6 +5,7 @@
 #define __RATELIMIT_MAPS_H__
 
 #include "heap.h"
+#include "retprobe_map.h"
 
 /* The number of bytes per argument to include in the key
  * that we use to check for repeating data.
@@ -21,15 +22,30 @@
 #define ACTION_RATE_LIMIT_SCOPE_PROCESS 1
 #define ACTION_RATE_LIMIT_SCOPE_GLOBAL	2
 
+/* The part of the key taken from the entry arguments. */
+#define RATELIMIT_ARGS_SIZE (MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG)
+
 struct ratelimit_key {
 	__u64 func_id;
 	__u64 action;
 	__u64 tid;
-	__u8 data[MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG];
+	/* The entry arguments, followed by the return value in return probes. */
+	__u8 data[RATELIMIT_ARGS_SIZE + KEY_BYTES_PER_ARG];
 };
 
 _Static_assert(sizeof(struct ratelimit_key) + 128 <= HEAP_RO_SIZE,
 	       "heap_ro_value's buffer must fit ratelimit_key");
+
+/* The return program doesn't have the entry arguments, so when a return
+ * selector rate limits, the entry saves their part of the key here, keyed like
+ * retprobe_map.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 1); // Agent is resizing this if the feature is needed during kprobe load
+	__type(key, struct retprobe_key);
+	__type(value, __u8[RATELIMIT_ARGS_SIZE]);
+} ratelimit_args_map SEC(".maps");
 
 struct ratelimit_value {
 	__u64 ktime;

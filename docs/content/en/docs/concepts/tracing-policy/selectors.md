@@ -1461,6 +1461,10 @@ actions by the same thread will be rate limited. This can be expanded to all
 threads for a process by specifying a rateLimitScope with value "process"; or
 can be expanded to all processes by specifying the same with the value "global".
 
+`rateLimit` also works for `Post` in `matchReturnActions`. There, an event is
+only a repeat if both the inspected arguments and the return value (its first
+40 bytes) are the same.
+
 #### Stack traces
 
 For kprobes, the `Post` action can include the `kernelStackTrace` and
