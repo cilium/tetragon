@@ -889,3 +889,70 @@ spec:
 		ActCountChecker: policytest.ActionCounts{Post: &posts},
 	}
 }).RegisterAtInit()
+
+// With a return probe, a post is counted for the selector that matched on
+// return, and not at all if no return selector matched.
+var _ = policytest.NewBuilder("kprobe-return-post-stats").WithLabels("kprobes").
+	WithSkip(returnHookSkip).WithParameter(returnHookParam).WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobe-return-post-stats"
+spec:
+  {{ .Hook }}:
+  - call: "sys_lseek"
+    syscall: true
+    return: true
+    args:
+    - index: 1
+      type: "int64"
+    returnArg:
+      index: 0
+      type: "int64"
+    selectors:
+    - matchBinaries:
+      - operator: In
+        values:
+        - {{ testBinary "lseek-pipe" }}
+      matchArgs:
+      - index: 1
+        operator: "Equal"
+        values: ["4242"]
+      matchReturnArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["0"]
+    - matchBinaries:
+      - operator: In
+        values:
+        - {{ testBinary "lseek-pipe" }}
+      matchArgs:
+      - index: 1
+        operator: "Equal"
+        values: ["4242", "4243"]
+      matchReturnArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["-9"]
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("lseek-pipe")
+	posts := uint64(2)
+	return &policytest.Scenario{
+		// The second call matches both selectors on entry, but only selector 1
+		// on return. The third call matches selector 1 on entry, but no
+		// selector on return.
+		Name:    "count posts for the selector that matched on return",
+		Trigger: lseekPipeTrigger(bin, [2]int{0, 4242}, [2]int{-1, 4242}, [2]int{0, 4243}),
+		EventChecker: ec.NewUnorderedEventChecker(
+			lseekReturnChecker("selector 0", bin, 4242, 0),
+			lseekReturnChecker("selector 1", bin, 4242, -int64(unix.EBADF)),
+		),
+		ActCountChecker: policytest.ActionCounts{
+			Post: &posts,
+			SelectorPost: map[policytest.SelectorIndex]uint64{
+				{Selector: 0}: 1,
+				{Selector: 1}: 1,
+			},
+		},
+	}
+}).RegisterAtInit()

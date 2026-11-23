@@ -5368,6 +5368,10 @@ func TestKprobeReturnRateLimit(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-return-rate-limit", nil)
 }
 
+func TestKprobeReturnPostStats(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-return-post-stats", nil)
+}
+
 func testKprobeListSyscallDupsRange(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")

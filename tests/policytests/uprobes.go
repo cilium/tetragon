@@ -1584,3 +1584,71 @@ spec:
 		ActCountChecker: policytest.ActionCounts{Post: &posts},
 	}
 }).RegisterAtInit()
+
+// With a return probe, a post is counted for the selector that matched on
+// return, and not at all if no return selector matched.
+var _ = policytest.NewBuilder("uretprobe-post-stats").WithLabels("uprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+			return "need bpf_copy_from_user_str kfunc support"
+		}
+		return ""
+	}).WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uretprobe-post-stats"
+spec:
+  uprobes:
+  - path: {{ testBinary "regs-override" }}
+    symbols:
+    - test_return_string
+    args:
+    - index: 0
+      type: "string"
+    return: true
+    returnArg:
+      index: 0
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["post-stats-a", "post-stats-c", "post-stats-d"]
+      matchReturnArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["post-stats-c", "post-stats-d"]
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["post-stats-a", "post-stats-b", "post-stats-d"]
+      matchReturnArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["post-stats-a", "post-stats-d"]
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("regs-override")
+	posts := uint64(3)
+	return &policytest.Scenario{
+		// "post-stats-a" matches both selectors on entry, but only selector 1
+		// on return. "post-stats-b" matches selector 1 on entry, but no
+		// selector on return. "post-stats-d" matches both selectors on entry
+		// and return, so the first one counts it.
+		Name: "count posts for the selector that matched on return",
+		Trigger: regsOverrideReturnStringTrigger(bin,
+			"post-stats-a", "post-stats-b", "post-stats-c", "post-stats-d"),
+		EventChecker: ec.NewUnorderedEventChecker(
+			returnStringChecker("selector 1", bin, "post-stats-a"),
+			returnStringChecker("selector 0", bin, "post-stats-c"),
+			returnStringChecker("both selectors", bin, "post-stats-d"),
+		),
+		ActCountChecker: policytest.ActionCounts{
+			Post: &posts,
+			SelectorPost: map[policytest.SelectorIndex]uint64{
+				{Selector: 0}: 2,
+				{Selector: 1}: 1,
+			},
+		},
+	}
+}).RegisterAtInit()

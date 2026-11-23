@@ -473,6 +473,11 @@ func TestFentryReturnRateLimit(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-return-rate-limit", map[string]any{"Hook": "fentries"})
 }
 
+func TestFentryReturnPostStats(t *testing.T) {
+	checkFentry(t)
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-return-post-stats", map[string]any{"Hook": "fentries"})
+}
+
 func TestFentryListSyscallDupsRange(t *testing.T) {
 	checkFentry(t)
 	testKprobeListSyscallDupsRange(t, true)
