@@ -66,8 +66,8 @@ func checkTrustedPath(dir string, uids []uint32) error {
 	}
 }
 
-// CheckTrustedBinsDir checks that dir (absolute, with symlinks resolved) and every regular file
-// in it can only be modified by trusted users.
+// CheckTrustedBinsDir checks that dir (absolute, with symlinks resolved), its parents,
+// sub-folders and regular files in it can only be modified by trusted users.
 func CheckTrustedBinsDir(dir string) error {
 	if !filepath.IsAbs(dir) {
 		return fmt.Errorf("%s directory must be an absolute path", dir)
@@ -76,10 +76,14 @@ func CheckTrustedBinsDir(dir string) error {
 	if err := checkTrustedPath(dir, uids); err != nil {
 		return fmt.Errorf("check failed for directory and parents: %w", err)
 	}
+	return checkTrustedTree(dir, uids)
+}
 
+// checkTrustedTree checks the entries of dir, and recurses into its sub-folders.
+func checkTrustedTree(dir string, uids []uint32) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return fmt.Errorf("failed to list binaries in directory: %w", err)
+		return fmt.Errorf("failed to list binaries in directory %s: %w", dir, err)
 	}
 	for _, entry := range entries {
 		path := filepath.Join(dir, entry.Name())
@@ -91,14 +95,29 @@ func CheckTrustedBinsDir(dir string) error {
 		if err != nil {
 			return fmt.Errorf("failed to get info for %s: %w", path, err)
 		}
-		// subdirectories (e.g., go sources) and special files are never executed
+		// sub-folders are checked recursively
+		if resolvedInfo.IsDir() {
+			// following symlinks to directories could loop or walk outside the tree
+			if resolved != path {
+				return fmt.Errorf("%s -> %s: refusing symlink to a directory, its target is not checked; use a directory instead", path, resolved)
+			}
+			if err := checkTrustedInode(path, resolvedInfo, uids, false); err != nil {
+				return fmt.Errorf("untrusted directory: %w", err)
+			}
+			if err := checkTrustedTree(path, uids); err != nil {
+				return err
+			}
+			continue
+		}
+		// special files (sockets, pipes, devices) are not executed, so they are skipped
 		if !resolvedInfo.Mode().IsRegular() {
 			continue
 		}
-		// symlink pointing outside dir: its directory and parents must be trusted too.
-		if resolvedDir := filepath.Dir(resolved); resolvedDir != dir {
-			err = checkTrustedPath(resolvedDir, uids)
+		// symlink to a file in another directory: its directory and parents must be trusted too.
+		if targetDir := filepath.Dir(resolved); targetDir != dir {
+			err = checkTrustedPath(targetDir, uids)
 		}
+		// regular file check
 		if err == nil {
 			err = checkTrustedInode(resolved, resolvedInfo, uids, false)
 		}
