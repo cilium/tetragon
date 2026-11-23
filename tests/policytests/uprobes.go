@@ -1503,3 +1503,84 @@ spec:
 		}
 	}).
 	RegisterAtInit()
+
+// regsOverrideReturnStringTrigger runs regs-override's test_return_string once
+// for each value, which returns its argument.
+func regsOverrideReturnStringTrigger(bin string, values ...string) *policytest.ExecTester {
+	var triggers []policytest.CmdTrigger
+	var exitCodes []int
+	for _, value := range values {
+		triggers = append(triggers, *policytest.NewCmdTrigger(bin, "4", value, value))
+		exitCodes = append(exitCodes, 0)
+	}
+	return policytest.NewMultiCmdTrigger(triggers).ExpectExitCodes(exitCodes)
+}
+
+func returnStringChecker(name, bin, value string) *ec.ProcessUprobeChecker {
+	str := ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(value))
+	return ec.NewProcessUprobeChecker(name).
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("test_return_string")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(str, str))
+}
+
+// A rateLimit in matchReturnActions only posts the first of the repeated calls.
+var _ = policytest.NewBuilder("uretprobe-rate-limit").WithLabels("uprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+			return "rateLimit requires large programs"
+		}
+		if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+			return "need bpf_copy_from_user_str kfunc support"
+		}
+		return ""
+	}).WithParameter(policytest.Parameter{
+	Name:    "DisableUprobeMulti",
+	Default: false,
+	Values:  []any{false, true},
+	// Without uprobe multi support, the agent uses single uprobes either way.
+	Help: "value of the disable-uprobe-multi policy option",
+}).WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uretprobe-rate-limit"
+spec:
+  options:
+  - name: "disable-uprobe-multi"
+    value: "{{ .DisableUprobeMulti }}"
+  uprobes:
+  - path: {{ testBinary "regs-override" }}
+    symbols:
+    - test_return_string
+    args:
+    - index: 0
+      type: "string"
+    return: true
+    returnArg:
+      index: 0
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["rate-limit-a", "rate-limit-b"]
+      matchReturnActions:
+      - action: Post
+        rateLimit: "1m"
+        rateLimitScope: "global"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("regs-override")
+	posts := uint64(2)
+	return &policytest.Scenario{
+		Name:    "repeat a call, then change it",
+		Trigger: regsOverrideReturnStringTrigger(bin, "rate-limit-a", "rate-limit-a", "rate-limit-a", "rate-limit-b"),
+		EventChecker: ec.NewUnorderedEventChecker(
+			returnStringChecker("repeated", bin, "rate-limit-a"),
+			returnStringChecker("changed", bin, "rate-limit-b"),
+		),
+		ActCountChecker: policytest.ActionCounts{Post: &posts},
+	}
+}).RegisterAtInit()

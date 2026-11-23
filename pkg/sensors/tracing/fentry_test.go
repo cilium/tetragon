@@ -468,6 +468,11 @@ func TestFentryRateLimitLongerThanUptime(t *testing.T) {
 	testKprobeRateLimit(t, "1193h", true)
 }
 
+func TestFentryReturnRateLimit(t *testing.T) {
+	checkFentry(t)
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-return-rate-limit", map[string]any{"Hook": "fentries"})
+}
+
 func TestFentryListSyscallDupsRange(t *testing.T) {
 	checkFentry(t)
 	testKprobeListSyscallDupsRange(t, true)

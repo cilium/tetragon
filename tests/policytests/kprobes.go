@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"syscall"
 
 	ebtf "github.com/cilium/ebpf/btf"
@@ -791,5 +792,100 @@ spec:
 		ActCountChecker: policytest.ActionCounts{
 			Post: &postCnt,
 		},
+	}
+}).RegisterAtInit()
+
+// lseekPipeTrigger runs lseek-pipe once for each lseek(fd, off, SEEK_SET).
+// Its stdin is /dev/null, so fd 0 returns 0 and fd -1 returns -EBADF.
+func lseekPipeTrigger(bin string, calls ...[2]int) *policytest.MultiCmdTrigger {
+	var triggers []policytest.CmdTrigger
+	for _, call := range calls {
+		triggers = append(triggers, *policytest.NewCmdTrigger(bin, strconv.Itoa(call[0]), strconv.Itoa(call[1]), "0"))
+	}
+	return policytest.NewMultiCmdTrigger(triggers)
+}
+
+func lseekReturnChecker(name, bin string, off, ret int64) *ec.ProcessKprobeChecker {
+	return ec.NewProcessKprobeChecker(name).
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(bin))).
+		WithFunctionName(sm.Suffix("sys_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(ec.NewKprobeArgumentChecker().WithLongArg(off))).
+		WithReturn(ec.NewKprobeArgumentChecker().WithLongArg(ret))
+}
+
+func returnHookSkip(si *policytest.SkipInfo) string {
+	if si.ParamValues["Hook"] == "fentries" {
+		if !si.AgentInfo.Probes[bpf.Fentry] {
+			return "fentry hook depends on fentry support"
+		}
+		if !si.AgentInfo.Probes[bpf.GetFuncRet] {
+			return "fexit return values need the bpf_get_func_ret helper"
+		}
+	}
+	return ""
+}
+
+var returnHookParam = policytest.Parameter{
+	Name:    "Hook",
+	Default: "kprobes",
+	Values:  []any{"kprobes", "fentries"},
+	Help:    "type of hook to use in the policy",
+}
+
+// A rateLimit in matchReturnActions keys on the arguments and the return
+// value, so only calls where both repeat are rate limited.
+var _ = policytest.NewBuilder("kprobe-return-rate-limit").WithLabels("kprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+			return "rateLimit requires large programs"
+		}
+		return returnHookSkip(si)
+	}).WithParameter(returnHookParam).WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobe-return-rate-limit"
+spec:
+  {{ .Hook }}:
+  - call: "sys_lseek"
+    syscall: true
+    return: true
+    args:
+    - index: 1
+      type: "int64"
+    returnArg:
+      index: 0
+      type: "int64"
+    selectors:
+    - matchBinaries:
+      - operator: In
+        values:
+        - {{ testBinary "lseek-pipe" }}
+      matchArgs:
+      - index: 1
+        operator: "Equal"
+        values: ["4242", "4243"]
+      matchReturnActions:
+      - action: Post
+        rateLimit: "1m"
+        rateLimitScope: "global"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("lseek-pipe")
+	ebadf := -int64(unix.EBADF)
+	posts := uint64(3)
+	return &policytest.Scenario{
+		Name: "repeat a call, then change only its return value, then only its arguments",
+		Trigger: lseekPipeTrigger(bin,
+			[2]int{-1, 4242}, [2]int{-1, 4242}, [2]int{-1, 4242},
+			[2]int{0, 4242},
+			[2]int{-1, 4243}),
+		EventChecker: ec.NewUnorderedEventChecker(
+			lseekReturnChecker("repeated", bin, 4242, ebadf),
+			lseekReturnChecker("return value changed", bin, 4242, 0),
+			lseekReturnChecker("arguments changed", bin, 4243, ebadf),
+		),
+		ActCountChecker: policytest.ActionCounts{Post: &posts},
 	}
 }).RegisterAtInit()

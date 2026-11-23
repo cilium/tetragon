@@ -1899,3 +1899,13 @@ spec:
 	}
 	require.Equal(t, map[uint32]uint64{0: 1}, posts)
 }
+
+func TestUprobeReturnRateLimit(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uretprobe-rate-limit", nil)
+}
+
+func TestUprobeReturnRateLimitNoMulti(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uretprobe-rate-limit", map[string]any{
+		"DisableUprobeMulti": true,
+	})
+}
