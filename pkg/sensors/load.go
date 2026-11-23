@@ -184,7 +184,7 @@ func (s *Sensor) Unload(unpin bool) error {
 	}
 
 	if s.PreUnloadHook != nil {
-		if err := s.PreUnloadHook(); err != nil {
+		if err := s.PreUnloadHook(unpin); err != nil {
 			logger.GetLogger().Warn("Pre unload hook failed", "sensor", s.Name, logfields.Error, err)
 		}
 	}

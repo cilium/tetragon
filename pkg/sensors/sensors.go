@@ -63,10 +63,9 @@ type Sensor struct {
 	// called during sensor loading, after the programs and maps being
 	// loaded.
 	PostLoadHook SensorHook
-	// PreUnloadHook can optionally contain a pointer to a function to be
-	// called during sensor unloading, prior to the programs and maps being
-	// unloaded.
-	PreUnloadHook SensorHook
+	// PreUnloadHook runs before unloading the sensor's programs and maps.
+	// It receives the same unpin setting as Unload.
+	PreUnloadHook func(unpin bool) error
 	// PostUnloadHook can optionally contain a pointer to a function to be
 	// called during sensor unloading, after the programs and maps being
 	// unloaded.
