@@ -22,6 +22,9 @@ var (
 	ProcessCmdMap     = program.MapBuilder("command_map", CreateProcess)
 )
 
+// initExitProbe does nothing: Windows has no exit probe to select.
+func initExitProbe() {}
+
 func GetDefaultPrograms() []*program.Program {
 	progs := []*program.Program{
 		CreateProcess,
