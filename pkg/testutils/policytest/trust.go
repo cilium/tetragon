@@ -66,9 +66,9 @@ func checkTrustedPath(dir string, uids []uint32) error {
 	}
 }
 
-// checkTrustedBinsDir checks that dir (absolute, with symlinks resolved) and every regular file
+// CheckTrustedBinsDir checks that dir (absolute, with symlinks resolved) and every regular file
 // in it can only be modified by trusted users.
-func checkTrustedBinsDir(dir string) error {
+func CheckTrustedBinsDir(dir string) error {
 	if !filepath.IsAbs(dir) {
 		return fmt.Errorf("%s directory must be an absolute path", dir)
 	}
