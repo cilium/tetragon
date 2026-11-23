@@ -32,10 +32,11 @@ Depending on your setup, changes listed here might require a manual intervention
   leading or trailing dot (`.mm.pgd`, `file.f_path.`) and a field name right
   after an index (`a[0]b`) were accepted before and are now rejected. Write
   them as `mm.pgd`, `file.f_path` and `a[0].b`.
-
 * `matchBinaries` and `matchParentBinaries` selectors must now have at least one
   entry in `values`, and entries must not be empty strings. Policies that
   do not meet these requirements are rejected.
+* `matchPIDs`, `matchCapabilities`, `matchCapabilityChanges` and `matchNamespaceChanges` now enforce `MaxItems=1` validation.
+  BPF code was already expecting this, but it was never properly enforced via CRD.
 
 ### Events (protobuf API)
 
