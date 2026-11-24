@@ -4,7 +4,10 @@
 #ifndef __PROCESS_STORAGE_HASH_H__
 #define __PROCESS_STORAGE_HASH_H__
 
-/* Hash map backed process maps and helpers. Only to be included by process.h. */
+/* Hash map backed process maps and helpers, used on kernels without task
+ * storage. Only to be included by process.h, see process_storage_task.h for
+ * the task storage variant, which must expose the same API.
+ */
 
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
@@ -52,9 +55,6 @@ FUNC_INLINE void execve_joined_info_map_clear(__u64 tid)
 		STATS_DEC(tg_execve_joined_info_map_stats, COUNT);
 	else
 		STATS_INC(tg_execve_joined_info_map_stats, EDELETE);
-	/* We don't care here about -ENOENT as there is no guarantee entries
-	 * will be present anyway.
-	 */
 }
 
 /* Returns the current task execve_info if found. A missing entry is perfectly
@@ -64,6 +64,21 @@ FUNC_INLINE void execve_joined_info_map_clear(__u64 tid)
 FUNC_INLINE struct execve_info *execve_joined_info_map_get(__u64 tid)
 {
 	return map_lookup_elem(&tg_execve_joined_info_map, &tid);
+}
+
+FUNC_INLINE struct binary *parents_bin_get(__u32 pid)
+{
+	return map_lookup_elem(&tg_parents_bin, &pid);
+}
+
+FUNC_INLINE void parents_bin_update(__u32 pid, struct binary *bin)
+{
+	with_errmetrics(map_update_elem, &tg_parents_bin, &pid, bin, BPF_ANY);
+}
+
+FUNC_INLINE void parents_bin_delete(__u32 pid)
+{
+	map_delete_elem(&tg_parents_bin, &pid);
 }
 
 #endif // __PROCESS_STORAGE_HASH_H__

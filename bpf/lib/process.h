@@ -525,11 +525,18 @@ FUNC_INLINE void execve_map_delete(__u32 pid)
  * information only, the core logic should not depend on entries
  * of this map to be present.
  *
+ * Both maps and their helpers are defined either on top of task storage or
+ * of hash maps, depending on the kernel support.
+ *
  * NOTE: this include can't be moved to the top of the file, as the storage
- * header depends on definitions above: struct binary, struct execve_info,
+ * headers depend on definitions above: struct binary, struct execve_info,
  * tg_execve_joined_info_map_stats and the STATS_INC/STATS_DEC macros.
  */
+#ifdef __TASK_STORAGE
+#include "process_storage_task.h"
+#else
 #include "process_storage_hash.h"
+#endif
 
 _Static_assert(sizeof(struct execve_map_value) % 8 == 0,
 	       "struct execve_map_value should have size multiple of 8 bytes");
