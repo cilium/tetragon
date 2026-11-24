@@ -205,6 +205,11 @@ func EnableV61Progs() bool {
 	if option.Config.ForceSmallProgs {
 		return false
 	}
+
+	if !bpf.HasTaskStorageHelper() {
+		return false
+	}
+
 	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) >= kernels.KernelStringToNumeric("6.1.0"))
 }
