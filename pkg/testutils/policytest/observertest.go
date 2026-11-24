@@ -101,8 +101,7 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 		}
 		if statsBefore != nil {
 			statsAfter := observerPolicyStats(ctx, t, tp.TpName())
-			err = actCountsCheck(false, statsBefore.GetActionCounters(), statsAfter.GetActionCounters(),
-				&scenario.ActCountChecker)
+			err = actCountsCheck(false, statsBefore, statsAfter, &scenario.ActCountChecker)
 			require.NoError(t, err, "scenario %s: action counts", scenario.Name)
 		}
 

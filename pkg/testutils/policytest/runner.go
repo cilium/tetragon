@@ -364,7 +364,7 @@ func (r *LocalRunner) RunScenario(
 	r.fwdCtlChan <- fwdCtl{cmd: fwdCmdSetForward, fwd: resChan}
 
 	var actionCountsErr error
-	var cntsBefore, cntsAfter *tetragon.TracingPolicyActionCounters
+	var cntsBefore, cntsAfter *tetragon.TracingPolicyStats
 	if !scenario.ActCountChecker.empty() {
 		cntsBefore, actionCountsErr = polHandler.GetCounts(l, r.cli)
 	}
@@ -597,7 +597,7 @@ func (ph *PolicyHandler) Configure(
 }
 
 func (ph *PolicyHandler) GetCounts(
-	_ *slog.Logger, client *cli.ClientWithContext) (*tetragon.TracingPolicyActionCounters, error) {
+	_ *slog.Logger, client *cli.ClientWithContext) (*tetragon.TracingPolicyStats, error) {
 	if ph == nil {
 		return nil, errors.New("failed to get action counts: no policy loaded")
 	}
@@ -609,8 +609,7 @@ func (ph *PolicyHandler) GetCounts(
 
 	for _, pol := range res.GetPolicies() {
 		if pol.Name == ph.tpName && pol.Namespace == ph.tpNamespace {
-			counts := pol.GetStats().GetActionCounters()
-			return counts, nil
+			return pol.GetStats(), nil
 		}
 	}
 
