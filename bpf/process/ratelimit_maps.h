@@ -8,14 +8,20 @@
 #include "retprobe_map.h"
 
 /* The number of bytes per argument to include in the key
- * that we use to check for repeating data.
- * 40 is good for IPv6 data.
+ * that we use to check for repeating data: the argument's
+ * read status, followed by up to 40 bytes of its data.
+ * 40 is good for IPv6 data, such as struct tuple_type.
  */
-#define KEY_BYTES_PER_ARG 40
+#define KEY_BYTES_PER_ARG ((int)sizeof(arg_status_t) + 40)
 
 /* Can't really include generic.h in here..
  */
 #define MAX_POSSIBLE_ARGS 5
+
+/* rate_limit_args() masks each copy with 0x3f, and where it starts with 0xff. */
+_Static_assert(KEY_BYTES_PER_ARG <= 0x3f, "KEY_BYTES_PER_ARG must fit the 0x3f copy mask");
+_Static_assert((MAX_POSSIBLE_ARGS - 1) * KEY_BYTES_PER_ARG <= 0xff,
+	       "the last argument's key offset must fit the 0xff mask");
 
 /* Rate limit scope. */
 #define ACTION_RATE_LIMIT_SCOPE_THREAD	0
