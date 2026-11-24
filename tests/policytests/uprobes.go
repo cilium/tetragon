@@ -1566,7 +1566,7 @@ spec:
     - matchArgs:
       - index: 0
         operator: "Equal"
-        values: ["rate-limit-a", "rate-limit-b"]
+        values: ["rate-limit-a", "rate-limit-b", "rate-limit-long-xxxxxxxxxxxxxxxxxxx1", "rate-limit-long-xxxxxxxxxxxxxxxxxxx2"]
       matchReturnActions:
       - action: Post
         rateLimit: "1m"
@@ -1580,6 +1580,22 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(
 			returnStringChecker("repeated", bin, "rate-limit-a"),
 			returnStringChecker("changed", bin, "rate-limit-b"),
+		),
+		ActCountChecker: policytest.ActionCounts{Post: &posts},
+	}
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("regs-override")
+	// A string's data is its 4-byte length followed by its characters, so
+	// with 36 characters, the last one, which differs, is the 40th byte of
+	// data: the last byte that the key holds per argument after its status.
+	long := "rate-limit-long-xxxxxxxxxxxxxxxxxxx"
+	posts := uint64(2)
+	return &policytest.Scenario{
+		Name:    "repeat a long call, then change its last character",
+		Trigger: regsOverrideReturnStringTrigger(bin, long+"1", long+"1", long+"2"),
+		EventChecker: ec.NewUnorderedEventChecker(
+			returnStringChecker("repeated", bin, long+"1"),
+			returnStringChecker("last character changed", bin, long+"2"),
 		),
 		ActCountChecker: policytest.ActionCounts{Post: &posts},
 	}
