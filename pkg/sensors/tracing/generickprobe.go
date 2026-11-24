@@ -489,6 +489,7 @@ func preValidateKprobes(log logger.FieldLogger, kprobes []v1alpha1.KProbeSpec, l
 
 type addKprobeIn struct {
 	useMulti      bool
+	fentry        bool
 	sensorPath    string
 	policyName    string
 	policyID      policyfilter.PolicyID
@@ -598,6 +599,7 @@ func createGenericKprobeSensor(
 
 	in := addKprobeIn{
 		useMulti:      useMulti,
+		fentry:        fentry,
 		sensorPath:    name,
 		policyID:      polInfo.policyID,
 		policyName:    polInfo.name,
@@ -937,6 +939,12 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 	// Write attributes into BTF ptr for use with load
 	if !setRetprobe {
 		setRetprobe = f.Return
+	}
+
+	// The fexit program reads the return value with bpf_get_func_ret, so
+	// it fails to load without it.
+	if in.fentry && setRetprobe && !bpf.HasGetFuncRetHelper() {
+		return errFn(errors.New("fentry return probes (return: true or a returnCopy argument) require the bpf_get_func_ret helper (kernel >= 5.17)"))
 	}
 
 	if f.Syscall {
