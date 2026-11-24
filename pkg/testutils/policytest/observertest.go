@@ -13,11 +13,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tetragoninfo"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
 var getAgentInfo = sync.OnceValue(func() *tetragoninfo.Info {
@@ -68,6 +71,10 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 	if err != nil {
 		t.Fatalf("failed to create polcy file: %s", err)
 	}
+	tp, err := tracingpolicy.FromYAML(string(policyStr))
+	if err != nil {
+		t.Fatalf("failed to parse policy: %s", err)
+	}
 	policyFile.WriteString(string(policyStr))
 	policyFile.Close()
 	policyFname := policyFile.Name()
@@ -84,12 +91,35 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 
 	for _, s := range pt.Scenarios {
 		scenario := s(conf)
+		var statsBefore *tetragon.TracingPolicyStats
+		if !scenario.ActCountChecker.empty() {
+			statsBefore = observerPolicyStats(ctx, t, tp.TpName())
+		}
 		err = scenario.Trigger.Trigger(ctx)
 		if err != nil {
 			t.Fatalf("failed to trigger scenario %s: %v", scenario.Name, err)
+		}
+		if statsBefore != nil {
+			statsAfter := observerPolicyStats(ctx, t, tp.TpName())
+			err = actCountsCheck(false, statsBefore.GetActionCounters(), statsAfter.GetActionCounters(),
+				&scenario.ActCountChecker)
+			require.NoError(t, err, "scenario %s: action counts", scenario.Name)
 		}
 
 		err = jsonchecker.JsonTestCheckExpect(t, scenario.EventChecker, scenario.ExpectCheckerFailure)
 		require.NoError(t, err)
 	}
+}
+
+func observerPolicyStats(ctx context.Context, t *testing.T, name string) *tetragon.TracingPolicyStats {
+	t.Helper()
+	res, err := observer.GetSensorManager().ListTracingPolicies(ctx, "")
+	require.NoError(t, err)
+	for _, pol := range res.GetPolicies() {
+		if pol.Name == name {
+			return pol.GetStats()
+		}
+	}
+	t.Fatalf("policy %q not found", name)
+	return nil
 }
