@@ -19,8 +19,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        path: go/src/github.com/cilium/tetragon/
 
     - name: Install Go
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -57,9 +55,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Ensure BPF programs pass verifier
-      run: |
-        cd go/src/github.com/cilium/tetragon/
-        make verify
+      run: make verify
 
     - name: Run go tests
       # ubuntu-26.04 ships Rust coreutils behind symlinks, which breaks the
@@ -67,11 +63,9 @@ jobs:
       # https://github.com/cilium/tetragon/issues/3583.
       if: ${{ matrix.os != 'ubuntu-26.04' }}
       env:
-        GOPATH: ${{ env.GITHUB_WORKSPACE }}/go
         SUDO: sudo -E
       run: |
         go clean -cache -modcache -testcache -fuzzcache
-        cd go/src/github.com/cilium/tetragon/
         sudo -E echo "run go tests: " `uname -a`
         sudo -E go mod verify
         export TETRAGON_LIB=$(realpath "bpf/objs/")
@@ -88,7 +82,6 @@ jobs:
       # on 26.04 we skip the go test and therefore also building the tester-progs
       # make sure that they are built before running the nok8s tests
       run: |
-        cd go/src/github.com/cilium/tetragon/
         make tester-progs
         go vet -tags nok8s ./pkg/sensors ./pkg/policyfilter ./pkg/tracingpolicy ./pkg/testutils/policytest
         go test -tags nok8s ./pkg/tracingpolicy ./pkg/testutils/policytest
@@ -128,8 +121,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        path: go/src/github.com/cilium/tetragon/
 
     - name: Install Go
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -140,16 +131,13 @@ jobs:
     - name: Run go fuzz tests
       env:
         SUDO: sudo -E
-      run: |
-        cd go/src/github.com/cilium/tetragon/
-        make test-fuzz
+      run: make test-fuzz
 
     - name: Collect fuzz failures
       if: ${{ failure() }}
       id: collect-fuzz-failures
       shell: bash
       run: |
-        cd go/src/github.com/cilium/tetragon/
         destination="${RUNNER_TEMP}/go-fuzz-failures"
         found=false
 
@@ -175,8 +163,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        path: go/src/github.com/cilium/tetragon/
 
     - name: Install Go
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -185,7 +171,6 @@ jobs:
         go-version: '1.27.4'
 
     - name: Run go tests
-      working-directory: ${{ github.workspace }}\go\src\github.com\cilium\tetragon
       run: |
         go test --failfast .\pkg\... .\cmd\...
 
@@ -195,8 +180,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        path: go/src/github.com/cilium/tetragon/
 
     - name: Install Go
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -205,11 +188,11 @@ jobs:
         go-version: '1.27.4'
 
     - name: Run go tests of the api module
-      working-directory: go/src/github.com/cilium/tetragon/api
+      working-directory: api
       run: go test --failfast ./...
 
     - name: Run go tests of the rthooks module
-      working-directory: go/src/github.com/cilium/tetragon/contrib/tetragon-rthooks
+      working-directory: contrib/tetragon-rthooks
       run: go test --failfast ./...
 
   race:
@@ -223,8 +206,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        path: go/src/github.com/cilium/tetragon/
 
     - name: Install Go
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -247,11 +228,9 @@ jobs:
 
     - name: Run go tests with -race
       env:
-        GOPATH: ${{ env.GITHUB_WORKSPACE }}/go
         SUDO: sudo -E
       run: |
         go clean -cache -modcache -testcache -fuzzcache
-        cd go/src/github.com/cilium/tetragon/
         sudo -E echo "run race tests: " `uname -a`
         sudo -E go mod verify
         export TETRAGON_LIB=$(realpath "bpf/objs/")
