@@ -77,10 +77,12 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 
-	for _, s := range pt.Scenarios {
-		observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-		readyWG.Wait()
+	// Read events once for all scenarios: concurrent readers of the same
+	// event buffer would race for events, losing or duplicating them.
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
 
+	for _, s := range pt.Scenarios {
 		scenario := s(conf)
 		err = scenario.Trigger.Trigger(ctx)
 		if err != nil {
