@@ -148,7 +148,9 @@ $(DEPSDIR):
 CFLAGS_v310 = -D__RHEL7_BPF_PROG
 CFLAGS_v53  = -D__LARGE_BPF_PROG
 CFLAGS_v511 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG
-CFLAGS_v61  = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG
+# v61 objects load on 6.1+ only, so they can use ISA v3 (ALU32, JMP32). This
+# -mcpu comes after the -mcpu=v2 of CLANG_FLAGS on the command line and wins.
+CFLAGS_v61  = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG -mcpu=v3
 
 # Define extra CFLAGS for objects
 CFLAGS_bpf_enforcer.o           = -D__BPF_OVERRIDE_RETURN

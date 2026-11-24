@@ -2834,8 +2834,9 @@ FUNC_INLINE int try_override(void *ctx, struct bpf_map_def *override_tasks)
 	if (!error)
 		return 0;
 
-	/* The following inline asm uses 64-bit bpf instructions since we compile
-	 * with -mcpu=v2. Therefore, we need to extend the s32 value to s64.
+	/* The inline asm compares 64-bit registers. The base, v53 and v511
+	 * objects build with -mcpu=v2, which has no 32-bit jumps, so extend
+	 * the s32 value to s64 before the asm.
 	 * error points into the map entry, so read it before deleting it.
 	 */
 	ret = *error;
