@@ -44,14 +44,33 @@ type state struct {
 	mu sync.Mutex
 	// map of used IDs for mbset bits [0..MaxIDs]
 	ids map[uint32]struct{}
+	// IDs whose policy is gone, but whose bit might still be set in the
+	// execve_map entries of running processes. They stay in ids (so nobody
+	// else gets them) until reclaimStale sees that no process carries the
+	// bit anymore.
+	stale map[uint32]struct{}
 	// generation value aka last mbset filter timestamp
 	gen uint64
+	// openMap opens a pinned map by name, tests replace it
+	openMap func(name string) (*ebpf.Map, error)
 }
 
 func newState() (*state, error) {
 	return &state{
-		ids: make(map[uint32]struct{}),
+		ids:     make(map[uint32]struct{}),
+		stale:   make(map[uint32]struct{}),
+		openMap: openMap,
 	}, nil
+}
+
+// freeID returns the first unused ID, s.mu must be held
+func (s *state) freeID() (uint32, bool) {
+	for id := range uint32(MaxIDs) {
+		if _, ok := s.ids[id]; !ok {
+			return id, true
+		}
+	}
+	return InvalidID, false
 }
 
 // AllocID allocates a new ID
@@ -59,22 +78,71 @@ func (s *state) AllocID() (uint32, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for id := range uint32(MaxIDs) {
-		if _, ok := s.ids[id]; !ok {
-			s.ids[id] = struct{}{}
-			return id, nil
+	id, ok := s.freeID()
+	if !ok && len(s.stale) != 0 {
+		// We ran out of IDs, but some of them are only held back because
+		// processes still had their bit set when the policy was removed.
+		// Check if those processes are gone by now.
+		if err := s.reclaimStale(); err != nil {
+			return InvalidID, fmt.Errorf("cannot allocate new id: %w", err)
+		}
+		id, ok = s.freeID()
+	}
+	if !ok {
+		return InvalidID, errors.New("cannot allocate new id")
+	}
+	s.ids[id] = struct{}{}
+	return id, nil
+}
+
+// ReleaseID gives back an ID that was allocated but never written to the
+// mbset map (i.e. UpdateMap was not called for it), for example because the
+// rest of the policy failed to parse. Use RemoveID for everything else.
+func (s *state) ReleaseID(id uint32) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.ids, id)
+}
+
+// reclaimStale releases stale IDs whose bit is not set in any execve_map
+// entry anymore, s.mu must be held.
+//
+// Once the bit is gone from tg_mbset_map (RemoveID takes care of that before
+// marking the ID as stale) it can only be inherited from a parent that still
+// has it, so if no process has the bit, no new one will get it.
+func (s *state) reclaimStale() error {
+	hash, err := s.openMap(ExecveMapName)
+	if err != nil {
+		return fmt.Errorf("failed to open execve_map hash map: %w", err)
+	}
+	defer hash.Close()
+
+	var (
+		key   execvemap.ExecveKey
+		val   execvemap.ExecveValue
+		inUse bitSet
+	)
+
+	iter := hash.Iterate()
+	for iter.Next(&key, &val) {
+		inUse |= val.Binary.MBSet
+	}
+	if err := iter.Err(); err != nil {
+		return fmt.Errorf("failed to iterate execve_map: %w", err)
+	}
+
+	for id := range s.stale {
+		if inUse&(bitSet(1)<<id) == 0 {
+			delete(s.stale, id)
+			delete(s.ids, id)
 		}
 	}
-	return InvalidID, errors.New("cannot allocate new id")
+	return nil
 }
 
 func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	if update == nil {
-		return nil
-	}
 
 	// There's limited number of mbset IDs (64) that we can use,
 	// so we need to release them when the policy is removed.
@@ -83,14 +151,19 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 	// 1) clean up mbset_map and unset ID bit from all its records
 	// 2) clean up execve_map and unset ID bit from all its binary records
 	// 3) remove id from the state map
+	//
+	// If 2) fails, the bit can still be set for running processes, so
+	// handing the ID to another selector would make it match processes
+	// that have nothing to do with it. In that case we keep the ID
+	// allocated and let AllocID reclaim it later, see reclaimStale.
 
-	mbsetMap, err := openMap(MapName)
+	mbsetMap, err := s.openMap(MapName)
 	if err != nil {
 		return fmt.Errorf("failed to open mbset map: %w", err)
 	}
 	defer mbsetMap.Close()
 
-	hash, err := openMap(ExecveMapName)
+	hash, err := s.openMap(ExecveMapName)
 	if err != nil {
 		return fmt.Errorf("failed to open execve_map hash map: %w", err)
 	}
@@ -104,6 +177,11 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 
 		err := mbsetMap.Lookup(path, &val)
 		if err != nil {
+			// Duplicate paths in one selector hit Delete on the first copy;
+			// a second Lookup returns ErrKeyNotExist — continue, do not leak ID.
+			if errors.Is(err, ebpf.ErrKeyNotExist) {
+				continue
+			}
 			return fmt.Errorf("failed to lookup mbset map: %w", err)
 		}
 
@@ -128,6 +206,10 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 	// we repeat (4 extra times) the removal after 0.5 second delay.
 	// In case we start to hit this race more often, we sohuld consider go
 	// routine for the removal.
+	//
+	// Without an updater (small programs) we can't clear the bit, so we
+	// only check that no process has it.
+	upd := update
 	updatePids := func() error {
 		for idx := range 5 {
 			var (
@@ -142,8 +224,14 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 					pids = append(pids, key.Pid)
 				}
 			}
+			if err := iter.Err(); err != nil {
+				return fmt.Errorf("failed to iterate execve_map: %w", err)
+			}
 			if len(pids) != 0 {
-				if err := update.MBSetBitClear(id, pids); err != nil {
+				if upd == nil {
+					return fmt.Errorf("%d processes still carry the bit and there is no execve_map updater", len(pids))
+				}
+				if err := upd.MBSetBitClear(id, pids); err != nil {
 					return err
 				}
 				if idx != 0 {
@@ -161,14 +249,18 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 	err = updatePids()
 	s.mu.Lock()
 
-	if err != nil {
-		return fmt.Errorf("failed to remove mbset id %d: %w", id, err)
-	}
-
-	// 3) Remove id from the state map
 	if _, ok := s.ids[id]; !ok {
 		return fmt.Errorf("cannot find id %d", id)
 	}
+
+	if err != nil {
+		// mbset_map is clean at this point, so the ID can be reused as
+		// soon as the processes that still have the bit are gone.
+		s.stale[id] = struct{}{}
+		return fmt.Errorf("failed to remove mbset id %d, keeping it until processes using it exit: %w", id, err)
+	}
+
+	// 3) Remove id from the state map
 	delete(s.ids, id)
 	return nil
 }
@@ -184,13 +276,13 @@ func (s *state) UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byt
 		return errors.New("unexpected id")
 	}
 
-	mbsetMap, err := openMap(MapName)
+	mbsetMap, err := s.openMap(MapName)
 	if err != nil {
 		return fmt.Errorf("failed to open mbset map: %w", err)
 	}
 	defer mbsetMap.Close()
 
-	mbsetGen, err := openMap(GenName)
+	mbsetGen, err := s.openMap(GenName)
 	if err != nil {
 		return fmt.Errorf("failed to open mbset gen: %w", err)
 	}
@@ -250,6 +342,14 @@ func RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
 		return err
 	}
 	return s.RemoveID(id, paths)
+}
+
+func ReleaseID(id uint32) {
+	s, err := getState()
+	if err != nil {
+		return
+	}
+	s.ReleaseID(id)
 }
 
 func UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
