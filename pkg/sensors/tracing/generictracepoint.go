@@ -10,7 +10,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"path"
 
 	"github.com/cilium/ebpf"
@@ -843,7 +842,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 	return err
 }
 
-func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
+func handleGenericTracepoint(r *api.BPFReader) ([]observer.Event, error) {
 	m := tracingapi.MsgGenericTracepoint{}
 	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
@@ -873,7 +872,7 @@ func handleMsgGenericTracepoint(
 	m *tracingapi.MsgGenericTracepoint,
 	unix *tracing.MsgGenericTracepointUnix,
 	tp *genericTracepoint,
-	r *bytes.Reader,
+	r *api.BPFReader,
 ) ([]observer.Event, error) {
 	switch m.ActionId {
 	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
@@ -947,7 +946,7 @@ func handleMsgGenericTracepoint(
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			// 4 bytes were sent for uint16 to achieve alignment. See read_arg()
-			_, err = io.CopyN(io.Discard, r, 2)
+			err = r.Skip(2)
 			if err != nil {
 				logger.GetLogger().Warn("Size type error for alignment: 2", logfields.Error, err)
 			}
@@ -960,7 +959,7 @@ func handleMsgGenericTracepoint(
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			// 4 bytes were sent for int16 to achieve alignment. See read_arg()
-			_, err = io.CopyN(io.Discard, r, 2)
+			err = r.Skip(2)
 			if err != nil {
 				logger.GetLogger().Warn("Size type error for alignment: 2", logfields.Error, err)
 			}
@@ -973,7 +972,7 @@ func handleMsgGenericTracepoint(
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			// 4 bytes were sent for uint8 to achieve alignment. See read_arg()
-			_, err = io.CopyN(io.Discard, r, 3)
+			err = r.Skip(3)
 			if err != nil {
 				logger.GetLogger().Warn("Size type error for alignment: 3", logfields.Error, err)
 			}
@@ -986,7 +985,7 @@ func handleMsgGenericTracepoint(
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			// 4 bytes were sent for int8 to achieve alignment. See read_arg()
-			_, err = io.CopyN(io.Discard, r, 3)
+			err = r.Skip(3)
 			if err != nil {
 				logger.GetLogger().Warn("Size type error for alignment: 3", logfields.Error, err)
 			}

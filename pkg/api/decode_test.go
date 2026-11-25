@@ -4,7 +4,6 @@
 package api
 
 import (
-	"bytes"
 	"io"
 	"testing"
 
@@ -12,7 +11,7 @@ import (
 )
 
 func TestReadIntegerLEUint(t *testing.T) {
-	r := bytes.NewReader([]byte{
+	r := NewBPFReader([]byte{
 		0x01,
 		0x02, 0x00,
 		0x03, 0x00, 0x00, 0x00,
@@ -39,7 +38,7 @@ func TestReadIntegerLEUint(t *testing.T) {
 }
 
 func TestReadIntegerLEInt(t *testing.T) {
-	r := bytes.NewReader([]byte{
+	r := NewBPFReader([]byte{
 		0xff,
 		0xfe, 0xff,
 		0xfd, 0xff, 0xff, 0xff,
@@ -64,21 +63,21 @@ func TestReadIntegerLEInt(t *testing.T) {
 }
 
 func TestReadIntegerLEShortRead(t *testing.T) {
-	r := bytes.NewReader([]byte{0x01, 0x02, 0x03})
+	r := NewBPFReader([]byte{0x01, 0x02, 0x03})
 
 	_, err := ReadIntegerLE[uint32](r)
 	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 }
 
 func TestReadIntegerLEEmpty(t *testing.T) {
-	r := bytes.NewReader(nil)
+	r := NewBPFReader(nil)
 
 	_, err := ReadIntegerLE[uint64](r)
 	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 }
 
 func TestReadIntegerLESequential(t *testing.T) {
-	r := bytes.NewReader([]byte{0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88})
+	r := NewBPFReader([]byte{0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88})
 
 	a, err := ReadIntegerLE[uint32](r)
 	require.NoError(t, err)
@@ -99,7 +98,7 @@ type testBPFStruct struct {
 }
 
 func TestReadBPFStruct(t *testing.T) {
-	r := bytes.NewReader([]byte{
+	r := NewBPFReader([]byte{
 		0x01, 0x00, 0x00, 0x00,
 		0x02, 0x00,
 		0x03, 0x00,
@@ -114,7 +113,7 @@ func TestReadBPFStruct(t *testing.T) {
 }
 
 func TestReadBPFStructShortRead(t *testing.T) {
-	r := bytes.NewReader([]byte{0x01, 0x00, 0x00, 0x00, 0x02, 0x00})
+	r := NewBPFReader([]byte{0x01, 0x00, 0x00, 0x00, 0x02, 0x00})
 
 	var dst testBPFStruct
 	err := ReadBPFStruct(r, &dst)
@@ -122,7 +121,7 @@ func TestReadBPFStructShortRead(t *testing.T) {
 }
 
 func TestReadBPFStructPreservesTrailingData(t *testing.T) {
-	r := bytes.NewReader([]byte{
+	r := NewBPFReader([]byte{
 		0x01, 0x00, 0x00, 0x00,
 		0x02, 0x00,
 		0x03, 0x00,
@@ -139,4 +138,18 @@ func TestReadBPFStructPreservesTrailingData(t *testing.T) {
 	rest, err := ReadIntegerLE[uint16](r)
 	require.NoError(t, err)
 	require.Equal(t, uint16(0xbbaa), rest)
+}
+
+func TestDecodeNoAllocs(t *testing.T) {
+	data := make([]byte, 64)
+	r := NewBPFReader(data)
+
+	allocs := testing.AllocsPerRun(100, func() {
+		r.r.Reset(data)
+		var dst testBPFStruct
+		_ = ReadBPFStruct(r, &dst)
+		_, _ = ReadIntegerLE[uint64](r)
+		_, _ = ReadIntegerLE[int16](r)
+	})
+	require.Zero(t, allocs)
 }

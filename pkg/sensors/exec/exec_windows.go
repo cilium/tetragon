@@ -4,7 +4,6 @@
 package exec
 
 import (
-	"bytes"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
@@ -52,7 +51,7 @@ func nopMsgProcess() processapi.MsgProcess {
 	}
 }
 
-func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
+func handleExecve(r *api.BPFReader) ([]observer.Event, error) {
 	var empty bool
 
 	m := processapi.MsgCreateProcessEvent{}
@@ -92,7 +91,7 @@ func msgToExitUnix(m *processapi.MsgExitProcessEvent) *exec.MsgExitEventUnix {
 	return &exec.MsgExitEventUnix{MsgExitEvent: msgExitEvent}
 }
 
-func handleExit(r *bytes.Reader) ([]observer.Event, error) {
+func handleExit(r *api.BPFReader) ([]observer.Event, error) {
 	m := processapi.MsgExitProcessEvent{}
 	err := api.ReadBPFStruct(r, &m)
 	if err != nil {

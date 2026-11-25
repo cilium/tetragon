@@ -26,7 +26,6 @@
 package tracing
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -206,7 +205,7 @@ func inCache(pid uint32, path string) bool {
 	return ok
 }
 
-func handleLoader(r *bytes.Reader) ([]observer.Event, error) {
+func handleLoader(r *api.BPFReader) ([]observer.Event, error) {
 	m := tracingapi.MsgLoader{}
 	err := api.ReadBPFStruct(r, &m)
 	if err != nil {

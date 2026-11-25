@@ -182,7 +182,7 @@ func genericUprobeTableGet(id idtable.EntryID) (*genericUprobe, error) {
 	return val, nil
 }
 
-func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
+func handleGenericUprobe(r *tetragonapi.BPFReader) ([]observer.Event, error) {
 	m := api.MsgGenericKprobe{}
 	err := tetragonapi.ReadBPFStruct(r, &m)
 	if err != nil {

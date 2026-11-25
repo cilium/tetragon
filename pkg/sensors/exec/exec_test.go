@@ -793,7 +793,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, filename)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -820,7 +820,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, exec)
 		binary.Write(&buf, binary.LittleEndian, filename)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -853,7 +853,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, desc)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -890,7 +890,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, desc)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -922,7 +922,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, args)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -959,7 +959,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, desc)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -991,7 +991,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, args)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -1028,7 +1028,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, desc)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -1070,7 +1070,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, desc2)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -1109,7 +1109,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, desc)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -1137,7 +1137,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, exec)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -1175,7 +1175,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, cwd)
 		binary.Write(&buf, binary.LittleEndian, envs)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)
@@ -1210,7 +1210,7 @@ func TestExecParse(t *testing.T) {
 		binary.Write(&buf, binary.LittleEndian, args)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := api.NewBPFReader(buf.Bytes())
 
 		process, err := execParse(reader)
 		require.NoError(t, err)

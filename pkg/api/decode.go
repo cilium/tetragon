@@ -4,10 +4,8 @@
 package api
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"unsafe"
 )
 
@@ -20,22 +18,13 @@ type Integer interface {
 // reader as an io.Reader interface, so it must heap-allocate the temporary
 // buffer it reads into on every call, since escape analysis can't see past
 // the interface's dynamic dispatch to prove the buffer doesn't escape.
-func ReadIntegerLE[T Integer](r *bytes.Reader) (T, error) {
+func ReadIntegerLE[T Integer](r *BPFReader) (T, error) {
 	var v T
 	size := int(unsafe.Sizeof(v))
 
-	if size > r.Len() {
-		return 0, io.ErrUnexpectedEOF
-	}
-
 	var buf [8]byte
-	n, err := r.Read(buf[:size])
-	if err != nil {
+	if err := r.ReadBytes(buf[:size]); err != nil {
 		return 0, err
-	}
-
-	if n != size {
-		return 0, io.ErrUnexpectedEOF
 	}
 
 	switch size {
@@ -52,20 +41,9 @@ func ReadIntegerLE[T Integer](r *bytes.Reader) (T, error) {
 	return 0, fmt.Errorf("unsupported integer size %d", size)
 }
 
-func ReadBPFStruct[T any](r *bytes.Reader, dst *T) error {
+// ReadBPFStruct reads a struct (or any fixed-size value) laid out in host
+// memory order, as emitted by BPF, directly into dst without allocating.
+func ReadBPFStruct[T any](r *BPFReader, dst *T) error {
 	buf := unsafe.Slice((*byte)(unsafe.Pointer(dst)), unsafe.Sizeof(*dst))
-	if len(buf) > r.Len() {
-		return io.ErrUnexpectedEOF
-	}
-
-	n, err := r.Read(buf)
-	if err != nil {
-		return err
-	}
-
-	if n != len(buf) {
-		return io.ErrUnexpectedEOF
-	}
-
-	return nil
+	return r.ReadBytes(buf)
 }

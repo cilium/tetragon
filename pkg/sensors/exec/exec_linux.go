@@ -78,7 +78,7 @@ func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, execID string, filename s
 	return kube
 }
 
-func readData(reader *bytes.Reader, size uint16) ([]byte, error) {
+func readData(reader *api.BPFReader, size uint16) ([]byte, error) {
 	var desc dataapi.DataEventDesc
 	if uint16(unsafe.Sizeof(desc)) != size {
 		return nil, errors.New("msg exec mismatched size")
@@ -89,7 +89,7 @@ func readData(reader *bytes.Reader, size uint16) ([]byte, error) {
 	return observer.DataGet(desc)
 }
 
-func readRawBytes(reader *bytes.Reader, exec *processapi.MsgExec, size uint16, flags uint32) ([]byte, error) {
+func readRawBytes(reader *api.BPFReader, exec *processapi.MsgExec, size uint16, flags uint32) ([]byte, error) {
 	if size == 0 {
 		return nil, nil
 	}
@@ -104,12 +104,8 @@ func readRawBytes(reader *bytes.Reader, exec *processapi.MsgExec, size uint16, f
 	}
 
 	data := make([]byte, size)
-	nread, err := reader.Read(data)
-	if err != nil {
-		return nil, err
-	}
-	if nread != int(size) {
-		return nil, errors.New("size mismatch")
+	if err := reader.ReadBytes(data); err != nil {
+		return nil, fmt.Errorf("size mismatch: %w", err)
 	}
 
 	return data, nil
@@ -132,7 +128,7 @@ func nullStrings(data []byte) iter.Seq[[]byte] {
 	}
 }
 
-func resolveArgs(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) {
+func resolveArgs(reader *api.BPFReader, exec *processapi.MsgExec) (string, error) {
 	if exec.SizeArgs == 0 {
 		return "", nil
 	}
@@ -190,17 +186,13 @@ func resolveArgs(reader *bytes.Reader, exec *processapi.MsgExec) (string, error)
 	return args.String(), nil
 }
 
-func resolveCwd(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) {
+func resolveCwd(reader *api.BPFReader, exec *processapi.MsgExec) (string, error) {
 	var cwd []byte
 
 	if exec.SizeCwd > 0 {
 		cwd = make([]byte, exec.SizeCwd)
-		nread, err := reader.Read(cwd)
-		if err != nil {
-			return "", err
-		}
-		if nread != int(exec.SizeCwd) {
-			return "", errors.New("cwd size mismatch")
+		if err := reader.ReadBytes(cwd); err != nil {
+			return "", fmt.Errorf("cwd size mismatch: %w", err)
 		}
 	}
 
@@ -219,7 +211,7 @@ func resolveCwd(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) 
 	return strutils.UTF8FromBPFBytes(cwd), nil
 }
 
-func resolveFilename(reader *bytes.Reader, exec *processapi.MsgExec) (string, error) {
+func resolveFilename(reader *api.BPFReader, exec *processapi.MsgExec) (string, error) {
 	if exec.SizePath == 0 {
 		return errorNoMem, nil
 	}
@@ -232,7 +224,7 @@ func resolveFilename(reader *bytes.Reader, exec *processapi.MsgExec) (string, er
 	return strutils.UTF8FromBPFBytes(data), nil
 }
 
-func resolveProcEnvs(reader *bytes.Reader, exec *processapi.MsgExec) ([]string, error) {
+func resolveProcEnvs(reader *api.BPFReader, exec *processapi.MsgExec) ([]string, error) {
 	if exec.SizeEnvs == 0 {
 		return nil, nil
 	}
@@ -255,7 +247,7 @@ func resolveProcEnvs(reader *bytes.Reader, exec *processapi.MsgExec) ([]string, 
 	return ret, nil
 }
 
-func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
+func execParse(reader *api.BPFReader) (processapi.MsgProcess, error) {
 	proc := processapi.MsgProcess{
 		Filename: errorNoMem,
 		Args:     errorNoMem,
@@ -323,7 +315,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 	return proc, nil
 }
 
-func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
+func handleExecve(r *api.BPFReader) ([]observer.Event, error) {
 	msgUnix := &exec.MsgExecveEventUnix{}
 
 	err := api.ReadBPFStruct(r, &msgUnix.Unix.Msg)
@@ -349,7 +341,7 @@ func msgToExitUnix(m *processapi.MsgExitEvent) *exec.MsgExitEventUnix {
 	return &exec.MsgExitEventUnix{MsgExitEvent: *m}
 }
 
-func handleExit(r *bytes.Reader) ([]observer.Event, error) {
+func handleExit(r *api.BPFReader) ([]observer.Event, error) {
 	m := processapi.MsgExitEvent{}
 	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
@@ -359,7 +351,7 @@ func handleExit(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{msgUnix}, nil
 }
 
-func handleClone(r *bytes.Reader) ([]observer.Event, error) {
+func handleClone(r *api.BPFReader) ([]observer.Event, error) {
 	m := processapi.MsgCloneEvent{}
 	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
@@ -369,7 +361,7 @@ func handleClone(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{msgUnix}, nil
 }
 
-func handleCgroupEvent(r *bytes.Reader) ([]observer.Event, error) {
+func handleCgroupEvent(r *api.BPFReader) ([]observer.Event, error) {
 	m := processapi.MsgCgroupEvent{}
 	err := api.ReadBPFStruct(r, &m)
 	if err != nil {
@@ -379,7 +371,7 @@ func handleCgroupEvent(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{msgUnix}, nil
 }
 
-func handleThrottleEvent(r *bytes.Reader) ([]observer.Event, error) {
+func handleThrottleEvent(r *api.BPFReader) ([]observer.Event, error) {
 	m := processapi.MsgThrottleEvent{}
 	err := api.ReadBPFStruct(r, &m)
 	if err != nil {

@@ -140,7 +140,7 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return nil
 }
 
-func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
+func handleGenericLsm(r *tetragonapi.BPFReader) ([]observer.Event, error) {
 	m := api.MsgGenericKprobe{}
 	err := tetragonapi.ReadBPFStruct(r, &m)
 	if err != nil {

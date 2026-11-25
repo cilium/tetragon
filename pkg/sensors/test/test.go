@@ -7,7 +7,6 @@ package test
 // and BogusWhenceVal are used.
 
 import (
-	"bytes"
 	"fmt"
 
 	"sync/atomic"
@@ -50,7 +49,7 @@ func msgToTestUnix(m *api.MsgTestEvent) *test.MsgTestEventUnix {
 	}
 }
 
-func handleTest(r *bytes.Reader) ([]observer.Event, error) {
+func handleTest(r *tetragonapi.BPFReader) ([]observer.Event, error) {
 	m := api.MsgTestEvent{}
 	if err := tetragonapi.ReadBPFStruct(r, &m); err != nil {
 		return nil, err
