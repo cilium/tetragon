@@ -92,7 +92,7 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 	for _, s := range pt.Scenarios {
 		scenario := s(conf)
 		var statsBefore *tetragon.TracingPolicyStats
-		if !scenario.ActCountChecker.empty() {
+		if !scenario.ActCountChecker.Empty() {
 			statsBefore = observerPolicyStats(ctx, t, tp.TpName())
 		}
 		err = scenario.Trigger.Trigger(ctx)
@@ -101,7 +101,7 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 		}
 		if statsBefore != nil {
 			statsAfter := observerPolicyStats(ctx, t, tp.TpName())
-			err = actCountsCheck(false, statsBefore, statsAfter, &scenario.ActCountChecker)
+			err = ActCountsCheck(false, statsBefore, statsAfter, &scenario.ActCountChecker)
 			require.NoError(t, err, "scenario %s: action counts", scenario.Name)
 		}
 

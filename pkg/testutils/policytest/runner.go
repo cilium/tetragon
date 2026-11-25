@@ -365,7 +365,7 @@ func (r *LocalRunner) RunScenario(
 
 	var actionCountsErr error
 	var cntsBefore, cntsAfter *tetragon.TracingPolicyStats
-	if !scenario.ActCountChecker.empty() {
+	if !scenario.ActCountChecker.Empty() {
 		cntsBefore, actionCountsErr = polHandler.GetCounts(l, r.cli)
 	}
 
@@ -379,7 +379,7 @@ func (r *LocalRunner) RunScenario(
 	if cntsBefore != nil {
 		cntsAfter, actionCountsErr = polHandler.GetCounts(l, r.cli)
 		if actionCountsErr == nil {
-			actionCountsErr = actCountsCheck(testConf.MonitorMode,
+			actionCountsErr = ActCountsCheck(testConf.MonitorMode,
 				cntsBefore, cntsAfter, &scenario.ActCountChecker)
 		}
 	}

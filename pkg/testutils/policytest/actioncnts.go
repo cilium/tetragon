@@ -27,7 +27,8 @@ type ActionCounts struct {
 	SelectorPost map[SelectorIndex]uint64
 }
 
-func (ac *ActionCounts) empty() bool {
+// Empty returns true if no action counts are expected.
+func (ac *ActionCounts) Empty() bool {
 	return ac.Post == nil && ac.Signal == nil && ac.Override == nil && ac.NotifyEnforcer == nil && ac.Set == nil &&
 		len(ac.SelectorPost) == 0
 }
@@ -44,7 +45,10 @@ func selectorPosts(stats *tetragon.TracingPolicyStats) map[SelectorIndex]uint64 
 	return posts
 }
 
-func actCountsCheck(
+// ActCountsCheck checks that the action counts changed from before to after
+// as expected. In monitor mode, the monitor counters of enforcement actions
+// are checked instead, and no signals are expected.
+func ActCountsCheck(
 	monitorMode bool,
 	beforeStats, afterStats *tetragon.TracingPolicyStats,
 	expect *ActionCounts,
