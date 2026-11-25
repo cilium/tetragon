@@ -5,9 +5,9 @@ package tracing
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"strconv"
 
@@ -689,7 +689,7 @@ func parseString(r *bytes.Reader) (string, error) {
 		return "", fmt.Errorf("string size too large: %d, max size is %d", size, maxStringSize)
 	}
 	stringBuffer := make([]byte, size)
-	err = binary.Read(r, binary.LittleEndian, &stringBuffer)
+	_, err = io.ReadFull(r, stringBuffer)
 	if err != nil {
 		return "", fmt.Errorf("error parsing string from binary with size %d: %w", size, err)
 	}
@@ -752,7 +752,7 @@ func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericK
 
 	if bytesRd > 0 {
 		arg.Value = make([]byte, bytesRd)
-		if err := binary.Read(r, binary.LittleEndian, &arg.Value); err != nil {
+		if _, err := io.ReadFull(r, arg.Value); err != nil {
 			return nil, fmt.Errorf("failed to read buffer (size: %d): %w", bytesRd, err)
 		}
 	}

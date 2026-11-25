@@ -5,9 +5,9 @@ package observer
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
@@ -51,7 +51,7 @@ func add(r *bytes.Reader, m *dataapi.MsgData) error {
 	size := m.Common.Size - uint32(unsafe.Sizeof(*m))
 	msgData := make([]byte, size)
 
-	err := binary.Read(r, binary.LittleEndian, &msgData)
+	_, err := io.ReadFull(r, msgData)
 	if err != nil {
 		logger.GetLogger().Warn("Failed to read data msg payload", logfields.Error, err)
 		return err

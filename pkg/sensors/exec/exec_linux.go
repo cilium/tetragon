@@ -5,7 +5,6 @@ package exec
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"iter"
@@ -84,7 +83,7 @@ func readData(reader *bytes.Reader, size uint16) ([]byte, error) {
 	if uint16(unsafe.Sizeof(desc)) != size {
 		return nil, errors.New("msg exec mismatched size")
 	}
-	if err := binary.Read(reader, binary.LittleEndian, &desc); err != nil {
+	if err := api.ReadBPFStruct(reader, &desc); err != nil {
 		return nil, err
 	}
 	return observer.DataGet(desc)
