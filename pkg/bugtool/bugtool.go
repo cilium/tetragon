@@ -527,7 +527,8 @@ func (s *bugtoolInfo) addTcInfo() error {
 	return err
 }
 
-// addBpftoolInfo adds information about loaded eBPF maps and programs
+// addBpftoolInfo adds information about loaded eBPF maps, programs, cgroup
+// attachments and links
 func (s *bugtoolInfo) addBpftoolInfo() {
 	if s.info.BpfToolPath == "" {
 		s.multiLog.Warn("Failed to locate bpftool, please install it and specify its path")
@@ -542,6 +543,7 @@ func (s *bugtoolInfo) addBpftoolInfo() {
 	s.ExecCmd("bpftool-maps.json", s.info.BpfToolPath, "map", "show", "-j")
 	s.ExecCmd("bpftool-progs.json", s.info.BpfToolPath, "prog", "show", "-j")
 	s.ExecCmd("bpftool-cgroups.json", s.info.BpfToolPath, "cgroup", "tree", "-j")
+	s.ExecCmd("bpftool-links.json", s.info.BpfToolPath, "link", "show", "-j")
 }
 
 func (s *bugtoolInfo) getPProf(file string, gopsSignal byte) error {
