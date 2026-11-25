@@ -74,6 +74,9 @@ type session struct {
 	seq     uint32
 	methods map[uint64]methodDefinition
 	applied map[uint32]bool
+	// drop counters of the ring that are accounted in metrics already,
+	// used only by accountLost callers (drain and close)
+	lostEntries, lostDefs uint64
 }
 
 type methodDefinition struct {
@@ -383,7 +386,24 @@ func (c *session) close() {
 	defer c.mu.Unlock()
 	c.closed = true
 	if ring := c.ring.Swap(nil); ring != nil {
+		// The session is over, account what the agent dropped at the end.
+		c.accountLost(ring)
 		ring.Close()
+	}
+}
+
+// accountLost adds the records the agent dropped since the last call to the
+// lost metric. The agent counts them in the ring header when the ring is
+// full. Called from drain and, once drain is over, from close.
+func (c *session) accountLost(ring *Ring) {
+	entries, defs := ring.Dropped()
+	if entries > c.lostEntries {
+		ringLost.WithLabelValues(lostEntry).Add(float64(entries - c.lostEntries))
+		c.lostEntries = entries
+	}
+	if defs > c.lostDefs {
+		ringLost.WithLabelValues(lostDefinition).Add(float64(defs - c.lostDefs))
+		c.lostDefs = defs
 	}
 }
 
@@ -566,6 +586,7 @@ func (c *session) drain(ctx context.Context) error {
 				return fmt.Errorf("unknown Java ring record type %d", rec.Type)
 			}
 		})
+		c.accountLost(ring)
 		if err != nil {
 			return err
 		}
@@ -638,6 +659,7 @@ func (c *session) methodEntry(data []byte) error {
 	key := binary.LittleEndian.Uint64(data[:8])
 	ktime := binary.LittleEndian.Uint64(data[8:16])
 	tid := binary.LittleEndian.Uint32(data[16:20])
+	ringReceived.Inc()
 	def, ok := c.methods[key]
 	if !ok {
 		return nil

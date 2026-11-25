@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
+	"github.com/cilium/tetragon/pkg/javaagent"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/cgroupratemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/crimetrics"
@@ -75,6 +76,8 @@ func registerHealthMetrics(group metrics.Group) {
 	process.RegisterMetrics(group)
 	// observer ringbuf metrics
 	observer.RegisterHealthMetrics(group)
+	// java agent ring metrics
+	javaagent.RegisterHealthMetrics(group)
 	// watcher metrics
 	watchermetrics.RegisterMetrics(group)
 	group.ExtendInit(watchermetrics.InitMetrics)

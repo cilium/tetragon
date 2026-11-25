@@ -226,6 +226,18 @@ The latency of handling messages in us.
 | `opcode` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 5, 7` |
 | `opstr` | `Cgroup, Clone, Data, Execve, Exit, GenericKprobe, GenericLSM, GenericTracepoint, GenericUSDT, GenericUprobe, Loader, Throttle` |
 
+### `tetragon_java_ring_events_lost_total`
+
+Number of records the Java agents dropped because their ring was full.
+
+| label | values |
+| ----- | ------ |
+| `type ` | `definition, entry` |
+
+### `tetragon_java_ring_events_received_total`
+
+Number of method entry records Tetragon received from the Java agent rings.
+
 ### `tetragon_map_capacity`
 
 Capacity of a BPF map. Expected to be constant.
