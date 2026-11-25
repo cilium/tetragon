@@ -6,7 +6,6 @@
 package bpf
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -150,37 +149,12 @@ func HasKprobeMulti() bool {
 	return kprobeMulti.detected
 }
 
+// detectUprobeMulti uses the cilium/ebpf feature test, which checks for
+// uprobe_multi links without attaching to an instruction. Attaching to an
+// arbitrary address, as done before, fails on arm64, where uprobes must be
+// at instruction-aligned addresses, so uprobe_multi was never detected there.
 func detectUprobeMulti() bool {
-	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
-		Name: "probe_upm_link",
-		Type: ebpf.Kprobe,
-		Instructions: asm.Instructions{
-			asm.Mov.Imm(asm.R0, 0),
-			asm.Return(),
-		},
-		AttachType: ebpf.AttachTraceUprobeMulti,
-		License:    "MIT",
-	})
-	if errors.Is(err, unix.E2BIG) {
-		// Kernel doesn't support AttachType field.
-		return false
-	}
-	if err != nil {
-		return false
-	}
-	defer prog.Close()
-
-	ex, err := link.OpenExecutable("/proc/self/exe")
-	if err != nil {
-		return false
-	}
-
-	um, err := ex.UprobeMulti(nil, prog, &link.UprobeMultiOptions{Addresses: []uint64{1}})
-	if err != nil {
-		return false
-	}
-	um.Close()
-	return true
+	return features.HaveBPFLinkUprobeMulti() == nil
 }
 
 func HasUprobeMulti() bool {
