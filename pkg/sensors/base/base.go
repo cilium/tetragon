@@ -4,6 +4,7 @@
 package base
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -130,33 +131,33 @@ func GetExecveEntries(configEntries int, configSize string) int {
 	return entries
 }
 
-func setExitProbe(kallsyms string) {
+func setExitProbe(kallsyms string) error {
 	// Prefer acct_process over disassociate_ctty.
 	hasAcctProcess, err := ksyms.HasSymbol(kallsyms, "acct_process")
 	if err != nil {
-		return
+		return err
 	}
 	if hasAcctProcess {
 		Exit.Attach = "acct_process"
 		Exit.Label = "kprobe/acct_process"
-		return
+		return nil
 	}
 
 	hasDisassociateCtty, err := ksyms.HasSymbol(kallsyms, "disassociate_ctty")
 	if err != nil {
-		return
+		return err
 	}
 	if !hasDisassociateCtty {
-		log.Fatal("Failed to detect exit probe symbol.")
+		return errors.New("neither acct_process nor disassociate_ctty found in " + kallsyms)
 	}
 	Exit.Attach = "disassociate_ctty"
 	Exit.Label = "kprobe/disassociate_ctty"
+	return nil
 }
 
 func setupSensor() {
 	// exit program function
-	setExitProbe(option.Config.ProcFS + "/kallsyms")
-	logger.GetLogger().Info("Exit probe on " + Exit.Attach)
+	initExitProbe()
 
 	entries := GetExecveEntries(option.Config.ExecveMapEntries, option.Config.ExecveMapSize)
 	ExecveMap.SetMaxEntries(entries)

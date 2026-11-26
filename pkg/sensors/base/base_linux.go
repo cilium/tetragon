@@ -4,12 +4,21 @@
 package base
 
 import (
+	"log"
+
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/strutils"
 )
+
+func initExitProbe() {
+	if err := setExitProbe(option.Config.ProcFS + "/kallsyms"); err != nil {
+		log.Fatalf("Failed to detect exit probe symbol: %v", err)
+	}
+	logger.GetLogger().Info("Exit probe on " + Exit.Attach)
+}
 
 func GetDefaultPrograms() []*program.Program {
 	progs := []*program.Program{
