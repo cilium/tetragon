@@ -12,7 +12,8 @@ import (
 	"cmp"
 	"compress/gzip"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -77,7 +78,7 @@ func doLoadInitInfo(fname string) (*InitInfo, error) {
 	defer f.Close()
 
 	var info InitInfo
-	if err := json.NewDecoder(f).Decode(&info); err != nil {
+	if err := json.UnmarshalRead(f, &info); err != nil {
 		logger.GetLogger().Warn("failed to read information from file", "infoFile", fname)
 		return nil, err
 	}
@@ -120,7 +121,9 @@ func doSaveInitInfo(fname string, info *InitInfo) error {
 		return err
 	}
 
-	if err := json.NewEncoder(f).Encode(info); err != nil {
+	// Paths come from flags and need not be valid UTF-8. v1 replaced bad
+	// bytes with U+FFFD; failing here would leave the truncated file empty.
+	if err := json.MarshalEncode(jsontext.NewEncoder(f), info, jsontext.AllowInvalidUTF8(true)); err != nil {
 		logger.GetLogger().Warn("failed to write information to file", "infoFile", fname)
 		return err
 	}
@@ -140,7 +143,7 @@ func SaveExtraFiles(files map[string]string) error {
 		return fmt.Errorf("creating extra files file: %w", err)
 	}
 	defer f.Close()
-	if err := json.NewEncoder(f).Encode(files); err != nil {
+	if err := json.MarshalEncode(jsontext.NewEncoder(f), files, json.Deterministic(true), jsontext.AllowInvalidUTF8(true)); err != nil {
 		return fmt.Errorf("encoding extra files: %w", err)
 	}
 	return nil
@@ -163,7 +166,7 @@ func doLoadExtraFiles(fname string) (map[string]string, error) {
 	}
 	defer f.Close()
 	var files map[string]string
-	if err := json.NewDecoder(f).Decode(&files); err != nil {
+	if err := json.UnmarshalRead(f, &files); err != nil {
 		return nil, fmt.Errorf("decoding extra files: %w", err)
 	}
 	return files, nil
@@ -202,7 +205,7 @@ func (s *bugtoolInfo) tarAddBuff(fname string, buff *bytes.Buffer) error {
 }
 
 func (s *bugtoolInfo) TarAddJson(fname string, obj any) error {
-	b, err := json.Marshal(obj)
+	b, err := json.Marshal(obj, json.Deterministic(true))
 	if err != nil {
 		return err
 	}
@@ -354,7 +357,7 @@ func doBugtool(info *InitInfo, outFname string, commandActions []CommandAction, 
 func (s *bugtoolInfo) addInitInfo() error {
 	s.multiLog.Info("saving init info")
 	buff := new(bytes.Buffer)
-	if err := json.NewEncoder(buff).Encode(s.info); err != nil {
+	if err := json.MarshalEncode(jsontext.NewEncoder(buff), s.info); err != nil {
 		s.multiLog.Warn("failed to serialze init info")
 		return err
 	}

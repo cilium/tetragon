@@ -5,7 +5,8 @@ package bugtool
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"os"
@@ -60,7 +61,7 @@ func TestSaveAndLoadExtraFiles(t *testing.T) {
 
 	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	require.NoError(t, err)
-	require.NoError(t, json.NewEncoder(f).Encode(want))
+	require.NoError(t, json.MarshalEncode(jsontext.NewEncoder(f), want))
 	require.NoError(t, f.Close())
 
 	got, err := doLoadExtraFiles(fname)

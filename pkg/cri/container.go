@@ -7,7 +7,8 @@ package cri
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -122,7 +123,10 @@ func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerI
 			} `json:"linux"`
 		} `json:"runtimeSpec"`
 	}
-	if err := json.Unmarshal([]byte(infoJSON), &spec); err != nil {
+	// The runtime writes this blob. Accept repeated names and invalid UTF-8,
+	// as v1 did, so a bad member elsewhere does not hide the cgroups path.
+	if err := json.Unmarshal([]byte(infoJSON), &spec,
+		jsontext.AllowDuplicateNames(true), jsontext.AllowInvalidUTF8(true)); err != nil {
 		return "", fmt.Errorf("failed to parse info: %w", err)
 	}
 

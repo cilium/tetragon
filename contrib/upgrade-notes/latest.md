@@ -15,6 +15,12 @@ Depending on your setup, changes listed here might require a manual intervention
   upgrading. If they are set in a configuration file, a configuration directory
   (such as the `tetragon-config` ConfigMap), or a `TETRAGON_` environment
   variable, they are ignored.
+* Tetragon now rejects a `--field-filters` entry that repeats a key, for
+  example two `fields` members in one filter. Earlier versions kept the last
+  value. The Helm `tetragon.fieldFilters` value, the `tetragon-config`
+  ConfigMap and the `TETRAGON_FIELD_FILTERS` environment variable set the same
+  option. With JSON export on, the Helm default, a repeated key stops Tetragon
+  at startup. Remove the duplicate before upgrading.
 
 ### Helm Values
 

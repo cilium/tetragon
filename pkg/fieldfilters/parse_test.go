@@ -28,3 +28,8 @@ func TestParseFieldFilterListRejectsMalformedJSON(t *testing.T) {
 	_, err := ParseFieldFilterList(`{"fields":"process.pid","action":"INCLUDE"`)
 	require.Error(t, err, "must reject malformed JSON")
 }
+
+func TestParseFieldFilterListRejectsDuplicateNames(t *testing.T) {
+	_, err := ParseFieldFilterList(`{"fields":"process.pid","fields":"process.binary","action":"INCLUDE"}`)
+	require.Error(t, err, "must reject duplicate names")
+}

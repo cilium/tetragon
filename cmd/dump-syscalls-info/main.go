@@ -7,7 +7,8 @@ import (
 	"bufio"
 	"debug/elf"
 	"encoding/binary"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -280,7 +281,7 @@ func (c *SyscallsInfoCmd) Run() error {
 		defer outF.Close()
 	}
 
-	b, err := json.MarshalIndent(info, "", "   ")
+	b, err := json.Marshal(info, json.Deterministic(true), jsontext.WithIndent("   "))
 	if err != nil {
 		return err
 	}

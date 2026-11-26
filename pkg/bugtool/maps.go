@@ -207,41 +207,41 @@ func mapIDsFromPinnedProgs(path string) (iter.Seq[int], error) {
 const TetragonBPFFS = "/sys/fs/bpf/tetragon"
 
 type DiffMap struct {
-	ID           int    `json:"id,omitempty"`
+	ID           int    `json:"id,omitzero"`
 	Name         string `json:"name,omitempty"`
 	Type         string `json:"type,omitempty"`
-	KeySize      uint32 `json:"key_size,omitempty"`
-	ValueSize    uint32 `json:"value_size,omitempty"`
-	MaxEntries   uint32 `json:"max_entries,omitempty"`
-	MemlockBytes uint64 `json:"memlock_bytes,omitempty"`
+	KeySize      uint32 `json:"key_size,omitzero"`
+	ValueSize    uint32 `json:"value_size,omitzero"`
+	MaxEntries   uint32 `json:"max_entries,omitzero"`
+	MemlockBytes uint64 `json:"memlock_bytes,omitzero"`
 }
 
 type AggregatedMap struct {
 	Name              string  `json:"name,omitempty"`
 	Type              string  `json:"type,omitempty"`
-	KeySize           uint32  `json:"key_size,omitempty"`
-	ValueSize         uint32  `json:"value_size,omitempty"`
-	MaxEntries        uint32  `json:"max_entries,omitempty"`
-	Count             uint64  `json:"count,omitempty"`
-	MemlockBytes      uint64  `json:"memlock_bytes,omitempty"`
-	TotalMemlockBytes uint64  `json:"total_memlock_bytes,omitempty"`
-	PercentOfTotal    float64 `json:"percent_of_total,omitempty"`
+	KeySize           uint32  `json:"key_size,omitzero"`
+	ValueSize         uint32  `json:"value_size,omitzero"`
+	MaxEntries        uint32  `json:"max_entries,omitzero"`
+	Count             uint64  `json:"count,omitzero"`
+	MemlockBytes      uint64  `json:"memlock_bytes,omitzero"`
+	TotalMemlockBytes uint64  `json:"total_memlock_bytes,omitzero"`
+	PercentOfTotal    float64 `json:"percent_of_total,omitzero"`
 }
 
 type MapsChecksOutput struct {
 	TotalMemlockBytes struct {
-		AllMaps         uint64 `json:"all_maps,omitempty"`
-		PinnedProgsMaps uint64 `json:"pinned_progs_maps,omitempty"`
-		PinnedMaps      uint64 `json:"pinned_maps,omitempty"`
+		AllMaps         uint64 `json:"all_maps,omitzero"`
+		PinnedProgsMaps uint64 `json:"pinned_progs_maps,omitzero"`
+		PinnedMaps      uint64 `json:"pinned_maps,omitzero"`
 	} `json:"total_memlock_bytes"`
 
 	MapsStats struct {
-		PinnedProgsMaps int `json:"pinned_progs_maps,omitempty"`
-		PinnedMaps      int `json:"pinned_maps,omitempty"`
-		Inter           int `json:"inter,omitempty"`
-		Exter           int `json:"exter,omitempty"`
-		Union           int `json:"union,omitempty"`
-		Diff            int `json:"diff,omitempty"`
+		PinnedProgsMaps int `json:"pinned_progs_maps,omitzero"`
+		PinnedMaps      int `json:"pinned_maps,omitzero"`
+		Inter           int `json:"inter,omitzero"`
+		Exter           int `json:"exter,omitzero"`
+		Union           int `json:"union,omitzero"`
+		Diff            int `json:"diff,omitzero"`
 	} `json:"maps_stats"`
 
 	DiffMaps []DiffMap `json:"diff_maps,omitempty"`

@@ -4,7 +4,8 @@
 package debug
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"text/tabwriter"
 
@@ -128,7 +129,8 @@ adjust the number of item in the table.
 					cmd.Println("Empty BPF memory consumption table")
 				}
 			case "json":
-				jsonOut, err := json.Marshal(out)
+				// Pin names come from bpffs and need not be valid UTF-8.
+				jsonOut, err := json.Marshal(out, jsontext.AllowInvalidUTF8(true))
 				if err != nil {
 					return fmt.Errorf("failed to marshal output to JSON: %w", err)
 				}
