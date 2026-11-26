@@ -102,6 +102,38 @@ spec:
 	}
 }).RegisterAtInit()
 
+var _ = policytest.NewBuilder("kprobe-null-file").WithLabels("kprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobe-null-file"
+spec:
+  kprobes:
+  - call: "security_mmap_file"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file"
+    returnArg:
+      index: 0
+      type: "int"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	helper := c.TestBinary("test-helper")
+	checker := ec.NewProcessKprobeChecker("kprobe-null-file").
+		WithFunctionName(sm.Full("security_mmap_file")).
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(helper))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().WithOperator(lc.Ordered).WithValues(
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("Bad address for basic type"))),
+		)).
+		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(0))
+	return &policytest.Scenario{
+		Name:         "anonymous mmap reports a NULL file argument",
+		Trigger:      policytest.NewCmdTrigger(helper, "mmap_anon").ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(checker),
+	}
+}).RegisterAtInit()
+
 type fdWriteTrigger struct {
 	dir  string
 	path string

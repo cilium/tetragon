@@ -107,6 +107,17 @@ func TestHelperMain() {
 			o, err := unix.Seek(int(-1), 0, int(whence))
 			fmt.Fprintf(os.Stdout, "cmd=%q returned o=%d err=%v\n", cmd, o, err)
 
+		case cmd == "mmap_anon":
+			mem, err := unix.Mmap(-1, 0, unix.Getpagesize(), unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "mmap: %v\n", err)
+				os.Exit(1)
+			}
+			if err := unix.Munmap(mem); err != nil {
+				fmt.Fprintf(os.Stderr, "munmap: %v\n", err)
+				os.Exit(1)
+			}
+
 		case strings.HasPrefix(cmd, "connect "):
 			fields := strings.Fields(cmd)
 			if len(fields) < 2 {

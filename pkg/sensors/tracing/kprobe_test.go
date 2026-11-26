@@ -8466,6 +8466,10 @@ func TestKprobeNULLStringAndReturnArg(t *testing.T) {
 	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-null-string", nil)
 }
 
+func TestKprobeNULLFileAndReturnArg(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-null-file", nil)
+}
+
 func TestKprobeAllSelectorsNoRewriteConstants(t *testing.T) {
 	if !config.EnableLargeProgs() {
 		t.Skip("selector constants require large BPF programs")
