@@ -945,6 +945,8 @@ func doLoadProgram(
 		return nil, err
 	}
 
+	dropSplitFilterProgs(spec)
+
 	// add functions
 	for name, prog := range spec.Programs {
 		rewriteFn := load.RewriteProg[name]
