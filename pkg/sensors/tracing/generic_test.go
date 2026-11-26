@@ -18,112 +18,112 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
-func TestFormatBTFPath(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    []string
-		wantErr bool
-	}{
-		{
-			name:    "simple resolve path",
-			input:   "path.to.my.field",
-			want:    []string{"path", "to", "my", "field"},
-			wantErr: false,
-		},
-		{
-			name:    "array as first resolve",
-			input:   "[1].path.to.my.field",
-			want:    []string{"[1]", "path", "to", "my", "field"},
-			wantErr: false,
-		},
-		{
-			name:    "array in the resolve path",
-			input:   "path.to[123].my.field",
-			want:    []string{"path", "to", "[123]", "my", "field"},
-			wantErr: false,
-		},
-		{
-			name:    "dot inside bracket",
-			input:   "my.super.field[.123]",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "empty bracket",
-			input:   "my.super.field[].my.sub.field",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "dot before bracket",
-			input:   "my.super.field.[123].my.sub.field",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "consecutive dots",
-			input:   "my..field",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "unclosed bracket",
-			input:   "my.field[123",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "unopened bracket",
-			input:   "my.field.123]",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "nested brackets",
-			input:   "my.field[[123]]",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "empty path",
-			input:   "",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "leading dot",
-			input:   ".my.field",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "trailing dot",
-			input:   "my.field.",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "negative index",
-			input:   "my.field[-1]",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "parenthesis in identifier",
-			input:   "my(field)[123]",
-			want:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "identifier right after index",
-			input:   "my.field[0]sub",
-			want:    []string{},
-			wantErr: true,
-		},
-	}
+var formatBTFPathTestCases = []struct {
+	name    string
+	input   string
+	want    []string
+	wantErr bool
+}{
+	{
+		name:    "simple resolve path",
+		input:   "path.to.my.field",
+		want:    []string{"path", "to", "my", "field"},
+		wantErr: false,
+	},
+	{
+		name:    "array as first resolve",
+		input:   "[1].path.to.my.field",
+		want:    []string{"[1]", "path", "to", "my", "field"},
+		wantErr: false,
+	},
+	{
+		name:    "array in the resolve path",
+		input:   "path.to[123].my.field",
+		want:    []string{"path", "to", "[123]", "my", "field"},
+		wantErr: false,
+	},
+	{
+		name:    "dot inside bracket",
+		input:   "my.super.field[.123]",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "empty bracket",
+		input:   "my.super.field[].my.sub.field",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "dot before bracket",
+		input:   "my.super.field.[123].my.sub.field",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "consecutive dots",
+		input:   "my..field",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "unclosed bracket",
+		input:   "my.field[123",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "unopened bracket",
+		input:   "my.field.123]",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "nested brackets",
+		input:   "my.field[[123]]",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "empty path",
+		input:   "",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "leading dot",
+		input:   ".my.field",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "trailing dot",
+		input:   "my.field.",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "negative index",
+		input:   "my.field[-1]",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "parenthesis in identifier",
+		input:   "my(field)[123]",
+		want:    []string{},
+		wantErr: true,
+	},
+	{
+		name:    "identifier right after index",
+		input:   "my.field[0]sub",
+		want:    []string{},
+		wantErr: true,
+	},
+}
 
-	for _, test := range tests {
+func TestFormatBTFPath(t *testing.T) {
+	for _, test := range formatBTFPathTestCases {
 		t.Run(test.name, func(t *testing.T) {
 			ret, err := formatBTFPath(test.input)
 			if test.wantErr {
@@ -134,6 +134,18 @@ func TestFormatBTFPath(t *testing.T) {
 			}
 		})
 	}
+}
+
+func FuzzFormatBTFPath(f *testing.F) {
+	for _, test := range formatBTFPathTestCases {
+		f.Add(test.input)
+	}
+	f.Fuzz(func(t *testing.T, s string) {
+		ret, err := formatBTFPath(s)
+		if err != nil && ret != nil {
+			t.Errorf("%q, %v", ret, err)
+		}
+	})
 }
 
 // This test attempt to test the Resolve flag in tracing policies.
