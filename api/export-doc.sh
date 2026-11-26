@@ -22,7 +22,7 @@ sed -i'' -e '/^# Protocol Documentation/d' $TMP_FILE
 # remove table of content
 sed -i'' -e '/## Table of Contents/,/##/{//!d;}' $TMP_FILE
 sed -i'' -e '/^## Table of Contents/d' $TMP_FILE
-# cleanup unecessary consecutive whitelines
+# cleanup unnecessary consecutive whitelines
 sed -i'' -e '/^[[:space:]]*$/N;/^[[:space:]]*\n[[:space:]]*$/D' $TMP_FILE
 # remove empty line at the end of the file (required for macOS, doesn't harm on Linux)
 sed -i'' -e '${/^$/d;}' $TMP_FILE
@@ -44,7 +44,7 @@ This page was generated with github.io/cilium/tetragon/api/export-doc.sh,
 please do not edit directly.
 {{< /comment >}}
 
-The Tetragon API is an independant Go module that can be found in the Tetragon
+The Tetragon API is an independent Go module that can be found in the Tetragon
 repository under [api](https://github.com/cilium/tetragon/tree/main/api). The
 version 1 of this API is defined in
 [github.com/cilium/tetragon/api/v1/tetragon](https://github.com/cilium/tetragon/tree/main/api/v1/tetragon).' | cat - $TMP_FILE > $1

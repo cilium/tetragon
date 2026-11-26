@@ -81,7 +81,7 @@
  *   size <- (924, 1124)
  *
  * And verifier throws an error because args[offset + size] with bounds
- * anaylsis,
+ * analysis,
  *
  *   args_(max)[100 + 1024] = args_(max)[1124]
  *
