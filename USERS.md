@@ -70,6 +70,11 @@ Example entry:
       L: https://www.parseable.io/blog/ebpf-log-analytics
       Q: @nitisht
 
+    * N: Protet
+      D: Protet is CI/CD runtime security designed for GitLab: it detects attacks in CI jobs, supply-chain compromises among them, from what the jobs do when they run. Protet runs Tetragon in production to screen newly published npm package versions for its public threat-intel feed
+      U: Process monitoring (execution, arguments, ancestry), Network monitoring (outbound TCP connections, DNS lookups), JSON export
+      L: https://protet.io
+
     * N: Reddit
       D: Reddit uses Tetragon to identify security risks and policy violations
       U: Visibility into linux system calls, use of kernel modules, process events, file access behavior, and network behavior
