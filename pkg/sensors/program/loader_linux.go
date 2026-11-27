@@ -4,6 +4,7 @@
 package program
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -919,6 +920,19 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 	return nil
 }
 
+// fullVerifierError loads spec again with an instruction-level verifier log. It
+// returns nil if that load does not fail in the verifier.
+func fullVerifierError(spec *ebpf.CollectionSpec, opts ebpf.CollectionOptions) *ebpf.VerifierError {
+	opts.Programs.LogLevel = ebpf.LogLevelInstruction | ebpf.LogLevelStats
+	coll, err := ebpf.NewCollectionWithOptions(spec, opts)
+	if err == nil {
+		coll.Close()
+		return nil
+	}
+	ve, _ := errors.AsType[*ebpf.VerifierError](err)
+	return ve
+}
+
 func doLoadProgram(
 	bpfDir string,
 	load *Program,
@@ -1118,7 +1132,7 @@ func doLoadProgram(
 				if verbose < 2 {
 					fmt.Println(slimVerifierError(fmt.Sprintf("%+v", ve)))
 				} else {
-					fmt.Printf("%+v\n", ve)
+					fmt.Printf("%+v\n", cmp.Or(fullVerifierError(spec, opts), ve))
 				}
 			}
 		}
