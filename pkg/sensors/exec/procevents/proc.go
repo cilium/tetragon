@@ -111,6 +111,15 @@ func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, 
 		walkParent = true
 	}
 
+	// CRI-O nests the container process under a `container` sub-cgroup of the
+	// `crio-<id>.scope` unit (e.g. .../kubepods-burstable-pod<uid>.slice/
+	// crio-<id>.scope/container), so the leaf component is not an ID either.
+	// Walk the parents like the Podman case; the scope unit resolves through
+	// the `.scope` handling above. Regression: issue #6113.
+	if strings.Contains(cgroup, "crio-") && container == "container" {
+		walkParent = true
+	}
+
 	// Should we walk the parent subdirs
 	if !walkParent {
 		return "", 0

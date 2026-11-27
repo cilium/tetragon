@@ -219,3 +219,21 @@ func TestLookupContainerIdPlainDocker(t *testing.T) {
 	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "LookupContainerId walkParent failed for bare hex parent")
 	assert.Equal(t, 0, i)
 }
+
+// CRI-O on cgroup v2 nests the container process under a `container` leaf of
+// the `crio-<id>.scope` unit, so the leaf component is not an ID and the
+// plain-Docker fallbacks do not fire. The parent walk resolves the scope
+// unit. Regression for
+// https://github.com/cilium/tetragon/issues/6113.
+func TestLookupContainerIdCRIONestedCgroup(t *testing.T) {
+	const hexID = "2f74f7c8eeb2ffdfdfd1e2516a034a5a81279cdd97e132ab53dd7a2d5a2d3454"
+	p := "0::/kubepods.slice/kubepods-burstable.slice/kubepods-burstable-pod1234.slice/crio-" + hexID + ".scope/container"
+
+	d, i := LookupContainerId(p, false, false)
+	assert.Equal(t, hexID[:31], d, "LookupContainerId failed for CRI-O nested cgroup")
+	assert.Greater(t, i, 0)
+
+	// The procfs scan entry point must resolve the same layout as well.
+	d, _ = procsFindDockerId(p)
+	assert.Equal(t, hexID[:31], d, "procsFindDockerId failed for CRI-O nested cgroup")
+}
