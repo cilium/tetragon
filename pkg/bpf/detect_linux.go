@@ -59,6 +59,7 @@ var (
 	mixBpfAndTailCalls                Feature
 	getFuncRetHelper                  Feature
 	fentry                            Feature
+	ktimeGetBootNs                    Feature
 )
 
 func HasOverrideHelper() bool {
@@ -71,6 +72,27 @@ func HasSignalHelper() bool {
 
 func HasProbeWriteUserHelper() bool {
 	return features.HaveProgramHelper(ebpf.Kprobe, asm.FnProbeWriteUser) == nil
+}
+
+// detectKtimeGetBootNs makes the check tg_get_ktime() makes through CO-RE:
+// whether the BTF the loader uses has the typedef BPF_CALL_0() emits for the
+// helper. Reading that BTF, not probing the kernel, keeps userspace on the
+// clock BPF picks even when the BTF and the running kernel disagree.
+func detectKtimeGetBootNs() bool {
+	spec, err := btf.NewBTF()
+	if err != nil {
+		return false
+	}
+
+	var typedef *ebtf.Typedef
+	return spec.TypeByName("btf_bpf_ktime_get_boot_ns", &typedef) == nil
+}
+
+func HasKtimeGetBootNs() bool {
+	ktimeGetBootNs.init.Do(func() {
+		ktimeGetBootNs.detected = detectKtimeGetBootNs()
+	})
+	return ktimeGetBootNs.detected
 }
 
 // detectFentry checks if the kernel supports BPF fentry programs.
@@ -835,4 +857,5 @@ var FeatureProbes = []FeatureProbe{
 	{GetFuncRet, HasGetFuncRetHelper},
 	{SubStringKfuncProbe, HasSubStringKfunc},
 	{CopyFromUserStr, HasCopyFromUserStr},
+	{KtimeGetBootNsProbe, HasKtimeGetBootNs},
 }
