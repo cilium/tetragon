@@ -175,25 +175,6 @@ func parseIdent(s string) (ident, rest string, err error) {
 	return ident, rest, nil
 }
 
-// First argument is added to enforce the method to be called on a pointer type
-func isPointerToIndexedArray(_ *ebtf.Pointer, firstResolvePath string) bool {
-	var idx int
-	n, _ := fmt.Sscanf(firstResolvePath, `[%d]`, &idx)
-	return n == 1
-}
-
-func addPaddingOnNestedPtr(ty ebtf.Type, path []string) []string {
-	if t, ok := ty.(*ebtf.Pointer); ok {
-		// If we are going to dereference the pointer by index,
-		// there is no need to force-dereference it.
-		if !isPointerToIndexedArray(t, path[0]) {
-			updatedPath := append([]string{"[0]"}, path...)
-			return addPaddingOnNestedPtr(t.Target, updatedPath)
-		}
-	}
-	return path
-}
-
 func hasCurrentTaskSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "current_task"
 }
@@ -204,16 +185,15 @@ func hasPtRegsSource(arg *v1alpha1.KProbeArg) bool {
 
 func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
-	pathBase, err := formatBTFPath(arg.Resolve)
+	path, err := formatBTFPath(arg.Resolve)
 	if err != nil {
 		return nil, btfArg, err
 	}
-	path := addPaddingOnNestedPtr(ty, pathBase)
 	if len(path) > api.MaxBTFArgDepth {
 		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
 
-	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path)
+	lastBTFType, err := btf.ResolveBTFPath(&btfArg, ty, path)
 	return lastBTFType, btfArg, err
 }
 
@@ -287,19 +267,8 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 		}
 
 		ty = param.Type
-		if ptr, isPointer := param.Type.(*ebtf.Pointer); isPointer {
-			if !isPointerToIndexedArray(ptr, arg.Resolve) {
-				// If we are going to dereference the pointer by index,
-				// there is no need to force-dereference it.
-				ty = ptr.Target
-			}
-		}
 	}
 	return resolveBTFType(arg, ty)
-}
-
-func resolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType ebtf.Type, path []string) (*ebtf.Type, error) {
-	return btf.ResolveBTFPath(btfArg, rootType, path, 0)
 }
 
 func findTypeFromBTFType(arg *v1alpha1.KProbeArg, btfType *ebtf.Type) int {
