@@ -186,9 +186,13 @@ func unifiedResToSystemdProps(cm *dbusConnManager, res map[string]string) (props
 				newProp(m[k], num))
 
 		case "memory.zswap.max":
-			num, err := strconv.ParseUint(v, 10, 64)
-			if err != nil {
-				return nil, fmt.Errorf("invalid %s=%q, expected a number", k, v)
+			num := uint64(math.MaxUint64)
+			if v != "max" {
+				var err error
+				num, err = strconv.ParseUint(v, 10, 64)
+				if err != nil {
+					return nil, fmt.Errorf("invalid %s=%q, expected a number", k, v)
+				}
 			}
 			if sdVer := systemdVersion(cm); sdVer < zswapMaxSupportedVersion {
 				logrus.Debugf("systemd v%d does not support MemoryZSwapMax", sdVer)
