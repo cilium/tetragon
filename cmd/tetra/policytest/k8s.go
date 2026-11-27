@@ -7,50 +7,77 @@ package policytest
 
 import (
 	"context"
-	"fmt"
-	"io"
+	"errors"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/spf13/pflag"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+	"github.com/spf13/cobra"
 
-	"github.com/cilium/tetragon/pkg/testutils/policytest/k8sjob"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/testutils/policytest"
+	"github.com/cilium/tetragon/pkg/testutils/policytest/k8srunner"
 )
 
-type k8sFlags struct {
-	enabled bool
-	context string
-	opts    k8sjob.Opts
+func addK8sRunCmd(parent *cobra.Command) {
+	parent.AddCommand(k8sRunCmd())
 }
 
-func (f *k8sFlags) register(flags *pflag.FlagSet) {
-	flags.BoolVar(&f.enabled, "k8s", false, "run the tests in a Job on a Kubernetes cluster, next to the node-local agent")
-	flags.StringVar(&f.context, "k8s-context", "", "kubeconfig context for --k8s; empty uses the current context")
-	flags.StringVar(&f.opts.Image, "image", "cilium/tetragon-tester-progs:latest", "tester-progs image for --k8s (make image-tester-progs)")
-	flags.StringVar(&f.opts.Node, "node", "", "node to run the --k8s Job on; empty lets the scheduler pick one")
-	flags.StringVar(&f.opts.Namespace, "namespace", "tetragon-policytest", "namespace for the --k8s Job, created if missing")
-}
+func k8sRunCmd() *cobra.Command {
+	var conf k8srunner.Conf
+	var sel policytest.Selection
+	outputFile := ""
+	outputFmt, _ := option.NewEnum([]string{policytest.OutputText, policytest.OutputJSON}, policytest.OutputText)
+	cmd := cobra.Command{
+		Use:   "k8s-run [<test-regexp>...]",
+		Short: "Run Tetragon policy test(s) in a Job on a Kubernetes cluster",
+		Long: "Run Tetragon policy test(s) in a Job on a Kubernetes cluster, next to the node-local agent.\n\n" +
+			"The Job runs `tetra policytest run` from the tester-progs image. " +
+			"The arguments select the tests as for run.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			log := newLogger()
 
-func (f *k8sFlags) run(out io.Writer, timeout time.Duration, args []string) error {
-	rules := clientcmd.NewDefaultClientConfigLoadingRules()
-	overrides := &clientcmd.ConfigOverrides{CurrentContext: f.context}
-	cfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, overrides).ClientConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load kubeconfig: %w", err)
-	}
-	cs, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to create kubernetes client: %w", err)
-	}
+			sel.Names = args
+			tests, err := sel.Tests(policytest.AllPolicyTests)
+			if err != nil {
+				return err
+			}
+			conf.Timeout = time.Minute * time.Duration(sel.Runs(tests))
+			conf.Logs = cmd.ErrOrStderr()
 
-	opts := f.opts
-	opts.Args = args
-	opts.Timeout = timeout
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-	return k8sjob.Run(ctx, cs, opts, out)
+			out, closeOut, err := openOutput(cmd.OutOrStdout(), outputFile)
+			if err != nil {
+				return err
+			}
+			defer closeOut()
+
+			// cancel on a signal, so that the Job goes
+			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
+
+			runner, err := k8srunner.New(ctx, log, &conf)
+			if err != nil {
+				return err
+			}
+			defer runner.Close()
+
+			results, err := runner.Run(ctx, log, &sel)
+			summary := policytest.NewResultsSummary()
+			for _, res := range results {
+				summary.Update(res.Result)
+			}
+			return errors.Join(err, policytest.WriteResults(out, outputFmt.Value, results), summary.Err())
+		},
+	}
+	flags := cmd.Flags()
+	flags.StringVar(&conf.KubeContext, "k8s-context", "", "kubeconfig context; empty uses the current context")
+	flags.StringArrayVar(&conf.ExtraArgs, "k8s-arg", nil, "extra argument for the tetra policytest run in the Job; repeatable")
+	flags.StringVar(&conf.Image, "image", k8srunner.DefaultImage, "tester-progs image (make image-tester-progs)")
+	flags.StringVar(&conf.Node, "node", "", "node to run the Job on; empty lets the scheduler pick one")
+	flags.StringVar(&conf.Namespace, "namespace", "tetragon-policytest", "namespace for the Job, created if missing")
+	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
+	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
+	sel.AddFlags(flags)
+	return &cmd
 }

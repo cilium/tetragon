@@ -5,23 +5,7 @@
 
 package policytest
 
-import (
-	"errors"
-	"io"
-	"time"
+import "github.com/spf13/cobra"
 
-	"github.com/spf13/pflag"
-)
-
-var errNoK8s = errors.New("tetra was built without Kubernetes support")
-
-// k8sFlags registers no flags, so enabled stays false.
-type k8sFlags struct {
-	enabled bool
-}
-
-func (*k8sFlags) register(*pflag.FlagSet) {}
-
-func (*k8sFlags) run(io.Writer, time.Duration, []string) error {
-	return errNoK8s
-}
+// tetra built without Kubernetes support has no k8s-run
+func addK8sRunCmd(*cobra.Command) {}

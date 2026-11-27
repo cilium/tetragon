@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package k8sjob
+//go:build !windows
+
+package k8srunner
 
 import (
 	"testing"
@@ -12,27 +14,27 @@ import (
 )
 
 func TestNewJob(t *testing.T) {
-	job, err := NewJob(Opts{
+	job, err := newJob(&Conf{
 		Namespace: "ns",
 		Image:     "img:tag",
 		Node:      "node-1",
-		Args:      []string{"kprobe-lseek", "--monitor-mode"},
+		ExtraArgs: []string{"--ee-bindir=/ee"},
 		Timeout:   time.Minute,
-	})
+	}, []string{"--monitor-mode", "--", "kprobe-lseek"})
 	require.NoError(t, err)
 
 	require.Equal(t, "ns", job.Namespace)
 	spec := job.Spec.Template.Spec
 	require.Equal(t, "node-1", spec.NodeName)
-	require.Equal(t, "img:tag", spec.InitContainers[0].Image)
-	require.Equal(t, "img:tag", spec.Containers[0].Image)
-	require.Equal(t, []string{"kprobe-lseek", "--monitor-mode"}, spec.Containers[0].Args[len(spec.Containers[0].Args)-2:])
+	for _, c := range append(spec.InitContainers, spec.Containers...) {
+		require.Equal(t, "img:tag", c.Image, c.Name)
+	}
+	tetra := spec.InitContainers[1]
+	require.Equal(t, container, tetra.Name)
+	require.Contains(t, tetra.Args, "--output-file=/results/results.json")
+	require.Equal(t, []string{"--ee-bindir=/ee", "--monitor-mode", "--", "kprobe-lseek"}, tetra.Args[len(tetra.Args)-4:])
+	require.Equal(t, resultsContainer, spec.Containers[0].Name)
 	require.Equal(t, int64((startTimeout + time.Minute).Seconds()), *job.Spec.ActiveDeadlineSeconds)
-}
-
-func TestNewJobNoArgs(t *testing.T) {
-	_, err := NewJob(Opts{Namespace: "ns", Image: "img"})
-	require.ErrorIs(t, err, errNoTestArgs)
 }
 
 func TestPodStarted(t *testing.T) {
@@ -56,13 +58,13 @@ func TestPodStarted(t *testing.T) {
 		failed  bool
 	}{
 		{name: "pending"},
-		{name: "init running", init: []corev1.ContainerStatus{status("stage-tester-progs", running)}},
 		{name: "init failed", init: []corev1.ContainerStatus{status("stage-tester-progs", exited(1))}, failed: true},
 		{name: "image missing", init: []corev1.ContainerStatus{status("stage-tester-progs", waiting("ErrImageNeverPull"))}, failed: true},
-		{name: "creating", init: []corev1.ContainerStatus{status("stage-tester-progs", exited(0))}, main: []corev1.ContainerStatus{status(container, waiting("ContainerCreating"))}},
+		{name: "creating", init: []corev1.ContainerStatus{status("stage-tester-progs", exited(0)), status(container, waiting("ContainerCreating"))}},
 		{name: "evicted", phase: corev1.PodFailed, failed: true},
-		{name: "running", main: []corev1.ContainerStatus{status(container, running)}, started: true},
-		{name: "tests failed", main: []corev1.ContainerStatus{status(container, exited(1))}, started: true},
+		{name: "running", init: []corev1.ContainerStatus{status("stage-tester-progs", exited(0)), status(container, running)}, started: true},
+		{name: "tests failed", phase: corev1.PodFailed, init: []corev1.ContainerStatus{status("stage-tester-progs", exited(0)), status(container, exited(0))}, main: []corev1.ContainerStatus{status(resultsContainer, exited(1))}, started: true},
+		{name: "tetra killed", phase: corev1.PodFailed, init: []corev1.ContainerStatus{status("stage-tester-progs", exited(0)), status(container, exited(137))}, started: true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

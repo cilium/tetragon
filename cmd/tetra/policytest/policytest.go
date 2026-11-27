@@ -7,15 +7,11 @@ package policytest
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"iter"
 	"log/slog"
-	"maps"
 	"os"
-	"slices"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -24,6 +20,7 @@ import (
 
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
+	"github.com/cilium/tetragon/pkg/testutils/policytest/localrunner"
 	_ "github.com/cilium/tetragon/tests/policytests" // so that tests can be registered
 )
 
@@ -39,6 +36,7 @@ func New() *cobra.Command {
 		runMultiCmd(),
 		dumpPolicyCmd(),
 	)
+	addK8sRunCmd(tpCmd)
 	return tpCmd
 }
 
@@ -69,8 +67,7 @@ func listCmd() *cobra.Command {
 func dumpPolicyCmd() *cobra.Command {
 	testBinsPath := ""
 	dumpPolicyPath := ""
-	monitorMode := false
-	var params map[string]string
+	var sel policytest.Selection
 
 	cmd := cobra.Command{
 		Use:   "dump-policy <test-regexp>...",
@@ -80,41 +77,34 @@ func dumpPolicyCmd() *cobra.Command {
 			"(e.g., 'uprobe-.*' runs all tests whose name starts with 'uprobe-')." +
 			"The passed regex gets automatically anchored to both start end end of string.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// NB: parameters are applied to all policies
-			paramValues := make(map[string]any)
-			for k, v := range params {
-				paramValues[k] = v
-			}
-
 			if testBinsPath == "" {
 				return errors.New("--bindir is required: set it to the tester-progs directory")
 			}
 
-			tests, err := policytest.AllPolicyTests.GetByRegexps(args)
+			sel.Names = args
+			tests, err := sel.Tests(policytest.AllPolicyTests)
 			if err != nil {
 				return err
 			}
-			if len(tests) == 0 {
-				return fmt.Errorf("no policy tests matching %q", args)
-			}
-
-			conf := policytest.Conf{
-				GrpcAddr:       common.ServerAddress,
-				BinsDir:        testBinsPath,
-				DumpPolicyPath: dumpPolicyPath,
-				TestConf: &policytest.TestConf{
-					MonitorMode: monitorMode,
-					ParamValues: paramValues,
-				},
-			}
 
 			for _, t := range tests {
-				pol, cleanup, err := t.Policy(&conf)
-				if err != nil {
-					return err
+				for paramValues := range sel.ParamValues(t) {
+					conf := policytest.Conf{
+						GrpcAddr:       common.ServerAddress,
+						BinsDir:        testBinsPath,
+						DumpPolicyPath: dumpPolicyPath,
+						TestConf: &policytest.TestConf{
+							MonitorMode: sel.MonitorMode,
+							ParamValues: paramValues,
+						},
+					}
+					pol, cleanup, err := t.Policy(&conf)
+					if err != nil {
+						return err
+					}
+					cmd.OutOrStdout().Write([]byte(pol))
+					cleanup()
 				}
-				cmd.OutOrStdout().Write([]byte(pol))
-				cleanup()
 			}
 			return nil
 		},
@@ -123,22 +113,19 @@ func dumpPolicyCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory (required)")
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policies in the provided directory, one <policy-name>.yaml file per policy")
-	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
-	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
+	sel.AddFlags(flags)
 	return &cmd
 }
 
 func runCmd() *cobra.Command {
 	testBinsPath := ""
 	dumpPolicyPath := ""
-	monitorMode := false
-	allParams := false
 	allTests := false
-	var params map[string]string
+	k8s := false
+	var sel policytest.Selection
 	var podSelector map[string]string
 	var outputFile = ""
-	var k8s k8sFlags
-	outputFmt, _ := option.NewEnum([]string{"text", "json"}, "text")
+	outputFmt, _ := option.NewEnum([]string{policytest.OutputText, policytest.OutputJSON}, policytest.OutputText)
 	cmd := cobra.Command{
 		Use:   "run [<test-regexp>...]",
 		Short: "Run Tetragon policy test(s)",
@@ -153,57 +140,27 @@ func runCmd() *cobra.Command {
 				return errors.New("--all-tests is deprecated. Use .* regex pattern instead")
 			}
 
-			var getParamValues func(t *policytest.T) iter.Seq[policytest.ParamVals]
-			if len(params) > 0 && allParams {
-				return errors.New("setting --params conflicts with --all-params")
-			} else if allParams {
-				getParamValues = func(t *policytest.T) iter.Seq[policytest.ParamVals] {
-					return t.AllParamValues()
-				}
-			} else {
-				// NB: parameters are applied to all policies
-				paramValues := make(map[string]any)
-				for k, v := range params {
-					paramValues[k] = v
-				}
-				getParamValues = func(_ *policytest.T) iter.Seq[policytest.ParamVals] {
-					return func(yield func(policytest.ParamVals) bool) {
-						yield(paramValues)
-					}
-				}
+			if k8s {
+				return errors.New("--k8s is deprecated. Use tetra policytest k8s-run instead")
 			}
 
-			if k8s.enabled {
-				for _, f := range []string{"bindir", "dump-policy-path", "pod-selector"} {
-					if cmd.Flags().Changed(f) {
-						return fmt.Errorf("--%s cannot be used with --k8s", f)
-					}
-				}
-			} else {
-				if cmd.Flags().Changed("k8s-context") {
-					return errors.New("--k8s-context requires --k8s")
-				}
-				if testBinsPath == "" {
-					return errors.New("--bindir is required: set it to the tester-progs directory")
-				}
+			if testBinsPath == "" {
+				return errors.New("--bindir is required: set it to the tester-progs directory")
 			}
 
-			tests, err := selectTests(args)
+			sel.Names = args
+			tests, err := sel.Tests(policytest.AllPolicyTests)
 			if err != nil {
 				return err
 			}
 
-			timeout := time.Minute * time.Duration(len(tests))
+			timeout := time.Minute * time.Duration(sel.Runs(tests))
 
 			out, closeOut, err := openOutput(cmd.OutOrStdout(), outputFile)
 			if err != nil {
 				return err
 			}
 			defer closeOut()
-
-			if k8s.enabled {
-				return k8s.run(out, timeout, podArgs(args, allParams, monitorMode, params, outputFmt.Value))
-			}
 
 			ctx := context.Background()
 			runner, err := newRunner(ctx, log, testBinsPath, dumpPolicyPath, podSelector, timeout)
@@ -213,21 +170,12 @@ func runCmd() *cobra.Command {
 			defer runner.Close()
 
 			summary := policytest.NewResultsSummary()
-			for _, t := range tests {
-				for paramValues := range getParamValues(t) {
-					res := &policytest.NamedResult{
-						Name: fmt.Sprintf("%s (%s)", t.Name, paramValues),
-					}
-					res.Result = runner.RunTest(log, t, &policytest.TestConf{
-						MonitorMode: monitorMode,
-						ParamValues: paramValues,
-					})
-					summary.Update(res.Result)
-
-					if err := writeResults(out, outputFmt.Value, []*policytest.NamedResult{res}); err != nil {
-						return err
-					}
-				}
+			err = runner.RunEach(ctx, log, &sel, func(res *policytest.NamedResult) error {
+				summary.Update(res.Result)
+				return policytest.WriteResults(out, outputFmt.Value, []*policytest.NamedResult{res})
+			})
+			if err != nil {
+				return err
 			}
 			return summary.Err()
 		},
@@ -235,31 +183,17 @@ func runCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory (required)")
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policies in the provided directory, one <policy-name>.yaml file per policy")
-	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
-	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
 	flags.StringToStringVar(&podSelector, "pod-selector", map[string]string{}, "scope every policy to pods with these labels (sets spec.podSelector; needs the agent's policy filter)")
-	flags.BoolVar(&allParams, "all-params", allParams, "Run policy tests using all available parameters")
 	flags.Var(outputFmt, "output", "output format "+outputFmt.Allowed())
 	flags.StringVar(&outputFile, "output-file", "", "file to save the tests output. If empty, stdout is used.")
 	// --all-tests is deprecated. TODO: remove in 1.9
 	flags.BoolVar(&allTests, "all-tests", false, "Run all available policy tests.")
 	flags.MarkHidden("all-tests")
-	k8s.register(flags)
+	// --k8s is deprecated. TODO: remove in 1.10
+	flags.BoolVar(&k8s, "k8s", false, "Run the tests in a Job on a Kubernetes cluster.")
+	flags.MarkHidden("k8s")
+	sel.AddFlags(flags)
 	return &cmd
-}
-
-func podArgs(tests []string, allParams, monitorMode bool, params map[string]string, output string) []string {
-	ret := []string{"--output=" + output}
-	if allParams {
-		ret = append(ret, "--all-params")
-	}
-	if monitorMode {
-		ret = append(ret, "--monitor-mode")
-	}
-	for _, k := range slices.Sorted(maps.Keys(params)) {
-		ret = append(ret, "--set-param="+k+"="+params[k])
-	}
-	return append(append(ret, "--"), tests...)
 }
 
 func runMultiCmd() *cobra.Command {
@@ -299,14 +233,14 @@ finally the policies are unloaded.`,
 			}
 
 			ctx := context.Background()
-			tests, err := selectTests(args)
+			tests, err := (&policytest.Selection{Names: args}).Tests(policytest.AllPolicyTests)
 			if err != nil {
 				return err
 			}
-			runs := make([]policytest.TestRun, 0, len(tests))
+			runs := make([]localrunner.TestRun, 0, len(tests))
 			results := make([]*policytest.NamedResult, 0, len(tests))
 			for _, t := range tests {
-				runs = append(runs, policytest.TestRun{
+				runs = append(runs, localrunner.TestRun{
 					Test: t,
 					// each run needs its own TestConf
 					Conf: &policytest.TestConf{
@@ -339,7 +273,7 @@ finally the policies are unloaded.`,
 				return err
 			}
 			defer closeOut()
-			if err := writeResults(out, outputFmt.Value, results); err != nil {
+			if err := policytest.WriteResults(out, outputFmt.Value, results); err != nil {
 				return err
 			}
 			return summary.Err()
@@ -371,24 +305,6 @@ func newLogger() *slog.Logger {
 	))
 }
 
-// selectTests returns all the tests matching the regular expressions
-func selectTests(exprs []string) ([]*policytest.T, error) {
-	tests, err := policytest.AllPolicyTests.GetByRegexps(exprs)
-	if err != nil {
-		return nil, err
-	}
-	for _, expr := range exprs {
-		matched, _ := policytest.AllPolicyTests.GetByRegexps([]string{expr})
-		if len(matched) == 0 {
-			return nil, fmt.Errorf("no policy tests matching %q, see `tetra policytest list`", expr)
-		}
-	}
-	if len(tests) == 0 {
-		return nil, fmt.Errorf("no policy tests matching %q", exprs)
-	}
-	return tests, nil
-}
-
 // newRunner creates a local runner
 func newRunner(
 	ctx context.Context,
@@ -396,8 +312,8 @@ func newRunner(
 	testBinsPath, dumpPolicyPath string,
 	podSelector map[string]string,
 	timeout time.Duration,
-) (*policytest.LocalRunner, error) {
-	runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
+) (*localrunner.Runner, error) {
+	runner, err := localrunner.New(ctx, log, &policytest.Conf{
 		GrpcAddr:        common.ServerAddress,
 		BinsDir:         testBinsPath,
 		DumpPolicyPath:  dumpPolicyPath,
@@ -422,21 +338,4 @@ func openOutput(stdout io.Writer, outputFile string) (io.Writer, func(), error) 
 		return nil, nil, fmt.Errorf("error opening output file: %w", err)
 	}
 	return f, func() { f.Close() }, nil
-}
-
-// writeResults writes the results to out in the given format ("json" or "text")
-func writeResults(out io.Writer, format string, results []*policytest.NamedResult) error {
-	switch format {
-	case "json":
-		for _, res := range results {
-			b, err := json.Marshal(res)
-			if err != nil {
-				return fmt.Errorf("failed to generate json: %w", err)
-			}
-			fmt.Fprintln(out, string(b))
-		}
-	case "text":
-		policytest.DumpResults(out, results)
-	}
-	return nil
 }
