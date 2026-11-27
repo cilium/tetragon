@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,6 +38,11 @@ type Tester struct {
 
 // This is what tester (the binary) will execute.
 func TestHelperMain() {
+	// Lock the main goroutine to its thread, so that all commands run on the
+	// same thread, except for commands with the "thread " prefix, which run on
+	// another thread. Policies with Thread scoped states rely on this.
+	runtime.LockOSThread()
+
 	var scanner *bufio.Scanner
 	switch len(os.Args[1:]) {
 	case 0:
@@ -46,9 +52,9 @@ func TestHelperMain() {
 		scanner = bufio.NewScanner(strings.NewReader(s))
 	}
 
-	for scanner.Scan() {
+	var helperCmd func(cmd string)
+	helperCmd = func(cmd string) {
 		execMayFail := false
-		cmd := scanner.Text()
 		switch {
 		case cmd == "ping":
 			fmt.Println("pong")
@@ -71,7 +77,7 @@ func TestHelperMain() {
 			out, err := cmd.CombinedOutput()
 			if err == nil {
 				fmt.Fprintf(os.Stdout, "cmd=%q returned without an error. Combined output was: %q\n", cmd, out)
-				continue
+				return
 			}
 			if !execMayFail {
 				fmt.Fprintf(os.Stderr, "cmd=%q returned an error (%s)\n", cmd, err)
@@ -136,9 +142,24 @@ func TestHelperMain() {
 			fmt.Fprintf(os.Stderr, "Exiting...\n")
 			os.Exit(0)
 
+		case strings.HasPrefix(cmd, "thread "):
+			// The goroutine never unlocks its thread, so the Go runtime
+			// terminates the thread once the command returns.
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				runtime.LockOSThread()
+				helperCmd(strings.TrimPrefix(cmd, "thread "))
+			}()
+			<-done
+
 		default:
 			fmt.Fprintf(os.Stdout, "unknown cmd=%s\n", cmd)
 		}
+	}
+
+	for scanner.Scan() {
+		helperCmd(scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {

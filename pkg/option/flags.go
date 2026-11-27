@@ -153,6 +153,8 @@ const (
 	KeyParentsMapEntries = "parents-map-entries"
 	KeyParentsMapSize    = "parents-map-size"
 
+	KeyStateScopedMapSize = "state-scoped-map-size"
+
 	KeyRetprobesCacheSize = "retprobes-cache-size"
 
 	KeyEnableDeprecatedTPGRPC = "enable-deprecated-tracingpolicy-grpc"
@@ -360,22 +362,27 @@ func ReadAndSetFlags() error {
 	Config.ParentsMapEntries = viper.GetInt(KeyParentsMapEntries)
 	Config.ParentsMapSize = viper.GetString(KeyParentsMapSize)
 
+	Config.StateScopedMapSize = viper.GetInt(KeyStateScopedMapSize)
+	if err := ValidateMapSize(KeyStateScopedMapSize, Config.StateScopedMapSize); err != nil {
+		return err
+	}
+
 	Config.RetprobesCacheSize = viper.GetInt(KeyRetprobesCacheSize)
 
 	Config.SleepablePreloadSize = viper.GetInt(KeySleepablePreloadSize)
 	Config.SleepableOffloadSize = viper.GetInt(KeySleepableOffloadSize)
 
 	Config.UprobeHeapSize = viper.GetInt(KeyUprobeHeapSize)
-	if err := ValidateHeapSize(KeyUprobeHeapSize, Config.UprobeHeapSize); err != nil {
+	if err := ValidateMapSize(KeyUprobeHeapSize, Config.UprobeHeapSize); err != nil {
 		return err
 	}
 	Config.FentryHeapSize = viper.GetInt(KeyFentryHeapSize)
-	if err := ValidateHeapSize(KeyFentryHeapSize, Config.FentryHeapSize); err != nil {
+	if err := ValidateMapSize(KeyFentryHeapSize, Config.FentryHeapSize); err != nil {
 		return err
 	}
 
 	Config.LsmHeapSize = viper.GetInt(KeyLsmHeapSize)
-	if err := ValidateHeapSize(KeyLsmHeapSize, Config.LsmHeapSize); err != nil {
+	if err := ValidateMapSize(KeyLsmHeapSize, Config.LsmHeapSize); err != nil {
 		return err
 	}
 	Config.EnableGRPCDeprecatedTP = viper.GetBool(KeyEnableDeprecatedTPGRPC)
@@ -658,6 +665,8 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyParentsMapEnabled, false, "Enable parents_map for matchParentBinaries selector")
 	flags.Int(KeyParentsMapEntries, 0, "Set entries for parents_map table (default 32768)")
 	flags.String(KeyParentsMapSize, "", "Set size for parents_map table (allows K/M/G suffix)")
+
+	flags.Int(KeyStateScopedMapSize, defaults.DefaultStateScopedMapSize, "Set the maximum number of process/thread-scoped state entries per tracing policy (must be positive)")
 
 	flags.Int(KeyRetprobesCacheSize, defaults.DefaultRetprobesCacheSize, "Set {k,u}retprobes events cache maximum size")
 

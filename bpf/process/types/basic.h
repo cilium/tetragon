@@ -135,12 +135,6 @@ enum {
 	ACTION_UPDATE_STATE = 15,
 };
 
-// Mirrored by StateOp* in pkg/selectors/kernel.go
-enum {
-	STATE_OP_SET = 0,
-	STATE_OP_DELETE = 1,
-};
-
 enum {
 	FGS_SIGKILL = 9,
 };
@@ -183,6 +177,7 @@ struct selector_arg_filters {
 struct selector_state_filter {
 	// state_id is a number representing the user-defined state name
 	__u32 state_id;
+	__u32 scope;
 	__u32 op;
 	__u64 value;
 } __attribute__((packed));
