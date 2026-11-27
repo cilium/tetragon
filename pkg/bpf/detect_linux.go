@@ -694,6 +694,18 @@ func HasKfunc(name string) bool {
 	return detected
 }
 
+// HasIterNum returns true if tetragon can use numeric iterators
+// (bpf_iter_num_* kfuncs) in its BPF programs.
+//
+// We can't use numeric iterator until we get following fix from 6.9 kernel:
+//
+//	4f81c16f50ba bpf: Recognize that two registers are safe when their ranges match
+//
+// otherwise our loop code crosses 1mil instructions verifier limit.
+func HasIterNum() bool {
+	return HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
+}
+
 // HasSubStringKfunc returns true if the kernel supports the bpf_strnstr kfunc
 // which is required for the SubString operator.
 func HasSubStringKfunc() bool {

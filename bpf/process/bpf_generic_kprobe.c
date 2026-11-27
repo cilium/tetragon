@@ -122,18 +122,15 @@ generic_kprobe_process_event_2(void *ctx)
 __attribute__((section(COMMON), used)) int
 generic_kprobe_process_filter(void *ctx)
 {
-	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_1,
-					    TAIL_CALL_FILTER, /* fail */
-					    TAIL_CALL_FILTER_2, /* pass */
+	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_ALL, TAIL_CALL_SETUP,
 					    (struct bpf_map_def *)&kprobe_calls);
 }
 
 __attribute__((section(COMMON), used)) int
 generic_kprobe_process_filter_2(void *ctx)
 {
-	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_2,
-					    TAIL_CALL_FILTER, /* fail */
-					    TAIL_CALL_SETUP, /* pass */
+	/* reached only in split mode, see filter_run_stage_1/2() */
+	return generic_process_filter_stage(ctx, GENERIC_FILTER_STAGE_2, TAIL_CALL_SETUP,
 					    (struct bpf_map_def *)&kprobe_calls);
 }
 

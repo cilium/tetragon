@@ -81,6 +81,7 @@ filter_pidsets(__u64 ty, __u64 flags, __u64 sel, struct execve_map_value *enter)
 
 // generic_process_filter return value
 enum {
+	PFILTER_STAGE_2 = 4, // selector passed stage 1, run stage 2
 	PFILTER_ERROR = 3, // these should never happen
 	PFILTER_CONTINUE = 2, // filter check continue
 	PFILTER_ACCEPT = 1, // filter check passed
@@ -885,15 +886,6 @@ selector_process_filter_2(void *ctx, __u32 *f, __u32 index, struct execve_map_va
 #endif
 
 	return res;
-}
-
-FUNC_INLINE int
-selector_process_filter(void *ctx, __u32 *f, __u32 index, struct execve_map_value *enter,
-			struct msg_generic_kprobe *msg, int stage)
-{
-	if (stage == GENERIC_FILTER_STAGE_1)
-		return selector_process_filter_1(f, index, enter);
-	return selector_process_filter_2(ctx, f, index, enter, msg);
 }
 
 FUNC_INLINE int

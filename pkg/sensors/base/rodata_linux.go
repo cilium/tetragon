@@ -5,7 +5,6 @@ package base
 
 import (
 	"github.com/cilium/tetragon/pkg/bpf"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
@@ -33,10 +32,8 @@ func b2u8(b bool) uint8 {
 }
 
 func rodataCurrent() rodataConfig {
-	// We can't use numeric iterator until we get following fix from 6.9 kernel:
-	//   4f81c16f50ba bpf: Recognize that two registers are safe when their ranges match
-	// otherwise our loop code crosses 1mil instructions verifier limit.
-	iterNum := b2u8(bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9"))
+	// numeric iterators, see bpf.HasIterNum()
+	iterNum := b2u8(bpf.HasIterNum())
 
 	// perf ring buffer is enabled by --use-perf-ring-buffer option
 	usePerfRingBuf := b2u8(option.Config.UsePerfRingBuffer)
