@@ -50,6 +50,10 @@ PROGS = sigkill-tester \
 	uprobe-big-struct \
 	pclntab-unstripped \
 	pclntab-stripped \
+	pclntab-pie-unstripped \
+	pclntab-pie-stripped \
+	pclntab-cgo-unstripped \
+	pclntab-cgo-stripped \
 	null-mount \
 	resolve-nested-anon-struct \
 	cel-regs-override
@@ -221,6 +225,18 @@ pclntab-unstripped: FORCE
 
 pclntab-stripped: FORCE
 	go build -ldflags='-s -w' -o $@ ./go/pclntab-test
+
+pclntab-pie-unstripped: FORCE
+	CGO_ENABLED=0 go build -buildmode=pie -o $@ ./go/pclntab-test
+
+pclntab-pie-stripped: FORCE
+	CGO_ENABLED=0 go build -buildmode=pie -ldflags='-s -w' -o $@ ./go/pclntab-test
+
+pclntab-cgo-unstripped: FORCE
+	CGO_ENABLED=1 go build -o $@ ./go/pclntab-cgo-test
+
+pclntab-cgo-stripped: FORCE
+	CGO_ENABLED=1 go build -ldflags='-s -w' -o $@ ./go/pclntab-cgo-test
 
 .PHONY: clean
 clean:

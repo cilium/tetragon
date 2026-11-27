@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -138,55 +139,14 @@ func New() *cobra.Command {
 				log.Fatalf("binary is not specified, please use --binary option")
 			}
 
-			file, err := elf.Open(uprobesBinary)
+			symbols, err := uprobeSymbols(uprobesBinary)
 			if err != nil {
-				log.Fatalf("failed to open '%s': %v", uprobesBinary, err)
+				log.Fatal(err)
 			}
-
-			syms, err := file.Symbols()
-			if err != nil && !errors.Is(err, elf.ErrNoSymbols) {
-				log.Fatalf("failed to get symtab for open '%s': %v", uprobesBinary, err)
-			}
-
-			dynsyms, err := file.DynamicSymbols()
-			if err != nil && !errors.Is(err, elf.ErrNoSymbols) {
-				log.Fatalf("failed to get dynsym for open '%s': %v", uprobesBinary, err)
-			}
-
-			syms = append(syms, dynsyms...)
 
 			tp := generate.NewTracingPolicy("uprobes")
 			uprobe := generate.AddUprobe(tp)
-
-			for _, sym := range syms {
-				if elf.ST_TYPE(sym.Info) != elf.STT_FUNC {
-					continue
-				}
-				if sym.Value == 0 {
-					continue
-				}
-				uprobe.Symbols = append(uprobe.Symbols, sym.Name)
-			}
-
-			// Stripped Go binary with no symtab: fall back to .gopclntab
-			if len(uprobe.Symbols) == 0 {
-				file, err := telf.OpenSafeELFFile(uprobesBinary)
-				if err != nil {
-					log.Fatalf("failed to open ELF file '%s': %v", uprobesBinary, err)
-				}
-				defer file.Close()
-				if file.IsStrippedPureGoBinary() {
-					tbl, pclnErr := file.Pclntab()
-					if pclnErr != nil {
-						log.Fatalf("failed to parse pclntab for '%s': %v", uprobesBinary, pclnErr)
-					}
-					funcs := tbl.AllFuncs()
-					for _, fn := range funcs {
-						uprobe.Symbols = append(uprobe.Symbols, fn.Name)
-					}
-				}
-			}
-
+			uprobe.Symbols = symbols
 			uprobe.Path = uprobesBinary
 			b, err := yaml.Marshal(tp)
 			if err != nil {
@@ -277,4 +237,41 @@ func New() *cobra.Command {
 
 	cmd.AddCommand(empty, allSyscalls, allSyscallsList, ftraceList, uprobes, usdts)
 	return cmd
+}
+
+// Returns the sorted, deduplicated functions of path from .symtab, .dynsym and,
+// for a stripped Go binary, .gopclntab
+func uprobeSymbols(path string) ([]string, error) {
+	file, err := telf.OpenSafeELFFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open '%s': %w", path, err)
+	}
+	defer file.Close()
+
+	syms, err := file.Symbols()
+	if err != nil && !errors.Is(err, elf.ErrNoSymbols) {
+		return nil, fmt.Errorf("failed to get symtab for open '%s': %w", path, err)
+	}
+	dynsyms, err := file.DynamicSymbols()
+	if err != nil && !errors.Is(err, elf.ErrNoSymbols) {
+		return nil, fmt.Errorf("failed to get dynsym for open '%s': %w", path, err)
+	}
+
+	var symbols []string
+	for _, sym := range append(syms, dynsyms...) {
+		if elf.ST_TYPE(sym.Info) == elf.STT_FUNC && sym.Value != 0 {
+			symbols = append(symbols, sym.Name)
+		}
+	}
+	if file.IsStrippedGoBinary() {
+		tbl, err := file.Pclntab()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse pclntab for '%s': %w", path, err)
+		}
+		for _, fn := range tbl.AllFuncs() {
+			symbols = append(symbols, fn.Name)
+		}
+	}
+	slices.Sort(symbols)
+	return slices.Compact(symbols), nil
 }

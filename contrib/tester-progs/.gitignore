@@ -56,6 +56,10 @@ libuprobe-arg-target-2.so
 libuprobe-static-chain.so
 pclntab-stripped
 pclntab-unstripped
+pclntab-pie-stripped
+pclntab-pie-unstripped
+pclntab-cgo-stripped
+pclntab-cgo-unstripped
 null-mount
 resolve-nested-anon-struct
 resolve-nested-anon-struct.btf
