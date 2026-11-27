@@ -735,6 +735,24 @@ Environment variable
 | time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Date and time of the event. |
 | ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 
+<a name="tetragon-ProcessJava"></a>
+
+### ProcessJava
+ProcessJava reports entry into an instrumented Java method.
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process | [Process](#tetragon-Process) |  |  |
+| parent | [Process](#tetragon-Process) |  |  |
+| ancestors | [Process](#tetragon-Process) | repeated |  |
+| method_id | [uint64](#uint64) |  |  |
+| class_name | [string](#string) |  |  |
+| method_name | [string](#string) |  |  |
+| descriptor | [string](#string) |  |  |
+| policy_name | [string](#string) |  | Name of the policy that created that java hook. |
+| message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
+| tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
+
 <a name="tetragon-ProcessKprobe"></a>
 
 ### ProcessKprobe
@@ -1069,6 +1087,7 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | process_throttle | [ProcessThrottle](#tetragon-ProcessThrottle) |  |  |
 | process_lsm | [ProcessLsm](#tetragon-ProcessLsm) |  |  |
 | process_usdt | [ProcessUsdt](#tetragon-ProcessUsdt) |  |  |
+| process_java | [ProcessJava](#tetragon-ProcessJava) |  |  |
 | test | [Test](#tetragon-Test) |  |  |
 | rate_limit_info | [RateLimitInfo](#tetragon-RateLimitInfo) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
@@ -1133,6 +1152,7 @@ GetEventsResponse event oneof.
 | PROCESS_THROTTLE | 27 |  |
 | PROCESS_LSM | 28 |  |
 | PROCESS_USDT | 29 |  |
+| PROCESS_JAVA | 30 |  |
 | TEST | 40000 |  |
 | RATE_LIMIT_INFO | 40001 |  |
 

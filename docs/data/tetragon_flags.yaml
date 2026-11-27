@@ -47,7 +47,7 @@ options:
       usage: Disable process cache
     - name: enable-ancestors
       usage: |
-        Comma-separated list of process event types to enable ancestors for (base, kprobe, tracepoint, loader, uprobe, lsm, usdt). Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting.
+        Comma-separated list of process event types to enable ancestors for (base, kprobe, tracepoint, loader, uprobe, lsm, usdt, java). Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting.
     - name: enable-cgidmap
       default_value: "false"
       usage: enable pod resolution via cgroup ids
@@ -188,6 +188,15 @@ options:
       shorthand: h
       default_value: "false"
       usage: help for tetragon
+    - name: java-agent-path
+      usage: Path to the JVMTI Java monitoring agent shared library
+    - name: java-agent-socket-path
+      default_value: /var/run/tetragon/java.sock
+      usage: Unix socket used by the JVMTI Java monitoring agent
+    - name: java-ring-size
+      default_value: 4M
+      usage: |
+        Set size of the ring buffer each monitored JVM reports its events through (power of two, at least 1M, allows K/M/G suffix)
     - name: k8s-controlplane-retry
       default_value: "1"
       usage: |

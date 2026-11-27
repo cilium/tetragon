@@ -4,6 +4,7 @@
 package proc
 
 import (
+	"errors"
 	"strconv"
 )
 
@@ -45,8 +46,18 @@ const (
 	InvalidUid = ^uint32(0) // 4294967295 (2^32 - 1)
 )
 
+// GetStatsStartTicks returns the process start time in clock ticks since
+// boot (starttime field), s are the /proc/<pid>/stat fields as returned by
+// GetProcStatStrings.
+func GetStatsStartTicks(s []string) (uint64, error) {
+	if len(s) <= 21 {
+		return 0, errors.New("proc stat lacks start time")
+	}
+	return strconv.ParseUint(s[21], 10, 64)
+}
+
 func GetStatsKtime(s []string) (uint64, error) {
-	ktime, err := strconv.ParseUint(s[21], 10, 64)
+	ktime, err := GetStatsStartTicks(s)
 	if err != nil {
 		return 0, err
 	}

@@ -132,7 +132,7 @@ The total of errors encountered while fetching process exec information from the
 | label | values |
 | ----- | ------ |
 | `error` | `nil_process_pid` |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
+| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_JAVA, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
 
 ### `tetragon_event_cache_fetch_failures_total`
 
@@ -141,7 +141,7 @@ Number of failed fetches from the event cache. These won't be retried as they al
 | label | values |
 | ----- | ------ |
 | `entry_type` | `ancestors_info, parent_info, pod_info, process_info` |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
+| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_JAVA, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
 
 ### `tetragon_event_cache_fetch_retries_total`
 
@@ -225,6 +225,18 @@ The latency of handling messages in us.
 | ----- | ------ |
 | `opcode` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 5, 7` |
 | `opstr` | `Cgroup, Clone, Data, Execve, Exit, GenericKprobe, GenericLSM, GenericTracepoint, GenericUSDT, GenericUprobe, Loader, Throttle` |
+
+### `tetragon_java_ring_events_lost_total`
+
+Number of records the Java agents dropped because their ring was full.
+
+| label | values |
+| ----- | ------ |
+| `type ` | `definition, entry` |
+
+### `tetragon_java_ring_events_received_total`
+
+Number of method entry records Tetragon received from the Java agent rings.
 
 ### `tetragon_map_capacity`
 
@@ -610,7 +622,7 @@ The total number of Tetragon events
 | label | values |
 | ----- | ------ |
 | `binary` | `example-binary` |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
+| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_JAVA, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
 | `namespace` | `example-namespace` |
 | `node_name` | `example-node-name` |
 | `pod  ` | `example-pod` |
