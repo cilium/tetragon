@@ -1352,7 +1352,7 @@ func dnsLookup(fqdn string) {
 	res.LookupIP(context.Background(), "ip4", fqdn)
 }
 
-func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
+func handleGenericKprobe(r *tetragonapi.BPFReader) ([]observer.Event, error) {
 	m := api.MsgGenericKprobe{}
 	err := tetragonapi.ReadBPFStruct(r, &m)
 	if err != nil {
@@ -1373,7 +1373,7 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 	return ret, err
 }
 
-func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes.Reader) ([]observer.Event, error) {
+func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *tetragonapi.BPFReader) ([]observer.Event, error) {
 	var err error
 
 	switch m.ActionId {

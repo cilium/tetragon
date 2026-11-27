@@ -697,7 +697,7 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 	return nil
 }
 
-func handleGenericUsdt(r *bytes.Reader) ([]observer.Event, error) {
+func handleGenericUsdt(r *tetragonapi.BPFReader) ([]observer.Event, error) {
 	m := api.MsgGenericKprobe{}
 	err := tetragonapi.ReadBPFStruct(r, &m)
 	if err != nil {

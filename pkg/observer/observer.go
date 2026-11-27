@@ -4,7 +4,6 @@
 package observer
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 
+	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -30,14 +30,14 @@ import (
 )
 
 var (
-	eventHandler = make(map[uint8]func(r *bytes.Reader) ([]Event, error))
+	eventHandler = make(map[uint8]func(r *api.BPFReader) ([]Event, error))
 
 	observerList []*Observer
 )
 
 type Event notify.Message
 
-func RegisterEventHandlerAtInit(ev uint8, handler func(r *bytes.Reader) ([]Event, error)) {
+func RegisterEventHandlerAtInit(ev uint8, handler func(r *api.BPFReader) ([]Event, error)) {
 	eventHandler[ev] = handler
 }
 
@@ -94,7 +94,7 @@ func HandlePerfData(data []byte) (byte, []Event, *HandlePerfError) {
 		}
 	}
 	op := data[0]
-	r := bytes.NewReader(data)
+	r := api.NewBPFReader(data)
 	// These ops handlers are registered by RegisterEventHandlerAtInit().
 	handler, ok := eventHandler[op]
 	if !ok {

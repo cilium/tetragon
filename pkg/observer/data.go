@@ -4,8 +4,6 @@
 package observer
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"unsafe"
@@ -47,11 +45,11 @@ func DataAdd(id dataapi.DataEventId, msgData []byte) error {
 	return nil
 }
 
-func add(r *bytes.Reader, m *dataapi.MsgData) error {
+func add(r *api.BPFReader, m *dataapi.MsgData) error {
 	size := m.Common.Size - uint32(unsafe.Sizeof(*m))
 	msgData := make([]byte, size)
 
-	err := binary.Read(r, binary.LittleEndian, &msgData)
+	err := r.ReadBytes(msgData)
 	if err != nil {
 		logger.GetLogger().Warn("Failed to read data msg payload", logfields.Error, err)
 		return err
@@ -83,7 +81,7 @@ func DataGet(desc dataapi.DataEventDesc) ([]byte, error) {
 	return data, nil
 }
 
-func HandleData(r *bytes.Reader) ([]Event, error) {
+func HandleData(r *api.BPFReader) ([]Event, error) {
 	DataEventMetricInc(DataEventReceived)
 
 	m := dataapi.MsgData{}

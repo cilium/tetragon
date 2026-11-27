@@ -5,7 +5,6 @@ package tracing
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -137,7 +136,7 @@ func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
 	return 0
 }
 
-func getArgStatus(r *bytes.Reader) (*api.MsgGenericKprobeArgError, error) {
+func getArgStatus(r *tetragonapi.BPFReader) (*api.MsgGenericKprobeArgError, error) {
 	var arg api.MsgGenericKprobeArgError
 
 	status, err := tetragonapi.ReadIntegerLE[uint32](r)
@@ -160,7 +159,7 @@ type getArgLogger interface {
 	LogAttrs(level slog.Level, msg string, attrs ...slog.Attr)
 }
 
-func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
+func getArg(l getArgLogger, r *tetragonapi.BPFReader, a argPrinter) api.MsgGenericKprobeArg {
 	var err error
 
 	if errorArg, err := getArgStatus(r); err != nil {
@@ -674,7 +673,7 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 // | 4 bytes | N bytes |
 // |  size   | string  |
 // *---------*---------*
-func parseString(r *bytes.Reader) (string, error) {
+func parseString(r *tetragonapi.BPFReader) (string, error) {
 	size, err := tetragonapi.ReadIntegerLE[int32](r)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", errParseStringSize, err)
@@ -689,7 +688,7 @@ func parseString(r *bytes.Reader) (string, error) {
 		return "", fmt.Errorf("string size too large: %d, max size is %d", size, maxStringSize)
 	}
 	stringBuffer := make([]byte, size)
-	err = binary.Read(r, binary.LittleEndian, &stringBuffer)
+	err = r.ReadBytes(stringBuffer)
 	if err != nil {
 		return "", fmt.Errorf("error parsing string from binary with size %d: %w", size, err)
 	}
@@ -702,7 +701,7 @@ func parseString(r *bytes.Reader) (string, error) {
 	return strutils.UTF8FromBPFBytes(stringBuffer), nil
 }
 
-func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericKprobeArgBytes, error) {
+func ReadArgBytes(r *tetragonapi.BPFReader, index int, hasMaxData bool) (*api.MsgGenericKprobeArgBytes, error) {
 	var arg api.MsgGenericKprobeArgBytes
 
 	if hasMaxData {
@@ -752,7 +751,7 @@ func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericK
 
 	if bytesRd > 0 {
 		arg.Value = make([]byte, bytesRd)
-		if err := binary.Read(r, binary.LittleEndian, &arg.Value); err != nil {
+		if err := r.ReadBytes(arg.Value); err != nil {
 			return nil, fmt.Errorf("failed to read buffer (size: %d): %w", bytesRd, err)
 		}
 	}
