@@ -57,12 +57,7 @@ func TestModeSigKill(t *testing.T) {
 		Spec: v1alpha1.TracingPolicySpec{
 			KProbes: []v1alpha1.KProbeSpec{{
 				Call:    "sys_getcpu",
-				Return:  true,
 				Syscall: true,
-				ReturnArg: &v1alpha1.KProbeArg{
-					Index: 0,
-					Type:  "int",
-				},
 				Selectors: []v1alpha1.KProbeSelector{{
 					MatchActions: []v1alpha1.ActionSelector{
 						{Action: "Signal", ArgSig: 9},
@@ -167,12 +162,7 @@ func TestModeEnforcer(t *testing.T) {
 			}},
 			KProbes: []v1alpha1.KProbeSpec{{
 				Call:    "sys_getcpu",
-				Return:  true,
 				Syscall: true,
-				ReturnArg: &v1alpha1.KProbeArg{
-					Index: 0,
-					Type:  "int",
-				},
 				Selectors: []v1alpha1.KProbeSelector{{
 					MatchActions: []v1alpha1.ActionSelector{
 						{Action: "NotifyEnforcer", ArgSig: 9},

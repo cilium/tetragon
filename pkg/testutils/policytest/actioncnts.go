@@ -11,24 +11,50 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 )
 
+// SelectorIndex identifies a selector of a policy.
+type SelectorIndex struct {
+	Hook     uint32
+	Selector uint32
+}
+
 type ActionCounts struct {
 	Post           *uint64
 	Signal         *uint64
 	Override       *uint64
 	NotifyEnforcer *uint64
 	Set            *uint64
+	// SelectorPost holds the expected posts of individual selectors.
+	SelectorPost map[SelectorIndex]uint64
 }
 
-func (ac *ActionCounts) empty() bool {
-	return ac.Post == nil && ac.Signal == nil && ac.Override == nil && ac.NotifyEnforcer == nil && ac.Set == nil
+// Empty returns true if no action counts are expected.
+func (ac *ActionCounts) Empty() bool {
+	return ac.Post == nil && ac.Signal == nil && ac.Override == nil && ac.NotifyEnforcer == nil && ac.Set == nil &&
+		len(ac.SelectorPost) == 0
 }
 
-func actCountsCheck(
+func selectorPosts(stats *tetragon.TracingPolicyStats) map[SelectorIndex]uint64 {
+	posts := make(map[SelectorIndex]uint64)
+	for _, c := range stats.GetSelectorActionCounters() {
+		idx := SelectorIndex{
+			Hook:     c.GetHookIndex().GetValue(),
+			Selector: c.GetSelectorIndex().GetValue(),
+		}
+		posts[idx] = c.GetActionCounters().GetPost()
+	}
+	return posts
+}
+
+// ActCountsCheck checks that the action counts changed from before to after
+// as expected. In monitor mode, the monitor counters of enforcement actions
+// are checked instead, and no signals are expected.
+func ActCountsCheck(
 	monitorMode bool,
-	before, after *tetragon.TracingPolicyActionCounters,
+	beforeStats, afterStats *tetragon.TracingPolicyStats,
 	expect *ActionCounts,
 ) error {
 	var err error
+	before, after := beforeStats.GetActionCounters(), afterStats.GetActionCounters()
 	doCheck := func(cnt string, expected, before, after uint64) {
 		if expected != after-before {
 			err = addErr(err, cnt, fmt.Errorf("expected:%d before:%d, after:%d", expected, before, after))
@@ -68,6 +94,14 @@ func actCountsCheck(
 			doCheck("set (monitor)", *(expect.Set), before.MonitorSet, after.MonitorSet)
 		} else {
 			doCheck("set", *(expect.Set), before.Set, after.Set)
+		}
+	}
+
+	if len(expect.SelectorPost) > 0 {
+		postsBefore, postsAfter := selectorPosts(beforeStats), selectorPosts(afterStats)
+		for idx, expected := range expect.SelectorPost {
+			name := fmt.Sprintf("post (hook %d, selector %d)", idx.Hook, idx.Selector)
+			doCheck(name, expected, postsBefore[idx], postsAfter[idx])
 		}
 	}
 

@@ -2544,7 +2544,6 @@ metadata:
 spec:
   kprobes:
   - call: "sys_openat"
-    return: true
     syscall: true
     args:
     - index: 0
@@ -2552,9 +2551,6 @@ spec:
     - index: 1
       type: "string"
     - index: 2
-      type: "int"
-    returnArg:
-      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2581,7 +2577,6 @@ spec:
 				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
 				ec.NewKprobeArgumentChecker(),
 			)).
-		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
@@ -2613,13 +2608,9 @@ spec:
   kprobes:
   - call: "security_file_open"
     syscall: false
-    return: true
     args:
     - index: 0
       type: "file"
-    returnArg:
-      index: 0
-      type: "int"
     selectors:
     - matchPIDs:
       - operator: In
@@ -2643,7 +2634,6 @@ spec:
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(file.Name()))),
 			)).
-		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
@@ -2667,7 +2657,6 @@ metadata:
 spec:
   kprobes:
   - call: "sys_openat"
-    return: true
     syscall: true
     args:
     - index: 0
@@ -2675,9 +2664,6 @@ spec:
     - index: 1
       type: "string"
     - index: 2
-      type: "int"
-    returnArg:
-      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2705,7 +2691,6 @@ spec:
 				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
 				ec.NewKprobeArgumentChecker(),
 			)).
-		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
@@ -2780,7 +2765,6 @@ metadata:
 spec:
   kprobes:
   - call: "sys_openat"
-    return: true
     syscall: true
     args:
     - index: 0
@@ -2788,9 +2772,6 @@ spec:
     - index: 1
       type: "string"
     - index: 2
-      type: "int"
-    returnArg:
-      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2819,7 +2800,6 @@ spec:
 				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
 				ec.NewKprobeArgumentChecker(),
 			)).
-		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGNAL)
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
@@ -2846,7 +2826,6 @@ metadata:
 spec:
   kprobes:
   - call: "sys_openat"
-    return: true
     syscall: true
     args:
     - index: 0
@@ -2854,9 +2833,6 @@ spec:
     - index: 1
       type: "string"
     - index: 2
-      type: "int"
-    returnArg:
-      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2885,7 +2861,6 @@ spec:
 				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
 				ec.NewKprobeArgumentChecker(),
 			)).
-		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
@@ -2912,7 +2887,6 @@ metadata:
 spec:
   kprobes:
   - call: "sys_openat"
-    return: true
     syscall: true
     args:
     - index: 0
@@ -2920,9 +2894,6 @@ spec:
     - index: 1
       type: "string"
     - index: 2
-      type: "int"
-    returnArg:
-      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2952,7 +2923,6 @@ spec:
 				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
 				ec.NewKprobeArgumentChecker(),
 			)).
-		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
@@ -3052,7 +3022,6 @@ metadata:
 spec:
   kprobes:
   - call: "sys_openat"
-    return: true
     syscall: true
     args:
     - index: 0
@@ -3060,9 +3029,6 @@ spec:
     - index: 1
       type: "string"
     - index: 2
-      type: "int"
-    returnArg:
-      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -3079,7 +3045,6 @@ spec:
       - action: Override
         argError: -1
   - call: "sys_linkat"
-    return: true
     syscall: true
     args:
     - index: 0
@@ -3091,9 +3056,6 @@ spec:
     - index: 3
       type: "string"
     - index: 4
-      type: "int"
-    returnArg:
-      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -3165,7 +3127,6 @@ spec:
 				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(file.Name())),
 				ec.NewKprobeArgumentChecker(),
 			)).
-		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-1)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
 
 	symlinkChecker := ec.NewProcessKprobeChecker("").
@@ -3179,7 +3140,6 @@ spec:
 				ec.NewKprobeArgumentChecker().WithStringArg(sm.Contains(link.Name())),
 				ec.NewKprobeArgumentChecker(),
 			)).
-		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-2)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
 
 	hardlinkChecker := ec.NewProcessKprobeChecker("").
@@ -5402,6 +5362,14 @@ func TestKprobeRateLimitLongerThanUptime(t *testing.T) {
 	}
 
 	testKprobeRateLimit(t, "1193h", false)
+}
+
+func TestKprobeReturnRateLimit(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-return-rate-limit", nil)
+}
+
+func TestKprobeReturnPostStats(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-return-post-stats", nil)
 }
 
 func testKprobeListSyscallDupsRange(t *testing.T, fentry bool) {

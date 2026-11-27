@@ -23,7 +23,7 @@ spec:
         values:
         - "2"
         - "10"
-      matchActions:
+      matchReturnActions:
       - action: "NoPost"
   - call: "__sk_free"
     syscall: false

@@ -81,6 +81,21 @@ func createStackTraceMap(enabled bool, load *program.Program) *program.Map {
 	return stackTraceMap
 }
 
+// rateLimitMaps returns the rate limit maps of an entry or return program.
+// They are shared by the sensor's programs, and are only expanded when
+// needed to reduce the memory footprint when unused.
+func rateLimitMaps(rateLimit, returnRateLimit bool, load *program.Program) []*program.Map {
+	ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
+	if rateLimit {
+		ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
+	}
+	argsMap := program.MapBuilderSensor("ratelimit_args_map", load)
+	if returnRateLimit {
+		argsMap.SetMaxEntries(ratelimitArgsMapMaxEntries)
+	}
+	return []*program.Map{ratelimitMap, argsMap}
+}
+
 func getHeapMaps(prefix string, size, userSize int, load ...*program.Program) []*program.Map {
 	var maps []*program.Map
 

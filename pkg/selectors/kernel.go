@@ -2395,9 +2395,24 @@ func HasEnforcerAction(selectors []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+// HasRateLimit returns true if any selector rate limits, in either
+// matchActions or matchReturnActions.
 func HasRateLimit(selectors []v1alpha1.KProbeSelector) bool {
 	for _, selector := range selectors {
-		for _, matchAction := range selector.MatchActions {
+		for _, matchAction := range slices.Concat(selector.MatchActions, selector.MatchReturnActions) {
+			if len(matchAction.RateLimit) > 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// HasReturnRateLimit returns true if any selector rate limits in
+// matchReturnActions.
+func HasReturnRateLimit(selectors []v1alpha1.KProbeSelector) bool {
+	for _, selector := range selectors {
+		for _, matchAction := range selector.MatchReturnActions {
 			if len(matchAction.RateLimit) > 0 {
 				return true
 			}

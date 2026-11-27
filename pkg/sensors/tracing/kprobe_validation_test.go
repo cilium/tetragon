@@ -165,50 +165,44 @@ func TestValidateSignalActionsSmallProgs(t *testing.T) {
 	}
 }
 
-func TestValidateReturnArgsActions(t *testing.T) {
+func TestValidateReturnEntryActions(t *testing.T) {
+	post := []v1alpha1.ActionSelector{{Action: "Post"}}
 	returnArgs := []v1alpha1.ArgSelector{{Index: 0, Operator: "Equal", Values: []string{"0"}}}
-	actions := []v1alpha1.ActionSelector{{Action: "Sigkill"}}
 	tests := []struct {
 		name          string
 		selectorSpecs []v1alpha1.KProbeSelector
 		macros        map[string]v1alpha1.KProbeSelector
+		hasReturn     bool
 		wantErr       string
 	}{
 		{
-			name:          "matchReturnArgs with matchActions",
-			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs, MatchActions: actions}},
-			wantErr:       "selectors[0]: matchActions can't be combined with matchReturnArgs",
+			name:          "matchActions with return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnActions: post}, {MatchActions: post}},
+			hasReturn:     true,
+			wantErr:       "selectors[1]: matchActions can't be used with return: true",
 		},
 		{
-			name:          "matchActions added by macro",
-			selectorSpecs: []v1alpha1.KProbeSelector{{}, {MatchReturnArgs: returnArgs, Macros: []string{"kill"}}},
-			macros:        map[string]v1alpha1.KProbeSelector{"kill": {MatchActions: actions}},
-			wantErr:       "selectors[1]: matchActions can't be combined with matchReturnArgs",
+			name:          "matchActions added by macro with return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs, Macros: []string{"post"}}},
+			macros:        map[string]v1alpha1.KProbeSelector{"post": {MatchActions: post}},
+			hasReturn:     true,
+			wantErr:       "selectors[0]: matchActions can't be used with return: true",
 		},
 		{
-			name:          "matchActions before matchReturnArgs",
-			selectorSpecs: []v1alpha1.KProbeSelector{{MatchActions: actions}, {MatchReturnArgs: returnArgs}},
-			wantErr:       "selectors[0]: matchActions can't be combined with matchReturnArgs in the same hook (selectors[1] has matchReturnArgs)",
+			name:          "matchReturnActions with return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs, MatchReturnActions: post}},
+			hasReturn:     true,
 		},
 		{
-			name:          "matchActions after matchReturnArgs",
-			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs}, {}, {MatchActions: actions}},
-			wantErr:       "selectors[2]: matchActions can't be combined with matchReturnArgs in the same hook (selectors[0] has matchReturnArgs)",
-		},
-		{
-			name:          "matchReturnArgs with matchReturnActions",
-			selectorSpecs: []v1alpha1.KProbeSelector{{MatchReturnArgs: returnArgs, MatchReturnActions: actions}},
-		},
-		{
-			name:          "matchActions and matchReturnActions in different selectors",
-			selectorSpecs: []v1alpha1.KProbeSelector{{MatchActions: actions}, {MatchReturnActions: actions}},
+			name:          "matchActions without return",
+			selectorSpecs: []v1alpha1.KProbeSelector{{MatchActions: post}},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			require.NoError(t, appendMacrosSelectors(test.selectorSpecs, test.macros))
-			err := validateReturnArgsActions(test.selectorSpecs)
+			err := validateReturnEntryActions(test.selectorSpecs, test.hasReturn)
 			if test.wantErr == "" {
 				require.NoError(t, err)
 			} else {
@@ -218,12 +212,12 @@ func TestValidateReturnArgsActions(t *testing.T) {
 	}
 }
 
-func TestKprobeValidationReturnArgsWithActions(t *testing.T) {
+func TestKprobeValidationReturnEntryActions(t *testing.T) {
 	crd := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "return-args-actions"
+  name: "return-entry-actions"
 spec:
   kprobes:
   - call: "sys_getcpu"
@@ -233,16 +227,13 @@ spec:
       index: 0
       type: int
     selectors:
-    - matchReturnArgs:
-      - index: 0
-        operator: Equal
-        values: ["0"]
-      matchActions:
-      - action: Post
+    - matchActions:
+      - action: Override
+        argError: -1
 `
 
 	err := checkCrd(t, crd)
-	require.ErrorContains(t, err, "selectors[0]: matchActions can't be combined with matchReturnArgs")
+	require.ErrorContains(t, err, "selectors[0]: matchActions can't be used with return: true")
 }
 
 func TestValidateReturnSelectors(t *testing.T) {

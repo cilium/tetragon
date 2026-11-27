@@ -32,6 +32,13 @@ Depending on your setup, changes listed here might require a manual intervention
   leading or trailing dot (`.mm.pgd`, `file.f_path.`) and a field name right
   after an index (`a[0]b`) were accepted before and are now rejected. Write
   them as `mm.pgd`, `file.f_path` and `a[0].b`.
+* Hooks with `return: true` can no longer have `matchActions`, and the agent
+  fails to load a policy that has them. These actions run when the function
+  is called, before the return value is known. Move them to
+  `matchReturnActions` (`rateLimit` now works there too), or remove
+  `return: true` and `returnArg` if they don't need the return value. Kprobe
+  `Override` only works in `matchActions`, so hooks that use it need
+  `return: true` removed.
 
 * `matchBinaries` and `matchParentBinaries` selectors must now have at least one
   entry in `values`, and entries must not be empty strings. Policies that
@@ -47,4 +54,9 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Metrics
 
-* TBD
+* For hooks with `return: true` (or a `returnCopy` argument), the `post`
+  action of `tetragon_tracingpolicy_selector_actions_total` and of the policy
+  stats is now counted when the function returns, once both halves of the
+  event were sent, and for the selector that matched on return. It used to be
+  counted when the function was called, for the first selector whose entry
+  filters matched, even if the return selectors then dropped the event.

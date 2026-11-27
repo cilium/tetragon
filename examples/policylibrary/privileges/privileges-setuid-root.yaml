@@ -71,7 +71,7 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min
   - call: "__sys_setgid"
@@ -89,7 +89,7 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min
   - call: "__sys_setreuid"
@@ -109,7 +109,7 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min
     - matchArgs:
@@ -117,7 +117,7 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min
   - call: "__sys_setregid"
@@ -137,7 +137,7 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min
     - matchArgs:
@@ -145,7 +145,7 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min
   - call: "__sys_setresuid"
@@ -167,7 +167,7 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min
     - matchArgs:
@@ -175,7 +175,7 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min
   - call: "__sys_setresgid"
@@ -197,7 +197,7 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min
     - matchArgs:
@@ -205,7 +205,7 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min
   - call: "__sys_setfsuid"
@@ -223,7 +223,7 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min
   - call: "__sys_setfsgid"
@@ -241,6 +241,6 @@ spec:
         operator: "Equal"
         values:
         - "0"
-      matchActions:
+      matchReturnActions:
       - action: Post
         rateLimit: "1m"  # Rate limit messages to 1min

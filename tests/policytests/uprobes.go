@@ -1503,3 +1503,168 @@ spec:
 		}
 	}).
 	RegisterAtInit()
+
+// regsOverrideReturnStringTrigger runs regs-override's test_return_string once
+// for each value, which returns its argument.
+func regsOverrideReturnStringTrigger(bin string, values ...string) *policytest.ExecTester {
+	var triggers []policytest.CmdTrigger
+	var exitCodes []int
+	for _, value := range values {
+		triggers = append(triggers, *policytest.NewCmdTrigger(bin, "4", value, value))
+		exitCodes = append(exitCodes, 0)
+	}
+	return policytest.NewMultiCmdTrigger(triggers).ExpectExitCodes(exitCodes)
+}
+
+func returnStringChecker(name, bin, value string) *ec.ProcessUprobeChecker {
+	str := ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(value))
+	return ec.NewProcessUprobeChecker(name).
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("test_return_string")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(str, str))
+}
+
+// A rateLimit in matchReturnActions only posts the first of the repeated calls.
+var _ = policytest.NewBuilder("uretprobe-rate-limit").WithLabels("uprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+			return "rateLimit requires large programs"
+		}
+		if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+			return "need bpf_copy_from_user_str kfunc support"
+		}
+		return ""
+	}).WithParameter(policytest.Parameter{
+	Name:    "DisableUprobeMulti",
+	Default: false,
+	Values:  []any{false, true},
+	// Without uprobe multi support, the agent uses single uprobes either way.
+	Help: "value of the disable-uprobe-multi policy option",
+}).WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uretprobe-rate-limit"
+spec:
+  options:
+  - name: "disable-uprobe-multi"
+    value: "{{ .DisableUprobeMulti }}"
+  uprobes:
+  - path: {{ testBinary "regs-override" }}
+    symbols:
+    - test_return_string
+    args:
+    - index: 0
+      type: "string"
+    return: true
+    returnArg:
+      index: 0
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["rate-limit-a", "rate-limit-b", "rate-limit-long-xxxxxxxxxxxxxxxxxxx1", "rate-limit-long-xxxxxxxxxxxxxxxxxxx2"]
+      matchReturnActions:
+      - action: Post
+        rateLimit: "1m"
+        rateLimitScope: "global"
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("regs-override")
+	posts := uint64(2)
+	return &policytest.Scenario{
+		Name:    "repeat a call, then change it",
+		Trigger: regsOverrideReturnStringTrigger(bin, "rate-limit-a", "rate-limit-a", "rate-limit-a", "rate-limit-b"),
+		EventChecker: ec.NewUnorderedEventChecker(
+			returnStringChecker("repeated", bin, "rate-limit-a"),
+			returnStringChecker("changed", bin, "rate-limit-b"),
+		),
+		ActCountChecker: policytest.ActionCounts{Post: &posts},
+	}
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("regs-override")
+	// A string's data is its 4-byte length followed by its characters, so
+	// with 36 characters, the last one, which differs, is the 40th byte of
+	// data: the last byte that the key holds per argument after its status.
+	long := "rate-limit-long-xxxxxxxxxxxxxxxxxxx"
+	posts := uint64(2)
+	return &policytest.Scenario{
+		Name:    "repeat a long call, then change its last character",
+		Trigger: regsOverrideReturnStringTrigger(bin, long+"1", long+"1", long+"2"),
+		EventChecker: ec.NewUnorderedEventChecker(
+			returnStringChecker("repeated", bin, long+"1"),
+			returnStringChecker("last character changed", bin, long+"2"),
+		),
+		ActCountChecker: policytest.ActionCounts{Post: &posts},
+	}
+}).RegisterAtInit()
+
+// With a return probe, a post is counted for the selector that matched on
+// return, and not at all if no return selector matched.
+var _ = policytest.NewBuilder("uretprobe-post-stats").WithLabels("uprobes").
+	WithSkip(func(si *policytest.SkipInfo) string {
+		if !si.AgentInfo.Probes[bpf.CopyFromUserStr] {
+			return "need bpf_copy_from_user_str kfunc support"
+		}
+		return ""
+	}).WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uretprobe-post-stats"
+spec:
+  uprobes:
+  - path: {{ testBinary "regs-override" }}
+    symbols:
+    - test_return_string
+    args:
+    - index: 0
+      type: "string"
+    return: true
+    returnArg:
+      index: 0
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["post-stats-a", "post-stats-c", "post-stats-d"]
+      matchReturnArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["post-stats-c", "post-stats-d"]
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["post-stats-a", "post-stats-b", "post-stats-d"]
+      matchReturnArgs:
+      - index: 0
+        operator: "Equal"
+        values: ["post-stats-a", "post-stats-d"]
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("regs-override")
+	posts := uint64(3)
+	return &policytest.Scenario{
+		// "post-stats-a" matches both selectors on entry, but only selector 1
+		// on return. "post-stats-b" matches selector 1 on entry, but no
+		// selector on return. "post-stats-d" matches both selectors on entry
+		// and return, so the first one counts it.
+		Name: "count posts for the selector that matched on return",
+		Trigger: regsOverrideReturnStringTrigger(bin,
+			"post-stats-a", "post-stats-b", "post-stats-c", "post-stats-d"),
+		EventChecker: ec.NewUnorderedEventChecker(
+			returnStringChecker("selector 1", bin, "post-stats-a"),
+			returnStringChecker("selector 0", bin, "post-stats-c"),
+			returnStringChecker("both selectors", bin, "post-stats-d"),
+		),
+		ActCountChecker: policytest.ActionCounts{
+			Post: &posts,
+			SelectorPost: map[policytest.SelectorIndex]uint64{
+				{Selector: 0}: 2,
+				{Selector: 1}: 1,
+			},
+		},
+	}
+}).RegisterAtInit()

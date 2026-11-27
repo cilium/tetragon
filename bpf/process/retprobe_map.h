@@ -18,6 +18,8 @@ struct retprobe_info {
 	unsigned long ptr;
 	unsigned long cnt;
 	__u32 active_selectors;
+	/* The entry sent its half of the event. */
+	__u32 entry_posted;
 };
 
 struct {

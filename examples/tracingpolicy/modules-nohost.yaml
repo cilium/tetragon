@@ -14,13 +14,9 @@ spec:
   - call: "security_kernel_module_request"
     message: "Kernel module requested and is being loaded automatically"
     syscall: false
-    return: true
     args:
     - index: 0
       type: "string"
-    returnArg:
-      index: 0
-      type: "int"
     selectors:
     - matchNamespaces:
       - namespace: Pid
@@ -35,14 +31,10 @@ spec:
     message: "Kernel module is being loaded"
     # Explicit module loading using file descriptor finit_module() to print module full path
     syscall: false
-    return: true
     args:
     - index: 0
       type: "file"
     - index: 1
-      type: "int"
-    returnArg:
-      index: 0
       type: "int"
     selectors:
     - matchArgs:
@@ -61,12 +53,8 @@ spec:
         - action: Sigkill
   - call: "security_kernel_load_data"
     syscall: false
-    return: true
     args:
     - index: 0
-      type: "int"
-    returnArg:
-      index: 0
       type: "int"
     selectors:
     - matchArgs:

@@ -498,6 +498,7 @@ type uprobeHas struct {
 	userStackTrace       bool
 	uprobeHeapSize       int
 	rateLimit            bool
+	returnRateLimit      bool
 	dynamicSO            bool
 }
 
@@ -591,7 +592,7 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 		return errors.New("enforcer actions are not supported for uprobes")
 	}
 
-	for i, selector := range spec.Selectors {
+	for _, selector := range spec.Selectors {
 		for _, action := range selector.MatchReturnActions {
 			if strings.EqualFold(action.Action, "Override") {
 				if !spec.Return {
@@ -601,12 +602,6 @@ func validateUprobeSpec(spec *v1alpha1.UProbeSpec, state *uprobeConfigState) err
 					return errors.New("uprobe return Override only supports argError")
 				}
 			}
-		}
-		// An entry Override skips the rest of the function, and with it the
-		// uretprobe, so the entry event would wait for a return event that
-		// never comes and nothing would be posted.
-		if spec.Return && selectors.HasOverride([]v1alpha1.KProbeSelector{selector}) {
-			return fmt.Errorf("selectors[%d]: uprobe Override in matchActions can't be used with return=true because the return probe doesn't run after it, use Override in matchReturnActions instead", i)
 		}
 	}
 
@@ -1100,10 +1095,10 @@ func createGenericUprobeSensor(
 		if err = validateSignalActions(uprobe.Selectors); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
-		if err = validateReturnArgsActions(uprobe.Selectors); err != nil {
+		if err = validateReturnSelectors(uprobe.Selectors, uprobe.Return); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
-		if err = validateReturnSelectors(uprobe.Selectors, uprobe.Return); err != nil {
+		if err = validateReturnEntryActions(uprobe.Selectors, uprobe.Return); err != nil {
 			return nil, fmt.Errorf("validate selectors: %w", err)
 		}
 
@@ -1158,6 +1153,7 @@ func createGenericUprobeSensor(
 			return nil, err
 		}
 		has.rateLimit = has.rateLimit || selectors.HasRateLimit(uprobe.Selectors)
+		has.returnRateLimit = has.returnRateLimit || (uprobe.Return && selectors.HasReturnRateLimit(uprobe.Selectors))
 	}
 
 	if len(ids) != 0 {
@@ -1395,6 +1391,9 @@ func getUprobeReturnArg(spec *v1alpha1.UProbeSpec, argCfg uprobeArgConfig, event
 		eventConfig.ArgReturn = int32(argType)
 		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
 		argReturnPrinters = append(argReturnPrinters, argP)
+		if selectors.HasReturnRateLimit(spec.Selectors) {
+			eventConfig.Flags |= api.EventConfigFlagReturnRateLimit
+		}
 	} else {
 		eventConfig.ArgReturn = int32(gt.GenericUnsetType)
 	}
@@ -1674,11 +1673,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil), substringMapEntries)...)
 
-	ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
-	if has.rateLimit {
-		ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
-	}
-	maps = append(maps, ratelimitMap)
+	maps = append(maps, rateLimitMaps(has.rateLimit, has.returnRateLimit, load)...)
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
@@ -1754,6 +1749,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
 
 		maps = append(maps, getHeapMaps("uprobe_", option.Config.UprobeHeapSize, has.uprobeHeapSize, loadret)...)
+		maps = append(maps, rateLimitMaps(has.rateLimit, has.returnRateLimit, loadret)...)
 
 		if len(polInfo.stateIDs) != 0 {
 			maps = append(maps, polInfo.policyStateMap(loadret))
@@ -1811,11 +1807,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	state := getUprobeProgramSelector(load, uprobeEntry)
 	maps = append(maps, createSelectorMaps(load, state, len(state.SubStrings()))...)
 
-	ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
-	if has.rateLimit {
-		ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
-	}
-	maps = append(maps, ratelimitMap)
+	maps = append(maps, rateLimitMaps(has.rateLimit, has.returnRateLimit, load)...)
 
 	if stackTraceMap := createStackTraceMap(has.userStackTrace, load); stackTraceMap != nil {
 		maps = append(maps, stackTraceMap)
@@ -1894,6 +1886,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 			maps = append(maps, createSelectorMaps(loadret, retState, len(retState.SubStrings()))...)
 		}
 		maps = append(maps, getHeapMaps("uprobe_", option.Config.UprobeHeapSize, has.uprobeHeapSize, loadret)...)
+		maps = append(maps, rateLimitMaps(has.rateLimit, has.returnRateLimit, loadret)...)
 
 		if len(polInfo.stateIDs) != 0 {
 			maps = append(maps, polInfo.policyStateMap(loadret))

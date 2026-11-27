@@ -134,6 +134,9 @@ The `fentry` program attaches at function entry, while its `fexit` counterpart
 attaches at function exit, where the return value is available. Setting
 `return: true` is what attaches the `fexit` program, see
 [Return values](#return-values) for more details on `return` and `returnArg`.
+The `fexit` program needs the `bpf_get_func_ret` helper (kernel 5.17 or
+newer) to read the return value, so on older kernels a policy that sets
+`return: true` or a `returnCopy` argument on a `fentries` hook fails to load.
 
 System calls can be traced with fentry as well. As with kprobes, set the
 `syscall` field to `true` in that case, so that Tetragon knows the traced

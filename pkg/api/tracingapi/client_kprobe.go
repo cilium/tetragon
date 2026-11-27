@@ -689,6 +689,13 @@ const (
 	MaxAccessibleArgs      = 5  // Maximum reachable arg index in function signature. Should match MAX_ACCESSIBLE_ARGS in bpf code.
 )
 
+// EventConfig.Flags values, see EVENT_CONFIG_FLAG_* in event_config.h.
+const (
+	// A return selector rate limits, so the entry saves the arguments' part
+	// of the rate limit key for the return probe.
+	EventConfigFlagReturnRateLimit = 0x1
+)
+
 type EventConfig struct {
 	FuncId          uint32                                           `align:"func_id"`
 	ArgType         [EventConfigMaxArgs]int32                        `align:"arg"`

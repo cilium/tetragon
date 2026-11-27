@@ -5,31 +5,53 @@
 #define __RATELIMIT_MAPS_H__
 
 #include "heap.h"
+#include "retprobe_map.h"
 
 /* The number of bytes per argument to include in the key
- * that we use to check for repeating data.
- * 40 is good for IPv6 data.
+ * that we use to check for repeating data: the argument's
+ * read status, followed by up to 40 bytes of its data.
+ * 40 is good for IPv6 data, such as struct tuple_type.
  */
-#define KEY_BYTES_PER_ARG 40
+#define KEY_BYTES_PER_ARG ((int)sizeof(arg_status_t) + 40)
 
 /* Can't really include generic.h in here..
  */
 #define MAX_POSSIBLE_ARGS 5
+
+/* rate_limit_args() masks each copy with 0x3f, and where it starts with 0xff. */
+_Static_assert(KEY_BYTES_PER_ARG <= 0x3f, "KEY_BYTES_PER_ARG must fit the 0x3f copy mask");
+_Static_assert((MAX_POSSIBLE_ARGS - 1) * KEY_BYTES_PER_ARG <= 0xff,
+	       "the last argument's key offset must fit the 0xff mask");
 
 /* Rate limit scope. */
 #define ACTION_RATE_LIMIT_SCOPE_THREAD	0
 #define ACTION_RATE_LIMIT_SCOPE_PROCESS 1
 #define ACTION_RATE_LIMIT_SCOPE_GLOBAL	2
 
+/* The part of the key taken from the entry arguments. */
+#define RATELIMIT_ARGS_SIZE (MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG)
+
 struct ratelimit_key {
 	__u64 func_id;
 	__u64 action;
 	__u64 tid;
-	__u8 data[MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG];
+	/* The entry arguments, followed by the return value in return probes. */
+	__u8 data[RATELIMIT_ARGS_SIZE + KEY_BYTES_PER_ARG];
 };
 
 _Static_assert(sizeof(struct ratelimit_key) + 128 <= HEAP_RO_SIZE,
 	       "heap_ro_value's buffer must fit ratelimit_key");
+
+/* The return program doesn't have the entry arguments, so when a return
+ * selector rate limits, the entry saves their part of the key here, keyed like
+ * retprobe_map.
+ */
+struct {
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 1); // Agent is resizing this if the feature is needed during kprobe load
+	__type(key, struct retprobe_key);
+	__type(value, __u8[RATELIMIT_ARGS_SIZE]);
+} ratelimit_args_map SEC(".maps");
 
 struct ratelimit_value {
 	__u64 ktime;

@@ -42,23 +42,20 @@ func validateSignalActions(selectorSpecs []v1alpha1.KProbeSelector) error {
 	return nil
 }
 
-// validateReturnArgsActions rejects a hook that combines matchActions with
-// matchReturnArgs, in the same or in different selectors. matchActions run at
-// function entry, before the return value is known, so matchReturnArgs can't
-// gate them, and whether a selector with matchReturnArgs is the first match is
-// only known when the function returns.
-func validateReturnArgsActions(selectorSpecs []v1alpha1.KProbeSelector) error {
-	actionsIdx, retArgsIdx := -1, -1
-	for i := range selectorSpecs {
-		if actionsIdx < 0 && len(selectorSpecs[i].MatchActions) > 0 {
-			actionsIdx = i
-		}
-		if retArgsIdx < 0 && len(selectorSpecs[i].MatchReturnArgs) > 0 {
-			retArgsIdx = i
-		}
+// validateReturnEntryActions rejects matchActions on a hook with a return
+// probe. They run when the function is called, before the return value is
+// known and before the return selectors are evaluated, so actions belong in
+// matchReturnActions there. Otherwise, matchActions and matchReturnActions
+// could act on the same call, and an entry Post or NoPost would decide on an
+// event that the return selectors haven't matched yet.
+func validateReturnEntryActions(selectorSpecs []v1alpha1.KProbeSelector, hasReturn bool) error {
+	if !hasReturn {
+		return nil
 	}
-	if actionsIdx >= 0 && retArgsIdx >= 0 {
-		return fmt.Errorf("selectors[%d]: matchActions can't be combined with matchReturnArgs in the same hook (selectors[%d] has matchReturnArgs) because they run before the return value is known, use matchReturnActions instead", actionsIdx, retArgsIdx)
+	for i := range selectorSpecs {
+		if len(selectorSpecs[i].MatchActions) > 0 {
+			return fmt.Errorf("selectors[%d]: matchActions can't be used with return: true because they run before the return value is known, use matchReturnActions instead or remove return: true", i)
+		}
 	}
 	return nil
 }

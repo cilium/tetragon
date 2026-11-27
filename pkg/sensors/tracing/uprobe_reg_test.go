@@ -29,7 +29,6 @@ import (
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
-	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
@@ -1839,63 +1838,16 @@ spec:
 	}
 }
 
-// Both selectors match the entry and have no return filters, so the first one
-// is the match. With a return probe the entry program evaluates every
-// selector, and the post must be counted on the first match, not on the last
-// selector it evaluated.
 func TestUprobeReturnSelectorStats(t *testing.T) {
-	if !bpf.HasKfunc("bpf_copy_from_user_str") {
-		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
-	}
-	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
-	createCrdFile(t, fmt.Sprintf(`
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: return-selector-stats
-spec:
-  uprobes:
-  - path: "%s"
-    symbols: [test_return_string]
-    args:
-    - index: 0
-      type: string
-    return: true
-    returnArg:
-      index: 0
-      type: string
-    selectors:
-    - matchArgs:
-      - index: 0
-        operator: Equal
-        values: ["a"]
-    - matchArgs:
-      - index: 0
-        operator: Equal
-        values: ["a"]
-`, testBinary))
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	require.NoError(t, err)
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
+	policytest.AllPolicyTests.DoObserverTest(t, "uretprobe-post-stats", nil)
+}
 
-	out, err := exec.Command(testBinary, "4", "a", "a").CombinedOutput()
-	require.NoError(t, err, string(out))
+func TestUprobeReturnRateLimit(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uretprobe-rate-limit", nil)
+}
 
-	list, err := observer.GetSensorManager().ListTracingPolicies(ctx, "")
-	require.NoError(t, err)
-	posts := map[uint32]uint64{}
-	for _, pol := range list.Policies {
-		if pol.Name != "return-selector-stats" {
-			continue
-		}
-		for _, c := range pol.GetStats().GetSelectorActionCounters() {
-			posts[c.GetSelectorIndex().GetValue()] = c.GetActionCounters().GetPost()
-		}
-	}
-	require.Equal(t, map[uint32]uint64{0: 1}, posts)
+func TestUprobeReturnRateLimitNoMulti(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "uretprobe-rate-limit", map[string]any{
+		"DisableUprobeMulti": true,
+	})
 }

@@ -1292,6 +1292,14 @@ generic_output(void *ctx, u8 op)
 	if (!e)
 		return 0;
 
+#if defined(__LARGE_BPF_PROG) && (defined(GENERIC_KPROBE) || defined(GENERIC_UPROBE) || defined(GENERIC_FENTRY))
+	/* With a return probe, the entry only sends after its selectors were
+	 * saved for the return probe, so the arguments are saved for the same
+	 * calls.
+	 */
+	rate_limit_save_args(e);
+#endif
+
 /* We don't need this data in return kprobe event */
 #if !defined(GENERIC_KRETPROBE) && !defined(GENERIC_URETPROBE) && !defined(GENERIC_FEXIT)
 #ifdef __NS_CHANGES_FILTER
@@ -1327,10 +1335,29 @@ generic_output(void *ctx, u8 op)
 		     "%[total] = 9000;\n"
 		     : [total] "+r"(total));
 #if defined(GENERIC_KRETPROBE) || defined(GENERIC_URETPROBE) || defined(GENERIC_FEXIT)
-	/* Userspace merges the entry and return messages into one event,
-	 * which the entry program already counted as posted.
+	/* Userspace merges the entry and return messages into one event, so
+	 * count it once both halves were sent, for the selector that matched
+	 * on return.
 	 */
-	event_output_metric(ctx, op, e, total);
+	if (event_output_metric(ctx, op, e, total) && e->ret.entry_posted)
+		policy_selector_stats_update(POLICY_POST, generic_selector_stats_id(e));
+#elif defined(GENERIC_KPROBE) || defined(GENERIC_UPROBE) || defined(GENERIC_FENTRY)
+	if (event_output_metric(ctx, op, e, total)) {
+		struct retprobe_key retkey = {
+			.id = e->func_id,
+			.tid = e->retprobe_id,
+		};
+		struct retprobe_info *info;
+
+		/* With a return probe, the return program counts the post
+		 * if it sends its half too.
+		 */
+		info = map_lookup_elem(&retprobe_map, &retkey);
+		if (info)
+			info->entry_posted = 1;
+		else
+			policy_selector_stats_update(POLICY_POST, generic_selector_stats_id(e));
+	}
 #else
 	if (event_output_metric(ctx, op, e, total))
 		policy_selector_stats_update(POLICY_POST, generic_selector_stats_id(e));
@@ -1377,6 +1404,11 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	memset(&e->sel, 0, sizeof(e->sel));
 	retprobe_info_restore_selectors(&info, &e->sel);
 	e->tailcall_index_selector = 0;
+	/* The rate limit key includes the action, so don't keep another
+	 * invocation's.
+	 */
+	e->action = 0;
+	e->ret.entry_posted = !!info.entry_posted;
 
 	*(unsigned long *)e->args = info.ktime_enter;
 	size += sizeof(info.ktime_enter);
@@ -1667,17 +1699,16 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 			int first = retprobe_info_save_selectors(info, &e->sel, selidx);
 
 			if (first >= 0) {
-				/* Account entry actions and the post to the first
-				 * match in the selector stats.
+				/* Account entry actions to the first match in the
+				 * selector stats. The return program accounts the post.
 				 */
 				e->tailcall_index_selector = first;
-				/* Entry actions may run with a return probe: a hook can have
-				 * matchActions as long as none of its selectors has
-				 * matchReturnArgs. If it does, validation rejects matchActions
-				 * in all its selectors, so the actions list is empty and
-				 * running it only posts the event. actions_offset > 1 does not
-				 * mean that matchActions is set, only where the selector's
-				 * actions start.
+				/* With return: true, validation rejects matchActions, so the
+				 * actions list is empty and running it only posts the event.
+				 * A return probe for a returnCopy argument without
+				 * return: true can still have matchActions. actions_offset > 1
+				 * does not mean that matchActions is set, only where the
+				 * selector's actions start.
 				 */
 				if (e->actions_offset > 1)
 					tail_call(ctx, tailcalls, TAIL_CALL_ACTIONS);

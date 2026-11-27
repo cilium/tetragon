@@ -136,6 +136,32 @@ spec:` + opts + `
 	})
 }
 
+// The fexit program can't load without bpf_get_func_ret, so reject return
+// probes up front with a clear error.
+func TestFentryValidationReturnWithoutGetFuncRet(t *testing.T) {
+	if !bpf.HasFentryProgram() {
+		t.Skip("fentry is not supported")
+	}
+	if bpf.HasGetFuncRetHelper() {
+		t.Skip("the kernel has bpf_get_func_ret")
+	}
+	err := checkCrd(t, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fentry-return-without-get-func-ret"
+spec:
+  fentries:
+  - call: "sys_getcpu"
+    syscall: true
+    return: true
+    returnArg:
+      index: 0
+      type: int
+`)
+	require.ErrorContains(t, err, "require the bpf_get_func_ret helper")
+}
+
 func TestFentryObjectLoad(t *testing.T) {
 	checkFentry(t)
 	testKprobeObjectLoad(t, true)
@@ -466,6 +492,16 @@ func TestFentryRateLimit(t *testing.T) {
 func TestFentryRateLimitLongerThanUptime(t *testing.T) {
 	checkFentry(t)
 	testKprobeRateLimit(t, "1193h", true)
+}
+
+func TestFentryReturnRateLimit(t *testing.T) {
+	checkFentry(t)
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-return-rate-limit", map[string]any{"Hook": "fentries"})
+}
+
+func TestFentryReturnPostStats(t *testing.T) {
+	checkFentry(t)
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-return-post-stats", map[string]any{"Hook": "fentries"})
 }
 
 func TestFentryListSyscallDupsRange(t *testing.T) {
