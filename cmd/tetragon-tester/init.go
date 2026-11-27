@@ -115,6 +115,10 @@ func tester() int {
 
 	if os.Getpid() == 1 {
 		doPID0()
+		if err := os.WriteFile("/proc/sys/net/core/bpf_jit_harden", []byte("2"), 0644); err != nil {
+			fmt.Printf("failed to enable BPF JIT hardening: %v\n", err)
+			return 1
+		}
 	}
 
 	printInfo()
