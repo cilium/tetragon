@@ -73,6 +73,10 @@ func HasProbeWriteUserHelper() bool {
 	return features.HaveProgramHelper(ebpf.Kprobe, asm.FnProbeWriteUser) == nil
 }
 
+func HasTaskStorageHelper() bool {
+	return features.HaveProgramHelper(ebpf.Kprobe, asm.FnTaskStorageGet) == nil
+}
+
 // detectFentry checks if the kernel supports BPF fentry programs.
 // On amd64, the program type check is sufficient (trampolines landed with it in 5.5).
 // On other archs (e.g. arm64), trampolines came later than the program type, so we
@@ -835,4 +839,5 @@ var FeatureProbes = []FeatureProbe{
 	{GetFuncRet, HasGetFuncRetHelper},
 	{SubStringKfuncProbe, HasSubStringKfunc},
 	{CopyFromUserStr, HasCopyFromUserStr},
+	{TaskStorageGet, HasTaskStorageHelper},
 }

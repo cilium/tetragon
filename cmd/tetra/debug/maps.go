@@ -48,6 +48,9 @@ many maps were aggregated for the given name. It ranks map from the one
 consuming the most memory to the one consuming the less. Use the -n flag to
 adjust the number of item in the table.
 
+Note that for Task Storage maps, MaxEntries will always be 0 and Memlock won't
+account for per-task element.
+
 [^1]: https://lore.kernel.org/all/20230305124615.12358-1-laoar.shao@gmail.com/`, bugtool.TetragonBPFFS),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if output != "tab" && output != "json" {

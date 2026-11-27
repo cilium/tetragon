@@ -656,8 +656,8 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyExecveMapNoPrealloc, false, "Do not preallocate the entries of execve_map")
 
 	flags.Bool(KeyParentsMapEnabled, false, "Enable parents_map for matchParentBinaries selector")
-	flags.Int(KeyParentsMapEntries, 0, "Set entries for parents_map table (default 32768)")
-	flags.String(KeyParentsMapSize, "", "Set size for parents_map table (allows K/M/G suffix)")
+	flags.Int(KeyParentsMapEntries, 0, "Set entries for parents_map table (default 32768). Unused in 6.1 kernels or later since task storage is used instead of a hash map")
+	flags.String(KeyParentsMapSize, "", "Set size for parents_map table (allows K/M/G suffix). Unused in 6.1 kernels or later since task storage is used instead of a hash map")
 
 	flags.Int(KeyRetprobesCacheSize, defaults.DefaultRetprobesCacheSize, "Set {k,u}retprobes events cache maximum size")
 

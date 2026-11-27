@@ -228,9 +228,11 @@ options:
       usage: Enable parents_map for matchParentBinaries selector
     - name: parents-map-entries
       default_value: "0"
-      usage: Set entries for parents_map table (default 32768)
+      usage: |
+        Set entries for parents_map table (default 32768). Unused in 6.1 kernels or later since task storage is used instead of a hash map
     - name: parents-map-size
-      usage: Set size for parents_map table (allows K/M/G suffix)
+      usage: |
+        Set size for parents_map table (allows K/M/G suffix). Unused in 6.1 kernels or later since task storage is used instead of a hash map
     - name: persist-grpc-policies
       default_value: "false"
       usage: |

@@ -42,10 +42,19 @@ func ExecUpdateObj() string {
 func ExitObj() string {
 	if EnableRhel7Progs() {
 		return "bpf_exit_v310.o"
+	} else if EnableV61Progs() {
+		return "bpf_exit_v61.o"
 	} else if EnableV511Progs() {
 		return "bpf_exit_v511.o"
 	}
 	return "bpf_exit.o"
+}
+
+func ExecveBprmCommitObj() string {
+	if EnableV61Progs() {
+		return "bpf_execve_bprm_commit_creds_v61.o"
+	}
+	return "bpf_execve_bprm_commit_creds.o"
 }
 
 func ForkObj() string {
@@ -196,6 +205,11 @@ func EnableV61Progs() bool {
 	if option.Config.ForceSmallProgs {
 		return false
 	}
+
+	if !bpf.HasTaskStorageHelper() {
+		return false
+	}
+
 	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) >= kernels.KernelStringToNumeric("6.1.0"))
 }
