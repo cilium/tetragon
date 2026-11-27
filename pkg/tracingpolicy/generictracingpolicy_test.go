@@ -190,3 +190,60 @@ spec:
 		})
 	}
 }
+
+const tpDefaults = `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "defaults"
+spec:
+  kprobes:
+  - call: "sys_lseek"
+    selectors:
+    - matchCapabilities:
+      - operator: In
+        values: ["CAP_SYS_ADMIN"]
+  - call: "sys_close"
+    syscall:
+  - call: "fd_install"
+    syscall: false
+    args:
+    - index: 0
+      type: "int"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+  fentries:
+  - call: "sys_close"
+  uprobes:
+  - path: "/bin/bash"
+    addrs: [9007199254740993]
+  selectorsMacros:
+    caps:
+      matchCapabilities:
+      - operator: In
+        values: ["CAP_SYS_ADMIN"]
+`
+
+// The schema defaults apply in every build, as the API server applies them.
+func TestYamlDefaults(t *testing.T) {
+	tp, err := FromYAML(tpDefaults)
+	require.NoError(t, err)
+	spec := tp.TpSpec()
+
+	require.True(t, spec.KProbes[0].Syscall)
+	require.Equal(t, "Effective", spec.KProbes[0].Selectors[0].MatchCapabilities[0].Type)
+	require.Equal(t, "auto", spec.Tracepoints[0].Args[0].Type)
+	require.True(t, spec.Fentries[0].Syscall)
+	require.Equal(t, "Effective", spec.SelectorsMacros["caps"].MatchCapabilities[0].Type)
+
+	// a null takes the default too
+	require.True(t, spec.KProbes[1].Syscall)
+
+	// explicit values stay, and integers above 2^53 stay exact
+	require.False(t, spec.KProbes[2].Syscall)
+	require.Equal(t, "int", spec.KProbes[2].Args[0].Type)
+	require.Equal(t, []uint64{9007199254740993}, spec.UProbes[0].Addrs)
+}
