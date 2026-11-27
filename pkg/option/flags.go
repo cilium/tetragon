@@ -165,6 +165,8 @@ const (
 
 	KeyBpfDebugArea = "bpf-debug-area"
 	KeyBpfDebugLog  = "bpf-debug-log"
+
+	KeyDisableBpfProcScan = "disable-bpf-proc-scan"
 )
 
 const (
@@ -397,6 +399,7 @@ func ReadAndSetFlags() error {
 		}
 	}
 	Config.BPFDebugLog = viper.GetBool(KeyBpfDebugLog)
+	Config.DisableBpfProcScan = viper.GetBool(KeyDisableBpfProcScan)
 
 	warnIgnoredProcessCacheFlags(Config)
 
@@ -680,4 +683,6 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Var(Config.BPFDebugAreas, KeyBpfDebugArea, "Enable BPF tracing messages for specified areas "+Config.BPFDebugAreas.Allowed())
 	flags.Bool(KeyBpfDebugLog, false, "Enable forwarding BPF trace messages to tetragon log as info messages")
+
+	flags.Bool(KeyDisableBpfProcScan, false, "Disable BPF-based process scanning")
 }

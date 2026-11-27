@@ -20,11 +20,12 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper/docker"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/strutils"
 )
 
 func TestListRunningProcs(t *testing.T) {
-	procs, err := listRunningProcs("/proc")
+	procs, err := listRunningProcs(option.Config.ProcFS)
 	require.NoError(t, err)
 	require.NotNil(t, procs)
 	require.NotEmpty(t, procs)
@@ -60,7 +61,7 @@ func TestListRunningProcsInvalidUTF8(t *testing.T) {
 	})
 	pid := uint32(cmd.Process.Pid)
 
-	ps, err := listRunningProcs("/proc")
+	ps, err := listRunningProcs(option.Config.ProcFS)
 	require.NoError(t, err)
 	idx := slices.IndexFunc(ps, func(p procs) bool { return p.pid == pid })
 	require.NotEqual(t, -1, idx, "pid %d not found", pid)
@@ -70,7 +71,7 @@ func TestListRunningProcsInvalidUTF8(t *testing.T) {
 	require.Equal(t, []byte(exe+"\x00-c\x00read x\x00a\xb5rg\x00"), p.cmdline)
 	require.Equal(t, strutils.UTF8FromBPFBytes([]byte(exe)), procFilename(&p))
 	require.Equal(t, `-c "read x" a�rg`, procArgs(&p))
-	cwd, _ := getCWD(pid)
+	cwd, _ := getCWD(option.Config.ProcFS, pid)
 	require.Equal(t, strutils.UTF8FromBPFBytes([]byte(dir)), cwd)
 }
 
@@ -100,7 +101,7 @@ func TestInInitTreeProcfs(t *testing.T) {
 	rootPid, err := strconv.Atoi(strings.TrimSpace(string(rootPidOutput)))
 	require.NoError(t, err, "root pid should parse")
 
-	procs, err := listRunningProcs("/proc")
+	procs, err := listRunningProcs(option.Config.ProcFS)
 	require.NoError(t, err)
 	require.NotNil(t, procs)
 	require.NotEmpty(t, procs)
