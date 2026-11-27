@@ -58,6 +58,13 @@ struct {
 #define MAIN	 "kprobe.multi/generic_kprobe"
 #define OVERRIDE "kprobe.multi/generic_kprobe_override"
 #define COMMON	 "kprobe.multi"
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+	__uint(max_entries, 1024);
+	__type(key, __u32);
+	__type(value, __u32);
+} multi_cel SEC(".maps");
 #else
 #define MAIN	 "kprobe/generic_kprobe"
 #define OVERRIDE "kprobe/generic_kprobe_override"
@@ -141,8 +148,24 @@ generic_kprobe_process_filter_2(void *ctx)
 __attribute__((section(COMMON), used)) int
 generic_kprobe_filter_arg(void *ctx)
 {
+#ifdef SHARED_KPROBE
+	/* Generated CEL code is the only policy-specific program. Most policies
+	 * use the shared argument filter directly.
+	 */
+	tail_call(ctx, &multi_cel, multi_kprobe_scope());
+#endif
 	return generic_filter_arg(ctx, (struct bpf_map_def *)&kprobe_calls, true, __FILTER_ARG_ALL);
 }
+
+#ifdef SHARED_KPROBE
+__attribute__((section("kprobe.multi/generic_kprobe_cel"), used)) int
+generic_kprobe_cel(void *ctx)
+{
+	return generic_filter_arg_with_retry(ctx, (struct bpf_map_def *)&kprobe_calls,
+					     true, __FILTER_ARG_ALL,
+					     (struct bpf_map_def *)&multi_cel, multi_kprobe_scope());
+}
+#endif
 #else
 __attribute__((section(COMMON), used)) int
 generic_kprobe_filter_arg(void *ctx)
@@ -182,14 +205,23 @@ __attribute__((section(OVERRIDE), used)) int
 generic_kprobe_override(void *ctx)
 {
 	__u64 id = get_current_pid_tgid();
+	void *tasks = &override_tasks;
 	__s32 *error;
 
-	error = map_lookup_elem(&override_tasks, &id);
+#ifdef SHARED_KPROBE
+	/* The override attachment gets its scope from its own cookie. */
+	__u32 scope = get_attach_cookie(ctx) >> 32;
+
+	tasks = map_lookup_elem(&override_tasks, &scope);
+	if (!tasks)
+		return 0;
+#endif
+	error = map_lookup_elem(tasks, &id);
 	if (!error)
 		return 0;
 
 	override_return(ctx, *error);
-	map_delete_elem(&override_tasks, &id);
+	map_delete_elem(tasks, &id);
 	return 0;
 }
 
@@ -202,12 +234,12 @@ generic_fmodret_override(void *ctx)
 	__u64 id = get_current_pid_tgid();
 	__s32 *error, ret;
 
-	error = map_lookup_elem(&override_tasks, &id);
+	error = policy_lookup(&override_tasks, &id);
 	if (!error)
 		return 0;
 
 	/* error points into the map entry, so read it before deleting it */
 	ret = *error;
-	map_delete_elem(&override_tasks, &id);
+	policy_delete(&override_tasks, &id);
 	return (long)ret;
 }

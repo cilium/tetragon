@@ -4,6 +4,8 @@
 #ifndef __USER_PRELOAD_H__
 #define __USER_PRELOAD_H__
 
+#include "multi_kprobe.h"
+
 #include "generic_maps.h"
 #include "generic_arg.h"
 #include "errmetrics.h"
@@ -173,7 +175,7 @@ user_preload(struct pt_regs *ctx)
 	__u32 idx = get_index(ctx);
 	int i;
 
-	config = map_lookup_elem(&config_map, &idx);
+	config = policy_lookup(&config_map, &idx);
 	if (!config)
 		return 0;
 

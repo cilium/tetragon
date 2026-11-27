@@ -145,6 +145,8 @@ const (
 	KeyEventCacheRetries    = "event-cache-retries"
 	KeyEventCacheRetryDelay = "event-cache-retry-delay"
 
+	KeyMultiKprobeMapEntries = "multi-kprobe-map-entries"
+
 	KeyExecveMapEntries    = "execve-map-entries"
 	KeyExecveMapSize       = "execve-map-size"
 	KeyExecveMapNoPrealloc = "execve-map-no-prealloc"
@@ -359,6 +361,8 @@ func ReadAndSetFlags() error {
 	Config.ParentsMapEnabled = viper.GetBool(KeyParentsMapEnabled)
 	Config.ParentsMapEntries = viper.GetInt(KeyParentsMapEntries)
 	Config.ParentsMapSize = viper.GetString(KeyParentsMapSize)
+
+	Config.MultiKprobeMapEntries = viper.GetInt(KeyMultiKprobeMapEntries)
 
 	Config.RetprobesCacheSize = viper.GetInt(KeyRetprobesCacheSize)
 
@@ -650,6 +654,8 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Int(KeyEventCacheRetries, defaults.DefaultEventCacheNumRetries, "Number of retries for event cache")
 	flags.Int(KeyEventCacheRetryDelay, defaults.DefaultEventCacheRetryDelay, "Delay in seconds between event cache retries")
+
+	flags.Int(KeyMultiKprobeMapEntries, 65536, "Maximum entries per shared multi-kprobe map (limits active hooks and filter-map references; 0 uses the default)")
 
 	flags.Int(KeyExecveMapEntries, 0, "Set entries for execve_map table (default 32768)")
 	flags.String(KeyExecveMapSize, "", "Set size for execve_map table (allows K/M/G suffix)")

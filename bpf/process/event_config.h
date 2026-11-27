@@ -4,6 +4,8 @@
 #ifndef __EVENT_CONFIG_H__
 #define __EVENT_CONFIG_H__
 
+#include "multi_kprobe.h"
+
 #include "process/generic_maps.h"
 
 struct config_btf_arg {
@@ -76,6 +78,13 @@ struct event_config {
 	struct config_reg_arg reg_arg[EVENT_CONFIG_MAX_REG_ARG];
 } __attribute__((packed));
 
+POLICY_MAP(config_map,
+	   __uint(type, BPF_MAP_TYPE_ARRAY);
+	   __uint(map_flags, POLICY_ARRAY_FLAGS);
+	   __uint(max_entries, 1);
+	   POLICY_KEY(__u32);
+	   POLICY_VALUE(struct event_config););
+
 FUNC_INLINE int arg_idx(int index)
 {
 	struct msg_generic_kprobe *e;
@@ -86,7 +95,7 @@ FUNC_INLINE int arg_idx(int index)
 	if (!e)
 		return -1;
 
-	config = map_lookup_elem(&config_map, &e->idx);
+	config = policy_lookup(&config_map, &e->idx);
 	if (!config)
 		return -1;
 

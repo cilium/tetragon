@@ -12,12 +12,16 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
+	"math"
 	"net"
 	"net/http"
+	"os"
 	"path"
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/cilium/ebpf"
 	ciliumbtf "github.com/cilium/ebpf/btf"
@@ -49,6 +53,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/sensors/unloader"
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 )
@@ -79,7 +84,9 @@ type kprobeLoadArgs struct {
 
 // internal genericKprobe info
 type genericKprobe struct {
-	loadArgs          kprobeLoadArgs
+	loadArgs kprobeLoadArgs
+	// Index 0 is function entry; index 1 is function return.
+	multiMaps         [2]map[string]*program.Map
 	argSigPrinters    []argPrinter
 	argReturnPrinters []argPrinter
 	funcName          string
@@ -167,100 +174,95 @@ func getProgramSelector(load *program.Program, kprobeEntry *genericKprobe) *sele
 	return nil
 }
 
-func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, has hasMaps) ([]*program.Program, []*program.Map, error) {
-	var multiRetIDs []idtable.EntryID
-	var progs []*program.Program
-	var maps []*program.Map
-	var substringMapEntries int
-
-	data := &genericStackTraceData{}
-
-	for _, id := range multiIDs {
-		gk, err := genericKprobeTableGet(id)
-		if err != nil {
-			return nil, nil, err
-		}
-		if gk.loadArgs.retprobe {
-			multiRetIDs = append(multiRetIDs, id)
-		}
-		gk.data = data
-
-		has.stackTrace = has.stackTrace || gk.hasStackTrace
-		substringMapEntries = len(gk.loadArgs.selectors.entry.SubStrings())
-	}
-
+// A multi-kprobe sensor owns the policy maps and links to the shared programs.
+func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, loadData *multiKprobeLoadData, has hasMaps) ([]*program.Program, []*program.Map, error) {
 	loadProgName, loadProgRetName := config.GenericKprobeObjs(true)
-
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("kprobe_multi (%d functions)", len(multiIDs)),
 		"kprobe.multi/generic_kprobe",
 		"multi_kprobe",
 		"generic_kprobe").
-		SetLoaderData(multiIDs).
 		SetPolicy(polInfo.name)
-	progs = append(progs, load)
+
+	progs := []*program.Program{load}
 
 	configMap := program.MapBuilderProgram("config_map", load)
-	maps = append(maps, configMap)
-
-	tailCalls := program.MapBuilderProgram("kprobe_calls", load)
-	maps = append(maps, tailCalls)
-
+	configMap.SetMaxEntries(len(multiIDs))
 	filterMap := program.MapBuilderProgram("filter_map", load)
-	maps = append(maps, filterMap)
+	filterMap.SetMaxEntries(len(multiIDs))
 
-	if has.selector {
-		maps = append(maps, createSelectorMaps(load, nil, substringMapEntries)...)
-
-		selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-		maps = append(maps, selMatchBinariesMap)
+	maps := []*program.Map{configMap, filterMap}
+	var multiRetIDs []idtable.EntryID
+	data := &genericStackTraceData{}
+	for _, id := range multiIDs {
+		gk, err := genericKprobeTableGet(id)
+		if err != nil {
+			return nil, nil, err
+		}
+		gk.data = data
+		has.stackTrace = has.stackTrace || gk.hasStackTrace
+		if gk.loadArgs.retprobe {
+			multiRetIDs = append(multiRetIDs, id)
+		}
+		maps = append(maps, createMultiKprobeHookMaps(load, gk)...)
 	}
+	if len(loadData.scopes) != len(multiIDs)+len(multiRetIDs) {
+		return nil, nil, errors.New("multi-kprobe scope reservation does not match the policy hooks")
+	}
+	loadData.entryIDs = multiIDs
+	loadData.returnIDs = multiRetIDs
+	load.SetLoaderData(loadData)
 
 	if len(multiRetIDs) != 0 {
-		retProbe := program.MapBuilderSensor("retprobe_map", load)
-		maps = append(maps, retProbe)
-	}
+		loadret := program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgRetName),
+			fmt.Sprintf("%d retkprobes", len(multiRetIDs)),
+			"kprobe.multi/generic_retkprobe",
+			"multi_retkprobe",
+			"generic_kprobe").
+			SetRetProbe(true).
+			SetLoaderData(loadData).
+			SetPolicy(polInfo.name)
 
-	callHeap := program.MapBuilderSensor("process_call_heap", load)
-	maps = append(maps, callHeap)
+		progs = append(progs, loadret)
+		retConfigMap := program.MapBuilderProgram("config_map", loadret)
+		retConfigMap.SetMaxEntries(len(multiRetIDs))
+		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
+		retFilterMap.SetMaxEntries(len(multiRetIDs))
 
-	if stackTraceMap := createStackTraceMap(has.stackTrace, load); stackTraceMap != nil {
-		maps = append(maps, stackTraceMap)
-		data.stackTraceMap = stackTraceMap
-	}
-
-	if config.EnableLargeProgs() {
-		socktrack := program.MapBuilderSensor("socktrack_map", load)
-		if has.sockTrack {
-			socktrack.SetMaxEntries(socktrackMapMaxEntries)
+		maps = append(maps, retConfigMap, retFilterMap)
+		for _, id := range multiRetIDs {
+			gk, err := genericKprobeTableGet(id)
+			if err != nil {
+				return nil, nil, err
+			}
+			maps = append(maps, createMultiKprobeHookMaps(loadret, gk)...)
 		}
-		maps = append(maps, socktrack)
+		maps = append(maps, program.MapBuilderSensor("retprobe_map", progs...))
 	}
 
-	if config.EnableLargeProgs() {
-		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
-		if has.rateLimit {
-			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
-		}
-		maps = append(maps, ratelimitMap)
+	// Mutable policy state is shared by the hooks through their registry entries.
+	socktrack := program.MapBuilderSensor("socktrack_map", progs...)
+	if has.sockTrack {
+		socktrack.SetMaxEntries(socktrackMapMaxEntries)
+	}
+	maps = append(maps, socktrack)
+
+	ratelimitMap := program.MapBuilderSensor("ratelimit_map", progs...)
+	if has.rateLimit {
+		ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
+	}
+	maps = append(maps, ratelimitMap)
+
+	if has.override {
+		overrideTasksMap := program.MapBuilderSensor("override_tasks", load)
+		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+		maps = append(maps, overrideTasksMap)
 	}
 
 	if has.enforcer {
 		maps = append(maps, enforcerMapsUser(load)...)
-	}
-
-	if option.Config.EnableCgTrackerID {
-		maps = append(maps, program.MapUser(cgtracker.MapName, load))
-	}
-
-	filterMap.SetMaxEntries(len(multiIDs))
-	configMap.SetMaxEntries(len(multiIDs))
-
-	if has.override {
-		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
-		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
-		maps = append(maps, overrideTasksMap)
 	}
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.selectorStatsMap(load))
@@ -269,51 +271,15 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		maps = append(maps, polInfo.policyStateMap(load))
 	}
 
-	if len(multiRetIDs) != 0 {
-		loadret := program.Builder(
-			path.Join(option.Config.HubbleLib, loadProgRetName),
-			fmt.Sprintf("%d retkprobes", len(multiIDs)),
-			"kprobe.multi/generic_retkprobe",
-			"multi_retkprobe",
-			"generic_kprobe").
-			SetRetProbe(true).
-			SetLoaderData(multiRetIDs).
-			SetPolicy(polInfo.name)
-		maps = append(maps, polInfo.policyConfMap(loadret), polInfo.selectorStatsMap(loadret))
+	if has.stackTrace {
+		stackTraceMap := program.MapBuilderSensor("stack_trace_map", progs...)
+		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+		maps = append(maps, stackTraceMap)
+		data.stackTraceMap = stackTraceMap
+	}
 
-		progs = append(progs, loadret)
-
-		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
-		maps = append(maps, retProbe)
-
-		retConfigMap := program.MapBuilderProgram("config_map", loadret)
-		maps = append(maps, retConfigMap)
-
-		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
-		maps = append(maps, retFilterMap)
-
-		if has.selector {
-			maps = append(maps, createSelectorMaps(loadret, nil, substringMapEntries)...)
-		}
-
-		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
-		maps = append(maps, callHeap)
-
-		socktrack := program.MapBuilderSensor("socktrack_map", loadret)
-		if has.sockTrack {
-			socktrack.SetMaxEntries(socktrackMapMaxEntries)
-		}
-		maps = append(maps, socktrack)
-
-		tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
-		maps = append(maps, tailCalls)
-
-		retConfigMap.SetMaxEntries(len(multiRetIDs))
-		retFilterMap.SetMaxEntries(len(multiRetIDs))
-
-		if len(polInfo.stateIDs) != 0 {
-			maps = append(maps, polInfo.policyStateMap(loadret))
-		}
+	for _, m := range maps {
+		configureMultiKprobeMap(m)
 	}
 
 	return progs, maps, nil
@@ -493,7 +459,6 @@ type addKprobeIn struct {
 	policyName    string
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
-	selMaps       *selectors.KernelSelectorMaps
 	celExprs      *selectors.CelExprFunctions
 	stateIDs      map[string]uint32
 	selStatsBase  uint32
@@ -547,12 +512,11 @@ func createGenericKprobeSensor(
 	polInfo *policyInfo,
 	valInfo []*kpValidateInfo,
 	typ attachType,
-) (*sensors.Sensor, error) {
+) (_ *sensors.Sensor, err error) {
 	var progs []*program.Program
 	var maps []*program.Map
 	var ids []idtable.EntryID
 	var useMulti bool
-	var selMaps *selectors.KernelSelectorMaps
 	var celExprs *selectors.CelExprFunctions
 	var kprobes []v1alpha1.KProbeSpec
 	var statuses []*tetragon.HookStatus
@@ -588,9 +552,18 @@ func createGenericKprobeSensor(
 		}
 	}
 
+	var loadData *multiKprobeLoadData
 	if useMulti {
-		selMaps = &selectors.KernelSelectorMaps{}
-		// if we are using multi-kprobe, CEL expressions are shared across all kprobes
+		loadData = reserveMultiKprobeScopes(polInfo.name, kprobes, valInfo)
+		useMulti = loadData != nil
+	}
+	if useMulti {
+		defer func() {
+			if err != nil {
+				loadData.releaseScopes()
+			}
+		}()
+		// CEL code is shared; selector map IDs stay local to each hook.
 		celExprs = &selectors.CelExprFunctions{}
 	}
 
@@ -600,7 +573,6 @@ func createGenericKprobeSensor(
 		policyID:      polInfo.policyID,
 		policyName:    polInfo.name,
 		customHandler: polInfo.customHandler,
-		selMaps:       selMaps,
 		celExprs:      celExprs,
 		stateIDs:      polInfo.stateIDs,
 	}
@@ -661,9 +633,8 @@ func createGenericKprobeSensor(
 	}
 
 	if len(ids) != 0 {
-		var err error
 		if useMulti {
-			progs, maps, err = createMultiKprobeSensor(polInfo, ids, has)
+			progs, maps, err = createMultiKprobeSensor(polInfo, ids, loadData, has)
 		} else {
 			progs, maps, err = createSingleKprobeSensor(polInfo, ids, has)
 		}
@@ -690,6 +661,8 @@ func createGenericKprobeSensor(
 		Namespace: polInfo.namespace,
 		Domain:    polInfo.domain,
 		DestroyHook: func() error {
+			// Keep the reservation across disable and re-enable.
+			loadData.releaseScopes()
 			var errs error
 
 			for _, id := range ids {
@@ -969,7 +942,6 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 		Args:           f.Args,
 		Data:           f.Data,
 		ActionArgTable: &kprobeEntry.actionArgs,
-		Maps:           in.selMaps,
 		CelExprs:       in.celExprs,
 		StateIDs:       in.stateIDs,
 	})
@@ -979,7 +951,7 @@ func addKprobe(funcName string, instance InstanceID, f *v1alpha1.KProbeSpec, in 
 
 	if f.Return {
 		kprobeEntry.loadArgs.selectors.retrn, err = selectors.InitKernelReturnSelectorState(f.Selectors, f.ReturnArg,
-			&kprobeEntry.actionArgs, nil, in.selMaps, in.stateIDs)
+			&kprobeEntry.actionArgs, nil, nil, in.stateIDs)
 		if err != nil {
 			return errFn(err)
 		}
@@ -1269,65 +1241,23 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	return err
 }
 
-func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
-	binBuf := make([]bytes.Buffer, len(ids))
-
-	data := &program.MultiKprobeAttachData{}
-
-	for index, id := range ids {
-		gk, err := genericKprobeTableGet(id)
-		if err != nil {
-			return err
-		}
-
-		rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
-		if entry := gk.loadArgs.selectors.entry; entry != nil {
-			if celbpf.EnabledInBPF() {
-				rewriteProg["generic_kprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
-			}
-		}
-		load.RewriteProg = rewriteProg
-
-		load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, uint32(index))...)
-
-		binary.Write(&binBuf[index], binary.LittleEndian, gk.loadArgs.config)
-		config := &program.MapLoad{
-			Name: "config_map",
-			Load: func(m *ebpf.Map, _ string) error {
-				return m.Update(uint32(index), binBuf[index].Bytes()[:], ebpf.UpdateAny)
-			},
-		}
-		load.MapLoad = append(load.MapLoad, config)
-
-		data.Symbols = append(data.Symbols, gk.funcName)
-		data.Cookies = append(data.Cookies, uint64(index))
-
-		if gk.hasOverride && !load.RetProbe {
-			data.Overrides = append(data.Overrides, gk.funcName)
-		}
-	}
-
-	load.Override = len(data.Overrides) > 0
-	load.OverrideFmodRet = false
-	load.SetAttachData(data)
-
-	if err := program.LoadMultiKprobeProgram(bpfDir, load, maps, verbose); err == nil {
-		logger.GetLogger().Info(fmt.Sprintf("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach))
-	} else {
-		return err
-	}
-
-	return nil
-}
-
 func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*program.Map, verbose int, fentry bool) error {
+	// The shared sensor loads and pins the entry and return programs on demand.
+	// Each policy later attaches its own hooks to those programs.
+	if shared, ok := load.LoaderData.(*sharedMultiKprobe); ok {
+		return shared.loadProgram(bpfDir, maps, verbose)
+	}
+
+	// Single kprobes load a separate program for each hook.
 	if id, ok := load.LoaderData.(idtable.EntryID); ok {
 		return loadSingleKprobeSensor(id, bpfDir, load, maps, verbose, fentry)
 	}
-	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
-		return loadMultiKprobeSensor(ids, bpfDir, load, maps, verbose)
+
+	// Register the policy's maps and attach its hooks to the shared program.
+	if data, ok := load.LoaderData.(*multiKprobeLoadData); ok {
+		return attachMultiKprobeSensor(data, bpfDir, load, maps, verbose)
 	}
-	return fmt.Errorf("invalid loadData type: expecting idtable.EntryID/[] and got: %T (%v)",
+	return fmt.Errorf("invalid kprobe loader data: %T (%v)",
 		load.LoaderData, load.LoaderData)
 }
 
@@ -1476,4 +1406,635 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose, false)
+}
+
+const defaultMultiKprobeMapEntries = 65536
+
+var cachedMultiKprobeMapCapacity = sync.OnceValues(multiKprobeMapCapacity)
+
+func multiKprobeMapCapacity() (uint32, error) {
+	entries := option.Config.MultiKprobeMapEntries
+	if entries == 0 {
+		entries = defaultMultiKprobeMapEntries
+	}
+	if entries < 2 || uint64(entries) > math.MaxUint32 {
+		err := fmt.Errorf("%s must be between 2 and %d", option.KeyMultiKprobeMapEntries, uint64(math.MaxUint32))
+		logger.GetLogger().Warn("Using single kprobes due to an invalid multi-kprobe map capacity", "entries", entries, logfields.Error, err)
+		return 0, err
+	}
+	return uint32(entries), nil
+}
+
+// Reserve one scope per hook for the lifetime of its policy.
+type multiKprobeScopeAllocator struct {
+	sync.Mutex
+	next uint32
+	free []uint32
+}
+
+var multiKprobeScopes = multiKprobeScopeAllocator{next: 1} // Scope zero is reserved.
+
+func (a *multiKprobeScopeAllocator) reserve(limit uint32, count uint64) ([]uint32, error) {
+	a.Lock()
+	defer a.Unlock()
+	available := uint64(limit-a.next) + uint64(len(a.free))
+	if count > available {
+		return nil, fmt.Errorf("need %d scopes, %d available", count, available)
+	}
+	scopes := make([]uint32, count)
+	for i := range scopes {
+		if n := len(a.free); n != 0 {
+			scopes[i] = a.free[n-1]
+			a.free = a.free[:n-1]
+		} else {
+			scopes[i] = a.next
+			a.next++
+		}
+	}
+	return scopes, nil
+}
+
+func (a *multiKprobeScopeAllocator) release(scopes []uint32) {
+	a.Lock()
+	defer a.Unlock()
+	a.free = append(a.free, scopes...)
+}
+
+func multiKprobeCookie(scope, index uint32) uint64 {
+	return uint64(scope)<<32 | uint64(index)
+}
+
+// Keep the function visible while preserving uniqueness after sanitizing or
+// truncating long symbols to fit a bpffs filename component.
+func multiKprobePinName(kind, symbol string, id uint64) string {
+	prefix, suffix := kind+"_", fmt.Sprintf("_%d", id)
+	symbol = strings.ReplaceAll(symbol, ".", "_")
+	if limit := 255 - len(prefix) - len(suffix); len(symbol) > limit {
+		symbol = symbol[:limit]
+	}
+	return prefix + symbol + suffix
+}
+
+// Actual data lives in policy-owned maps, created only when used. These shared
+// registries contain references to those maps, including config/filter arrays.
+var multiPolicyMaps = map[string]bool{
+	"config_map":                    true,
+	"filter_map":                    true,
+	"tg_mb_sel_opts":                true,
+	"workloads_map":                 true,
+	"substring_map":                 true,
+	"stack_trace_map":               true,
+	"policy_conf":                   true,
+	"selector_stats":                true,
+	"tg_state_map":                  true,
+	"retprobe_map":                  true,
+	"socktrack_map":                 true,
+	"ratelimit_map":                 true,
+	"override_tasks":                true,
+	"enforcer_data":                 true,
+	"enforcer_missed_notifications": true,
+}
+
+// Selector outer maps cannot be nested. Only their populated references are
+// published, with a (hook scope, local map ID) key. Values are never copied.
+func isMultiSelectorMap(name string) bool {
+	switch name {
+	case "argfilter_maps", "addr4lpm_maps", "addr6lpm_maps", "string_prefix_maps", "string_postfix_maps", "tg_mb_paths":
+		return true
+	}
+	return strings.HasPrefix(name, "string_maps_") && name != "string_maps_heap"
+}
+
+type sharedMultiKprobe struct {
+	load     *program.Program
+	maps     map[string]*program.Map
+	override *ebpf.Program
+}
+
+type multiKprobeLoadData struct {
+	entryIDs  []idtable.EntryID
+	returnIDs []idtable.EntryID
+	scopes    []uint32
+	// Keep the reservation if pins are preserved or cleanup fails.
+	retained bool
+}
+
+func (d *multiKprobeLoadData) releaseScopes() {
+	if d != nil && !d.retained {
+		multiKprobeScopes.release(d.scopes)
+		d.scopes = nil
+	}
+}
+
+func (d *multiKprobeLoadData) retainScopes() {
+	d.retained = true
+}
+
+type sharedMultiKprobeSensor struct {
+	sensor sensors.Sensor
+	probes [2]*sharedMultiKprobe
+}
+
+var sharedMultiKprobes struct {
+	sync.Mutex
+	base   *sensors.Sensor
+	loaded *sharedMultiKprobeSensor
+}
+
+func reserveMultiKprobeScopes(policy string, kprobes []v1alpha1.KProbeSpec, valInfo []*kpValidateInfo) *multiKprobeLoadData {
+	capacity, err := cachedMultiKprobeMapCapacity()
+	if err != nil {
+		return nil
+	}
+
+	// Count scopes for the hooks that survived validation.
+	var required uint64
+	for i, probe := range kprobes {
+		info := valInfo[i]
+		if info.ignore {
+			continue
+		}
+
+		// Each resolved symbol needs one entry scope.
+		hooks := uint64(len(info.calls))
+		required += hooks
+
+		// Reading a return value or copying data on return needs a return hook.
+		needsReturn := probe.Return
+		for _, arg := range probe.Args {
+			if arg.ReturnCopy {
+				needsReturn = true
+				break
+			}
+		}
+		for _, arg := range probe.Data {
+			if arg.ReturnCopy {
+				needsReturn = true
+				break
+			}
+		}
+
+		// Each symbol needs at most one return scope, even with multiple arguments.
+		if needsReturn {
+			required += hooks
+		}
+	}
+
+	if required == 0 {
+		return nil
+	}
+
+	scopes, err := multiKprobeScopes.reserve(capacity, required)
+	if err != nil {
+		logger.GetLogger().Warn("Using single kprobes due to insufficient shared multi-kprobe scopes",
+			"policy", policy, logfields.Error, err)
+		return nil
+	}
+	return &multiKprobeLoadData{scopes: scopes}
+}
+
+func init() {
+	base.RegisterExtensionAtInit("shared multi kprobes", extendBaseWithMultiKprobes)
+}
+
+func extendBaseWithMultiKprobes(baseSensor *sensors.Sensor) (*sensors.Sensor, error) {
+	baseSensor.PostLoadHook = func() error {
+		sharedMultiKprobes.Lock()
+		defer sharedMultiKprobes.Unlock()
+		sharedMultiKprobes.base = baseSensor
+		return nil
+	}
+	baseSensor.PreUnloadHook = func(unpin bool) error {
+		sharedMultiKprobes.Lock()
+		defer sharedMultiKprobes.Unlock()
+		if sharedMultiKprobes.base != baseSensor {
+			return nil
+		}
+		loaded := sharedMultiKprobes.loaded
+		sharedMultiKprobes.base = nil
+		sharedMultiKprobes.loaded = nil
+		if loaded != nil {
+			return loaded.sensor.Unload(unpin)
+		}
+		return nil
+	}
+	return baseSensor, nil
+}
+
+func getSharedMultiKprobe(bpfDir string, index int) (*sharedMultiKprobe, error) {
+	sharedMultiKprobes.Lock()
+	defer sharedMultiKprobes.Unlock()
+
+	baseSensor := sharedMultiKprobes.base
+	if baseSensor == nil || baseSensor.BpfDir != bpfDir {
+		return nil, errors.New("base sensor is not loaded for shared multi-kprobes")
+	}
+	if sharedMultiKprobes.loaded == nil {
+		loaded, err := loadSharedMultiKprobes(bpfDir, baseSensor.Maps)
+		if err != nil {
+			return nil, err
+		}
+		sharedMultiKprobes.loaded = loaded
+	}
+	return sharedMultiKprobes.loaded.probes[index], nil
+}
+
+func loadSharedMultiKprobes(bpfDir string, baseMaps []*program.Map) (*sharedMultiKprobeSensor, error) {
+	capacity, err := cachedMultiKprobeMapCapacity()
+	if err != nil {
+		return nil, err
+	}
+	loaded := &sharedMultiKprobeSensor{
+		sensor: sensors.Sensor{Name: "shared_multi_kprobes", Policy: sensors.BaseSensorName},
+	}
+	entry, ret := config.GenericKprobeObjs(true)
+	for i, obj := range []string{entry, ret} {
+		name, label := "multi_kprobe", "kprobe.multi/generic_kprobe"
+		if i == 1 {
+			name, label = "multi_retkprobe", "kprobe.multi/generic_retkprobe"
+		}
+
+		load := program.Builder(
+			path.Join(option.Config.HubbleLib, obj),
+			"shared multi kprobes",
+			label,
+			name,
+			"generic_kprobe").
+			SetPolicy(sensors.BaseSensorName)
+
+		shared := &sharedMultiKprobe{load: load, maps: make(map[string]*program.Map)}
+		load.LoaderData = shared
+
+		file, err := config.FindProgramFile(load.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		load.Name = file
+		spec, err := ebpf.LoadCollectionSpec(load.Name)
+		if err != nil {
+			return nil, fmt.Errorf("opening shared multi-kprobe object %q: %w", load.Name, err)
+		}
+
+		for mapName := range spec.Maps {
+			registry := multiPolicyMaps[mapName] || isMultiSelectorMap(mapName)
+			if !registry && mapName != "multi_cel" &&
+				mapName != "kprobe_calls" && mapName != "retkprobe_calls" && mapName != "process_call_heap" {
+				continue
+			}
+
+			m := program.MapBuilderProgram(mapName, load)
+			if registry || mapName == "multi_cel" {
+				m.SetMaxEntries(int(capacity))
+				if registry {
+					m.SetFlags(bpf.BPF_F_NO_PREALLOC)
+				}
+			}
+			shared.maps[mapName] = m
+			loaded.sensor.Maps = append(loaded.sensor.Maps, m)
+		}
+
+		for _, m := range baseMaps {
+			if m.Type == program.MapTypeGlobal && shared.maps[m.Name] == nil && spec.Maps[m.Name] != nil {
+				load.PinMap[m.Name] = m
+			}
+		}
+		loaded.probes[i] = shared
+		loaded.sensor.Progs = append(loaded.sensor.Progs, load)
+	}
+	if err := loaded.sensor.Load(bpfDir); err != nil {
+		return nil, fmt.Errorf("loading shared multi-kprobe programs: %w", err)
+	}
+	return loaded, nil
+}
+
+func (shared *sharedMultiKprobe) loadProgram(bpfDir string, maps []*program.Map, verbose int) error {
+	emptyCEL := selectors.CelExprFunctions{}
+	shared.load.RewriteProg = map[string]func(*ebpf.ProgramSpec) error{"generic_kprobe_filter_arg": emptyCEL.RewriteProg}
+	return program.LoadProgramOpts(bpfDir, shared.load, &program.LoadOpts{
+		Maps: maps,
+		Open: func(spec *ebpf.CollectionSpec) error {
+			delete(spec.Programs, "generic_kprobe_cel")
+			delete(spec.Programs, "generic_fmodret_override")
+			if !bpf.HasOverrideHelper() || isArm() {
+				delete(spec.Programs, "generic_kprobe_override")
+			}
+			return nil
+		},
+		Attach: func(coll *ebpf.Collection, _ *ebpf.CollectionSpec, prog *ebpf.Program, _ *ebpf.ProgramSpec) (unloader.Unloader, error) {
+			u := unloader.ChainUnloader{unloader.ProgUnloader{Prog: prog}}
+			if override := coll.Programs["generic_kprobe_override"]; override != nil {
+				cloned, err := override.Clone()
+				if err != nil {
+					return nil, err
+				}
+				if err := cloned.Pin(path.Join(bpfDir, shared.load.PinPath, "prog_override")); err != nil {
+					cloned.Close()
+					return nil, err
+				}
+				shared.override = cloned
+				u = append(u, unloader.ProgUnloader{Prog: cloned})
+			}
+			return u, nil
+		},
+	}, verbose)
+}
+
+// These Program values provide map metadata and pin paths only. One pair of
+// policy links attaches all hooks to the preloaded programs.
+func createMultiKprobeHookMaps(load *program.Program, gk *genericKprobe) []*program.Map {
+	index := 0
+	if load.RetProbe {
+		index = 1
+	}
+
+	source := program.Builder(
+		load.Name,
+		gk.funcName,
+		load.Label,
+		path.Join(load.PinName, multiKprobePinName("hook", gk.funcName, uint64(gk.tableId.ID))),
+		load.Type).
+		SetRetProbe(load.RetProbe).
+		SetPolicy(load.Policy)
+
+	var maps []*program.Map
+	state := getProgramSelector(load, gk)
+	if state != nil && gk.hasSelector {
+		maps = append(maps, createSelectorMaps(source, state, len(state.SubStrings()))...)
+		if !load.RetProbe {
+			maps = append(maps, program.MapBuilderProgram("tg_mb_sel_opts", source))
+			maps = append(maps, program.MapBuilderProgram("workloads_map", source))
+		}
+	}
+	gk.multiMaps[index] = source.PinMap
+	return maps
+}
+
+// The ELF describes shared registries. Instantiate the policy map from its
+// inner template, preserving sizes and flags selected by the policy builder.
+func configureMultiKprobeMap(m *program.Map) {
+	m.Configure = func(spec *ebpf.MapSpec) error {
+		if multiPolicyMaps[m.Name] {
+			if spec.InnerMap == nil {
+				return fmt.Errorf("missing inner template for %s", m.Name)
+			}
+			*spec = *spec.InnerMap.Copy()
+			spec.Name = m.Name
+		} else if isMultiSelectorMap(m.Name) {
+			spec.Type = ebpf.ArrayOfMaps
+			spec.Key, spec.KeySize = nil, 4
+		}
+		if maximum, ok := m.GetMaxEntries(); ok {
+			spec.MaxEntries = maximum
+		}
+		spec.Flags |= m.GetFlags()
+		return nil
+	}
+}
+
+type multiKprobeMapEntry struct {
+	m   *ebpf.Map
+	key any
+}
+
+type multiKprobeResources struct {
+	shared  *sharedMultiKprobe
+	load    *multiKprobeLoadData
+	scopes  []uint32
+	entries []multiKprobeMapEntry
+	cel     *program.Program
+	celDir  string
+}
+
+func (r *multiKprobeResources) Unload(unpin bool) error {
+	if !unpin {
+		r.load.retainScopes()
+		return nil
+	}
+	// Map-in-map deletion waits for an RCU grace period. Overlap those waits
+	// with a bounded number of workers instead of paying for each in turn.
+	deleteErrors := make([]error, min(8, len(r.entries)))
+	var wg sync.WaitGroup
+	for worker := range deleteErrors {
+		wg.Go(func() {
+			for i := worker; i < len(r.entries); i += len(deleteErrors) {
+				entry := r.entries[i]
+				if err := entry.m.Delete(entry.key); err != nil && !errors.Is(err, ebpf.ErrKeyNotExist) {
+					deleteErrors[worker] = errors.Join(deleteErrors[worker], err)
+				}
+			}
+		})
+	}
+	wg.Wait()
+	errs := errors.Join(deleteErrors...)
+	r.entries = nil
+	if r.cel != nil {
+		errs = errors.Join(errs, r.cel.Unload(true))
+		r.cel = nil
+	}
+	if r.celDir != "" {
+		if err := os.Remove(r.celDir); err != nil && !errors.Is(err, os.ErrNotExist) {
+			errs = errors.Join(errs, err)
+		}
+		r.celDir = ""
+	}
+	if errs != nil {
+		r.load.retainScopes()
+	}
+	return errs
+}
+
+func (r *multiKprobeResources) update(m *ebpf.Map, key, value any) error {
+	if err := m.Update(key, value, ebpf.UpdateAny); err != nil {
+		return err
+	}
+	r.entries = append(r.entries, multiKprobeMapEntry{m, key})
+	return nil
+}
+
+// Register actual policy maps and only populated selector-map references.
+func (r *multiKprobeResources) publish(scope uint32, local map[string]*program.Map) error {
+	for name, m := range local {
+		target := r.shared.maps[name]
+		if target == nil || m.MapHandle == nil {
+			continue
+		}
+		if multiPolicyMaps[name] {
+			if err := r.update(target.MapHandle, scope, m.MapHandle); err != nil {
+				return fmt.Errorf("registering %s: %w", name, err)
+			}
+			continue
+		}
+		if !isMultiSelectorMap(name) {
+			continue
+		}
+		var key uint32
+		var inner *ebpf.Map
+		iter := m.MapHandle.Iterate()
+		for iter.Next(&key, &inner) {
+			err := r.update(target.MapHandle, multiKprobeCookie(scope, key), inner)
+			inner.Close()
+			if err != nil {
+				return fmt.Errorf("publishing %s (capacity %d): %w", name, target.MapHandle.MaxEntries(), err)
+			}
+		}
+		if err := iter.Err(); err != nil {
+			return fmt.Errorf("iterating %s: %w", name, err)
+		}
+	}
+	return nil
+}
+
+func (r *multiKprobeResources) loadCEL(functions *selectors.CelExprFunctions, bpfDir string, load *program.Program, verbose int) error {
+	if functions == nil || len(*functions) == 0 {
+		return nil
+	}
+	cel := program.Builder(load.Name, load.Attach, "kprobe.multi/generic_kprobe_cel", "multi_cel", load.Type).SetPolicy(load.Policy)
+	cel.PinPath = path.Join(load.PinPath, "cel")
+	// createDirs normally prepares program directories, but this optional
+	// generated program is loaded as part of the policy's main attachment.
+	if err := os.MkdirAll(path.Join(bpfDir, cel.PinPath), 0755); err != nil {
+		return err
+	}
+	r.celDir = path.Join(bpfDir, cel.PinPath)
+	cel.RewriteProg = map[string]func(*ebpf.ProgramSpec) error{"generic_kprobe_cel": functions.RewriteProg}
+	r.cel = cel // also unwind failures after a program has been loaded
+	maps.Copy(cel.PinMap, r.shared.load.PinMap)
+	return program.LoadProgramOpts(bpfDir, cel, &program.LoadOpts{
+		Open: func(spec *ebpf.CollectionSpec) error {
+			for name := range spec.Programs {
+				if name != "generic_kprobe_cel" {
+					delete(spec.Programs, name)
+				}
+			}
+			// Replacements are still populated from ELF initializers by the
+			// collection loader. Never reinstall the shared tail calls here.
+			for _, m := range spec.Maps {
+				if m.Type == ebpf.ProgramArray {
+					m.Contents = nil
+				}
+			}
+			return nil
+		},
+		Attach: func(_ *ebpf.Collection, _ *ebpf.CollectionSpec, prog *ebpf.Program, _ *ebpf.ProgramSpec) (unloader.Unloader, error) {
+			for _, scope := range r.scopes {
+				if err := r.update(r.shared.maps["multi_cel"].MapHandle, scope, prog); err != nil {
+					prog.Close()
+					return nil, err
+				}
+			}
+			return unloader.ProgUnloader{Prog: prog}, nil
+		},
+	}, verbose)
+}
+
+// Load the shared programs on demand, then populate maps and attach policy hooks.
+func attachMultiKprobeSensor(loadData *multiKprobeLoadData, bpfDir string, load *program.Program, policyMaps []*program.Map, verbose int) (err error) {
+	if loadData.retained {
+		return errors.New("multi-kprobe scopes are still in use")
+	}
+	ids := loadData.entryIDs
+	entryCount := len(ids)
+	scopes := loadData.scopes[:entryCount]
+	sharedIndex := 0
+	if load.RetProbe {
+		sharedIndex = 1
+		ids = loadData.returnIDs
+		scopes = loadData.scopes[entryCount:]
+	}
+	shared, err := getSharedMultiKprobe(bpfDir, sharedIndex)
+	if err != nil {
+		return err
+	}
+	resources := &multiKprobeResources{shared: shared, load: loadData, scopes: scopes}
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, resources.Unload(true))
+		}
+	}()
+	common := make(map[string]*program.Map)
+	for _, m := range policyMaps {
+		if m.Type == program.MapTypePolicy {
+			common[m.Name] = m
+		}
+	}
+	maps.Copy(common, load.PinMap)
+	// Policy-mode initialization runs once, before any hook is attached.
+	for _, ml := range load.MapLoad {
+		m := common[ml.Name]
+		if m == nil {
+			return fmt.Errorf("missing policy map %s", ml.Name)
+		}
+		if err := ml.Load(m.MapHandle, m.PinPath); err != nil {
+			return err
+		}
+	}
+	data := &program.MultiKprobeAttachData{}
+	var celFunctions *selectors.CelExprFunctions
+	for index, id := range ids {
+		gk, getErr := genericKprobeTableGet(id)
+		if getErr != nil {
+			return getErr
+		}
+		scope := scopes[index]
+		local := maps.Clone(common)
+		maps.Copy(local, gk.multiMaps[sharedIndex])
+		state := getProgramSelector(load, gk)
+		if state != nil {
+			for _, ml := range selectorsMaploads(load, state, uint32(index)) {
+				m := local[ml.Name]
+				if m == nil {
+					// The hook does not use this optional selector map.
+					continue
+				}
+				if err := ml.Load(m.MapHandle, m.PinPath); err != nil {
+					return fmt.Errorf("populating %s: %w", ml.Name, err)
+				}
+			}
+			if !load.RetProbe {
+				celFunctions = state.CelExprFunctions()
+			}
+		}
+		var configData bytes.Buffer
+		if err := binary.Write(&configData, binary.LittleEndian, gk.loadArgs.config); err != nil {
+			return err
+		}
+		if err := local["config_map"].MapHandle.Update(uint32(index), configData.Bytes(), ebpf.UpdateAny); err != nil {
+			return err
+		}
+		if err := resources.publish(scope, local); err != nil {
+			return err
+		}
+		cookie := multiKprobeCookie(scope, uint32(index))
+		data.Symbols = append(data.Symbols, gk.funcName)
+		data.Cookies = append(data.Cookies, cookie)
+		if gk.hasOverride && !load.RetProbe {
+			data.Overrides = append(data.Overrides, gk.funcName)
+			data.OverrideCookies = append(data.OverrideCookies, cookie)
+		}
+	}
+	if err := resources.loadCEL(celFunctions, bpfDir, load, verbose); err != nil {
+		return err
+	}
+	load.Override = len(data.Overrides) > 0
+	load.OverrideFmodRet = false
+	load.SetAttachData(data)
+	loadedMaps := make(map[int]bpf.ExtendedMapInfo)
+	for _, m := range policyMaps {
+		if m.Type == program.MapTypeGlobal || m.MapHandle == nil {
+			continue
+		}
+		info, err := bpf.ExtendedInfoFromMap(m.MapHandle)
+		if err != nil {
+			return err
+		}
+		if id, ok := info.ID(); ok {
+			loadedMaps[int(id)] = info
+		}
+	}
+	if err := program.AttachSharedMultiKprobe(bpfDir, load, shared.load, shared.override, resources, loadData.retainScopes); err != nil {
+		return err
+	}
+	load.SetLoadedMapsInfo(loadedMaps)
+	return nil
 }

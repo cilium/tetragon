@@ -84,9 +84,10 @@ type TracingAttachData struct {
 }
 
 type MultiKprobeAttachData struct {
-	Symbols   []string
-	Cookies   []uint64
-	Overrides []string
+	Symbols         []string
+	Cookies         []uint64
+	Overrides       []string
+	OverrideCookies []uint64
 }
 
 type UprobeAttachData struct {
@@ -164,6 +165,9 @@ type Program struct {
 
 	// available when option.Config.KeepCollection is true
 	LC *LoadedCollection
+
+	// SharedStats marks an attachment whose program-wide metrics belong to its owner.
+	SharedStats bool
 
 	// Initialized map of constants to be populated in the program at
 	// loading time.

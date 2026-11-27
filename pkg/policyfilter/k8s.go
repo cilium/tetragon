@@ -38,6 +38,9 @@ func GetState() (State, error) {
 // option.Config.EnablePolicyFilter global and this is only initialized once.
 // Callers for this should ensure that no race happens.
 func resetStateOnlyForTesting() {
+	// This reset initializes the state itself. Do not let the first GetState
+	// call replace maps that already-loaded BPF programs reference.
+	setGlobalPf.Do(func() {})
 	if glblState != nil {
 		glblState.Close()
 	}

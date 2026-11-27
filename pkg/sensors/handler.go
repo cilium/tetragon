@@ -177,6 +177,10 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 		h.collections.mu.Unlock()
 		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
+	if col.state == LoadingState || col.state == UnloadingState {
+		h.collections.mu.Unlock()
+		return fmt.Errorf("cannot delete tracing policy %s while it is loading or unloading", op.ck.String())
+	}
 	delete(collections, op.ck)
 	// we have removed the collection, so unlock the map so that the lister can quickly view
 	// that the collection is gone

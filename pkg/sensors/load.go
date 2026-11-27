@@ -78,6 +78,26 @@ func (s *Sensor) createDirs(bpfDir string) {
 }
 
 func (s *Sensor) removeDirs() {
+	// Map-only Program descriptors can place hook maps beneath a loaded
+	// program's directory without loading another copy of that program.
+	programDirs := make(map[string]bool)
+	for _, p := range s.Progs {
+		programDirs[p.PinPath] = true
+	}
+	removed := make(map[string]bool)
+	for _, m := range s.Maps {
+		if !m.IsOwner() || m.Type != program.MapTypeProgram || m.PinPath == "" {
+			continue
+		}
+		dir := filepath.Dir(m.PinPath)
+		if programDirs[dir] || removed[dir] {
+			continue
+		}
+		removed[dir] = true
+		if err := os.Remove(filepath.Join(s.BpfDir, dir)); err != nil && !os.IsNotExist(err) {
+			logger.GetLogger().Warn("Failed to remove map dir", "dir", dir, logfields.Error, err)
+		}
+	}
 	// Remove all the program dirs
 	for _, p := range s.Progs {
 		if err := os.Remove(filepath.Join(s.BpfDir, p.PinPath)); err != nil {
@@ -184,7 +204,7 @@ func (s *Sensor) Unload(unpin bool) error {
 	}
 
 	if s.PreUnloadHook != nil {
-		if err := s.PreUnloadHook(); err != nil {
+		if err := s.PreUnloadHook(unpin); err != nil {
 			logger.GetLogger().Warn("Pre unload hook failed", "sensor", s.Name, logfields.Error, err)
 		}
 	}

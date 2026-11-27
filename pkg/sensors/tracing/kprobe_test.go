@@ -57,10 +57,12 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policystats"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
@@ -4925,11 +4927,15 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 }
 
 func loadTestCrd() error {
+	// The BPF attribute and command tests need an actual program load.
 	testHook := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
  name: "sys-write"
 spec:
+ options:
+ - name: "disable-kprobe-multi"
+   value: "1"
  kprobes:
  - call: "sys_write"
    syscall: true
@@ -6497,7 +6503,7 @@ spec:
 	expected := strings.NewReader(` # HELP tetragon_missed_prog_probes_total The total number of Tetragon probe missed by program.
 # TYPE tetragon_missed_prog_probes_total counter
 tetragon_missed_prog_probes_total{attach="acct_process",policy="__base__"} 0
-tetragon_missed_prog_probes_total{attach="kprobe_multi (2 functions)",policy="syswritepsswd"} 1
+tetragon_missed_prog_probes_total{attach="shared multi kprobes",policy="__base__"} 1
 tetragon_missed_prog_probes_total{attach="sched/sched_process_exec",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="socket",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="security_bprm_committing_creds",policy="__base__"} 0
@@ -8531,4 +8537,298 @@ func TestKprobeAllSelectorsNoRewriteConstants(t *testing.T) {
 	}
 	perfring.RunTest(t, ctx, ops, handler)
 	require.Equal(t, 1, events)
+}
+
+func TestSharedMultiKprobePolicies(t *testing.T) {
+	if !bpf.HasKprobeMulti() || option.Config.DisableKprobeMulti {
+		t.Skip("requires kprobe.multi")
+	}
+
+	pid := os.Getpid()
+	call := arch.AddSyscallPrefixTestHelper(t, "sys_getpgid")
+	loadPolicy := func(name string, pid int) (*sensors.Sensor, *policyInfo) {
+		spec := &v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{{
+				Call:    call,
+				Syscall: true,
+				Return:  true,
+				ReturnArg: &v1alpha1.KProbeArg{
+					Index: 0,
+					Type:  "int",
+				},
+				Args: []v1alpha1.KProbeArg{
+					{
+						Index: 0,
+						Type:  "int",
+					},
+				},
+				Selectors: []v1alpha1.KProbeSelector{
+					{
+						MatchArgs: []v1alpha1.ArgSelector{
+							{
+								Index:    0,
+								Operator: "Equal",
+								Values:   []string{strconv.Itoa(pid)},
+							},
+						},
+					},
+				},
+			}},
+		}
+		return loadSharedKprobePolicy(t, name, spec)
+	}
+	// PID 0 and our PID both refer to this process, but match different filters.
+	first, firstInfo := loadPolicy("shared-first", 0)
+	second, secondInfo := loadPolicy("shared-second", pid)
+	for i := range 2 {
+		firstProg, err := first.Progs[i].Prog.Info()
+		require.NoError(t, err)
+
+		firstID, ok := firstProg.ID()
+		require.True(t, ok)
+
+		secondProg, err := second.Progs[i].Prog.Info()
+		require.NoError(t, err)
+
+		secondID, ok := secondProg.ID()
+		require.True(t, ok)
+
+		require.Equal(t, firstID, secondID)
+	}
+
+	posts := func(pi *policyInfo) uint64 {
+		t.Helper()
+		var stats policystats.PolicyStats
+		require.NoError(t, pi.selectorStats.MapHandle.Lookup(uint32(0), &stats))
+		return stats.ActionsCount[policystats.PolicyPost]
+	}
+
+	_, err := unix.Getpgid(0)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), posts(firstInfo))
+	require.Zero(t, posts(secondInfo))
+	_, err = unix.Getpgid(pid)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), posts(secondInfo))
+
+	removedCookie := first.Progs[0].AttachData.(*program.MultiKprobeAttachData).Cookies[0]
+	hook, err := genericKprobeTableGet(first.Progs[0].LoaderData.(*multiKprobeLoadData).entryIDs[0])
+	require.NoError(t, err)
+
+	hookDir := filepath.Join(bpf.MapPrefixPath(), filepath.Dir(hook.multiMaps[0]["argfilter_maps"].PinPath))
+	require.Equal(t, multiKprobePinName("hook", call, uint64(hook.tableId.ID)), filepath.Base(hookDir))
+	require.NoError(t, first.Unload(true))
+
+	_, err = os.Stat(hookDir)
+	require.ErrorIs(t, err, os.ErrNotExist)
+
+	var removedMap *ebpf.Map
+	require.ErrorIs(t, sharedMultiKprobes.loaded.probes[0].maps["config_map"].MapHandle.Lookup(uint32(removedCookie>>32), &removedMap), ebpf.ErrKeyNotExist)
+	_, err = unix.Getpgid(pid)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), posts(secondInfo))
+	require.NoError(t, first.Load(bpf.MapPrefixPath()))
+	_, err = unix.Getpgid(0)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), posts(firstInfo))
+
+	// Failure after publication must leave no scope behind and must not affect
+	// existing links. Change the symbol after validation to force attach failure.
+	require.NoError(t, first.Unload(true))
+
+	originalName := hook.funcName
+	hook.funcName = "__tetragon_nonexistent_multi_kprobe_symbol"
+	require.Error(t, first.Load(bpf.MapPrefixPath()))
+
+	hook.funcName = originalName
+	require.NoError(t, first.Load(bpf.MapPrefixPath()))
+	_, err = unix.Getpgid(pid)
+	require.NoError(t, err)
+	require.Equal(t, uint64(3), posts(secondInfo))
+}
+
+func loadSharedKprobePolicy(t *testing.T, name string, spec *v1alpha1.TracingPolicySpec) (*sensors.Sensor, *policyInfo) {
+	t.Helper()
+
+	if !bpf.HasKprobeMulti() || option.Config.DisableKprobeMulti {
+		t.Skip("requires kprobe.multi")
+	}
+
+	if !base.GetInitialSensorTest(t).IsLoaded() {
+		tus.LoadInitialSensor(t)
+	}
+
+	pi, err := newPolicyInfoFromSpec("", "", name, policyfilter.NoFilterID, spec, nil)
+	require.NoError(t, err)
+
+	sensor, err := createGenericKprobeSensor(spec, "generic_kprobe", pi, simpleValidateInfo(spec.KProbes), kprobe)
+	require.NoError(t, err)
+
+	tus.LoadSensor(t, sensor)
+
+	return sensor, pi
+}
+
+func sharedSelectorStats(t *testing.T, pi *policyInfo, index uint32) policystats.PolicyStats {
+	t.Helper()
+
+	var stats policystats.PolicyStats
+	require.NoError(t, pi.selectorStats.MapHandle.Lookup(index, &stats))
+
+	return stats
+}
+
+func TestSharedMultiKprobeHookMaps(t *testing.T) {
+	pid := os.Getpid()
+	spec := &v1alpha1.TracingPolicySpec{KProbes: []v1alpha1.KProbeSpec{
+		{
+			Call:    arch.AddSyscallPrefixTestHelper(t, "sys_getpgid"),
+			Syscall: true,
+			Args: []v1alpha1.KProbeArg{
+				{
+					Index: 0,
+					Type:  "int",
+				},
+			},
+			Selectors: []v1alpha1.KProbeSelector{
+				{
+					MatchArgs: []v1alpha1.ArgSelector{
+						{
+							Index:    0,
+							Operator: "InMap",
+							Values:   []string{"0"},
+						},
+					},
+				},
+			},
+		},
+		{
+			Call:    arch.AddSyscallPrefixTestHelper(t, "sys_getsid"),
+			Syscall: true,
+			Args: []v1alpha1.KProbeArg{
+				{
+					Index: 0,
+					Type:  "int",
+				},
+			},
+			Selectors: []v1alpha1.KProbeSelector{
+				{
+					MatchArgs: []v1alpha1.ArgSelector{
+						{
+							Index:    0,
+							Operator: "InMap",
+							Values:   []string{strconv.Itoa(pid)},
+						},
+					},
+				},
+			},
+		},
+	}}
+
+	sensor, pi := loadSharedKprobePolicy(t, "shared-hook-maps", spec)
+	cookies := sensor.Progs[0].AttachData.(*program.MultiKprobeAttachData).Cookies
+	require.Len(t, cookies, 2)
+	require.NotEqual(t, uint32(cookies[0]>>32), uint32(cookies[1]>>32))
+
+	// Both hooks use map ID zero. Their shared outer entries must be distinct.
+	var maps [2]*ebpf.Map
+	var ids [2]ebpf.MapID
+	for i, cookie := range cookies {
+		require.NoError(t, sharedMultiKprobes.loaded.probes[0].maps["argfilter_maps"].MapHandle.Lookup(multiKprobeCookie(uint32(cookie>>32), 0), &maps[i]))
+		t.Cleanup(func() { maps[i].Close() })
+		info, err := maps[i].Info()
+		require.NoError(t, err)
+		var ok bool
+		ids[i], ok = info.ID()
+		require.True(t, ok)
+	}
+	require.NotEqual(t, ids[0], ids[1])
+	_, err := unix.Getpgid(0)
+	require.NoError(t, err)
+	_, err = unix.Getsid(pid)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), sharedSelectorStats(t, pi, 0).ActionsCount[policystats.PolicyPost])
+	require.Equal(t, uint64(1), sharedSelectorStats(t, pi, 1).ActionsCount[policystats.PolicyPost])
+	_, err = unix.Getpgid(pid)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), sharedSelectorStats(t, pi, 0).ActionsCount[policystats.PolicyPost])
+	require.Equal(t, uint64(1), sharedSelectorStats(t, pi, 1).ActionsCount[policystats.PolicyPost])
+}
+
+func TestSharedMultiKprobeReturnSelectors(t *testing.T) {
+	pgid, err := unix.Getpgid(0)
+	require.NoError(t, err)
+	for _, tc := range []struct {
+		name        string
+		returnValue int
+		noPost      bool
+		suppressed  uint64
+	}{
+		{"match", pgid, false, 0},
+		{"reject", pgid + 1, true, 0},
+		{"return-action", pgid, true, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			selector := v1alpha1.KProbeSelector{
+				MatchArgs: []v1alpha1.ArgSelector{
+					{
+						Index:    0,
+						Operator: "Equal",
+						Values:   []string{"0"},
+					},
+				},
+				MatchReturnArgs: []v1alpha1.ArgSelector{
+					{
+						Index:    0,
+						Operator: "Equal",
+						Values:   []string{strconv.Itoa(tc.returnValue)},
+					},
+				},
+			}
+			if tc.noPost {
+				selector.MatchReturnActions = []v1alpha1.ActionSelector{
+					{
+						Action: "NoPost",
+					},
+				}
+			}
+			spec := &v1alpha1.TracingPolicySpec{KProbes: []v1alpha1.KProbeSpec{{
+				Call:    arch.AddSyscallPrefixTestHelper(t, "sys_getpgid"),
+				Syscall: true,
+				Return:  true,
+				Args: []v1alpha1.KProbeArg{
+					{
+						Index: 0,
+						Type:  "int",
+					},
+				},
+				ReturnArg: &v1alpha1.KProbeArg{
+					Index: 0,
+					Type:  "int",
+				},
+				Selectors: []v1alpha1.KProbeSelector{
+					{
+						MatchArgs: []v1alpha1.ArgSelector{
+							{
+								Index:    0,
+								Operator: "Equal",
+								Values:   []string{"-1"},
+							},
+						},
+					},
+					selector,
+				},
+			}}}
+
+			_, pi := loadSharedKprobePolicy(t, "shared-return-"+tc.name, spec)
+			_, err := unix.Getpgid(0)
+			require.NoError(t, err)
+			firstStats := sharedSelectorStats(t, pi, 0)
+			require.True(t, firstStats.Empty())
+			stats := sharedSelectorStats(t, pi, 1)
+			// Only the entry probe counts the post.
+			require.Equal(t, uint64(1), stats.ActionsCount[policystats.PolicyPost])
+			require.Equal(t, tc.suppressed, stats.ActionsCount[policystats.PolicyNoPost])
+		})
+	}
 }

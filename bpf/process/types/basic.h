@@ -4,6 +4,8 @@
 #ifndef __BASIC_H__
 #define __BASIC_H__
 
+#include "multi_kprobe.h"
+
 #include "operations.h"
 #include "bpf_task.h"
 #include "bpf_cred.h"
@@ -661,29 +663,29 @@ FUNC_INLINE void *get_string_map(int index, __u32 map_idx)
 {
 	switch (index) {
 	case 0:
-		return map_lookup_elem(&string_maps_0, &map_idx);
+		return multi_lookup(&string_maps_0, &map_idx);
 	case 1:
-		return map_lookup_elem(&string_maps_1, &map_idx);
+		return multi_lookup(&string_maps_1, &map_idx);
 	case 2:
-		return map_lookup_elem(&string_maps_2, &map_idx);
+		return multi_lookup(&string_maps_2, &map_idx);
 	case 3:
-		return map_lookup_elem(&string_maps_3, &map_idx);
+		return multi_lookup(&string_maps_3, &map_idx);
 	case 4:
-		return map_lookup_elem(&string_maps_4, &map_idx);
+		return multi_lookup(&string_maps_4, &map_idx);
 	case 5:
-		return map_lookup_elem(&string_maps_5, &map_idx);
+		return multi_lookup(&string_maps_5, &map_idx);
 #ifdef __LARGE_BPF_PROG
 	case 6:
-		return map_lookup_elem(&string_maps_6, &map_idx);
+		return multi_lookup(&string_maps_6, &map_idx);
 	case 7:
-		return map_lookup_elem(&string_maps_7, &map_idx);
+		return multi_lookup(&string_maps_7, &map_idx);
 #ifdef __V511_BPF_PROG
 	case 8:
-		return map_lookup_elem(&string_maps_8, &map_idx);
+		return multi_lookup(&string_maps_8, &map_idx);
 	case 9:
-		return map_lookup_elem(&string_maps_9, &map_idx);
+		return multi_lookup(&string_maps_9, &map_idx);
 	case 10:
-		return map_lookup_elem(&string_maps_10, &map_idx);
+		return multi_lookup(&string_maps_10, &map_idx);
 #endif
 #endif
 	}
@@ -786,7 +788,7 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	__u32 map_idx = *(__u32 *)&filter->value;
 	struct string_prefix_lpm_trie *arg;
 
-	addrmap = map_lookup_elem(&string_prefix_maps, &map_idx);
+	addrmap = multi_lookup(&string_prefix_maps, &map_idx);
 	if (!addrmap || !arg_len)
 		return 0;
 
@@ -889,7 +891,7 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 	struct string_postfix_lpm_trie *arg;
 	uint orig_len = arg_len;
 
-	addrmap = map_lookup_elem(&string_postfix_maps, &map_idx);
+	addrmap = multi_lookup(&string_postfix_maps, &map_idx);
 	if (!addrmap || !arg_len)
 		return 0;
 
@@ -924,7 +926,7 @@ do_filter_char_substring(__u32 i, struct filter_char_substring_data *data, bool 
 	char *sub_str;
 	int idx;
 
-	sub_str = map_lookup_elem(&substring_map, &id);
+	sub_str = policy_lookup(&substring_map, &id);
 	if (!sub_str)
 		return 0;
 
@@ -1196,7 +1198,7 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 	switch (family) {
 	case AF_INET:
 		map_idx = map_idxs[0];
-		addrmap = map_lookup_elem(&addr4lpm_maps, &map_idx);
+		addrmap = multi_lookup(&addr4lpm_maps, &map_idx);
 		if (!addrmap)
 			return filter_addr_op_mod(filter->op, 0);
 		arg4.prefix = 32;
@@ -1205,7 +1207,7 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 		break;
 	case AF_INET6:
 		map_idx = map_idxs[1];
-		addrmap = map_lookup_elem(&addr6lpm_maps, &map_idx);
+		addrmap = multi_lookup(&addr6lpm_maps, &map_idx);
 		if (!addrmap)
 			return filter_addr_op_mod(filter->op, 0);
 		arg6.prefix = 128;
@@ -1594,7 +1596,7 @@ filter_8ty_map(struct selector_arg_filter *filter, char *args)
 	void *argmap;
 	__u32 map_idx = filter->value;
 
-	argmap = map_lookup_elem(&argfilter_maps, &map_idx);
+	argmap = multi_lookup(&argfilter_maps, &map_idx);
 	if (!argmap)
 		return 0;
 
@@ -1679,7 +1681,7 @@ filter_16ty_map(struct selector_arg_filter *filter, char *args)
 	void *argmap;
 	__u32 map_idx = filter->value;
 
-	argmap = map_lookup_elem(&argfilter_maps, &map_idx);
+	argmap = multi_lookup(&argfilter_maps, &map_idx);
 	if (!argmap)
 		return 0;
 
@@ -1710,7 +1712,7 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args)
 	void *argmap;
 	__u32 map_idx = filter->value;
 
-	argmap = map_lookup_elem(&argfilter_maps, &map_idx);
+	argmap = multi_lookup(&argfilter_maps, &map_idx);
 	if (!argmap)
 		return 0;
 
@@ -1927,7 +1929,7 @@ filter_32ty_map(struct selector_arg_filter *filter, char *args)
 	void *argmap;
 	__u32 map_idx = filter->value;
 
-	argmap = map_lookup_elem(&argfilter_maps, &map_idx);
+	argmap = multi_lookup(&argfilter_maps, &map_idx);
 	if (!argmap)
 		return 0;
 
@@ -2100,17 +2102,17 @@ struct match_binaries_sel_opts {
 // - matchParentBinaries, keys [MAX_SELECTORS, MAX_SELECTORS * 2)
 #define MB_MAX_ENTRIES (MAX_SELECTORS * 2)
 
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, MB_MAX_ENTRIES);
-	__type(key, __u32); /* selector id */
-	__type(value, struct match_binaries_sel_opts);
-} tg_mb_sel_opts SEC(".maps");
+POLICY_MAP(tg_mb_sel_opts,
+	   __uint(type, BPF_MAP_TYPE_ARRAY);
+	   __uint(map_flags, POLICY_ARRAY_FLAGS);
+	   __uint(max_entries, MB_MAX_ENTRIES);
+	   POLICY_KEY(__u32); /* selector id */
+	   POLICY_VALUE(struct match_binaries_sel_opts););
 
 struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(type, MULTI_OUTER_TYPE);
 	__uint(max_entries, MB_MAX_ENTRIES);
-	__type(key, __u32);
+	__type(key, MULTI_KEY_TYPE);
 	__array(
 		values, struct {
 			__uint(type, BPF_MAP_TYPE_HASH);
@@ -2135,7 +2137,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 
 	// retrieve the selector_options for the matchBinaries, if it's NULL it
 	// means there is not matchBinaries in this selector.
-	selector_options = map_lookup_elem(&tg_mb_sel_opts, &key);
+	selector_options = policy_lookup(&tg_mb_sel_opts, &key);
 
 	// if we failed to get process or its binary (i.e. one of them is NULL),
 	// we have match only if there are no selector options or if selector
@@ -2168,7 +2170,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 				break;
 			}
 
-			path_map = map_lookup_elem(&tg_mb_paths, &key);
+			path_map = multi_lookup(&tg_mb_paths, &key);
 			if (!path_map)
 				return 0;
 			found_key = map_lookup_elem(path_map, bin->path);
@@ -2176,7 +2178,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 #ifdef __LARGE_BPF_PROG
 		case op_filter_str_prefix:
 		case op_filter_str_notprefix:
-			path_map = map_lookup_elem(&string_prefix_maps, &selector_options->map_id);
+			path_map = multi_lookup(&string_prefix_maps, &selector_options->map_id);
 			if (!path_map)
 				return 0;
 			// prepare the key to perform lookup in the LPM_TRIE
@@ -2191,7 +2193,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 			break;
 		case op_filter_str_postfix:
 		case op_filter_str_notpostfix:
-			path_map = map_lookup_elem(&string_postfix_maps, &selector_options->map_id);
+			path_map = multi_lookup(&string_postfix_maps, &selector_options->map_id);
 			if (!path_map)
 				return 0;
 			if (bin->path_length < STRING_POSTFIX_MAX_MATCH_LENGTH)
@@ -2599,7 +2601,7 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 		}
 	}
 
-	last_repeat_entry = map_lookup_elem(&ratelimit_map, key);
+	last_repeat_entry = policy_lookup(&ratelimit_map, key);
 	if (last_repeat_entry) {
 		/* The interval is in milliseconds. Compare with the last timestamp's
 		 * expiry: subtracting from the boot-relative clock wraps before uptime
@@ -2611,7 +2613,7 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 		}
 	}
 	/* As we're acting on this event, update the map with the current time. */
-	map_update_elem(&ratelimit_map, key, &curr_time, 0);
+	policy_update(&ratelimit_map, key, &curr_time, 0);
 	return false;
 }
 #endif
@@ -2624,12 +2626,11 @@ struct socket_owner {
 };
 
 // socktrack_map maintains a mapping of sock to pid_tgid
-struct {
-	__uint(type, BPF_MAP_TYPE_LRU_HASH);
-	__uint(max_entries, 1); // will be resized by agent when needed
-	__type(key, __u64);
-	__type(value, struct socket_owner);
-} socktrack_map SEC(".maps");
+POLICY_MAP(socktrack_map,
+	   __uint(type, BPF_MAP_TYPE_LRU_HASH);
+	   __uint(max_entries, 1); // will be resized by agent when needed
+	   POLICY_KEY(__u64);
+	   POLICY_VALUE(struct socket_owner););
 
 FUNC_INLINE int
 tracksock(struct msg_generic_kprobe *e, int socki, bool track)
@@ -2663,7 +2664,7 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 	if (!sockaddr)
 		return 0;
 	if (!track)
-		return map_delete_elem(&socktrack_map, &sockaddr);
+		return policy_delete(&socktrack_map, &sockaddr);
 	pid_tgid = get_current_pid_tgid();
 	pid = pid_tgid >> 32;
 	value = execve_map_get_noinit(pid);
@@ -2673,7 +2674,7 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 	owner.tid = (__u32)pid_tgid;
 	owner.ktime = value->key.ktime;
 
-	map_update_elem(&socktrack_map, &sockaddr, &owner, BPF_ANY);
+	policy_update(&socktrack_map, &sockaddr, &owner, BPF_ANY);
 	return 0;
 }
 
@@ -2686,7 +2687,7 @@ update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 {
 	struct socket_owner *owner;
 
-	owner = map_lookup_elem(&socktrack_map, &sockaddr);
+	owner = policy_lookup(&socktrack_map, &sockaddr);
 	if (!owner)
 		return;
 
@@ -2709,12 +2710,11 @@ update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 
 // from linux/perf_event.h, note that this can be controlled with sysctl kernel.perf_event_max_stack
 #define PERF_MAX_STACK_DEPTH 127
-struct {
-	__uint(type, BPF_MAP_TYPE_STACK_TRACE);
-	__uint(max_entries, 1); // Agent is resizing this if the feature is needed during kprobe load
-	__type(key, __u32);
-	__uint(value_size, sizeof(__u64) * PERF_MAX_STACK_DEPTH);
-} stack_trace_map SEC(".maps");
+POLICY_MAP(stack_trace_map,
+	   __uint(type, BPF_MAP_TYPE_STACK_TRACE);
+	   __uint(max_entries, 1); // Agent is resizing this if the feature is needed during kprobe load
+	   POLICY_KEY(__u32);
+	   __uint(value_size, sizeof(__u64) * PERF_MAX_STACK_DEPTH););
 
 #if defined GENERIC_TRACEPOINT || defined GENERIC_KPROBE
 FUNC_INLINE void do_action_notify_enforcer(struct msg_generic_kprobe *e,

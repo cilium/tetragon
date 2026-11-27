@@ -4,6 +4,8 @@
 #ifndef POLICY_FILTER_MAPS_H__
 #define POLICY_FILTER_MAPS_H__
 
+#include "multi_kprobe.h"
+
 #include "bpf_tracing.h"
 #include "cgroup/cgtracker.h"
 
@@ -95,18 +97,19 @@ FUNC_INLINE bool policy_filter_check(u32 policy_id)
 	return !map_lookup_elem(policy_map, &cgroupid);
 }
 
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, MAX_SELECTORS);
-	__type(key, __u32); /* selector id */
-	__type(value, __u32); /* policy_id */
-} workloads_map SEC(".maps");
+POLICY_MAP(workloads_map,
+	   __uint(type, BPF_MAP_TYPE_ARRAY);
+	   __uint(map_flags, POLICY_ARRAY_FLAGS);
+	   __uint(max_entries, MAX_SELECTORS);
+	   POLICY_KEY(__u32); /* selector id */
+	   POLICY_VALUE(__u32); /* policy_id */
+);
 
 FUNC_INLINE int match_workloads(__u32 selector_id)
 {
 	__u32 *pol_id = 0;
 
-	pol_id = map_lookup_elem(&workloads_map, &selector_id);
+	pol_id = policy_lookup(&workloads_map, &selector_id);
 	if (!pol_id)
 		return 1; // no matchWorkload in this selector so match
 

@@ -4,6 +4,8 @@
 #ifndef ADDR_LPM_MAPS_H__
 #define ADDR_LPM_MAPS_H__
 
+#include "multi_kprobe.h"
+
 #define ADDR_LPM_MAPS_OUTER_MAX_ENTRIES 8
 
 struct addr4_lpm_trie {
@@ -12,9 +14,9 @@ struct addr4_lpm_trie {
 };
 
 struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(type, MULTI_OUTER_TYPE);
 	__uint(max_entries, ADDR_LPM_MAPS_OUTER_MAX_ENTRIES);
-	__type(key, __u32);
+	__type(key, MULTI_KEY_TYPE);
 	__array(
 		values, struct {
 			__uint(type, BPF_MAP_TYPE_LPM_TRIE);
@@ -31,9 +33,9 @@ struct addr6_lpm_trie {
 };
 
 struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(type, MULTI_OUTER_TYPE);
 	__uint(max_entries, ADDR_LPM_MAPS_OUTER_MAX_ENTRIES);
-	__type(key, __u32);
+	__type(key, MULTI_KEY_TYPE);
 	__array(
 		values, struct {
 			__uint(type, BPF_MAP_TYPE_LPM_TRIE);

@@ -4,6 +4,8 @@
 #ifndef __RETPROBE_MAP_H__
 #define __RETPROBE_MAP_H__
 
+#include "multi_kprobe.h"
+
 #include "bpf_tracing.h"
 #include "errmetrics.h"
 #include "generic.h"
@@ -18,14 +20,16 @@ struct retprobe_info {
 	unsigned long ptr;
 	unsigned long cnt;
 	__u32 active_selectors;
+#ifdef SHARED_KPROBE
+	struct msg_execve_key current;
+#endif
 };
 
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 1024);
-	__type(key, struct retprobe_key);
-	__type(value, struct retprobe_info);
-} retprobe_map SEC(".maps");
+POLICY_MAP(retprobe_map,
+	   __uint(type, BPF_MAP_TYPE_HASH);
+	   __uint(max_entries, 1024);
+	   POLICY_KEY(struct retprobe_key);
+	   POLICY_VALUE(struct retprobe_info););
 
 FUNC_INLINE bool
 retprobe_map_get(__u64 id, __u64 tid, struct retprobe_info *bufp)
@@ -36,12 +40,12 @@ retprobe_map_get(__u64 id, __u64 tid, struct retprobe_info *bufp)
 		.tid = tid,
 	};
 
-	info = map_lookup_elem(&retprobe_map, &key);
+	info = policy_lookup(&retprobe_map, &key);
 	if (!info)
 		return false;
 	if (bufp)
 		*bufp = *info;
-	map_delete_elem(&retprobe_map, &key);
+	policy_delete(&retprobe_map, &key);
 	return true;
 }
 
@@ -51,10 +55,10 @@ FUNC_INLINE void retprobe_map_clear(__u64 id, __u64 tid)
 		.id = id,
 		.tid = tid,
 	};
-	struct retprobe_info *info = map_lookup_elem(&retprobe_map, &key);
+	struct retprobe_info *info = policy_lookup(&retprobe_map, &key);
 
 	if (info)
-		map_delete_elem(&retprobe_map, &key);
+		policy_delete(&retprobe_map, &key);
 }
 
 FUNC_INLINE void
@@ -69,7 +73,7 @@ retprobe_map_set(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr)
 		.tid = tid,
 	};
 
-	with_errmetrics(map_update_elem, &retprobe_map, &key, &info, BPF_ANY);
+	with_errmetrics_helper(policy_update, map_update_elem, &retprobe_map, &key, &info, BPF_ANY);
 }
 
 FUNC_INLINE void
@@ -86,7 +90,7 @@ retprobe_map_set_iovec(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr,
 		.tid = tid,
 	};
 
-	with_errmetrics(map_update_elem, &retprobe_map, &key, &info, BPF_ANY);
+	with_errmetrics_helper(policy_update, map_update_elem, &retprobe_map, &key, &info, BPF_ANY);
 }
 
 /* Save the selectors whose entry filters passed, so the return probe only

@@ -582,9 +582,26 @@ func LSMAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
+type sharedMultiKprobeLinkUnloader struct {
+	link         link.Link
+	retainScopes func()
+}
+
+func (u sharedMultiKprobeLinkUnloader) Unload(unpin bool) error {
+	var err error
+	if unpin {
+		err = u.link.Unpin()
+	}
+	err = errors.Join(err, u.link.Close())
+	if err != nil {
+		u.retainScopes()
+	}
+	return err
+}
+
 func multiKprobeAttach(load *Program, prog *ebpf.Program,
-	spec *ebpf.ProgramSpec, opts link.KprobeMultiOptions,
-	bpfDir string, extra ...string) (unloader.Unloader, error) {
+	opts link.KprobeMultiOptions,
+	bpfDir string, retainScopes func(), extra ...string) (unloader.Unloader, error) {
 	var lnk link.Link
 	var err error
 
@@ -594,62 +611,35 @@ func multiKprobeAttach(load *Program, prog *ebpf.Program,
 		lnk, err = link.KprobeMulti(prog, opts)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		return nil, fmt.Errorf("attaching '%s' failed: %w", load.Label, err)
 	}
 	err = LinkPin(lnk, bpfDir, load, extra...)
 	if err != nil {
-		lnk.Close()
+		if closeErr := lnk.Close(); closeErr != nil && retainScopes != nil {
+			retainScopes()
+			return nil, errors.Join(err, closeErr)
+		}
 		return nil, err
 	}
 	load.Link = lnk
+	var linkUnloader unloader.Unloader = unloader.LinkUnloader{Link: lnk}
+	if retainScopes != nil {
+		linkUnloader = sharedMultiKprobeLinkUnloader{link: lnk, retainScopes: retainScopes}
+	}
 	return unloader.ChainUnloader{
 		unloader.ProgUnloader{
 			Prog: prog,
 		},
-		unloader.LinkUnloader{
-			Link: lnk,
-		},
+		linkUnloader,
 	}, nil
 }
 
 func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
-	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
-		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
+		prog *ebpf.Program, _ *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		data, ok := load.AttachData.(*MultiKprobeAttachData)
 		if !ok {
-			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
-		}
-
-		if load.Override {
-			progOverrideSpec, ok := collSpec.Programs["generic_kprobe_override"]
-			if ok {
-				progOverrideSpec.Type = ebpf.UnspecifiedProgram
-			}
-
-			progOverride, ok := coll.Programs["generic_kprobe_override"]
-			if !ok {
-				return nil, fmt.Errorf("program for section '%s' not found", load.Label)
-			}
-
-			progOverride, err := progOverride.Clone()
-			if err != nil {
-				return nil, fmt.Errorf("failed to clone program '%s': %w", load.Label, err)
-			}
-
-			pinPath := filepath.Join(bpfDir, filepath.Join(load.PinPath, "prog_override"))
-
-			if err := progOverride.Pin(pinPath); err != nil {
-				return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
-			}
-
-			opts := link.KprobeMultiOptions{
-				Symbols: data.Overrides,
-			}
-
-			load.unloaderOverride, err = multiKprobeAttach(load, progOverride, progOverrideSpec, opts, bpfDir, "override")
-			if err != nil {
-				logger.GetLogger().Warn("Failed to attach override program", logfields.Error, err)
-			}
+			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", load.Label)
 		}
 
 		opts := link.KprobeMultiOptions{
@@ -657,8 +647,68 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 			Cookies: data.Cookies,
 		}
 
-		return multiKprobeAttach(load, prog, spec, opts, bpfDir)
+		return multiKprobeAttach(load, prog, opts, bpfDir, nil)
 	}
+}
+
+func cloneAndPinProgram(source *ebpf.Program, pinPath string) (*ebpf.Program, error) {
+	prog, err := source.Clone()
+	if err != nil {
+		return nil, err
+	}
+	if err := prog.Pin(pinPath); err != nil {
+		prog.Close()
+		return nil, err
+	}
+	return prog, nil
+}
+
+// AttachSharedMultiKprobe attaches another policy to an already loaded program.
+// Cloning an FD and pinning it does not load or verify the program again.
+// cleanup runs after link cleanup. If a link may still be attached, retainScopes
+// keeps its scopes reserved.
+func AttachSharedMultiKprobe(bpfDir string, load, shared *Program, override *ebpf.Program, cleanup unloader.Unloader, retainScopes func()) (err error) {
+	data, ok := load.AttachData.(*MultiKprobeAttachData)
+	if !ok {
+		return fmt.Errorf("attaching '%s' failed: wrong attach data", load.Label)
+	}
+	if len(data.Overrides) != 0 && override == nil {
+		return errors.New("shared multi-kprobe override program is not loaded")
+	}
+	prog, err := cloneAndPinProgram(shared.Prog, filepath.Join(bpfDir, load.PinPath, "prog"))
+	if err != nil {
+		return err
+	}
+	var attached unloader.ChainUnloader
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, attached.Unload(true), (unloader.ProgUnloader{Prog: prog}).Unload(true))
+			load.Link = nil
+		}
+	}()
+	if len(data.Overrides) != 0 {
+		aux, err := cloneAndPinProgram(override, filepath.Join(bpfDir, load.PinPath, "prog_override"))
+		if err != nil {
+			return err
+		}
+		opts := link.KprobeMultiOptions{Symbols: data.Overrides, Cookies: data.OverrideCookies}
+		u, err := multiKprobeAttach(load, aux, opts, bpfDir, retainScopes, "override")
+		if err != nil {
+			return errors.Join(err, (unloader.ProgUnloader{Prog: aux}).Unload(true))
+		}
+		attached = append(attached, u)
+	}
+	opts := link.KprobeMultiOptions{Symbols: data.Symbols, Cookies: data.Cookies}
+	u, err := multiKprobeAttach(load, prog, opts, bpfDir, retainScopes)
+	if err != nil {
+		return err
+	}
+	// The override attachment must be detached before its map scope is removed.
+	attached = append(attached, u)
+	load.unloader = append(unloader.ChainUnloader{cleanup}, attached...)
+	load.Prog = prog
+	load.SharedStats = true
+	return nil
 }
 
 func LoadTracepointProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
@@ -724,10 +774,11 @@ func LoadUprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) e
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
+// LoadMultiKprobeProgram loads standalone enforcer programs. Generic multi
+// kprobes attach the preloaded base runtime through AttachSharedMultiKprobe.
 func LoadMultiKprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: MultiKprobeAttach(load, bpfDir),
-		Open:   KprobeOpen(load),
 		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
