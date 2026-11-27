@@ -48,7 +48,7 @@ jobs:
     needs: commit-status-start
     name: Build tetragon-rthooks
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     outputs:
       agentImage: ${{ steps.vars.outputs.agentImage }}
       operatorImage: ${{ steps.vars.outputs.operatorImage }}
