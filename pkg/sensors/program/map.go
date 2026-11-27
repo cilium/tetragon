@@ -77,6 +77,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
 type MaxEntries struct {
@@ -300,18 +301,23 @@ func (m *Map) Unload(unpin bool) error {
 		return nil
 	}
 	log.Debug("map was unloaded")
+	var ret error
 	if m.IsShared() && sharedMapDecRef(m.PinPath) && unpin {
-		m.MapHandle.Unpin()
+		if err := unloader.IgnoreUnpinNotSupported(m.MapHandle.Unpin()); err != nil {
+			ret = errors.Join(ret, fmt.Errorf("unpin map %q: %w", m.Name, err))
+		}
 		DeleteGlobMap(m.Name)
 	} else if m.IsOwner() && unpin {
-		m.MapHandle.Unpin()
+		if err := unloader.IgnoreUnpinNotSupported(m.MapHandle.Unpin()); err != nil {
+			ret = errors.Join(ret, fmt.Errorf("unpin map %q: %w", m.Name, err))
+		}
 		if m.Type == MapTypeGlobal {
 			DeleteGlobMap(m.Name)
 		}
 	}
-	err := m.MapHandle.Close()
+	ret = errors.Join(ret, m.MapHandle.Close())
 	m.MapHandle = nil
-	return err
+	return ret
 }
 
 func (m *Map) New(spec *ebpf.MapSpec) error {

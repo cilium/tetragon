@@ -118,7 +118,9 @@ func (u *RelinkUnloader) Unload(unpin bool) error {
 	var ret error
 	if u.IsLinked {
 		if unpin {
-			u.Link.Unpin()
+			if err := IgnoreUnpinNotSupported(u.Link.Unpin()); err != nil {
+				ret = errors.Join(ret, fmt.Errorf("unpin link: %w", err))
+			}
 		}
 		if err := u.Link.Close(); err != nil {
 			ret = errors.Join(ret, err)
@@ -172,9 +174,11 @@ type MultiRelinkUnloader struct {
 
 func (u *MultiRelinkUnloader) Unload(unpin bool) error {
 	var ret error
-	for _, link := range u.Links {
+	for i, link := range u.Links {
 		if unpin {
-			link.Unpin()
+			if err := IgnoreUnpinNotSupported(link.Unpin()); err != nil {
+				ret = errors.Join(ret, fmt.Errorf("unpin link %d: %w", i, err))
+			}
 		}
 		if err := link.Close(); err != nil {
 			ret = errors.Join(ret, err)
